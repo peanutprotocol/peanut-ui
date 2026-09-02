@@ -85,6 +85,9 @@ const MIN_QR_PAYMENT_AMOUNT = '0.1'
 // change the outcome, so fail fast instead of burning the 3-attempt budget.
 const NON_RETRYABLE_QR_PAY_ERRORS = [
     'PAYMENT_DESTINATION_DECODING_ERROR',
+    // The cashier's charge timed out on the till. Only the cashier can clear it,
+    // so retrying the same destination just burns the attempt budget.
+    'PAYMENT_DESTINATION_EXPIRED',
     'PIX_MIN_AMOUNT',
     'PIX_RECURRING_NOT_SUPPORTED',
     // Missing auth header (AJV 400) — retrying sends the same headerless request,
@@ -652,6 +655,13 @@ export default function QRPayPage() {
                 // rail, so suggesting an MP QR is the most useful fallback.
                 setErrorInitiatingPayment(qrType === EQrType.PIX ? t('errors.pixDecode') : t('errors.genericDecode'))
                 posthog.capture(ANALYTICS_EVENTS.QR_DECODING_ERROR_SHOWN, { qr_type: qrType })
+                setWaitingForMerchantAmount(false)
+            } else if (error.message.includes('PAYMENT_DESTINATION_EXPIRED')) {
+                // The QR is fine — a static POS sticker never expires. The charge
+                // the cashier rang up on the till did. Name the cashier action
+                // instead of blaming the rail.
+                setErrorInitiatingPayment(t('errors.merchantChargeExpired'))
+                posthog.capture(ANALYTICS_EVENTS.QR_MERCHANT_CHARGE_EXPIRED_SHOWN, { qr_type: qrType })
                 setWaitingForMerchantAmount(false)
             } else if (error.message.includes('PIX_MIN_AMOUNT')) {
                 // Deterministic rejection — the merchant-encoded amount is below

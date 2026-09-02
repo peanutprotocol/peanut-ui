@@ -158,6 +158,7 @@ export const ANALYTICS_EVENTS = {
     QR_SCANNED: 'qr_scanned',
     QR_NOTIFY_ME_CLICKED: 'qr_notify_me_clicked',
     QR_DECODING_ERROR_SHOWN: 'qr_decoding_error_shown',
+    QR_MERCHANT_CHARGE_EXPIRED_SHOWN: 'qr_merchant_charge_expired_shown',
 
     // ── Home ──
     BALANCE_VISIBILITY_TOGGLED: 'balance_visibility_toggled',

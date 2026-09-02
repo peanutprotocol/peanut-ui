@@ -1443,6 +1443,20 @@ describe('GROUP 5: Error States', () => {
         })
     })
 
+    test('Expired merchant charge names the cashier action, not a provider outage', async () => {
+        // A static POS sticker never expires — what timed out is the charge the
+        // cashier rang up. Blaming the rail sends the user away; naming the
+        // cashier action gets them paid.
+        mockMantecaApi.initiateQrPayment.mockRejectedValue(new Error('PAYMENT_DESTINATION_EXPIRED'))
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+        await waitFor(() => {
+            expect(screen.getByText(/enter the amount again/i)).toBeInTheDocument()
+        })
+        expect(screen.queryByText(/currently experiencing issues/i)).not.toBeInTheDocument()
+    })
+
     test('Below-minimum Pix charge shows the Pix minimum-amount error', async () => {
         mockMantecaApi.initiateQrPayment.mockRejectedValue(new Error('PIX_MIN_AMOUNT'))
 
