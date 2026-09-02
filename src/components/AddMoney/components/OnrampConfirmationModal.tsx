@@ -32,7 +32,7 @@ export const OnrampConfirmationModal = ({
         >
             <DrawerContent>
                 <div className="flex flex-col items-center gap-4 px-4 pt-1 pb-6 text-center">
-                    <IconBubble icon="alert" className="bg-action-secondary" />
+                    <IconBubble icon="alert" color="yellow" />
                     <DrawerTitle>{t('title')}</DrawerTitle>
                     <div className="flex w-full flex-col gap-4 text-left">
                         <h2 className="mr-auto font-bold">{t('nextStep')}</h2>

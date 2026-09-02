@@ -2,6 +2,7 @@
 
 import { railUserMessage, railVerdict } from '@/utils/capability-gate'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -1377,13 +1378,7 @@ export default function QRPayPage() {
                     {!perkClaimed && !qrPayment?.perk?.claimed && (
                         <Card className="flex flex-row items-center gap-3 p-4">
                             <div className="flex items-center gap-3">
-                                <div
-                                    className={
-                                        'flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-green-500 font-bold'
-                                    }
-                                >
-                                    <Icon name="check" size={24} />
-                                </div>
+                                <IconBubble icon="check" color="green" />
                             </div>
 
                             <div className="space-y-1">

@@ -607,9 +607,7 @@ function MantecaBankWithdrawFlow() {
                 <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     <Card className="flex flex-row items-center gap-3 p-4">
                         <div className="flex items-center gap-3">
-                            <div className="flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-green-500 font-bold">
-                                <Icon name="check" size={24} />
-                            </div>
+                            <IconBubble icon="check" color="green" />
                         </div>
                         <div className="space-y-1">
                             <h1 className="text-body-s font-normal text-foreground-secondary">
