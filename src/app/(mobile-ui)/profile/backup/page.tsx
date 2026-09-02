@@ -18,6 +18,7 @@ type FaqModal = 'lose-phone' | 'change-phone' | 'export-keys' | null
 
 export default function BackupPage() {
     const t = useTranslations('profile.backup')
+    const tCommon = useTranslations('common')
     const onBack = useSafeBack('/profile', { replace: true })
     const { deviceType } = useDeviceType()
     const [activeModal, setActiveModal] = useState<FaqModal>(null)
@@ -84,6 +85,13 @@ export default function BackupPage() {
                 icon="info"
                 title={t('faq.losePhone')}
                 titleClassName="text-heading-xs"
+                ctas={[
+                    {
+                        text: tCommon('close'),
+                        shadowSize: '4',
+                        onClick: closeModal,
+                    },
+                ]}
                 content={
                     <div className="space-y-3 w-full">
                         <Notification priority="success" title={t('losePhoneModal.enabledTitle')}>
@@ -102,6 +110,13 @@ export default function BackupPage() {
                 icon="info"
                 title={t('faq.changePhone')}
                 titleClassName="text-heading-xs"
+                ctas={[
+                    {
+                        text: tCommon('close'),
+                        shadowSize: '4',
+                        onClick: closeModal,
+                    },
+                ]}
                 content={
                     <div className="space-y-3 w-full">
                         <ol className="list-decimal pl-6 text-left text-body-s text-foreground-primary">
@@ -128,6 +143,13 @@ export default function BackupPage() {
                 icon="info"
                 title={t('faq.exportKeys')}
                 titleClassName="text-heading-xs"
+                ctas={[
+                    {
+                        text: tCommon('close'),
+                        shadowSize: '4',
+                        onClick: closeModal,
+                    },
+                ]}
                 content={
                     <div className="space-y-4 w-full text-left">
                         <div>

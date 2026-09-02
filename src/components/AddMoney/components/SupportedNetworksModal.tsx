@@ -12,12 +12,20 @@ interface SupportedNetworksModalProps {
 
 const SupportedNetworksModal = ({ visible, onClose }: SupportedNetworksModalProps) => {
     const t = useTranslations('addMoney.supportedNetworksModal')
+    const tCommon = useTranslations('common')
     return (
         <ActionModal
             visible={visible}
             onClose={onClose}
             title={t('title')}
             description={t('description')}
+            ctas={[
+                {
+                    text: tCommon('close'),
+                    shadowSize: '4',
+                    onClick: onClose,
+                },
+            ]}
             content={
                 <div className="flex w-full flex-col gap-4 text-left">
                     <div className="flex flex-wrap gap-2">
