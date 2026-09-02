@@ -52,18 +52,17 @@ jest.mock('@/components/Global/NavHeader', () => ({
     default: ({ onPrev }: { onPrev?: () => void }) =>
         onPrev ? <button data-testid="nav-back" onClick={onPrev} /> : null,
 }))
-jest.mock('@/components/Global/ActionModal', () => ({
-    __esModule: true,
-    // Renders description + content when visible so the guest Request-gate
-    // modal (the second crediting door) is assertable.
-    default: ({ visible, description, content }: { visible?: boolean; description?: string; content?: ReactNode }) =>
-        visible ? (
-            <div data-testid="action-modal">
-                <p>{description}</p>
-                {content}
-            </div>
-        ) : null,
+// Renders children when open so the guest Request-gate drawer (the second
+// crediting door) is assertable.
+jest.mock('@/components/Global/Drawer', () => ({
+    Drawer: ({ open, children }: { open?: boolean; children?: ReactNode }) =>
+        open ? <div data-testid="invite-drawer">{children}</div> : null,
+    DrawerContent: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+    DrawerHeader: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+    DrawerTitle: ({ children }: { children?: ReactNode }) => <h2>{children}</h2>,
+    DrawerDescription: ({ children }: { children?: ReactNode }) => <p>{children}</p>,
 }))
+jest.mock('@/components/0_Bruddle/IconBubble', () => ({ IconBubble: () => null }))
 jest.mock('@/components/Global/ShareButton', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
 jest.mock('next/image', () => ({ __esModule: true, default: () => null }))
@@ -195,15 +194,15 @@ describe('PublicProfile guest door', () => {
         })
     })
 
-    it('routes a guest through the crediting door from the Request-gate modal too', async () => {
+    it('routes a guest through the crediting door from the Request-gate drawer too', async () => {
         renderWithIntl(<PublicProfile username="Satoshi" />)
 
-        // Request opens the invite-gate modal for guests — it must offer the
+        // Request opens the invite-gate drawer for guests — it must offer the
         // same crediting door as the join card, not the old beg-for-an-invite
         // dead end.
         fireEvent.click(await screen.findByRole('button', { name: en.navigation.request }))
-        const modal = await screen.findByTestId('action-modal')
-        expect(modal).toHaveTextContent(en.profile.publicProfile.invitedLine.replace('{username}', 'Satoshi'))
+        const drawer = await screen.findByTestId('invite-drawer')
+        expect(drawer).toHaveTextContent(en.profile.publicProfile.invitedLine.replace('{username}', 'Satoshi'))
 
         const joinButtons = screen.getAllByRole('button', { name: JOIN_CTA })
         fireEvent.click(joinButtons[joinButtons.length - 1])

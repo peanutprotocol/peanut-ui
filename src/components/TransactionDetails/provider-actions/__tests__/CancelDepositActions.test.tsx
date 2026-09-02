@@ -53,30 +53,27 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
     ),
 }))
 jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => <span /> }))
-jest.mock('@/components/Global/ActionModal', () => ({
-    __esModule: true,
-    default: ({
-        visible,
-        title,
-        ctas,
-        onClose,
+jest.mock('@/components/0_Bruddle/IconBubble', () => ({ IconBubble: () => <span /> }))
+jest.mock('@/components/Global/Drawer', () => ({
+    Drawer: ({
+        open,
+        onOpenChange,
+        children,
     }: {
-        visible: boolean
-        title: React.ReactNode
-        ctas?: Array<{ text: string; onClick?: () => void }>
-        onClose: () => void
+        open?: boolean
+        onOpenChange?: (open: boolean) => void
+        children?: React.ReactNode
     }) =>
-        visible ? (
-            <div data-testid="confirm-modal">
-                <p>{title}</p>
-                {ctas?.map((cta) => (
-                    <button key={cta.text} onClick={cta.onClick}>
-                        {cta.text}
-                    </button>
-                ))}
-                <button onClick={onClose}>Dismiss</button>
+        open ? (
+            <div data-testid="confirm-drawer">
+                {children}
+                <button onClick={() => onOpenChange?.(false)}>Dismiss</button>
             </div>
         ) : null,
+    DrawerContent: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+    DrawerHeader: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+    DrawerTitle: ({ children }: { children?: React.ReactNode }) => <p>{children}</p>,
+    DrawerDescription: ({ children }: { children?: React.ReactNode }) => <p>{children}</p>,
 }))
 
 // import must come after jest.mock
@@ -112,11 +109,11 @@ describe('CancelDepositActions confirmation gate', () => {
     it('does NOT cancel on the first click — it asks for confirmation instead', () => {
         renderCancel()
 
-        expect(screen.queryByTestId('confirm-modal')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('confirm-drawer')).not.toBeInTheDocument()
         fireEvent.click(screen.getByText('Cancel deposit'))
 
         expect(mockCancelOnramp).not.toHaveBeenCalled()
-        expect(screen.getByTestId('confirm-modal')).toBeInTheDocument()
+        expect(screen.getByTestId('confirm-drawer')).toBeInTheDocument()
         expect(screen.getByText('Cancel this deposit?')).toBeInTheDocument()
     })
 
@@ -151,6 +148,6 @@ describe('CancelDepositActions confirmation gate', () => {
         fireEvent.click(screen.getByText('Dismiss'))
 
         expect(mockCancelOnramp).not.toHaveBeenCalled()
-        expect(screen.queryByTestId('confirm-modal')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('confirm-drawer')).not.toBeInTheDocument()
     })
 })

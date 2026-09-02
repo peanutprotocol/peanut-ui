@@ -241,6 +241,7 @@ export function ReceiptActions({
                 isLoading={isLoading}
                 setIsLoading={setIsLoading}
                 onClose={onClose}
+                setIsModalOpen={setIsModalOpen}
             />
 
             {showReferralNudge && (

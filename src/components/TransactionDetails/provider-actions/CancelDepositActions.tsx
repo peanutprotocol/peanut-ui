@@ -1,9 +1,10 @@
 'use client'
 
-import { useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { Button } from '@/components/0_Bruddle/Button'
-import ActionModal from '@/components/Global/ActionModal'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { isMantecaOnrampEntry, isRequestEntry } from '@/components/TransactionDetails/transaction-predicates'
@@ -33,12 +34,15 @@ export function CancelDepositActions({
     isLoading,
     setIsLoading,
     onClose,
+    setIsModalOpen,
 }: {
     transaction: TransactionDetails
     isPendingBankRequest: boolean
     isLoading: boolean | undefined
     setIsLoading: ((loading: boolean) => void) | undefined
     onClose: (() => void) | undefined
+    /** Present when rendered inside the transaction details drawer — the parent keeps itself open while the confirm drawer is up, and the confirm drawer nests. */
+    setIsModalOpen?: (isModalOpen: boolean) => void
 }) {
     const t = useTranslations('transaction')
     const queryClient = useQueryClient()
@@ -55,6 +59,11 @@ export function CancelDepositActions({
     // fade-out lands both clicks before a re-render, so a state guard would
     // let the cancel fire twice. Refs are synchronous.
     const isCancelRunning = useRef(false)
+    // sync the confirm drawer to the parent details drawer (same contract as
+    // the cancel-link drawer in ReceiptActions) so it stays open underneath.
+    useEffect(() => {
+        setIsModalOpen?.(confirmOpen)
+    }, [confirmOpen, setIsModalOpen])
     if (!setIsLoading || !onClose) return null
 
     const refetchAndClose = () =>
@@ -95,36 +104,40 @@ export function CancelDepositActions({
     }
 
     // Render the active cancel button (if any) alongside the shared
-    // confirmation modal and any failure message.
+    // confirmation drawer and any failure message. The confirm is a nested
+    // drawer when the receipt sits inside the transaction details drawer —
+    // an ActionModal there opened behind the drawer overlay (z-20 vs z-50)
+    // and needed z-index overrides; a nested vaul drawer stacks natively.
     const withError = (button: ReactNode) => (
         <div className="flex w-full flex-col gap-2">
             {button}
             {error && <Notification priority="error">{error}</Notification>}
-            <ActionModal
-                visible={confirmOpen}
-                onClose={() => setConfirmOpen(false)}
-                icon="ban"
-                title={t('actions.cancelConfirm.title', { kind: pendingCancel?.noun ?? 'deposit' })}
-                modalClassName="!z-[9999] pointer-events-auto"
-                description={
-                    <>
-                        {t.rich('actions.cancelConfirm.description', {
-                            strong: (chunks) => <strong>{chunks}</strong>,
-                        })}
-                    </>
-                }
-                modalPanelClassName="max-w-sm mx-8 !z-[9999] pointer-events-auto"
-                contentContainerClassName="relative pointer-events-auto"
-                classOverlay="!bg-black/40 !z-[9998]"
-                ctas={[
-                    {
-                        text: t('actions.cancelConfirm.confirm', { kind: pendingCancel?.noun ?? 'deposit' }),
-                        shadowSize: '4',
-                        className: 'md:py-2',
-                        onClick: confirmThenRun,
-                    },
-                ]}
-            />
+            <Drawer
+                nested={!!setIsModalOpen}
+                open={confirmOpen}
+                onOpenChange={(isOpen) => {
+                    if (!isOpen) setConfirmOpen(false)
+                }}
+            >
+                <DrawerContent>
+                    <div className="flex flex-col items-center gap-4 px-4 pt-1 pb-6 text-center">
+                        <IconBubble icon="ban" color="red" />
+                        <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
+                            <DrawerTitle>
+                                {t('actions.cancelConfirm.title', { kind: pendingCancel?.noun ?? 'deposit' })}
+                            </DrawerTitle>
+                            <DrawerDescription>
+                                {t.rich('actions.cancelConfirm.description', {
+                                    strong: (chunks) => <strong>{chunks}</strong>,
+                                })}
+                            </DrawerDescription>
+                        </DrawerHeader>
+                        <Button shadowSize="4" className="w-full justify-center" onClick={confirmThenRun}>
+                            {t('actions.cancelConfirm.confirm', { kind: pendingCancel?.noun ?? 'deposit' })}
+                        </Button>
+                    </div>
+                </DrawerContent>
+            </Drawer>
         </div>
     )
 

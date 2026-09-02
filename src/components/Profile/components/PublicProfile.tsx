@@ -25,7 +25,8 @@ import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import ShareButton from '@/components/Global/ShareButton'
-import ActionModal from '@/components/Global/ActionModal'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import BadgesRow from '@/components/Badges/BadgesRow'
 
 interface PublicProfileProps {
@@ -283,29 +284,36 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                 {/* A logged-out guest gets the crediting door; the beg flow stays for
                     the logged-in-without-access case, where the owner's code can no
                     longer credit them through signup. */}
-                <ActionModal
-                    icon="user"
-                    title={t('noInviteTitle')}
-                    description={
-                        isLoggedIn ? `${t('inviteOnlyLine1')}\n${t('inviteOnlyLine2')}` : t('invitedLine', { username })
-                    }
-                    visible={showInviteModal}
-                    onClose={() => {
-                        setShowInviteModal(false)
+                <Drawer
+                    open={showInviteModal}
+                    onOpenChange={(isOpen) => {
+                        if (!isOpen) setShowInviteModal(false)
                     }}
-                    content={
-                        isLoggedIn ? (
-                            <ShareButton
-                                generateText={() => Promise.resolve(t('begShareText'))}
-                                title={t('begForInvite')}
-                            >
-                                {t('begForInvite')}
-                            </ShareButton>
-                        ) : (
-                            joinCtaButton
-                        )
-                    }
-                />
+                >
+                    <DrawerContent>
+                        <div className="flex flex-col items-center gap-4 px-4 pt-1 pb-6 text-center">
+                            <IconBubble icon="user" className="bg-action-primary" />
+                            <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
+                                <DrawerTitle>{t('noInviteTitle')}</DrawerTitle>
+                                <DrawerDescription>
+                                    {isLoggedIn
+                                        ? `${t('inviteOnlyLine1')}\n${t('inviteOnlyLine2')}`
+                                        : t('invitedLine', { username })}
+                                </DrawerDescription>
+                            </DrawerHeader>
+                            {isLoggedIn ? (
+                                <ShareButton
+                                    generateText={() => Promise.resolve(t('begShareText'))}
+                                    title={t('begForInvite')}
+                                >
+                                    {t('begForInvite')}
+                                </ShareButton>
+                            ) : (
+                                joinCtaButton
+                            )}
+                        </div>
+                    </DrawerContent>
+                </Drawer>
             </div>
         </div>
     )
