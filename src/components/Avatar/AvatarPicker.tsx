@@ -39,8 +39,10 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
     const unlocked = badgeAvatarKeys(held)
 
     // The tile moves on tap; the slot behind the drawer moves after fetchUser
-    // lands. `pending` overrides `saved` while writes are in flight: last
-    // write wins, one refetch per burst, and a failed save snaps back.
+    // lands. `pending` overrides `saved` while writes are in flight. One
+    // refetch per burst, when the last request lands, and the server's
+    // answer wins: a failed older request cannot roll back a newer success,
+    // and a lone failure snaps back to what is saved.
     const [pending, setPending] = useState<string | null | undefined>(undefined)
     const inFlight = useRef(0)
     const pick = pending === undefined ? saved : pending
@@ -51,11 +53,7 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
         inFlight.current += 1
         const { error } = await updateUserById({ userId, avatarKey: key })
         inFlight.current -= 1
-        if (error) {
-            toast({ type: 'error', message: t('saveFailed') })
-            setPending(undefined)
-            return
-        }
+        if (error) toast({ type: 'error', message: t('saveFailed') })
         if (inFlight.current === 0) {
             await fetchUser()
             setPending(undefined)

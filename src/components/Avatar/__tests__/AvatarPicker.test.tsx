@@ -87,7 +87,61 @@ describe('AvatarPicker', () => {
 
         await waitFor(() => expect(radio('sun')).toHaveAttribute('aria-checked', 'true'))
         expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }))
+        // the server is the truth after a burst, failed or not
+        expect(mockFetchUser).toHaveBeenCalledTimes(1)
+    })
+
+    // Chip (#2929): two taps whose responses arrive out of order
+    const deferred = () => {
+        let resolve!: (value: { data?: object; error?: string }) => void
+        const promise = new Promise<{ data?: object; error?: string }>((r) => (resolve = r))
+        return { promise, resolve }
+    }
+    const A = 'Bug Whisperer · beetle'
+    const B = 'Bug Whisperer · shell'
+
+    it('the last tap wins when the first response arrives after the second', async () => {
+        const a = deferred()
+        const b = deferred()
+        mockUpdateUserById.mockReturnValueOnce(a.promise).mockReturnValueOnce(b.promise)
+        // the server holds the last write; the refetch reads it back
+        mockFetchUser.mockImplementation(async () => {
+            mockUser.user.avatarKey = 'badge.BUG_WHISPERER.shell'
+            return null
+        })
+        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        fireEvent.click(radio(A))
+        fireEvent.click(radio(B))
+        await act(async () => b.resolve({ data: {} }))
+        expect(radio(B)).toHaveAttribute('aria-checked', 'true')
         expect(mockFetchUser).not.toHaveBeenCalled()
+
+        await act(async () => a.resolve({ data: {} }))
+
+        await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
+        expect(radio(B)).toHaveAttribute('aria-checked', 'true')
+        expect(radio(A)).toHaveAttribute('aria-checked', 'false')
+    })
+
+    it('a failed older request does not roll back a newer success', async () => {
+        const a = deferred()
+        const b = deferred()
+        mockUpdateUserById.mockReturnValueOnce(a.promise).mockReturnValueOnce(b.promise)
+        mockFetchUser.mockImplementation(async () => {
+            mockUser.user.avatarKey = 'badge.BUG_WHISPERER.shell'
+            return null
+        })
+        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        fireEvent.click(radio(A))
+        fireEvent.click(radio(B))
+        await act(async () => b.resolve({ data: {} }))
+        await act(async () => a.resolve({ error: 'Avatar not unlocked' }))
+
+        await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
+        expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }))
+        expect(radio(B)).toHaveAttribute('aria-checked', 'true')
     })
 
     it('the dice redeals the basics row and never changes the pick', () => {
