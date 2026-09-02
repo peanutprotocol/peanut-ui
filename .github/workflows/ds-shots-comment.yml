@@ -28,20 +28,22 @@
 #   any operational API failure               → red job, comment untouched
 #
 # Supersession is enforced by head-SHA binding, not by cancellation. The
-# concurrency group below serializes publishers for the SAME head only —
-# cancel-in-progress stays false, because one branch can hold two open PRs
-# (dev and main base) whose publishers must both run. Serialization closes
-# the read-then-write race where a no-report run could overwrite the result
-# a sibling same-head run posted between its marker read and its PATCH;
-# once serialized, either order ends correctly, because the marker-head
-# guard makes a no-report run keep any comment already posted for its head.
-# queue: max keeps EVERY same-head publisher (FIFO, up to 100) — the default
-# one-slot queue would let a third run drop a sibling PR's only pending
-# publisher and leave that PR's comment stale.
+# concurrency group below serializes ALL publishers for one head branch.
+# Every writer of a given PR's comment lives in that group: report-path
+# runs come from the PR's own branch, and the stale path only touches PRs
+# of the run's branch. That closes both write races — a no-report run
+# overwriting a sibling same-head result between its marker read and its
+# PATCH, and an older-head publisher stalling past its bind check and
+# overwriting a newer head's comment. Execution order inside the group
+# does not matter: a run that executes after a newer push fails the head
+# binding and no-ops. cancel-in-progress stays false and queue: max keeps
+# every queued publisher — one branch can hold two open PRs (dev and main
+# base) whose publishers must both run, and the default one-slot queue
+# would silently drop one of them.
 #
-# Deploy note: workflow_run only fires once this file exists on the DEFAULT
-# branch (main). It lands on dev first, so the comment starts appearing after
-# the next dev → main release. Until then this file is inert.
+# Deploy note: workflow_run workflows execute the DEFAULT branch's copy of
+# this file. It went live on main via the #2912 hotfix; keep the dev copy
+# byte-identical so every dev → main release merges over it cleanly.
 name: ds-shots comment
 
 on:
@@ -55,7 +57,7 @@ permissions:
     pull-requests: write # the sticky comment
 
 concurrency:
-    group: ds-shots-comment-${{ github.event.workflow_run.head_sha }}
+    group: ds-shots-comment-${{ github.event.workflow_run.head_branch }}
     cancel-in-progress: false
     queue: max
 
@@ -74,8 +76,11 @@ jobs:
         timeout-minutes: 5
         steps:
             # For a workflow_run event github.sha is the default branch head,
-            # so this checks out trusted code — never the PR.
+            # so this checks out trusted code — never the PR. No git commands
+            # run after checkout, so the token is not persisted.
             - uses: actions/checkout@v4
+              with:
+                  persist-credentials: false
 
             - uses: actions/setup-node@v4
               with:
@@ -197,11 +202,11 @@ jobs:
                   # from the (untrusted) archive is ever written to disk, so
                   # zip-slip has nothing to work with. A missing member fails
                   # the step loudly.
-                  unzip -p report.zip report.json > report.json
+                  unzip -p report.zip report.json > extracted-report.json
                   if [ -n "$IMG_ID" ]; then
                       export ARTIFACT_URL="https://github.com/$REPO/actions/runs/$RUN_ID/artifacts/$IMG_ID"
                   fi
-                  node scripts/ds-shots-publish.mjs report.json > body.md
+                  node scripts/ds-shots-publish.mjs extracted-report.json > body.md
                   echo 'ok=true' >> "$GITHUB_OUTPUT"
 
             # A report that exists but cannot be used must not leave the
