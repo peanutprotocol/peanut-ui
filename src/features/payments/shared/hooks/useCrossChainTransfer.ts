@@ -27,6 +27,7 @@ import { encodeFunctionData, erc20Abi, parseUnits, type Address, type Hex } from
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { prepareRequestLinkFulfillmentTransaction } from '@/utils/peanut-claim.utils'
 import { estimateTransactionCostUsd } from '@/app/actions/tokens'
+import { useFriendlyError } from '@/hooks/useFriendlyError'
 import {
     provisionSdaTransfer,
     previewSdaTransfer,
@@ -170,6 +171,7 @@ function inferTokenSymbol(chainId: string, tokenAddress: string): RhinoSupported
 }
 
 export function useCrossChainTransfer(): UseCrossChainTransferReturn {
+    const toFriendlyError = useFriendlyError()
     const [transactions, setTransactions] = useState<PreparedTransaction[] | null>(null)
     const [sdaAddress, setSdaAddress] = useState<Address | null>(null)
     const [receiveAmount, setReceiveAmount] = useState<string | null>(null)
@@ -356,15 +358,14 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
                 })
                 setPath('sda')
             } catch (err) {
-                const message = err instanceof Error ? err.message : 'failed to calculate cross-chain transfer'
-                setError(message)
+                setError(toFriendlyError(err))
                 setIsFeeEstimationError(true)
                 captureException(err)
             } finally {
                 setIsCalculating(false)
             }
         },
-        []
+        [toFriendlyError]
     )
 
     return {

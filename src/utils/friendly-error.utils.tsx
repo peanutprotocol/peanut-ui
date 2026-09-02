@@ -89,6 +89,7 @@ export type FriendlyErrorCode =
     | 'rainInsufficientCollateral'
     | 'rainCooldownRetryShortly'
     | 'cardRateLimited'
+    | 'xchainWithdrawLimit'
     | 'linkTransactionHashFetch'
 
 /**
@@ -107,6 +108,7 @@ export type FriendlyErrorCode =
 export type FriendlyError =
     | { kind: 'code'; code: FriendlyErrorCode }
     | { kind: 'params'; code: 'rainCooldownRetry'; values: { minutes: number } }
+    | { kind: 'params'; code: 'xchainWithdrawLimitRetry'; values: { days: number; hours: number; minutes: number } }
     | { kind: 'text'; text: string }
 
 const code = (c: FriendlyErrorCode): FriendlyError => ({ kind: 'code', code: c })
@@ -208,6 +210,16 @@ const classifyError = (error: unknown): FriendlyError => {
         return minutes === null
             ? code('rainCooldownRetryShortly')
             : { kind: 'params', code: 'rainCooldownRetry', values: { minutes } }
+    }
+    if (wire === API_ERROR_CODES.XCHAIN_WITHDRAW_LIMIT_REACHED) {
+        // Per-user cross-chain withdraw cap. The wait can be minutes (hour
+        // rung), hours (day rung) or days (30-day rung); the ICU message picks
+        // the coarsest non-zero unit.
+        const minutes = cooldownMinutes(error)
+        if (minutes === null) return code('xchainWithdrawLimit')
+        const days = Math.floor(minutes / (24 * 60))
+        const hours = Math.floor(minutes / 60)
+        return { kind: 'params', code: 'xchainWithdrawLimitRetry', values: { days, hours, minutes } }
     }
     if (wire) {
         const mapped = WIRE_CODE_MAP[wire as ApiErrorCode]

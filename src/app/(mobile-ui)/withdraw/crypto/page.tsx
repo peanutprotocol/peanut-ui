@@ -163,8 +163,10 @@ export default function WithdrawCryptoPage() {
         }
     }, [routeError, recordError, setPaymentError])
 
-    // prepare transaction when entering confirm view
-    useEffect(() => {
+    // prepare transaction when entering confirm view — and again on Retry
+    // after a route error (e.g. the cross-chain cap's 429), so the user is not
+    // stuck with a Retry that fails on "no transactions prepared"
+    const calculateCurrentRoute = useCallback(() => {
         if (currentView === 'CONFIRM' && chargeDetails && withdrawData && address) {
             calculateRoute({
                 source: {
@@ -190,6 +192,10 @@ export default function WithdrawCryptoPage() {
             })
         }
     }, [currentView, chargeDetails, withdrawData, calculateRoute, address, amountToWithdraw])
+
+    useEffect(() => {
+        calculateCurrentRoute()
+    }, [calculateCurrentRoute])
 
     const handleSetupReview = useCallback(
         async (data: Omit<WithdrawData, 'amount'>) => {
@@ -337,6 +343,13 @@ export default function WithdrawCryptoPage() {
         }
 
         if (!transactions || transactions.length === 0) {
+            if (routeError) {
+                // Retry after a failed route (cap 429, quote failure): recompute
+                // instead of failing on the transactions the failure never built.
+                clearErrors()
+                calculateCurrentRoute()
+                return
+            }
             console.error('No transactions prepared for withdrawal')
             setError(t('errors.txNotPrepared'))
             return

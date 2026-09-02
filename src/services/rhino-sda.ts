@@ -10,6 +10,7 @@
  * Three consumers: withdraw, pay-request-x-chain, claim-link-x-chain.
  */
 
+import { apiErrorFromResponse } from '@/services/api-error'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { getAuthHeaders, authReady } from '@/utils/auth-token'
@@ -82,10 +83,10 @@ async function postRhino<TReq, TRes>(path: string, body: TReq, errorLabel: strin
         },
         body: JSON.stringify(body),
     })
-    if (!response.ok) {
-        const text = await response.text().catch(() => '')
-        throw new Error(`${errorLabel}: ${response.status} ${text}`)
-    }
+    // ApiError keeps the backend's `error` text as the message and carries its
+    // `code` / `retryAfterSec`, so friendlyError can localize a 429 instead of
+    // the UI echoing a "Failed to …: 429 {json}" string.
+    if (!response.ok) throw await apiErrorFromResponse(response, errorLabel)
     return (await response.json()) as TRes
 }
 

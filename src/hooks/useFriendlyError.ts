@@ -18,13 +18,16 @@ export function useFriendlyError() {
                 case 'code':
                     return t(result.code)
                 case 'params':
-                    // `result.code` narrows to a single literal here, so next-intl
-                    // resolves exactly this message's ICU args. If a SECOND
-                    // parameterized code is ever added, switch on `result.code`
-                    // inside this branch — otherwise next-intl collapses `values`
-                    // to the intersection of both messages' args and neither one
-                    // typechecks.
-                    return t(result.code, result.values)
+                    // Switch on `result.code` so each branch narrows to one
+                    // literal and next-intl resolves exactly that message's ICU
+                    // args; otherwise `values` collapses to the intersection of
+                    // both messages' args and neither one typechecks.
+                    switch (result.code) {
+                        case 'rainCooldownRetry':
+                            return t(result.code, result.values)
+                        case 'xchainWithdrawLimitRetry':
+                            return t(result.code, result.values)
+                    }
             }
         },
         [t]

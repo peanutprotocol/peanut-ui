@@ -25,6 +25,7 @@ export const API_ERROR_CODES = {
     MANTECA_KYC_REQUIRED: 'MANTECA_KYC_REQUIRED',
     TRANSFER_ALREADY_CONFIRMED: 'TRANSFER_ALREADY_CONFIRMED',
     CHAIN_INFRA_UNAVAILABLE: 'CHAIN_INFRA_UNAVAILABLE',
+    XCHAIN_WITHDRAW_LIMIT_REACHED: 'XCHAIN_WITHDRAW_LIMIT_REACHED',
 } as const
 
 export type ApiErrorCode = (typeof API_ERROR_CODES)[keyof typeof API_ERROR_CODES]
@@ -42,12 +43,15 @@ export type ApiErrorCode = (typeof API_ERROR_CODES)[keyof typeof API_ERROR_CODES
 export class ApiError extends Error {
     readonly status: number
     readonly code: string | undefined
+    /** Seconds until a rate-limited or cooled-down action can be retried, when the backend sent one. */
+    readonly retryAfterSec: number | undefined
 
-    constructor(message: string, opts: { status: number; code?: string; cause?: unknown }) {
+    constructor(message: string, opts: { status: number; code?: string; retryAfterSec?: number; cause?: unknown }) {
         super(message, { cause: opts.cause })
         this.name = 'ApiError'
         this.status = opts.status
         this.code = opts.code
+        this.retryAfterSec = opts.retryAfterSec
     }
 }
 
@@ -90,14 +94,27 @@ export function apiErrorStatus(error: unknown): number | undefined {
 export async function apiErrorFromResponse(response: Response, fallbackMessage: string): Promise<ApiError> {
     let message = fallbackMessage
     let code: string | undefined
+    let retryAfterSec: number | undefined
     try {
         const body = await response.text()
-        const parsed = JSON.parse(body) as { message?: unknown; error?: unknown; code?: unknown }
+        const parsed = JSON.parse(body) as {
+            message?: unknown
+            error?: unknown
+            code?: unknown
+            retryAfterSec?: unknown
+        }
         if (typeof parsed.message === 'string' && parsed.message) message = parsed.message
         else if (typeof parsed.error === 'string' && parsed.error) message = parsed.error
         if (typeof parsed.code === 'string' && parsed.code) code = parsed.code
+        if (
+            typeof parsed.retryAfterSec === 'number' &&
+            Number.isFinite(parsed.retryAfterSec) &&
+            parsed.retryAfterSec > 0
+        ) {
+            retryAfterSec = parsed.retryAfterSec
+        }
     } catch {
         // unreadable or non-JSON body — keep the fallback message
     }
-    return new ApiError(message, { status: response.status, code })
+    return new ApiError(message, { status: response.status, code, retryAfterSec })
 }
