@@ -23,6 +23,8 @@ import {
     rewriteMethodPath,
     deepLinkToNativePath,
     isNativeExportPath,
+    resolveInAppNavigation,
+    NATIVE_EXPORT_ROOTS,
 } from '../native-routes'
 
 describe('native-routes', () => {
@@ -648,6 +650,171 @@ describe('native-routes', () => {
         it.each([...roots])('claimed root %s resolves to a native path', (root) => {
             const sample = SAMPLE_BY_ROOT[root] ?? `/${root}`
             expect(deepLinkToNativePath(`https://peanut.me${sample}`)).not.toBeNull()
+        })
+    })
+})
+
+/*
+ * Export drift guard: NATIVE_EXPORT_ROOTS is a hand-written list of what the
+ * native static export ships. It once carried `notifications`, a route that
+ * never existed. Derive the exported page roots from src/app minus what
+ * scripts/native-build.js disables, and pin the two against each other.
+ */
+describe('NATIVE_EXPORT_ROOTS matches the pages the native export ships', () => {
+    const { existsSync, readdirSync, statSync } = require('fs')
+    const { join } = require('path')
+    const { ITEMS_TO_DISABLE } = require('../../../scripts/native-build.js') as {
+        ITEMS_TO_DISABLE: Array<{ path: string; type: 'dir' | 'file' }>
+    }
+    const APP_DIR = join(process.cwd(), 'src/app')
+    const disabled = new Set(ITEMS_TO_DISABLE.map((item) => item.path))
+    const PAGE_FILE = /^page\.(tsx|ts|jsx|js)$/
+
+    // Exported, deliberately not in NATIVE_EXPORT_ROOTS:
+    // - `app`: the smart store link. It must open externally, never be pushed
+    //   in-app, so isNativeExportPath must keep saying no.
+    // - `dev`: pruneExportedAssets() strips every /dev page but /dev/deferred,
+    //   which is reached through the AASA, not from in-app anchors.
+    const WEB_ONLY_EXPORTED = ['app', 'dev']
+
+    // A directory counts once it has a page file anywhere below it that the
+    // native build does not disable — a disabled page/dir contributes nothing.
+    function hasExportedPage(dir: string, rel: string): boolean {
+        if (disabled.has(rel)) return false
+        for (const entry of readdirSync(dir)) {
+            const entryRel = rel ? `${rel}/${entry}` : entry
+            if (disabled.has(entryRel)) continue
+            const full = join(dir, entry)
+            if (statSync(full).isDirectory()) {
+                if (hasExportedPage(full, entryRel)) return true
+            } else if (PAGE_FILE.test(entry)) {
+                return true
+            }
+        }
+        return false
+    }
+
+    function exportedRoots(): Set<string> {
+        const roots = new Set<string>()
+        for (const group of ['(mobile-ui)', '(setup)', '']) {
+            const base = join(APP_DIR, group)
+            for (const entry of readdirSync(base)) {
+                const full = join(base, entry)
+                if (!statSync(full).isDirectory()) continue
+                // route groups only at the top level (handled above); dynamic
+                // segments have no static root of their own
+                if (entry.startsWith('(') || entry.startsWith('[') || entry === '__tests__') continue
+                const rel = group ? `${group}/${entry}` : entry
+                if (hasExportedPage(full, rel)) roots.add(entry)
+            }
+        }
+        return roots
+    }
+
+    const onDisk = exportedRoots()
+
+    it.each([...NATIVE_EXPORT_ROOTS].sort())('listed root %s has a page in the export', (root) => {
+        expect(onDisk.has(root)).toBe(true)
+    })
+
+    it.each([...onDisk].sort())('exported root %s is listed or explicitly web-only', (root) => {
+        expect(NATIVE_EXPORT_ROOTS.has(root) || WEB_ONLY_EXPORTED.includes(root)).toBe(true)
+    })
+
+    it('keeps the web-only allowlist honest', () => {
+        for (const root of WEB_ONLY_EXPORTED) {
+            expect(onDisk.has(root)).toBe(true)
+            expect(NATIVE_EXPORT_ROOTS.has(root)).toBe(false)
+        }
+        expect(existsSync(join(APP_DIR, '(mobile-ui)/notifications'))).toBe(false)
+    })
+})
+
+/*
+ * The receipt's Pay CTA assigned an absolute peanut.me URL to window.location —
+ * an off-origin top-level navigation the Capacitor WebView hands to the OS.
+ */
+describe('resolveInAppNavigation', () => {
+    describe('capacitor mode', () => {
+        beforeEach(() => mockIsCapacitor.mockReturnValue(true))
+
+        it('pushes the native stand-in for a request link', () => {
+            expect(resolveInAppNavigation('https://peanut.me/alice?chargeId=abc')).toEqual({
+                kind: 'push',
+                path: '/pay-request?chargeId=abc',
+            })
+            expect(resolveInAppNavigation('https://peanut.me/alice/5usdc?id=pot-1')).toEqual({
+                kind: 'push',
+                path: '/pay-request?id=pot-1',
+            })
+        })
+
+        it('pushes a bare in-app path unchanged', () => {
+            expect(resolveInAppNavigation('/pay-request?chargeId=abc')).toEqual({
+                kind: 'push',
+                path: '/pay-request?chargeId=abc',
+            })
+        })
+
+        it('hands a peanut.me page the export does not ship to the browser', () => {
+            expect(resolveInAppNavigation('https://peanut.me/en/help')).toEqual({
+                kind: 'external',
+                url: 'https://peanut.me/en/help',
+            })
+        })
+
+        // The link is a caller-supplied baseUrl persisted by the charge API, so
+        // only an https Peanut origin may leave the app; anything else is dropped.
+        it.each([
+            ['an off-domain https link', 'https://example.com/pay'],
+            ['a look-alike host', 'https://peanut.me.evil.example/pay'],
+            ['a javascript: url', 'javascript:alert(1)'],
+            ['a data: url', 'data:text/html,<script>alert(1)</script>'],
+            ['a plain http peanut link', 'http://peanut.me/en/help'],
+        ])('refuses to open %s', (_name, link) => {
+            expect(resolveInAppNavigation(link)).toBeNull()
+        })
+
+        it('returns null for an empty or unparseable link', () => {
+            expect(resolveInAppNavigation('')).toBeNull()
+            expect(resolveInAppNavigation('not a url')).toBeNull()
+        })
+    })
+
+    describe('web mode', () => {
+        beforeEach(() => mockIsCapacitor.mockReturnValue(false))
+
+        it('pushes the path of a same-origin link, query and fragment included', () => {
+            expect(resolveInAppNavigation(`${window.location.origin}/alice?chargeId=abc#x`)).toEqual({
+                kind: 'push',
+                path: '/alice?chargeId=abc#x',
+            })
+        })
+
+        it('pushes a relative path', () => {
+            expect(resolveInAppNavigation('/alice?chargeId=abc')).toEqual({
+                kind: 'push',
+                path: '/alice?chargeId=abc',
+            })
+        })
+
+        it('hands an https peanut.me link that is not same-origin to the browser', () => {
+            expect(resolveInAppNavigation('https://app.peanut.me/en/help')).toEqual({
+                kind: 'external',
+                url: 'https://app.peanut.me/en/help',
+            })
+        })
+
+        it.each([
+            ['another origin', 'https://example.com/pay'],
+            ['a javascript: url', 'javascript:alert(1)'],
+            ['a data: url', 'data:text/html,hi'],
+        ])('refuses to open %s', (_name, link) => {
+            expect(resolveInAppNavigation(link)).toBeNull()
+        })
+
+        it('returns null for an empty link', () => {
+            expect(resolveInAppNavigation('')).toBeNull()
         })
     })
 })

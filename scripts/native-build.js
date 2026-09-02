@@ -58,6 +58,8 @@ const ITEMS_TO_DISABLE = [
     { path: '(mobile-ui)/dev/payment-graph', type: 'dir' },
 ]
 
+module.exports = { ITEMS_TO_DISABLE }
+
 const MODIFIED_FILES = []
 const WRAPPER_FILES = []
 
@@ -717,4 +719,4 @@ function pruneExportedAssets() {
     }
 }
 
-main()
+if (require.main === module) main()

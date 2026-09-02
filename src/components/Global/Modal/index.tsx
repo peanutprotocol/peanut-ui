@@ -1,6 +1,7 @@
 import { Dialog, DialogBackdrop, DialogPanel, Transition } from '@headlessui/react'
 import { Fragment, useRef } from 'react'
 import { twMerge } from '@/utils/tw'
+import { useBackHandler } from '@/hooks/useBackHandler'
 import { Icon } from '../Icons/Icon'
 
 type ModalProps = {
@@ -35,6 +36,11 @@ const Modal = ({
     preventClose = false,
 }: ModalProps) => {
     let dialogRef = useRef(null)
+
+    useBackHandler(() => {
+        if (!preventClose) onClose()
+        return true
+    }, visible)
 
     return (
         <Transition show={visible} as={Fragment}>

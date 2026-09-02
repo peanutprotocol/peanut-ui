@@ -6,6 +6,9 @@ import { type ISetupStep } from '@/components/Setup/Setup.types'
 
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 
+let mockNativeBridge = false
+jest.mock('@/utils/capacitor', () => ({ isNativeBridge: () => mockNativeBridge }))
+
 const mockedCapture = posthog.capture as jest.MockedFunction<typeof posthog.capture>
 
 const steps = [
@@ -39,6 +42,7 @@ describe('useSetupStepUrlSync', () => {
         // which would leak call history recorded before a test attaches it
         jest.restoreAllMocks()
         jest.clearAllMocks()
+        mockNativeBridge = false
         window.history.replaceState(null, '', '/setup')
     })
 
@@ -132,5 +136,34 @@ describe('useSetupStepUrlSync', () => {
         })
 
         expect(goToScreen).not.toHaveBeenCalled()
+    })
+
+    describe('native bridge', () => {
+        it('mirrors step advances with replaceState so hardware back never walks the mirror', () => {
+            mockNativeBridge = true
+            const { rerender } = render({ enabled: true, step: stepById('landing') })
+            const pushSpy = jest.spyOn(window.history, 'pushState')
+            const replaceSpy = jest.spyOn(window.history, 'replaceState')
+
+            rerender({ enabled: true, step: stepById('welcome') })
+            rerender({ enabled: true, step: stepById('signup') })
+
+            expect(pushSpy).not.toHaveBeenCalled()
+            expect(replaceSpy).toHaveBeenCalledTimes(2)
+            expect(window.location.search).toBe('?screen=signup')
+            expect(mockedCapture).toHaveBeenLastCalledWith(
+                ANALYTICS_EVENTS.SIGNUP_STEP_VIEWED,
+                expect.objectContaining({ screen_id: 'signup', nav_type: 'forward' })
+            )
+        })
+
+        it('keeps pushing history entries on the web', () => {
+            const { rerender } = render({ enabled: true, step: stepById('landing') })
+            const pushSpy = jest.spyOn(window.history, 'pushState')
+
+            rerender({ enabled: true, step: stepById('welcome') })
+
+            expect(pushSpy).toHaveBeenCalledTimes(1)
+        })
     })
 })

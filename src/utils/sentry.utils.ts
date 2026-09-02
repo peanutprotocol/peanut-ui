@@ -546,7 +546,9 @@ export const fetchWithSentry = async (
                 })
             } catch (error) {
                 if (attempt < maxAttempts && error instanceof Error && error.name === 'AbortError') {
-                    console.warn(`Request to ${String(url).replace(/[\r\n]/g, '')} timed out — retrying`)
+                    // console.info, not warn: captureConsoleIntegration listens on
+                    // warn, and the retry outcome is reported explicitly below.
+                    console.info(`Request to ${String(url).replace(/[\r\n]/g, '')} timed out — retrying`)
                     await new Promise((resolve) => setTimeout(resolve, TRANSPORT_TIMEOUT_RETRY_DELAY_MS))
                     continue
                 }

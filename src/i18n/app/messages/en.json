@@ -815,6 +815,7 @@
             "notReady": "The app is still getting ready for passkeys. Wait a moment and try again.",
             "deviceState": "There was a problem with the passkey on this device. Restart the app and try again.",
             "interrupted": "Something interrupted the passkey prompt. Please try again.",
+            "serverUnreachable": "Couldn’t reach Peanut’s servers. Check your connection and try again.",
             "usernameTaken": "This username is already registered — possibly from an earlier attempt on this device. If that was you, your passkey is ready: just log in.",
             "learnMore": "Learn more about what Passkeys are",
             "help": {
@@ -863,7 +864,10 @@
                 "backup": "Your password manager (iCloud Keychain, Google Password Manager, or similar) backs it up and syncs it, so it comes with you on a new phone.",
                 "privacy": "Peanut never sees your fingerprint or face. Your device only tells us that you approved.",
                 "fullGuide": "Read the full guide"
-            }
+            },
+            "unsupported": "Passkeys aren’t available on this device yet. Sign in to a Google account and update Google Play Services, then try again.",
+            "origin": "This app isn’t authorized for passkeys on peanut.me. Please update to the latest version.",
+            "loginError": "We couldn’t verify your passkey. Please try again, or contact support if it keeps happening."
         },
         "testTransaction": {
             "confirmAndFinish": "Confirm & finish",
@@ -3562,5 +3566,17 @@
             "title": "ready?",
             "subtitle": "Try the door."
         }
+    },
+    "unsupportedWebView": {
+        "title": "Update needed to keep going",
+        "body": {
+            "ios": "Peanut needs a newer version of iOS. Update your device in Settings and open the app again.",
+            "android": "Peanut needs a newer Android System WebView. Update it from Google Play and open the app again."
+        },
+        "cta": {
+            "ios": "See how to update iOS",
+            "android": "Update Android System WebView"
+        },
+        "continueAnyway": "Continue anyway"
     }
 }

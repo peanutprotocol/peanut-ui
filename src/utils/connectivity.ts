@@ -49,6 +49,10 @@ function prune(): void {
 // should be a sanitized url so retries of the same route dedupe to one entry.
 export function reportNetworkError(endpoint: string): void {
     prune()
+    // An un-expired entry already covers this endpoint; re-stamping it would
+    // slide the window forward on every retry and never let a continuous
+    // outage age out.
+    if (failures.some((f) => f.endpoint === endpoint)) return
     failures.push({ t: Date.now(), endpoint })
     // notify again once this entry has aged out so subscribers re-read the
     // pruned count; on freeze/sleep the overdue timer fires at resume, which

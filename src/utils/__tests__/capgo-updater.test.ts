@@ -13,6 +13,7 @@ const mockUpdater = {
     setChannel: jest.fn(),
     unsetChannel: jest.fn().mockResolvedValue(undefined),
     getChannel: jest.fn(),
+    current: jest.fn(),
     reset: jest.fn().mockResolvedValue(undefined),
 }
 
@@ -66,11 +67,25 @@ it('escalates the same failure to error on the third consecutive launch', async 
     expect(info).toHaveBeenCalledTimes(2)
 })
 
+// Plugin 8.45+ rejects getLatest() with the server's error code, not the
+// sentence the docs list; both must read as up to date, or every device that is
+// current on its bundle logs a failure on every launch.
+it.each(['no_new_version_available', 'No new version available'])(
+    'treats a %s rejection as up to date, not a failure',
+    async (message) => {
+        mockUpdater.getLatest.mockRejectedValue(new Error(message))
+        await launch()
+        expect(info).not.toHaveBeenCalled()
+        expect(error).not.toHaveBeenCalled()
+        expect(window.localStorage.getItem('capgoUpdateFailureStreak')).toBeNull()
+    }
+)
+
 it('resets the streak after a successful check', async () => {
     mockUpdater.getLatest.mockRejectedValue(new Error('Failed to fetch'))
     await launch()
     await launch()
-    mockUpdater.getLatest.mockRejectedValue(new Error('No new version available'))
+    mockUpdater.getLatest.mockRejectedValue(new Error('no_new_version_available'))
     await launch()
     mockUpdater.getLatest.mockRejectedValue(new Error('Failed to fetch'))
     await launch()
@@ -96,7 +111,8 @@ describe('beta channel opt-in', () => {
         mockUpdater.unsetChannel.mockResolvedValue(undefined)
         mockUpdater.setChannel.mockResolvedValue({ status: 'ok' })
         mockUpdater.getChannel.mockResolvedValue({ channel: null, status: 'default' })
-        mockUpdater.getLatest.mockRejectedValue(new Error('No new version available'))
+        mockUpdater.current.mockResolvedValue({ bundle: { id: 'beta-bundle', version: '1.1.10846' } })
+        mockUpdater.getLatest.mockRejectedValue(new Error('no_new_version_available'))
     })
 
     // The launch check can still be downloading when the tester joins. Two
@@ -208,6 +224,50 @@ describe('beta channel opt-in', () => {
         expect(mockUpdater.reset).toHaveBeenCalled()
     })
 
+    // unsetChannel() is local-only on both platforms (it drops a stored key);
+    // the device→channel assignment lives on the server and only setChannel()
+    // rewrites it. Without this the device stayed on beta server-side and the
+    // next check pulled the beta bundle straight back.
+    it('assigns the device to production on the server when leaving', async () => {
+        const { leaveBetaOtaChannel, PRODUCTION_OTA_CHANNEL } = await import('../capgo-updater')
+        await leaveBetaOtaChannel()
+        expect(mockUpdater.setChannel).toHaveBeenCalledWith({
+            channel: PRODUCTION_OTA_CHANNEL,
+            triggerAutoUpdate: false,
+        })
+        const [unsetOrder] = mockUpdater.unsetChannel.mock.invocationCallOrder
+        const [setOrder] = mockUpdater.setChannel.mock.invocationCallOrder
+        expect(unsetOrder).toBeLessThan(setOrder)
+    })
+
+    // A production channel that refuses self-assign is a valid dashboard
+    // configuration. The local unset already happened, so the exit must go on
+    // and let getChannel() decide — otherwise every retry would fail the same
+    // way and the device could never leave the beta bundle.
+    it.each([
+        ['rejects', () => mockUpdater.setChannel.mockRejectedValue(new Error('channel_self_set_not_allowed'))],
+        [
+            'answers with an error',
+            () => mockUpdater.setChannel.mockResolvedValue({ status: 'error', error: 'channel_self_set_not_allowed' }),
+        ],
+    ])('still resets when the production self-assign %s but beta no longer sticks', async (_case, arrange) => {
+        const { leaveBetaOtaChannel } = await import('../capgo-updater')
+        arrange()
+        await leaveBetaOtaChannel()
+        expect(mockUpdater.getChannel).toHaveBeenCalled()
+        expect(mockUpdater.reset).toHaveBeenCalled()
+    })
+
+    it('reports an override when the self-assign is refused and beta still sticks', async () => {
+        const { leaveBetaOtaChannel, OtaChannelOverrideError, hasPendingBetaExit, BETA_OTA_CHANNEL } =
+            await import('../capgo-updater')
+        mockUpdater.setChannel.mockRejectedValue(new Error('channel_self_set_not_allowed'))
+        mockUpdater.getChannel.mockResolvedValue({ channel: BETA_OTA_CHANNEL, status: 'ok' })
+        await expect(leaveBetaOtaChannel()).rejects.toBeInstanceOf(OtaChannelOverrideError)
+        expect(mockUpdater.reset).not.toHaveBeenCalled()
+        expect(hasPendingBetaExit()).toBe(true)
+    })
+
     // Channel unset + beta bundle still running is the one state no OTA can
     // repair, so a failed reset must not be reported as a clean exit.
     // unsetChannel() is local-only on both platforms (it drops a stored key), so a
@@ -243,6 +303,36 @@ describe('beta channel opt-in', () => {
         mockUpdater.getChannel.mockRejectedValue(new Error('Failed to fetch'))
         await expect(leaveBetaOtaChannel()).rejects.toBeTruthy()
         expect(hasPendingBetaExit()).toBe(true)
+    })
+
+    // The marker names the beta bundle that was running, so a later launch on
+    // any other bundle — builtin or a production OTA — can settle the exit. A
+    // bare flag could only recognise the builtin bundle, and after the reset the
+    // JS reading it is the store shell, which may never clear it.
+    it('records the running beta bundle in the marker', async () => {
+        const { leaveBetaOtaChannel, pendingBetaExitBundle } = await import('../capgo-updater')
+        mockUpdater.getChannel.mockRejectedValue(new Error('Failed to fetch'))
+        await expect(leaveBetaOtaChannel()).rejects.toBeTruthy()
+        expect(pendingBetaExitBundle()).toBe('1.1.10846')
+    })
+
+    it('falls back to the legacy marker when the running bundle is unreadable', async () => {
+        const { leaveBetaOtaChannel, pendingBetaExitBundle, UNKNOWN_BETA_EXIT_BUNDLE } =
+            await import('../capgo-updater')
+        mockUpdater.current.mockRejectedValue(new Error('plugin gone'))
+        mockUpdater.getChannel.mockRejectedValue(new Error('Failed to fetch'))
+        await expect(leaveBetaOtaChannel()).rejects.toBeTruthy()
+        expect(pendingBetaExitBundle()).toBe(UNKNOWN_BETA_EXIT_BUNDLE)
+    })
+
+    // Nothing changed, so nothing is owed — a marker left here would keep the
+    // switch on and make the next "off" discard a bundle that was never beta.
+    it('drops the marker when unsetChannel itself rejects', async () => {
+        const { leaveBetaOtaChannel, hasPendingBetaExit } = await import('../capgo-updater')
+        mockUpdater.unsetChannel.mockRejectedValue(new Error('Failed to fetch'))
+        await expect(leaveBetaOtaChannel()).rejects.toThrow('Failed to fetch')
+        expect(hasPendingBetaExit()).toBe(false)
+        expect(mockUpdater.setChannel).not.toHaveBeenCalled()
     })
 
     it('keeps the marker when the reset itself fails', async () => {

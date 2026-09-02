@@ -1,14 +1,18 @@
-import posthog from 'posthog-js'
-
-import type { ErrorEvent as SentryErrorEvent } from '@sentry/nextjs'
-
-import { beforeSendHandler, isThirdPartyScriptFrame } from '../../sentry.utils'
+import { beforeSendHandler } from '../../sentry.utils'
+import { posthogErrorMirror, withoutNoise } from '@/utils/sentry-posthog-mirror'
 import { inferSentryEnvironment } from '@/utils/sentry-env'
 import { loadSentry } from '@/utils/sentry-lazy'
 import { isPaymentNetworkExplorerPath } from '@/utils/private-routes'
 
+export { withoutNoise }
+
 // NEXT_PUBLIC_PERF_BARE builds strip all instrumentation to A/B jank against production.
-const ENABLED = process.env.NODE_ENV !== 'development' && process.env.NEXT_PUBLIC_PERF_BARE !== 'true'
+// The Capacitor build initialises its own client in instrumentation-client.ts
+// (offline transport, no BrowserTracing); a second init here would replace it.
+const ENABLED =
+    process.env.NODE_ENV !== 'development' &&
+    process.env.NEXT_PUBLIC_PERF_BARE !== 'true' &&
+    process.env.NEXT_PUBLIC_CAPACITOR_BUILD !== 'true'
 
 /*
  * The SDK is fetched and initialised on demand rather than on every page load.
@@ -33,37 +37,6 @@ function bufferEvent(event: ErrorEvent | PromiseRejectionEvent): void {
     initSentry()
 }
 
-/*
- * The PostHog mirror is an integration, so its `processEvent` hook runs during
- * event processing — BEFORE `beforeSend`. Everything `beforeSendHandler` drops
- * has therefore already been copied into PostHog, which is why PostHog's error
- * list is Sentry's noise list.
- *
- * Mostly that is a feature and we leave it alone: PostHog holding what Sentry
- * filters is the only reason the browser-native fetch failures were ever
- * visible. Suppression there is configured server-side (grouping, per-issue
- * rate limit, suppression rules) where it is tunable without a release.
- *
- * The one class worth stopping in the client is injected third-party scripts:
- * nobody can act on them in either tool, and one wallet injector alone billed
- * ~3.7k events. Wrapping rather than filtering inside beforeSend, because
- * beforeSend is downstream of this hook and cannot reach it.
- */
-function withoutThirdPartyScripts<T extends { processEvent?: (event: SentryErrorEvent) => SentryErrorEvent | null }>(
-    integration: T
-): T {
-    const inner = integration.processEvent?.bind(integration)
-    if (!inner) return integration
-    return {
-        ...integration,
-        processEvent: (event: SentryErrorEvent) => {
-            const frames = (event.exception?.values ?? []).flatMap((v) => v.stacktrace?.frames ?? [])
-            if (frames.some((frame) => isThirdPartyScriptFrame(frame.filename || ''))) return event
-            return inner(event)
-        },
-    }
-}
-
 export function initSentry(): void {
     if (!ENABLED || started || typeof window === 'undefined') return
     if (isPaymentNetworkExplorerPath(window.location.pathname)) return
@@ -72,6 +45,12 @@ export function initSentry(): void {
     void loadSentry().then((Sentry) => {
         window.removeEventListener('error', bufferEvent)
         window.removeEventListener('unhandledrejection', bufferEvent)
+
+        // Another bootstrap already owns the client; a second init would replace it.
+        if (Sentry.getClient()) {
+            flushBuffered(Sentry)
+            return
+        }
 
         Sentry.init({
             dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
@@ -104,27 +83,21 @@ export function initSentry(): void {
                 Sentry.captureConsoleIntegration({
                     levels: ['error', 'warn'],
                 }),
-                // Cross-link Sentry ↔ PostHog: every Sentry error becomes a `$exception`
-                // event in PostHog with a Sentry deeplink, and the Sentry event gets a
-                // PostHog tag pointing back at the user's profile + session replay.
-                // posthog.init() runs in instrumentation-client.ts; the integration uses
-                // the singleton lazily, so init order doesn't matter.
-                withoutThirdPartyScripts(
-                    posthog.sentryIntegration({
-                        organization: 'peanut-c34d84c05',
-                        projectId: 4505827431415808,
-                    })
-                ),
+                posthogErrorMirror(),
             ],
         })
 
-        for (const event of buffered) {
-            Sentry.captureException(
-                'reason' in event ? event.reason : (event.error ?? new Error(event.message || 'Unknown error'))
-            )
-        }
-        buffered.length = 0
+        flushBuffered(Sentry)
     })
+}
+
+function flushBuffered(Sentry: Awaited<ReturnType<typeof loadSentry>>): void {
+    for (const event of buffered) {
+        Sentry.captureException(
+            'reason' in event ? event.reason : (event.error ?? new Error(event.message || 'Unknown error'))
+        )
+    }
+    buffered.length = 0
 }
 
 if (ENABLED && typeof window !== 'undefined') {

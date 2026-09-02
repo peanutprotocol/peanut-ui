@@ -3,6 +3,8 @@
 import * as React from 'react'
 import { twMerge } from '@/utils/tw'
 import { Drawer as DrawerPrimitive } from 'vaul'
+import { useBackHandler } from '@/hooks/useBackHandler'
+import { acquireBottomNavHide } from '@/utils/bottom-nav-visibility'
 
 type DrawerProps = React.ComponentProps<typeof DrawerPrimitive.Root> & {
     /**
@@ -11,11 +13,63 @@ type DrawerProps = React.ComponentProps<typeof DrawerPrimitive.Root> & {
      * Root double-applies the background scale and fights over the scroll lock.
      */
     nested?: boolean
+    /** Slide the app bottom nav out of view while this (modal) sheet is open. */
+    hideBottomNav?: boolean
 }
 
-const Drawer = ({ shouldScaleBackground = true, nested = false, ...props }: DrawerProps) => {
+/*
+ * Open state is mirrored here (controlled or not) so the wrapper can own the
+ * hardware-back contract: a modal sheet consumes back and closes through the
+ * same onOpenChange path vaul uses for drag/Escape/outside-click; a
+ * non-dismissible one consumes it as a no-op; a modal={false} sheet never
+ * intercepts.
+ */
+const Drawer = ({
+    shouldScaleBackground = true,
+    nested = false,
+    hideBottomNav = false,
+    open,
+    defaultOpen,
+    onOpenChange,
+    dismissible = true,
+    modal = true,
+    ...props
+}: DrawerProps) => {
+    const [uncontrolledOpen, setUncontrolledOpen] = React.useState(defaultOpen ?? false)
+    const isControlled = open !== undefined
+    const isOpen = isControlled ? open : uncontrolledOpen
+
+    const handleOpenChange = React.useCallback(
+        (next: boolean) => {
+            if (!isControlled) setUncontrolledOpen(next)
+            onOpenChange?.(next)
+        },
+        [isControlled, onOpenChange]
+    )
+
+    useBackHandler(() => {
+        if (dismissible) handleOpenChange(false)
+        return true
+    }, isOpen && modal)
+
+    React.useEffect(() => {
+        if (!hideBottomNav || !isOpen || !modal) return
+        return acquireBottomNavHide()
+    }, [hideBottomNav, isOpen, modal])
+
     const Root = nested ? DrawerPrimitive.NestedRoot : DrawerPrimitive.Root
-    return <Root shouldScaleBackground={shouldScaleBackground} snapToSequentialPoint {...props} />
+    return (
+        <Root
+            shouldScaleBackground={shouldScaleBackground}
+            snapToSequentialPoint
+            open={isOpen}
+            defaultOpen={defaultOpen}
+            onOpenChange={handleOpenChange}
+            dismissible={dismissible}
+            modal={modal}
+            {...props}
+        />
+    )
 }
 Drawer.displayName = 'Drawer'
 
