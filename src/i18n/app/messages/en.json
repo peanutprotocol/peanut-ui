@@ -904,6 +904,7 @@
         "switchingNetwork": "Switching network",
         "fetchingRoute": "Fetching route",
         "fetchingDetails": "Fetching details",
+        "stillFetchingDetails": "Still fetching details",
         "awaitingRouteFulfillment": "Awaiting route fulfillment",
         "assertingValues": "Asserting values",
         "generatingDetails": "Generating details",

@@ -1467,15 +1467,36 @@ describe('GROUP 5: Error States', () => {
         })
     })
 
-    test('Manteca API error shows generic error', async () => {
+    /*
+     * A retryable failure is not an outcome yet — React Query has three attempts
+     * left. The terminal copy used to land on the FIRST one, so a scan that
+     * recovered on attempt 2 had already told the user the rail was down.
+     */
+    // Real timers, and the budget to sit through them: the page's retry policy
+    // is the thing under test, and driving react-query's backoff with fake ones
+    // left the page wedged on its mount-time loading gate.
+    test('Network failure keeps loading while retries remain, then shows the generic error', async () => {
         mockMantecaApi.initiateQrPayment.mockRejectedValue(new Error('Network timeout'))
 
         renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
 
         await waitFor(() => {
-            expect(screen.getByText(/currently experiencing issues/i)).toBeInTheDocument()
+            expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
         })
-    })
+        expect(screen.queryByText(/currently experiencing issues/i)).not.toBeInTheDocument()
+        expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
+
+        await waitFor(
+            () => {
+                expect(screen.getByText(/currently experiencing issues/i)).toBeInTheDocument()
+            },
+            { timeout: 12_000 }
+        )
+        // Four, not the three the retry policy's comment used to claim:
+        // `failureCount` is 0-based at the point react-query consults it, so
+        // `failureCount < 3` allows three RETRIES on top of the first attempt.
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(4)
+    }, 20_000)
 })
 
 // ============================================================

@@ -299,7 +299,13 @@ export const sanitizeResponseBody = (url: string, body: unknown): unknown => {
  * Map URL → feature tag so Sentry issues can be filtered by product surface
  * without wrapping every call site. Add new entries here as features grow.
  */
-const FEATURE_TAGS: Array<{ pattern: RegExp; tag: string }> = [{ pattern: /\/rain\//, tag: 'card' }]
+// First match wins, so the narrower QR rule precedes the general Manteca one.
+const FEATURE_TAGS: Array<{ pattern: RegExp; tag: string }> = [
+    { pattern: /\/rain\//, tag: 'card' },
+    { pattern: /\/manteca\/qr-payment\//, tag: 'qr-pay' },
+    { pattern: /\/manteca\//, tag: 'manteca' },
+    { pattern: /\/fx\//, tag: 'fx' },
+]
 
 function getFeatureTag(url: string): string | null {
     for (const rule of FEATURE_TAGS) {
@@ -430,6 +436,21 @@ export const sanitizeUrl = (url: string) => {
             .replace(/\/\d+(?=\/|$)/g, '/{id}')
             // Replace UUIDs in path
             .replace(/\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?=\/|$)/gi, '/{uuid}')
+            /*
+             * Hex identifiers in the path — wallet addresses, tx hashes, send-link
+             * ids. Without this every address opened its own Sentry issue holding
+             * a single event: `/rhino/status/0xfe73…`, `/rhino/status/0x0f78…` and
+             * `/send-links/claim/<hash>/associate-user` were three issues for one
+             * phenomenon. 16+ chars so short hex-looking slugs stay intact, and the
+             * `/`-anchored prefix keeps this off query values (handled below).
+             */
+            .replace(/\/(?:0x)?[0-9a-f]{16,}(?=[/?]|$)/gi, '/{hash}')
+            /*
+             * Usernames are free text, so no shape rule can catch them — the route
+             * is the only signal. One timeout on a profile lookup was one issue per
+             * username looked up.
+             */
+            .replace(/\/users\/username\/[^/?]+/gi, '/users/username/{value}')
             // Replace numeric IDs in query params. Anchored to the end of the
             // value: unanchored, this ate the leading 0 of an 0x-prefixed
             // address and left `{id}xaf88d065`, so every wallet still got its
@@ -450,6 +471,13 @@ export const sanitizeUrl = (url: string) => {
             .replace(/([?&][^=&]*=)(?!\{id\})[^&]*/g, '$1{value}')
     )
 }
+
+/**
+ * Sanitized path for Sentry tag values. The origin is stripped so staging and
+ * production share one route value — `environment` already separates them —
+ * and so the tag reads as the endpoint it names.
+ */
+export const routeTag = (url: string): string => sanitizeUrl(url).replace(/^https?:\/\/[^/]+/, '') || '/'
 
 const reportNonOkResponse = async (url: string, options: RequestInit, response: Response): Promise<void> => {
     if (response.ok) return
@@ -484,6 +512,8 @@ const reportNonOkResponse = async (url: string, options: RequestInit, response: 
     Sentry.withScope((scope) => {
         // Set fingerprint to group similar errors
         scope.setFingerprint([method, sanitizeUrl(url), String(response.status)])
+        scope.setTag('route', routeTag(url))
+        scope.setTag('http.method', method)
         if (featureTag) scope.setTag('feature', featureTag)
 
         Sentry.captureMessage(`${method} to ${url} failed with status ${response.status}`, {
@@ -500,14 +530,25 @@ const reportNonOkResponse = async (url: string, options: RequestInit, response: 
     })
 }
 
-export type FetchWithSentryOptions = RequestInit & { preferNativeTransport?: boolean }
+export type FetchWithSentryOptions = RequestInit & {
+    preferNativeTransport?: boolean
+    /*
+     * Opt out of the Sentry capture on timeout. For call sites that own a
+     * designed fallback for exactly this failure — `useCardMarkupRate` returns
+     * the static markup table and renders the row anyway — an error-level issue
+     * reports a path that behaved as specified. The throw is unchanged, so the
+     * fallback still runs; only the report is dropped, and a breadcrumb keeps
+     * it visible on any real error that follows.
+     */
+    silentTimeout?: boolean
+}
 
 export const fetchWithSentry = async (
     url: string,
     optionsWithTransport: FetchWithSentryOptions = {},
     timeoutMs: number = DEFAULT_TIMEOUT_MS
 ): Promise<Response> => {
-    const { preferNativeTransport, ...options } = optionsWithTransport
+    const { preferNativeTransport, silentTimeout, ...options } = optionsWithTransport
 
     /*
      * Tokenless native sessions go over the OS HTTP client FIRST, not as a
@@ -619,24 +660,45 @@ export const fetchWithSentry = async (
         console.info(error)
 
         if (error instanceof Error && error.name === 'AbortError') {
-            const timeoutError = new Error(`Request to ${url} timed out after ${timeoutMs}ms`)
+            /*
+             * Stable title, deliberately carrying no url. Interpolating it gave
+             * every endpoint its own issue TITLE, so one phenomenon — mobile
+             * clients giving up on a request — arrived as 30 single-event issues
+             * in a week: too small to alert on individually and invisible in
+             * aggregate. The endpoint moves to the `route` tag, which Sentry can
+             * break down and alert on within the single issue; the raw url and
+             * the budget that expired stay in `extra`.
+             */
+            const timeoutError = new Error('Request timed out')
 
             const timeoutFeatureTag = getFeatureTag(url)
-            if (!repeatFailure) {
+            if (!repeatFailure && !silentTimeout) {
                 Sentry.withScope((scope) => {
-                    scope.setFingerprint(['timeout', sanitizeUrl(url), options.method || 'GET'])
+                    scope.setFingerprint(['timeout'])
+                    scope.setTag('route', routeTag(url))
+                    scope.setTag('http.method', method)
                     if (timeoutFeatureTag) scope.setTag('feature', timeoutFeatureTag)
 
                     Sentry.captureException(timeoutError, {
                         level: 'error',
                         extra: {
                             url,
-                            method: options.method || 'GET',
+                            method,
                             timeoutMs,
                             requestHeaders: sanitizeHeaders(options.headers || {}),
                             requestBody: sanitizeRequestBody(url, options.body),
                         },
                     })
+                })
+            } else if (silentTimeout) {
+                // Not reported, but not erased: if the caller's fallback later
+                // fails for its own reasons, the timeout that preceded it is on
+                // the trail.
+                Sentry.addBreadcrumb({
+                    category: 'fetch',
+                    level: 'warning',
+                    message: 'Request timed out (silent)',
+                    data: { route: routeTag(url), method, timeoutMs },
                 })
             }
 
@@ -669,6 +731,8 @@ export const fetchWithSentry = async (
             Sentry.withScope((scope) => {
                 // Set fingerprint for network errors
                 scope.setFingerprint(['network-error', sanitizeUrl(url), options.method || 'GET'])
+                scope.setTag('route', routeTag(url))
+                scope.setTag('http.method', method)
                 if (networkFeatureTag) scope.setTag('feature', networkFeatureTag)
 
                 Sentry.captureException(error, {

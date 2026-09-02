@@ -904,6 +904,7 @@
         "switchingNetwork": "Trocando de rede",
         "fetchingRoute": "Buscando a rota",
         "fetchingDetails": "Obtendo os detalhes",
+        "stillFetchingDetails": "Ainda buscando os detalhes",
         "awaitingRouteFulfillment": "Aguardando a execução da rota",
         "assertingValues": "Verificando os valores",
         "generatingDetails": "Gerando os detalhes",

@@ -34,7 +34,11 @@ import { calculateSavingsInCents, hasCardMarkupComparison } from '@/utils/qr-pay
 import { useCardMarkupRate } from '@/hooks/useCardMarkupRate'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { PERK_HOLD_DURATION_MS } from '@/constants/general.consts'
-import { MANTECA_QR_DEPOSIT_ADDRESS_AR, MANTECA_QR_DEPOSIT_ADDRESS_NON_AR } from '@/constants/manteca.consts'
+import {
+    MANTECA_QR_DEPOSIT_ADDRESS_AR,
+    MANTECA_QR_DEPOSIT_ADDRESS_NON_AR,
+    MANTECA_QR_INIT_SCAN_TIMEOUT_MS,
+} from '@/constants/manteca.consts'
 import { MIN_MANTECA_QR_PAYMENT_AMOUNT, MIN_PIX_AMOUNT_BRL } from '@/constants/payment.consts'
 import { isPixRecurringCode } from '@/utils/withdraw.utils'
 import { formatUnits, parseUnits } from 'viem'
@@ -583,8 +587,10 @@ export default function QRPayPage() {
     // 3. KYC modals are shown if needed before user can pay
     // This reduces latency from 4-5s to <1s for KYC'd users
     //
-    // NETWORK RESILIENCE: Retry network/timeout errors with exponential backoff
-    // - Max 3 attempts: immediate, +1s delay, +2s delay
+    // NETWORK RESILIENCE: retryable failures get three more attempts, 3s apart
+    // - Four attempts total, not three: `failureCount` is 0-based where
+    //   react-query consults it, so `failureCount < 3` permits three retries.
+    //   The delay is flat, not exponential — `retryDelay` is a constant 3000.
     // - Provider-specific errors (e.g., "can't decode") are NOT retried
     // - Prevents state updates on unmounted component
     // Fetch Manteca payment lock with TanStack Query - handles retries, caching, and loading states
@@ -600,7 +606,10 @@ export default function QRPayPage() {
             if (paymentProcessor !== 'MANTECA' || !qrCode || !isPaymentProcessorQR(qrCode)) {
                 return null
             }
-            return mantecaApi.initiateQrPayment({ qrCode, qrType: qrType ?? undefined })
+            return mantecaApi.initiateQrPayment(
+                { qrCode, qrType: qrType ?? undefined },
+                { timeoutMs: MANTECA_QR_INIT_SCAN_TIMEOUT_MS }
+            )
         },
         enabled:
             paymentProcessor === 'MANTECA' &&
@@ -619,7 +628,7 @@ export default function QRPayPage() {
             if (NON_RETRYABLE_QR_PAY_ERRORS.some((code) => error?.message?.includes(code))) {
                 return false
             }
-            // Retry network/timeout errors up to 2 times (3 total attempts)
+            // Three retries on top of the first attempt (see the note above).
             return failureCount < 3
         },
         retryDelay: 3000,
@@ -644,6 +653,15 @@ export default function QRPayPage() {
 
         const error = paymentLockError ?? paymentLockFailureReason
         if (error) {
+            /*
+             * `failureReason` carries the FIRST failure, which for a retryable
+             * one arrives with three attempts still to come. The provider
+             * rejections below are all non-retryable, so acting on them
+             * immediately is correct and stays as it was; a network failure is
+             * not yet an outcome, and `paymentLockError` — set only once the
+             * query settles — is what separates the two.
+             */
+            const retriesPending = !paymentLockError
             setLoadingState('Idle')
 
             // Provider-specific errors: show appropriate message
@@ -677,6 +695,16 @@ export default function QRPayPage() {
                 // blaming the payment rail.
                 setWaitingForMerchantAmount(false)
                 setErrorInitiatingPayment(t('errors.authError'))
+            } else if (retriesPending) {
+                /*
+                 * Retryable network/timeout failure with attempts left. The
+                 * terminal copy used to land here, contradicting what the query
+                 * was still doing: a scan that recovered on attempt 2 had
+                 * already told the user the rail was down. Say we are still
+                 * trying, and let the branch below own the outcome.
+                 */
+                setLoadingState('Still fetching details')
+                setWaitingForMerchantAmount(false)
             } else {
                 // Network/timeout errors after all retries exhausted
                 setErrorInitiatingPayment(

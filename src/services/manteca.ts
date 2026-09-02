@@ -116,10 +116,11 @@ export type WithdrawPriceLock = {
 }
 
 export const mantecaApi = {
-    initiateQrPayment: async (data: QrPaymentRequest): Promise<QrPaymentLock> => {
+    initiateQrPayment: async (data: QrPaymentRequest, options?: { timeoutMs?: number }): Promise<QrPaymentLock> => {
         const response = await serverFetch('/manteca/qr-payment/init', {
             method: 'POST',
             body: jsonStringify(data),
+            ...(options?.timeoutMs !== undefined && { timeoutMs: options.timeoutMs }),
         })
 
         if (!response.ok) {

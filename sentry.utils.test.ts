@@ -270,6 +270,30 @@ describe('shouldIgnoreError — fetch-site network captures', () => {
         expect(shouldIgnoreError(fetchSiteCapture('Failed to fetch', 'POST', 'timeout'))).toBe(false)
     })
 
+    /*
+     * The timeout capture groups on `['timeout']` alone so one phenomenon is
+     * one issue, which leaves no method in the fingerprint. Reading it
+     * positionally would make this rescue silently inert for exactly the events
+     * it exists to keep — a POST that dies on the network — so the method comes
+     * off the tag, with the fingerprint slot kept as a fallback for the
+     * positional captures and for events already in flight from an old bundle.
+     */
+    function taggedTimeout(method: string): ErrorEvent {
+        return {
+            fingerprint: ['timeout'],
+            tags: { 'http.method': method, route: '/charges' },
+            exception: { values: [{ type: 'TypeError', value: 'Failed to fetch' }] },
+        } as unknown as ErrorEvent
+    }
+
+    it.each(['POST', 'PUT', 'PATCH', 'DELETE', 'post'])('keeps a timed-out %s off the http.method tag', (method) => {
+        expect(shouldIgnoreError(taggedTimeout(method))).toBe(false)
+    })
+
+    it.each(['GET', 'HEAD'])('still ignores a timed-out %s off the tag', (method) => {
+        expect(shouldIgnoreError(taggedTimeout(method))).toBe(true)
+    })
+
     // 78% of this population is failed GETs on /home — balance and price polls
     // that retry and succeed. Their rate belongs in PostHog, not as individual
     // Sentry events.

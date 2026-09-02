@@ -7,6 +7,16 @@ export const MANTECA_DEPOSIT_ADDRESS = '0x959e088a09f61aB01cb83b0eBCc74b2CF6d620
 export const MANTECA_QR_DEPOSIT_ADDRESS_AR = '0x6E945f8EC93061f5f11Edc5e6Fb4A70BeB514e97'
 export const MANTECA_QR_DEPOSIT_ADDRESS_NON_AR = '0x49200bF84dC26349C86ce040019063FeCE88CB1c'
 
+/*
+ * Budget for the scan-time `/manteca/qr-payment/init`, deliberately half the 20s
+ * client default. The backend answers this route with a p95 of ~2s and has not
+ * exceeded 13s in a week of traffic, so 20s buys no successes — it only decides
+ * how long someone stands at a till watching a spinner. React Query gives the
+ * call four attempts 3s apart, which put the worst case at ~89s on the default
+ * and ~49s here (PEANUT-UI-SZQ).
+ */
+export const MANTECA_QR_INIT_SCAN_TIMEOUT_MS = 10_000
+
 export const MANTECA_ARG_DEPOSIT_NAME = 'Sixalime Sas'
 export const MANTECA_ARG_DEPOSIT_CUIT = '30-71678845-3'
 
