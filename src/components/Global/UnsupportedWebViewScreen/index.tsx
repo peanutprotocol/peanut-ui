@@ -5,6 +5,24 @@ import { useTranslations } from 'next-intl'
 import { getPlatform, openExternalUrl } from '@/utils/capacitor'
 import { captureMessage } from '@/utils/sentry-lazy'
 
+const BYPASS_KEY = 'unsupportedWebViewBypass'
+
+/** A session-scoped escape hatch, so a canary false positive never locks the app. */
+export function hasUnsupportedWebViewBypass(): boolean {
+    try {
+        return window.sessionStorage.getItem(BYPASS_KEY) === '1'
+    } catch {
+        return false
+    }
+}
+
+function continueAnyway(): void {
+    try {
+        window.sessionStorage.setItem(BYPASS_KEY, '1')
+    } catch {}
+    window.location.reload()
+}
+
 const ANDROID_WEBVIEW_STORE_URL = 'https://play.google.com/store/apps/details?id=com.google.android.webview'
 const IOS_UPDATE_HELP_URL = 'https://support.apple.com/HT204204'
 
@@ -38,6 +56,16 @@ const styles = {
         fontWeight: 700,
         cursor: 'pointer',
     },
+    secondary: {
+        marginTop: '4px',
+        padding: '8px',
+        border: 'none',
+        background: 'transparent',
+        color: '#5f646d',
+        fontSize: '14px',
+        textDecoration: 'underline',
+        cursor: 'pointer',
+    },
 } satisfies Record<string, CSSProperties>
 
 let reported = false
@@ -68,6 +96,9 @@ export function UnsupportedWebViewScreen() {
                 }
             >
                 {t(`cta.${platform}`)}
+            </button>
+            <button type="button" style={styles.secondary} onClick={continueAnyway}>
+                {t('continueAnyway')}
             </button>
         </main>
     )

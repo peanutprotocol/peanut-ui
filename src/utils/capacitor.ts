@@ -130,10 +130,14 @@ function setInlineSafeAreaInsets(value: '0px' | null): void {
  * user agent so the first paint never shows the phantom band; the Device.getInfo
  * pass stays authoritative and un-zeroes if the UA lied.
  */
+let zeroedFromUserAgent = false
+
 export function applyLegacyAndroidSafeAreaZeroFromUserAgent(): void {
     if (!isAndroidNative()) return
     const sdk = androidSdkFromUserAgent(navigator.userAgent)
-    if (sdk !== null && sdk < 35) setInlineSafeAreaInsets('0px')
+    if (sdk === null || sdk >= 35) return
+    setInlineSafeAreaInsets('0px')
+    zeroedFromUserAgent = true
 }
 
 /**
@@ -144,7 +148,7 @@ export function applyLegacyAndroidSafeAreaZeroFromUserAgent(): void {
  * the real status bar. Capacitor's native inset injection is 15+ only, so on
  * older Android we occupy the same slot ourselves: the inline style on <html>
  * that outranks the env() seed in globals.css (see the :root contract there).
- * No-op on web and iOS; on Android 15+ it clears a zeroing the UA pass got wrong.
+ * No-op on web and iOS; on Android 15+ it only clears a zeroing the UA pass got wrong.
  */
 export async function zeroLegacyAndroidSafeAreaInsets(): Promise<void> {
     if (!isAndroidNative()) return
@@ -152,7 +156,16 @@ export async function zeroLegacyAndroidSafeAreaInsets(): Promise<void> {
         const { Device } = await import('@capacitor/device')
         const { androidSDKVersion } = await Device.getInfo()
         if (!androidSDKVersion) return
-        setInlineSafeAreaInsets(androidSDKVersion >= 35 ? null : '0px')
+        if (androidSDKVersion < 35) {
+            setInlineSafeAreaInsets('0px')
+            return
+        }
+        // On 15+ the inline values are Capacitor's natively measured insets;
+        // only undo a zeroing this module wrote itself.
+        if (zeroedFromUserAgent) {
+            setInlineSafeAreaInsets(null)
+            zeroedFromUserAgent = false
+        }
     } catch {
         // older binary running OTA'd JS without @capacitor/device — keep the env() seed
     }

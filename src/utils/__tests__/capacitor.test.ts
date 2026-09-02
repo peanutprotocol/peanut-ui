@@ -325,6 +325,15 @@ describe('legacy android safe-area zeroing', () => {
         expect(inline()).toEqual(['', '', '', ''])
     })
 
+    it('the Device pass leaves natively injected insets alone on SDK 35+ when nothing was zeroed', async () => {
+        window.Capacitor = { getPlatform: () => 'android', isNativePlatform: () => true }
+        for (const edge of edges) document.documentElement.style.setProperty(`--safe-area-inset-${edge}`, '24px')
+        mockGetInfo.mockResolvedValue({ androidSDKVersion: 35 })
+        const { zeroLegacyAndroidSafeAreaInsets } = require('../capacitor')
+        await zeroLegacyAndroidSafeAreaInsets()
+        expect(inline()).toEqual(['24px', '24px', '24px', '24px'])
+    })
+
     it('the Device pass zeroes when the device reports SDK < 35', async () => {
         window.Capacitor = { getPlatform: () => 'android', isNativePlatform: () => true }
         mockGetInfo.mockResolvedValue({ androidSDKVersion: 33 })

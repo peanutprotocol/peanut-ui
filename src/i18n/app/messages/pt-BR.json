@@ -3573,6 +3573,7 @@
         "cta": {
             "ios": "Ver como atualizar o iOS",
             "android": "Atualizar o Android System WebView"
-        }
+        },
+        "continueAnyway": "Continuar mesmo assim"
     }
 }

@@ -3573,6 +3573,7 @@
         "cta": {
             "ios": "See how to update iOS",
             "android": "Update Android System WebView"
-        }
+        },
+        "continueAnyway": "Continue anyway"
     }
 }

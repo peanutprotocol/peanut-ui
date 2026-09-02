@@ -9,7 +9,7 @@
 import { ConsoleGreeting } from '@/components/Global/ConsoleGreeting'
 import { ScreenOrientationLocker } from '@/components/Global/ScreenOrientationLocker'
 import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapper'
-import { UnsupportedWebViewScreen } from '@/components/Global/UnsupportedWebViewScreen'
+import { UnsupportedWebViewScreen, hasUnsupportedWebViewBypass } from '@/components/Global/UnsupportedWebViewScreen'
 import { MarketingIntlProvider } from '@/i18n/app/MarketingIntlProvider'
 import { PeanutProvider } from '@/config/peanut.config'
 import { ContextProvider } from '@/context/contextProvider'
@@ -50,7 +50,8 @@ if (typeof window !== 'undefined') applyLegacyAndroidSafeAreaZeroFromUserAgent()
 
 // Decided once at load, client only. A WebView that cannot parse the
 // stylesheet gets the inline-styled update screen in place of the app tree.
-const UNSUPPORTED_WEBVIEW = typeof window !== 'undefined' && isCapacitor() && !isWebViewCssSupported()
+const UNSUPPORTED_WEBVIEW =
+    typeof window !== 'undefined' && isCapacitor() && !isWebViewCssSupported() && !hasUnsupportedWebViewBypass()
 
 const AppGlobals = dynamic(() => import('./AppGlobals').then((m) => m.AppGlobals))
 // The full message catalog is 129 KB; app routes load it as their own chunk.
