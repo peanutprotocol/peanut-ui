@@ -372,6 +372,13 @@ export const SERVER_FETCH_TIMEOUT_MS = 10_000
 export const CLIENT_FETCH_TIMEOUT_MS = 20_000
 export const TRANSPORT_TIMEOUT_RETRY_DELAY_MS = 300
 
+/*
+ * Floor for a single transport leg. Below this the budget pool is spent and a
+ * further leg cannot complete anything — attempting one would only add latency
+ * to a failure the caller is already going to see.
+ */
+export const MIN_TRANSPORT_LEG_MS = 250
+
 /**
  * `NEXT_PUBLIC_FETCH_TIMEOUT_MS` is an explicit override of both budgets. It
  * must be a positive integer of milliseconds within the 32-bit timer range:
@@ -550,6 +557,30 @@ export const fetchWithSentry = async (
 ): Promise<Response> => {
     const { preferNativeTransport, silentTimeout, ...options } = optionsWithTransport
 
+    // Idempotent requests get one silent retry on timeout: stalled-transport
+    // failures (Android webview, flaky mobile networks) usually clear on a
+    // fresh attempt (PEANUT-UI-R44).
+    const method = (options.method || 'GET').toUpperCase()
+    const maxAttempts = method === 'GET' || method === 'HEAD' ? 2 : 1
+
+    /*
+     * One budget pool for the whole call, sized to the transport attempts this
+     * method is allowed. `timeoutMs` used to be handed FRESH to every leg, so a
+     * native POST could spend it in the WebView fetch and spend it again in the
+     * OS-client fallback — twice the documented bound per caller-visible
+     * attempt, three times for a tokenless session that tries the OS client
+     * first. On a QR scan, whose four React Query attempts each pay that, the
+     * 10s budget bought a ~49s worst case on the web and still ~89s on native.
+     *
+     * The WebView retry keeps its own per-attempt budget, so R44 is unchanged.
+     * The fallback legs now draw on what is LEFT, which still hands them nearly
+     * the whole pool in the case they exist for: there the WebView rejects fast
+     * at the TLS layer rather than timing out (PEANUT-UI-R5F), so almost
+     * nothing has been spent by the time the fallback runs.
+     */
+    const deadline = Date.now() + timeoutMs * maxAttempts
+    const legTimeoutMs = () => Math.min(timeoutMs, deadline - Date.now())
+
     /*
      * Tokenless native sessions go over the OS HTTP client FIRST, not as a
      * rescue: legacy cookie-jar sessions hold the JWT only in the OS-level
@@ -560,9 +591,9 @@ export const fetchWithSentry = async (
      * rejection fallback below never engages. On OS-client failure, fall
      * through to the WebView path so logged-out flows behave as before.
      */
-    if (preferNativeTransport && canUseNativeHttp(url, options)) {
+    if (preferNativeTransport && canUseNativeHttp(url, options) && legTimeoutMs() >= MIN_TRANSPORT_LEG_MS) {
         try {
-            const response = await nativeHttpRequest(url, options, timeoutMs)
+            const response = await nativeHttpRequest(url, options, legTimeoutMs())
             await reportNonOkResponse(url, options, response)
             return response
         } catch {
@@ -570,16 +601,10 @@ export const fetchWithSentry = async (
         }
     }
 
-    // Idempotent requests get one silent retry on timeout: stalled-transport
-    // failures (Android webview, flaky mobile networks) usually clear on a
-    // fresh attempt (PEANUT-UI-R44).
-    const method = (options.method || 'GET').toUpperCase()
-    const maxAttempts = method === 'GET' || method === 'HEAD' ? 2 : 1
-
     const attemptFetch = async (): Promise<Response> => {
         for (let attempt = 1; ; attempt++) {
             const controller = new AbortController()
-            const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+            const timeoutId = setTimeout(() => controller.abort(), Math.max(legTimeoutMs(), MIN_TRANSPORT_LEG_MS))
             try {
                 return await fetch(url, {
                     ...options,
@@ -611,9 +636,9 @@ export const fetchWithSentry = async (
         // before declaring failure: the edge rejects Android WebView requests at
         // the TLS-fingerprint level (PEANUT-UI-R5F), which fetch can only
         // surface as an opaque TypeError.
-        if (canUseNativeHttp(url, options)) {
+        if (canUseNativeHttp(url, options) && legTimeoutMs() >= MIN_TRANSPORT_LEG_MS) {
             try {
-                const response = await nativeHttpRequest(url, options, timeoutMs)
+                const response = await nativeHttpRequest(url, options, legTimeoutMs())
                 await reportNonOkResponse(url, options, response)
                 return response
             } catch {

@@ -13,15 +13,10 @@ export const MANTECA_QR_DEPOSIT_ADDRESS_NON_AR = '0x49200bF84dC26349C86ce0400190
  * exceeded 13s in a week of traffic, so 20s buys no successes — it only decides
  * how long someone stands at a till watching a spinner (PEANUT-UI-SZQ).
  *
- * This bounds ONE TRANSPORT LEG, not the whole scan. React Query gives the call
- * four attempts 3s apart, so on the web — where `canUseNativeHttp` is false and
- * an attempt is a single leg — the worst case is ~49s, down from ~89s. On
- * Capacitor an attempt can spend this budget in the WebView fetch and this
- * budget again in the `nativeHttpRequest` fallback (three legs for a legacy
- * tokenless session, which tries the OS client first), so the native worst case
- * is ~89s and unchanged by halving this. Bounding a scan end to end needs a
- * deadline shared across the legs in `fetchWithSentry`, which is not what this
- * constant does; both reported timeouts were mobile web.
+ * This bounds a whole attempt, on every platform: `fetchWithSentry` sizes one
+ * budget pool per call and the OS-client fallback draws on what the WebView leg
+ * left, rather than starting a second full-length leg. React Query gives the
+ * call four attempts 3s apart, so the worst case is ~49s, down from ~89s.
  */
 export const MANTECA_QR_INIT_SCAN_TIMEOUT_MS = 10_000
 
