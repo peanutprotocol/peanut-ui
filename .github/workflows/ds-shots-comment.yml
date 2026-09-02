@@ -146,17 +146,18 @@ jobs:
                   # artifact after somebody else's PR posts nothing, and an
                   # out-of-order older run cannot overwrite a newer comment.
                   #
-                  # The PR must also live on the run's own head branch: two
-                  # branches can park on one commit, and only same-branch
-                  # writers share the concurrency group that serializes
-                  # comment updates — a cross-branch writer would bypass it.
+                  # The PR must also live in THIS repo and on the run's own
+                  # head branch: any branch — including a fork's copy with
+                  # the same name — can park on a public commit, and only
+                  # same-repo same-branch writers share the concurrency
+                  # group that serializes comment updates.
                   #
                   # A true 404 (the number points at no PR) is that attack and
                   # stays a no-op. Any other failure — 5xx, rate limit,
                   # network — must fail this job loudly: swallowed, it would
                   # exit green while an older result stands as current.
                   set +e
-                  OUT=$(gh api "repos/$REPO/pulls/$PR" --jq '.head.sha + " " + .head.ref' 2>&1)
+                  OUT=$(gh api "repos/$REPO/pulls/$PR" --jq '(.head.repo.full_name // "gone") + " " + .head.sha + " " + .head.ref' 2>&1)
                   STATUS=$?
                   set -e
                   if [ "$STATUS" -ne 0 ]; then
@@ -169,8 +170,8 @@ jobs:
                       exit 1
                   fi
                   HEAD=$OUT
-                  if [ "$HEAD" != "$RUN_HEAD_SHA $RUN_HEAD_BRANCH" ]; then
-                      echo "PR #$PR head (${HEAD:-<none>}) != run head ($RUN_HEAD_SHA $RUN_HEAD_BRANCH) — mismatched artifact name, stale run, or cross-branch writer. Skipping."
+                  if [ "$HEAD" != "$REPO $RUN_HEAD_SHA $RUN_HEAD_BRANCH" ]; then
+                      echo "PR #$PR head (${HEAD:-<none>}) != run head ($REPO $RUN_HEAD_SHA $RUN_HEAD_BRANCH) — mismatched artifact name, stale run, or cross-repo/branch writer. Skipping."
                       echo 'match=false' >> "$GITHUB_OUTPUT"
                       exit 0
                   fi
@@ -195,7 +196,10 @@ jobs:
                   else
                       # The event omitted the list — routine, ~9 in 10 runs.
                       # Resolve it ourselves: the artifact's PR must be the
-                      # ONLY open PR on this branch+commit. With two sibling
+                      # ONLY open same-repo PR on this branch+commit. Fork
+                      # PRs are excluded, or an outsider could point a
+                      # same-named fork branch at this public commit and
+                      # force a false ambiguity that mutes the publisher. With two sibling
                       # PRs the runs are indistinguishable — code from one
                       # can name the other — so ambiguity posts nothing and
                       # the job summary stays the visible diff for that rare
@@ -206,7 +210,7 @@ jobs:
                       # after pagination — page one alone can miss the real
                       # head match.
                       CANDIDATES=$(gh api --paginate "repos/$REPO/commits/$RUN_HEAD_SHA/pulls?per_page=100" \
-                          --jq '.[] | select(.state == "open" and .head.sha == env.RUN_HEAD_SHA and .head.ref == env.RUN_HEAD_BRANCH) | .number')
+                          --jq '.[] | select(.state == "open" and .head.sha == env.RUN_HEAD_SHA and .head.ref == env.RUN_HEAD_BRANCH and (.head.repo.full_name // "") == env.REPO) | .number')
                       COUNT=$(printf '%s\n' "$CANDIDATES" | grep -c . || true)
                       if [ "$COUNT" -ne 1 ] || ! printf '%s\n' "$CANDIDATES" | grep -qx "$PR"; then
                           echo "Ambiguous or mismatched binding: open PRs on this branch+commit [$CANDIDATES] vs artifact PR #$PR — posting nothing."
@@ -312,7 +316,7 @@ jobs:
                   # endpoint lists PRs containing the commit, and the head
                   # match can sit past page one.
                   CANDIDATES=$(gh api --paginate "repos/$REPO/commits/$RUN_HEAD_SHA/pulls?per_page=100" \
-                      --jq '.[] | select(.state == "open" and .head.sha == env.RUN_HEAD_SHA and .head.ref == env.HEAD_BRANCH) | .number')
+                      --jq '.[] | select(.state == "open" and .head.sha == env.RUN_HEAD_SHA and .head.ref == env.HEAD_BRANCH and (.head.repo.full_name // "") == env.REPO) | .number')
                   if [ -z "$CANDIDATES" ]; then
                       echo 'No open PR has this branch+commit as its head — superseded or stale run. Nothing to do.'
                       exit 0
