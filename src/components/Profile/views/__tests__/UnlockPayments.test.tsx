@@ -195,7 +195,7 @@ describe('UnlockPayments', () => {
     it('the residence Change link opens the change modal', () => {
         mockUser = { residence: { declared: 'BR', verified: 'BR' }, user: { userId: 'u1' } }
         render()
-        fireEvent.click(screen.getByText('Change'))
+        fireEvent.click(screen.getByLabelText('Change'))
         expect(screen.getByText('change-modal-open')).toBeInTheDocument()
     })
 
@@ -205,7 +205,7 @@ describe('UnlockPayments', () => {
         render()
         expect(screen.getByText('Not available yet')).toBeInTheDocument()
 
-        fireEvent.click(screen.getByText('Change'))
+        fireEvent.click(screen.getByLabelText('Change'))
         fireEvent.click(screen.getByText('reverify'))
         // the new residence's intent rides along so the token targets the right level
         expect(mockRestartIdentity).toHaveBeenCalledTimes(1)

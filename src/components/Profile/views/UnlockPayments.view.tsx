@@ -1,8 +1,16 @@
 'use client'
 
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
-import { Icon, type IconName } from '@/components/Global/Icons/Icon'
+import { type IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
+import Card from '@/components/Global/Card'
+import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { ListGroup } from '@/components/0_Bruddle/ListGroup'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { Notification } from '@/components/0_Bruddle/Notification'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
+import { Section } from '@/components/0_Bruddle/Section'
 import UnlockMethodModal from '@/components/IdentityVerification/UnlockMethodModal'
 import ResidenceChangeModal from '@/components/Profile/views/ResidenceChangeModal'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
@@ -22,7 +30,7 @@ import { useCardInfo } from '@/hooks/useCardInfo'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useLimits } from '@/hooks/useLimits'
 import ProgressBar from '@/components/0_Bruddle/ProgressBar'
-import { formatAmountWithCurrency, getLimitColorClass, getLimitData } from '@/features/limits/utils'
+import { getCurrencySymbol, getLimitColorClass, getLimitData } from '@/features/limits/utils'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
@@ -50,7 +58,6 @@ import { useSafeBack } from '@/hooks/useSafeBack'
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import { useRouter } from 'next/navigation'
-import { twMerge } from '@/utils/tw'
 
 type ModalVariant = 'start' | 'processing' | 'action_required' | 'rejected'
 
@@ -77,13 +84,22 @@ function getModalVariant(rail: RailCapability | undefined, hasSumsubAction: bool
  * caps per transaction → a plain line.
  */
 type RowLimitSummary =
-    | { kind: 'manteca'; asset: string; monthlyLimit: number; monthlyRemaining: number }
+    | { kind: 'manteca'; asset: string; remaining: string; limit: string; usedPercent: number }
     | { kind: 'bridge'; perTransaction: string }
+
+// Whole-unit cap with locale grouping ($100,000, not $100000): the shared
+// formatter only abbreviates from seven digits and never groups.
+function formatCap(amount: number, currency: string, locale: string): string {
+    const symbol = getCurrencySymbol(currency)
+    const separator = symbol.length > 1 && symbol === symbol.toUpperCase() ? ' ' : ''
+    return `${symbol}${separator}${new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(amount)}`
+}
 
 function limitSummariesForGroup(
     group: UnlockGroup,
     mantecaLimits: MantecaLimit[] | null,
-    bridgeLimits: BridgeLimits | null
+    bridgeLimits: BridgeLimits | null,
+    locale: string
 ): RowLimitSummary[] {
     const refs = new Set(group.rows.filter((row) => row.chip === 'active').flatMap((row) => row.limitRefs ?? []))
     const summaries: RowLimitSummary[] = []
@@ -91,10 +107,7 @@ function limitSummariesForGroup(
         if (ref === 'bridge') {
             const cap = Number(bridgeLimits?.onRampPerTransaction)
             if (bridgeLimits && Number.isFinite(cap) && cap > 0) {
-                summaries.push({
-                    kind: 'bridge',
-                    perTransaction: formatAmountWithCurrency(cap, bridgeLimits.asset || 'USD'),
-                })
+                summaries.push({ kind: 'bridge', perTransaction: formatCap(cap, bridgeLimits.asset || 'USD', locale) })
             }
             continue
         }
@@ -104,21 +117,13 @@ function limitSummariesForGroup(
             summaries.push({
                 kind: 'manteca',
                 asset: ref,
-                monthlyLimit: monthly.limit,
-                monthlyRemaining: monthly.remaining,
+                remaining: formatCap(monthly.remaining, ref, locale),
+                limit: formatCap(monthly.limit, ref, locale),
+                usedPercent: monthly.limit > 0 ? (monthly.remaining / monthly.limit) * 100 : 0,
             })
         }
     }
     return summaries
-}
-
-const CHIP_CLASSES: Record<UnlockChip, string> = {
-    active: 'bg-background-badge-success',
-    alwaysOn: 'bg-background-badge-success',
-    unlock: 'bg-background-badge-accent',
-    processing: 'bg-background-badge-helper',
-    attention: 'bg-background-badge-attention',
-    notAvailable: 'bg-background-default text-foreground-secondary',
 }
 
 type BankRegionPath = 'europe' | 'north-america' | 'latam'
@@ -343,130 +348,101 @@ const UnlockPayments = () => {
     const showBankRestrictionNote = restrictions.banking
     const showCardRestrictionNote = !restrictions.banking && restrictions.card
 
-    return (
-        <div className="flex min-h-[inherit] flex-col gap-8">
-            <NavHeader title={t('title')} onPrev={onBack} titleClassName="text-heading-xs md:text-heading-s" />
-            <div className="my-auto">
-                <p className="text-body-s">{t('description')}</p>
+    const residenceTrailing = !residenceIso2 ? undefined : residence?.verified ? (
+        <StatusBadge status="completed" customText={t('residence.verified')} />
+    ) : (
+        <span className="text-body-s text-foreground-secondary">{t('residence.unverified')}</span>
+    )
 
-                {/* Residence anchor: explains WHY the list looks the way it does. */}
-                <div className="mt-4 flex items-center gap-2 rounded-sm border border-border-default bg-background-default p-3 text-body-s dark:border-white dark:bg-foreground-primary">
-                    <Icon name="globe" className="size-4 shrink-0" />
-                    <span className="font-bold">
-                        {residenceCountryName
+    return (
+        <PageStack gap="6" className="pb-10">
+            <NavHeader title={t('title')} onPrev={onBack} titleClassName="text-heading-xs md:text-heading-s" />
+            <p className="text-body-s">{t('description')}</p>
+
+            {/* Residence anchor: explains WHY the list looks the way it does. */}
+            <div className="flex flex-col gap-1">
+                <ListItem
+                    leading={<IconBubble icon="globe" size="s" color="blue" />}
+                    title={
+                        residenceCountryName
                             ? t('residence.label', { country: residenceCountryName })
-                            : t('residence.unknown')}
-                    </span>
-                    {residenceIso2 && (
-                        <span
-                            className={twMerge(
-                                'ml-auto shrink-0 rounded-full border border-border-default px-2 py-0.5 text-label-m uppercase',
-                                residence?.verified
-                                    ? 'bg-background-badge-success text-foreground-primary'
-                                    : 'text-foreground-secondary'
-                            )}
-                        >
-                            {residence?.verified ? t('residence.verified') : t('residence.unverified')}
-                        </span>
-                    )}
-                    <button
-                        type="button"
-                        className={twMerge(
-                            'shrink-0 text-body-xs underline underline-offset-2',
-                            !residenceIso2 && 'ml-auto'
-                        )}
-                        onClick={() => setIsChangeModalOpen(true)}
-                    >
-                        {residenceIso2 ? t('residence.change') : t('residence.set')}
-                    </button>
-                </div>
+                            : t('residence.unknown')
+                    }
+                    trailing={residenceTrailing}
+                    chevron
+                    onClick={() => setIsChangeModalOpen(true)}
+                    aria-label={residenceIso2 ? t('residence.change') : t('residence.set')}
+                />
                 {residence?.verified && residence?.declared && residence.declared !== residence.verified && (
-                    <p className="mt-1 text-body-xs text-foreground-secondary">
+                    <p className="text-body-xs text-foreground-secondary">
                         {t('residence.pendingReverify', { country: declaredCountryName ?? residence.declared })}
                     </p>
                 )}
-
-                {isKycDegraded && (
-                    <div className="mt-3 flex items-start gap-2 rounded-sm border border-border-default bg-background-badge-attention p-3 text-body-xs text-foreground-primary dark:bg-foreground-primary dark:text-white">
-                        <Icon name="alert" className="mt-0.5 size-4 shrink-0" />
-                        <span>
-                            <span className="block font-bold">{t('degraded.title')}</span>
-                            {t('degraded.body')}{' '}
-                            <button
-                                type="button"
-                                className="font-bold underline underline-offset-2"
-                                onClick={() => {
-                                    posthog.capture(ANALYTICS_EVENTS.KYC_DEGRADED_NOTIFY_REQUESTED)
-                                    posthog.setPersonProperties({ kyc_down_notify_requested: true })
-                                }}
-                            >
-                                {t('degraded.notifyMe')}
-                            </button>
-                        </span>
-                    </div>
-                )}
-
-                {isIdentityInReview && !isKycDegraded && (
-                    <div className="mt-3 flex items-start gap-2 rounded-sm border border-border-default bg-background-default p-3 text-body-xs dark:bg-foreground-primary">
-                        <Icon name="clock" className="mt-0.5 size-4 shrink-0" />
-                        <span>
-                            <span className="block font-bold">
-                                {reviewSubmittedDate
-                                    ? t('review.sinceDate', { submittedDate: reviewSubmittedDate })
-                                    : t('review.since')}
-                            </span>
-                            {reviewEscalation ? (
-                                <>
-                                    {t('review.escalation')}{' '}
-                                    <button
-                                        type="button"
-                                        className="font-bold underline underline-offset-2"
-                                        onClick={() => setIsSupportModalOpen(true)}
-                                    >
-                                        {t('review.messageUs')}
-                                    </button>
-                                </>
-                            ) : (
-                                t('review.body')
-                            )}
-                        </span>
-                    </div>
-                )}
-
-                {/* Pending Bridge verification tasks (ToS / hosted re-verification). */}
-                <div className="mt-4">
-                    <PendingVerificationTasks />
-                </div>
-
-                {groups.length === 0 && (
-                    <EmptyState
-                        title={tRegions('empty.title')}
-                        description={tRegions('empty.description')}
-                        icon="globe-lock"
-                        containerClassName="mt-3"
-                    />
-                )}
-
-                <div className="space-y-3 mt-4">
-                    {groups.map((group) => (
-                        <UnlockGroupCard
-                            key={group.id}
-                            group={group}
-                            onRowClick={handleRowClick}
-                            isKycDegraded={isKycDegraded}
-                            mantecaLimits={mantecaLimits}
-                            bridgeLimits={bridgeLimits}
-                        />
-                    ))}
-                </div>
-
-                {showBankRestrictionNote && (
-                    <p className="mt-3 text-body-xs text-foreground-secondary">{t('bankNotAvailableNote')}</p>
-                )}
-                {showCardRestrictionNote && (
-                    <p className="mt-3 text-body-xs text-foreground-secondary">{t('cardNotAvailableNote')}</p>
-                )}
             </div>
+
+            {isKycDegraded && (
+                <Notification
+                    priority="attention"
+                    title={t('degraded.title')}
+                    ctas={[
+                        {
+                            label: t('degraded.notifyMe'),
+                            onClick: () => {
+                                posthog.capture(ANALYTICS_EVENTS.KYC_DEGRADED_NOTIFY_REQUESTED)
+                                posthog.setPersonProperties({ kyc_down_notify_requested: true })
+                            },
+                        },
+                    ]}
+                >
+                    {t('degraded.body')}
+                </Notification>
+            )}
+
+            {isIdentityInReview && !isKycDegraded && (
+                <Notification
+                    priority="helper"
+                    title={
+                        reviewSubmittedDate
+                            ? t('review.sinceDate', { submittedDate: reviewSubmittedDate })
+                            : t('review.since')
+                    }
+                    ctas={
+                        reviewEscalation
+                            ? [{ label: t('review.messageUs'), onClick: () => setIsSupportModalOpen(true) }]
+                            : undefined
+                    }
+                >
+                    {reviewEscalation ? t('review.escalation') : t('review.body')}
+                </Notification>
+            )}
+
+            {/* Pending Bridge verification tasks (ToS / hosted re-verification). */}
+            <PendingVerificationTasks />
+
+            {groups.length === 0 && (
+                <EmptyState
+                    title={tRegions('empty.title')}
+                    description={tRegions('empty.description')}
+                    icon="globe-lock"
+                />
+            )}
+
+            {groups.map((group) => (
+                <UnlockSection
+                    key={group.id}
+                    group={group}
+                    onRowClick={handleRowClick}
+                    isKycDegraded={isKycDegraded}
+                    limitSummaries={limitSummariesForGroup(group, mantecaLimits, bridgeLimits, locale)}
+                />
+            ))}
+
+            {showBankRestrictionNote && (
+                <p className="text-body-xs text-foreground-secondary">{t('bankNotAvailableNote')}</p>
+            )}
+            {showCardRestrictionNote && (
+                <p className="text-body-xs text-foreground-secondary">{t('cardNotAvailableNote')}</p>
+            )}
 
             {/* Region-restricted users get the one honest region screen instead
                 of an unlock offer that can only end in the same rejection: the
@@ -631,7 +607,7 @@ const UnlockPayments = () => {
             />
 
             <SumsubKycModals flow={flow} />
-        </div>
+        </PageStack>
     )
 }
 
@@ -644,103 +620,107 @@ function regionGroupKey(path: 'europe' | 'north-america' | 'latam'): 'europe' | 
     return 'southAmerica'
 }
 
-const UnlockGroupCard = ({
+type IconBubbleColor = NonNullable<React.ComponentProps<typeof IconBubble>['color']>
+
+const BUBBLE_COLOR: Record<UnlockChip, IconBubbleColor> = {
+    active: 'green',
+    alwaysOn: 'green',
+    unlock: 'blue',
+    processing: 'blue',
+    attention: 'yellow',
+    notAvailable: 'gray',
+}
+
+/**
+ * One region of the list (option D of the DS rebuild): a Section heading over
+ * a ListGroup of method rows, closed by the region's own limits card so the
+ * numbers sit next to the methods they govern.
+ */
+const UnlockSection = ({
     group,
     onRowClick,
     isKycDegraded,
-    mantecaLimits,
-    bridgeLimits,
+    limitSummaries,
 }: {
     group: UnlockGroup
     onRowClick: (row: UnlockRow) => void
     isKycDegraded: boolean
-    mantecaLimits: MantecaLimit[] | null
-    bridgeLimits: BridgeLimits | null
+    limitSummaries: RowLimitSummary[]
 }) => {
     const t = useTranslations('profile.unlockPayments')
+
+    const rowTrailing = (row: UnlockRow) => {
+        switch (row.chip) {
+            case 'active':
+            case 'alwaysOn':
+                return <StatusBadge status="completed" customText={t(`chips.${row.chip}`)} />
+            case 'processing':
+                return <StatusBadge status="processing" customText={t('chips.processing')} />
+            case 'attention':
+                return <StatusBadge status="pending" customText={t('chips.attention')} />
+            case 'unlock':
+            case 'notAvailable':
+                return <span className="text-body-s text-foreground-secondary">{t(`chips.${row.chip}`)}</span>
+        }
+    }
+
+    const showLimits = group.id === 'everywhere' || limitSummaries.length > 0
+
     return (
-        <div className="overflow-hidden rounded-sm border border-border-default bg-background-default dark:border-white dark:bg-foreground-primary">
-            <div className="flex items-center gap-2 border-b border-border-default bg-background-badge-helper px-3 py-2 text-label-l dark:border-white dark:bg-foreground-primary">
-                <span>{t(`groups.${group.labelKey}`)}</span>
-                {group.isYourRegion && (
-                    <span className="ml-auto rounded-full border border-border-default bg-background-badge-accent px-2 py-0.5 text-label-m text-foreground-primary uppercase">
-                        {t('yourRegion')}
-                    </span>
-                )}
-            </div>
-            {group.rows.map((row) => {
-                // During a verification outage the unlock path is closed (the tap
-                // guard would no-op), so render those rows disabled instead of
-                // letting them look actionable under the degraded banner.
-                const tappable = !!row.href || (!!row.regionPath && !isKycDegraded)
-                return (
-                    <button
-                        key={row.id}
-                        type="button"
-                        disabled={!tappable}
-                        onClick={() => onRowClick(row)}
-                        className={twMerge(
-                            'flex w-full items-center gap-2 border-t border-border-default px-3 py-2 text-left text-body-s first:border-t-0 dark:border-white',
-                            !tappable && 'cursor-default'
-                        )}
-                    >
-                        <Icon name={row.icon as IconName} className="size-4 shrink-0" />
-                        <span className={twMerge(row.chip === 'notAvailable' && 'text-foreground-secondary')}>
-                            {t(`rows.${row.labelKey}`)}
-                        </span>
-                        <span
-                            className={twMerge(
-                                'ml-auto shrink-0 rounded-full border border-border-default px-2 py-0.5 text-label-m text-foreground-primary uppercase',
-                                CHIP_CLASSES[row.chip]
-                            )}
-                        >
-                            {t(`chips.${row.chip}`)}
-                        </span>
-                    </button>
-                )
-            })}
-            {/* P2P has no cap at all (no fiat provider behind it), so the
-                Everywhere group always states that — it is the one limit that
-                exists before any unlock. */}
-            {group.id === 'everywhere' && (
-                <div className="border-t border-border-default bg-background-badge-accent px-3 py-2 dark:border-white dark:bg-foreground-primary">
-                    <p className="text-body-xs text-foreground-secondary dark:text-white">{t('limits.p2pNoLimit')}</p>
-                </div>
-            )}
-            {limitSummariesForGroup(group, mantecaLimits, bridgeLimits).map((summary) => (
-                <div
-                    key={summary.kind === 'manteca' ? summary.asset : 'bridge'}
-                    className="border-t border-border-default bg-background-badge-accent px-3 py-2 dark:border-white dark:bg-foreground-primary"
-                >
-                    {summary.kind === 'manteca' ? (
-                        <>
-                            <p className="mb-1 text-body-xs text-foreground-secondary dark:text-white">
-                                {t('limits.monthlyLeft', {
-                                    remaining: formatAmountWithCurrency(summary.monthlyRemaining, summary.asset),
-                                    limit: formatAmountWithCurrency(summary.monthlyLimit, summary.asset),
-                                })}
-                            </p>
-                            <ProgressBar
-                                value={
-                                    summary.monthlyLimit > 0
-                                        ? (summary.monthlyRemaining / summary.monthlyLimit) * 100
-                                        : 0
-                                }
-                                fillClassName={getLimitColorClass(
-                                    summary.monthlyLimit > 0
-                                        ? (summary.monthlyRemaining / summary.monthlyLimit) * 100
-                                        : 0,
-                                    'bg'
-                                )}
-                            />
-                        </>
-                    ) : (
-                        <p className="text-body-xs text-foreground-secondary dark:text-white">
-                            {t('limits.perTransfer', { amount: summary.perTransaction })}
-                        </p>
+        <Section
+            title={
+                <span className="flex items-center gap-2">
+                    {t(`groups.${group.labelKey}`)}
+                    {group.isYourRegion && <StatusBadge status="custom" customText={t('yourRegion')} />}
+                </span>
+            }
+        >
+            <ListGroup>
+                {group.rows.map((row) => {
+                    // During a verification outage the unlock path is closed (the tap
+                    // guard would no-op), so render those rows inert instead of
+                    // letting them look actionable under the degraded banner.
+                    const tappable = !!row.href || (!!row.regionPath && !isKycDegraded)
+                    return (
+                        <ListItem
+                            key={row.id}
+                            disabled={row.chip === 'notAvailable'}
+                            leading={<IconBubble icon={row.icon as IconName} size="s" color={BUBBLE_COLOR[row.chip]} />}
+                            title={t(`rows.${row.labelKey}`)}
+                            trailing={rowTrailing(row)}
+                            chevron={tappable}
+                            onClick={tappable ? () => onRowClick(row) : undefined}
+                        />
+                    )
+                })}
+            </ListGroup>
+            {showLimits && (
+                <Card position="single" className="flex flex-col gap-3 px-4 py-3">
+                    {/* P2P has no cap at all (no fiat provider behind it), so the
+                        Everywhere group always states that — it is the one limit
+                        that exists before any unlock. */}
+                    {group.id === 'everywhere' && (
+                        <p className="text-body-s text-foreground-secondary">{t('limits.p2pNoLimit')}</p>
                     )}
-                </div>
-            ))}
-        </div>
+                    {limitSummaries.map((summary) =>
+                        summary.kind === 'manteca' ? (
+                            <div key={summary.asset} className="flex flex-col gap-1">
+                                <p className="text-body-s text-foreground-secondary">
+                                    {t('limits.monthlyLeft', { remaining: summary.remaining, limit: summary.limit })}
+                                </p>
+                                <ProgressBar
+                                    value={summary.usedPercent}
+                                    fillClassName={getLimitColorClass(summary.usedPercent, 'bg')}
+                                />
+                            </div>
+                        ) : (
+                            <p key="bridge" className="text-body-s text-foreground-secondary">
+                                {t('limits.perTransfer', { amount: summary.perTransaction })}
+                            </p>
+                        )
+                    )}
+                </Card>
+            )}
+        </Section>
     )
 }
