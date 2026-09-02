@@ -1,6 +1,6 @@
 'use client'
 
-import { forwardRef, useState } from 'react'
+import { forwardRef } from 'react'
 import {
     Root,
     Trigger,
@@ -15,7 +15,6 @@ import {
 } from '@radix-ui/react-select'
 import { twMerge } from '@/utils/tw'
 import { Icon } from '@/components/Global/Icons/Icon'
-import BaseInput from '@/components/0_Bruddle/BaseInput'
 
 export interface BaseSelectOption {
     label: string
@@ -39,10 +38,6 @@ interface BaseSelectProps {
     error?: boolean
     /** accessible name — the trigger is a button, so a sibling <label htmlFor> cannot name it */
     'aria-label'?: string
-    /** off by default — shows a search input above the options that filters them by label */
-    searchable?: boolean
-    /** placeholder for the search input; caller passes a localized string */
-    searchPlaceholder?: string
 }
 
 const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
@@ -57,24 +52,15 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
             disabled,
             error,
             'aria-label': ariaLabel,
-            searchable = false,
-            searchPlaceholder = 'Search',
         },
         ref
     ) => {
-        const [search, setSearch] = useState('')
-        const visibleOptions =
-            searchable && search
-                ? options.filter((option) => option.label.toLowerCase().includes(search.toLowerCase()))
-                : options
         return (
             <Root
                 value={value}
                 onValueChange={onValueChange}
                 disabled={disabled}
                 onOpenChange={(open) => {
-                    // a reopened select starts unfiltered
-                    if (!open) setSearch('')
                     // Trigger onBlur when the select closes
                     if (!open && onBlur) {
                         onBlur()
@@ -120,22 +106,8 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
                         collisionPadding={{ top: 8, right: 8, bottom: BOTTOM_NAV_CLEARANCE_PX, left: 8 }}
                         style={{ width: 'var(--radix-select-trigger-width)' }}
                     >
-                        {searchable && (
-                            <div className="border-b border-border-default p-2">
-                                <BaseInput
-                                    variant="sm"
-                                    placeholder={searchPlaceholder}
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
-                                    // radix select typeahead and arrow-nav grab key
-                                    // events at the content — the input owns its own
-                                    onKeyDown={(e) => e.stopPropagation()}
-                                    autoComplete="off"
-                                />
-                            </div>
-                        )}
                         <Viewport className="notranslate w-full p-1">
-                            {visibleOptions.map((option) => (
+                            {options.map((option) => (
                                 <Item
                                     key={option.value}
                                     value={option.value}

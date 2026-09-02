@@ -1,7 +1,6 @@
 import DocsLink from '@/components/Global/DocsLink'
 import PasskeyInfoModal from '@/components/Setup/components/PasskeyInfoModal'
 import { Button } from '@/components/0_Bruddle/Button'
-import { Notification } from '@/components/0_Bruddle/Notification'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { updateUserById } from '@/app/actions/users'
@@ -253,15 +252,21 @@ const SignTestTransaction = () => {
     if (accountReady) {
         return (
             <div className="flex w-full flex-col gap-3 text-left">
-                <div className="rounded-sm border border-border-default bg-background-default p-4">
-                    <p className="text-heading-card">{t('accountReady.worksNowTitle')}</p>
-                    <p className="text-body-m">{t('accountReady.worksNowBody')}</p>
+                <div className="rounded-sm border border-border-default bg-background-default p-3">
+                    <p className="text-label-l">{t('accountReady.worksNowTitle')}</p>
+                    <p className="text-body-s">{t('accountReady.worksNowBody')}</p>
                 </div>
-                <div className="rounded-sm border border-border-default bg-background-default p-4">
-                    <p className="text-heading-card">{t('accountReady.laterTitle')}</p>
-                    <p className="text-body-m">{t('accountReady.laterBody')}</p>
+                <div className="rounded-sm border border-border-default bg-background-default p-3">
+                    <p className="text-label-l">{t('accountReady.laterTitle')}</p>
+                    <p className="text-body-s">{t('accountReady.laterBody')}</p>
                 </div>
-                <Button onClick={goToAccount} loading={isRedirecting} disabled={isRedirecting} shadowSize="4">
+                <Button
+                    onClick={goToAccount}
+                    loading={isRedirecting}
+                    disabled={isRedirecting}
+                    shadowSize="4"
+                    className="mt-2"
+                >
                     {t('accountReady.cta')}
                 </Button>
             </div>
@@ -270,8 +275,8 @@ const SignTestTransaction = () => {
 
     return (
         <div>
-            <div className="flex h-full flex-col justify-between gap-6 p-0 md:min-h-32">
-                <div className="flex h-full flex-col justify-end gap-2">
+            <div className="flex h-full flex-col justify-between gap-10 p-0 md:min-h-32">
+                <div className="flex h-full flex-col justify-end gap-2 text-center">
                     {/* Rendered here, not by the step chrome, so the account-ready
                         state doesn't repeat it (descriptionInView on the step). */}
                     <p className="mb-1 text-body-s text-foreground-secondary">
@@ -286,7 +291,7 @@ const SignTestTransaction = () => {
                     >
                         {getButtonText()}
                     </Button>
-                    {displayError && <Notification priority="error">{displayError}</Notification>}
+                    {displayError && <p className="text-label-l text-foreground-error">{displayError}</p>}
                 </div>
                 <div>
                     {/* In-app explainer instead of a browser redirect — leaving
@@ -294,8 +299,7 @@ const SignTestTransaction = () => {
                     <p className="border-t border-border-subtle pt-2 text-center text-body-xs text-foreground-secondary">
                         <button
                             type="button"
-                            // after: pseudo-element extends the text row to a 44px hit area (LinkButton pattern)
-                            className="relative underline underline-offset-2 after:absolute after:inset-x-0 after:-inset-y-3.5 focus-visible:outline-[3px] focus-visible:outline-action-focus"
+                            className="underline underline-offset-2"
                             onClick={() => setIsPasskeyInfoOpen(true)}
                         >
                             {t('passkey.learnMore')}

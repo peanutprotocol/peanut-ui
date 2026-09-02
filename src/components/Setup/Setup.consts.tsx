@@ -46,6 +46,7 @@ export const setupSteps: ISetupStep[] = [
         component: InstallPWA,
         showBackButton: false,
         showSkipButton: true,
+        showLoginButton: true,
         imageClassName: 'w-[50%] md:w-[30%] h-auto mt-16 md:mt-0',
     },
     {
@@ -109,6 +110,6 @@ export const setupSteps: ISetupStep[] = [
         // The view renders the description itself: the confirm prompt before
         // signing, the account-ready celebration after.
         descriptionInView: true,
-        contentClassName: 'flex flex-col items-end justify-center gap-6',
+        contentClassName: 'flex flex-col items-center justify-center gap-6',
     },
 ]

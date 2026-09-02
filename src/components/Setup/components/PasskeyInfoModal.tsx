@@ -21,7 +21,7 @@ const PasskeyInfoModal = ({ visible, onClose }: { visible: boolean; onClose: () 
             title={t('title')}
             icon="lock"
             iconContainerClassName="bg-action-primary"
-            iconProps={{ className: 'text-foreground-primary' }}
+            iconProps={{ className: 'text-black' }}
             description={
                 <div className="flex flex-col gap-3 text-left text-body-s">
                     <p>{t('what')}</p>
@@ -34,7 +34,7 @@ const PasskeyInfoModal = ({ visible, onClose }: { visible: boolean; onClose: () 
                     </p>
                 </div>
             }
-            descriptionClassName="text-foreground-primary"
+            descriptionClassName="text-black"
             ctas={[
                 {
                     shadowSize: '4',

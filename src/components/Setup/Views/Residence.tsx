@@ -1,7 +1,6 @@
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import BaseSelect from '@/components/0_Bruddle/BaseSelect'
 import { Button } from '@/components/0_Bruddle/Button'
-import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
@@ -22,7 +21,6 @@ type PartialRestriction = 'card' | 'banking'
 
 const ResidenceStep = () => {
     const t = useTranslations('setup')
-    const tCommon = useTranslations('common')
     const locale = useLocale()
     const dispatch = useAppDispatch()
     const { residenceCountry, secondResidenceCountry } = useSetupStore()
@@ -197,12 +195,10 @@ const ResidenceStep = () => {
             (item) => item !== 'p2p' && item !== 'card' && item !== 'bank'
         )
         return (
-            <div className="flex h-full w-full flex-col justify-between gap-6">
+            <div className="flex h-full w-full flex-col justify-between gap-4">
                 <div className="flex flex-col gap-2">
-                    <h1 className="w-full text-left text-heading-xs leading-tight">
-                        {t('residenceStep.congrats.title')}
-                    </h1>
-                    <p className="text-body-m text-foreground-secondary">
+                    <h1 className="text-heading-xs">{t('residenceStep.congrats.title')}</h1>
+                    <p className="text-body-s text-foreground-secondary">
                         {railItem
                             ? t('residenceStep.congrats.description', {
                                   rail: t(`residenceStep.congrats.rails.${railItem}`),
@@ -210,14 +206,13 @@ const ResidenceStep = () => {
                             : t('residenceStep.congrats.descriptionNoRail')}
                     </p>
                 </div>
-                <div className="flex w-full flex-col gap-4">
+                <div className="flex w-full flex-col gap-2">
                     <Button shadowSize="4" onClick={() => void handleNext()} loading={isLoading} disabled={isLoading}>
                         {t('residenceStep.congrats.continue')}
                     </Button>
                     <button
                         type="button"
-                        // after: pseudo-element extends the text row to a 44px hit area (LinkButton pattern)
-                        className="relative self-center text-center text-body-s underline underline-offset-2 after:absolute after:inset-x-0 after:-inset-y-3 focus-visible:outline-[3px] focus-visible:outline-action-focus disabled:opacity-50"
+                        className="mt-1 text-center text-body-s underline underline-offset-2 disabled:opacity-50"
                         onClick={() => setView('select')}
                         disabled={isLoading}
                     >
@@ -230,25 +225,22 @@ const ResidenceStep = () => {
 
     if (view === 'partial') {
         return (
-            <div className="flex h-full w-full flex-col justify-between gap-6">
+            <div className="flex h-full w-full flex-col justify-between gap-4">
                 <div className="flex flex-col gap-2">
-                    <h1 className="w-full text-left text-heading-xs leading-tight">
-                        {t('residenceStep.partial.title')}
-                    </h1>
-                    <p className="text-body-m text-foreground-secondary">
+                    <h1 className="text-heading-xs">{t('residenceStep.partial.title')}</h1>
+                    <p className="text-body-s text-foreground-secondary">
                         {partialRestriction === 'card'
                             ? t('residenceStep.partial.cardDescription')
                             : t('residenceStep.partial.bankingDescription')}
                     </p>
                 </div>
-                <div className="flex w-full flex-col gap-4">
+                <div className="flex w-full flex-col gap-2">
                     <Button shadowSize="4" onClick={() => void handleNext()} loading={isLoading} disabled={isLoading}>
                         {t('residenceStep.partial.continue')}
                     </Button>
                     <button
                         type="button"
-                        // after: pseudo-element extends the text row to a 44px hit area (LinkButton pattern)
-                        className="relative self-center text-center text-body-s underline underline-offset-2 after:absolute after:inset-x-0 after:-inset-y-3 focus-visible:outline-[3px] focus-visible:outline-action-focus disabled:opacity-50"
+                        className="mt-1 text-center text-body-s underline underline-offset-2 disabled:opacity-50"
                         onClick={() => setView('select')}
                         disabled={isLoading}
                     >
@@ -261,12 +253,10 @@ const ResidenceStep = () => {
 
     if (view === 'restricted' || view === 'notify' || view === 'notify-done') {
         return (
-            <div className="flex h-full w-full flex-col justify-between gap-6">
+            <div className="flex h-full w-full flex-col justify-between gap-4">
                 <div className="flex flex-col gap-2">
-                    <h1 className="w-full text-left text-heading-xs leading-tight">
-                        {t('residenceStep.restricted.title')}
-                    </h1>
-                    <p className="text-body-m text-foreground-secondary">{t('residenceStep.restricted.description')}</p>
+                    <h1 className="text-heading-xs">{t('residenceStep.restricted.title')}</h1>
+                    <p className="text-body-s text-foreground-secondary">{t('residenceStep.restricted.description')}</p>
                     {view === 'notify' && (
                         <div className="mt-2 flex flex-col gap-2">
                             <BaseInput
@@ -277,14 +267,14 @@ const ResidenceStep = () => {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                             />
-                            {emailError && <FieldError>{emailError}</FieldError>}
+                            {emailError && <p className="text-body-s text-error">{emailError}</p>}
                         </div>
                     )}
                     {view === 'notify-done' && (
-                        <p className="text-body-m">{t('residenceStep.restricted.notifyDone')}</p>
+                        <p className="text-label-l">{t('residenceStep.restricted.notifyDone')}</p>
                     )}
                 </div>
-                <div className="flex w-full flex-col gap-4">
+                <div className="flex w-full flex-col gap-2">
                     {view === 'notify' ? (
                         <Button shadowSize="4" onClick={onNotifySubmit}>
                             {t('residenceStep.restricted.notifySubmit')}
@@ -301,8 +291,7 @@ const ResidenceStep = () => {
                     )}
                     <button
                         type="button"
-                        // after: pseudo-element extends the text row to a 44px hit area (LinkButton pattern)
-                        className="relative self-center text-center text-body-s underline underline-offset-2 after:absolute after:inset-x-0 after:-inset-y-3 focus-visible:outline-[3px] focus-visible:outline-action-focus disabled:opacity-50"
+                        className="mt-1 text-center text-body-s underline underline-offset-2 disabled:opacity-50"
                         onClick={() => setView('select')}
                         disabled={isLoading}
                     >
@@ -320,12 +309,10 @@ const ResidenceStep = () => {
                     sub-views can replace them with their own single heading
                     (titleInView/descriptionInView on the step). */}
                 <h1 className="w-full text-left text-heading-xs leading-tight">{t('steps.residence.title')}</h1>
-                <p className="mb-1 text-body-m text-foreground-secondary">{t('steps.residence.description')}</p>
+                <p className="mb-1 text-body-s text-foreground-secondary">{t('steps.residence.description')}</p>
                 <BaseSelect
                     options={countryOptions}
                     placeholder={t('residenceStep.countryPlaceholder')}
-                    searchable
-                    searchPlaceholder={tCommon('search')}
                     // Falls back to the suggestion for the one frame between
                     // mount and the effect below committing it, so the field
                     // opens already filled instead of visibly changing itself.
@@ -334,8 +321,7 @@ const ResidenceStep = () => {
                 />
                 <button
                     type="button"
-                    // after: pseudo-element extends the text row to a 44px hit area (LinkButton pattern)
-                    className="relative self-start text-left text-body-s underline underline-offset-2 after:absolute after:inset-x-0 after:-inset-y-3 focus-visible:outline-[3px] focus-visible:outline-action-focus"
+                    className="self-start text-left text-body-s underline underline-offset-2"
                     aria-expanded={showSecondCountry}
                     onClick={() => {
                         // Collapsing must also clear the stored pick — an
@@ -354,8 +340,6 @@ const ResidenceStep = () => {
                     <BaseSelect
                         options={countryOptions}
                         placeholder={t('residenceStep.secondCountryPlaceholder')}
-                        searchable
-                        searchPlaceholder={tCommon('search')}
                         value={secondResidenceCountry || undefined}
                         onValueChange={(value) => dispatch(setupActions.setSecondResidenceCountry(value))}
                     />
@@ -378,12 +362,12 @@ const ResidenceStep = () => {
                                     return (
                                         <div
                                             key={iso2}
-                                            className="rounded-sm border border-border-default bg-background-default p-4"
+                                            className="rounded-sm border border-border-default bg-background-default p-3"
                                         >
-                                            <p className="mb-1 text-body-m-semibold">
+                                            <p className="mb-1 text-label-m">
                                                 {t('residenceStep.compare.cardTitle', { country: label })}
                                             </p>
-                                            <ul className="space-y-2 text-body-xs text-foreground-secondary">
+                                            <ul className="space-y-0.5 text-body-xs text-foreground-secondary">
                                                 {summary.available.map((item) => (
                                                     <li key={item}>{t(`residenceStep.compare.items.${item}`)}</li>
                                                 ))}
@@ -397,8 +381,8 @@ const ResidenceStep = () => {
                                     )
                                 })}
                             </div>
-                            <div className="rounded-sm border border-border-default bg-background-default p-4 text-body-xs text-foreground-secondary">
-                                <p className="mb-1 text-body-m-semibold text-foreground-primary">
+                            <div className="rounded-sm border border-border-default bg-background-default p-3 text-body-xs text-foreground-secondary">
+                                <p className="mb-1 font-bold text-foreground-primary">
                                     {t('residenceStep.compare.guideTitle')}
                                 </p>
                                 <p>{t('residenceStep.compare.guideDeclaration')}</p>
