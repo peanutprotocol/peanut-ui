@@ -19,6 +19,22 @@ How to run the app locally, build/sign/ship it, and get it through Play review.
 | **PostgreSQL** | 16 (14 works locally) | backend |
 | Xcode / CocoaPods | 26+ / latest | iOS only (§11) |
 
+### OS / WebView floors
+
+The web bundle is built with Tailwind v4: ~90% of the stylesheet lives in
+`@layer` (WebKit ≥ 15.4), gradients interpolate `in oklab` (≥ 16.2) and the
+`@property` fallback sits inside a layer (≥ 16.4). Anything older renders an
+unstyled app, so the shells pin these floors:
+
+| Platform | Floor | Where |
+|----------|-------|-------|
+| iOS | **16.4** | `IPHONEOS_DEPLOYMENT_TARGET` in `ios/App/App.xcodeproj/project.pbxproj` (+ `.iOS(.v16)` in `ios/App/CapApp-SPM/Package.swift`) |
+| Android | `minSdkVersion 24`, **Chrome WebView ≥ 111** | the OS is not the floor, the updatable System WebView is; the app shows an "update your WebView" screen when the boot-time CSS canary fails |
+
+Raising the iOS floor changes the App Store's minimum OS on the next submission;
+the JS canary (`isWebViewCssSupported`) is the runtime guard for devices below
+either floor that still hold an older binary.
+
 Clone with submodules — the build needs `src/content`:
 ```bash
 git clone --recurse-submodules https://github.com/peanutprotocol/peanut-ui
