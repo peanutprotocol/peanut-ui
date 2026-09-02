@@ -36,10 +36,12 @@
 # PATCH, and an older-head publisher stalling past its bind check and
 # overwriting a newer head's comment. Execution order inside the group
 # does not matter: a run that executes after a newer push fails the head
-# binding and no-ops. cancel-in-progress stays false and queue: max keeps
-# every queued publisher — one branch can hold two open PRs (dev and main
-# base) whose publishers must both run, and the default one-slot queue
-# would silently drop one of them.
+# binding and no-ops. cancel-in-progress stays false and queue: max holds
+# up to 100 pending runs (more than that are cancelled — far beyond real
+# traffic for one branch) — one branch can hold two open PRs (dev and
+# main base) whose publishers must both run, and the default one-slot
+# queue would silently drop one of them. The group is repo-qualified so a
+# fork branch sharing a name never lands in an origin branch's queue.
 #
 # Deploy note: workflow_run workflows execute the DEFAULT branch's copy of
 # this file. It went live on main via the #2912 hotfix; keep the dev copy
@@ -57,7 +59,7 @@ permissions:
     pull-requests: write # the sticky comment
 
 concurrency:
-    group: ds-shots-comment-${{ github.event.workflow_run.head_branch }}
+    group: ds-shots-comment-${{ github.event.workflow_run.head_repository.full_name || 'unknown' }}-${{ github.event.workflow_run.head_branch }}
     cancel-in-progress: false
     queue: max
 
@@ -133,6 +135,7 @@ jobs:
                   REPO: ${{ github.repository }}
                   PR: ${{ steps.art.outputs.pr }}
                   RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+                  RUN_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
               run: |
                   set -euo pipefail
                   # The artifact name — and so the PR number — was chosen by
@@ -141,12 +144,17 @@ jobs:
                   # artifact after somebody else's PR posts nothing, and an
                   # out-of-order older run cannot overwrite a newer comment.
                   #
+                  # The PR must also live on the run's own head branch: two
+                  # branches can park on one commit, and only same-branch
+                  # writers share the concurrency group that serializes
+                  # comment updates — a cross-branch writer would bypass it.
+                  #
                   # A true 404 (the number points at no PR) is that attack and
                   # stays a no-op. Any other failure — 5xx, rate limit,
                   # network — must fail this job loudly: swallowed, it would
                   # exit green while an older result stands as current.
                   set +e
-                  OUT=$(gh api "repos/$REPO/pulls/$PR" --jq '.head.sha' 2>&1)
+                  OUT=$(gh api "repos/$REPO/pulls/$PR" --jq '.head.sha + " " + .head.ref' 2>&1)
                   STATUS=$?
                   set -e
                   if [ "$STATUS" -ne 0 ]; then
@@ -159,8 +167,8 @@ jobs:
                       exit 1
                   fi
                   HEAD=$OUT
-                  if [ "$HEAD" != "$RUN_HEAD_SHA" ]; then
-                      echo "PR #$PR head ${HEAD:-<none>} != run head $RUN_HEAD_SHA — mismatched artifact name or stale run. Skipping."
+                  if [ "$HEAD" != "$RUN_HEAD_SHA $RUN_HEAD_BRANCH" ]; then
+                      echo "PR #$PR head (${HEAD:-<none>}) != run head ($RUN_HEAD_SHA $RUN_HEAD_BRANCH) — mismatched artifact name, stale run, or cross-branch writer. Skipping."
                       echo 'match=false' >> "$GITHUB_OUTPUT"
                       exit 0
                   fi
