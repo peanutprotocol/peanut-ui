@@ -1,18 +1,24 @@
 import starImage from '@/assets/icons/star.png'
 import { Button } from '@/components/0_Bruddle/Button'
 import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
+import { useToast } from '@/components/0_Bruddle/Toast'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { type BeforeInstallPromptEvent, type LayoutType, type ScreenId } from '@/components/Setup/Setup.types'
 import InstallPWA from '@/components/Setup/Views/InstallPWA'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useBravePWAInstallState } from '@/hooks/useBravePWAInstallState'
 import { DeviceType } from '@/hooks/useGetDeviceType'
 import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
+import { useLogin } from '@/hooks/useLogin'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { isCapacitor } from '@/utils/capacitor'
+import { isAlreadyReported } from '@/utils/webauthn.utils'
+import * as Sentry from '@sentry/nextjs'
 import classNames from 'classnames'
 import { motion, useReducedMotion } from 'framer-motion'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
+import posthog from 'posthog-js'
 import { Children, type ReactNode, cloneElement, memo, type ReactElement, useState } from 'react'
 import { twMerge } from '@/utils/tw'
 
@@ -33,6 +39,7 @@ interface SetupWrapperProps {
     showBackButton?: boolean
     showSkipButton?: boolean
     showLogoutButton?: boolean
+    showLoginButton?: boolean
     onBack?: () => void
     onSkip?: () => void
     onLogout?: () => void
@@ -63,25 +70,72 @@ const STAR_POSITIONS = [
 ] as const
 
 /**
- * navigation component for back, skip, and logout buttons
+ * Log In for the pre-auth steps (install walls, waitlist, signup): a returning
+ * user whose entry link carried an invite code or ?step=signup used to have no
+ * way back to the passkey ceremony. Same click path as the landing step.
+ */
+function LoginButton() {
+    const t = useTranslations('setup')
+    const { handleLoginClick, isLoggingIn } = useLogin()
+    const toast = useToast()
+
+    const onLoginClick = async () => {
+        try {
+            await handleLoginClick()
+        } catch (error) {
+            const errorCode = error instanceof Error && 'code' in error ? String(error.code) : undefined
+            toast.error((error instanceof Error && error.message) || t('loginFailed'))
+            if (!isAlreadyReported(error)) {
+                Sentry.captureException(error, { extra: { errorCode } })
+            }
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_LOGIN_ERROR, { error_code: errorCode })
+        }
+    }
+
+    return (
+        <Button
+            onClick={onLoginClick}
+            variant="transparent-dark"
+            size="small"
+            className="h-auto w-fit p-0"
+            loading={isLoggingIn}
+            disabled={isLoggingIn}
+        >
+            <span className="text-foreground-over-color-secondary">{t('logIn')}</span>
+        </Button>
+    )
+}
+
+/**
+ * navigation component for back, skip, login and logout buttons
  * rendered at the top of the layout when any button is enabled
  */
 const Navigation = memo(function Navigation({
     showBackButton,
     showSkipButton,
     showLogoutButton,
+    showLoginButton,
     onBack,
     onSkip,
     onLogout,
     isLoggingOut,
 }: Pick<
     SetupWrapperProps,
-    'showBackButton' | 'showSkipButton' | 'showLogoutButton' | 'onBack' | 'onSkip' | 'onLogout' | 'isLoggingOut'
+    | 'showBackButton'
+    | 'showSkipButton'
+    | 'showLogoutButton'
+    | 'showLoginButton'
+    | 'onBack'
+    | 'onSkip'
+    | 'onLogout'
+    | 'isLoggingOut'
 >) {
     const t = useTranslations('setup.navigation')
 
-    if (!showBackButton && !showSkipButton && !showLogoutButton) return null
+    if (!showBackButton && !showSkipButton && !showLogoutButton && !showLoginButton) return null
 
+    // Icons inherit currentColor: the stroke button inverts on hover/active, and
+    // a hard-coded fill vanished into the black background.
     return (
         <div className="absolute top-8 z-20 flex w-full items-center justify-between px-6">
             <div>
@@ -92,11 +146,12 @@ const Navigation = memo(function Navigation({
                         className="relative size-10 p-0 shadow-none after:absolute after:-inset-0.5"
                         aria-label={t('goBack')}
                     >
-                        <Icon name="chevron-up" fill="black" size={20} className="-rotate-90" />
+                        <Icon name="chevron-up" size={20} className="-rotate-90" />
                     </Button>
                 )}
             </div>
             <div className="flex items-center gap-3">
+                {showLoginButton && <LoginButton />}
                 {showSkipButton && (
                     <Button onClick={onSkip} variant="transparent-dark" className="h-auto w-fit p-0">
                         <span className="text-foreground-over-color-secondary">{t('skip')}</span>
@@ -111,7 +166,7 @@ const Navigation = memo(function Navigation({
                         aria-label={t('logout')}
                         disabled={isLoggingOut}
                     >
-                        {!isLoggingOut && <Icon name="logout" fill="black" size={20} />}
+                        {!isLoggingOut && <Icon name="logout" size={20} />}
                     </Button>
                 )}
             </div>
@@ -211,6 +266,7 @@ export const SetupWrapper = memo(function SetupWrapper({
     showBackButton,
     showSkipButton,
     showLogoutButton,
+    showLoginButton,
     onBack,
     onSkip,
     onLogout,
@@ -255,6 +311,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                     showSkipButton || (screenId === 'pwa-install' && (!canInstall || deviceType === DeviceType.WEB))
                 }
                 showLogoutButton={showLogoutButton}
+                showLoginButton={showLoginButton}
                 onBack={onBack}
                 onSkip={onSkip}
                 onLogout={onLogout}

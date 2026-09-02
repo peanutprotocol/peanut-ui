@@ -49,6 +49,8 @@ export interface ISetupStep {
     component: React.ComponentType<StepComponentProps>
     showBackButton?: boolean
     showSkipButton?: boolean
+    /** Pre-auth steps offer Log In in the top-right group so a returning user is never trapped in signup. */
+    showLoginButton?: boolean
     /**
      * The step component renders the description itself (e.g. only on one of
      * its sub-views), so the chrome must not also render it.
