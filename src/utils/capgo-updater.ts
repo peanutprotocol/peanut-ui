@@ -191,6 +191,11 @@ export async function applyStagedBundle(
             err instanceof Error ? err.message : String(err)
         )
         hooks.onSetRejected?.()
+        // The rejected id never reaches the plugin, and the re-stage below can
+        // outlive the process. Drop the marker now or a kill during the recovery
+        // download makes the next launch report a failed apply, at error level,
+        // for a bundle nothing ever tried to activate.
+        removeStoredValue(PENDING_APPLY_KEY)
         // Only a freshly staged bundle earns a reload. Offline, up-to-date and
         // store-update-required all leave the device on the bundle it is
         // already running, so reloading would restart the app for nothing.

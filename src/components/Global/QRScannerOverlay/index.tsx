@@ -68,13 +68,28 @@ function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose, onN
 
     const qrName = (qrType && NAME_BY_QR_TYPE[qrType]) ?? ''
     const closeAfterNavigation = () => setTimeout(onClose, 750)
+    // Anything but http(s) is refused rather than forwarded. openExternalUrl falls
+    // back to window.open/location.assign off-native, so a scanned `javascript:`
+    // or `data:` payload would run as the app origin — and the URL regex that
+    // classifies a scan as EQrType.URL admits schemed payloads.
+    const externalUrl = (() => {
+        if (!redirectTo) return undefined
+        // scheme-less QR payloads ("example.com/x") make Browser.open throw —
+        // the tap died silently.
+        const candidate = /^[a-z][a-z0-9+.-]*:/i.test(redirectTo) ? redirectTo : `https://${redirectTo}`
+        return /^https?:\/\//i.test(candidate) ? candidate : undefined
+    })()
+
+    const unrecognizedContent: QrResultModalContent = {
+        tone: 'error',
+        title: t('qrScannerOverlay.titleUnrecognized'),
+        description: t('qrScannerOverlay.unrecognized'),
+        ctas: [{ text: t('qrScannerOverlay.okay'), shadowSize: '4', onClick: onClose }],
+    }
     const openExternal = async () => {
-        if (redirectTo) {
-            // scheme-less QR payloads ("example.com/x") make Browser.open
-            // throw — the tap died silently.
-            const url = /^[a-z][a-z0-9+.-]*:/i.test(redirectTo) ? redirectTo : `https://${redirectTo}`
+        if (externalUrl) {
             try {
-                await openExternalUrl(url)
+                await openExternalUrl(externalUrl)
             } catch {
                 toast.error(tCommon('somethingWentWrong'))
             }
@@ -126,26 +141,26 @@ function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose, onN
                 },
             ],
         },
-        [EModalType.EXTERNAL_URL]: {
-            tone: 'warning',
-            title: t('qrScannerOverlay.titleExternalUrl'),
-            description: (
-                <>
-                    <p>{t('qrScannerOverlay.externalUrlIntro')}</p>
-                    <p>{t('qrScannerOverlay.externalUrlTrust')}</p>
-                </>
-            ),
-            ctas: [
-                { text: t('qrScannerOverlay.openLink'), shadowSize: '4', onClick: () => void openExternal() },
-                { text: tCommon('close'), variant: 'stroke', onClick: onClose },
-            ],
-        },
-        [EModalType.UNRECOGNIZED]: {
-            tone: 'error',
-            title: t('qrScannerOverlay.titleUnrecognized'),
-            description: t('qrScannerOverlay.unrecognized'),
-            ctas: [{ text: t('qrScannerOverlay.okay'), shadowSize: '4', onClick: onClose }],
-        },
+        // A payload that is not an http(s) link is not one the user can be asked
+        // to trust, so it is reported as unrecognised instead of offered.
+        [EModalType.EXTERNAL_URL]: externalUrl
+            ? {
+                  tone: 'warning',
+                  title: t('qrScannerOverlay.titleExternalUrl'),
+                  description: (
+                      <>
+                          <p>{t('qrScannerOverlay.externalUrlIntro')}</p>
+                          <p className="font-bold break-all">{externalUrl}</p>
+                          <p>{t('qrScannerOverlay.externalUrlTrust')}</p>
+                      </>
+                  ),
+                  ctas: [
+                      { text: t('qrScannerOverlay.openLink'), shadowSize: '4', onClick: () => void openExternal() },
+                      { text: tCommon('close'), variant: 'stroke', onClick: onClose },
+                  ],
+              }
+            : unrecognizedContent,
+        [EModalType.UNRECOGNIZED]: unrecognizedContent,
         [EModalType.PIX_RECURRING]: {
             tone: 'info',
             title: t('qrScannerOverlay.titlePixRecurring'),

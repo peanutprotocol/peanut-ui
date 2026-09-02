@@ -97,9 +97,15 @@ export function OtaUpdateProvider({ children }: { children: React.ReactNode }) {
                     setApplyState('manual-restart')
                     return
                 }
+                // exitApp (or its chunk) failing would otherwise strand the modal in
+                // 'applying': no close button, no enabled CTA, no way out. Fall back
+                // to the instruction iOS already gets.
                 import('@capacitor/app')
                     .then(({ App }) => App.exitApp())
-                    .catch((err) => console.warn('[capgo] exitApp failed:', err))
+                    .catch((err) => {
+                        console.warn('[capgo] exitApp failed:', err)
+                        setApplyState('manual-restart')
+                    })
             }, RELOAD_GRACE_MS)
         }
         // Armed before set(): a set() that neither reloads nor rejects would

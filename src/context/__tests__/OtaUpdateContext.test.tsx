@@ -124,6 +124,24 @@ it('re-stages and reloads when set() rejects, then closes the app on Android', a
     expect(result.current.applyState).toBe('applying')
 })
 
+it('falls back to the manual-restart instruction when the Android exit fails', async () => {
+    // exitApp rejecting (or its chunk failing to load) used to leave applyState on
+    // 'applying' forever: the modal hides its close button, disables both CTAs and
+    // blocks dismissal, so the user had no way out and no instruction.
+    mockExitApp.mockRejectedValueOnce(new Error('exitApp unavailable'))
+    mockUpdater.set.mockRejectedValue(new Error('no index.html'))
+    withRestageableBundle()
+    const { result } = await withStagedBundle()
+    await act(async () => {
+        await result.current.applyNow()
+    })
+    await act(async () => {
+        await jest.advanceTimersByTimeAsync(3_000)
+    })
+    expect(mockExitApp).toHaveBeenCalled()
+    await waitFor(() => expect(result.current.applyState).toBe('manual-restart'))
+})
+
 it('asks for a manual restart on iOS when the reload never happened', async () => {
     platform.android = false
     mockUpdater.set.mockRejectedValue(new Error('no index.html'))
@@ -173,6 +191,30 @@ it('retargets the marker to the re-staged bundle, so the recovered launch reads 
     setup()
     await waitFor(() => expect(warn).toHaveBeenCalledWith('[capgo-apply] restart applied bundle b-3'))
     expect(error).not.toHaveBeenCalled()
+})
+
+it('drops the marker while the recovery re-stage is in flight, so a kill is not reported as a failed apply', async () => {
+    // The marker is the next launch's evidence that an apply was attempted and
+    // lost. While the re-download runs, the rejected id was never handed to the
+    // plugin, so a process death here must not surface an error-level failure
+    // for a bundle nothing tried to activate.
+    mockUpdater.set.mockRejectedValue(new Error('no index.html'))
+    let markerDuringRestage: string | null | undefined
+    mockUpdater.getLatest.mockReset().mockImplementation(async () => {
+        markerDuringRestage = window.localStorage.getItem('capgoPendingApply')
+        return { url: 'https://cdn.test/b-3.zip', version: '1.3.0' }
+    })
+    mockUpdater.download.mockResolvedValue({ ...STAGED, id: 'b-3', version: '1.3.0' })
+    const { result } = await withStagedBundle()
+
+    await act(async () => {
+        await result.current.applyNow()
+    })
+
+    expect(mockUpdater.reload).toHaveBeenCalled()
+    expect(markerDuringRestage).toBeNull()
+    // and it is back, pointed at the bundle reload() actually applies
+    expect(window.localStorage.getItem('capgoPendingApply')).toBe('b-3')
 })
 
 it('does not exit while the fallback re-download is still running after set() rejects', async () => {
