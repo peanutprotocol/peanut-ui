@@ -26,7 +26,10 @@ export const internalTransfer: TransactionStrategy = (): TransactionStrategyOutp
  * A chargeback DEBITS the user (the BE's INFLOW_KINDS deliberately excludes
  * CHARGEBACK — funds leave the account when a dispute resolves against it).
  * The kind is enum-reserved with no live writer yet; the shape here keeps a
- * future row honest instead of surprising.
+ * future row honest instead of surprising. A dispute resolving in the
+ * USER's favor is the other lane entirely — it arrives as kind=REFUND and
+ * renders through cardRefund as the credit the card terms promise
+ * (card-terms-international §"Chargebacks resolved in your favor").
  */
 export const chargeback: TransactionStrategy = (): TransactionStrategyOutput => ({
     direction: 'send',
