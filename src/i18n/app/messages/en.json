@@ -409,8 +409,6 @@
                 "messageUs": "Message us and we'll chase it"
             },
             "limits": {
-                "viewAll": "Payment limits",
-                "details": "View",
                 "monthlyLeft": "{remaining} of {limit} left this month",
                 "perTransfer": "Up to {amount} per transfer",
                 "p2pNoLimit": "No limits on Peanut-to-Peanut payments"

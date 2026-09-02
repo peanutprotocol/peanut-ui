@@ -409,8 +409,6 @@
                 "messageUs": "Fale com a gente e vamos atrás"
             },
             "limits": {
-                "viewAll": "Limites de pagamento",
-                "details": "Ver",
                 "monthlyLeft": "Restam {remaining} de {limit} neste mês",
                 "perTransfer": "Até {amount} por transferência",
                 "p2pNoLimit": "Os pagamentos de Peanut para Peanut não têm limite"

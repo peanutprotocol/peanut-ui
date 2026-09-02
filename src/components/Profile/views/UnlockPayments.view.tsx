@@ -23,7 +23,6 @@ import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useLimits } from '@/hooks/useLimits'
 import ProgressBar from '@/components/0_Bruddle/ProgressBar'
 import { formatAmountWithCurrency, getLimitColorClass, getLimitData } from '@/features/limits/utils'
-import Link from 'next/link'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
@@ -460,17 +459,6 @@ const UnlockPayments = () => {
                         />
                     ))}
                 </div>
-
-                <Link
-                    href="/limits"
-                    className="mt-3 flex items-center justify-between rounded-sm border border-border-default bg-background-default px-3 py-2 text-body-s dark:border-white dark:bg-foreground-primary"
-                >
-                    <span className="flex items-center gap-2">
-                        <Icon name="meter" className="size-4 shrink-0" />
-                        {t('limits.viewAll')}
-                    </span>
-                    <span className="text-body-xs underline underline-offset-2">{t('limits.details')}</span>
-                </Link>
 
                 {showBankRestrictionNote && (
                     <p className="mt-3 text-body-xs text-foreground-secondary">{t('bankNotAvailableNote')}</p>

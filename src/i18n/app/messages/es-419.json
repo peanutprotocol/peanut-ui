@@ -409,8 +409,6 @@
                 "messageUs": "Escríbenos y lo perseguimos"
             },
             "limits": {
-                "viewAll": "Límites de pago",
-                "details": "Ver",
                 "monthlyLeft": "Te quedan {remaining} de {limit} este mes",
                 "perTransfer": "Hasta {amount} por transferencia",
                 "p2pNoLimit": "Los pagos de Peanut a Peanut no tienen límite"

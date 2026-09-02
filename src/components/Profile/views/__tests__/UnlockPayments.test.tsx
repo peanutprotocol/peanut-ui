@@ -240,11 +240,6 @@ describe('UnlockPayments', () => {
         expect(screen.getAllByText(/per transfer/).length).toBeGreaterThan(0)
     })
 
-    it('the all-limits link points at /limits', () => {
-        render()
-        expect(screen.getByText('Payment limits').closest('a')).toHaveAttribute('href', '/limits')
-    })
-
     it('states the P2P no-limit fact even before anything is unlocked', () => {
         render()
         expect(screen.getByText('No limits on Peanut-to-Peanut payments')).toBeInTheDocument()
