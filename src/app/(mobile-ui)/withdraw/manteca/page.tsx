@@ -1,6 +1,7 @@
 'use client'
 
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
@@ -745,22 +746,28 @@ function MantecaBankWithdrawFlow() {
             {step === 'amountInput' && (
                 <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     <div className="text-heading-xs text-foreground-primary">{t('amountToWithdraw')}</div>
-                    <AmountInput
-                        initialAmount={currencyAmount}
-                        setPrimaryAmount={setCurrencyAmount}
-                        setSecondaryAmount={setUsdAmount}
-                        primaryDenomination={{
-                            symbol: currencyCode!,
-                            price: currencyPrice!.sell,
-                            decimals: 2,
-                        }}
-                        secondaryDenomination={{
-                            symbol: 'USD',
-                            price: 1,
-                            decimals: 2,
-                        }}
-                        walletBalance={balance !== undefined ? formattedSpendableBalance : undefined}
-                    />
+                    <div className="flex flex-col gap-1">
+                        <AmountInput
+                            initialAmount={currencyAmount}
+                            setPrimaryAmount={setCurrencyAmount}
+                            setSecondaryAmount={setUsdAmount}
+                            primaryDenomination={{
+                                symbol: currencyCode!,
+                                price: currencyPrice!.sell,
+                                decimals: 2,
+                            }}
+                            secondaryDenomination={{
+                                symbol: 'USD',
+                                price: 1,
+                                decimals: 2,
+                            }}
+                            walletBalance={balance !== undefined ? formattedSpendableBalance : undefined}
+                        />
+                        {/* only show balance error if limits blocking card is not displayed (warnings can coexist) */}
+                        {balanceErrorMessage && !limitsValidation.isBlocking && (
+                            <FieldError>{balanceErrorMessage}</FieldError>
+                        )}
+                    </div>
 
                     {/* limits warning/error card - uses centralized helper for props */}
                     {(() => {
@@ -801,10 +808,6 @@ function MantecaBankWithdrawFlow() {
                     >
                         {tCommon('continue')}
                     </Button>
-                    {/* only show balance error if limits blocking card is not displayed (warnings can coexist) */}
-                    {balanceErrorMessage && !limitsValidation.isBlocking && (
-                        <Notification priority="error">{balanceErrorMessage}</Notification>
-                    )}
                 </div>
             )}
 
