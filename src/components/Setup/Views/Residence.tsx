@@ -267,7 +267,7 @@ const ResidenceStep = () => {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                             />
-                            {emailError && <p className="text-body-s text-error">{emailError}</p>}
+                            {emailError && <p className="text-error text-body-s">{emailError}</p>}
                         </div>
                     )}
                     {view === 'notify-done' && (
