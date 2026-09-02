@@ -176,6 +176,9 @@ export const useSignSpendBundle = () => {
             // Failure-capture parity with useSpendBundle's catch: without this,
             // a failed migration/grant/signing in the sign-then-broadcast flow
             // emits `attempted` with no terminal event and the funnel lies.
+            // Hoisted so the catch can back the draft out — `prep` itself is
+            // block-scoped inside the try.
+            let livePreparationId: string | undefined
             try {
                 // Shared collateral pre-flights (root-validator migration gate +
                 // session-key grant) — ONE ordered sequence for both spend engines;
@@ -220,12 +223,14 @@ export const useSignSpendBundle = () => {
                 // Only sign the admin EIP-712 — backend submits the withdrawal via
                 // the user's session-key UserOp (1 tap total).
                 if (strategy === 'collateral-only') {
+                    // The backend chooses the intent kind from the destination
+                    // (TASK-21815) — nothing user-declared goes on the wire.
                     const prep = await rainApi.prepareWithdrawal({
                         amount: usdcUnitsToRainCents(requiredUsdcAmount).toString(),
                         recipientAddress: recipient,
                         directTransfer: true,
-                        kind,
                     })
+                    livePreparationId = prep.preparationId
 
                     const adminSignature = (await withCeremonyPurpose('admin_eip712', () =>
                         activeAccount.signTypedData(buildRainWithdrawTypedData(prep, chainIdNum))
@@ -263,9 +268,9 @@ export const useSignSpendBundle = () => {
                     // semantics as broadcasting useSpendBundle.spend's mixed path.
                     recipientAddress: adminAddress,
                     directTransfer: false,
-                    kind,
                     totalAmountCents: usdcUnitsToRainCents(requiredUsdcAmount).toString(),
                 })
+                livePreparationId = prep.preparationId
 
                 const adminSignature = (await withCeremonyPurpose('admin_eip712', () =>
                     activeAccount.signTypedData(buildRainWithdrawTypedData(prep, chainIdNum))
@@ -305,6 +310,11 @@ export const useSignSpendBundle = () => {
                 const signedUserOp = await signCallsUserOp([withdrawCall, transferCall], chainIdStr)
                 return { strategy, signedUserOp, rainPreparationId: prep.preparationId }
             } catch (e) {
+                // Back the abandoned draft out (cancelled passkey prompt, grant
+                // failure, …). Fire-and-forget: the backend refuses while the
+                // Rain signature could still execute, and the TTL sweep is the
+                // guaranteed cleanup either way (TASK-21815).
+                if (livePreparationId) void rainApi.cancelPreparation(livePreparationId)
                 posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_FAILED, {
                     strategy,
                     kind,

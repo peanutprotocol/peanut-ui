@@ -168,6 +168,9 @@ export const useSpendBundle = () => {
             onStrategyDecided?.(strategy)
             posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_ATTEMPTED, { strategy, kind })
 
+            // Hoisted so the catch can back an abandoned draft out — `prep`
+            // itself is block-scoped inside the try (TASK-21815).
+            let livePreparationId: string | undefined
             try {
                 // Shared collateral pre-flights (root-validator migration gate +
                 // session-key grant) — ONE ordered sequence for both spend
@@ -190,17 +193,21 @@ export const useSpendBundle = () => {
 
                 // ─── collateral-only ──────────────────────────────────────────────
                 if (strategy === 'collateral-only') {
+                    // The backend chooses the intent kind from the destination
+                    // (TASK-21815) — nothing user-declared goes on the wire.
                     const prep = await rainApi.prepareWithdrawal({
                         amount: usdcUnitsToRainCents(requiredUsdcAmount).toString(),
                         recipientAddress: recipient!,
                         directTransfer: true,
-                        kind,
                         // When set, the backend uses the charge as the prep and
                         // completes it directly on confirm; a follow-up
                         // recordPayment re-enters the same trusted-completion
                         // path idempotently (see SpendBundleInput.chargeId).
                         chargeId,
                     })
+                    // A charge-backed prep IS the charge — never back it out
+                    // through the draft-cancel door.
+                    if (!chargeId) livePreparationId = prep.preparationId
 
                     const adminSignature = (await withCeremonyPurpose('admin_eip712', () =>
                         activeClient.account!.signTypedData(buildRainWithdrawTypedData(prep, chainIdNum))
@@ -264,11 +271,11 @@ export const useSpendBundle = () => {
                     // withdraw beneficiary, which equals msg.sender-to-be in the follow-up UserOp.
                     recipientAddress: adminAddress,
                     directTransfer: false,
-                    kind,
                     // History shows the full user-initiated spend, not just the
                     // shortfall Rain signed over.
                     totalAmountCents: usdcUnitsToRainCents(requiredUsdcAmount).toString(),
                 })
+                livePreparationId = prep.preparationId
 
                 /*
                  * One-tap variant (dark flag): a per-transaction ephemeral key
@@ -398,6 +405,11 @@ export const useSpendBundle = () => {
                     modals?.setIsSecurityVerificationOpen?.(false)
                 }
             } catch (e) {
+                // Back the abandoned draft out (cancelled passkey prompt,
+                // failed broadcast, …). Fire-and-forget: the backend refuses
+                // while the Rain signature could still execute, and the TTL
+                // sweep is the guaranteed cleanup either way (TASK-21815).
+                if (livePreparationId) void rainApi.cancelPreparation(livePreparationId)
                 const errorKind =
                     e instanceof SessionKeyGrantRequiredError
                         ? `session-key:${e.cause.kind}`
