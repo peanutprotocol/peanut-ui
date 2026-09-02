@@ -22,7 +22,6 @@ jest.mock('@/context/loadingStates.context', () => {
 })
 jest.mock('@/redux/hooks', () => ({
     useAppDispatch: () => mockDispatch,
-    useSetupStore: () => ({ inviteCode: '', inviteType: undefined }),
     useZerodevStore: () => ({
         isKernelClientReady: true,
         isRegistering: false,
@@ -40,8 +39,10 @@ jest.mock('@/redux/slices/zerodev-slice', () => ({
         setAddress: (payload: string) => ({ type: 'zerodev/address', payload }),
     },
 }))
-jest.mock('@/redux/slices/setup-slice', () => ({
-    setupActions: { setInviteCode: (payload: string) => ({ type: 'setup/invite-code', payload }) },
+jest.mock('@/utils/invite-stash', () => ({
+    readInviteCode: () => '',
+    readInviteType: () => 'DIRECT',
+    clearInvite: jest.fn(),
 }))
 jest.mock('@/utils/general.utils', () => ({
     getFromCookie: () => null,

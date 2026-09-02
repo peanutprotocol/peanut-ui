@@ -13,8 +13,6 @@ import { PEANUTMAN } from '@/assets/mascot'
 import { Button, type ButtonProps } from '@/components/0_Bruddle/Button'
 import type { IconName } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'
-import { useAppDispatch } from '@/redux/hooks'
-import { setupActions } from '@/redux/slices/setup-slice'
 import { EInviteType } from '@/services/services.types'
 import { saveRedirectUrl, saveToLocalStorage, toInviteCode, inviteFlowUrl } from '@/utils/general.utils'
 import Image from 'next/image'
@@ -22,6 +20,7 @@ import { useRouter } from 'next/navigation'
 import { useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
+import { stashInvite } from '@/utils/invite-stash'
 
 interface SendWithPeanutCtaProps extends ButtonProps {
     title?: string
@@ -51,7 +50,6 @@ export default function SendWithPeanutCta({
 }: SendWithPeanutCtaProps) {
     const router = useRouter()
     const t = useTranslations('payment')
-    const dispatch = useAppDispatch()
     const { user, isFetchingUser } = useAuth()
 
     const isLoggedIn = !!user?.user?.userId
@@ -77,8 +75,7 @@ export default function SendWithPeanutCta({
             )
             if (inviterUsername) {
                 const inviteCode = toInviteCode(inviterUsername)
-                dispatch(setupActions.setInviteCode(inviteCode))
-                dispatch(setupActions.setInviteType(EInviteType.PAYMENT_LINK))
+                stashInvite(inviteCode, EInviteType.PAYMENT_LINK)
                 router.push(inviteFlowUrl(inviteCode, redirectUri))
             } else {
                 saveRedirectUrl()

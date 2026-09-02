@@ -34,9 +34,13 @@ jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }))
 jest.mock('@tanstack/react-query', () => ({
     useQuery: () => ({ data: { success: true, position: 7 }, isLoading: false }),
 }))
-jest.mock('@/redux/hooks', () => ({
-    useSetupStore: () => ({ inviteType: 'PAYMENT_LINK', inviteCode: '' }),
+jest.mock('@/utils/invite-stash', () => ({
+    readInviteCode: () => '',
+    readInviteType: () => 'PAYMENT_LINK',
+    clearInvite: jest.fn(),
+    stashInvite: jest.fn(),
 }))
+jest.mock('@/redux/hooks', () => ({}))
 jest.mock('@/hooks/useNotifications', () => ({
     useNotifications: () => ({
         requestPermission: jest.fn(),

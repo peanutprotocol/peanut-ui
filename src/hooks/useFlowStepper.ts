@@ -17,25 +17,40 @@ import type { FlowStepper, FlowStepperOptions } from './useFlowStepper.types'
  * missing (refresh mid-flow, hand-edited URL).
  */
 export function useFlowStepper<Step extends string>(options: FlowStepperOptions<Step>): FlowStepper<Step> {
-    const { steps, defaultStep = options.steps[0], urlKey = 'step', guards, backMap, onExit } = options
+    const {
+        steps,
+        defaultStep = options.steps[0],
+        urlKey = 'step',
+        guards,
+        backMap,
+        onExit,
+        history = 'replace',
+    } = options
 
-    const [rawStep, setStep] = useQueryState(urlKey, parseAsStringEnum([...steps]).withDefault(defaultStep))
+    const [rawStep, setStep] = useQueryState(
+        urlKey,
+        parseAsStringEnum([...steps])
+            .withDefault(defaultStep)
+            .withOptions({ history })
+    )
 
     // A guarded step never renders — resolve to its fallback synchronously so
     // there is no one-frame flash of the dead screen.
     const guard = guards?.[rawStep]
     const step = guard && !guard.ok ? (guard.fallback ?? defaultStep) : rawStep
 
-    // Keep the URL honest after a guard redirect (replace, no history entry).
+    // Keep the URL honest after a guard redirect (replace, no history entry —
+    // also under history:'push', or a bounced pop would mint an extra entry).
     // Strict-mode safe: setting the same value again is a no-op for nuqs.
     useEffect(() => {
-        if (step !== rawStep) void setStep(step === defaultStep ? null : step)
+        if (step !== rawStep) void setStep(step === defaultStep ? null : step, { history: 'replace' })
     }, [step, rawStep, defaultStep, setStep])
 
     const goTo = useCallback(
         // The default step is represented by a clean URL (no param). The
         // returned promise resolves once the (throttled) URL write lands.
-        (next: Step) => setStep(next === defaultStep ? null : next),
+        (next: Step, options?: { history?: 'replace' | 'push' }) =>
+            setStep(next === defaultStep ? null : next, options),
         [setStep, defaultStep]
     )
 

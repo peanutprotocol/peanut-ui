@@ -1,5 +1,4 @@
 import { configureStore } from '@reduxjs/toolkit'
-import setupReducer from './slices/setup-slice'
 import userReducer from './slices/user-slice'
 import walletReducer from './slices/wallet-slice'
 import zeroDevReducer from './slices/zerodev-slice'
@@ -7,7 +6,6 @@ import bankFormReducer from './slices/bank-form-slice'
 
 const store = configureStore({
     reducer: {
-        setup: setupReducer,
         wallet: walletReducer,
         zeroDev: zeroDevReducer,
         user: userReducer,

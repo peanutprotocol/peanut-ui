@@ -46,11 +46,12 @@ jest.mock('next/navigation', () => ({
 jest.mock('@tanstack/react-query', () => ({ useQuery: () => mockQueryResult }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => mockAuth }))
 jest.mock('@/redux/hooks', () => ({ useAppDispatch: () => mockDispatch }))
-jest.mock('@/redux/slices/setup-slice', () => ({
-    setupActions: {
-        setInviteCode: (value: string) => ({ type: 'invite/code', payload: value }),
-        setInviteType: (value: string) => ({ type: 'invite/type', payload: value }),
-    },
+const mockStashInvite = jest.fn()
+jest.mock('@/utils/invite-stash', () => ({
+    stashInvite: (...args: unknown[]) => mockStashInvite(...args),
+    readInviteCode: () => '',
+    readInviteType: () => 'DIRECT',
+    clearInvite: jest.fn(),
 }))
 jest.mock('@/hooks/useLogin', () => ({ useLogin: () => ({ handleLoginClick: mockLogin, isLoggingIn: false }) }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({
@@ -455,8 +456,7 @@ describe('invite and badge campaign routing boundaries', () => {
         render(<InvitesPage />)
         fireEvent.click(await screen.findByRole('button', { name: 'Claim your spot' }))
 
-        expect(mockDispatch).toHaveBeenCalledWith({ type: 'invite/code', payload: 'alice' })
-        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'alice')
+        expect(mockStashInvite).toHaveBeenCalledWith('alice', 'PAYMENT_LINK')
         expect(mockQueuePendingBadgeCampaigns).toHaveBeenCalledWith(['Creator/Summer', 'second'])
         expect(mockPush).toHaveBeenCalledWith('/setup?step=signup')
     })
@@ -479,7 +479,7 @@ describe('invite and badge campaign routing boundaries', () => {
         render(<InvitesPage />)
         fireEvent.click(await screen.findByRole('button', { name: 'Claim your spot' }))
 
-        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'offramp')
+        expect(mockStashInvite).toHaveBeenCalledWith('offramp', 'PAYMENT_LINK')
         expect(mockQueuePendingBadgeCampaigns).not.toHaveBeenCalled()
         expect(mockPush).toHaveBeenCalledWith('/setup?step=signup')
     })
@@ -505,7 +505,7 @@ describe('invite and badge campaign routing boundaries', () => {
         expect(screen.queryByText(/legacy-placeholder invited you/i)).not.toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Sign up' }))
 
-        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'founderhaus')
+        expect(mockStashInvite).toHaveBeenCalledWith('founderhaus', 'PAYMENT_LINK')
         expect(mockQueuePendingBadgeCampaigns).not.toHaveBeenCalled()
         expect(mockPush).toHaveBeenCalledWith('/setup?step=signup')
     })
@@ -531,7 +531,7 @@ describe('invite and badge campaign routing boundaries', () => {
         expect(screen.queryByText('Claim your badge')).not.toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Claim your spot' }))
 
-        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'squirrelinvitesyou')
+        expect(mockStashInvite).toHaveBeenCalledWith('squirrelinvitesyou', 'PAYMENT_LINK')
         expect(mockQueuePendingBadgeCampaigns).toHaveBeenCalledWith(['utm:summer-analytics'])
         expect(mockPush).toHaveBeenCalledWith('/setup?step=signup')
     })
@@ -639,7 +639,7 @@ describe('invite and badge campaign routing boundaries', () => {
         fireEvent.click(await screen.findByRole('button', { name: 'Claim your spot' }))
 
         // invite bookkeeping still runs so post-install signup recovers context
-        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'alice')
+        expect(mockStashInvite).toHaveBeenCalledWith('alice', 'PAYMENT_LINK')
         expect(mockInterceptGuestCta).toHaveBeenCalledTimes(1)
         expect(mockPush).not.toHaveBeenCalledWith('/setup?step=signup')
         // the CTA rendered for a settled guest — the impression must be armed

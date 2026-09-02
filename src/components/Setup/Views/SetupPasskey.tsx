@@ -3,7 +3,7 @@ import { Notification } from '@/components/0_Bruddle/Notification'
 import { Button } from '@/components/0_Bruddle/Button'
 import { isCapacitor } from '@/utils/capacitor'
 import { apiFetch } from '@/utils/api-fetch'
-import { useSetupStore } from '@/redux/hooks'
+import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useLogin } from '@/hooks/useLogin'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
@@ -38,7 +38,7 @@ const isUsernameTaken = async (username: string): Promise<boolean> => {
 
 const SetupPasskey = () => {
     const t = useTranslations('setup')
-    const { username } = useSetupStore()
+    const { username } = useSetupFlowContext()
     const { isLoading, handleNext } = useSetupFlow()
     const { handleRegister, address, isRegistering } = useZeroDev()
     const { handleLoginClick, isLoggingIn } = useLogin()

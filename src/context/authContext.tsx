@@ -5,7 +5,6 @@ import { useUserQuery } from '@/hooks/query/user'
 import { useUserAutoRefresh } from '@/hooks/useUserAutoRefresh'
 import type { IUserProfile } from '@/interfaces/interfaces'
 import { useAppDispatch } from '@/redux/hooks'
-import { setupActions } from '@/redux/slices/setup-slice'
 import { userActions } from '@/redux/slices/user-slice'
 import { zerodevActions } from '@/redux/slices/zerodev-slice'
 import {
@@ -31,6 +30,7 @@ import { purgeCaches } from '@/utils/cache.utils'
 import { clearStepUpToken } from '@/services/step-up'
 import { claimAndSettlePendingBadgeCampaigns, isConfirmedBadgeCampaignClaim } from '@/services/badge-campaigns'
 import { clearPendingBadgeCampaigns, getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
+import { clearInvite } from '@/utils/invite-stash'
 
 interface AuthContextType {
     user: IUserProfile | null
@@ -297,7 +297,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         // reset redux state (user, setup, zerodev)
         dispatch(userActions.setUser(null))
-        dispatch(setupActions.resetSetup())
+        clearInvite()
         dispatch(zerodevActions.resetZeroDevState())
 
         // clear service worker caches (non-fatal if it fails)

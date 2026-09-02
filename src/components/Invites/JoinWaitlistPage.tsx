@@ -14,7 +14,6 @@ import { PeanutWavingHello, PeanutPointing } from '@/assets/mascot'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import Loading from '../Global/Loading'
-import { useSetupStore } from '@/redux/hooks'
 import { useNotifications } from '@/hooks/useNotifications'
 import { updateUserById } from '@/app/actions/users'
 import { useQueryState, parseAsStringEnum } from 'nuqs'
@@ -27,6 +26,7 @@ import { getFromCookie, removeFromCookie, toInviteCode } from '@/utils/general.u
 import { USERNAME_MIN_LENGTH } from '@/constants/general.consts'
 import { settleAcceptedInviteAcquisition } from '@/services/invite-acquisition'
 import { isConfirmedBadgeCampaignClaim } from '@/services/badge-campaigns'
+import { readInviteCode, readInviteType } from '@/utils/invite-stash'
 
 type WaitlistStep = 'email' | 'notifications' | 'jail'
 type InviteAcceptanceOutcome = 'onboarding_resolved' | 'campaign_only' | 'failed'
@@ -41,7 +41,9 @@ const JoinWaitlistPage = () => {
     const tNotifications = useTranslations('notifications')
     const { fetchUser, isFetchingUser, logoutUser, user } = useAuth()
     const router = useRouter()
-    const { inviteType, inviteCode: setupInviteCode } = useSetupStore()
+    // invite hand-off lives in cookies — TASK-21460
+    const inviteType = readInviteType()
+    const setupInviteCode = readInviteCode()
     const { requestPermission, afterPermissionAttempt, isPermissionGranted } = useNotifications()
 
     // URL-backed step state — survives refresh, enables deep-linking
