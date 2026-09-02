@@ -302,8 +302,9 @@ jobs:
                   echo 'Files that can move a pixel:'
                   printf '%s\n' "$HITS"
 
-    # Visual diff over src/dev/fixtures/registry.ts — 30 fixtures at four phone
-    # widths, 120 PNGs. No API, no database, no provider key and no secret: a
+    # Visual diff over src/dev/fixtures/registry.ts — 30 fixtures, four phone
+    # widths on baseline pushes and two on PRs (see the capture step).
+    # No API, no database, no provider key and no secret: a
     # fixture answers every request the app makes.
     #
     # ADVISORY. It is deliberately NOT in `ci-success.needs`, so it can never
@@ -410,6 +411,23 @@ jobs:
                   echo "::error::playwright install-deps failed after 3 attempts"
                   exit 1
 
+            # Next's incremental build cache — roughly halves the ~4 min build
+            # when warm. Key follows the Next.js docs recipe: exact key per
+            # source hash, restore-keys falls back to the newest cache for the
+            # same lockfile, which is the incremental rebuild Next optimizes.
+            # Restore-only on purpose: a save on every PR push would upload a
+            # fresh 100-400 MB entry that is branch-scoped (no other PR can
+            # read it), churning the shared 10 GB cache quota and spending
+            # 1-2 min on the upload. Push runs save below instead, so every
+            # PR restores a near-fresh dev-scoped entry via restore-keys.
+            - name: Restore the Next build cache
+              uses: actions/cache/restore@v4
+              with:
+                  path: .next/cache
+                  key: ds-shots-next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
+                  restore-keys: |
+                      ds-shots-next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+
             - name: Build
               env:
                   # Without this DEV_TOOLS_ENABLED is false, ?__fixture= is
@@ -424,12 +442,32 @@ jobs:
                   NEXT_PUBLIC_BASE_URL: http://127.0.0.1:3080
               run: pnpm build
 
+            # Push runs only (dev/main/DS train land several times a day), so
+            # PRs always find a near-fresh entry without per-PR churn. Right
+            # after Build rather than a post step: a capture failure must not
+            # lose the cache. A re-run finds the key taken — losing that race
+            # costs nothing, the entry is already there.
+            - name: Save the Next build cache
+              if: github.event_name == 'push'
+              continue-on-error: true
+              uses: actions/cache/save@v4
+              with:
+                  path: .next/cache
+                  key: ds-shots-next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
+
             # The capture fails a shot that still has a spinner on camera, on
             # purpose. No continue-on-error: a red step is how anyone finds out.
+            #
+            # PR runs shoot only the two extreme widths — 320 finds the most
+            # overflow bugs, 430 is the widest device — which halves capture
+            # time. Baseline pushes keep all four widths so a later full
+            # capture always has something to diff against; visual-diff.mjs
+            # ignores baseline widths a partial capture never shot. The
+            # project names are the widths (playwright.shots.config.ts).
             - name: Capture screenshots
               env:
                   SHOTS_OUT: e2e/__shots__/${{ github.event_name == 'push' && 'base' || 'head' }}
-              run: pnpm test:visual:capture
+              run: pnpm test:visual:capture ${{ github.event_name == 'pull_request' && '--project=320 --project=430' || '' }}
 
             - name: Save this commit as the baseline
               if: github.event_name == 'push'

@@ -63,6 +63,14 @@ const shots = (dir) => new Set(readdirSync(dir).filter((f) => f.endsWith('.png')
 const before = shots(beforeDir)
 const after = shots(afterDir)
 
+// A capture that produced nothing must stay loud: with zero after-files the
+// width-aware removal filter below would turn "every screenshot vanished"
+// into an all-green report. That is tool breakage, not a diff result.
+if (before.size > 0 && after.size === 0) {
+    console.error(`no PNGs in ${afterDir} — the capture produced nothing`)
+    process.exit(2)
+}
+
 mkdirSync(outDir, { recursive: true })
 
 const changed = []
@@ -95,7 +103,15 @@ for (const file of [...after].filter((f) => before.has(f)).sort()) {
 }
 
 const added = [...after].filter((f) => !before.has(f)).sort()
-const removed = [...before].filter((f) => !after.has(f)).sort()
+
+// A partial capture must not report the widths it never shot as "removed":
+// PR runs shoot 2 of the baseline's 4 widths (see tests.yml), so only a width
+// the after capture actually produced can prove a removal. A screen that is
+// really gone is still reported — its files are missing at the captured
+// widths too.
+const widthOf = (f) => f.match(/@(\d+)\.png$/)?.[1] ?? ''
+const afterWidths = new Set([...after].map(widthOf))
+const removed = [...before].filter((f) => !after.has(f) && afterWidths.has(widthOf(f))).sort()
 
 changed.sort((x, y) => y.percent - x.percent)
 
