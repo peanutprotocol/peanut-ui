@@ -185,7 +185,11 @@ export default function QRScannerOverlay() {
     const { triggerHaptic } = useAppHaptic()
     const { isQRScannerOpen, setIsQRScannerOpen } = useModalsContext()
 
+    // Remounts the result modal per scan so its acknowledgement starts unticked
+    // on the first paint, not after an effect.
+    const [scanSeq, setScanSeq] = useState(0)
     const showModal = (type: EModalType) => {
+        setScanSeq((seq) => seq + 1)
         setModalContent(type)
         setIsModalOpen(true)
         setIsQRScannerOpen(false)
@@ -392,6 +396,7 @@ export default function QRScannerOverlay() {
     return (
         <>
             <QrResultModal
+                key={scanSeq}
                 visible={isModalOpen && !!modalContent}
                 modalContent={modalContent}
                 qrType={qrType}

@@ -13,7 +13,7 @@
  * the wiring in this component was wrong, so the guard has to live here.
  */
 import React from 'react'
-import { act, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 
 const mockPush = jest.fn()
@@ -134,5 +134,29 @@ describe('QRScannerOverlay case handling', () => {
     it('still routes a Peanut URL', async () => {
         await scan('https://peanut.example.org/satoshi')
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/satoshi'))
+    })
+})
+
+describe('direct-send acknowledgement gate', () => {
+    const continueButton = () => screen.getByRole('button', { name: 'Continue' })
+
+    it('keeps Continue disabled until the box is ticked, and starts a new scan unticked', async () => {
+        renderWithIntl(<QRScannerOverlay />)
+        await act(async () => {
+            await onScan(EVM_CHECKSUMMED)
+        })
+        expect(screen.getByText('Payment Confirmation')).toBeInTheDocument()
+        expect(continueButton()).toBeDisabled()
+
+        fireEvent.click(screen.getByRole('checkbox'))
+        expect(screen.getByRole('checkbox')).toBeChecked()
+        expect(continueButton()).toBeEnabled()
+
+        // second scan on the same overlay: the acknowledgement must not carry over
+        await act(async () => {
+            await onScan(EVM_UPPERCASE)
+        })
+        expect(screen.getByRole('checkbox')).not.toBeChecked()
+        expect(continueButton()).toBeDisabled()
     })
 })

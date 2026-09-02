@@ -96,9 +96,7 @@ export default function BalanceWarningModal({ visible, onCloseAction }: BalanceW
             hideOverlay={true}
             modalClassName="z-50 !items-center !justify-center !px-6"
             modalPanelClassName="!bottom-auto !mx-auto !w-auto !max-w-md !self-center"
-            icon="alert"
-            iconContainerClassName="bg-action-secondary size-16"
-            iconProps={{ className: 'size-6' }}
+            tone="info"
             title={t('balanceWarningModal.title')}
             description={
                 <div className="space-y-3">

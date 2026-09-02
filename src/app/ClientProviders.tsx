@@ -71,10 +71,14 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
     const IntlProvider = marketing ? MarketingIntlProvider : AppIntlProvider
 
     if (UNSUPPORTED_WEBVIEW) {
+        // notifyAppReady still has to run here, or the plugin's app-ready
+        // timeout rolls the active OTA bundle back on this screen.
         return (
-            <AppIntlProvider>
-                <UnsupportedWebViewScreen />
-            </AppIntlProvider>
+            <OtaUpdateProvider>
+                <AppIntlProvider>
+                    <UnsupportedWebViewScreen />
+                </AppIntlProvider>
+            </OtaUpdateProvider>
         )
     }
 

@@ -25,10 +25,10 @@ export const MIGRATION_URGENCY_THRESHOLD_DAYS = 14
 // (only during the migration window; flag off keeps closed-forever)
 export const NOTIF_PROMPT_SNOOZE_DAYS = 14
 
-// store review deep links ("Love it" on the review prompt). the ios
-// write-review action needs the real numeric app id — placeholder until launch.
+// store review deep links ("Love it" on the review prompt); the ios id is the
+// App Store Connect app id (6786373552).
 export const REVIEW_URL = {
-    ios: 'https://apps.apple.com/app/peanut?action=write-review',
+    ios: 'https://apps.apple.com/app/id6786373552?action=write-review',
     android: 'https://play.google.com/store/apps/details?id=me.peanut.wallet',
 } as const
 
@@ -40,10 +40,8 @@ export const KEEP_WEB_COOKIE = 'keep-web'
 export const KEEP_WEB_TOKEN = 'walnut-still-cracks'
 export const KEEP_WEB_COOKIE_DAYS = 90
 
-// placeholder store URLs — real App Store numeric id + Play listing must be
-// confirmed before flag-on (also needed for the review deep link).
 export const STORE_URL = {
-    ios: 'https://apps.apple.com/app/peanut',
+    ios: 'https://apps.apple.com/app/id6786373552',
     android: 'https://play.google.com/store/apps/details?id=me.peanut.wallet',
 } as const
 
