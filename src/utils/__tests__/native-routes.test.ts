@@ -763,11 +763,16 @@ describe('resolveInAppNavigation', () => {
             })
         })
 
-        it('hands an off-domain link to the browser', () => {
-            expect(resolveInAppNavigation('https://example.com/pay')).toEqual({
-                kind: 'external',
-                url: 'https://example.com/pay',
-            })
+        // The link is a caller-supplied baseUrl persisted by the charge API, so
+        // only an https Peanut origin may leave the app; anything else is dropped.
+        it.each([
+            ['an off-domain https link', 'https://example.com/pay'],
+            ['a look-alike host', 'https://peanut.me.evil.example/pay'],
+            ['a javascript: url', 'javascript:alert(1)'],
+            ['a data: url', 'data:text/html,<script>alert(1)</script>'],
+            ['a plain http peanut link', 'http://peanut.me/en/help'],
+        ])('refuses to open %s', (_name, link) => {
+            expect(resolveInAppNavigation(link)).toBeNull()
         })
 
         it('returns null for an empty or unparseable link', () => {
@@ -793,11 +798,19 @@ describe('resolveInAppNavigation', () => {
             })
         })
 
-        it('treats another origin as external', () => {
-            expect(resolveInAppNavigation('https://example.com/pay')).toEqual({
+        it('hands an https peanut.me link that is not same-origin to the browser', () => {
+            expect(resolveInAppNavigation('https://app.peanut.me/en/help')).toEqual({
                 kind: 'external',
-                url: 'https://example.com/pay',
+                url: 'https://app.peanut.me/en/help',
             })
+        })
+
+        it.each([
+            ['another origin', 'https://example.com/pay'],
+            ['a javascript: url', 'javascript:alert(1)'],
+            ['a data: url', 'data:text/html,hi'],
+        ])('refuses to open %s', (_name, link) => {
+            expect(resolveInAppNavigation(link)).toBeNull()
         })
 
         it('returns null for an empty link', () => {

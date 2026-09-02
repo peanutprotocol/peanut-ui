@@ -101,13 +101,13 @@ describe('ReceiptActions — Pay on a received request', () => {
         expect(mockPush).toHaveBeenCalledWith('/alice?chargeId=charge-1')
     })
 
-    test('hands an off-origin link to the browser', () => {
+    test.each(['https://example.com/pay', 'javascript:alert(1)'])('never opens an untrusted link (%s)', (link) => {
         mockIsCapacitor.mockReturnValue(false)
-        renderWithLink('https://example.com/pay')
+        renderWithLink(link)
 
         fireEvent.click(screen.getByText('actions.pay'))
 
-        expect(mockOpenExternalUrl).toHaveBeenCalledWith('https://example.com/pay')
+        expect(mockOpenExternalUrl).not.toHaveBeenCalled()
         expect(mockPush).not.toHaveBeenCalled()
     })
 })

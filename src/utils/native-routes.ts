@@ -306,9 +306,25 @@ export function resolveInAppNavigation(url: string): InAppNavigation | null {
     return parseExternal(url)
 }
 
+// The request link comes from the charge API, which stores whatever baseUrl the
+// creating caller supplied — so it must not be trusted past this boundary. Only
+// an https Peanut origin (or the build's own base URL, for previews) may be
+// handed to the browser; any other scheme or host is dropped, never opened.
 function parseExternal(url: string): InAppNavigation | null {
+    let parsed: URL
     try {
-        return { kind: 'external', url: new URL(url).href }
+        parsed = new URL(url)
+    } catch {
+        return null
+    }
+    if (parsed.protocol !== 'https:') return null
+    if (!APP_HOSTS.test(parsed.hostname) && parsed.origin !== baseOrigin()) return null
+    return { kind: 'external', url: parsed.href }
+}
+
+function baseOrigin(): string | null {
+    try {
+        return new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.me').origin
     } catch {
         return null
     }
