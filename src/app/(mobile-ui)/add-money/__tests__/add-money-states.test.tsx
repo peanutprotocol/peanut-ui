@@ -970,12 +970,20 @@ beforeEach(() => {
 // screen is gone — crypto is linked directly from the home Add drawer)
 // ============================================================
 describe('GROUP 1: Landing', () => {
-    test('root shows the country list', () => {
+    test('root shows the crypto row first, then the country list', () => {
         renderWithProviders(<AddMoneyPage />)
 
+        // funnel rule: the KYC-free crypto path is listed first
+        expect(screen.getByText('Crypto')).toBeInTheDocument()
         expect(screen.getByTestId('country-list')).toBeInTheDocument()
         expect(screen.getByText('Select your country')).toBeInTheDocument()
-        expect(screen.getByText('Bank transfer')).toBeInTheDocument()
+    })
+
+    test('crypto row navigates to /add-money/crypto', () => {
+        renderWithProviders(<AddMoneyPage />)
+
+        fireEvent.click(screen.getByText('Crypto'))
+        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/crypto')
     })
 
     // TASK-20033: picking a bank-supported country skips the redundant per-country

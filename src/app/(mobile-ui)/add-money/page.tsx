@@ -1,6 +1,8 @@
 'use client'
 
 import { PageStack } from '@/components/0_Bruddle/PageStack'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import AddWithdrawCountriesList from '@/components/AddWithdraw/AddWithdrawCountriesList'
 import dynamic from 'next/dynamic'
 
@@ -110,13 +112,22 @@ export default function AddMoneyPage() {
         return <AddWithdrawCountriesList flow="add" />
     }
 
-    // The root IS the bank country list — the old "How would you like to add
-    // money?" method-selection screen is gone (crypto is offered by the home
-    // Add drawer, which links /add-money/crypto directly).
+    // The old "How would you like to add money?" interstitial is gone: the
+    // root is one screen — the KYC-free crypto row FIRST (the activation
+    // funnel rule in product/activation-funnel.md), then the bank country
+    // list. Generic entries (checklists, CTAs, lifecycle emails) land here,
+    // so crypto must stay reachable without the home Add drawer.
     return (
         <PageStack>
-            {/* board Page/Add/Bank (17830:77534): country list titles "Bank transfer" */}
-            <NavHeader title={t('methods.bankTransfer')} onPrev={handleBack} />
+            <NavHeader title={t('title')} onPrev={handleBack} />
+            <ListItem
+                title={t('methods.crypto')}
+                body={t('methods.cryptoDescription')}
+                leading={<IconBubble icon="currency" size="s" color="blue" />}
+                chevron
+                position="single"
+                onClick={() => router.push('/add-money/crypto')}
+            />
             <CountryList
                 inputTitle={t('selectYourCountry')}
                 viewMode="add-withdraw"

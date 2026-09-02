@@ -1,4 +1,5 @@
 import BaseInput from '@/components/0_Bruddle/BaseInput'
+import { FieldError } from '@/components/0_Bruddle/FieldError'
 import BaseSelect from '@/components/0_Bruddle/BaseSelect'
 import { Button } from '@/components/0_Bruddle/Button'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -267,7 +268,7 @@ const ResidenceStep = () => {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                             />
-                            {emailError && <p className="text-error text-body-s">{emailError}</p>}
+                            {emailError && <FieldError>{emailError}</FieldError>}
                         </div>
                     )}
                     {view === 'notify-done' && (

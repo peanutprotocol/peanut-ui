@@ -88,7 +88,7 @@ const pendingBridgeOnramp = {
     extraDataForDrawer: { depositInstructions: { deposit_message: 'BRGTESTREF1234567890' } },
 } as unknown as import('@/components/TransactionDetails/transactionTransformer').TransactionDetails
 
-const renderCancel = () =>
+const renderCancel = (setIsModalOpen?: (isModalOpen: boolean) => void) =>
     render(
         <CancelDepositActions
             transaction={pendingBridgeOnramp}
@@ -96,6 +96,7 @@ const renderCancel = () =>
             isLoading={false}
             setIsLoading={jest.fn()}
             onClose={jest.fn()}
+            setIsModalOpen={setIsModalOpen}
         />
     )
 
@@ -149,5 +150,32 @@ describe('CancelDepositActions confirmation gate', () => {
 
         expect(mockCancelOnramp).not.toHaveBeenCalled()
         expect(screen.queryByTestId('confirm-drawer')).not.toBeInTheDocument()
+    })
+
+    /*
+     * The nesting contract with TransactionDetailsDrawer: the parent refuses
+     * to close only while isModalOpen is true, so the confirm drawer's open
+     * state MUST be mirrored into setIsModalOpen — if the mirror stops firing,
+     * the details drawer closes underneath, this component unmounts, and the
+     * confirmation the user is looking at vanishes before the cancel can run.
+     */
+    it('mirrors the confirm drawer into setIsModalOpen: open, confirm, dismiss', async () => {
+        const setIsModalOpen = jest.fn()
+        renderCancel(setIsModalOpen)
+
+        // arming the cancel opens the confirm drawer -> parent must be locked
+        fireEvent.click(screen.getByText('Cancel deposit'))
+        expect(setIsModalOpen).toHaveBeenLastCalledWith(true)
+
+        // confirming closes the drawer -> parent must be released
+        fireEvent.click(screen.getByText('Yes, cancel deposit'))
+        await waitFor(() => expect(setIsModalOpen).toHaveBeenLastCalledWith(false))
+
+        // dismissing (instead of confirming) must release it too
+        setIsModalOpen.mockClear()
+        fireEvent.click(screen.getByText('Cancel deposit'))
+        expect(setIsModalOpen).toHaveBeenLastCalledWith(true)
+        fireEvent.click(screen.getByText('Dismiss'))
+        await waitFor(() => expect(setIsModalOpen).toHaveBeenLastCalledWith(false))
     })
 })

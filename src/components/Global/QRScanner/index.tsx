@@ -1,10 +1,11 @@
 import { createPortal } from 'react-dom'
 import { useTranslations } from 'next-intl'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
 import { PEANUTMAN } from '@/assets/mascot'
 import { ETHEREUM_ICON } from '@/assets/icons'
+import { QR_DRAWER_PASTE_GAP_PX, QR_DRAWER_PEEK_PX } from '@/constants/qr-drawer.consts'
 import Image from 'next/image'
 import { Icon } from '../Icons/Icon'
 import { useQRScanner, type QRScanHandler } from './useQRScanner'
@@ -175,8 +176,14 @@ function ScanRegionOverlay({
                     section gap (24px) below the scan square so the group reads
                     as part of it. Ruled 2026-09-02 (TASK-22121 #20), replacing
                     the drawer-anchored strip. On short screens the icon grid
-                    hides rather than collide with the drawer peek. */}
-                <div className="pointer-events-auto absolute inset-x-0 top-full z-50 mt-6 flex flex-col items-center">
+                    hides AND the paste actions fall back to the old
+                    drawer-peek anchor — square-anchored they would sit under
+                    the z-60 drawer and be untappable. The offset comes in as a
+                    CSS var because Tailwind cannot JIT an interpolated value. */}
+                <div
+                    className="pointer-events-auto absolute inset-x-0 top-full z-50 mt-6 flex flex-col items-center [@media(max-height:729px)]:fixed [@media(max-height:729px)]:top-auto [@media(max-height:729px)]:bottom-(--qr-paste-bottom) [@media(max-height:729px)]:mt-0"
+                    style={{ '--qr-paste-bottom': `${QR_DRAWER_PEEK_PX + QR_DRAWER_PASTE_GAP_PX}px` } as CSSProperties}
+                >
                     <div className="grid grid-cols-2 gap-2 [@media(max-height:729px)]:hidden">
                         {PAYMENT_METHODS.map((method) => (
                             <PaymentMethodBadge
