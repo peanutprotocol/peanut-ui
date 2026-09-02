@@ -1,7 +1,7 @@
 import { existsSync } from 'fs'
 import { join } from 'path'
 import badgeAssets from '@/types/badge-assets.json'
-import { avatarPalette, avatarPool, avatarSrc, badgeAvatarKeys, basicAvatarKeys } from '../avatar.utils'
+import { avatarPaletteClass, avatarPool, avatarSrc, badgeAvatarKeys, basicAvatarKeys } from '../avatar.utils'
 
 describe('avatar catalog', () => {
     // the manifest is the API's contract: every slug it names must be real art
@@ -43,8 +43,10 @@ describe('avatar catalog', () => {
         expect(avatarSrc(undefined)).toBeNull()
     })
 
-    it('keeps a stable palette per key', () => {
-        expect(avatarPalette('basic.apple')).toEqual(avatarPalette('basic.apple'))
-        expect(avatarPalette('basic.apple')).toHaveProperty('lightShade')
+    it('keeps a stable palette per key, from the seven avatar triples', () => {
+        expect(avatarPaletteClass('basic.apple')).toBe(avatarPaletteClass('basic.apple'))
+        expect(avatarPaletteClass('basic.apple')).toMatch(
+            /^bg-avatar-(pink|yellow|purple|blue|red|orange|green) border-avatar-\1-border$/
+        )
     })
 })

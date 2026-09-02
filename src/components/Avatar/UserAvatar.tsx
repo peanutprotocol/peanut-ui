@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import AvatarWithBadge, { type AvatarSize } from '@/components/Profile/AvatarWithBadge'
 import { twMerge } from '@/utils/tw'
-import { avatarPalette, avatarSrc } from './avatar.utils'
+import { avatarPaletteClass, avatarSrc } from './avatar.utils'
 
 interface UserAvatarProps {
     /** Display name for the fallback; AvatarWithBadge shows its first letter. */
@@ -47,17 +47,15 @@ export function UserAvatar({ name, avatarKey, size = 'extra-small', className }:
         )
     }
 
-    // the seven triples travel together (fill, border, foreground)
-    const palette = avatarPalette(avatarKey)
     return (
         <span
             aria-hidden
             className={twMerge(
                 'inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border',
+                avatarPaletteClass(avatarKey),
                 SIZE_CLASSES[size],
                 className
             )}
-            style={{ background: palette.lightShade, borderColor: palette.borderShade }}
         >
             <Image src={src} alt="" width={SIZE_PX[size]} height={SIZE_PX[size]} unoptimized className="size-[82%]" />
         </span>
