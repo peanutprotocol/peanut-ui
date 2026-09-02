@@ -192,6 +192,22 @@ jobs:
                               exit 0
                               ;;
                       esac
+                  else
+                      # The event omitted the list — routine, ~9 in 10 runs.
+                      # Resolve it ourselves: the artifact's PR must be the
+                      # ONLY open PR on this branch+commit. With two sibling
+                      # PRs the runs are indistinguishable — code from one
+                      # can name the other — so ambiguity posts nothing and
+                      # the job summary stays the visible diff for that rare
+                      # configuration.
+                      CANDIDATES=$(gh api "repos/$REPO/commits/$RUN_HEAD_SHA/pulls" \
+                          --jq '.[] | select(.state == "open" and .head.sha == env.RUN_HEAD_SHA and .head.ref == env.RUN_HEAD_BRANCH) | .number')
+                      COUNT=$(printf '%s\n' "$CANDIDATES" | grep -c . || true)
+                      if [ "$COUNT" -ne 1 ] || ! printf '%s\n' "$CANDIDATES" | grep -qx "$PR"; then
+                          echo "Ambiguous or mismatched binding: open PRs on this branch+commit [$CANDIDATES] vs artifact PR #$PR — posting nothing."
+                          echo 'match=false' >> "$GITHUB_OUTPUT"
+                          exit 0
+                      fi
                   fi
                   echo 'match=true' >> "$GITHUB_OUTPUT"
 
