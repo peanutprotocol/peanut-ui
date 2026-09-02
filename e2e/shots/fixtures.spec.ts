@@ -60,6 +60,15 @@ function seenOnceModals(): void {
         'demo-user:user-preferences',
         JSON.stringify({ hasSeenBalanceWarning: { value: true, expiry: 4102444800000 } })
     )
+    // useGeoLocation fetches ipapi.co (an external host) when its cache is
+    // cold, and /add-money's country list sits behind that spinner — in CI the
+    // request can hang past the test timeout. Seed the sessionStorage cache so
+    // the hook never fetches; timestamp sits just before FROZEN_NOW.
+    window.sessionStorage.setItem('user_geo_country_code', 'DE')
+    window.sessionStorage.setItem(
+        'user_geo_country_code_timestamp',
+        String(new Date('2026-08-15T11:59:00.000Z').getTime())
+    )
 }
 
 async function settle(page: Page): Promise<void> {
