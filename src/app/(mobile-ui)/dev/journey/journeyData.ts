@@ -109,7 +109,7 @@ export const IN_APP_SURFACES: InAppSurface[] = [
         copy: '"Make your first payment" — "Start paying to Pix and MercadoPago QR codes"',
         cta: { label: 'Start Spending', dest: 'QR scanner' },
         condition:
-            "step=outbound && !hasCardAccess && an enabled qr-only pay rail — the QR spend is this user's only activating spend, so the CTA opens the scanner rather than /send (a peer send is volume, never activation). Without the card OR that rail the step renders nothing: no spend would ever clear it. The Home checklist row is the surface that completes on a peer payment (product/activation-funnel.md, 2026-09-02).",
+            "step=outbound && !hasCardAccess && a Manteca rail whose `pay` op is enabled (Pix is bank-channel, MercadoPago is qr-only — the gate is the provider and the op, not the channel) — the QR spend is this user's only activating spend, so the CTA opens the scanner rather than /send (a peer send is volume, never activation). Without the card OR that rail the step renders nothing: no spend would ever clear it. The Home checklist row is the surface that completes on a peer payment (product/activation-funnel.md, 2026-09-02).",
         sourceFile: 'src/components/Home/ActivationCTAs.tsx',
         states: ['kycd-no-card'],
     },

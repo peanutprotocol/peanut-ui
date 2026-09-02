@@ -54,7 +54,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     const tRegion = useTranslations('kyc.regionRestricted')
     const router = useRouter()
     const { setIsQRScannerOpen, openSupportWithMessage } = useModalsContext()
-    const { rails, channelOf, nextActions, operationStatus } = useCapabilities()
+    const { rails, channelOf, nextActions, canDo } = useCapabilities()
     const { user } = useAuth()
     // Card spend counts as activation too — card-access users get a card+QR
     // chooser on the outbound step instead of jumping straight to the scanner.
@@ -77,10 +77,15 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     // authorization, or a Manteca QR pay on Pix / Mercado Pago. Send links,
     // direct sends, offramps and withdrawals are volume, not activation — so
     // the spend step is only honest while one of those two is open to the user.
-    const hasQrSpendRail = useMemo(
-        () => rails.some((rail) => channelOf(rail) === 'qr-only' && operationStatus(rail.id, 'pay') === 'enabled'),
-        [rails, channelOf, operationStatus]
-    )
+    //
+    // Keyed on provider + the `pay` op, never on the channel: Pix is a
+    // BANK-channel method that happens to carry `pay` (peanut-api-ts
+    // METHOD_CHANNELS — MercadoPago is the only `qr-only` entry), and the QR
+    // pool enables its rails one at a time, so a `qr-only` filter silently
+    // drops every Brazilian user whose Pix pays but whose MercadoPago row did
+    // not enable. `canDo` reads `operations.pay ?? status`, so Manteca's pool
+    // tier reading `enabled` overall while `pay` needs an upgrade still fails.
+    const hasQrSpendRail = canDo('pay', { provider: 'manteca' })
 
     // The activation funnel gates deposit/outbound, which routes through bank or
     // qr-only channels — never through card. Top-level status (not per-op

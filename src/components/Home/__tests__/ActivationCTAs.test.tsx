@@ -44,6 +44,13 @@ jest.mock('@/hooks/useCapabilities', () => ({
             const rail = mockRails.find((r) => r.id === railId)
             return rail?.operations?.[op] ?? rail?.status
         },
+        // Mirrors the real hook: per-op refinement falling back to rail status.
+        canDo: (op: string, opts?: { provider?: string }) =>
+            mockRails.some(
+                (rail) =>
+                    (opts?.provider === undefined || rail.provider === opts.provider) &&
+                    (rail.operations?.[op] ?? rail.status) === 'enabled'
+            ),
         nextActionsForRail: () => [],
         nextActions: [],
     }),
@@ -116,8 +123,22 @@ const bankRejected = {
     reason: { userMessage: 'We need a valid proof of address document.' },
 }
 const enabledCardRail = { id: 'rain.card_rain', channel: 'card', status: 'enabled' }
-// Manteca Pix / Mercado Pago: the only spend that activates a user without a card.
-const enabledQrRail = { id: 'manteca.qr_br', provider: 'manteca', channel: 'qr-only', status: 'enabled' }
+// Manteca Pix / Mercado Pago: the only spend that activates a user without a
+// card. Real backend shapes — Pix is BANK-channel with a `pay` op, MercadoPago
+// is the only method the resolver ever puts in `qr-only`.
+const enabledQrRail = {
+    id: 'manteca.pix_br',
+    provider: 'manteca',
+    channel: 'bank',
+    status: 'enabled',
+    operations: { pay: 'enabled', deposit: 'requires-info' },
+}
+const enabledMercadoPagoRail = {
+    id: 'manteca.mercadopago_qr_ar',
+    provider: 'manteca',
+    channel: 'qr-only',
+    status: 'enabled',
+}
 
 beforeEach(() => {
     jest.clearAllMocks()
@@ -278,6 +299,27 @@ describe('ActivationCTAs — happy path renders the checklist', () => {
         fireEvent.click(screen.getByText('Start Spending'))
         expect(mockSetIsQRScannerOpen).toHaveBeenCalledWith(true)
         expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    // The QR pool enables its rails one at a time (`enableQrPoolRails` skips any
+    // rail already in a non-PENDING state), so a Brazilian can hold a paying Pix
+    // rail while the MercadoPago row stands rejected. Pix is bank-channel, so a
+    // `qr-only` gate would strand exactly that user with no activation CTA.
+    it('outbound keeps the step for a paying Pix rail when the MercadoPago rail is rejected', () => {
+        mockHasCardAccess = false
+        mockRails = [enabledQrRail, { ...enabledMercadoPagoRail, status: 'rejected' }]
+        render(<ActivationCTAs activationStep="outbound" />)
+        expect(screen.getByText('Make your first payment')).toBeInTheDocument()
+        fireEvent.click(screen.getByText('Start Spending'))
+        expect(mockSetIsQRScannerOpen).toHaveBeenCalledWith(true)
+    })
+
+    it('outbound keeps the step for an enabled MercadoPago qr-only rail', () => {
+        mockHasCardAccess = false
+        mockRails = [enabledMercadoPagoRail]
+        render(<ActivationCTAs activationStep="outbound" />)
+        fireEvent.click(screen.getByText('Start Spending'))
+        expect(mockSetIsQRScannerOpen).toHaveBeenCalledWith(true)
     })
 
     it('outbound with card access offers the card/QR chooser', () => {
