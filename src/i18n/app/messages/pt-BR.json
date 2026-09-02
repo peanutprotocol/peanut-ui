@@ -138,7 +138,7 @@
             "getCard": "Peça seu cartão Peanut",
             "addMoney": "Adicionar dinheiro",
             "firstPayment": "Faça seu primeiro pagamento",
-            "firstPaymentNote": "Envie alguns dólares para qualquer @usuário. Chega em segundos.",
+            "firstPaymentNote": "Envie alguns dólares para um usuário Peanut, um nome ENS ou um endereço de carteira. Chega em segundos.",
             "addMoneyRoutes": "Transferência bancária ou cripto",
             "addMoneyRoutesKyc": "Transferência bancária ou cripto · o banco exige uma verificação de identidade única",
             "getCardNote": "Seus dólares, em rosa, onde a Visa for aceita."
@@ -395,7 +395,7 @@
                 "cardRestrictionNote": "Atenção: o cartão não está disponível para residentes deste país.",
                 "bankingRestrictionNote": "Atenção: transferências bancárias não estão disponíveis para residentes deste país.",
                 "save": "Salvar",
-                "saveAndReverify": "Salvar e verificar agora",
+                "saveAndReverify": "Enviar documentos",
                 "cooldownNote": "Você mudou sua residência há pouco tempo. Pode mudá-la de novo depois de {until}."
             },
             "degraded": {
@@ -411,8 +411,6 @@
                 "messageUs": "Fale com a gente e vamos atrás"
             },
             "limits": {
-                "viewAll": "Limites de pagamento",
-                "details": "Ver",
                 "monthlyLeft": "Restam {remaining} de {limit} neste mês",
                 "perTransfer": "Até {amount} por transferência",
                 "p2pNoLimit": "Os pagamentos de Peanut para Peanut não têm limite"
@@ -530,6 +528,16 @@
             "title": "Sobre o Peanut",
             "intro": "O Peanut torna os dólares fáceis: guarde seu saldo, envie para qualquer @usuário e mova dinheiro pelos trilhos locais após uma única verificação de identidade. Criado pela Squirrel Labs.",
             "policiesHeading": "Políticas",
+            "policies": {
+                "terms": "Termos de Serviço",
+                "privacy": "Política de Privacidade",
+                "cardTermsUs": "Termos do Cartão (EUA)",
+                "cardTermsInternational": "Termos do Cartão (Internacional)",
+                "cardEsign": "Consentimento de Assinatura Eletrônica",
+                "cardPrivacy": "Aviso de Privacidade de Abertura de Conta",
+                "cardProhibitedActivities": "Política de Atividades Proibidas",
+                "securityDisclosure": "Divulgação de Segurança"
+            },
             "version": "Versão {version}",
             "beta": {
                 "heading": "Atualizações beta",
@@ -783,8 +791,9 @@
                     "pix": "transferências PIX",
                     "arQr": "pagamentos e transferências por QR",
                     "spei": "transferências SPEI",
-                    "achWire": "transferências ACH e wire",
-                    "sepa": "transferências bancárias SEPA"
+                    "usdAch": "transferências em USD (ACH e wire)",
+                    "eurSepa": "transferências bancárias SEPA",
+                    "gbpFps": "transferências bancárias em GBP (Faster Payments)"
                 },
                 "continue": "Continuar"
             },
@@ -801,12 +810,13 @@
             "compare": {
                 "cardTitle": "Disponível com {country}",
                 "items": {
-                    "p2p": "Pagamentos para qualquer @usuário",
-                    "pix": "PIX",
+                    "p2p": "Pagamentos de Peanut para Peanut",
+                    "pix": "Pagamentos e transferências PIX",
                     "arQr": "Pagamentos QR e transferências",
-                    "spei": "Transferências bancárias SPEI",
-                    "achWire": "Transferências ACH e Wire",
-                    "sepa": "Transferências SEPA",
+                    "spei": "Transferências SPEI (MXN)",
+                    "usdAch": "Transferências em USD (ACH e Wire)",
+                    "eurSepa": "Transferências SEPA (EUR)",
+                    "gbpFps": "Transferências em GBP (Faster Payments)",
                     "bank": "Transferências bancárias onde houver suporte",
                     "card": "Cartão Peanut"
                 },
@@ -814,6 +824,7 @@
                     "banking": "Transferências bancárias",
                     "card": "Cartão Peanut"
                 },
+                "multiCurrencyNote": "Transferências em outra moeda exigem uma conta bancária nessa moeda.",
                 "guideTitle": "Qual país vem primeiro?",
                 "guideDeclaration": "Os dois devem ser países onde você realmente tem residência legal. Isso é uma declaração, e os provedores a verificam durante a verificação de identidade, incluindo o comprovante de residência.",
                 "guideOrder": "Se os dois países são realmente seu lar, qualquer ordem é honesta. A ordem só muda o que o app mostra primeiro, nunca aquilo a que você é elegível. A elegibilidade é decidida pela própria verificação.",
@@ -3398,6 +3409,10 @@
             "inviteFriendsModal": {
                 "description": "Compartilhe seu link. Toda vez que um amigo que você trouxe fizer um pagamento, você ganha cashback."
             }
+        },
+        "countryCombobox": {
+            "noResults": "Nenhum país encontrado",
+            "clear": "Limpar busca"
         }
     },
     "errors": {

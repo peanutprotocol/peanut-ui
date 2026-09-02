@@ -9,7 +9,7 @@ import OfflineScreen from '@/components/Global/OfflineScreen'
 import BackendErrorScreen from '@/components/Global/BackendErrorScreen'
 import { useAuth } from '@/context/authContext'
 import { usePathname } from 'next/navigation'
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { twMerge } from '@/utils/tw'
 import '../../styles/globals.css'
 import QRScannerOverlay from '@/components/Global/QRScannerOverlay'
@@ -26,7 +26,7 @@ import { saveRedirectUrl } from '@/utils/general.utils'
 import { IS_DEV } from '@/constants/general.consts'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import { FixtureBanner } from '@/dev/fixtures/FixtureBanner'
-import { usePullToRefresh } from '@/hooks/usePullToRefresh'
+import { usePullToRefresh, useShouldPullToRefresh } from '@/hooks/usePullToRefresh'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { useAccountSetupRedirect } from '@/hooks/useAccountSetupRedirect'
 import { useNativePlugins } from '@/hooks/useNativePlugins'
@@ -67,38 +67,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     // detect online/offline status for full-page offline screen
     const { isOnline, isInitialized } = useNetworkStatus()
 
-    // cache the scrollable content element to avoid DOM queries on every scroll event
-    const scrollableContentRef = useRef<Element | null>(null)
-
     useEffect(() => {
         setIsReady(true)
     }, [])
 
-    // memoizing shouldPullToRefresh callback to prevent re-initialization on every render
-    // lazy-load element ref to ensure DOM is ready
-    const shouldPullToRefresh = useCallback(() => {
-        // window must be at the top first
-        if (window.scrollY > 0) {
-            return false
-        }
-
-        // lazy-load the element reference if not cached yet
-        if (!scrollableContentRef.current) {
-            scrollableContentRef.current = document.querySelector('#scrollable-content')
-        }
-
-        const scrollableContent = scrollableContentRef.current
-        if (!scrollableContent) {
-            // if element not found, window check already passed above
-            return true
-        }
-
-        // scrollable content must also be at the top
-        return scrollableContent.scrollTop === 0
-    }, [])
-
     // enable pull-to-refresh for both ios and android
-    usePullToRefresh({ shouldPullToRefresh })
+    usePullToRefresh({ shouldPullToRefresh: useShouldPullToRefresh() })
 
     const isRedirecting = useRef(false)
 

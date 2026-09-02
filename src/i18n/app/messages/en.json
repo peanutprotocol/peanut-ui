@@ -138,7 +138,7 @@
             "getCard": "Get your Peanut card",
             "addMoney": "Add money",
             "firstPayment": "Make your first payment",
-            "firstPaymentNote": "Send a few dollars to any @username. It lands in seconds.",
+            "firstPaymentNote": "Send a few dollars to a Peanut user, ENS name or wallet address. It lands in seconds.",
             "addMoneyRoutes": "Bank transfer or crypto",
             "addMoneyRoutesKyc": "Bank transfer or crypto · bank needs a one-time ID check",
             "getCardNote": "Your dollars, in pink, wherever Visa is accepted."
@@ -395,7 +395,7 @@
                 "cardRestrictionNote": "Heads up: the card isn't available for residents of this country.",
                 "bankingRestrictionNote": "Heads up: bank transfers aren't available for residents of this country.",
                 "save": "Save",
-                "saveAndReverify": "Save & re-verify now",
+                "saveAndReverify": "Submit documents",
                 "cooldownNote": "You changed your residence recently. You can change it again after {until}."
             },
             "degraded": {
@@ -411,8 +411,6 @@
                 "messageUs": "Message us and we'll chase it"
             },
             "limits": {
-                "viewAll": "Payment limits",
-                "details": "View",
                 "monthlyLeft": "{remaining} of {limit} left this month",
                 "perTransfer": "Up to {amount} per transfer",
                 "p2pNoLimit": "No limits on Peanut-to-Peanut payments"
@@ -530,6 +528,16 @@
             "title": "About Peanut",
             "intro": "Peanut makes dollars easy: hold your balance, send to any @username, and move money on local rails after one ID check. Built by Squirrel Labs.",
             "policiesHeading": "Policies",
+            "policies": {
+                "terms": "Terms of Service",
+                "privacy": "Privacy Policy",
+                "cardTermsUs": "Card Terms (U.S.)",
+                "cardTermsInternational": "Card Terms (International)",
+                "cardEsign": "E-Sign Consent",
+                "cardPrivacy": "Account Opening Privacy Notice",
+                "cardProhibitedActivities": "Prohibited Activities Policy",
+                "securityDisclosure": "Security Disclosure"
+            },
             "version": "Version {version}",
             "beta": {
                 "heading": "Beta updates",
@@ -783,8 +791,9 @@
                     "pix": "PIX transfers",
                     "arQr": "QR payments and transfers",
                     "spei": "SPEI transfers",
-                    "achWire": "ACH and wire transfers",
-                    "sepa": "SEPA bank transfers"
+                    "usdAch": "USD transfers (ACH and wire)",
+                    "eurSepa": "SEPA bank transfers",
+                    "gbpFps": "GBP bank transfers (Faster Payments)"
                 },
                 "continue": "Continue"
             },
@@ -801,12 +810,13 @@
             "compare": {
                 "cardTitle": "Available with {country}",
                 "items": {
-                    "p2p": "Payments to any @username",
-                    "pix": "PIX",
+                    "p2p": "Peanut-to-Peanut payments",
+                    "pix": "PIX payments & transfers",
                     "arQr": "QR payments & transfers",
-                    "spei": "SPEI bank transfers",
-                    "achWire": "ACH & Wire transfers",
-                    "sepa": "SEPA transfers",
+                    "spei": "SPEI transfers (MXN)",
+                    "usdAch": "USD transfers (ACH & Wire)",
+                    "eurSepa": "SEPA transfers (EUR)",
+                    "gbpFps": "GBP transfers (Faster Payments)",
                     "bank": "Bank transfers where supported",
                     "card": "Peanut card"
                 },
@@ -814,6 +824,7 @@
                     "banking": "Bank transfers",
                     "card": "Peanut card"
                 },
+                "multiCurrencyNote": "Transfers in another currency need a bank account in that currency.",
                 "guideTitle": "Which country goes first?",
                 "guideDeclaration": "Both entries must be countries where you genuinely hold legal residence. This is a declaration, and providers verify it during the ID check, including proof of address.",
                 "guideOrder": "If both countries are truly home, either order is honest. The order only changes what the app shows you first, never what you are eligible for. Eligibility is decided by the verification itself.",
@@ -3398,6 +3409,10 @@
             "inviteFriendsModal": {
                 "description": "Share your link. Every time a friend you brought makes a payment, you earn cashback."
             }
+        },
+        "countryCombobox": {
+            "noResults": "No countries match",
+            "clear": "Clear search"
         }
     },
     "errors": {
