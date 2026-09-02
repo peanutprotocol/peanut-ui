@@ -132,10 +132,9 @@ describe('getPasskeyErrorSetupKey', () => {
         expect(getPasskeyErrorSetupKey(passkeyError('PASSKEY_STATE'))).toBe('passkey.deviceState')
         expect(getPasskeyErrorSetupKey(passkeyError('PASSKEY_INTERRUPTED'))).toBe('passkey.interrupted')
         expect(getPasskeyErrorSetupKey(passkeyError('NETWORK'))).toBe('passkey.serverUnreachable')
-    })
-
-    test('returns undefined for codes without a translated equivalent (English fallback)', () => {
-        expect(getPasskeyErrorSetupKey(passkeyError('LOGIN_ERROR'))).toBeUndefined()
+        expect(getPasskeyErrorSetupKey(passkeyError('PASSKEY_UNSUPPORTED'))).toBe('passkey.unsupported')
+        expect(getPasskeyErrorSetupKey(passkeyError('PASSKEY_ORIGIN'))).toBe('passkey.origin')
+        expect(getPasskeyErrorSetupKey(passkeyError('LOGIN_ERROR'))).toBe('passkey.loginError')
     })
 
     test('returns undefined for non-PasskeyError failures and unknown codes', () => {

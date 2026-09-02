@@ -507,7 +507,10 @@
                 "backup": "Tu gestor de contraseñas (iCloud Keychain, Administrador de contraseñas de Google o similar) la respalda y la sincroniza, así te acompaña en un teléfono nuevo.",
                 "privacy": "Peanut nunca ve tu huella ni tu rostro. Tu dispositivo solo nos dice que aprobaste.",
                 "fullGuide": "Leer la guía completa"
-            }
+            },
+            "unsupported": "Las passkeys todavía no están disponibles en este dispositivo. Iniciá sesión con una cuenta de Google, actualizá Google Play Services e intentalo de nuevo.",
+            "origin": "Esta app no está autorizada para usar passkeys en peanut.me. Actualizá a la última versión.",
+            "loginError": "No pudimos verificar tu passkey. Intentalo de nuevo o contactá a soporte si sigue pasando."
         },
         "testTransaction": {
             "errors": {

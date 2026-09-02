@@ -26,18 +26,26 @@ jest.mock('@/utils/capacitor', () => ({
 
 const listeners: Record<string, () => void> = {}
 const mockRemove = jest.fn()
-jest.mock('@capacitor/browser', () => ({
-    Browser: {
-        addListener: jest.fn((name: string, cb: () => void) => {
-            listeners[name] = cb
-            return Promise.resolve({ remove: mockRemove })
-        }),
-    },
-}))
+const mockAddListener = jest.fn((name: string, cb: () => void) => {
+    listeners[name] = cb
+    return Promise.resolve({ remove: mockRemove })
+})
+// Virtual, like every other suite that mocks the plugin: the hook reaches it
+// through a dynamic import, and a non-virtual mock left the listener
+// unregistered on the Node 20 CI runners.
+jest.mock(
+    '@capacitor/browser',
+    () => ({ Browser: { addListener: (name: string, cb: () => void) => mockAddListener(name, cb) } }),
+    { virtual: true }
+)
 
 describe('useHostedVerification (native)', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        mockAddListener.mockImplementation((name: string, cb: () => void) => {
+            listeners[name] = cb
+            return Promise.resolve({ remove: mockRemove })
+        })
         for (const key of Object.keys(listeners)) delete listeners[key]
     })
 
@@ -48,7 +56,7 @@ describe('useHostedVerification (native)', () => {
         })
         expect(mockOpenExternalUrl).toHaveBeenCalledWith('https://bridge.withpersona.com/verify')
         // the dynamic @capacitor/browser import chain settles a few ticks later
-        await waitFor(() => expect(listeners.browserFinished).toBeDefined())
+        await waitFor(() => expect(mockAddListener).toHaveBeenCalledWith('browserFinished', expect.any(Function)))
         return hook
     }
 

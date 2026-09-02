@@ -864,7 +864,10 @@
                 "backup": "Your password manager (iCloud Keychain, Google Password Manager, or similar) backs it up and syncs it, so it comes with you on a new phone.",
                 "privacy": "Peanut never sees your fingerprint or face. Your device only tells us that you approved.",
                 "fullGuide": "Read the full guide"
-            }
+            },
+            "unsupported": "Passkeys aren’t available on this device yet. Sign in to a Google account and update Google Play Services, then try again.",
+            "origin": "This app isn’t authorized for passkeys on peanut.me. Please update to the latest version.",
+            "loginError": "We couldn’t verify your passkey. Please try again, or contact support if it keeps happening."
         },
         "testTransaction": {
             "confirmAndFinish": "Confirm & finish",

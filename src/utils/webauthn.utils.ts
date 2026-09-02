@@ -61,7 +61,10 @@ const PASSKEY_ERROR_SETUP_KEYS = {
     PASSKEY_STATE: 'passkey.deviceState',
     PASSKEY_INTERRUPTED: 'passkey.interrupted',
     NETWORK: 'passkey.serverUnreachable',
-} as const satisfies Partial<Record<PasskeyErrorCode, string>>
+    PASSKEY_UNSUPPORTED: 'passkey.unsupported',
+    PASSKEY_ORIGIN: 'passkey.origin',
+    LOGIN_ERROR: 'passkey.loginError',
+} as const satisfies Record<PasskeyErrorCode, string>
 
 /** Reads the classification code off a thrown PasskeyError, if it carries one. */
 export function getPasskeyErrorCode(error: unknown): PasskeyErrorCode | undefined {
