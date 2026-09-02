@@ -168,6 +168,54 @@ const AccentNotification = ({
 }
 
 // ---------------------------------------------------------------------------
+// variant B2 — accent banner, no icon: text tinted to the accent tone
+// ---------------------------------------------------------------------------
+
+/** B without any glyphs. Text (title + body + list rows) takes the priority's
+ *  accent tone. The raw border hues (icon-bubble blue/green/yellow, subtle
+ *  gray) are too light for text, so the text uses the darkest DS token of the
+ *  same hue — the avatar foregrounds (blue #2563eb, green #3b730c, yellow
+ *  #885b00), foreground-secondary for helper; error is #ff3b30 on both. */
+const AccentNoIconNotification = ({
+    priority = 'info',
+    title,
+    children,
+    items,
+    className,
+}: {
+    priority?: Priority
+    title?: string
+    children?: React.ReactNode
+    items?: React.ReactNode[]
+    className?: string
+}) => {
+    const { accent, accentText } = PRIORITY_META[priority]
+    return (
+        <div
+            role={priority === 'error' || priority === 'attention' ? 'alert' : 'status'}
+            className={twMerge('border-l-2 py-0.5 pl-2.5 text-start', accent, accentText, className)}
+        >
+            <div className="min-w-0 text-body-s break-words">
+                {title && <span className="font-semibold">{title} </span>}
+                {items ? (
+                    // no check glyphs either — plain text bullets, body size
+                    <div className="flex flex-col gap-1">
+                        {items.map((item, i) => (
+                            <div key={i} className="flex items-start gap-1.5">
+                                <span className="shrink-0">•</span>
+                                <div className="min-w-0 flex-1">{item}</div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    children
+                )}
+            </div>
+        </div>
+    )
+}
+
+// ---------------------------------------------------------------------------
 // variant C — quiet modal note (no box at all, reads as helper text)
 // ---------------------------------------------------------------------------
 
@@ -1147,6 +1195,7 @@ const NAV = [
     ['modals', 'modals side by side'],
     ['toasts', 'toasts'],
     ['secondary', 'other ideas'],
+    ['variant-b2', 'B2 — iconless accent'],
 ] as const
 
 const renderCurrent: RenderFn = (u) => (
@@ -1163,6 +1212,12 @@ const renderB: RenderFn = (u) => (
     <AccentNotification priority={u.priority} title={u.title} items={u.items} hideIcon={u.hideIcon}>
         {u.body}
     </AccentNotification>
+)
+// no hideIcon pass-through: B2 has no icons at all
+const renderB2: RenderFn = (u) => (
+    <AccentNoIconNotification priority={u.priority} title={u.title} items={u.items}>
+        {u.body}
+    </AccentNoIconNotification>
 )
 
 const SHORT_COPY: Record<Priority, string> = {
@@ -1385,6 +1440,35 @@ export default function NotificationProposalsPage() {
                         )}
                     />
                 </Fold>
+            </PageSection>
+
+            <PageSection
+                id="variant-b2"
+                title="B2 — accent banner, no icon"
+                blurb="B with every glyph removed: the 2px left rule alone carries the priority, and the text takes the accent tone (darkest DS token of the same hue where the border color is too light for text — avatar foregrounds for info/success/attention, foreground-secondary for helper; error is the same red both sides). Standalone showcase, no comparison."
+            >
+                <div className="flex max-w-xl flex-col gap-2">
+                    {PRIORITIES.map((p) => (
+                        <AccentNoIconNotification key={p} priority={p}>
+                            {SHORT_COPY[p]}
+                        </AccentNoIconNotification>
+                    ))}
+                    <AccentNoIconNotification priority="error" title="Transfer failed.">
+                        {LONG_COPY}
+                    </AccentNoIconNotification>
+                </div>
+                <UsageShowcase render={renderB2} />
+                <div className="flex flex-col gap-3">
+                    <DevSectionLabel>inside modals and drawers — the 8 host surfaces, B2 only</DevSectionLabel>
+                    <div className="grid items-start gap-6 md:grid-cols-2 xl:grid-cols-3">
+                        {MODAL_HOSTS.map((host) => (
+                            <div key={host.sites} className="flex min-w-0 flex-col gap-1.5">
+                                <p className="text-body-xs text-foreground-secondary">{host.sites}</p>
+                                {host.build(renderB2)}
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </PageSection>
 
             <DevNoteCard title="Proposal notes">
