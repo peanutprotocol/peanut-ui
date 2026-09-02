@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { updateUserById } from '@/app/actions/users'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -8,7 +8,8 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { useAuth } from '@/context/authContext'
 import { twMerge } from '@/utils/tw'
-import { avatarPool, badgeAvatarKeys, basicAvatarKeys } from './avatar.utils'
+import { badgeAvatarKeys, offerBasics } from './avatar.utils'
+import { roveAvatarTiles } from './avatarPicker.utils'
 import { UserAvatar } from './UserAvatar'
 
 interface AvatarPickerProps {
@@ -16,23 +17,10 @@ interface AvatarPickerProps {
     onOpenChange: (open: boolean) => void
 }
 
-const COLUMNS = 5
-
-// one tab stop per group, arrows move, wrapping (radiogroup convention)
-function rove(event: KeyboardEvent<HTMLDivElement>) {
-    const step = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: COLUMNS, ArrowUp: -COLUMNS }[event.key]
-    if (!step) return
-    const radios = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]'))
-    const index = radios.indexOf(document.activeElement as HTMLButtonElement)
-    if (index < 0) return
-    event.preventDefault()
-    radios[(index + step + radios.length) % radios.length].focus()
-}
-
 /**
  * The profile avatar picker (TASK-22142): what the user's badges unlocked,
- * then the basics everyone has. A tap saves at once; the die randomizes
- * across the whole pool, free forever; "use my initial" clears the pick.
+ * then one row of the basics everyone has. A tap saves at once; the dice
+ * rerolls the offered row and never the pick; "use my initial" clears it.
  * The API validates the pick against the same pool, so a locked key never
  * lands even if the manifest and the catalog drift.
  */
@@ -45,58 +33,82 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
     const userId = user?.user.userId
     const username = user?.user.username ?? undefined
     const saved = user?.user.avatarKey ?? null
-    const held = (user?.user.badges ?? []).map((badge) => badge.code)
+    const badges = user?.user.badges ?? []
+    const held = badges.map((badge) => badge.code)
+    const badgeName = Object.fromEntries(badges.map((badge) => [badge.code, badge.name]))
     const unlocked = badgeAvatarKeys(held)
-    const basics = basicAvatarKeys()
 
-    // optimistic: the tile and the slot behind the drawer move on tap; a
-    // failed save snaps back and says so
-    const [pick, setPick] = useState<string | null>(saved)
-    useEffect(() => setPick(saved), [saved])
+    // The tile moves on tap; the slot behind the drawer moves after fetchUser
+    // lands. `pending` overrides `saved` while writes are in flight: last
+    // write wins, one refetch per burst, and a failed save snaps back.
+    const [pending, setPending] = useState<string | null | undefined>(undefined)
+    const inFlight = useRef(0)
+    const pick = pending === undefined ? saved : pending
 
     const save = async (key: string | null) => {
         if (!userId) return
-        const previous = pick
-        setPick(key)
+        setPending(key)
+        inFlight.current += 1
         const { error } = await updateUserById({ userId, avatarKey: key })
+        inFlight.current -= 1
         if (error) {
-            setPick(previous)
             toast({ type: 'error', message: t('saveFailed') })
+            setPending(undefined)
             return
         }
-        await fetchUser()
+        if (inFlight.current === 0) {
+            await fetchUser()
+            setPending(undefined)
+        }
     }
 
-    const roll = () => {
-        const pool = avatarPool(held).filter((key) => key !== pick)
-        if (pool.length === 0) return
-        void save(pool[Math.floor(Math.random() * pool.length)])
+    // the offered row of five basics: dealt on open, redealt by the dice
+    const [offer, setOffer] = useState<string[]>([])
+    useEffect(() => {
+        if (open) setOffer(offerBasics(saved))
+        // deal once per open; the pick joins the row by being picked from it
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open])
+    const rollDice = () => setOffer(offerBasics(pick))
+
+    // human labels: "Bug Whisperer · beetle" for a badge avatar, the slug for a basic
+    const label = (key: string) => {
+        const [kind, code, slug] = key.split('.')
+        return kind === 'badge' ? `${badgeName[code] ?? code} · ${slug}` : code
     }
 
-    const tiles = (keys: string[], label: string) => (
-        <div role="radiogroup" aria-label={label} className="grid grid-cols-5 gap-2" onKeyDown={rove}>
-            {keys.map((key, index) => {
-                const checked = key === pick
-                return (
-                    <button
-                        key={key}
-                        type="button"
-                        role="radio"
-                        aria-checked={checked}
-                        aria-label={key}
-                        tabIndex={checked || (!keys.includes(pick ?? '') && index === 0) ? 0 : -1}
-                        onClick={() => void save(key)}
-                        className={twMerge(
-                            'flex min-h-11 items-center justify-center rounded-sm border border-border-disabled bg-background-default p-1 focus-visible:outline-[3px] focus-visible:outline-action-focus',
-                            checked && 'border-2 border-border-default shadow-[3px_3px_0_var(--color-shadow-primary)]'
-                        )}
-                    >
-                        <UserAvatar name={username} avatarKey={key} size="small" />
-                    </button>
-                )
-            })}
-        </div>
-    )
+    const tiles = (keys: string[], groupLabel: string) => {
+        const focusIndex = Math.max(0, keys.indexOf(pick ?? ''))
+        return (
+            <div
+                role="radiogroup"
+                aria-label={groupLabel}
+                className="grid grid-cols-5 gap-2"
+                onKeyDown={roveAvatarTiles}
+            >
+                {keys.map((key, index) => {
+                    const checked = key === pick
+                    return (
+                        <button
+                            key={key}
+                            type="button"
+                            role="radio"
+                            aria-checked={checked}
+                            aria-label={label(key)}
+                            tabIndex={index === focusIndex ? 0 : -1}
+                            onClick={() => void save(key)}
+                            className={twMerge(
+                                'flex min-h-11 items-center justify-center rounded-sm border border-border-disabled bg-background-default p-1 focus-visible:outline-[3px] focus-visible:outline-action-focus',
+                                checked && 'border-2 border-border-default shadow-4'
+                            )}
+                        >
+                            <UserAvatar name={username} avatarKey={key} size="small" />
+                        </button>
+                    )
+                })}
+            </div>
+        )
+    }
 
     return (
         <Drawer open={open} onOpenChange={onOpenChange}>
@@ -121,11 +133,11 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                     </section>
                     <section className="flex flex-col gap-2">
                         <div className="text-label-m text-foreground-secondary uppercase">{t('basics')}</div>
-                        {tiles(basics, t('basics'))}
+                        {tiles(offer, t('basics'))}
                     </section>
                     <div className="flex flex-col gap-2">
-                        <Button variant="stroke" className="w-full" onClick={roll}>
-                            {t('roll')}
+                        <Button variant="stroke" className="w-full" onClick={rollDice}>
+                            {t('rollDice')}
                         </Button>
                         <Button variant="purple" className="w-full" onClick={() => onOpenChange(false)}>
                             {tCommon('done')}
