@@ -167,6 +167,9 @@ describe('ReConsentModal', () => {
         await flush()
 
         expect(screen.getByTestId('modal')).toBeInTheDocument()
+        // document names come from the catalog (shared with the About screen), not a literal
+        expect(screen.getByText('Terms of Service')).toBeInTheDocument()
+        expect(screen.getByText('Privacy Policy')).toBeInTheDocument()
         const cta = screen.getByText('Accept & continue')
         expect(cta).toBeDisabled()
 

@@ -4,7 +4,6 @@ import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useAuth } from '@/context/authContext'
-import { useModalsContext } from '@/context/ModalsContext'
 import { useCardInfo } from '@/hooks/useCardInfo'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { findActiveCard } from '@/components/Card/cardState.utils'
@@ -43,7 +42,6 @@ const GettingStartedChecklist = () => {
     const t = useTranslations('home.gettingStarted')
     const router = useRouter()
     const { user } = useAuth()
-    const { setIsQRScannerOpen } = useModalsContext()
     const restrictions = useResidenceRestrictions()
     const { isEligible } = useCardInfo()
     const { overview } = useRainCardOverview()
@@ -75,7 +73,7 @@ const GettingStartedChecklist = () => {
                   label: t('firstPayment'),
                   sub: t('firstPaymentNote'),
                   done: milestone === 'activated',
-                  onTap: tap('first-payment', () => setIsQRScannerOpen(true)),
+                  onTap: tap('first-payment', () => router.push('/send')),
               }
         return [
             { id: 'create-account', label: t('createAccount'), sub: t('createAccountDone'), done: true },
@@ -91,7 +89,7 @@ const GettingStartedChecklist = () => {
             },
             thirdItem,
         ]
-    }, [cardAvailable, hasActiveCard, isFunded, isVerified, milestone, router, setIsQRScannerOpen, t])
+    }, [cardAvailable, hasActiveCard, isFunded, isVerified, milestone, router, t])
 
     const allDone = items.every((item) => item.done)
 

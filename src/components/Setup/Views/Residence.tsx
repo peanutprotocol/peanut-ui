@@ -1,6 +1,6 @@
 import BaseInput from '@/components/0_Bruddle/BaseInput'
-import BaseSelect from '@/components/0_Bruddle/BaseSelect'
 import { Button } from '@/components/0_Bruddle/Button'
+import { CountryCombobox } from '@/components/Common/CountryCombobox'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
@@ -310,7 +310,7 @@ const ResidenceStep = () => {
                     (titleInView/descriptionInView on the step). */}
                 <h1 className="w-full text-left text-heading-xs leading-tight">{t('steps.residence.title')}</h1>
                 <p className="mb-1 text-body-s text-foreground-secondary">{t('steps.residence.description')}</p>
-                <BaseSelect
+                <CountryCombobox
                     options={countryOptions}
                     placeholder={t('residenceStep.countryPlaceholder')}
                     // Falls back to the suggestion for the one frame between
@@ -337,7 +337,7 @@ const ResidenceStep = () => {
                     {t('residenceStep.multiDocLink')}
                 </button>
                 {showSecondCountry && (
-                    <BaseSelect
+                    <CountryCombobox
                         options={countryOptions}
                         placeholder={t('residenceStep.secondCountryPlaceholder')}
                         value={secondResidenceCountry || undefined}

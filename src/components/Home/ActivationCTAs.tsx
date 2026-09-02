@@ -373,13 +373,9 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                                 provider: fixableProvider,
                                 actionKey: fixableActionKey,
                             })
-                        } else if (activationStep === 'outbound' && !hasProviderRejection) {
-                            if (hasCardAccess) {
-                                posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SHOWN)
-                                setShowSpendChooser(true)
-                            } else {
-                                setIsQRScannerOpen(true)
-                            }
+                        } else if (activationStep === 'outbound' && !hasProviderRejection && hasCardAccess) {
+                            posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SHOWN)
+                            setShowSpendChooser(true)
                         } else {
                             router.push(step.href)
                         }

@@ -18,11 +18,6 @@ const mockPush = jest.fn()
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
-const mockSetIsQRScannerOpen = jest.fn()
-jest.mock('@/context/ModalsContext', () => ({
-    useModalsContext: () => ({ setIsQRScannerOpen: mockSetIsQRScannerOpen }),
-}))
-
 let mockUser: {
     user?: { activationMilestone?: string }
     residence?: { declared: string | null; verified: string | null }
@@ -96,12 +91,17 @@ describe('GettingStartedChecklist', () => {
         expect(screen.queryByText('Make your first payment')).not.toBeInTheDocument()
     })
 
-    it('third slot falls back to first payment when the card is unavailable, opening the scanner', () => {
+    // The note promises a send to a Peanut user, ENS name or wallet address —
+    // that is the /send flow, not the QR scanner the row used to open.
+    it('third slot falls back to first payment when the card is unavailable, routing to /send', () => {
         mockRestrictions = { banking: false, card: true }
         render()
         expect(screen.queryByText('Get your Peanut card')).not.toBeInTheDocument()
+        expect(
+            screen.getByText('Send a few dollars to a Peanut user, ENS name or wallet address. It lands in seconds.')
+        ).toBeInTheDocument()
         fireEvent.click(screen.getByText('Make your first payment'))
-        expect(mockSetIsQRScannerOpen).toHaveBeenCalledWith(true)
+        expect(mockPush).toHaveBeenCalledWith('/send')
     })
 
     it('ineligible card (server says no) also falls back to first payment', () => {

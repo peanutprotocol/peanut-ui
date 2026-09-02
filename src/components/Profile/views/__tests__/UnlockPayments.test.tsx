@@ -73,13 +73,15 @@ jest.mock('@/hooks/useLimits', () => ({
 jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }) }))
 
 const mockInitiateKyc = jest.fn()
+const mockRestartIdentity = jest.fn()
+let mockFlowError: string | null = null
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => ({
         handleInitiateKyc: mockInitiateKyc,
         handleSelfHealResubmit: jest.fn(),
-        handleRestartIdentity: jest.fn(),
+        handleRestartIdentity: mockRestartIdentity,
         isLoading: false,
-        error: null,
+        error: mockFlowError,
     }),
 }))
 
@@ -96,7 +98,13 @@ jest.mock('@/components/IdentityVerification/UnlockMethodModal', () => ({
 }))
 jest.mock('@/components/Profile/views/ResidenceChangeModal', () => ({
     __esModule: true,
-    default: ({ visible }: { visible: boolean }) => (visible ? <div>change-modal-open</div> : null),
+    default: ({ visible, onReverify }: { visible: boolean; onReverify: () => void }) =>
+        visible ? (
+            <div>
+                change-modal-open
+                <button onClick={onReverify}>reverify</button>
+            </div>
+        ) : null,
 }))
 
 describe('UnlockPayments', () => {
@@ -110,6 +118,7 @@ describe('UnlockPayments', () => {
         mockIdentity = { status: 'not_started' }
         mockRegionRestricted = false
         mockKycDegraded = false
+        mockFlowError = null
     })
 
     it('shows the in-review line with the submitted date while identity is processing', () => {
@@ -188,6 +197,23 @@ describe('UnlockPayments', () => {
         render()
         fireEvent.click(screen.getByText('Change'))
         expect(screen.getByText('change-modal-open')).toBeInTheDocument()
+    })
+
+    it('a failed residence re-verification reads as retriable, not "Not available yet"', () => {
+        mockUser = { residence: { declared: 'ES', verified: 'BR' }, user: { userId: 'u1' } }
+        mockFlowError = 'Not Found'
+        render()
+        expect(screen.getByText('Not available yet')).toBeInTheDocument()
+
+        fireEvent.click(screen.getByText('Change'))
+        fireEvent.click(screen.getByText('reverify'))
+        expect(mockRestartIdentity).toHaveBeenCalledTimes(1)
+
+        expect(screen.getByText("Verification couldn't start")).toBeInTheDocument()
+        expect(screen.queryByText('Not available yet')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByText('Try again'))
+        expect(mockRestartIdentity).toHaveBeenCalledTimes(2)
+        expect(mockInitiateKyc).not.toHaveBeenCalled()
     })
 
     it('an active LATAM rail shows the inline monthly limit bar on Brazil', () => {

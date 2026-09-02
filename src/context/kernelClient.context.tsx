@@ -31,6 +31,7 @@ import { DEMO_ADDRESS } from '@/constants/demo-data'
 import { ensureActiveFixture } from '@/dev/fixtures/active'
 import { captureException, captureMessage } from '@sentry/nextjs'
 import { retryAsync } from '@/utils/retry.utils'
+import { onReconnect } from '@/utils/reconnect.utils'
 import { isStaleClientForUser, isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
 import { isAndroidNative, getNativeRpId } from '@/utils/capacitor'
 import { createNativeSignMessageCallback } from '@/utils/native-webauthn'
@@ -312,6 +313,7 @@ const ZERODEV_MIGRATION_DATE = new Date('2025-09-18T12:00:00.000Z')
 export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
     const [clientsByChain, setClientsByChain] = useState<Record<string, GenericSmartAccountClient>>({})
     const [webAuthnKey, setWebAuthnKey] = useState<WebAuthnKey | undefined>(undefined)
+    const [initAttempt, setInitAttempt] = useState(0)
     const dispatch = useAppDispatch()
     const { fetchUser, logoutUser, user } = useAuth()
     // In-flight kernel-client builds keyed by chainId. Lets concurrent
@@ -565,17 +567,28 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             }
         }
 
-        retryAsync(initializeClients, { maxRetries: 2, baseDelay: 1000, maxDelay: 5000 }).catch(() => {
-            if (isMounted) {
-                console.error('[KernelClient] Primary chain client failed after retries — forcing logout')
-                dispatch(zerodevActions.setIsRegistering(false))
-                dispatch(zerodevActions.setIsLoggingIn(false))
+        let stopWaitingForReconnect: (() => void) | undefined
+        retryAsync(initializeClients, { maxRetries: 4, baseDelay: 1000, maxDelay: 15000 }).catch((error: unknown) => {
+            if (!isMounted) return
+            dispatch(zerodevActions.setIsRegistering(false))
+            dispatch(zerodevActions.setIsLoggingIn(false))
+            if (isStaleKeyError(error)) {
+                console.error('[KernelClient] Primary chain client rejected the stored key — forcing logout')
                 logoutUser()
+                return
             }
+            // A transient RPC/bundler outage must not cost the user their session
+            // (it logged out 8 production users in Aug 2026). Keep the API session,
+            // mark the wallet unavailable and rebuild once the device reconnects.
+            console.warn('[KernelClient] Primary chain client failed after retries — keeping session', error)
+            captureException(error, { tags: { error_type: 'kernel_client_init_failed' } })
+            dispatch(zerodevActions.setIsKernelClientReady(false))
+            stopWaitingForReconnect = onReconnect(() => setInitAttempt((attempt) => attempt + 1))
         })
 
         return () => {
             isMounted = false
+            stopWaitingForReconnect?.()
         }
         // Intentionally excluding `user` from deps: `useUserQuery` refetches on
         // window focus / mount and produces new refs on any content change
@@ -586,7 +599,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
         // is stable for an authenticated user, and isAfterZeroDevMigration
         // captures any user.createdAt change.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [webAuthnKey, isAfterZeroDevMigration])
+    }, [webAuthnKey, isAfterZeroDevMigration, initAttempt])
 
     useEffect(() => {
         const peanutClient = clientsByChain[PEANUT_WALLET_CHAIN.id]

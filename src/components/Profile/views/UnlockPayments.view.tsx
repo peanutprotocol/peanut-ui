@@ -236,6 +236,7 @@ const UnlockPayments = () => {
     const [isChangeModalOpen, setIsChangeModalOpen] = useState(false)
     const [activeRegionIntent, setActiveRegionIntent] = useState<KYCRegionIntent | undefined>(undefined)
     const [errorAcknowledged, setErrorAcknowledged] = useState(false)
+    const [reverifyRequested, setReverifyRequested] = useState(false)
 
     const clickedRegionIntent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
     const clickedRegionProvider = providerForRegionIntent(clickedRegionIntent)
@@ -286,6 +287,7 @@ const UnlockPayments = () => {
     const handleStartKyc = useCallback(async () => {
         const intent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
         if (intent) setActiveRegionIntent(intent)
+        setReverifyRequested(false)
         setErrorAcknowledged(false)
         setSelectedRegion(null)
         // Always cross-region: a locked method has no functional rail behind it,
@@ -312,7 +314,9 @@ const UnlockPayments = () => {
         [router, t, isKycDegraded]
     )
 
-    const failedRegionRetriable = providerForRegionIntent(activeRegionIntent) !== null
+    // A residence re-verification never sets a region intent, so without the
+    // flag its failure would read as "Not available yet" instead of retriable.
+    const failedRegionRetriable = reverifyRequested || providerForRegionIntent(activeRegionIntent) !== null
 
     const countryDisplayName = (iso2: string | null): string | null =>
         iso2
@@ -511,7 +515,11 @@ const UnlockPayments = () => {
                         queryClient.invalidateQueries({ queryKey: [LIMITS] }),
                     ])
                 }}
-                onReverify={() => flow.handleRestartIdentity()}
+                onReverify={() => {
+                    setReverifyRequested(true)
+                    setErrorAcknowledged(false)
+                    void flow.handleRestartIdentity()
+                }}
             />
 
             <KycProcessingModal visible={modalVariant === 'processing'} onClose={handleModalClose} />
@@ -606,7 +614,8 @@ const UnlockPayments = () => {
                                   shadowSize: '4',
                                   disabled: flow.isLoading,
                                   onClick: () => {
-                                      void flow.handleInitiateKyc(activeRegionIntent, undefined, true)
+                                      if (reverifyRequested) void flow.handleRestartIdentity()
+                                      else void flow.handleInitiateKyc(activeRegionIntent, undefined, true)
                                   },
                               },
                               {

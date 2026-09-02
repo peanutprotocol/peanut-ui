@@ -102,6 +102,9 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
                         align="start"
                         collisionPadding={{ top: 8, right: 8, bottom: BOTTOM_NAV_CLEARANCE_PX, left: 8 }}
                         style={{ width: 'var(--radix-select-trigger-width)' }}
+                        // usePullToRefresh listens on `document` and only bails on window.scrollY > 0,
+                        // so scrolling a long list at page top reads as a pull. Same guard as Global/Drawer.
+                        onTouchMove={(e) => e.stopPropagation()}
                     >
                         <Viewport className="notranslate w-full p-1">
                             {options.map((option) => (
