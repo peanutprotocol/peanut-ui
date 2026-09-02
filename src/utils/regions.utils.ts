@@ -4,6 +4,7 @@ import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import { type RailCapability } from '@/types/capabilities'
 import { BRIDGE_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
+import { RESTRICTED_RESIDENCE_ISO2 } from '@/constants/residence.consts'
 import type { StaticImageData } from 'next/image'
 
 /**
@@ -119,6 +120,9 @@ export const getRegionIntent = (regionPath: string): KYCRegionIntent => {
  */
 export const regionIntentForResidence = (iso2: string): KYCRegionIntent => {
     const code = iso2.toUpperCase()
+    // A residence every bank rail refuses (the UK block included) gets the
+    // provider-less level, whatever Bridge's document map says about it.
+    if (RESTRICTED_RESIDENCE_ISO2.has(code)) return 'ROW'
     // Colombia is not in the live Manteca set (its bank rail is deactivated)
     if (code === 'BR' || code === 'AR') return 'LATAM'
     if (code === 'US' || code === 'MX') return 'NA'

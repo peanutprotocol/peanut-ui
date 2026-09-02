@@ -104,7 +104,8 @@ describe('regionIntentForResidence', () => {
         expect(regionIntentForResidence('US')).toBe('NA')
         expect(regionIntentForResidence('MX')).toBe('NA')
         expect(regionIntentForResidence('PT')).toBe('EU')
-        expect(regionIntentForResidence('GB')).toBe('EU')
+        // GB is in Bridge's document map but every bank rail refuses UK residents
+        expect(regionIntentForResidence('GB')).toBe('ROW')
         expect(regionIntentForResidence('NG')).toBe('ROW')
         // Colombia's Manteca rail is deactivated: not LATAM until it comes back
         expect(regionIntentForResidence('CO')).toBe('ROW')

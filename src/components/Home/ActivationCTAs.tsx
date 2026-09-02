@@ -334,8 +334,9 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     // every step on the list (bank money in, the card) is a door this user
     // cannot open, so offering the list would be dishonest.
     if (!hasProviderRejection && !isRegionRestricted) {
-        // The checklist is the empty state: once money has moved on the
-        // account the activity list takes its place.
+        // The checklist is the Home empty state (product decision, TASK-22114):
+        // once money has moved on the account the activity list takes its
+        // place, even while activation itself is still open.
         const hasActivity = activationStep === 'outbound' || activationStep === 'card'
         return hasActivity ? null : <GettingStartedChecklist />
     }
