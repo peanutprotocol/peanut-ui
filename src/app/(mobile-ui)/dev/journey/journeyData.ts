@@ -106,10 +106,10 @@ export const IN_APP_SURFACES: InAppSurface[] = [
         id: 'step-outbound-qr',
         kind: 'step',
         name: 'Activation step: outbound (no card access)',
-        copy: '"Make your first payment" — "Send a few dollars to a Peanut user, ENS name or wallet address. It lands in seconds."',
-        cta: { label: 'Start Spending', dest: '/send' },
+        copy: '"Make your first payment" — "Start paying to Pix and MercadoPago QR codes"',
+        cta: { label: 'Start Spending', dest: 'QR scanner' },
         condition:
-            "step=outbound && !hasCardAccess — names what /send accepts, never teases a card they can't get. Completes on a card or QR SPEND (activation), not on the peer send the copy invites — the Home checklist row is the surface that completes on a peer payment (product/activation-funnel.md, 2026-09-02).",
+            "step=outbound && !hasCardAccess && an enabled qr-only pay rail — the QR spend is this user's only activating spend, so the CTA opens the scanner rather than /send (a peer send is volume, never activation). Without the card OR that rail the step renders nothing: no spend would ever clear it. The Home checklist row is the surface that completes on a peer payment (product/activation-funnel.md, 2026-09-02).",
         sourceFile: 'src/components/Home/ActivationCTAs.tsx',
         states: ['kycd-no-card'],
     },

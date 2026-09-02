@@ -100,7 +100,7 @@
                 },
                 "outbound": {
                     "title": "Make your first payment",
-                    "description": "Send a few dollars to a Peanut user, ENS name or wallet address. It lands in seconds.",
+                    "description": "Start paying to Pix and MercadoPago QR codes",
                     "cta": "Start Spending"
                 }
             },
@@ -811,6 +811,7 @@
                     "banking": "Bank transfers",
                     "card": "Peanut card"
                 },
+                "multiCurrencyNote": "Transfers in another currency need a bank account in that currency.",
                 "guideTitle": "Which country goes first?",
                 "guideDeclaration": "Both entries must be countries where you genuinely hold legal residence. This is a declaration, and providers verify it during the ID check, including proof of address.",
                 "guideOrder": "If both countries are truly home, either order is honest. The order only changes what the app shows you first, never what you are eligible for. Eligibility is decided by the verification itself.",

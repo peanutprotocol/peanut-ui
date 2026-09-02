@@ -54,12 +54,13 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     const tRegion = useTranslations('kyc.regionRestricted')
     const router = useRouter()
     const { setIsQRScannerOpen, openSupportWithMessage } = useModalsContext()
-    const { rails, channelOf, nextActions } = useCapabilities()
+    const { rails, channelOf, nextActions, operationStatus } = useCapabilities()
     const { user } = useAuth()
     // Card spend counts as activation too — card-access users get a card+QR
     // chooser on the outbound step instead of jumping straight to the scanner.
     // `undefined` while loading collapses to false → scanner behavior (never
-    // tease the card to a user we can't confirm has access).
+    // tease the card to a user we can't confirm has access), which is also why
+    // the scanner path must stand on its own QR-rail check below.
     const { hasCardAccess } = useCardInfo()
     // Suppress the "Unlock payments" verify CTA while identity is mid-flight
     // (Sumsub processing / action_required). The user already took the verify
@@ -71,6 +72,15 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         isRegionRestricted,
     } = useIdentityVerification()
     const residenceRestrictions = useResidenceRestrictions()
+
+    // Activation is one of exactly two events (BE, GET /users/me): a card spend
+    // authorization, or a Manteca QR pay on Pix / Mercado Pago. Send links,
+    // direct sends, offramps and withdrawals are volume, not activation — so
+    // the spend step is only honest while one of those two is open to the user.
+    const hasQrSpendRail = useMemo(
+        () => rails.some((rail) => channelOf(rail) === 'qr-only' && operationStatus(rail.id, 'pay') === 'enabled'),
+        [rails, channelOf, operationStatus]
+    )
 
     // The activation funnel gates deposit/outbound, which routes through bank or
     // qr-only channels — never through card. Top-level status (not per-op
@@ -175,7 +185,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                 title: t('steps.outbound.title'),
                 description: t('steps.outbound.description'),
                 ctaLabel: t('steps.outbound.cta'),
-                href: '/send',
+                href: '', // handled in onClick — card chooser or the QR scanner
             },
         }),
         [t]
@@ -340,6 +350,16 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     const isFundedNotActivated = activationStep === 'outbound' || activationStep === 'card'
     if (!hasProviderRejection && !isRegionRestricted && !isFundedNotActivated) return <GettingStartedChecklist />
 
+    // The spend step survives only while a spend that ACTIVATES is open: the
+    // card (`/card`, or the chooser) or a QR pay. A funded user with neither
+    // cannot clear this step at all — a peer send is volume, not activation —
+    // so the card would reappear after every payment they make. They keep the
+    // activity list instead.
+    const canSpendToActivate = hasCardAccess === true || hasQrSpendRail
+    if (activationStep === 'outbound' && !hasProviderRejection && !isRegionRestricted && !canSpendToActivate) {
+        return null
+    }
+
     return (
         <Card position="single" className="p-0">
             <div className="flex flex-col items-center justify-center gap-3 px-4 py-6">
@@ -381,6 +401,11 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                         } else if (activationStep === 'outbound' && !hasProviderRejection && hasCardAccess) {
                             posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SHOWN)
                             setShowSpendChooser(true)
+                        } else if (activationStep === 'outbound' && !hasProviderRejection) {
+                            // No card, so the QR pay is this user's only
+                            // activating spend — and the gate above already
+                            // established they hold the rail for it.
+                            setIsQRScannerOpen(true)
                         } else {
                             router.push(step.href)
                         }

@@ -100,7 +100,7 @@
                 },
                 "outbound": {
                     "title": "Faça seu primeiro pagamento",
-                    "description": "Envie alguns dólares para um usuário Peanut, um nome ENS ou um endereço de carteira. Chega em segundos.",
+                    "description": "Comece a pagar códigos QR do Pix e do MercadoPago",
                     "cta": "Começar a gastar"
                 }
             },
@@ -811,6 +811,7 @@
                     "banking": "Transferências bancárias",
                     "card": "Cartão Peanut"
                 },
+                "multiCurrencyNote": "Transferências em outra moeda exigem uma conta bancária nessa moeda.",
                 "guideTitle": "Qual país vem primeiro?",
                 "guideDeclaration": "Os dois devem ser países onde você realmente tem residência legal. Isso é uma declaração, e os provedores a verificam durante a verificação de identidade, incluindo o comprovante de residência.",
                 "guideOrder": "Se os dois países são realmente seu lar, qualquer ordem é honesta. A ordem só muda o que o app mostra primeiro, nunca aquilo a que você é elegível. A elegibilidade é decidida pela própria verificação.",

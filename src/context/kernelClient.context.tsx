@@ -333,6 +333,15 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
         setClientsByChain((prev) => ({ ...prev, [chainId]: client }))
     }, [])
 
+    // Drops the stored passkey ahead of a forced logout. User preferences live
+    // in localStorage keyed by userId and survive the logout, so a credential
+    // the chain has already rejected — wrong owner, or stale on-chain — has to
+    // be purged with the session; otherwise the next restore on this device
+    // pairs the account with the same dead key and bounces the user again.
+    const purgeStoredCredential = useCallback(() => {
+        if (user?.user.userId) updateUserPreferences(user.user.userId, { webAuthnKey: undefined })
+    }, [user?.user.userId])
+
     // Monotonic build sequence per chain. A build may only store its result if
     // it is still the LATEST build for that chain — otherwise a slow, stale
     // build (started pre-logout, or superseded by rebuildClientForChain after
@@ -551,7 +560,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                     derivedAddress,
                     expectedAddress,
                 })
-                if (user?.user.userId) updateUserPreferences(user.user.userId, { webAuthnKey: undefined })
+                purgeStoredCredential()
                 logoutUser()
                 return
             }
@@ -574,6 +583,11 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             dispatch(zerodevActions.setIsLoggingIn(false))
             if (isStaleKeyError(error)) {
                 console.error('[KernelClient] Primary chain client rejected the stored key — forcing logout')
+                // The rejected credential must not outlive the session: user
+                // preferences are localStorage keyed by userId, so leaving it
+                // there lets the next restore pair the account with the same
+                // dead key and log the user straight back out.
+                purgeStoredCredential()
                 logoutUser()
                 return
             }
@@ -628,13 +642,13 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                     derivedAddress,
                     expectedAddress,
                 })
-                if (user?.user.userId) updateUserPreferences(user.user.userId, { webAuthnKey: undefined })
+                purgeStoredCredential()
                 logoutUser()
                 throw createStaleSessionError()
             }
             return client
         },
-        [user, logoutUser]
+        [user, logoutUser, purgeStoredCredential]
     )
 
     const getPatchedSudoValidator = useCallback(
@@ -708,6 +722,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                 .catch((error) => {
                     console.error(`Error lazy-building kernel client for chain ${chainId}:`, error)
                     if (isStaleKeyError(error)) {
+                        purgeStoredCredential()
                         logoutUser()
                     } else {
                         captureException(error)
@@ -726,7 +741,15 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             inFlightRef.current.set(chainId, promise)
             return promise
         },
-        [webAuthnKey, isAfterZeroDevMigration, user, assertClientOwnedByUser, logoutUser, storeClient]
+        [
+            webAuthnKey,
+            isAfterZeroDevMigration,
+            user,
+            assertClientOwnedByUser,
+            logoutUser,
+            purgeStoredCredential,
+            storeClient,
+        ]
     )
 
     const ensureClientForChain = useCallback(

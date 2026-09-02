@@ -1,6 +1,11 @@
 import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 import { LOCAL_RESIDENCE_RESTRICTION_SETS } from '@/hooks/useResidenceRestrictionSets'
-import { bankRailsFor, residenceAvailability, type AvailabilityRailKey } from '@/utils/residence-availability'
+import {
+    bankRailsFor,
+    residenceAvailability,
+    spansMultipleCurrencies,
+    type AvailabilityRailKey,
+} from '@/utils/residence-availability'
 import { isBridgeSupportedCountry, regionIntentForResidence } from '@/utils/regions.utils'
 import { buildResidenceCountryOptions } from '@/utils/residence-options'
 import { buildUnlockGroups, type UnlockRowLabelKey } from '@/utils/unlock-payments.utils'
@@ -65,6 +70,39 @@ describe('residenceAvailability', () => {
 
     it('is case-insensitive on input', () => {
         expect(residenceAvailability(sets, 'br').iso2).toBe('BR')
+    })
+})
+
+// One verification really does enrol the whole regional set, so the extra rails
+// are not a lie — but they only pay out into an account on their own network.
+// A residence whose card spans several currencies says so as a condition
+// instead of reading as "living here gets you GBP and USD too".
+describe('multi-currency rail sets are qualified, not promised', () => {
+    it('a Bridge residence spans several currencies', () => {
+        for (const iso2 of ['PT', 'DE', 'US', 'MX']) {
+            expect(residenceAvailability(sets, iso2).multiCurrency).toBe(true)
+        }
+    })
+
+    it('a single-rail residence does not', () => {
+        expect(residenceAvailability(sets, 'BR').multiCurrency).toBe(false)
+        expect(residenceAvailability(sets, 'AR').multiCurrency).toBe(false)
+        // rest of world lists the currency-less "where supported" placeholder
+        expect(residenceAvailability(sets, 'NG').multiCurrency).toBe(false)
+        expect(residenceAvailability(sets, 'GB').multiCurrency).toBe(false)
+    })
+
+    it('a banking-restricted residence lists no rail to qualify', () => {
+        const jp = residenceAvailability(sets, 'JP')
+        expect(jp.unavailable).toEqual(['banking'])
+        expect(jp.multiCurrency).toBe(false)
+    })
+
+    it('ignores the non-rail items so the card never qualifies P2P or the card', () => {
+        expect(spansMultipleCurrencies(['p2p', 'card'])).toBe(false)
+        expect(spansMultipleCurrencies(['p2p', 'bank', 'card'])).toBe(false)
+        expect(spansMultipleCurrencies(['p2p', 'eurSepa', 'card'])).toBe(false)
+        expect(spansMultipleCurrencies(['p2p', 'eurSepa', 'usdAch', 'card'])).toBe(true)
     })
 })
 

@@ -390,6 +390,15 @@ const ResidenceStep = () => {
                                                     </li>
                                                 ))}
                                             </ul>
+                                            {/* One verification enrols every rail in the region's
+                                                set, but a rail in another currency only pays out
+                                                into an account on that network — so it is stated
+                                                as a condition, not as a benefit of living here. */}
+                                            {summary.multiCurrency && (
+                                                <p className="mt-2 text-body-xs text-foreground-secondary">
+                                                    {t('residenceStep.compare.multiCurrencyNote')}
+                                                </p>
+                                            )}
                                         </div>
                                     )
                                 })}

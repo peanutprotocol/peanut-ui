@@ -14,6 +14,11 @@ export interface ResidenceAvailability {
     available: AvailabilityItemKey[]
     /** what this residence rules out, from the restriction tiers */
     unavailable: Array<'banking' | 'card'>
+    /**
+     * Whether `available` spans more than one currency, so the card can qualify
+     * the extras rather than promise them all as residence benefits.
+     */
+    multiCurrency: boolean
 }
 
 /**
@@ -56,6 +61,29 @@ const HOME_RAIL: Readonly<Record<string, AvailabilityRailKey>> = {
     US: 'usdAch',
 }
 
+const RAIL_CURRENCY: Readonly<Record<AvailabilityRailKey, string>> = {
+    pix: 'BRL',
+    arQr: 'ARS',
+    spei: 'MXN',
+    usdAch: 'USD',
+    eurSepa: 'EUR',
+    gbpFps: 'GBP',
+}
+
+/**
+ * True when the residence's set spans more than one currency. One verification
+ * really does enrol all of them, but a rail outside the user's own currency
+ * only pays out into an account on that network — so the comparison card
+ * states that as a condition instead of listing the extras as flat benefits of
+ * living there. Deliberately currency-level, not "which one is home": naming a
+ * home currency per residence would need a eurozone taxonomy the app has no
+ * other use for, and gets Portugal-vs-Poland wrong the moment it drifts.
+ */
+export function spansMultipleCurrencies(rails: readonly AvailabilityItemKey[]): boolean {
+    const currencies = new Set(rails.map((rail) => RAIL_CURRENCY[rail as AvailabilityRailKey]).filter(Boolean))
+    return currencies.size > 1
+}
+
 export function bankRailsFor(iso2: string): AvailabilityItemKey[] {
     const code = iso2.toUpperCase()
     const home = HOME_RAIL[code]
@@ -84,5 +112,5 @@ export function residenceAvailability(sets: ResidenceRestrictionSets, iso2: stri
     if (restrictions.card) unavailable.push('card')
     else available.push('card')
 
-    return { iso2: code, available, unavailable }
+    return { iso2: code, available, unavailable, multiCurrency: spansMultipleCurrencies(available) }
 }

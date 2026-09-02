@@ -17,6 +17,7 @@ const mockFetchUser = jest.fn()
 const mockCaptureException = jest.fn()
 const mockStopReconnect = jest.fn()
 const mockToPasskeyValidator = jest.fn()
+const mockUpdateUserPreferences = jest.fn()
 let mockReconnectCallback: (() => void) | undefined
 
 jest.mock('@/context/authContext', () => ({
@@ -41,7 +42,7 @@ jest.mock('@/utils/general.utils', () => ({
     getUserPreferences: () => ({
         webAuthnKey: { pubX: 1n, pubY: 2n, authenticatorId: 'auth-1', authenticatorIdHash: '0x01', rpID: 'localhost' },
     }),
-    updateUserPreferences: jest.fn(),
+    updateUserPreferences: (...args: unknown[]) => mockUpdateUserPreferences(...args),
 }))
 jest.mock('@zerodev/passkey-validator', () => ({
     PasskeyValidatorContractVersion: { V0_0_2: 'V0_0_2', V0_0_3_PATCHED: 'V0_0_3_PATCHED' },
@@ -137,12 +138,15 @@ describe('KernelClientProvider — primary client build failure', () => {
         expect(mockLogoutUser).not.toHaveBeenCalled()
     })
 
-    it('still forces a logout when the stored key is stale', async () => {
+    it('still forces a logout when the stored key is stale, and purges the rejected credential', async () => {
         mockToPasskeyValidator.mockRejectedValue(new Error('UserOperation reverted: AA24 signature error'))
 
         renderProvider()
         await waitFor(() => expect(mockLogoutUser).toHaveBeenCalledTimes(1))
 
+        // Preferences outlive the logout, so leaving the rejected key behind
+        // would re-pair the account with it on the next restore.
+        expect(mockUpdateUserPreferences).toHaveBeenCalledWith('u1', { webAuthnKey: undefined })
         expect(mockReconnectCallback).toBeUndefined()
         expect(mockCaptureException).not.toHaveBeenCalled()
     })

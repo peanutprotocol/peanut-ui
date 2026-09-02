@@ -22,7 +22,7 @@
                 },
                 "outbound": {
                     "title": "Hacé tu primer pago",
-                    "description": "Mandá unos dólares a un usuario de Peanut, un nombre ENS o una dirección de wallet. Llegan en segundos."
+                    "description": "Empezá a pagar códigos QR de Pix y Mercado Pago"
                 }
             },
             "addEmail": {
