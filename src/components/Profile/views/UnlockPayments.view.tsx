@@ -13,7 +13,7 @@ import { KycFailedModal } from '@/components/Kyc/modals/KycFailedModal'
 import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
 import ActionModal from '@/components/Global/ActionModal'
 import { useModalsContext } from '@/context/ModalsContext'
-import { getRegionIntent, providerForRegionIntent, type Region } from '@/utils/regions.utils'
+import { getRegionIntent, providerForRegionIntent, regionIntentForResidence, type Region } from '@/utils/regions.utils'
 import { deriveRegionAccess, isBridgeSupportedCountry, pendingBankRailRegionPaths } from '@/utils/regions.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useQueryClient } from '@tanstack/react-query'
@@ -503,10 +503,14 @@ const UnlockPayments = () => {
                         queryClient.invalidateQueries({ queryKey: [LIMITS] }),
                     ])
                 }}
-                onReverify={() => {
+                onReverify={(iso2) => {
+                    // The new residence decides which provider level the fresh
+                    // Sumsub token targets, and whether the SDK runs a second level.
+                    const intent = regionIntentForResidence(iso2)
+                    setActiveRegionIntent(intent)
                     setReverifyRequested(true)
                     setErrorAcknowledged(false)
-                    void flow.handleRestartIdentity()
+                    void flow.handleRestartIdentity(intent)
                 }}
             />
 
@@ -602,7 +606,7 @@ const UnlockPayments = () => {
                                   shadowSize: '4',
                                   disabled: flow.isLoading,
                                   onClick: () => {
-                                      if (reverifyRequested) void flow.handleRestartIdentity()
+                                      if (reverifyRequested) void flow.handleRestartIdentity(activeRegionIntent)
                                       else void flow.handleInitiateKyc(activeRegionIntent, undefined, true)
                                   },
                               },

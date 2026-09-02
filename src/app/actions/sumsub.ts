@@ -131,13 +131,19 @@ export interface RestartIdentityResponse {
  * "Verify with a different document" CTA on a Manteca rail that's blocked
  * because the user verified with a non-AR/BR document.
  */
-export const restartIdentityVerification = async (): Promise<{
+export const restartIdentityVerification = async (
+    regionIntent?: KYCRegionIntent
+): Promise<{
     data?: RestartIdentityResponse
     error?: string
     code?: SumsubActionErrorCode
 }> => {
     try {
-        const response = await serverFetch('/users/identity/restart', { method: 'POST' })
+        const response = await serverFetch('/users/identity/restart', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(regionIntent ? { regionIntent } : {}),
+        })
         const responseJson = await response.json()
         if (!response.ok) {
             return backendOrFallback(responseJson, 'Failed to restart identity verification', 'restart_failed')

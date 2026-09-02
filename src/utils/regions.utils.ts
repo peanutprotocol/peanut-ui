@@ -113,6 +113,19 @@ export const getRegionIntent = (regionPath: string): KYCRegionIntent => {
 }
 
 /**
+ * The verification intent a residence country maps to — used when a residence
+ * change re-opens identity verification, so the fresh Sumsub token targets the
+ * level that serves the new country (Manteca for LATAM, Bridge for EU/NA).
+ */
+export const regionIntentForResidence = (iso2: string): KYCRegionIntent => {
+    const code = iso2.toUpperCase()
+    if (code === 'BR' || code === 'AR' || code === 'CO') return 'LATAM'
+    if (code === 'US' || code === 'MX') return 'NA'
+    if (isBridgeSupportedCountry(code)) return 'EU'
+    return 'ROW'
+}
+
+/**
  * Which provider serves a region intent — an exact FE mirror of the BE registry
  * (`crossRegionProvider` in peanut-api-ts `src/kyc/level-registry.ts`). Used for
  * DISPLAY only (which provider rail backs a clicked region); the BE stays the

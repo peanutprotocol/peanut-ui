@@ -98,11 +98,11 @@ jest.mock('@/components/IdentityVerification/UnlockMethodModal', () => ({
 }))
 jest.mock('@/components/Profile/views/ResidenceChangeModal', () => ({
     __esModule: true,
-    default: ({ visible, onReverify }: { visible: boolean; onReverify: () => void }) =>
+    default: ({ visible, onReverify }: { visible: boolean; onReverify: (iso2: string) => void }) =>
         visible ? (
             <div>
                 change-modal-open
-                <button onClick={onReverify}>reverify</button>
+                <button onClick={() => onReverify('BR')}>reverify</button>
             </div>
         ) : null,
 }))
@@ -207,12 +207,15 @@ describe('UnlockPayments', () => {
 
         fireEvent.click(screen.getByText('Change'))
         fireEvent.click(screen.getByText('reverify'))
+        // the new residence's intent rides along so the token targets the right level
         expect(mockRestartIdentity).toHaveBeenCalledTimes(1)
+        expect(mockRestartIdentity).toHaveBeenCalledWith('LATAM')
 
         expect(screen.getByText("Verification couldn't start")).toBeInTheDocument()
         expect(screen.queryByText('Not available yet')).not.toBeInTheDocument()
         fireEvent.click(screen.getByText('Try again'))
         expect(mockRestartIdentity).toHaveBeenCalledTimes(2)
+        expect(mockRestartIdentity).toHaveBeenLastCalledWith('LATAM')
         expect(mockInitiateKyc).not.toHaveBeenCalled()
     })
 

@@ -1,4 +1,9 @@
-import { getRegionIntent, pendingBankRailRegionPaths, providerForRegionIntent } from '../regions.utils'
+import {
+    getRegionIntent,
+    pendingBankRailRegionPaths,
+    providerForRegionIntent,
+    regionIntentForResidence,
+} from '../regions.utils'
 import { type RailCapability } from '@/types/capabilities'
 
 describe('getRegionIntent', () => {
@@ -89,5 +94,17 @@ describe('pendingBankRailRegionPaths', () => {
             rail({ id: 'bridge.ach_us', country: 'US', status: 'blocked' }),
         ])
         expect(paths.size).toBe(0)
+    })
+})
+
+describe('regionIntentForResidence', () => {
+    it('routes LATAM residences to Manteca and everything Bridge-served to the Bridge levels', () => {
+        expect(regionIntentForResidence('BR')).toBe('LATAM')
+        expect(regionIntentForResidence('ar')).toBe('LATAM')
+        expect(regionIntentForResidence('US')).toBe('NA')
+        expect(regionIntentForResidence('MX')).toBe('NA')
+        expect(regionIntentForResidence('PT')).toBe('EU')
+        expect(regionIntentForResidence('GB')).toBe('EU')
+        expect(regionIntentForResidence('NG')).toBe('ROW')
     })
 })

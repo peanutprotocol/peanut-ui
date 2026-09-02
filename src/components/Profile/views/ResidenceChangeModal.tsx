@@ -27,7 +27,8 @@ interface ResidenceChangeModalProps {
     /** refetch the user so the new declared residence lands everywhere */
     onSaved: () => Promise<unknown> | void
     /** start identity re-verification at the current level (existing restart primitive) */
-    onReverify: () => void
+    /** called with the newly declared residence when the user asked to submit documents */
+    onReverify: (iso2: string) => void
 }
 
 /**
@@ -128,7 +129,7 @@ const ResidenceChangeModal = ({
                 console.error('failed to refetch user after residence change:', e)
             }
             onClose()
-            if (reverifyAfter) onReverify()
+            if (reverifyAfter) onReverify(selected)
             return true
         } finally {
             setIsSaving(false)
