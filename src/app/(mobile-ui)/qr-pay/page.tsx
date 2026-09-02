@@ -52,6 +52,8 @@ import { getCurrencyPrice } from '@/app/actions/currency'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { captureNetworkTriagedFailure, isNetworkLayerFailure } from '@/utils/network-triage'
 import { criticalFlowTags } from '@/utils/sentry-critical-flow'
+import { wireErrorCode } from '@/services/api-error'
+import { API_ERROR_CODES } from '@/services/api-error'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { isPaymentProcessorQR, EQrType, NAME_BY_QR_TYPE, type QrType } from '@/components/Global/DirectSendQR/utils'
@@ -666,6 +668,14 @@ export default function QRPayPage() {
             setPaymentLock(fetchedPaymentLock)
             setWaitingForMerchantAmount(false)
             setLoadingState('Idle')
+            /*
+             * A lock in hand outranks any earlier failure. Offline pauses the
+             * query and shows the error, but the query stays resumable — so
+             * without this a scan that recovered on reconnect had its payment
+             * screen hidden behind a latched outage message it could never
+             * clear. `errorInitiatingPayment` gates the render at the top.
+             */
+            setErrorInitiatingPayment(null)
         }
 
         const error = paymentLockError ?? paymentLockFailureReason
@@ -719,6 +729,30 @@ export default function QRPayPage() {
                 // blaming the payment rail.
                 setWaitingForMerchantAmount(false)
                 setErrorInitiatingPayment(t('errors.authError'))
+            } else if (error.message.includes('MANTECA_SOURCE_OVER_MONTHLY_CAP')) {
+                // The user's own monthly limit, not an outage. product/providers/
+                // fiat/README.md records the cost of conflating them: a capped
+                // user sat blocked for three days behind "unexpected error".
+                setWaitingForMerchantAmount(false)
+                setErrorInitiatingPayment(t('errors.monthlyCapReached'))
+            } else if (
+                error.message.includes('MANTECA_MERCHANT_VOLUME_NEAR_CAP') ||
+                error.message.includes('MANTECA_MERCHANT_RECENT_REFUND')
+            ) {
+                // A limit on the MERCHANT, so naming the user's own limit would
+                // be wrong — and so would blaming the rail.
+                setWaitingForMerchantAmount(false)
+                setErrorInitiatingPayment(t('errors.merchantNotAvailable'))
+            } else if (
+                wireErrorCode(error) === API_ERROR_CODES.MANTECA_KYC_REQUIRED ||
+                error.message.includes('MANTECA_USER_NOT_PROVISIONED') ||
+                error.message.includes('User KYC not approved')
+            ) {
+                // Actionable and the user's to resolve. Matched on the wire code
+                // first so a backend rewording of the prose cannot silently send
+                // this back to the retry-then-outage path.
+                setWaitingForMerchantAmount(false)
+                setErrorInitiatingPayment(t('errors.kycRequired'))
             } else if (retriesPending) {
                 /*
                  * Retryable network/timeout failure with attempts left. The

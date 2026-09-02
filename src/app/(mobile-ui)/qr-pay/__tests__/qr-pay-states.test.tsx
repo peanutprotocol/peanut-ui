@@ -12,7 +12,7 @@ import posthog from 'posthog-js'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query'
 import { parseUnits } from 'viem'
 import type { RailCapability } from '@/types/capabilities'
 
@@ -1432,7 +1432,29 @@ describe('GROUP 4: Success States', () => {
 // ============================================================
 // GROUP 5: Error States
 // ============================================================
+const reconnectLock = {
+    code: 'LOCK-RECONNECT',
+    type: 'MERCADO_PAGO',
+    companyId: 'c1',
+    userId: 'u1',
+    userNumberId: 'un1',
+    userExternalId: 'ue1',
+    paymentRecipientName: 'Reconnected Merchant',
+    paymentRecipientLegalId: 'legal1',
+    paymentAssetAmount: '1000',
+    paymentAsset: 'ARS',
+    paymentPrice: '1000',
+    paymentAgainstAmount: '1',
+    paymentAgainst: 'USD',
+    expireAt: '2026-04-16T23:59:59Z',
+    creationTime: '2026-04-16T00:00:00Z',
+}
+
 describe('GROUP 5: Error States', () => {
+    // The offline test below flips global online state; a failure mid-test
+    // would otherwise leave every later suite running as if disconnected.
+    afterEach(() => onlineManager.setOnline(true))
+
     test('QR decode failure shows specific error message', async () => {
         mockMantecaApi.initiateQrPayment.mockRejectedValue(new Error('PAYMENT_DESTINATION_DECODING_ERROR'))
 
@@ -1479,23 +1501,93 @@ describe('GROUP 5: Error States', () => {
      * locks — behind the retry caption — for an answer attempt one already had.
      */
     test.each([
-        ['MANTECA_SOURCE_OVER_MONTHLY_CAP'],
-        ['MANTECA_MERCHANT_VOLUME_NEAR_CAP'],
-        ['MANTECA_MERCHANT_RECENT_REFUND'],
-        ['MANTECA_USER_NOT_PROVISIONED'],
-        ['User KYC not approved'],
-    ])('%s fails fast instead of waiting out the retries', async (code) => {
+        ['MANTECA_SOURCE_OVER_MONTHLY_CAP', /monthly QR payment limit/i],
+        ['MANTECA_MERCHANT_VOLUME_NEAR_CAP', /merchant can't accept QR payments/i],
+        ['MANTECA_MERCHANT_RECENT_REFUND', /merchant can't accept QR payments/i],
+        ['MANTECA_USER_NOT_PROVISIONED', /verifying your identity/i],
+        ['User KYC not approved', /verifying your identity/i],
+    ])('%s fails fast with copy that names the real cause', async (code, copy) => {
         mockMantecaApi.initiateQrPayment.mockRejectedValue(new Error(code))
 
         renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
 
         await waitFor(() => {
-            expect(screen.getByText(/currently experiencing issues/i)).toBeInTheDocument()
+            expect(screen.getByText(copy)).toBeInTheDocument()
         })
 
         expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
         expect(screen.queryByText(/still fetching details/i)).not.toBeInTheDocument()
+        /*
+         * None of these is an outage. A capped user told "MercadoPago is having
+         * issues" has nothing to act on — product/providers/fiat/README.md
+         * records one sitting blocked for three days behind exactly that.
+         */
+        expect(screen.queryByText(/currently experiencing issues/i)).not.toBeInTheDocument()
     })
+
+    // The KYC rejection's stable discriminant is its `code`; its `error` is a
+    // plain sentence the backend can reword at any time.
+    it('routes the KYC rejection on its wire code, not its prose', async () => {
+        mockMantecaApi.initiateQrPayment.mockRejectedValue(
+            Object.assign(new Error('some reworded backend sentence'), {
+                name: 'ApiError',
+                status: 400,
+                code: 'MANTECA_KYC_REQUIRED',
+            })
+        )
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+        await waitFor(() => {
+            expect(screen.getByText(/verifying your identity/i)).toBeInTheDocument()
+        })
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
+    })
+
+    /*
+     * Offline is not an outcome. Under react-query's default networkMode a
+     * device that drops mid-retry PAUSES the query — resumable, no fetch in
+     * flight, so no AbortController ever fires and the terminal error never
+     * arrives. Treating paused as pending pinned the scan on a spinner
+     * forever; treating it as terminal latched an outage message the recovered
+     * scan could never clear, because `errorInitiatingPayment` gates the whole
+     * render. The lock has to win when it finally lands.
+     */
+    test('Going offline shows an outcome, and reconnecting clears it for the recovered scan', async () => {
+        mockMantecaApi.initiateQrPayment
+            .mockRejectedValueOnce(new Error('Network timeout'))
+            .mockResolvedValue(reconnectLock)
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+        await waitFor(() => {
+            expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
+        })
+
+        // Drop the connection inside the retry backoff, so the retry parks.
+        await act(async () => {
+            onlineManager.setOnline(false)
+        })
+
+        await waitFor(
+            () => {
+                expect(screen.getByText(/currently experiencing issues/i)).toBeInTheDocument()
+            },
+            { timeout: 12_000 }
+        )
+
+        await act(async () => {
+            onlineManager.setOnline(true)
+        })
+
+        await waitFor(
+            () => {
+                expect(screen.getByText(reconnectLock.paymentRecipientName)).toBeInTheDocument()
+            },
+            { timeout: 12_000 }
+        )
+        expect(screen.queryByText(/currently experiencing issues/i)).not.toBeInTheDocument()
+    }, 30_000)
 
     // Real timers, and the budget to sit through them: the page's retry policy
     // is the thing under test, and driving react-query's backoff with fake ones
