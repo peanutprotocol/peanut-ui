@@ -19,10 +19,14 @@ import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import InviteFriendsModal from '../Global/InviteFriendsModal'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import Image from 'next/image'
+import { parseAsBoolean, useQueryState } from 'nuqs'
+import { AvatarPicker } from '@/components/Avatar/AvatarPicker'
 
 export const Profile = () => {
     const { logoutUser, isLoggingOut, user } = useAuth()
     const [isInviteFriendsModalOpen, setIsInviteFriendsModalOpen] = useState(false)
+    // URL state so the badge-earned toast can deep-link straight into the picker
+    const [avatarPickerOpen, setAvatarPickerOpen] = useQueryState('avatarPicker', parseAsBoolean)
     const router = useRouter()
     const onBack = useSafeBack('/home')
     // Profile "verified" reflects identity verification only (the human was ID-verified) — NOT
@@ -53,7 +57,16 @@ export const Profile = () => {
         <div className="h-full w-full bg-background">
             <NavHeader hideLabel showLogoutBtn onPrev={onBack} />
             <div className="space-y-8">
-                <ProfileHeader name={displayName} username={username} isVerified={isUserSumsubKycApproved} />
+                <ProfileHeader
+                    name={displayName}
+                    username={username}
+                    isVerified={isUserSumsubKycApproved}
+                    onChangeAvatar={() => setAvatarPickerOpen(true)}
+                />
+                <AvatarPicker
+                    open={avatarPickerOpen === true}
+                    onOpenChange={(open) => setAvatarPickerOpen(open ? true : null)}
+                />
                 <div className="space-y-4">
                     {/* IA from #2834: identity/products first, then social +
                         account, then app settings. Payment limits moved inline

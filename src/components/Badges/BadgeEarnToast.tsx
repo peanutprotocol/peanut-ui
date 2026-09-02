@@ -27,8 +27,11 @@ import { useBadgeCopy } from '@/components/Badges/useBadgeCopy'
 import { useBadgeEarnToast } from '@/components/Badges/useBadgeEarnToast'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { BadgeImage } from '@/components/Badges/BadgeImage'
+import { badgeAvatarKeys } from '@/components/Avatar/avatar.utils'
 
 const HOME_PATH = '/home'
+// the picker opens from the profile page; `avatarPicker` is its nuqs URL state
+const AVATAR_PICKER_PATH = '/profile?avatarPicker=true'
 
 type ModalBadge = { code: string; title: string; description: string; logo: string }
 
@@ -81,6 +84,17 @@ export default function BadgeEarnToast() {
 
         const label = count === 1 ? t('toastSingle', { name: newestName }) : t('toastMultiple', { count })
 
+        // A badge that ships avatars (TASK-22142) announces the unlock and
+        // hands the user straight to the picker — the badge tap keeps its
+        // detail view, so the two are separate controls, not one.
+        const avatarCount = badgeAvatarKeys(codes).length
+        const chooseAvatar = () => {
+            dismiss(toastId)
+            liveToastIdRef.current = null
+            posthog.capture(ANALYTICS_EVENTS.BADGE_EARN_TOAST_TAPPED, { count, target: 'avatar_picker' })
+            router.push(AVATAR_PICKER_PATH)
+        }
+
         toast({
             id: toastId,
             type: 'success',
@@ -88,19 +102,27 @@ export default function BadgeEarnToast() {
             className: 'border-action-secondary bg-background-default',
             hideIcon: true,
             content: (
-                <button type="button" onClick={openInspect} className="flex items-center gap-3 text-left">
-                    <BadgeImage
-                        src={newestIcon}
-                        alt=""
-                        width={28}
-                        height={28}
-                        className="size-7 shrink-0 object-contain"
-                        unoptimized
-                    />
-                    <span className="text-label-l">
-                        {label} <span className="font-medium underline">{t('toastTapToView')}</span>
-                    </span>
-                </button>
+                <div className="flex flex-col gap-1">
+                    <button type="button" onClick={openInspect} className="flex items-center gap-3 text-left">
+                        <BadgeImage
+                            src={newestIcon}
+                            alt=""
+                            width={28}
+                            height={28}
+                            className="size-7 shrink-0 object-contain"
+                            unoptimized
+                        />
+                        <span className="text-label-l">
+                            {label} <span className="font-medium underline">{t('toastTapToView')}</span>
+                        </span>
+                    </button>
+                    {avatarCount > 0 && (
+                        <button type="button" onClick={chooseAvatar} className="min-h-11 pl-10 text-left text-label-l">
+                            {t('toastAvatars', { count: avatarCount })}{' '}
+                            <span className="font-medium underline">{t('toastChooseAvatar')}</span>
+                        </button>
+                    )}
+                </div>
             ),
         })
         liveToastIdRef.current = toastId

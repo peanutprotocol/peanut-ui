@@ -1,4 +1,4 @@
-import { render as rtlRender, screen, act } from '@testing-library/react'
+import { render as rtlRender, screen, act, fireEvent } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import type { ComponentProps } from 'react'
 import BadgeEarnToast from '@/components/Badges/BadgeEarnToast'
@@ -91,8 +91,8 @@ describe('BadgeEarnToast', () => {
         expect(mockMarkSeen).toHaveBeenCalledWith(['PRODUCT_HUNT'])
         expect(captureMock).toHaveBeenCalledWith('badge_earn_toast_shown', { count: 1 })
 
-        const content = mockToast.mock.calls[0][0].content
-        act(() => content.props.onClick())
+        render(mockToast.mock.calls[0][0].content)
+        act(() => fireEvent.click(screen.getByRole('button', { name: /tap to view/ })))
 
         expect(mockDismissToast).toHaveBeenCalledWith('badge-earn:PRODUCT_HUNT')
         expect(captureMock).toHaveBeenCalledWith('badge_earn_toast_tapped', { count: 1 })
@@ -119,6 +119,27 @@ describe('BadgeEarnToast', () => {
         expect(screen.getByText(/Backend Name/)).toBeInTheDocument()
     })
 
+    it('announces unlocked avatars and hands the user to the picker (TASK-22142)', () => {
+        mockPending = [badge('BUG_WHISPERER', 'Bug Whisperer')]
+        render(<BadgeEarnToast />)
+
+        render(mockToast.mock.calls[0][0].content)
+        expect(screen.getByText(/3 new avatars unlocked/)).toBeInTheDocument()
+
+        act(() => fireEvent.click(screen.getByRole('button', { name: /Choose avatar/ })))
+        expect(mockDismissToast).toHaveBeenCalledWith('badge-earn:BUG_WHISPERER')
+        expect(mockRouterPush).toHaveBeenCalledWith('/profile?avatarPicker=true')
+        expect(screen.queryByTestId('badge-detail-modal')).not.toBeInTheDocument()
+    })
+
+    it('says nothing about avatars for a badge that has none', () => {
+        mockPending = [badge('PRODUCT_HUNT', 'Product Hunt')]
+        render(<BadgeEarnToast />)
+
+        render(mockToast.mock.calls[0][0].content)
+        expect(screen.queryByText(/avatar/i)).not.toBeInTheDocument()
+    })
+
     it('coalesces multiple badges and routes to /badges on tap', () => {
         mockPending = [badge('SHHHHH', 'Shhh'), badge('PRODUCT_HUNT', 'Product Hunt')]
         render(<BadgeEarnToast />)
@@ -126,11 +147,10 @@ describe('BadgeEarnToast', () => {
         expect(mockToast).toHaveBeenCalledTimes(1)
         expect(mockMarkSeen).toHaveBeenCalledWith(['SHHHHH', 'PRODUCT_HUNT'])
 
-        const content = mockToast.mock.calls[0][0].content
-        render(content)
+        render(mockToast.mock.calls[0][0].content)
         expect(screen.getByText(/You unlocked 2 badges/)).toBeInTheDocument()
 
-        act(() => content.props.onClick())
+        act(() => fireEvent.click(screen.getByRole('button', { name: /tap to view/ })))
         expect(mockRouterPush).toHaveBeenCalledWith('/badges')
         expect(screen.queryByTestId('badge-detail-modal')).not.toBeInTheDocument()
     })

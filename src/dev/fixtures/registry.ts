@@ -334,6 +334,38 @@ export const FIXTURES: Record<string, Fixture> = {
     },
 
     // ---------------------------------------------------------------------
+    // Profile avatars (TASK-22142).
+    // ---------------------------------------------------------------------
+    'home-avatar': {
+        route: '/home',
+        about: 'Home top nav wearing a picked basic avatar instead of the initial.',
+        responses: { 'GET /users/me': { user: { avatarKey: 'basic.frog' } } },
+    },
+    'avatar-picker': {
+        route: '/profile?avatarPicker=true',
+        about: 'Avatar picker open: three Bug Whisperer avatars unlocked above the twenty basics, beetle selected.',
+        responses: {
+            'GET /users/me': {
+                user: {
+                    avatarKey: 'badge.BUG_WHISPERER.beetle',
+                    badges: [
+                        {
+                            id: 'demo-badge-bug-whisperer',
+                            code: 'BUG_WHISPERER',
+                            name: 'Bug Whisperer',
+                            description: 'You found a real bug, reported it, and stayed. We owe you a beer.',
+                            iconUrl: '/badges/bug_whisperer.svg',
+                            color: null,
+                            earnedAt: '2026-08-30T12:00:00.000Z',
+                            isVisible: true,
+                        },
+                    ],
+                },
+            },
+        },
+    },
+
+    // ---------------------------------------------------------------------
     // Error states.
     // ---------------------------------------------------------------------
     'error-history': {

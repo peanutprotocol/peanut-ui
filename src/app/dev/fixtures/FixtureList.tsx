@@ -20,7 +20,8 @@ export default function FixtureList() {
                     const fixture = FIXTURES[name]
                     // Plain <a>: a soft navigation would keep the previous fixture's
                     // React Query cache, so the screen would show stale state.
-                    const href = `${fixture.route}?${FIXTURE_PARAM}=${name}`
+                    // a route may carry its own query (nuqs URL state)
+                    const href = `${fixture.route}${fixture.route.includes('?') ? '&' : '?'}${FIXTURE_PARAM}=${name}`
                     return (
                         <a key={name} href={href}>
                             <Card className="cursor-pointer p-4">
