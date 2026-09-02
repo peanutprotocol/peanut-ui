@@ -27,7 +27,8 @@ export function NoFees({
 
     // One vw ramp can't serve every locale: "TRANSFER" only clips under ~340px,
     // while "TRANSFERENCIA"/"TRANSFERÊNCIA" (both 491px at 60px) need ~545px.
-    // <html lang> stays "en" on these routes, so :lang() can't pick the ramp.
+    // <html lang> is SSR'd as "en" and only corrected after hydration, so a
+    // :lang() ramp would first paint at the EN size and jump on the es/pt pages.
     // At 320px the ramps carry a longest word of 337px / 540px at 60px, which
     // is 8 / 14 characters — messages.test.ts holds the catalogs to that.
     const headlineSize =
