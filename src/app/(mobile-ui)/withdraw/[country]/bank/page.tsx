@@ -70,6 +70,7 @@ export default function WithdrawBankPage() {
                     country={country}
                     fromSendFlow={fromSendFlow}
                     isLoading={flow.isLoading}
+                    isBalanceReady={flow.isBalanceReady}
                     submittedTxHash={flow.submittedTxHash}
                     error={flow.error}
                     balanceErrorMessage={flow.balanceErrorMessage}

@@ -231,6 +231,9 @@ export function useBridgeOfframpFlow() {
         // normalized string is what goes on the wire.
         const amountCheck = validateBankOfframpAmount(amountToWithdraw, balance)
         if (!amountCheck.ok) {
+            // the submit button is disabled until the balance loads — reaching
+            // here with balanceLoading is a race, not a user error: no-op.
+            if (amountCheck.reason === 'balanceLoading') return
             const errorMessage =
                 amountCheck.reason === 'insufficientBalance'
                     ? tErrors('notEnoughBalanceAddFunds')
@@ -411,6 +414,9 @@ export function useBridgeOfframpFlow() {
     return {
         step,
         stepper,
+        // submit stays disabled until the spendable balance has loaded — an
+        // unloaded balance must not be treated as headroom (Chip round 3)
+        isBalanceReady: balance !== undefined,
         amountToWithdraw,
         bankAccount,
         country,

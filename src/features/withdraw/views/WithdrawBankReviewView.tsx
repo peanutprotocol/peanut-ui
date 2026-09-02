@@ -21,6 +21,8 @@ interface WithdrawBankReviewViewProps {
     country: string
     fromSendFlow: boolean
     isLoading: boolean
+    /** false while the spendable balance loads — submit stays disabled (Chip round 3). */
+    isBalanceReady: boolean
     /** On-chain leg already fired — never offer Retry (double-pay). */
     submittedTxHash: string | null
     error: { showError: boolean; errorMessage: string }
@@ -37,6 +39,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     country,
     fromSendFlow,
     isLoading,
+    isBalanceReady,
     submittedTxHash,
     error,
     balanceErrorMessage,
@@ -163,7 +166,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                     iconSize={12}
                     shadowSize="4"
                     onClick={onSubmit}
-                    disabled={isLoading || !bankAccount || !!balanceErrorMessage}
+                    disabled={isLoading || !bankAccount || !!balanceErrorMessage || !isBalanceReady}
                     className="w-full"
                 >
                     {tNav(fromSendFlow ? 'send' : 'withdraw')}

@@ -24,8 +24,9 @@ describe('validateBankOfframpAmount', () => {
         expect(validateBankOfframpAmount('150', balance)).toEqual({ ok: false, reason: 'insufficientBalance' })
     })
 
-    it('skips the balance ceiling while the balance is still loading', () => {
-        expect(validateBankOfframpAmount('150', undefined)).toEqual({ ok: true, normalized: '150' })
+    it('refuses while the balance is still loading — no ceiling means no pass (Chip round 3)', () => {
+        expect(validateBankOfframpAmount('150', undefined)).toEqual({ ok: false, reason: 'balanceLoading' })
+        expect(validateBankOfframpAmount('5', undefined)).toEqual({ ok: false, reason: 'balanceLoading' })
     })
 
     it('accepts and normalizes valid amounts — the wire never sees the raw param', () => {

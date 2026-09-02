@@ -10,7 +10,7 @@ export const BRIDGE_OFFRAMP_MIN_USD = 1
 
 export type BankOfframpAmountCheck =
     | { ok: true; normalized: string }
-    | { ok: false; reason: 'invalid' | 'belowMinimum' | 'insufficientBalance' }
+    | { ok: false; reason: 'invalid' | 'belowMinimum' | 'insufficientBalance' | 'balanceLoading' }
 
 /**
  * Validate + normalize the USD amount right before creating a bank offramp
@@ -26,7 +26,12 @@ export function validateBankOfframpAmount(amount: string, balance: bigint | unde
     // exponent forms survive Number→toString for extreme magnitudes — refuse
     // anything that does not round-trip to a plain decimal
     if (!/^\d+(\.\d+)?$/.test(normalized)) return { ok: false, reason: 'invalid' }
-    if (balance !== undefined && !isAmountWithinBalance(normalized, balance)) {
+    // an unloaded balance is NOT a pass: without the ceiling an edited
+    // ?amount= above the user's funds could reach the provider before the
+    // wallet send rejects it (Chip review round 3) — the submit stays
+    // disabled until the balance is real
+    if (balance === undefined) return { ok: false, reason: 'balanceLoading' }
+    if (!isAmountWithinBalance(normalized, balance)) {
         return { ok: false, reason: 'insufficientBalance' }
     }
     return { ok: true, normalized }
