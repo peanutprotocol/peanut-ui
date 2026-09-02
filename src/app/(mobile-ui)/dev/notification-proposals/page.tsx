@@ -569,9 +569,9 @@ const MODAL_USAGES = {
 // call site is added/removed in prod, this page drifts until someone re-greps
 const USAGE_GROUPS: UsageGroup[] = [
     {
-        name: 'flow and form errors — 48 call sites, 4 representative samples',
+        name: 'flow and form errors — 48 call sites, 3 representative samples',
         ctx: 'form',
-        note: 'The biggest population: priority="error" under an amount input, form, or CTA — all 48 sites share this exact shape, so four samples stand in for the list (single-line, wrapping, error toast, long error toast). Nothing is lost: the sites are enumerated by grepping <Notification priority="error">.',
+        note: 'The biggest population: priority="error" under an amount input, form, or CTA — all 48 sites share this exact shape, so three samples stand in for the list (single-line, wrapping, error toast). Nothing is lost: the sites are enumerated by grepping <Notification priority="error">.',
         usages: [
             {
                 label: 'single-line error — e.g. SendInputView:114 (real copy; 46 similar sites)',
@@ -589,7 +589,6 @@ const USAGE_GROUPS: UsageGroup[] = [
                 priority: 'error',
                 body: 'Failed to cancel link. Please try again.',
             },
-            { label: 'multi-line error toast', ctx: 'toast', rep: true, priority: 'error', body: LONG_COPY },
         ],
     },
     {
@@ -796,12 +795,6 @@ const USAGE_GROUPS: UsageGroup[] = [
         ],
     },
     {
-        name: 'inside modals and drawers (14 sites, 8 host surfaces)',
-        ctx: 'modal',
-        note: 'Each site rendered below as its complete host modal/drawer at mobile width — icon bubble, title, content stack, CTAs, real copy.',
-        usages: Object.values(MODAL_USAGES),
-    },
-    {
         name: 'special: rich body with actions (1 site)',
         ctx: 'page',
         usages: [
@@ -821,55 +814,6 @@ const USAGE_GROUPS: UsageGroup[] = [
                             <span className="font-semibold underline">Increase my limits</span>
                         </span>
                     </div>
-                ),
-            },
-        ],
-    },
-    {
-        name: 'toasts — via ToastStack (6 configurations)',
-        ctx: 'toast',
-        note: 'Every useToast caller renders through these. The two custom-content pills are the hideIcon/double-icon cases.',
-        usages: [
-            {
-                label: 'toast.success — e.g. limits document submitted',
-                priority: 'success',
-                body: 'Document submitted! Your limits will be updated shortly.',
-            },
-            {
-                label: 'toast.error — e.g. cancel link failed',
-                priority: 'error',
-                body: 'Failed to cancel link. Please try again.',
-            },
-            { label: 'toast.info — e.g. link copied', priority: 'info', body: 'Link copied' },
-            {
-                label: 'toast.warning — maps to attention',
-                rep: true,
-                priority: 'attention',
-                body: 'Your session is about to expire.',
-            },
-            {
-                label: 'RainCooldownContext:109 — persistent cooldown pill (custom content)',
-                priority: 'info',
-                hideIcon: true,
-                body: (
-                    <span className="flex items-center gap-2">
-                        <Icon name="clock" size={16} className="shrink-0" />
-                        Card locked for 4:32
-                    </span>
-                ),
-            },
-            {
-                label: 'BadgeEarnToast:84 — badge celebration (custom content)',
-                rep: true,
-                priority: 'success',
-                hideIcon: true,
-                body: (
-                    <span className="flex items-center gap-2">
-                        <span className="flex size-7 shrink-0 items-center justify-center rounded-round bg-background-badge-accent">
-                            🏅
-                        </span>
-                        Badge unlocked: First Steps
-                    </span>
                 ),
             },
         ],
@@ -915,171 +859,196 @@ const UsageCell = ({
     )
 }
 
-/** small labelled wrapper for one host surface replica */
-const HostCell = ({ sites, children }: { sites: string; children: React.ReactNode }) => (
-    <div className="flex min-w-0 flex-col gap-1.5">
-        <p className="text-body-xs text-foreground-secondary">{sites}</p>
-        {children}
-    </div>
-)
+type RenderFn = (u: Usage) => React.ReactNode
 
 /**
  * the 14 in-modal/in-drawer call sites as their 8 complete host surfaces,
  * faithful to the production layouts (static replicas at ~375px width).
  * duplicates grouped: lose-phone hosts 2 sites, change-phone 3, onramp drawer 3.
  */
-const ModalHostReplicas = ({ render }: { render: (u: Usage) => React.ReactNode }) => (
-    <div className="grid items-start gap-6 md:grid-cols-2 xl:grid-cols-3">
-        <HostCell sites="profile/backup lose-phone FAQ modal — sites backup:89 + backup:92">
-            <ModalPanelReplica icon="info" title="What if I lose my phone?">
-                <div className="space-y-3 w-full">
-                    {render(MODAL_USAGES.losePhoneEnabled)}
-                    {render(MODAL_USAGES.losePhoneNoBackup)}
-                </div>
-            </ModalPanelReplica>
-        </HostCell>
-
-        <HostCell sites="profile/backup change-phone FAQ modal — sites backup:112 + :115 + :118">
-            <ModalPanelReplica icon="info" title="What if I change phone?">
-                <div className="space-y-3 w-full">
-                    <ol className="list-decimal pl-6 text-left text-body-s text-foreground-primary">
-                        <li>Verify backup is working (check step 3 above)</li>
-                        <li>Know your Apple ID password</li>
-                        <li>Keep old phone until new one works</li>
-                    </ol>
-                    {render(MODAL_USAGES.changeIphone)}
-                    {render(MODAL_USAGES.changeAndroid)}
-                    {render(MODAL_USAGES.changeCross)}
-                </div>
-            </ModalPanelReplica>
-        </HostCell>
-
-        <HostCell sites="WelcomeUnlockModal — site :126">
-            <ModalPanelReplica icon="globe-lock" title="🎉 You're unlocked" cta="Start sending money">
-                <div className="flex w-full flex-col items-start gap-2">
-                    <p>You can now:</p>
-                    <div className="w-full">{render(MODAL_USAGES.welcomeUnlock)}</div>
-                </div>
-            </ModalPanelReplica>
-        </HostCell>
-
-        <HostCell sites="PasskeySetupHelpModal — sites :89 + :92">
-            <ModalPanelReplica icon="alert" iconBubbleClassName="bg-action-secondary" title="Passkeys Not Enabled">
-                <div className="flex w-full flex-col gap-4 text-left">
-                    <h2 className="mr-auto text-body-s text-foreground-secondary">
-                        Passkeys are not enabled on your device. Check your device settings to enable them
-                    </h2>
-                    <h3 className="mr-auto font-bold">Try these fixes:</h3>
-                    {render(MODAL_USAGES.passkeySteps)}
-                    {render(MODAL_USAGES.passkeyNote)}
-                    <div className="rounded-sm border border-border-disabled bg-background-disabled/5 p-3 text-body-xs text-foreground-secondary">
-                        <p className="mb-1 font-bold">Still having issues?</p>
-                        <p>
-                            Contact our support team at{' '}
-                            <span className="text-blue-500 underline">peanut.me/support</span>
-                        </p>
+const MODAL_HOSTS: { sites: string; build: (render: RenderFn) => React.ReactNode }[] = [
+    {
+        sites: 'profile/backup lose-phone FAQ modal — sites backup:89 + backup:92',
+        build: (render) => (
+            <>
+                <ModalPanelReplica icon="info" title="What if I lose my phone?">
+                    <div className="space-y-3 w-full">
+                        {render(MODAL_USAGES.losePhoneEnabled)}
+                        {render(MODAL_USAGES.losePhoneNoBackup)}
                     </div>
-                    <Button icon="retry" onClick={noop} className="w-full justify-center">
-                        Retry
-                    </Button>
-                </div>
-            </ModalPanelReplica>
-        </HostCell>
-
-        <HostCell sites="UnlockRegionModal (europe) — site :78">
-            <ModalPanelReplica
-                icon="shield"
-                title="Unlock Europe"
-                description={
-                    <p className="text-black">
-                        To send and receive money here, confirm your ID with a <b>government-issued document.</b>
-                    </p>
-                }
-                cta="Unlock now"
-                ctaIcon="check-circle"
-            >
-                <div className="flex w-full flex-col items-start gap-2">
-                    <h2 className="text-label-m">What you&apos;ll unlock:</h2>
-                    <div className="w-full">{render(MODAL_USAGES.unlockRegion)}</div>
-                    <div className="flex items-center gap-2">
-                        <Icon name="info" size={16} className="text-foreground-secondary" />
-                        <p className="text-body-xs text-foreground-secondary">
-                            Peanut doesn&apos;t store any of your documents.
-                        </p>
+                </ModalPanelReplica>
+            </>
+        ),
+    },
+    {
+        sites: 'profile/backup change-phone FAQ modal — sites backup:112 + :115 + :118',
+        build: (render) => (
+            <>
+                <ModalPanelReplica icon="info" title="What if I change phone?">
+                    <div className="space-y-3 w-full">
+                        <ol className="list-decimal pl-6 text-left text-body-s text-foreground-primary">
+                            <li>Verify backup is working (check step 3 above)</li>
+                            <li>Know your Apple ID password</li>
+                            <li>Keep old phone until new one works</li>
+                        </ol>
+                        {render(MODAL_USAGES.changeIphone)}
+                        {render(MODAL_USAGES.changeAndroid)}
+                        {render(MODAL_USAGES.changeCross)}
                     </div>
-                </div>
-            </ModalPanelReplica>
-        </HostCell>
-
-        <HostCell sites="HowToDepositModal — site :39">
-            <ModalPanelReplica title="How to Deposit">
-                <div className="flex w-full flex-col gap-4 text-left">
-                    <div className="flex flex-col overflow-hidden rounded-sm border border-border-default bg-background-default">
-                        {[
-                            'Copy your deposit address above',
-                            'Open your wallet or exchange and start a withdrawal',
-                            'Paste the address and select one of the supported networks',
-                            'Confirm and send — funds arrive within a few minutes',
-                        ].map((text, i) => (
-                            <div key={i} className={`px-4 py-3 ${i !== 3 ? 'border-b border-border-default' : ''}`}>
-                                <p className="text-label-l">Step {i + 1}</p>
-                                <p className="text-body-s text-foreground-secondary">{text}</p>
-                            </div>
-                        ))}
+                </ModalPanelReplica>
+            </>
+        ),
+    },
+    {
+        sites: 'WelcomeUnlockModal — site :126',
+        build: (render) => (
+            <>
+                <ModalPanelReplica icon="globe-lock" title="🎉 You're unlocked" cta="Start sending money">
+                    <div className="flex w-full flex-col items-start gap-2">
+                        <p>You can now:</p>
+                        <div className="w-full">{render(MODAL_USAGES.welcomeUnlock)}</div>
                     </div>
-                    {render(MODAL_USAGES.howToDeposit)}
-                </div>
-            </ModalPanelReplica>
-        </HostCell>
-
-        <HostCell sites="SupportedNetworksModal — site :26">
-            <ModalPanelReplica
-                title="Supported Networks"
-                description="One address for all listed below EVM networks - send from any of them and your funds will be routed correctly."
-            >
-                <div className="flex w-full flex-col gap-4 text-left">
-                    <div className="flex flex-wrap gap-2">
-                        {['Ethereum', 'Arbitrum', 'Base', 'Optimism', 'Polygon'].map((c) => (
-                            <span
-                                key={c}
-                                className="rounded-round border border-border-default px-2 py-0.5 text-body-xs"
-                            >
-                                {c}
-                            </span>
-                        ))}
-                    </div>
-                    {render(MODAL_USAGES.supportedNetworks)}
-                </div>
-            </ModalPanelReplica>
-        </HostCell>
-
-        <HostCell sites="OnrampConfirmationModal (drawer) — sites :39 + :46 + :60">
-            <div className="w-full max-w-[375px] rounded-t-lg border border-b-0 border-border-default bg-background-default">
-                {/* drawer handle */}
-                <div className="mx-auto mt-2 h-1 w-10 rounded-round bg-border-subtle" />
-                <div className="flex flex-col items-center gap-4 px-4 pt-1 pb-6 text-center">
-                    <IconBubble
-                        size="m"
-                        icon={<Icon name="alert" fill="currentColor" size={24} className="text-black" />}
-                        className="bg-action-secondary"
-                    />
-                    <h3 className="text-heading-xs text-foreground-primary">IMPORTANT!</h3>
+                </ModalPanelReplica>
+            </>
+        ),
+    },
+    {
+        sites: 'PasskeySetupHelpModal — sites :89 + :92',
+        build: (render) => (
+            <>
+                <ModalPanelReplica icon="alert" iconBubbleClassName="bg-action-secondary" title="Passkeys Not Enabled">
                     <div className="flex w-full flex-col gap-4 text-left">
-                        <h2 className="mr-auto font-bold">In the next step you&apos;ll see:</h2>
-                        {render(MODAL_USAGES.onrampNextStep)}
-                        <h2 className="mr-auto font-bold">You must:</h2>
-                        {render(MODAL_USAGES.onrampChecklist)}
-                        {render(MODAL_USAGES.onrampMismatch)}
+                        <h2 className="mr-auto text-body-s text-foreground-secondary">
+                            Passkeys are not enabled on your device. Check your device settings to enable them
+                        </h2>
+                        <h3 className="mr-auto font-bold">Try these fixes:</h3>
+                        {render(MODAL_USAGES.passkeySteps)}
+                        {render(MODAL_USAGES.passkeyNote)}
+                        <div className="rounded-sm border border-border-disabled bg-background-disabled/5 p-3 text-body-xs text-foreground-secondary">
+                            <p className="mb-1 font-bold">Still having issues?</p>
+                            <p>
+                                Contact our support team at{' '}
+                                <span className="text-blue-500 underline">peanut.me/support</span>
+                            </p>
+                        </div>
+                        <Button icon="retry" onClick={noop} className="w-full justify-center">
+                            Retry
+                        </Button>
                     </div>
-                    {/* static stand-in for SlideToConfirm */}
-                    <div className="flex h-11 w-full items-center justify-center rounded-round border border-border-default bg-background-page text-body-s text-foreground-secondary">
-                        Slide to Proceed →
+                </ModalPanelReplica>
+            </>
+        ),
+    },
+    {
+        sites: 'UnlockRegionModal (europe) — site :78',
+        build: (render) => (
+            <>
+                <ModalPanelReplica
+                    icon="shield"
+                    title="Unlock Europe"
+                    description={
+                        <p className="text-black">
+                            To send and receive money here, confirm your ID with a <b>government-issued document.</b>
+                        </p>
+                    }
+                    cta="Unlock now"
+                    ctaIcon="check-circle"
+                >
+                    <div className="flex w-full flex-col items-start gap-2">
+                        <h2 className="text-label-m">What you&apos;ll unlock:</h2>
+                        <div className="w-full">{render(MODAL_USAGES.unlockRegion)}</div>
+                        <div className="flex items-center gap-2">
+                            <Icon name="info" size={16} className="text-foreground-secondary" />
+                            <p className="text-body-xs text-foreground-secondary">
+                                Peanut doesn&apos;t store any of your documents.
+                            </p>
+                        </div>
+                    </div>
+                </ModalPanelReplica>
+            </>
+        ),
+    },
+    {
+        sites: 'HowToDepositModal — site :39',
+        build: (render) => (
+            <>
+                <ModalPanelReplica title="How to Deposit">
+                    <div className="flex w-full flex-col gap-4 text-left">
+                        <div className="flex flex-col overflow-hidden rounded-sm border border-border-default bg-background-default">
+                            {[
+                                'Copy your deposit address above',
+                                'Open your wallet or exchange and start a withdrawal',
+                                'Paste the address and select one of the supported networks',
+                                'Confirm and send — funds arrive within a few minutes',
+                            ].map((text, i) => (
+                                <div key={i} className={`px-4 py-3 ${i !== 3 ? 'border-b border-border-default' : ''}`}>
+                                    <p className="text-label-l">Step {i + 1}</p>
+                                    <p className="text-body-s text-foreground-secondary">{text}</p>
+                                </div>
+                            ))}
+                        </div>
+                        {render(MODAL_USAGES.howToDeposit)}
+                    </div>
+                </ModalPanelReplica>
+            </>
+        ),
+    },
+    {
+        sites: 'SupportedNetworksModal — site :26',
+        build: (render) => (
+            <>
+                <ModalPanelReplica
+                    title="Supported Networks"
+                    description="One address for all listed below EVM networks - send from any of them and your funds will be routed correctly."
+                >
+                    <div className="flex w-full flex-col gap-4 text-left">
+                        <div className="flex flex-wrap gap-2">
+                            {['Ethereum', 'Arbitrum', 'Base', 'Optimism', 'Polygon'].map((c) => (
+                                <span
+                                    key={c}
+                                    className="rounded-round border border-border-default px-2 py-0.5 text-body-xs"
+                                >
+                                    {c}
+                                </span>
+                            ))}
+                        </div>
+                        {render(MODAL_USAGES.supportedNetworks)}
+                    </div>
+                </ModalPanelReplica>
+            </>
+        ),
+    },
+    {
+        sites: 'OnrampConfirmationModal (drawer) — sites :39 + :46 + :60',
+        build: (render) => (
+            <>
+                <div className="w-full max-w-[375px] rounded-t-lg border border-b-0 border-border-default bg-background-default">
+                    {/* drawer handle */}
+                    <div className="mx-auto mt-2 h-1 w-10 rounded-round bg-border-subtle" />
+                    <div className="flex flex-col items-center gap-4 px-4 pt-1 pb-6 text-center">
+                        <IconBubble
+                            size="m"
+                            icon={<Icon name="alert" fill="currentColor" size={24} className="text-black" />}
+                            className="bg-action-secondary"
+                        />
+                        <h3 className="text-heading-xs text-foreground-primary">IMPORTANT!</h3>
+                        <div className="flex w-full flex-col gap-4 text-left">
+                            <h2 className="mr-auto font-bold">In the next step you&apos;ll see:</h2>
+                            {render(MODAL_USAGES.onrampNextStep)}
+                            <h2 className="mr-auto font-bold">You must:</h2>
+                            {render(MODAL_USAGES.onrampChecklist)}
+                            {render(MODAL_USAGES.onrampMismatch)}
+                        </div>
+                        {/* static stand-in for SlideToConfirm */}
+                        <div className="flex h-11 w-full items-center justify-center rounded-round border border-border-default bg-background-page text-body-s text-foreground-secondary">
+                            Slide to Proceed →
+                        </div>
                     </div>
                 </div>
-            </div>
-        </HostCell>
-    </div>
-)
+            </>
+        ),
+    },
+]
 
 const UsageShowcase = ({ render }: { render: (u: Usage) => React.ReactNode }) => (
     <div className="flex flex-col gap-6">
@@ -1087,15 +1056,11 @@ const UsageShowcase = ({ render }: { render: (u: Usage) => React.ReactNode }) =>
             <div key={group.name} className="flex flex-col gap-3">
                 <DevSectionLabel>{group.name}</DevSectionLabel>
                 {group.note && <p className="max-w-3xl text-body-xs text-foreground-secondary">{group.note}</p>}
-                {group.ctx === 'modal' ? (
-                    <ModalHostReplicas render={render} />
-                ) : (
-                    <div className="grid items-start gap-x-6 gap-y-4 md:grid-cols-2 xl:grid-cols-3">
-                        {group.usages.map((u) => (
-                            <UsageCell key={u.label} usage={u} ctx={group.ctx} render={render} />
-                        ))}
-                    </div>
-                )}
+                <div className="grid items-start gap-x-6 gap-y-4 md:grid-cols-2 xl:grid-cols-3">
+                    {group.usages.map((u) => (
+                        <UsageCell key={u.label} usage={u} ctx={group.ctx} render={render} />
+                    ))}
+                </div>
             </div>
         ))}
     </div>
@@ -1142,21 +1107,63 @@ const ContextStrip = ({
     </div>
 )
 
-const VariantSection = ({
-    label,
-    rationale,
+const PageSection = ({
+    id,
+    title,
+    blurb,
     children,
 }: {
-    label: string
-    rationale: string
+    id: string
+    title: string
+    blurb: string
     children: React.ReactNode
 }) => (
-    <section className="flex flex-col gap-3">
-        <DevSectionLabel>{label}</DevSectionLabel>
-        <p className="max-w-3xl text-body-s text-foreground-secondary">{rationale}</p>
+    <section id={id} className="flex scroll-mt-14 flex-col gap-4 border-t border-border-subtle pt-6">
+        <h2 className="text-heading-xs">{title}</h2>
+        <p className="max-w-3xl text-body-s text-foreground-secondary">{blurb}</p>
         {children}
     </section>
 )
+
+const Fold = ({ summary, children }: { summary: string; children: React.ReactNode }) => (
+    <details className="rounded-sm border border-border-subtle p-3">
+        <summary className="cursor-pointer text-body-s font-semibold">{summary}</summary>
+        <div className="flex flex-col gap-3 pt-3">{children}</div>
+    </details>
+)
+
+const NAV = [
+    ['problem', 'problem'],
+    ['variant-a', 'A — compact inline'],
+    ['variant-b', 'B — accent banner'],
+    ['modals', 'modals side by side'],
+    ['toasts', 'toasts'],
+    ['secondary', 'other ideas'],
+] as const
+
+const renderCurrent: RenderFn = (u) => (
+    <Notification priority={u.priority} title={u.title} items={u.items} hideIcon={u.hideIcon}>
+        {u.body}
+    </Notification>
+)
+const renderA: RenderFn = (u) => (
+    <CompactNotification priority={u.priority} title={u.title} items={u.items} hideIcon={u.hideIcon}>
+        {u.body}
+    </CompactNotification>
+)
+const renderB: RenderFn = (u) => (
+    <AccentNotification priority={u.priority} title={u.title} items={u.items} hideIcon={u.hideIcon}>
+        {u.body}
+    </AccentNotification>
+)
+
+const SHORT_COPY: Record<Priority, string> = {
+    info: 'A short info message',
+    success: 'Success, details changed',
+    attention: 'Pay attention, this is important',
+    error: 'Ups, something went wrong',
+    helper: 'Leave empty to let payers choose amounts',
+}
 
 export default function NotificationProposalsPage() {
     const [toasts, setToasts] = useState<Priority[]>(['info', 'success', 'attention', 'error'])
@@ -1164,285 +1171,219 @@ export default function NotificationProposalsPage() {
     return (
         <DevPageShell
             title="Notification redesign proposals"
-            description="Four candidate replacements for 0_Bruddle/Notification, built from existing tokens only. Nothing here ships — pick one (or a mix) and it gets built for real."
+            description="Finalists A and B rendered in the actual app places, modal hosts compared side by side with the current component, and the toast redesign. Existing tokens only."
         >
-            <section className="flex flex-col gap-3">
-                <DevSectionLabel>current component (for comparison)</DevSectionLabel>
-                <p className="max-w-3xl text-body-s text-foreground-secondary">
-                    Body/M 16px text, 20px icon, 12px padding, full tint block. The complaints: too big, breaks layouts,
-                    ugly next to line-based DS components, worst inside modals.
-                </p>
+            <nav className="sticky top-0 z-10 -my-2 flex gap-2 overflow-x-auto border-b border-border-subtle bg-background-default py-2">
+                {NAV.map(([id, label]) => (
+                    <a
+                        key={id}
+                        href={`#${id}`}
+                        className="rounded-round border border-border-subtle px-3 py-1 text-body-xs whitespace-nowrap text-foreground-secondary hover:text-foreground-primary"
+                    >
+                        {label}
+                    </a>
+                ))}
+            </nav>
+
+            <PageSection
+                id="problem"
+                title="The problem today"
+                blurb="Current component: Body/M 16px text, 20px icon, 12px padding, full tint block — too big, breaks layouts, worst inside modals."
+            >
                 <div className="flex max-w-xl flex-col gap-2">
                     <Notification priority="error">Ups, something went wrong</Notification>
                     <Notification priority="info" title="EUR accounts only">
                         {LONG_COPY}
                     </Notification>
                 </div>
-            </section>
+            </PageSection>
 
-            <VariantSection
-                label="A — compact inline"
-                rationale="Same anatomy, one type step down (Body/S 14px), 16px icon, half the padding. Keeps the familiar tinted box but shrinks the footprint ~40% so it stops dominating forms. Lowest-risk swap: same props, same call sites."
+            <PageSection
+                id="variant-a"
+                title="Finalist A — compact inline"
+                blurb="Same anatomy one type step down: Body/S 14px, 16px icon, half the padding. States first, then every real app place rendered with A (errors sampled — all 48 share one shape)."
             >
                 <div className="flex max-w-xl flex-col gap-2">
                     {PRIORITIES.map((p) => (
                         <CompactNotification key={p} priority={p}>
-                            {p === 'error' ? 'Ups, something went wrong' : `A short ${p} message`}
+                            {SHORT_COPY[p]}
                         </CompactNotification>
                     ))}
                     <CompactNotification priority="error" title="Transfer failed." onDismiss={noop}>
                         {LONG_COPY}
                     </CompactNotification>
                 </div>
-                <ContextStrip
-                    inline={<CompactNotification priority="error">This IBAN is not a EUR account.</CompactNotification>}
-                    modal={
-                        <CompactNotification priority="attention" className="w-full">
-                            Withdrawals over $1,000 need extra verification.
-                        </CompactNotification>
-                    }
-                />
-            </VariantSection>
+                <UsageShowcase render={renderA} />
+            </PageSection>
 
-            <VariantSection
-                label="B — slim accent banner"
-                rationale="Kills the tint block: transparent background, 2px left rule + tinted 16px icon carry the priority. Fits the bordered, line-based DS components instead of fighting them, and long copy reads as text, not as a colored slab."
+            <PageSection
+                id="variant-b"
+                title="Finalist B — slim accent banner"
+                blurb="No tint block: transparent background, 2px left rule + tinted 16px icon carry the priority. Same states and real app places, rendered with B."
             >
-                <div className="flex max-w-xl flex-col gap-3">
+                <div className="flex max-w-xl flex-col gap-2">
                     {PRIORITIES.map((p) => (
                         <AccentNotification key={p} priority={p}>
-                            {p === 'error' ? 'Ups, something went wrong' : `A short ${p} message`}
+                            {SHORT_COPY[p]}
                         </AccentNotification>
                     ))}
                     <AccentNotification priority="error" title="Transfer failed.">
                         {LONG_COPY}
                     </AccentNotification>
                 </div>
-                <ContextStrip
-                    inline={<AccentNotification priority="error">This IBAN is not a EUR account.</AccentNotification>}
-                    modal={
-                        <AccentNotification priority="attention" className="w-full">
-                            Withdrawals over $1,000 need extra verification.
-                        </AccentNotification>
-                    }
-                />
-            </VariantSection>
+                <UsageShowcase render={renderB} />
+            </PageSection>
 
-            <VariantSection
-                label="C — quiet modal note"
-                rationale="For inside modals only: no box at all. 16px tinted icon + Body/XS secondary text, so the note never competes with the modal title and CTA. Errors keep the semantic red. Would live alongside A or B, chosen per context."
+            <PageSection
+                id="modals"
+                title="Modals and drawers — current vs A vs B"
+                blurb="The 8 host surfaces (all 14 in-modal call sites) rendered completely, three ways next to each other. Real production copy and layout."
             >
-                <div className="flex max-w-xl flex-col items-start gap-2">
-                    {PRIORITIES.map((p) => (
-                        <QuietNotification key={p} priority={p}>
-                            {p === 'error' ? 'Ups, something went wrong' : `A short ${p} message`}
-                        </QuietNotification>
+                <div className="flex flex-col gap-10">
+                    {MODAL_HOSTS.map((host) => (
+                        <div key={host.sites} className="flex flex-col gap-3">
+                            <DevSectionLabel>{host.sites}</DevSectionLabel>
+                            <div className="grid items-start gap-4 xl:grid-cols-3">
+                                {(
+                                    [
+                                        ['current', renderCurrent],
+                                        ['A — compact inline', renderA],
+                                        ['B — accent banner', renderB],
+                                    ] as const
+                                ).map(([label, fn]) => (
+                                    <div key={label} className="flex min-w-0 flex-col gap-1.5">
+                                        <p className="text-body-xs font-semibold">{label}</p>
+                                        {host.build(fn)}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     ))}
-                    <QuietNotification priority="error">{LONG_COPY}</QuietNotification>
                 </div>
-                <ContextStrip
-                    inline={<QuietNotification priority="error">This IBAN is not a EUR account.</QuietNotification>}
-                    modal={
-                        <QuietNotification priority="attention">
-                            Withdrawals over $1,000 need extra verification.
-                        </QuietNotification>
-                    }
-                />
-            </VariantSection>
+            </PageSection>
 
-            <VariantSection
-                label="D — toast redesign"
-                rationale="Compact white pill: single 16px tinted icon, Body/S text, small explicit dismiss. Custom content replaces the icon+message slot entirely instead of rendering next to a priority icon — which is the double-icon bug, fixed by construction."
+            <PageSection
+                id="toasts"
+                title="Toasts — current vs proposal D"
+                blurb="Left: today's toast (the full Notification floating; last pill reproduces the live double-icon bug). Right: D — compact pill, single icon slot, custom content replaces it entirely."
             >
-                <div className="flex flex-col items-end gap-2 rounded-sm border border-border-subtle bg-background-page p-4">
-                    <p className="mr-auto text-body-xs text-foreground-secondary">
-                        mock of the bottom-right stack — dismiss works
-                    </p>
-                    {toasts.map((p) => (
-                        <ToastProposal
-                            key={p}
-                            priority={p}
-                            onDismiss={() => setToasts((prev) => prev.filter((t) => t !== p))}
-                        >
-                            {p === 'error' ? 'Ups, something went wrong' : `A short ${p} toast`}
+                <div className="grid items-start gap-4 md:grid-cols-2">
+                    <div className="flex flex-col items-end gap-2 rounded-sm border border-border-subtle bg-background-page p-4">
+                        <p className="mr-auto text-body-xs text-foreground-secondary">current</p>
+                        <div className="max-w-md">
+                            <Notification priority="info" onDismiss={noop}>
+                                Link copied
+                            </Notification>
+                        </div>
+                        <div className="max-w-md">
+                            <Notification priority="error" onDismiss={noop}>
+                                Failed to cancel link. Please try again.
+                            </Notification>
+                        </div>
+                        <div className="max-w-md">
+                            {/* the double-icon bug, reproduced with the production component:
+                                priority icon + the content's own clock icon */}
+                            <Notification priority="info" onDismiss={noop}>
+                                <span className="flex items-center gap-2">
+                                    <Icon name="clock" size={16} className="shrink-0" />
+                                    Card locked for 4:32
+                                </span>
+                            </Notification>
+                        </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-2 rounded-sm border border-border-subtle bg-background-page p-4">
+                        <p className="mr-auto text-body-xs text-foreground-secondary">
+                            proposal D — dismiss works, reset below
+                        </p>
+                        {toasts.map((p) => (
+                            <ToastProposal
+                                key={p}
+                                priority={p}
+                                onDismiss={() => setToasts((prev) => prev.filter((t) => t !== p))}
+                            >
+                                {p === 'error' ? 'Ups, something went wrong' : `A short ${p} toast`}
+                            </ToastProposal>
+                        ))}
+                        {toasts.length < 4 && (
+                            <Button
+                                size="small"
+                                variant="stroke"
+                                onClick={() => setToasts(['info', 'success', 'attention', 'error'])}
+                                className="w-auto"
+                            >
+                                Reset stack
+                            </Button>
+                        )}
+                        <ToastProposal priority="error" onDismiss={noop} className="max-w-md">
+                            {LONG_COPY}
                         </ToastProposal>
-                    ))}
-                    {toasts.length < 4 && (
-                        <Button
-                            size="small"
-                            variant="stroke"
-                            onClick={() => setToasts(['info', 'success', 'attention', 'error'])}
-                            className="w-auto"
-                        >
-                            Reset stack
-                        </Button>
-                    )}
-                    <ToastProposal priority="error" onDismiss={noop} className="max-w-md">
-                        {LONG_COPY}
-                    </ToastProposal>
-                    <ToastProposal
-                        content={
-                            <span className="flex items-center gap-2 text-body-s">
-                                <Icon name="clock" size={16} className="shrink-0" />
-                                Card locked for 4:32
-                            </span>
+                        <ToastProposal
+                            content={
+                                <span className="flex items-center gap-2 text-body-s">
+                                    <Icon name="clock" size={16} className="shrink-0" />
+                                    Card locked for 4:32
+                                </span>
+                            }
+                            onDismiss={noop}
+                        />
+                    </div>
+                </div>
+            </PageSection>
+
+            <PageSection
+                id="secondary"
+                title="Other ideas (not finalists)"
+                blurb="Kept for reference, collapsed. C is a quiet no-box note; E/F/G are in-modal-only treatments, each compared against the current component inside the lose-phone modal."
+            >
+                <Fold summary="C — quiet modal note (no box: tinted 16px icon + Body/XS secondary text)">
+                    <div className="flex max-w-xl flex-col items-start gap-2">
+                        {PRIORITIES.map((p) => (
+                            <QuietNotification key={p} priority={p}>
+                                {SHORT_COPY[p]}
+                            </QuietNotification>
+                        ))}
+                        <QuietNotification priority="error">{LONG_COPY}</QuietNotification>
+                    </div>
+                    <ContextStrip
+                        inline={<QuietNotification priority="error">This IBAN is not a EUR account.</QuietNotification>}
+                        modal={
+                            <QuietNotification priority="attention">
+                                Withdrawals over $1,000 need extra verification.
+                            </QuietNotification>
                         }
-                        onDismiss={noop}
                     />
-                </div>
-                <p className="max-w-3xl text-body-xs text-foreground-secondary">
-                    The last pill is the RainCooldownContext clock toast — today it renders the priority icon AND the
-                    clock (the double-icon bug). Here custom content owns the whole slot, so one icon by construction.
-                </p>
-            </VariantSection>
-
-            <section className="flex flex-col gap-3">
-                <DevSectionLabel>current component inside real modals</DevSectionLabel>
-                <p className="max-w-3xl text-body-s text-foreground-secondary">
-                    Faithful static replicas of three production modals (real ActionModal panel styles, real copy), with
-                    the current Notification exactly as production styles it. This is what ships today.
-                </p>
-                <div className="grid items-start gap-4 lg:grid-cols-3">
-                    <ModalPanelReplica icon="info" title="What if I lose my phone?">
-                        {/* profile/backup lose-phone faq modal, verbatim */}
-                        <div className="space-y-3 w-full">
-                            <Notification priority="success" title="Backup is enabled">
-                                Sign into your new phone with your Apple ID. Download Peanut. Your wallet restores
-                                automatically
-                            </Notification>
-                            <Notification priority="error" title="No backup">
-                                Your funds are permanently lost, we can&apos;t recover your wallet. This is how
-                                self-custody works.
-                            </Notification>
-                        </div>
-                    </ModalPanelReplica>
-                    <ModalPanelReplica icon="info" title="What if I change phone?">
-                        {/* profile/backup change-phone faq modal, verbatim */}
-                        <div className="space-y-3 w-full">
-                            <ol className="list-decimal pl-6 text-left text-body-s text-foreground-primary">
-                                <li>Verify backup is working (check step 3 above)</li>
-                                <li>Know your Apple ID password</li>
-                                <li>Keep old phone until new one works</li>
-                            </ol>
-                            <Notification priority="success" title="iPhone → iPhone">
-                                Just sign in. Everything transfers.
-                            </Notification>
-                            <Notification priority="success" title="Android → Android">
-                                Sign into Google. Your wallet follows.
-                            </Notification>
-                            <Notification priority="attention" title="iPhone ↔ Android">
-                                Create new wallet on new device. Transfer your funds. Passkeys don&apos;t work
-                                cross-platform unless you are using a third party password manager such as 1Password.
-                            </Notification>
-                        </div>
-                    </ModalPanelReplica>
-                    <ModalPanelReplica title="🎉 You're unlocked" icon="globe-lock" cta="Start sending money">
-                        {/* WelcomeUnlockModal (via HomeModals), verbatim */}
-                        <div className="flex w-full flex-col items-start gap-2">
-                            <p>You can now:</p>
-                            <Notification
-                                priority="info"
-                                className="w-full"
-                                items={[
-                                    <p key="qr">
-                                        QR Payments in <b>Argentina and Brazil</b>
-                                    </p>,
-                                    <p key="us">
-                                        <b>United States</b> ACH and Wire transfers
-                                    </p>,
-                                    <p key="eu">
-                                        <b>Europe</b> SEPA transfers (+30 countries)
-                                    </p>,
-                                    <p key="mx">
-                                        <b>Mexico</b> SPEI transfers
-                                    </p>,
-                                ]}
-                            />
-                        </div>
-                    </ModalPanelReplica>
-                </div>
-            </section>
-
-            <VariantSection
-                label="E — modal body row"
-                rationale="Icon + Body/S at the modal's own body type step, no box. The note joins the description stack instead of interrupting it — a step louder than C, for notes that carry real content (the backup modals)."
-            >
-                <InModalComparison
-                    render={(p, title, copy) => (
-                        <ModalBodyNote priority={p} title={title}>
-                            {copy}
-                        </ModalBodyNote>
-                    )}
-                />
-            </VariantSection>
-
-            <VariantSection
-                label="F — footnote under the CTA"
-                rationale="Body/XS centered below the button, dimmed (error stays red). For caveats that today get a full tint block despite being the least important thing in the modal."
-            >
-                <InModalComparison
-                    footnote
-                    render={(p, _title, copy) => <ModalFootnote priority={p}>{copy}</ModalFootnote>}
-                />
-            </VariantSection>
-
-            <VariantSection
-                label="G — tinted chip"
-                rationale="Keeps a hint of the tinted background but at chip weight: Body/XS, 12px icon, 4px vertical padding. The tone survives without the slab — for modals where the color coding itself matters (backup success vs error)."
-            >
-                <InModalComparison
-                    render={(p, title, copy) => (
-                        <ModalChip priority={p} title={title}>
-                            {copy}
-                        </ModalChip>
-                    )}
-                />
-            </VariantSection>
-
-            <section className="flex flex-col gap-4">
-                <DevSectionLabel>variant A — full usage showcase</DevSectionLabel>
-                <p className="max-w-3xl text-body-s text-foreground-secondary">
-                    Every production render of Notification (96 inline call sites, grep-verified 2026-09-02) plus the
-                    toast surface as 6 configurations, rebuilt with the compact inline variant. The 48 flow/form error
-                    sites are sampled (4 shapes shown — they all share one shape); every other group is exhaustive. The
-                    14 in-modal sites render as their complete host modal/drawer. Real i18n/hardcoded copy; runtime-only
-                    messages carry representative copy and are marked.
-                </p>
-                <UsageShowcase
-                    render={(u) => (
-                        <CompactNotification
-                            priority={u.priority}
-                            title={u.title}
-                            items={u.items}
-                            hideIcon={u.hideIcon}
-                        >
-                            {u.body}
-                        </CompactNotification>
-                    )}
-                />
-            </section>
-
-            <section className="flex flex-col gap-4">
-                <DevSectionLabel>variant B — full usage showcase</DevSectionLabel>
-                <p className="max-w-3xl text-body-s text-foreground-secondary">
-                    The same usages rebuilt with the slim accent banner. As a toast the accent row sits on a white
-                    bordered pill (a floating element needs a surface; inline it stays transparent).
-                </p>
-                <UsageShowcase
-                    render={(u) => (
-                        <AccentNotification priority={u.priority} title={u.title} items={u.items} hideIcon={u.hideIcon}>
-                            {u.body}
-                        </AccentNotification>
-                    )}
-                />
-            </section>
+                </Fold>
+                <Fold summary="E — modal body row (icon + Body/S at the modal's own body type step)">
+                    <InModalComparison
+                        render={(p, title, copy) => (
+                            <ModalBodyNote priority={p} title={title}>
+                                {copy}
+                            </ModalBodyNote>
+                        )}
+                    />
+                </Fold>
+                <Fold summary="F — footnote under the CTA (Body/XS centered, dimmed; error stays red)">
+                    <InModalComparison
+                        footnote
+                        render={(p, _title, copy) => <ModalFootnote priority={p}>{copy}</ModalFootnote>}
+                    />
+                </Fold>
+                <Fold summary="G — tinted chip (badge-weight: Body/XS, 12px icon, 4px vertical padding)">
+                    <InModalComparison
+                        render={(p, title, copy) => (
+                            <ModalChip priority={p} title={title}>
+                                {copy}
+                            </ModalChip>
+                        )}
+                    />
+                </Fold>
+            </PageSection>
 
             <DevNoteCard title="Proposal notes">
                 All colors come from existing tokens: badge backgrounds, the icon-bubble accents, avatar foregrounds,
-                and the error semantics. No new colors, shadows, or radii. Current-component comparison renders live
-                above each context strip. Root cause of the double-icon toast bug: Toast passes caller content as
-                Notification children while Notification still prepends its priority icon — hideIcon is opt-in and
-                RainCooldownContext forgot it.
+                and the error semantics. No new colors, shadows, or radii. Root cause of the double-icon toast bug:
+                Toast passes caller content as Notification children while Notification still prepends its priority icon
+                — hideIcon is opt-in and RainCooldownContext forgot it.
             </DevNoteCard>
         </DevPageShell>
     )
