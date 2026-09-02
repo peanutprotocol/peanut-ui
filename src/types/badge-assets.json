@@ -79,8 +79,23 @@
             "sun"
         ],
         "badges": {
+            "ARBIVERSE_DEVCONNECT_BA_2025": ["crystal", "hex", "cheer"],
+            "BETA_TESTER": ["flask", "bubble", "wink"],
             "BUG_WHISPERER": ["beetle", "shell", "peek"],
-            "OFFRAMP_USER": ["bolt", "spark", "wink"]
+            "CARD_ALPHA": ["card", "swipe", "tape"],
+            "CARD_FIRST_SWIPE": ["card", "chip", "wink"],
+            "CARD_SPENT_1K": ["stack", "note", "cheer"],
+            "DEVCONNECT_BA_2025": ["sun", "rise", "wink"],
+            "ETHFLORIPA_HUB": ["eth", "island", "palm"],
+            "EVENT_ALUMNI": ["cap", "board", "wink"],
+            "IRL_NOMADS": ["pack", "roll", "pocket"],
+            "NAIJA": ["flag", "wave", "wink"],
+            "NITA": ["letter", "sparkle", "wink"],
+            "OFFRAMP_USER": ["bolt", "spark", "wink"],
+            "OG_2025_10_12": ["coin", "link", "shades"],
+            "SHHHHH": ["lips", "shush", "wink"],
+            "SUPPORT_SURVIVOR": ["beetle", "shell", "peek"],
+            "WAITLIST_SKIP": ["key", "keyhole", "wink"]
         }
     }
 }
