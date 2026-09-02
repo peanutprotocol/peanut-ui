@@ -136,6 +136,8 @@ jobs:
                   PR: ${{ steps.art.outputs.pr }}
                   RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
                   RUN_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+                  # numbers only, joined — safe to hand to the shell
+                  EVENT_PRS: ${{ join(github.event.workflow_run.pull_requests.*.number, ' ') }}
               run: |
                   set -euo pipefail
                   # The artifact name — and so the PR number — was chosen by
@@ -171,6 +173,25 @@ jobs:
                       echo "PR #$PR head (${HEAD:-<none>}) != run head ($RUN_HEAD_SHA $RUN_HEAD_BRANCH) — mismatched artifact name, stale run, or cross-branch writer. Skipping."
                       echo 'match=false' >> "$GITHUB_OUTPUT"
                       exit 0
+                  fi
+                  # Trusted cross-check when GitHub supplies it: the event's
+                  # pull_requests array names the run's originating PR(s).
+                  # The array is documented-unreliable (often empty), so an
+                  # empty array falls back to the sha+ref binding above
+                  # instead of silencing the publisher. When it is present,
+                  # the artifact's number must be in it — which closes the
+                  # last gap in the binding: a sibling PR on the SAME branch
+                  # and commit (same author, same tree) could otherwise be
+                  # named by the artifact and pass sha+ref.
+                  if [ -n "$EVENT_PRS" ]; then
+                      case " $EVENT_PRS " in
+                          *" $PR "*) ;;
+                          *)
+                              echo "PR #$PR is not among the run's originating PRs ($EVENT_PRS) — mismatched artifact name. Skipping."
+                              echo 'match=false' >> "$GITHUB_OUTPUT"
+                              exit 0
+                              ;;
+                      esac
                   fi
                   echo 'match=true' >> "$GITHUB_OUTPUT"
 
