@@ -1,5 +1,6 @@
 import { createPortal } from 'react-dom'
 import { useTranslations } from 'next-intl'
+import { QR_DRAWER_PASTE_GAP_PX, QR_DRAWER_PEEK_PX } from '@/constants/qr-drawer.consts'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
@@ -145,6 +146,23 @@ function PasteActions({
     )
 }
 
+// Below this height the stack under the scan square would run into the My QR
+// drawer peek, so the paste actions move to a strip pinned above it instead.
+const SHORT_VIEWPORT_QUERY = '(max-height: 729px)'
+
+function useShortViewport(): boolean {
+    const [isShort, setIsShort] = useState(false)
+    useEffect(() => {
+        if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
+        const mq = window.matchMedia(SHORT_VIEWPORT_QUERY)
+        const update = () => setIsShort(mq.matches)
+        update()
+        mq.addEventListener?.('change', update)
+        return () => mq.removeEventListener?.('change', update)
+    }, [])
+    return isShort
+}
+
 function ScanRegionOverlay({
     onPaste,
     detectedAddress,
@@ -159,6 +177,7 @@ function ScanRegionOverlay({
     onUsePasteChip: () => void
 }) {
     const t = useTranslations('global')
+    const isShortViewport = useShortViewport()
     return (
         <>
             <div className="fixed left-1/2 flex h-64 w-64 -translate-x-1/2 translate-y-1/2 justify-center">
@@ -174,9 +193,9 @@ function ScanRegionOverlay({
                     the scan square so the paste link reads as part of the scanner
                     rather than as a stray control above the My QR drawer. The
                     square is pinned to the top of the viewport and the drawer peek
-                    (QR_DRAWER_PEEK_PX) grows from the bottom; the badge row is what
-                    gives on a short screen — hidden below 730px so the paste chip
-                    never lands under the peek. */}
+                    (QR_DRAWER_PEEK_PX) grows from the bottom, so on a short screen
+                    (below 730px) this stack would run under the peek: the badge row
+                    hides and the paste actions move to the strip below instead. */}
                 <div
                     className="flex-column z-50 translate-y-[100%] transform items-center text-center"
                     data-testid="qr-scan-region"
@@ -191,16 +210,38 @@ function ScanRegionOverlay({
                             />
                         ))}
                     </div>
-                    <PasteActions
-                        className="mt-6"
-                        onPaste={onPaste}
-                        detectedAddress={detectedAddress}
-                        onUseDetected={onUseDetected}
-                        showPasteChip={showPasteChip}
-                        onUsePasteChip={onUsePasteChip}
-                    />
+                    {!isShortViewport && (
+                        <PasteActions
+                            className="mt-6"
+                            onPaste={onPaste}
+                            detectedAddress={detectedAddress}
+                            onUseDetected={onUseDetected}
+                            showPasteChip={showPasteChip}
+                            onUsePasteChip={onUsePasteChip}
+                        />
+                    )}
                 </div>
             </div>
+            {/* Short viewports: the same actions, bottom-constrained just above the
+                drawer peek so the z-60 drawer never covers them. Tailwind can't JIT
+                the interpolated offset, hence the inline style. */}
+            {isShortViewport && (
+                <div
+                    className="pointer-events-none fixed inset-x-0 z-50 flex flex-col items-center"
+                    style={{ bottom: QR_DRAWER_PEEK_PX + QR_DRAWER_PASTE_GAP_PX }}
+                    data-testid="qr-paste-strip"
+                >
+                    <div className="pointer-events-auto flex flex-col items-center">
+                        <PasteActions
+                            onPaste={onPaste}
+                            detectedAddress={detectedAddress}
+                            onUseDetected={onUseDetected}
+                            showPasteChip={showPasteChip}
+                            onUsePasteChip={onUsePasteChip}
+                        />
+                    </div>
+                </div>
+            )}
         </>
     )
 }

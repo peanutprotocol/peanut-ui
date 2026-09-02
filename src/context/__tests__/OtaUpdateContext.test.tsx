@@ -146,3 +146,38 @@ it('escalates a restart that left the old bundle running', async () => {
     )
     expect(window.localStorage.getItem('capgoPendingApply')).toBeNull()
 })
+
+it('does not exit while the fallback re-download is still running after set() rejects', async () => {
+    mockUpdater.set.mockRejectedValue(new Error('no index.html'))
+    let finishDownload!: () => void
+    mockUpdater.getLatest.mockReset().mockReturnValue(
+        new Promise((resolve) => {
+            finishDownload = () => resolve({ url: 'https://cdn.test/b-3.zip', version: '1.3.0' })
+        })
+    )
+    mockUpdater.download.mockResolvedValue({ ...STAGED, id: 'b-3', version: '1.3.0' })
+    const { result } = await withStagedBundle()
+
+    act(() => {
+        void result.current.applyNow()
+    })
+    // the recovery download outlives the set() watchdog: nothing may exit yet
+    await act(async () => {
+        await jest.advanceTimersByTimeAsync(5_000)
+    })
+    expect(mockExitApp).not.toHaveBeenCalled()
+    expect(mockUpdater.reload).not.toHaveBeenCalled()
+
+    await act(async () => {
+        finishDownload()
+        await Promise.resolve()
+    })
+    await waitFor(() => expect(mockUpdater.reload).toHaveBeenCalled())
+    expect(mockExitApp).not.toHaveBeenCalled()
+
+    // reload() issued and the page is still here: now the fallback applies
+    await act(async () => {
+        await jest.advanceTimersByTimeAsync(3_000)
+    })
+    expect(mockExitApp).toHaveBeenCalled()
+})

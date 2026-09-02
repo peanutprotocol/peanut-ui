@@ -77,23 +77,33 @@ export function OtaUpdateProvider({ children }: { children: React.ReactNode }) {
     const applyNow = useCallback(async () => {
         if (!pendingBundle || applyState !== 'idle') return
         setApplyState('applying')
+        const armWatchdog = () => {
+            clearTimeout(fallbackTimer.current)
+            fallbackTimer.current = setTimeout(() => {
+                if (!isAndroidNativeBridge()) {
+                    setApplyState('manual-restart')
+                    return
+                }
+                import('@capacitor/app')
+                    .then(({ App }) => App.exitApp())
+                    .catch((err) => console.warn('[capgo] exitApp failed:', err))
+            }, RELOAD_GRACE_MS)
+        }
         // Armed before set(): a set() that neither reloads nor rejects would
         // otherwise leave the promise pending and the fallback never scheduled.
-        fallbackTimer.current = setTimeout(() => {
-            if (!isAndroidNativeBridge()) {
-                setApplyState('manual-restart')
-                return
-            }
-            import('@capacitor/app')
-                .then(({ App }) => App.exitApp())
-                .catch((err) => console.warn('[capgo] exitApp failed:', err))
-        }, RELOAD_GRACE_MS)
+        // A rejected set() hands over to a re-download, which must not be cut
+        // short — the watchdog is dropped for its duration and re-armed once
+        // reload() has been issued.
+        armWatchdog()
         try {
             const { applyStagedBundle } = await import('@/utils/capgo-updater')
-            await applyStagedBundle(pendingBundle.id)
+            await applyStagedBundle(pendingBundle.id, {
+                onSetRejected: () => clearTimeout(fallbackTimer.current),
+            })
         } catch (err) {
             console.warn('[capgo] apply failed:', err)
         }
+        armWatchdog()
     }, [pendingBundle, applyState])
 
     const value = useMemo(

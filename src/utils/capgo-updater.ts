@@ -161,7 +161,7 @@ function isNewerBinaryRejection(message: string): boolean {
 // gone, no index.html) re-stages through the normal check and reloads.
 const PENDING_APPLY_KEY = 'capgoPendingApply'
 
-export async function applyStagedBundle(bundleId: string): Promise<void> {
+export async function applyStagedBundle(bundleId: string, hooks: { onSetRejected?: () => void } = {}): Promise<void> {
     const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
     writeStoredValue(PENDING_APPLY_KEY, bundleId)
     try {
@@ -171,6 +171,7 @@ export async function applyStagedBundle(bundleId: string): Promise<void> {
             '[capgo] set() rejected, re-staging before reload:',
             err instanceof Error ? err.message : String(err)
         )
+        hooks.onSetRejected?.()
         await queueUpdateCheck()
         await CapacitorUpdater.reload()
     }

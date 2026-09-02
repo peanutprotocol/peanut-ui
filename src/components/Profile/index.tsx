@@ -22,7 +22,7 @@ import Image from 'next/image'
 import { useOtaUpdate } from '@/context/OtaUpdateContext'
 import OtaUpdateModal from './components/OtaUpdateModal'
 import { openStore } from '@/utils/migration.utils'
-import { MIGRATION_SURFACES } from '@/constants/migration.consts'
+import { IOS_APP_STORE_LISTING_LIVE, MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { isIOSNative } from '@/utils/capacitor'
 
 export const Profile = () => {
@@ -47,6 +47,7 @@ export const Profile = () => {
     const { locale } = useAppLocale()
     const { pendingBundle, storeUpdateRequired } = useOtaUpdate()
     const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
+    const storeUpdateOffered = storeUpdateRequired && (!isIOSNative() || IOS_APP_STORE_LISTING_LIVE)
     // a staged OTA bundle wins over the store hint: it is already on the device
     const onUpdateTap = () => {
         if (pendingBundle) setIsUpdateModalOpen(true)
@@ -142,7 +143,7 @@ export const Profile = () => {
                             the path and opens the in-app browser in Capacitor */}
                         <ProfileMenuItem icon="question-mark" label={t('menu.help')} href="/en/help" isDocsLink />
                         <ProfileMenuItem icon="info" label={t('menu.about')} href="/profile/about" />
-                        {(pendingBundle || storeUpdateRequired) && (
+                        {(pendingBundle || storeUpdateOffered) && (
                             <ProfileMenuItem
                                 icon="download"
                                 label={t('menu.updateAvailable')}

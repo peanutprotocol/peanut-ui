@@ -8,6 +8,7 @@
  * probes prompt-free `hasStrings` and reads on the chip TAP; web/PWA does
  * neither.
  */
+import { QR_DRAWER_PASTE_GAP_PX, QR_DRAWER_PEEK_PX } from '@/constants/qr-drawer.consts'
 import React from 'react'
 import { render as rtlRender, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
@@ -271,4 +272,30 @@ it('paste actions sit under the scan square, after the payment badges', async ()
     expect(link.closest('[style*="bottom"]')).toBeNull()
     const badges = screen.getByText('Mercado Pago')
     expect(badges.compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+})
+
+it('short viewports: the paste actions move to a strip pinned above the My QR drawer', async () => {
+    mockIsAndroidNative.mockReturnValue(false)
+    mockHasStrings.mockResolvedValue(false)
+    const matchMedia = window.matchMedia
+    Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        value: (query: string) => ({
+            matches: query.includes('max-height'),
+            media: query,
+            addEventListener: jest.fn(),
+            removeEventListener: jest.fn(),
+        }),
+    })
+    try {
+        renderScanner()
+
+        const link = await screen.findByText('Click to paste')
+        expect(link.closest('[data-testid="qr-scan-region"]')).toBeNull()
+        const strip = link.closest('[data-testid="qr-paste-strip"]') as HTMLElement | null
+        expect(strip).not.toBeNull()
+        expect(strip!.style.bottom).toBe(`${QR_DRAWER_PEEK_PX + QR_DRAWER_PASTE_GAP_PX}px`)
+    } finally {
+        Object.defineProperty(window, 'matchMedia', { writable: true, value: matchMedia })
+    }
 })
