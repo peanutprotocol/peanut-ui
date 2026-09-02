@@ -183,7 +183,7 @@ export const CountryCombobox = ({
                     id={listId}
                     role="listbox"
                     aria-label={ariaLabel ?? placeholder}
-                    className="notranslate mt-1 max-h-60 w-full overflow-y-auto rounded-sm border border-border-default bg-white p-1 shadow-lg"
+                    className="notranslate mt-1 max-h-60 w-full overflow-y-auto rounded-sm border border-border-default bg-background-default p-1 shadow-lg"
                     // usePullToRefresh listens on `document` and only bails on window.scrollY > 0,
                     // so scrolling this list at page top reads as a pull. Same guard as Global/Drawer.
                     onTouchMove={(event) => event.stopPropagation()}
@@ -207,7 +207,7 @@ export const CountryCombobox = ({
                                 className={twMerge(
                                     'flex w-full cursor-pointer items-center rounded-sm px-3 py-2 text-label-l transition-colors select-none',
                                     index === activeIndex && 'bg-gray-200',
-                                    isSelected && 'bg-action-primary text-white'
+                                    isSelected && 'bg-action-primary text-foreground-inverse'
                                 )}
                             >
                                 <span>{option.label}</span>

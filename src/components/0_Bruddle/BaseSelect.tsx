@@ -95,7 +95,7 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
                             // Radix measured (which honours collisionPadding below),
                             // so a long list shrinks and scrolls instead of running
                             // under the nav.
-                            'relative z-50 max-h-[min(20rem,var(--radix-select-content-available-height))] overflow-hidden rounded-sm border border-border-default bg-white shadow-lg'
+                            'relative z-50 max-h-[min(20rem,var(--radix-select-content-available-height))] overflow-hidden rounded-sm border border-border-default bg-background-default shadow-lg'
                         )}
                         position="popper"
                         sideOffset={4}
@@ -115,7 +115,7 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
                                         'relative flex w-full cursor-pointer items-center rounded-sm px-3 py-2 text-label-l outline-none select-none',
                                         'transition-colors',
                                         'hover:bg-gray-200 focus:bg-gray-200',
-                                        'data-[state=checked]:bg-action-primary data-[state=checked]:text-white'
+                                        'data-[state=checked]:bg-action-primary data-[state=checked]:text-foreground-inverse'
                                     )}
                                 >
                                     <ItemText className="text-label-l">{option.label}</ItemText>

@@ -327,19 +327,18 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
 
     if (!step) return null
 
-    // Happy-path funnel steps render as the 3-item getting-started checklist
-    // (one status language with the Unlock payments screen). Interrupts keep
-    // their dedicated card below — provider rejections, email blocks, and the
-    // region-restricted terminal explanation, which outranks the checklist:
-    // every step on the list (bank money in, the card) is a door this user
-    // cannot open, so offering the list would be dishonest.
-    if (!hasProviderRejection && !isRegionRestricted) {
-        // The checklist is the Home empty state (product decision, TASK-22114):
-        // once money has moved on the account the activity list takes its
-        // place, even while activation itself is still open.
-        const hasActivity = activationStep === 'outbound' || activationStep === 'card'
-        return hasActivity ? null : <GettingStartedChecklist />
-    }
+    // The 3-item checklist is the Home empty state (product decision,
+    // TASK-22114): pre-funding it is the whole card slot; once money has moved
+    // the activity list takes its place. Everything else falls through to the
+    // single-step card below —
+    //   • `outbound` / `card`: funded but NOT yet activated. Activation still
+    //     needs a spend, so the one remaining step keeps a CTA. Dropping it
+    //     stranded funded accounts with no route to the spend (and to Rewards).
+    //   • provider rejections, email blocks, and the region-restricted
+    //     explanation, which outranks the checklist: every step on the list is
+    //     a door that user cannot open, so offering the list would be dishonest.
+    const isFundedNotActivated = activationStep === 'outbound' || activationStep === 'card'
+    if (!hasProviderRejection && !isRegionRestricted && !isFundedNotActivated) return <GettingStartedChecklist />
 
     return (
         <Card position="single" className="p-0">

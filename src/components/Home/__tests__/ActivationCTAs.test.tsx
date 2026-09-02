@@ -246,14 +246,24 @@ describe('ActivationCTAs — happy path renders the checklist', () => {
         expect(screen.getByText('getting-started-checklist')).toBeInTheDocument()
     })
 
-    it.each(['outbound', 'card'] as const)(
-        '%s step (money has moved) hides the checklist — it is the empty state',
-        (step) => {
-            const { container } = render(<ActivationCTAs activationStep={step} />)
-            expect(screen.queryByText('getting-started-checklist')).not.toBeInTheDocument()
-            expect(container.firstChild).toBeNull()
-        }
-    )
+    // Funded but not activated: the checklist stands down for the activity
+    // list, but the remaining step must still offer a way to reach the spend.
+    it.each([
+        ['outbound', 'Make your first payment'],
+        ['card', 'Spend anywhere Visa is accepted'],
+    ] as const)('%s step drops the checklist for the single remaining step card', (step, title) => {
+        render(<ActivationCTAs activationStep={step} />)
+        expect(screen.queryByText('getting-started-checklist')).not.toBeInTheDocument()
+        expect(screen.getByText(title)).toBeInTheDocument()
+    })
+
+    it('outbound without card access sends the user to /send, not the QR scanner', () => {
+        mockHasCardAccess = false
+        render(<ActivationCTAs activationStep="outbound" />)
+        fireEvent.click(screen.getByText('Start Spending'))
+        expect(mockPush).toHaveBeenCalledWith('/send')
+        expect(mockSetIsQRScannerOpen).not.toHaveBeenCalled()
+    })
 
     it('completed without rejection renders nothing', () => {
         const { container } = render(<ActivationCTAs activationStep="completed" />)

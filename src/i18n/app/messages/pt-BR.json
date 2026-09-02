@@ -100,7 +100,7 @@
                 },
                 "outbound": {
                     "title": "Faça seu primeiro pagamento",
-                    "description": "Comece a pagar códigos QR do Pix e do MercadoPago",
+                    "description": "Envie alguns dólares para um usuário Peanut, um nome ENS ou um endereço de carteira. Chega em segundos.",
                     "cta": "Começar a gastar"
                 }
             },

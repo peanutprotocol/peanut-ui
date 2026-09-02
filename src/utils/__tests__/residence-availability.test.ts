@@ -1,15 +1,18 @@
 import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 import { LOCAL_RESIDENCE_RESTRICTION_SETS } from '@/hooks/useResidenceRestrictionSets'
-import { residenceAvailability, type AvailabilityRailKey } from '@/utils/residence-availability'
-import { isBridgeSupportedCountry } from '@/utils/regions.utils'
+import { bankRailsFor, residenceAvailability, type AvailabilityRailKey } from '@/utils/residence-availability'
+import { isBridgeSupportedCountry, regionIntentForResidence } from '@/utils/regions.utils'
+import { buildResidenceCountryOptions } from '@/utils/residence-options'
 import { buildUnlockGroups, type UnlockRowLabelKey } from '@/utils/unlock-payments.utils'
 
 const sets = LOCAL_RESIDENCE_RESTRICTION_SETS
 
 describe('residenceAvailability', () => {
-    it('a Bridge-served residence lists every Bridge rail, its own currency first', () => {
+    it('a residence whose intent is Bridge lists the Bridge set, its own currency first', () => {
+        expect(regionIntentForResidence('PT')).toBe('EU')
         expect(residenceAvailability(sets, 'PT').available).toEqual(['p2p', 'eurSepa', 'gbpFps', 'usdAch', 'card'])
         expect(residenceAvailability(sets, 'DE').available).toEqual(['p2p', 'eurSepa', 'gbpFps', 'usdAch', 'card'])
+        expect(regionIntentForResidence('US')).toBe('NA')
         expect(residenceAvailability(sets, 'US').available).toEqual(['p2p', 'usdAch', 'eurSepa', 'gbpFps', 'card'])
     })
 
@@ -24,11 +27,22 @@ describe('residenceAvailability', () => {
         ])
     })
 
-    it('Brazil and Argentina ride Manteca only — they are not in the Bridge map', () => {
-        expect(isBridgeSupportedCountry('BR')).toBe(false)
-        expect(isBridgeSupportedCountry('AR')).toBe(false)
+    it('a LATAM residence lists its own QR rail and no Bridge rail', () => {
+        expect(regionIntentForResidence('BR')).toBe('LATAM')
+        expect(regionIntentForResidence('AR')).toBe('LATAM')
         expect(residenceAvailability(sets, 'BR').available).toEqual(['p2p', 'pix', 'card'])
         expect(residenceAvailability(sets, 'AR').available).toEqual(['p2p', 'arQr', 'card'])
+    })
+
+    // The promise is derived from the residence's verification intent, so a
+    // residence no bank provider onboards cannot be told about a rail — even
+    // when Bridge's document map happens to list its country.
+    it('a ROW-intent residence never names a rail, whatever the Bridge map says', () => {
+        for (const iso2 of ['GB', 'JP', 'NG']) {
+            expect(regionIntentForResidence(iso2)).toBe('ROW')
+            expect(bankRailsFor(iso2)).toEqual(['bank'])
+        }
+        expect(isBridgeSupportedCountry('GB')).toBe(true)
     })
 
     it('rest of world reads bank transfers where supported, never a specific rail', () => {
@@ -54,9 +68,12 @@ describe('residenceAvailability', () => {
     })
 })
 
-// The signup summary and the Unlock payments screen must tell one story: every
-// rail the summary lists for a residence has to be an unlockable row on Unlock
-// payments for that same residence.
+// Drift guard between the two surfaces that render the same static rail
+// knowledge. This does NOT establish that a rail serves a residence — that
+// comes from the residence's verification intent (`bankRailsFor`, asserted
+// above against `regionIntentForResidence`). What it catches is the DS-review
+// failure itself: signup naming a rail that Unlock payments then shows as
+// unavailable for the same residence.
 describe('residenceAvailability vs buildUnlockGroups', () => {
     const ROW_FOR_RAIL: Record<AvailabilityRailKey, UnlockRowLabelKey> = {
         pix: 'saBank',
@@ -81,18 +98,26 @@ describe('residenceAvailability vs buildUnlockGroups', () => {
         }).flatMap((group) => group.rows)
     }
 
-    it.each(['PT', 'DE', 'GB', 'US', 'MX', 'BR', 'AR', 'NG', 'JP', 'TR', 'RU'])(
-        'every rail the summary lists for %s is an unlockable row on Unlock payments',
-        (iso2) => {
-            const rails = residenceAvailability(sets, iso2).available.filter(isRail)
+    // Every country the residence picker offers, not a hand-picked sample — a
+    // new country in `countryData` cannot slip through with a rail promise
+    // Unlock payments contradicts.
+    const everyResidence = buildResidenceCountryOptions('en').map((option) => option.value)
+
+    it('every rail the summary lists is an unlockable row on Unlock payments, for every residence', () => {
+        expect(everyResidence.length).toBeGreaterThan(50)
+        for (const iso2 of everyResidence) {
             const rows = unlockRowsFor(iso2)
-            for (const rail of rails) {
+            for (const rail of residenceAvailability(sets, iso2).available.filter(isRail)) {
                 const row = rows.find((candidate) => candidate.labelKey === ROW_FOR_RAIL[rail])
-                expect(row).toBeDefined()
-                expect(row?.chip).not.toBe('notAvailable')
+                expect({ iso2, rail, defined: !!row, chip: row?.chip }).toEqual({
+                    iso2,
+                    rail,
+                    defined: true,
+                    chip: expect.not.stringMatching(/^notAvailable$/),
+                })
             }
         }
-    )
+    })
 
     it('a banking-restricted residence lists no rail and Unlock payments marks every bank row unavailable', () => {
         for (const iso2 of ['JP', 'RU']) {

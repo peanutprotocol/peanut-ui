@@ -1,6 +1,7 @@
 import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 import { type ResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
-import { isBridgeSupportedCountry } from '@/utils/regions.utils'
+import { regionIntentForResidence } from '@/utils/regions.utils'
+import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 
 /** i18n keys under setup.residenceStep.compare.items */
 export type AvailabilityItemKey = 'p2p' | 'pix' | 'arQr' | 'spei' | 'usdAch' | 'eurSepa' | 'gbpFps' | 'bank' | 'card'
@@ -16,30 +17,50 @@ export interface ResidenceAvailability {
 }
 
 /**
- * One Bridge verification opens every Bridge virtual-account rail at once
- * (`deriveRegionAccess` unlocks Europe and North America from any functional
- * Bridge rail), so a Bridge-served residence lists the whole set, its own
- * currency first. SPEI is the exception: Bridge issues MXN accounts to Mexican
- * residents only. PIX and Argentine QR ride Manteca, which onboards BR/AR
- * residents alone — those two are not in the Bridge map.
+ * Which rails a residence's verification actually enrols, keyed by the intent
+ * `regionIntentForResidence` routes that residence to. FE mirror of
+ * peanut-api-ts `REGION_RAIL_MAP` (src/kyc/rails.consts.ts): EU and NA both
+ * enrol the whole Bridge set from one verification, LATAM enrols the Manteca
+ * QR pool, ROW enrols no bank rail at all.
+ *
+ * Deriving the signup promise from the intent — rather than from "is this
+ * country in the Bridge map" — keeps it scoped to the residence by
+ * construction: a UK, sanctioned or Bridge-unserved residence maps to ROW and
+ * can never be told about a rail its verification would not open.
+ *
+ * Two deliberate narrowings of REGION_RAIL_MAP, both because the provider
+ * issues the account to one residence only: SPEI_MX (Bridge mints MXN
+ * accounts for Mexican residents) and the LATAM QR rails (Manteca onboards
+ * BR and AR one country each). They are listed via HOME_RAIL instead.
  */
 const BRIDGE_RAILS: readonly AvailabilityRailKey[] = ['eurSepa', 'gbpFps', 'usdAch']
 
-const LOCAL_RAIL: Readonly<Record<string, AvailabilityRailKey>> = {
+const INTENT_RAILS: Readonly<Record<KYCRegionIntent, readonly AvailabilityRailKey[]>> = {
+    STANDARD: BRIDGE_RAILS,
+    EU: BRIDGE_RAILS,
+    NA: BRIDGE_RAILS,
+    LATAM: [],
+    ROW: [],
+}
+
+/**
+ * The residence's own-currency rail, listed first — what the user pays and gets
+ * paid in at home. The static intent map is the conservative floor; the
+ * server-provided restriction tiers gate above it in `residenceAvailability`,
+ * so a residence the server restricts lists nothing whatever this map says.
+ */
+const HOME_RAIL: Readonly<Record<string, AvailabilityRailKey>> = {
     BR: 'pix',
     AR: 'arQr',
     MX: 'spei',
     US: 'usdAch',
-    GB: 'gbpFps',
 }
 
 export function bankRailsFor(iso2: string): AvailabilityItemKey[] {
     const code = iso2.toUpperCase()
-    const local = LOCAL_RAIL[code]
-    const rails: AvailabilityItemKey[] = local ? [local] : []
-    if (isBridgeSupportedCountry(code)) {
-        for (const rail of BRIDGE_RAILS) if (rail !== local) rails.push(rail)
-    }
+    const home = HOME_RAIL[code]
+    const rails: AvailabilityItemKey[] = home ? [home] : []
+    for (const rail of INTENT_RAILS[regionIntentForResidence(code)]) if (rail !== home) rails.push(rail)
     // rest of world: bank rails read as "where supported", never a specific one
     return rails.length ? rails : ['bank']
 }

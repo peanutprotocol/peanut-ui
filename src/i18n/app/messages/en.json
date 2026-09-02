@@ -100,7 +100,7 @@
                 },
                 "outbound": {
                     "title": "Make your first payment",
-                    "description": "Start paying to Pix and MercadoPago QR codes",
+                    "description": "Send a few dollars to a Peanut user, ENS name or wallet address. It lands in seconds.",
                     "cta": "Start Spending"
                 }
             },

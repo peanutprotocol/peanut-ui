@@ -110,4 +110,11 @@ describe('regionIntentForResidence', () => {
         // Colombia's Manteca rail is deactivated: not LATAM until it comes back
         expect(regionIntentForResidence('CO')).toBe('ROW')
     })
+
+    // Same class as the GB block: Bridge lists the country but does not onboard
+    // its residents, so a Bridge level could only end on a terminal rejection.
+    it('routes a Bridge banking exclusion to the provider-less level', () => {
+        expect(regionIntentForResidence('JP')).toBe('ROW')
+        expect(regionIntentForResidence('dz')).toBe('ROW')
+    })
 })
