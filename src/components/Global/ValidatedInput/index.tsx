@@ -236,7 +236,7 @@ const ValidatedInput = ({
                                 </div>
                             ) : !!isSetupFlow && !isValid && !isInputChanging ? (
                                 <div className="mr-2 flex h-full items-center justify-center rounded-full">
-                                    <Icon size={20} className="text-error" name="error" />
+                                    <Icon size={20} className="text-foreground-error" name="error" />
                                 </div>
                             ) : !!isSetupFlow && !!isValid && !isInputChanging ? (
                                 <div className="mr-2 flex size-5 items-center justify-center rounded-full bg-background-icon-bubble-green">

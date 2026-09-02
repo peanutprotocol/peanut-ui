@@ -166,7 +166,7 @@ const ResidenceChangeModal = ({
                                   : t('bankingRestrictionNote')}
                         </p>
                     )}
-                    {error && <p className="text-body-xs text-error">{error}</p>}
+                    {error && <p className="text-body-xs text-foreground-error">{error}</p>}
                 </div>
             }
             descriptionClassName="text-black"
