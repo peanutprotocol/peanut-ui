@@ -47,10 +47,13 @@ jest.mock('@capacitor/device', () => ({
     Device: { getLanguageTag: (...args: unknown[]) => mockGetLanguageTag(...args) },
 }))
 
-const mockGetInfo = jest.fn()
+const mockGetBinaryInfo = jest.fn()
 
-jest.mock('@capacitor/app', () => ({
-    App: { getInfo: (...args: unknown[]) => mockGetInfo(...args) },
+// Mocked at the consumer boundary, not as @capacitor/app: a module mock of the
+// plugin here collided with another suite's virtual mock of it in the same
+// worker and made that suite read the real plugin.
+jest.mock('@/utils/app-version', () => ({
+    getBinaryInfo: (...args: unknown[]) => mockGetBinaryInfo(...args),
 }))
 
 function setNavigatorLanguage(value: string): void {
@@ -191,7 +194,7 @@ describe('emitDeviceContextToAnalytics', () => {
     // binary's own, which only the native bridge can answer.
     it('registers the binary version and build on the native bridge', async () => {
         arrangeNativeBridge()
-        mockGetInfo.mockResolvedValue({ version: '1.1.0', build: '42' })
+        mockGetBinaryInfo.mockResolvedValue({ appVersion: '1.1.0', appBuild: '42' })
         const store = freshStore()
         await store.emitDeviceContextToAnalytics()
         expect(mockRegister).toHaveBeenCalledWith(
@@ -209,12 +212,13 @@ describe('emitDeviceContextToAnalytics', () => {
         const [registered] = mockRegister.mock.calls[0]
         expect(registered).not.toHaveProperty('binary_version')
         expect(registered).not.toHaveProperty('binary_build')
-        expect(mockGetInfo).not.toHaveBeenCalled()
+        expect(mockGetBinaryInfo).not.toHaveBeenCalled()
     })
 
     it('still registers the rest of the context when the binary read fails', async () => {
         arrangeNativeBridge()
-        mockGetInfo.mockRejectedValue(new Error('plugin missing'))
+        // app-version swallows a missing plugin and answers null
+        mockGetBinaryInfo.mockResolvedValue(null)
         const store = freshStore()
         await store.emitDeviceContextToAnalytics()
         const [registered] = mockRegister.mock.calls[0]
