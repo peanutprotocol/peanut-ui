@@ -9,12 +9,13 @@
  * and the notify exit validates the email before capturing it.
  */
 import React from 'react'
-import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent, act } from '@testing-library/react'
 import posthog from 'posthog-js'
 import { IntlWrapper } from '@/test-utils/intl'
 import ResidenceStep from '@/components/Setup/Views/Residence'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { dispatchBackPress, resetBackHandlersForTests } from '@/utils/back-handler'
 
 const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
@@ -26,8 +27,9 @@ jest.mock('@/redux/hooks', () => ({
 }))
 
 const mockHandleNext = jest.fn()
+let mockIsLoading = false
 jest.mock('@/hooks/useSetupFlow', () => ({
-    useSetupFlow: () => ({ handleNext: mockHandleNext, isLoading: false }),
+    useSetupFlow: () => ({ handleNext: mockHandleNext, isLoading: mockIsLoading }),
 }))
 
 let mockGeoCountry: string | null = null
@@ -60,6 +62,8 @@ jest.mock('@/hooks/useResidenceRestrictionSets', () => {
 describe('ResidenceStep', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        resetBackHandlersForTests()
+        mockIsLoading = false
         mockSetupState = { residenceCountry: '', secondResidenceCountry: '' }
         mockGeoCountry = null
         mockRestrictionSets = undefined
@@ -334,5 +338,55 @@ describe('ResidenceStep', () => {
         fireEvent.click(screen.getByText('Choose a different country'))
         expect(screen.queryByText('Heads up')).not.toBeInTheDocument()
         expect(screen.getByText('Have documents from more than one country?')).toBeInTheDocument()
+    })
+
+    describe('hardware back', () => {
+        it('returns to the selector from a heads-up sub-view', () => {
+            mockSetupState.residenceCountry = 'CN'
+            render(<ResidenceStep />)
+            fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+            expect(screen.getByRole('heading', { level: 1, name: 'Heads up' })).toBeInTheDocument()
+
+            let consumed = false
+            act(() => {
+                consumed = dispatchBackPress()
+            })
+            expect(consumed).toBe(true)
+            expect(screen.queryByText('Heads up')).not.toBeInTheDocument()
+            expect(screen.getByText('Have documents from more than one country?')).toBeInTheDocument()
+        })
+
+        it('returns to the selector from the congrats view', () => {
+            mockSetupState.residenceCountry = 'BR'
+            render(<ResidenceStep />)
+            fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+            expect(screen.getByRole('heading', { level: 1, name: 'Good news' })).toBeInTheDocument()
+
+            act(() => {
+                dispatchBackPress()
+            })
+            expect(screen.queryByText('Good news')).not.toBeInTheDocument()
+            expect(screen.getByRole('button', { name: 'Next' })).toBeInTheDocument()
+        })
+
+        it('does not intercept on the selector itself', () => {
+            render(<ResidenceStep />)
+            expect(dispatchBackPress()).toBe(false)
+        })
+
+        it('consumes but holds the sub-view while the step is advancing', () => {
+            mockSetupState.residenceCountry = 'CN'
+            const view = render(<ResidenceStep />)
+            fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+            mockIsLoading = true
+            view.rerender(<ResidenceStep />)
+
+            let consumed = false
+            act(() => {
+                consumed = dispatchBackPress()
+            })
+            expect(consumed).toBe(true)
+            expect(screen.getByRole('heading', { level: 1, name: 'Heads up' })).toBeInTheDocument()
+        })
     })
 })

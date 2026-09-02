@@ -6,16 +6,18 @@ import SignTestTransaction from '../SignTestTransaction'
 const WALLET = '0x1111111111111111111111111111111111111111'
 
 const mockRouterPush = jest.fn()
+const mockRouterReplace = jest.fn()
 const mockAddAccount = jest.fn()
 const mockSendUserOp = jest.fn()
 
 let accounts: Array<{ type: string }> = []
 
 // useAccountSetup is deliberately NOT mocked: the bug this locks down was a
-// router.push inside finalizeAccountSetup, which no component-level mock of
-// that hook could ever catch.
+// router navigation inside finalizeAccountSetup, which no component-level mock
+// of that hook could ever catch. The terminal leg replaces (never pushes) so
+// hardware back from /home cannot land on a finished setup.
 jest.mock('next/navigation', () => ({
-    useRouter: () => ({ push: mockRouterPush }),
+    useRouter: () => ({ push: mockRouterPush, replace: mockRouterReplace }),
     useSearchParams: () => ({ get: () => null }),
 }))
 
@@ -64,9 +66,11 @@ describe('SignTestTransaction — the account-ready screen', () => {
         await screen.findByText(/works right now/i)
         await waitFor(() => expect(mockAddAccount).toHaveBeenCalled())
         expect(mockRouterPush).not.toHaveBeenCalled()
+        expect(mockRouterReplace).not.toHaveBeenCalled()
 
         fireEvent.click(screen.getByRole('button', { name: /go to my account/i }))
-        expect(mockRouterPush).toHaveBeenCalledWith('/home')
+        expect(mockRouterReplace).toHaveBeenCalledWith('/home')
+        expect(mockRouterPush).not.toHaveBeenCalled()
     })
 
     it('consumes the stored route once, however fast the CTA is tapped', async () => {
@@ -83,7 +87,7 @@ describe('SignTestTransaction — the account-ready screen', () => {
         fireEvent.click(cta)
         fireEvent.click(cta)
 
-        expect(mockRouterPush).toHaveBeenCalledTimes(1)
-        expect(mockRouterPush).toHaveBeenCalledWith('/receipt?id=abc')
+        expect(mockRouterReplace).toHaveBeenCalledTimes(1)
+        expect(mockRouterReplace).toHaveBeenCalledWith('/receipt?id=abc')
     })
 })

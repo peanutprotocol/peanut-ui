@@ -9,6 +9,7 @@
 import { ConsoleGreeting } from '@/components/Global/ConsoleGreeting'
 import { ScreenOrientationLocker } from '@/components/Global/ScreenOrientationLocker'
 import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapper'
+import { UnsupportedWebViewScreen, hasUnsupportedWebViewBypass } from '@/components/Global/UnsupportedWebViewScreen'
 import { MarketingIntlProvider } from '@/i18n/app/MarketingIntlProvider'
 import { PeanutProvider } from '@/config/peanut.config'
 import { ContextProvider } from '@/context/contextProvider'
@@ -19,6 +20,7 @@ import { useNativeAppLinks } from '@/hooks/useNativeAppLinks'
 import { useOtaUpdates } from '@/hooks/useOtaUpdates'
 import { useSplashGate } from '@/hooks/useSplashGate'
 import { useZeroLegacyAndroidSafeAreaInsets } from '@/hooks/useZeroLegacyAndroidSafeAreaInsets'
+import { applyLegacyAndroidSafeAreaZeroFromUserAgent, isCapacitor, isWebViewCssSupported } from '@/utils/capacitor'
 import { isMarketingRoute } from '@/utils/marketing-routes'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import dynamic from 'next/dynamic'
@@ -41,6 +43,16 @@ if (DEV_TOOLS_ENABLED && typeof window !== 'undefined') {
     import('@/dev/devsync-agent').then((m) => m.initDevsyncAgent())
 }
 
+// Module scope so it lands before hydration: the first paint on Android < 15
+// would otherwise show the phantom safe-area band until the async Device.getInfo
+// pass (useZeroLegacyAndroidSafeAreaInsets, still authoritative) corrects it.
+if (typeof window !== 'undefined') applyLegacyAndroidSafeAreaZeroFromUserAgent()
+
+// Decided once at load, client only. A WebView that cannot parse the
+// stylesheet gets the inline-styled update screen in place of the app tree.
+const UNSUPPORTED_WEBVIEW =
+    typeof window !== 'undefined' && isCapacitor() && !isWebViewCssSupported() && !hasUnsupportedWebViewBypass()
+
 const AppGlobals = dynamic(() => import('./AppGlobals').then((m) => m.AppGlobals))
 // The full message catalog is 129 KB; app routes load it as their own chunk.
 const AppIntlProvider = dynamic(() => import('@/i18n/app/AppIntlProvider').then((m) => m.AppIntlProvider))
@@ -59,6 +71,14 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
     // fails safe: an unrecognised path gets the full app tree.
     const marketing = isMarketingRoute(usePathname())
     const IntlProvider = marketing ? MarketingIntlProvider : AppIntlProvider
+
+    if (UNSUPPORTED_WEBVIEW) {
+        return (
+            <AppIntlProvider>
+                <UnsupportedWebViewScreen />
+            </AppIntlProvider>
+        )
+    }
 
     return (
         <NuqsAdapter>

@@ -1,4 +1,4 @@
-import { resolveLocale, APP_LOCALES, LOCALE_LABELS } from '../config'
+import { resolveLocale, resolveLocaleOrNull, APP_LOCALES, LOCALE_LABELS } from '../config'
 
 describe('resolveLocale', () => {
     it.each([
@@ -31,6 +31,31 @@ describe('resolveLocale', () => {
         for (const locale of APP_LOCALES) {
             expect(resolveLocale(locale)).toBe(locale)
             expect(LOCALE_LABELS[locale]).toBeTruthy()
+        }
+    })
+})
+
+describe('resolveLocaleOrNull', () => {
+    it.each([
+        ['en-US', 'en'],
+        ['es', 'es-419'],
+        ['es-AR', 'es-AR'],
+        ['ES-ar', 'es-AR'],
+        ['pt-PT', 'pt-BR'],
+    ] as const)('%s → %s', (input, expected) => {
+        expect(resolveLocaleOrNull(input)).toBe(expected)
+    })
+
+    it.each([null, undefined, '', '   ', 'fr-FR', 'de', 'garbage', 'espresso'])(
+        'unsupported %p is null, not the English fallback',
+        (input) => {
+            expect(resolveLocaleOrNull(input)).toBeNull()
+        }
+    )
+
+    it('resolveLocale is the same normalization with the default applied', () => {
+        for (const input of ['es-ar', 'pt', 'en-GB', 'fr', '']) {
+            expect(resolveLocale(input)).toBe(resolveLocaleOrNull(input) ?? 'en')
         }
     })
 })

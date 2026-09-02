@@ -51,6 +51,7 @@ const HEX_ALLOW = [
     'LandingPage/PioneerCard3D', // canvas 3d card
     'receipt/[entryId]/pdf/', // @react-pdf/renderer — its StyleSheet takes no tailwind tokens
     'app/layout.tsx', // next viewport themeColor — browser chrome, must be a literal
+    'Global/UnsupportedWebViewScreen/', // inline fallback shown when the stylesheet itself cannot parse
 ]
 
 // extra allowlist for inline-style only (F-12 taxonomy). canvas/D3/mermaid

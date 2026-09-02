@@ -406,7 +406,7 @@ jobs:
                     --key-data-v2 "$CAPGO_PRIVATE_KEY" \
                     --path ./out \
                     --bundle "$VERSION" \
-                    --auto-min-update-version \
+                    --min-update-version "$VERSION" \
                     --version-exists-ok \
                     --comment "${GITHUB_SHA:0:7} — auto-published with the $VERSION native release"
                   CURRENT="$(npx @capgo/cli@8.42.4 channel currentBundle production \

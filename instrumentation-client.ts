@@ -3,6 +3,7 @@ import posthog from 'posthog-js'
 import { beforeSendHandler } from './sentry.utils'
 import { inferSentryEnvironment } from '@/utils/sentry-env'
 import { withoutBrowserTracing } from '@/utils/sentry-integrations'
+import { posthogErrorMirror } from '@/utils/sentry-posthog-mirror'
 import { whenIdle } from '@/utils/defer-analytics'
 import { installPaymentNetworkGoogleAnalyticsGuard, isPaymentNetworkExplorerPath } from '@/utils/private-routes'
 
@@ -110,8 +111,14 @@ if (
                 // and that instrumentation overhead is visible jank in the WebView.
                 sampleRate: 1.0,
                 tracesSampleRate: 0,
+                // Synthesizes a stack for message events (captureConsole on a
+                // non-Error, the explicit captureMessage calls) so they attribute
+                // to a call site — see the web init in sentry-init.ts.
+                attachStacktrace: true,
                 beforeSend: (event) =>
                     isPaymentNetworkExplorerPath(window.location.pathname) ? null : beforeSendHandler(event),
+                beforeSendTransaction: (event) =>
+                    isPaymentNetworkExplorerPath(window.location.pathname) ? null : event,
                 // A WebView that can't reach the bundler can't reach ingest either,
                 // so the report of the failure died with the session. The offline
                 // transport parks undeliverable envelopes in IndexedDB and flushes
@@ -121,6 +128,9 @@ if (
                 integrations: (defaults) => [
                     ...withoutBrowserTracing(defaults),
                     Sentry.captureConsoleIntegration({ levels: ['error'] }),
+                    // Same PostHog $exception mirror as the web init, so native
+                    // errors keep their session-replay correlation.
+                    posthogErrorMirror(),
                 ],
             })
 

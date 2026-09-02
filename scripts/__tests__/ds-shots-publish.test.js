@@ -69,7 +69,6 @@ describe('ds-shots-publish', () => {
         ['newline smuggling', { file: 'a\n## fake@375.png', percent: 1, pixels: 1 }],
         ['overlong name', { file: `${'a'.repeat(200)}@375.png`, percent: 1, pixels: 1 }],
         ['non-string file', { file: 42, percent: 1, pixels: 1 }],
-        ['NaN percent', { file: 'home@375.png', percent: NaN, pixels: 1 }],
         ['percent out of range', { file: 'home@375.png', percent: 101, pixels: 1 }],
         ['string percent', { file: 'home@375.png', percent: '3.2', pixels: 1 }],
         ['injected note', { file: 'home@375.png', percent: 1, pixels: 1, note: '](x) <script>' }],
@@ -93,6 +92,10 @@ describe('ds-shots-publish', () => {
         ['negative unchanged', valid({ unchanged: -1 })],
         ['array report', [1, 2, 3]],
         ['not json at all', 'not json {'],
+        // raw text on purpose: JSON.stringify would turn non-finite numbers
+        // into null, and JSON's own path to Infinity is a 1e999 literal
+        ['infinite percent', JSON.stringify(valid()).replace('3.21', '1e999')],
+        ['oversized file', 'x'.repeat(1024 * 1024 + 10)],
     ])('rejects: %s', (_label, report) => {
         const result = run(report)
 

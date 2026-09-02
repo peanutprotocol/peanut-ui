@@ -10,8 +10,12 @@ import { canUseNativeHttp, nativeHttpRequest } from './native-http'
  * Endpoint + status combinations to skip reporting.
  * These are expected responses, not errors.
  * Pattern can be a string (exact match) or regex.
+ *
+ * `errorCodes` narrows a rule to specific `error` values in the response body.
+ * Use it when a status is expected for one known outcome but would still be
+ * worth reporting for anything else that shares it.
  */
-const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[] }> = [
+const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[]; errorCodes?: string[] }> = [
     // /get-user is the auth-status probe — 401/404 mean stale JWT, expected, not a server bug.
     { pattern: /\/get-user(?:\b|$)/, statuses: [400, 401, 403, 404] },
     { pattern: /users/, statuses: [400, 401, 403, 404] },
@@ -36,6 +40,11 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[] }> = 
     // provider can't decode (bad/expired/unsupported) — both are user-input
     // outcomes shown to the user, not server bugs. (BE peanut-api-ts #1041.)
     { pattern: /qr-payment\/init/, statuses: [400, 422] },
+    // 409 on the same route is expected for exactly one outcome: the charge the
+    // cashier rang up on the till timed out (BE peanut-api-ts #1484). Scoped to
+    // that code, so a different conflict on this route — a double-submit, say —
+    // still reaches Sentry instead of being swallowed by the status alone.
+    { pattern: /qr-payment\/init/, statuses: [409], errorCodes: ['PAYMENT_DESTINATION_EXPIRED'] },
     // Rain card secrets endpoints are intentionally rate-limited (5/min) — a
     // 429 here is an expected outcome surfaced to the user, not a server bug.
     { pattern: /\/rain\/cards\/[^/]+\/details/, statuses: [429] },
@@ -300,17 +309,30 @@ function getFeatureTag(url: string): string | null {
 }
 
 /**
- * Check if this endpoint + status combo should skip Sentry reporting
+ * Find the rule that suppresses this endpoint + status combo, if any.
+ * A rule with `errorCodes` still has to be checked against the response body —
+ * see `bodyCarriesSkippedCode`.
  */
-function shouldSkipReporting(url: string, status: number): boolean {
-    for (const rule of SKIP_REPORTING) {
+function findSkipRule(url: string, status: number): (typeof SKIP_REPORTING)[number] | undefined {
+    return SKIP_REPORTING.find((rule) => {
         const matches = typeof rule.pattern === 'string' ? url.includes(rule.pattern) : rule.pattern.test(url)
+        return matches && rule.statuses.includes(status)
+    })
+}
 
-        if (matches && rule.statuses.includes(status)) {
-            return true
-        }
-    }
-    return false
+/**
+ * Does the response body carry one of the rule's `errorCodes`? The backend
+ * sends `{ error, message }`, so the code is `error`; a body that failed to
+ * parse as JSON arrives here as text and is matched whole.
+ */
+function bodyCarriesSkippedCode(codes: string[], body: JSONValue): boolean {
+    const code =
+        typeof body === 'string'
+            ? body
+            : typeof body === 'object' && body !== null && 'error' in body
+              ? String((body as { error: unknown }).error)
+              : ''
+    return codes.some((skipped) => code.includes(skipped))
 }
 
 /**
@@ -435,14 +457,10 @@ const reportNonOkResponse = async (url: string, options: RequestInit, response: 
     // non-2xx responses (username availability 404, get-user-from-cookie
     // 401 on cleared session, etc). Logging them clutters DevTools and
     // gets picked up by forward-logs-shared as Sentry breadcrumbs.
-    if (shouldSkipReporting(url, response.status)) return
-
-    // console.info, not warn — captureConsoleIntegration listens on
-    // ['error','warn'], so a warn here became a SECOND Sentry event for every
-    // non-2xx in the app, grouped by this call site rather than by request.
-    // The explicit captureMessage below is the real report: it fingerprints on
-    // [method, url, status] and carries headers, body and response.
-    console.info(`Request to ${String(url).replace(/[\r\n]/g, '')} failed with status ${response.status}`)
+    const skipRule = findSkipRule(url, response.status)
+    // A rule with no `errorCodes` decides on URL + status alone, so nothing
+    // below needs to run.
+    if (skipRule && !skipRule.errorCodes) return
 
     let errorContent: JSONValue
     try {
@@ -450,6 +468,17 @@ const reportNonOkResponse = async (url: string, options: RequestInit, response: 
     } catch {
         errorContent = await response.clone().text()
     }
+
+    // A scoped rule suppresses only its own codes. Any other failure sharing
+    // the status falls through and is reported.
+    if (skipRule?.errorCodes && bodyCarriesSkippedCode(skipRule.errorCodes, errorContent)) return
+
+    // console.info, not warn — captureConsoleIntegration listens on
+    // ['error','warn'], so a warn here became a SECOND Sentry event for every
+    // non-2xx in the app, grouped by this call site rather than by request.
+    // The explicit captureMessage below is the real report: it fingerprints on
+    // [method, url, status] and carries headers, body and response.
+    console.info(`Request to ${String(url).replace(/[\r\n]/g, '')} failed with status ${response.status}`)
     const method = options.method || 'GET'
     const featureTag = getFeatureTag(url)
     Sentry.withScope((scope) => {
@@ -517,7 +546,9 @@ export const fetchWithSentry = async (
                 })
             } catch (error) {
                 if (attempt < maxAttempts && error instanceof Error && error.name === 'AbortError') {
-                    console.warn(`Request to ${String(url).replace(/[\r\n]/g, '')} timed out — retrying`)
+                    // console.info, not warn: captureConsoleIntegration listens on
+                    // warn, and the retry outcome is reported explicitly below.
+                    console.info(`Request to ${String(url).replace(/[\r\n]/g, '')} timed out — retrying`)
                     await new Promise((resolve) => setTimeout(resolve, TRANSPORT_TIMEOUT_RETRY_DELAY_MS))
                     continue
                 }

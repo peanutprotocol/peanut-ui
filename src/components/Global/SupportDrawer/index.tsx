@@ -436,11 +436,11 @@ const SupportDrawer = () => {
                     // leaves a backdrop target to tap-to-close; with no keyboard up it is
                     // slack and 85dvh wins, so the resting look is unchanged.
                     height: visibleHeight
-                        ? `min(85dvh, calc(${visibleHeight}px - env(safe-area-inset-top) - ${TOP_RESERVE}px))`
+                        ? `min(85dvh, calc(${visibleHeight}px - var(--safe-top) - ${TOP_RESERVE}px))`
                         : '85dvh',
                     // The keyboard already covers the home indicator; padding for it too
                     // would just wedge a dead strip between the composer and the keys.
-                    paddingBottom: keyboardInset ? 0 : 'env(safe-area-inset-bottom)',
+                    paddingBottom: keyboardInset ? 0 : 'var(--safe-bottom)',
                     transform: isSupportModalOpen ? `translateY(${dragOffset}px)` : 'translateY(100%)',
                     transition: isDragging ? 'none' : 'transform 300ms ease-out',
                 }}

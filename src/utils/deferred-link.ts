@@ -8,6 +8,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, DEFERRED_LINK_OUTCOMES, type DeferredLinkOutcome } from '@/constants/analytics.consts'
 import { PLAY_STORE_URL } from '@/constants/general.consts'
 import { isValidLocale } from '@/i18n/config'
+import { type AppLocale, resolveLocaleOrNull } from '@/i18n/app/config'
 import { isAndroidNative, isIOSNative } from './capacitor'
 import { getFromCookie, saveToCookie, sanitizeRedirectURL } from './cookie-url.utils'
 import { toInviteCode } from './invite-code.utils'
@@ -25,27 +26,10 @@ import {
 const MARKER = 'pnutdl'
 export const CONSUMED_KEY = 'deferredLinkConsumed'
 
-// the key the in-app i18n reads (dev branch: src/i18n/app/locale-store.ts —
-// Preferences on native, cookie/localStorage on web). we persist the restored
-// preference under it so it applies the moment that system lands on main.
-// when it does, replace the mini-resolver below with its resolveLocale.
+// the key the in-app i18n reads (src/i18n/app/locale-store.ts — Preferences
+// on native, cookie/localStorage on web); the restored preference is persisted
+// under it so it applies on the next startup resolution.
 export const APP_LOCALE_KEY = 'app-locale'
-const APP_LOCALES = ['en', 'es-419', 'pt-BR'] as const
-type AppLocale = (typeof APP_LOCALES)[number]
-
-/** normalizes a BCP 47-ish tag to a supported app locale; null when the
- * language is unsupported (a garbage payload must never override the device
- * language). */
-function resolveAppLocale(raw: string): AppLocale | null {
-    const tag = raw.trim().toLowerCase()
-    const exact = APP_LOCALES.find((l) => l.toLowerCase() === tag)
-    if (exact) return exact
-    const lang = tag.split('-')[0]
-    if (lang === 'en') return 'en'
-    if (lang === 'es') return 'es-419'
-    if (lang === 'pt') return 'pt-BR'
-    return null
-}
 
 function persistRestoredLocale(locale: AppLocale): void {
     try {
@@ -362,7 +346,8 @@ export function applyDeferredPayload(payload: DeferredPayload): RestoredContext 
     const badgeCampaigns = parsePendingBadgeCampaigns(payload.badgeCampaigns ?? payload.campaign)
     if (badgeCampaigns.length > 0) queuePendingBadgeCampaigns(badgeCampaigns, 30)
 
-    const locale = payload.lang ? resolveAppLocale(payload.lang) : null
+    // null, not the English fallback: a garbage payload must never override the device language
+    const locale = payload.lang ? resolveLocaleOrNull(payload.lang) : null
     if (locale) persistRestoredLocale(locale)
 
     // must-map, like openDeepLink: an unmappable dest (off-host, malformed

@@ -1,6 +1,9 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { withNuqsTestingAdapter, type UrlUpdateEvent } from 'nuqs/adapters/testing'
 import { HomeActionDrawers } from '../components/HomeActionDrawers'
+import { resetBottomNavVisibilityForTests, useBottomNavHidden } from '@/utils/bottom-nav-visibility'
+
+const NavProbe = () => <span data-testid="nav-hidden">{String(useBottomNavHidden())}</span>
 
 // F-28: the real nuqs pipeline runs (parser, enum validation, url writes) via
 // the official testing adapter — the old suite mocked all of nuqs, so the
@@ -37,6 +40,7 @@ beforeAll(() => {
 
 beforeEach(() => {
     jest.clearAllMocks()
+    resetBottomNavVisibilityForTests()
 })
 
 const renderWithUrl = (search: string, onUrlUpdate?: (e: UrlUpdateEvent) => void) =>
@@ -78,5 +82,32 @@ describe('HomeActionDrawers', () => {
 
         // withdraw is reachable via the SEND drawer only (product ruling)
         expect(screen.queryByTestId('home-drawer-add-withdraw')).not.toBeInTheDocument()
+    })
+
+    it('hides the bottom nav while open and releases the hold once closed', async () => {
+        render(
+            <>
+                <NavProbe />
+                <HomeActionDrawers />
+            </>,
+            { wrapper: withNuqsTestingAdapter({ searchParams: '?drawer=send' }) }
+        )
+
+        expect(screen.getByTestId('nav-hidden')).toHaveTextContent('true')
+
+        fireEvent.click(screen.getByTestId('home-drawer-send-withdraw'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/withdraw'))
+        await waitFor(() => expect(screen.getByTestId('nav-hidden')).toHaveTextContent('false'))
+    })
+
+    it('leaves the bottom nav alone when no drawer is open', () => {
+        render(
+            <>
+                <NavProbe />
+                <HomeActionDrawers />
+            </>,
+            { wrapper: withNuqsTestingAdapter({ searchParams: '' }) }
+        )
+        expect(screen.getByTestId('nav-hidden')).toHaveTextContent('false')
     })
 })

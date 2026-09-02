@@ -12,10 +12,13 @@ import { hasDeepLinkNavigated, markDeepLinkNavigated } from '@/utils/deep-link-s
 import { sanitizeRedirectURL, saveToCookie } from '@/utils/cookie-url.utils'
 import { toInviteCode } from '@/utils/invite-code.utils'
 import { getOneSignalAdapter } from '@/services/onesignal'
+import { dispatchBackPress } from '@/utils/back-handler'
 
 /*
  * App-lifecycle + deep-link listeners (back button, appStateChange focus,
- * App Links, deferred restore, push-tap routing). Mounted in ClientProviders —
+ * App Links, deferred restore, push-tap routing). The back button is offered
+ * to the in-app handler stack (open sheets, sub-views, setup steps) before it
+ * touches history. Mounted in ClientProviders —
  * NOT in a route-group layout — because a cold start that lands on /setup
  * (logged out) must still register getLaunchUrl/appUrlOpen; when this lived in
  * useNativePlugins under (mobile-ui) only, an App Link that cold-started a
@@ -170,6 +173,7 @@ export function useNativeAppLinks() {
                 })
 
                 const backListener = await App.addListener('backButton', ({ canGoBack }: { canGoBack: boolean }) => {
+                    if (dispatchBackPress()) return
                     if (canGoBack) {
                         // eslint-disable-next-line no-restricted-syntax -- native canGoBack guards the call, and the no-history branch must minimize the app (Android convention), which useSafeBack's URL fallback can't express
                         router.back()

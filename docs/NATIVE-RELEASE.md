@@ -310,9 +310,16 @@ own `out/` under the binary's versionName, then assert the channel serves it.
   environment has no protection rules, so the run ships immediately. Adding required
   reviewers under Settings → Environments → Production makes it queue for approval with no
   workflow change (needs repo admin).
-- **Native-version gating:** `--auto-min-update-version` (already set) keeps a JS bundle
-  built against new plugins off older native shells. **Bump the native version whenever
-  you change plugins/native code**, then ship that via Play — OTA can't.
+- **Native-version gating:** every upload passes an explicit `--min-update-version`, so a
+  JS bundle built against new plugins stays off older native shells. The release lanes pin
+  it to the binary they ship; `capgo-deploy.yml` resolves it from the newest `v<major>.<build>.0`
+  tag (`scripts/release-version.mjs native-floor`) and fails if none is visible. It replaced
+  `--auto-min-update-version`, which only copies the previous bundle's floor forward — with no
+  native version stamped on the `dev` checkout (package.json says 1.0.53) the floor never
+  rose past the first upload, and the CLI refuses the two flags together. Capgo only enforces
+  the floor when the channel's "disable auto update" strategy is set to *version number*.
+  **Bump the native version whenever you change plugins/native code**, then ship that via
+  Play — OTA can't.
 - **Staged rollout:** roll production OTA to ~10% → watch Sentry/crash + error rates →
   100%. Don't 100% every merge.
 - **Rollback** is configured in `capacitor.config.ts` (`appReadyTimeout: 15000` +

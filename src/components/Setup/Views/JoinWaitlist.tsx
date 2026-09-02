@@ -3,16 +3,12 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { Divider } from '@/components/0_Bruddle/Divider'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
-import { isAlreadyReported } from '@/utils/webauthn.utils'
-import { useToast } from '@/components/0_Bruddle/Toast'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { useEffect, useState } from 'react'
-import * as Sentry from '@sentry/nextjs'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAppDispatch } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { invitesApi } from '@/services/invites'
-import { useLogin } from '@/hooks/useLogin'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { enableDemoMode, isDemoInviteCode } from '@/utils/demo'
@@ -35,10 +31,8 @@ const JoinWaitlist = () => {
     const [isLoading, setisLoading] = useState(false)
     const [error, setError] = useState('')
 
-    const toast = useToast()
     const { handleNext } = useSetupFlow()
     const dispatch = useAppDispatch()
-    const { handleLoginClick } = useLogin()
     const router = useRouter()
     const queryClient = useQueryClient()
 
@@ -78,28 +72,6 @@ const JoinWaitlist = () => {
             return false
         } finally {
             setisLoading(false)
-        }
-    }
-
-    const handleError = (error: unknown) => {
-        const errorCode = error instanceof Error && 'code' in error ? String(error.code) : undefined
-        const errorMessage =
-            errorCode === 'LOGIN_CANCELED'
-                ? t('waitlist.loginCanceled')
-                : errorCode === 'NO_PASSKEY'
-                  ? t('waitlist.noPasskey')
-                  : t('waitlist.loginUnexpectedError')
-        toast.error(errorMessage)
-        if (!isAlreadyReported(error)) {
-            Sentry.captureException(error, { extra: { errorCode } })
-        }
-    }
-
-    const _onLoginClick = async () => {
-        try {
-            await handleLoginClick()
-        } catch (e) {
-            handleError(e)
         }
     }
 

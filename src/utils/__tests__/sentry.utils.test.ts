@@ -108,6 +108,30 @@ describe('fetchWithSentry — expected-response suppression', () => {
         expect(Sentry.captureMessage).not.toHaveBeenCalled()
     })
 
+    // qr-payment/init 409 is expected for exactly one outcome: the cashier's
+    // charge on the till timed out (BE peanut-api-ts #1484). The suppression is
+    // scoped to that code so a different conflict on the same route still pages
+    // us — the pair below pins both halves.
+    it('does NOT report qr-payment/init 409 when the body is PAYMENT_DESTINATION_EXPIRED', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(409, { error: 'PAYMENT_DESTINATION_EXPIRED' }))
+
+        const res = await fetchWithSentry('https://api.peanut.me/manteca/qr-payment/init', {
+            method: 'POST',
+            body: '{}',
+        })
+
+        expect(res.status).toBe(409)
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+    })
+
+    it('DOES report a different qr-payment/init 409 — the status alone must not suppress', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(409, { error: 'DUPLICATE_PAYMENT_IN_FLIGHT' }))
+
+        await fetchWithSentry('https://api.peanut.me/manteca/qr-payment/init', { method: 'POST', body: '{}' })
+
+        expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
+    })
+
     it('reports a non-2xx exactly once, via captureMessage and never via console.warn', async () => {
         // captureConsoleIntegration listens on ['error','warn'], so a console.warn
         // here produced a SECOND event for every non-2xx in the app, grouped by
@@ -119,6 +143,23 @@ describe('fetchWithSentry — expected-response suppression', () => {
 
         expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
         expect(warnSpy).not.toHaveBeenCalled()
+    })
+
+    // Same integration, other path: the per-attempt retry notice on a GET
+    // timeout must not become its own Sentry event either.
+    it('retries a GET timeout without a console.warn', async () => {
+        const infoSpy = jest.spyOn(console, 'info').mockImplementation(() => {})
+        const abort = () => Object.assign(new Error('aborted'), { name: 'AbortError' })
+        global.fetch = jest.fn().mockRejectedValue(abort())
+
+        await expect(fetchWithSentry('https://api.peanut.me/users/me', { method: 'GET' })).rejects.toThrow(
+            'Peanut is taking too long to respond — check your connection and try again.'
+        )
+
+        expect(global.fetch).toHaveBeenCalledTimes(2)
+        expect(warnSpy).not.toHaveBeenCalled()
+        expect(infoSpy).toHaveBeenCalledWith(expect.stringContaining('timed out — retrying'))
+        infoSpy.mockRestore()
     })
 
     it('still reports 400s from endpoints without a skip rule', async () => {

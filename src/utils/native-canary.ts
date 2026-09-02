@@ -28,10 +28,10 @@
  * requests, so they mean the same thing on both platforms.
  *
  * Denominator lives in PostHog (app opens), not here — that is the whole
- * reason this can skip success events. Note PostHog's registered device
- * context carries `platform` but NOT the app version, so per-build rates
- * (the split that surfaced 3% on `8016c68` vs 21% on `d4bd3ab`) need
- * `app_version` added to that `posthog.register` call to be reproducible.
+ * reason this can skip success events. PostHog's registered device context
+ * (locale-store.ts) carries `platform` plus `binary_version` / `binary_build`,
+ * so per-build rates (the split that surfaced 3% on `8016c68` vs 21% on
+ * `d4bd3ab`) can be reproduced by splitting on those.
  *
  * Query: message starts `native canary:` — the message carries the outcome
  * signature so each distinct failure shape is its own Sentry issue.

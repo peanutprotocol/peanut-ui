@@ -8,10 +8,13 @@ import { restoreDeferredContext } from '@/utils/deferred-link'
 import { markDeepLinkNavigated, resetDeepLinkStateForTests } from '@/utils/deep-link-state'
 import { getOneSignalAdapter } from '@/services/onesignal'
 import { BASE_URL } from '@/constants/general.consts'
+import { App } from '@capacitor/app'
+import { registerBackHandler, resetBackHandlersForTests } from '@/utils/back-handler'
 
 const push = jest.fn()
+const back = jest.fn()
 jest.mock('next/navigation', () => ({
-    useRouter: () => ({ push, back: jest.fn() }),
+    useRouter: () => ({ push, back }),
 }))
 
 jest.mock('@sentry/nextjs', () => ({ captureMessage: jest.fn() }))
@@ -52,6 +55,7 @@ beforeEach(() => {
     // Module state + the launch-url guard outlive a test: without these resets
     // an earlier test's navigation suppresses the next test's launch dispatch.
     resetDeepLinkStateForTests()
+    resetBackHandlersForTests()
     sessionStorage.clear()
 })
 
@@ -110,6 +114,50 @@ describe('useNativeAppLinks deferred restore wiring', () => {
         const mockAdapter = getOneSignalAdapter as jest.MockedFunction<typeof getOneSignalAdapter>
         await waitFor(() => expect(mockAdapter).toHaveBeenCalled())
         expect(push).not.toHaveBeenCalled()
+    })
+})
+
+describe('hardware back button', () => {
+    type BackButtonCallback = (event: { canGoBack: boolean }) => void
+
+    const getBackButtonCallback = async (): Promise<BackButtonCallback> => {
+        const addListener = App.addListener as jest.Mock
+        await waitFor(() => expect(addListener.mock.calls.some(([name]) => name === 'backButton')).toBe(true))
+        return addListener.mock.calls.find(([name]) => name === 'backButton')![1]
+    }
+
+    it('lets a registered handler consume the press before any navigation', async () => {
+        renderHook(() => useNativeAppLinks())
+        const onBack = await getBackButtonCallback()
+        const handler = jest.fn(() => true)
+        registerBackHandler(handler)
+
+        onBack({ canGoBack: true })
+
+        expect(handler).toHaveBeenCalledTimes(1)
+        expect(back).not.toHaveBeenCalled()
+        expect(App.minimizeApp).not.toHaveBeenCalled()
+    })
+
+    it('walks history when nothing consumed the press and there is history', async () => {
+        renderHook(() => useNativeAppLinks())
+        const onBack = await getBackButtonCallback()
+        registerBackHandler(() => false)
+
+        onBack({ canGoBack: true })
+
+        expect(back).toHaveBeenCalledTimes(1)
+        expect(App.minimizeApp).not.toHaveBeenCalled()
+    })
+
+    it('minimizes the app when nothing consumed the press and there is no history', async () => {
+        renderHook(() => useNativeAppLinks())
+        const onBack = await getBackButtonCallback()
+
+        onBack({ canGoBack: false })
+
+        expect(back).not.toHaveBeenCalled()
+        expect(App.minimizeApp).toHaveBeenCalledTimes(1)
     })
 })
 

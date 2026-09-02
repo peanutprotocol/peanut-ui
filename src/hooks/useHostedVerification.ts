@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { startHostedVerification } from '@/app/actions/sumsub'
 import { useAuth } from '@/context/authContext'
-import { isNativeBridge, openExternalUrl } from '@/utils/capacitor'
+import { IN_APP_BROWSER_CLOSED_EVENT, isNativeBridge, openExternalUrl } from '@/utils/capacitor'
 
 /**
  * Drives the handoff to a provider's hosted verification page and the wait for
@@ -149,9 +149,13 @@ export function useHostedVerification(
             // Android WebViews don't reliably fire `visibilitychange` on
             // resume — the same defect that makes useNativePlugins drive
             // TanStack's focusManager off `appStateChange`. The in-app
-            // browser's own close event is the precise signal here.
+            // browser's own close event is the precise signal here. On iOS a
+            // universal-link return closes the sheet programmatically
+            // (useNativeAppLinks → closeInAppBrowser), which never emits
+            // `browserFinished`, hence the document event as well.
             let disposed = false
             let remove: (() => void) | undefined
+            document.addEventListener(IN_APP_BROWSER_CLOSED_EVENT, refresh)
             void import('@capacitor/browser')
                 .then(({ Browser }) => Browser.addListener('browserFinished', refresh))
                 .then((handle) => {
@@ -165,6 +169,7 @@ export function useHostedVerification(
             return () => {
                 disposed = true
                 remove?.()
+                document.removeEventListener(IN_APP_BROWSER_CLOSED_EVENT, refresh)
             }
         }
 

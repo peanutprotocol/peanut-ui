@@ -815,6 +815,7 @@
             "notReady": "O app ainda está se preparando para as passkeys. Aguarde um momento e tente de novo.",
             "deviceState": "Houve um problema com a passkey neste dispositivo. Reinicie o app e tente de novo.",
             "interrupted": "Algo interrompeu a solicitação da passkey. Tente de novo.",
+            "serverUnreachable": "Não foi possível acessar os servidores da Peanut. Verifique sua conexão e tente de novo.",
             "usernameTaken": "Este nome de usuário já está registrado — possivelmente de uma tentativa anterior neste dispositivo. Se foi você, sua passkey está pronta: é só fazer login.",
             "learnMore": "Saiba mais sobre o que são as passkeys",
             "help": {
@@ -863,7 +864,10 @@
                 "backup": "Seu gerenciador de senhas (iCloud Keychain, Gerenciador de Senhas do Google ou similar) faz o backup e a sincroniza, então ela vai com você para um celular novo.",
                 "privacy": "O Peanut nunca vê sua digital nem seu rosto. Seu aparelho só nos diz que você aprovou.",
                 "fullGuide": "Ler o guia completo"
-            }
+            },
+            "unsupported": "Passkeys ainda não estão disponíveis neste dispositivo. Entre com uma conta Google, atualize o Google Play Services e tente de novo.",
+            "origin": "Este app não está autorizado a usar passkeys em peanut.me. Atualize para a versão mais recente.",
+            "loginError": "Não foi possível verificar sua passkey. Tente de novo ou fale com o suporte se continuar acontecendo."
         },
         "testTransaction": {
             "confirmAndFinish": "Confirmar e concluir",
@@ -1268,6 +1272,7 @@
             "pixDecode": "Não conseguimos decodificar este código QR do Pix. Peça ao lojista para gerar um novo.",
             "genericDecode": "Não conseguimos decodificar este código QR. Pergunte ao lojista se ele pode gerar um QR do Mercado Pago",
             "providerIssues": "Estamos com problemas nos pagamentos de {method}. Estamos trabalhando para resolver o quanto antes",
+            "merchantChargeExpired": "A cobrança do caixa expirou. Peça para inserir o valor de novo e escaneie mais uma vez.",
             "initiateUnexpected": "Não foi possível iniciar o pagamento por um erro inesperado. Fale com o suporte",
             "fetchDetails": "Não foi possível obter os detalhes do pagamento QR",
             "cardAuthNeeded": "É necessária uma autorização única do cartão. Você vai confirmar uma vez.",
@@ -3561,5 +3566,17 @@
             "title": "tudo pronto?",
             "subtitle": "Teste a porta."
         }
+    },
+    "unsupportedWebView": {
+        "title": "Atualize para continuar",
+        "body": {
+            "ios": "O Peanut precisa de uma versão mais recente do iOS. Atualize seu aparelho em Ajustes e abra o app de novo.",
+            "android": "O Peanut precisa de uma versão mais recente do Android System WebView. Atualize pelo Google Play e abra o app de novo."
+        },
+        "cta": {
+            "ios": "Ver como atualizar o iOS",
+            "android": "Atualizar o Android System WebView"
+        },
+        "continueAnyway": "Continuar mesmo assim"
     }
 }
