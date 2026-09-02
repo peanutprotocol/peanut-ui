@@ -47,6 +47,7 @@ import { TransactionDetailsDrawer } from '@/components/TransactionDetails/Transa
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { loadingStateContext } from '@/context/loadingStates.context'
+import { loadingStateKey } from '@/i18n/app/loading-states'
 import { getCurrencyPrice } from '@/app/actions/currency'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { captureNetworkTriagedFailure, isNetworkLayerFailure } from '@/utils/network-triage'
@@ -106,6 +107,7 @@ export default function QRPayPage() {
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const tErrors = useTranslations('errors')
+    const tLoading = useTranslations('loadingStates')
     const toFriendlyError = useFriendlyError()
     // Shown wherever the backend rejects a Pix payment below the rail minimum
     // (typed 400 PIX_MIN_AMOUNT — fires at lock-init for merchant-encoded amounts
@@ -1372,7 +1374,17 @@ export default function QRPayPage() {
 
     // show loading spinner if we're still loading payment data
     if (isLoadingPaymentData || loadingState === 'Paying') {
-        return loadingState === 'Paying' ? <CyclingLoading /> : <Loading variant="mascot" />
+        if (loadingState === 'Paying') return <CyclingLoading />
+        /*
+         * Captioned only for the retry window. A scan being retried after a
+         * stalled request is otherwise pixel-identical to a slow first attempt,
+         * and it is the silent spinner that sends people to ask the cashier.
+         * Every other state keeps the bare mascot it has always had.
+         */
+        if (loadingState === 'Still fetching details') {
+            return <QrPayPageLoading message={tLoading(loadingStateKey(loadingState))} />
+        }
+        return <Loading variant="mascot" />
     }
 
     //Success

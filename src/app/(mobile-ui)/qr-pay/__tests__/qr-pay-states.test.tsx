@@ -1484,7 +1484,11 @@ describe('GROUP 5: Error States', () => {
             expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
         })
         expect(screen.queryByText(/currently experiencing issues/i)).not.toBeInTheDocument()
-        expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
+        // The caption has to REACH the screen: setting the context state alone
+        // left the user on the same unlabeled spinner it was added to replace.
+        await waitFor(() => {
+            expect(screen.getByText(/still fetching details/i)).toBeInTheDocument()
+        })
 
         await waitFor(
             () => {
@@ -1496,6 +1500,52 @@ describe('GROUP 5: Error States', () => {
         // `failureCount` is 0-based at the point react-query consults it, so
         // `failureCount < 3` allows three RETRIES on top of the first attempt.
         expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(4)
+    }, 20_000)
+
+    /*
+     * The case the retry branch exists FOR, and the one the test above cannot
+     * reach: a scan that stalls once and then succeeds. It also pins an
+     * invariant the effect leans on without asserting — query-core clearing
+     * `failureReason` on success. If that ever stops holding, the success
+     * branch sets the lock and 'Idle', the error block immediately overwrites
+     * it with 'Still fetching details', and the next pass skips the success
+     * branch because `paymentLock` is now set: a valid, expiring price lock
+     * stranded behind a permanent spinner, with every other test still green.
+     */
+    test('Scan that recovers on the retry lands on the payment screen, not an error', async () => {
+        const recoveredLock = {
+            code: 'LOCK-RECOVERED',
+            type: 'MERCADO_PAGO',
+            companyId: 'c1',
+            userId: 'u1',
+            userNumberId: 'un1',
+            userExternalId: 'ue1',
+            paymentRecipientName: 'Recovered Merchant',
+            paymentRecipientLegalId: 'legal1',
+            paymentAssetAmount: '1000',
+            paymentAsset: 'ARS',
+            paymentPrice: '1000',
+            paymentAgainstAmount: '1',
+            paymentAgainst: 'USD',
+            expireAt: '2026-04-16T23:59:59Z',
+            creationTime: '2026-04-16T00:00:00Z',
+        }
+        mockMantecaApi.initiateQrPayment
+            .mockRejectedValueOnce(new Error('Network timeout'))
+            .mockResolvedValue(recoveredLock)
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+        await waitFor(
+            () => {
+                expect(screen.getByText(recoveredLock.paymentRecipientName)).toBeInTheDocument()
+            },
+            { timeout: 12_000 }
+        )
+
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2)
+        expect(screen.queryByText(/currently experiencing issues/i)).not.toBeInTheDocument()
+        expect(screen.queryByTestId('peanut-loading')).not.toBeInTheDocument()
     }, 20_000)
 })
 
