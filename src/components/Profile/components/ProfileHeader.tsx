@@ -6,7 +6,6 @@ import posthog from 'posthog-js'
 import React, { useEffect, useRef } from 'react'
 import { twMerge } from '@/utils/tw'
 import AvatarWithBadge from '../AvatarWithBadge'
-import DotFaceAvatar from '@/components/Global/DotFaceAvatar'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
@@ -63,13 +62,9 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     return (
         <>
             <div className={twMerge('space-y-2 flex flex-col items-center', className)}>
-                {/* Own profile gets the generated dot face; someone else's
-                    public profile keeps initials (letters identify others). */}
-                {isSelfProfile ? (
-                    <DotFaceAvatar username={username} size={88} />
-                ) : (
-                    <AvatarWithBadge name={name || username} />
-                )}
+                {/* ds Avatar only (ruled 2026-09-02, TASK-22121): the
+                    generated dot-face experiment is reverted. */}
+                <AvatarWithBadge name={name || username} />
 
                 {/* Name */}
                 <div className="flex items-center gap-1">

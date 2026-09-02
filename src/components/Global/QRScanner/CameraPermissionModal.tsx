@@ -4,7 +4,7 @@ import Image from 'next/image'
 import type { StaticImageData } from 'next/image'
 import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { Button } from '@/components/0_Bruddle/Button'
 import Carousel from '@/components/Global/Carousel'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
 import { useGetBrowserType, BrowserType } from '@/hooks/useGetBrowserType'
@@ -104,7 +104,11 @@ export default function CameraPermissionModal({ visible, onRetry, onClose, onPas
                       ]
                     : []),
             ]}
-            footer={<LinkButton onClick={onClose}>{t('qrScanner.cameraPermission.dismiss')}</LinkButton>}
+            footer={
+                <Button variant="stroke" className="w-full" onClick={onClose}>
+                    {t('qrScanner.cameraPermission.dismiss')}
+                </Button>
+            }
             content={
                 <div className="flex w-full flex-col gap-4">
                     <p className="text-body-s text-foreground-secondary">

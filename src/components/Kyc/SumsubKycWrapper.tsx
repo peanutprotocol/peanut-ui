@@ -389,8 +389,8 @@ const SumsubWebSdkModal = ({
                     {
                         text: tCommon('cancel'),
                         onClick: () => setIsHelpModalOpen(false),
-                        variant: 'transparent' as ButtonVariant,
-                        className: 'underline text-body-s w-full h-fit mt-3',
+                        variant: 'stroke' as ButtonVariant,
+                        className: 'w-full',
                     },
                 ],
             }
@@ -414,8 +414,8 @@ const SumsubWebSdkModal = ({
                 {
                     text: tCommon('continue'),
                     onClick: () => setIsHelpModalOpen(false),
-                    variant: 'transparent' as ButtonVariant,
-                    className: 'underline text-body-s w-full h-fit mt-3',
+                    variant: 'stroke' as ButtonVariant,
+                    className: 'w-full',
                 },
             ],
         }

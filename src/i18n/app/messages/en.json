@@ -55,8 +55,7 @@
             "unknown": "Unknown"
         },
         "exchangeRate": "Exchange rate",
-        "slideToProceed": "Slide to Proceed",
-        "userAvatarAlt": "Avatar for {username}"
+        "slideToProceed": "Slide to Proceed"
     },
     "navigation": {
         "home": "Home",

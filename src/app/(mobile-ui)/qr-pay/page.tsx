@@ -1246,8 +1246,8 @@ export default function QRPayPage() {
                         {
                             text: t('kyc.notNow'),
                             onClick: onBack,
-                            variant: 'transparent',
-                            className: 'underline text-body-s w-full h-fit mt-3',
+                            variant: 'stroke',
+                            className: 'w-full',
                         },
                     ]}
                 />

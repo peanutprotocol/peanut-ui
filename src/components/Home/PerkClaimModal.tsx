@@ -265,27 +265,25 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
                                         >
                                             {t('shareAndEarn')}
                                         </Button>
-                                        <button
-                                            className="text-body-s text-foreground-secondary underline"
-                                            onClick={onDismiss}
-                                        >
+                                        <Button variant="stroke" className="w-full" onClick={onDismiss}>
                                             {tCommon('maybeLater')}
-                                        </button>
+                                        </Button>
                                     </>
                                 ) : (
                                     <>
                                         <Button variant="purple" shadowSize="4" className="w-full" onClick={onDismiss}>
                                             {tCommon('done')}
                                         </Button>
-                                        <p
-                                            className="cursor-pointer text-center text-body-s text-foreground-secondary underline"
+                                        <Button
+                                            variant="stroke"
+                                            className="w-full"
                                             onClick={() => {
                                                 onDismiss()
                                                 router.push('/rewards')
                                             }}
                                         >
                                             {t('inviteFriendsToEarnMore')}
-                                        </p>
+                                        </Button>
                                     </>
                                 )}
                             </div>
