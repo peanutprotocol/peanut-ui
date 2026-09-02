@@ -369,7 +369,12 @@ export const SetupWrapper = memo(function SetupWrapper({
                                 </h1>
                             )}
                             {headingDescription && (
-                                <p className={twMerge('text-body-m text-black', sunsetLanding && 'md:text-center')}>
+                                <p
+                                    className={twMerge(
+                                        'text-body-m text-foreground-primary',
+                                        sunsetLanding && 'md:text-center'
+                                    )}
+                                >
                                     {headingDescription}
                                 </p>
                             )}

@@ -127,8 +127,8 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
             onClose={onClose}
             preventClose={phase === 'loading'}
             hideModalCloseButton={phase === 'loading'}
+            tone="warning"
             icon="lock"
-            iconContainerClassName="bg-background-icon-bubble-yellow"
             title={t(isSuccess ? copyKeys.success : copyKeys.title)}
             description={t(isSuccess ? copyKeys.successBody : copyKeys.body)}
             content={

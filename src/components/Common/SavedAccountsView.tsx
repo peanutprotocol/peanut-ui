@@ -104,7 +104,7 @@ export default function SavedAccountsView({
                         {onCryptoClick && (
                             <ListItem
                                 position="single"
-                                leading={<IconBubble icon="credit-card" size="s" color="yellow" />}
+                                leading={<IconBubble icon="credit-card" size="s" color="blue" />}
                                 title={tSend('methods.exchangeOrWalletTitle')}
                                 body={tSend('methods.exchangeOrWalletDescription')}
                                 trailing={plusTrailing}

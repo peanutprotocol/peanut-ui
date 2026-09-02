@@ -35,7 +35,7 @@ const AddMoneyMethodSelection = ({ onBankTransferClick }: AddMoneyMethodSelectio
                             <AvatarWithBadge
                                 icon="wallet-outline"
                                 size="extra-small"
-                                className="bg-background-icon-bubble-yellow"
+                                className="bg-background-icon-bubble-blue"
                             />
                         }
                         onClick={() => setIsDrawerOpen(true)}
@@ -48,7 +48,7 @@ const AddMoneyMethodSelection = ({ onBankTransferClick }: AddMoneyMethodSelectio
                             <AvatarWithBadge
                                 icon="bank"
                                 size="extra-small"
-                                className="bg-background-icon-bubble-yellow"
+                                className="bg-background-icon-bubble-blue"
                                 inlineStyle={{ color: 'black' }}
                             />
                         }
