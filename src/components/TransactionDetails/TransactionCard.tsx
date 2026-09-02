@@ -1,6 +1,5 @@
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
-import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import IndicatorDot from '@/components/Global/IndicatorDot'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
@@ -280,7 +279,6 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                 }
                 body={
                     <div className="flex items-center gap-1">
-                        {!isTest && getActionIcon(type, status)}
                         <span>
                             {isTest
                                 ? t('type.setup')
@@ -352,30 +350,6 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     )
 }
 
-// Per-type presentation: the feed row's action icon. One table keyed by
-// TransactionType replaces the switch this used to be, so a new type is a
-// single row here. `icon: null` means "no icon". The row's label lives
-// in the `transaction.type.*` catalog, keyed by the same literal.
-const TYPE_PRESENTATION: Record<TransactionType, { icon: IconName | null; iconSize?: number }> = {
-    send: { icon: 'arrow-up-right' },
-    receive: { icon: 'arrow-down-left' },
-    // Inbound arrow: a request row is money coming TO the viewer, including
-    // request_received (an open request the viewer created).
-    request: { icon: 'arrow-down-left' },
-    withdraw: { icon: 'arrow-up', iconSize: 8 },
-    cashout: { icon: 'arrow-up', iconSize: 8 },
-    claim_external: { icon: 'arrow-up', iconSize: 8 },
-    bank_claim: { icon: 'arrow-up', iconSize: 8 },
-    bank_withdraw: { icon: 'arrow-up', iconSize: 8 },
-    add: { icon: 'arrow-down', iconSize: 8 },
-    bank_deposit: { icon: 'arrow-down', iconSize: 8 },
-    bank_request_fulfillment: { icon: 'arrow-up-right' },
-    pay: { icon: 'arrow-up-right' },
-    card_pay: { icon: 'arrow-up-right' },
-    // Refund credit row — same inbound arrow as 'receive', labelled "Refund".
-    refund: { icon: 'arrow-down-left' },
-}
-
 const TYPE_LABEL_KEYS = {
     send: 'type.send',
     receive: 'type.receive',
@@ -392,16 +366,6 @@ const TYPE_LABEL_KEYS = {
     card_pay: 'type.card_pay',
     refund: 'type.refund',
 } as const satisfies Record<TransactionType, string>
-
-// helper functions
-function getActionIcon(type: TransactionType, status?: StatusPillType): React.ReactNode {
-    if (status === 'refunded') {
-        return <Icon name="arrow-down-left" size={7} fill="currentColor" />
-    }
-    const { icon, iconSize } = TYPE_PRESENTATION[type]
-    if (!icon) return null
-    return <Icon name={icon} size={iconSize ?? 7} fill="currentColor" />
-}
 
 /** Catalog key for the row's action label — refunded rows read "Refund"
  *  regardless of the underlying type. */
