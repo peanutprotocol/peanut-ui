@@ -2,10 +2,11 @@
  * Restart-to-apply contract: the pending bundle survives a reload (seeded from
  * the plugin queue, not only from this launch's check), a store-only update is
  * surfaced as such, and a rejected set() never strands the user on the old
- * bundle — it re-stages, reloads, and failing that closes the app (Android) or
- * asks for a manual restart (iOS). An apply that never reaches the plugin at
- * all (offline re-stage, rejected reload) must NOT restart anything: it clears
- * the watchdog and the pending-apply marker and comes back retriable.
+ * bundle — it re-stages, reloads under the re-staged id, and failing that closes
+ * the app (Android) or asks for a manual restart (iOS). An apply that never
+ * reaches the plugin at all (offline re-stage, rejected reload) must NOT restart
+ * anything: it clears the watchdog and the pending-apply marker and comes back
+ * retriable.
  */
 import React from 'react'
 import { act, renderHook, waitFor } from '@testing-library/react'
@@ -155,6 +156,23 @@ it('escalates a restart that left the old bundle running', async () => {
         expect(error).toHaveBeenCalledWith('[capgo-apply] restart did not apply bundle b-2; running b-1')
     )
     expect(window.localStorage.getItem('capgoPendingApply')).toBeNull()
+})
+
+it('retargets the marker to the re-staged bundle, so the recovered launch reads as a success', async () => {
+    mockUpdater.set.mockRejectedValue(new Error('no index.html'))
+    withRestageableBundle()
+    const { result } = await withStagedBundle()
+    await act(async () => {
+        await result.current.applyNow()
+    })
+    expect(mockUpdater.reload).toHaveBeenCalled()
+    // reload() applies b-3, not the b-2 that set() rejected
+    expect(window.localStorage.getItem('capgoPendingApply')).toBe('b-3')
+
+    mockUpdater.current.mockResolvedValue({ bundle: { id: 'b-3' } })
+    setup()
+    await waitFor(() => expect(warn).toHaveBeenCalledWith('[capgo-apply] restart applied bundle b-3'))
+    expect(error).not.toHaveBeenCalled()
 })
 
 it('does not exit while the fallback re-download is still running after set() rejects', async () => {

@@ -195,14 +195,24 @@ export async function applyStagedBundle(
         // store-update-required all leave the device on the bundle it is
         // already running, so reloading would restart the app for nothing.
         let outcome: OtaCheckOutcome
+        let restaged: BundleInfo | undefined
         try {
             // The re-stage mints a NEW bundle id; the caller has to learn it or a
             // retry would hand set() the same dead id it just rejected.
-            outcome = await queueUpdateCheck({ onUpdateAvailable: hooks.onRestaged })
+            outcome = await queueUpdateCheck({
+                onUpdateAvailable: (bundle) => {
+                    restaged = bundle
+                    hooks.onRestaged?.(bundle)
+                },
+            })
         } catch (checkErr) {
             return abandon('re-stage threw, apply abandoned', checkErr)
         }
         if (outcome !== 'staged') return abandon(`re-stage returned ${outcome}, apply abandoned`, null)
+        // reload() applies the re-staged bundle, not the id set() rejected. The
+        // marker has to follow, or the recovered launch reports the dead id as a
+        // failed apply at error level even though the recovery worked.
+        if (restaged) writeStoredValue(PENDING_APPLY_KEY, restaged.id)
         try {
             await CapacitorUpdater.reload()
         } catch (reloadErr) {
