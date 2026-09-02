@@ -28,10 +28,9 @@ import { useBadgeEarnToast } from '@/components/Badges/useBadgeEarnToast'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { BadgeImage } from '@/components/Badges/BadgeImage'
 import { badgeAvatarKeys } from '@/components/Avatar/avatar.utils'
+import { AVATAR_PICKER_PATH } from '@/components/Avatar/avatar.consts'
 
 const HOME_PATH = '/home'
-// the picker opens from the profile page; `avatarPicker` is its nuqs URL state
-const AVATAR_PICKER_PATH = '/profile?avatarPicker=true'
 
 type ModalBadge = { code: string; title: string; description: string; logo: string }
 
@@ -69,7 +68,7 @@ export default function BadgeEarnToast() {
         const openInspect = () => {
             dismiss(toastId)
             liveToastIdRef.current = null
-            posthog.capture(ANALYTICS_EVENTS.BADGE_EARN_TOAST_TAPPED, { count })
+            posthog.capture(ANALYTICS_EVENTS.BADGE_EARN_TOAST_TAPPED, { count, target: 'badge_detail' })
             if (count === 1) {
                 setModalBadge({
                     code: newest.code,
@@ -85,8 +84,8 @@ export default function BadgeEarnToast() {
         const label = count === 1 ? t('toastSingle', { name: newestName }) : t('toastMultiple', { count })
 
         // A badge that ships avatars (TASK-22142) announces the unlock and
-        // hands the user straight to the picker — the badge tap keeps its
-        // detail view, so the two are separate controls, not one.
+        // links to the picker. The badge tap keeps its detail view, so these
+        // are two controls.
         const avatarCount = badgeAvatarKeys(codes).length
         const chooseAvatar = () => {
             dismiss(toastId)

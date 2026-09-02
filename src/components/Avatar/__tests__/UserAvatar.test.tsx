@@ -1,5 +1,6 @@
-import { render } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import type { ComponentProps } from 'react'
+import { renderWithIntl as render } from '@/test-utils/intl'
 import { UserAvatar } from '../UserAvatar'
 
 jest.mock('next/image', () => ({
@@ -12,6 +13,7 @@ describe('UserAvatar', () => {
         const { container } = render(<UserAvatar name="satoshi" avatarKey="basic.frog" />)
 
         expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/basic/frog.svg')
+        expect(screen.getByRole('img', { name: 'Avatar for satoshi' })).toBeInTheDocument()
         expect(container).not.toHaveTextContent('S')
     })
 

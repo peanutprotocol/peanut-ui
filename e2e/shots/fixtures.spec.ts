@@ -11,7 +11,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
-import { FIXTURE_PARAM, FIXTURE_STORAGE_KEY } from '../../src/dev/fixtures/active'
+import { FIXTURE_PARAM, FIXTURE_STORAGE_KEY, fixtureHref } from '../../src/dev/fixtures/active'
 import { FIXTURES } from '../../src/dev/fixtures/registry'
 
 const OUT_DIR = process.env.SHOTS_OUT ?? 'e2e/__shots__/current'
@@ -110,8 +110,7 @@ for (const [name, fixture] of Object.entries(FIXTURES)) {
         await page.clock.setFixedTime(FROZEN_NOW)
         await page.addInitScript(seenOnceModals)
 
-        const sep = fixture.route.includes('?') ? '&' : '?'
-        await page.goto(`${fixture.route}${sep}${FIXTURE_PARAM}=${name}`, { waitUntil: 'domcontentloaded' })
+        await page.goto(fixtureHref(fixture.route, name), { waitUntil: 'domcontentloaded' })
         await settle(page)
 
         // A build without NEXT_PUBLIC_VERCEL_ENV=preview ignores the param and

@@ -3,7 +3,7 @@
 import Card from '@/components/Global/Card'
 import DevNoteCard from '@/app/(mobile-ui)/dev/_components/DevNoteCard'
 import DevPageShell from '@/app/(mobile-ui)/dev/_components/DevPageShell'
-import { clearFixture, FIXTURE_PARAM } from '@/dev/fixtures/active'
+import { clearFixture, FIXTURE_PARAM, fixtureHref } from '@/dev/fixtures/active'
 import { FIXTURES } from '@/dev/fixtures/registry'
 
 export default function FixtureList() {
@@ -20,8 +20,7 @@ export default function FixtureList() {
                     const fixture = FIXTURES[name]
                     // Plain <a>: a soft navigation would keep the previous fixture's
                     // React Query cache, so the screen would show stale state.
-                    // a route may carry its own query (nuqs URL state)
-                    const href = `${fixture.route}${fixture.route.includes('?') ? '&' : '?'}${FIXTURE_PARAM}=${name}`
+                    const href = fixtureHref(fixture.route, name)
                     return (
                         <a key={name} href={href}>
                             <Card className="cursor-pointer p-4">

@@ -10,6 +10,7 @@
 // this registry replaced it.
 
 import type { Fixture } from './types'
+import { AVATAR_PICKER_PATH } from '@/components/Avatar/avatar.consts'
 
 // Hugo's overflow case: a username no header was designed for, and a points
 // total that is nine digits with separators.
@@ -342,7 +343,7 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: { 'GET /users/me': { user: { avatarKey: 'basic.frog' } } },
     },
     'avatar-picker': {
-        route: '/profile?avatarPicker=true',
+        route: AVATAR_PICKER_PATH,
         about: 'Avatar picker open: three Bug Whisperer avatars unlocked above the twenty basics, beetle selected.',
         responses: {
             'GET /users/me': {

@@ -95,7 +95,7 @@ describe('BadgeEarnToast', () => {
         act(() => fireEvent.click(screen.getByRole('button', { name: /tap to view/ })))
 
         expect(mockDismissToast).toHaveBeenCalledWith('badge-earn:PRODUCT_HUNT')
-        expect(captureMock).toHaveBeenCalledWith('badge_earn_toast_tapped', { count: 1 })
+        expect(captureMock).toHaveBeenCalledWith('badge_earn_toast_tapped', { count: 1, target: 'badge_detail' })
         expect(screen.getByTestId('badge-detail-modal')).toHaveTextContent('Product Hunt')
         expect(screen.getByTestId('badge-detail-modal')).toHaveAttribute('data-code', 'PRODUCT_HUNT')
         expect(mockRouterPush).not.toHaveBeenCalled()

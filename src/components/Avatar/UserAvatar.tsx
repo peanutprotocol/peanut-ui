@@ -1,7 +1,9 @@
 'use client'
 
 import Image from 'next/image'
-import AvatarWithBadge, { type AvatarSize } from '@/components/Profile/AvatarWithBadge'
+import { useTranslations } from 'next-intl'
+import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
+import { AVATAR_SIZE_CLASSES, type AvatarSize } from '@/components/Profile/avatar-size.consts'
 import { twMerge } from '@/utils/tw'
 import { avatarPaletteClass, avatarSrc } from './avatar.utils'
 
@@ -13,23 +15,13 @@ interface UserAvatarProps {
     className?: string
 }
 
-// board 17802:61529: XS 24 · S 32 · M 48 · L 64 (+ the code-only 96), circle,
-// 1px border — the same boxes AvatarWithBadge draws.
-const SIZE_CLASSES: Record<AvatarSize, string> = {
-    tiny: 'size-6',
-    'extra-small': 'size-8',
-    small: 'size-12',
-    medium: 'size-16',
-    large: 'size-24',
-}
-const SIZE_PX: Record<AvatarSize, number> = { tiny: 24, 'extra-small': 32, small: 48, medium: 64, large: 96 }
-
 /**
  * The user's own avatar (TASK-22142): the picked character on its palette
- * triple. Without a pick — or with a key the manifest does not know — it is
+ * triple. Without a pick, or with a key the manifest does not know, it is
  * exactly the existing first-letter avatar, so the fallback lives in one place.
  */
 export function UserAvatar({ name, avatarKey, size = 'extra-small', className }: UserAvatarProps) {
+    const t = useTranslations('common')
     const src = avatarSrc(avatarKey)
     if (!src || !avatarKey) {
         return name ? (
@@ -49,15 +41,17 @@ export function UserAvatar({ name, avatarKey, size = 'extra-small', className }:
 
     return (
         <span
-            aria-hidden
+            {...(name
+                ? { role: 'img', 'aria-label': t('userAvatarAlt', { username: name }) }
+                : { 'aria-hidden': true })}
             className={twMerge(
                 'inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border',
                 avatarPaletteClass(avatarKey),
-                SIZE_CLASSES[size],
+                AVATAR_SIZE_CLASSES[size],
                 className
             )}
         >
-            <Image src={src} alt="" width={SIZE_PX[size]} height={SIZE_PX[size]} unoptimized className="size-[82%]" />
+            <Image src={src} alt="" width={96} height={96} unoptimized className="size-[82%]" />
         </span>
     )
 }

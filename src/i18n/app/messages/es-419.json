@@ -55,7 +55,8 @@
             "unknown": "Desconocido"
         },
         "exchangeRate": "Tipo de cambio",
-        "slideToProceed": "Desliza para continuar"
+        "slideToProceed": "Desliza para continuar",
+        "userAvatarAlt": "Avatar de {username}"
     },
     "navigation": {
         "home": "Inicio",
@@ -3582,12 +3583,12 @@
     },
     "avatar": {
         "title": "Tu avatar",
-        "description": "Elige uno o tira el dado entre todo lo que desbloqueaste.",
+        "description": "Elige uno o tira los dados para ver otros básicos.",
         "fromBadges": "De tus insignias",
         "basics": "Básicos",
         "unlocked": "{count} desbloqueados",
         "noBadgeAvatars": "Gana una insignia y sus avatares aparecen aquí.",
-        "roll": "Tirar el dado",
+        "rollDice": "Tirar los dados",
         "useInitial": "Usar mi inicial",
         "change": "Cambiar avatar",
         "saveFailed": "No pudimos guardar tu avatar. Inténtalo de nuevo."

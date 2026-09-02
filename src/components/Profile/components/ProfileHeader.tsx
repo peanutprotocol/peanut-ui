@@ -44,6 +44,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     const { isVerified: selfIsIdentityVerified } = useIdentityVerification()
     const isAuthenticatedUserVerified = selfIsIdentityVerified && authenticatedUser?.user.username === username
     const isSelfProfile = authenticatedUser?.user.username?.toLowerCase() === username.toLowerCase()
+    const ownAvatar = <UserAvatar name={username} avatarKey={authenticatedUser?.user.avatarKey} size="large" />
 
     // `shareableUrl` reads the live origin, so preview and staging share
     // themselves — the old BASE_URL import is non-null-asserted with no fallback.
@@ -79,10 +80,10 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                             aria-label={tAvatar('change')}
                             className="rounded-full focus-visible:outline-[3px] focus-visible:outline-action-focus"
                         >
-                            <UserAvatar name={username} avatarKey={authenticatedUser?.user.avatarKey} size="large" />
+                            {ownAvatar}
                         </button>
                     ) : (
-                        <UserAvatar name={username} avatarKey={authenticatedUser?.user.avatarKey} size="large" />
+                        ownAvatar
                     )
                 ) : (
                     <AvatarWithBadge name={name || username} />

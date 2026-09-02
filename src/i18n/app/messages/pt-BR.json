@@ -55,7 +55,8 @@
             "unknown": "Desconhecido"
         },
         "exchangeRate": "Taxa de câmbio",
-        "slideToProceed": "Deslize para continuar"
+        "slideToProceed": "Deslize para continuar",
+        "userAvatarAlt": "Avatar de {username}"
     },
     "navigation": {
         "home": "Início",
@@ -3582,12 +3583,12 @@
     },
     "avatar": {
         "title": "Seu avatar",
-        "description": "Escolha um ou jogue o dado entre tudo o que você desbloqueou.",
+        "description": "Escolha um ou jogue os dados para ver outros básicos.",
         "fromBadges": "Dos seus selos",
         "basics": "Básicos",
         "unlocked": "{count} desbloqueados",
         "noBadgeAvatars": "Ganhe um selo e seus avatares aparecem aqui.",
-        "roll": "Jogar o dado",
+        "rollDice": "Jogar os dados",
         "useInitial": "Usar minha inicial",
         "change": "Trocar avatar",
         "saveFailed": "Não foi possível salvar seu avatar. Tente de novo."

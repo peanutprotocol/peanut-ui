@@ -10,7 +10,7 @@ const APP_DIR = join(process.cwd(), 'src', 'app', '(mobile-ui)')
 function routeExists(route: string): boolean {
     let dir = APP_DIR
     // a fixture may open a route with its own query (nuqs URL state)
-    for (const segment of route.split('?')[0].split('/').filter(Boolean)) {
+    for (const segment of new URL(route, 'http://fixture.local').pathname.split('/').filter(Boolean)) {
         if (existsSync(join(dir, segment))) {
             dir = join(dir, segment)
             continue
