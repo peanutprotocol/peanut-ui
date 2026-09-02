@@ -52,9 +52,12 @@ const STRATEGIES: Record<IntentKind, TransactionStrategy> = {
     PERK_REWARD: perkReward,
 }
 
-/** Runtime guard that the kind is one the FE renders. */
+/** Runtime guard that the kind is one the FE renders. Own-property check on
+ *  purpose: `in` walks the prototype chain, so a crafted receipt URL like
+ *  `?kind=toString` would dispatch Object.prototype.toString as a strategy
+ *  instead of falling back (TASK-21817 review). */
 export function isIntentKind(value: unknown): value is IntentKind {
-    return typeof value === 'string' && value in STRATEGIES
+    return typeof value === 'string' && Object.hasOwn(STRATEGIES, value)
 }
 
 // Legacy receipt back-compat. Before the decomplexify migration (commit
