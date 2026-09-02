@@ -140,6 +140,8 @@ describe('copyTextToClipboard', () => {
 
         await expect(copyTextToClipboard(LINK)).resolves.toBe(false)
         expect(Sentry.captureException).toHaveBeenCalledTimes(1)
+        // captureConsoleIntegration would turn a console.error here into a second, stackless event
+        expect(consoleErrorSpy).not.toHaveBeenCalled()
         expect((Sentry.captureException as jest.Mock).mock.calls[0][1]).toEqual({
             extra: { failed: { clipboardApi: 'Error: denied', execCommand: 'returned false' } },
         })
