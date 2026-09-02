@@ -1,6 +1,5 @@
-import { screen } from '@testing-library/react'
+import { render } from '@testing-library/react'
 import type { ComponentProps } from 'react'
-import { renderWithIntl } from '@/test-utils/intl'
 import { UserAvatar } from '../UserAvatar'
 
 jest.mock('next/image', () => ({
@@ -10,33 +9,32 @@ jest.mock('next/image', () => ({
 
 describe('UserAvatar', () => {
     it('renders the picked character on its palette', () => {
-        renderWithIntl(<UserAvatar username="satoshi" avatarKey="basic.frog" />)
+        const { container } = render(<UserAvatar name="satoshi" avatarKey="basic.frog" />)
 
-        expect(screen.getByRole('img', { name: 'Avatar for satoshi' })).toBeInTheDocument()
-        expect(document.querySelector('img')).toHaveAttribute('src', '/avatars/basic/frog.svg')
-        expect(screen.queryByText('S')).not.toBeInTheDocument()
+        expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/basic/frog.svg')
+        expect(container).not.toHaveTextContent('S')
     })
 
-    // privacy-safe fallback: exactly one character of the USERNAME. The
-    // component has no name/fullName prop at all, so verification data cannot
-    // reach it — a username that looks like a full name still yields one letter.
-    it('falls back to a single username initial, never more', () => {
-        renderWithIntl(<UserAvatar username="Satoshi Nakamoto" avatarKey={null} />)
+    // no pick → the existing first-letter avatar, so the fallback lives in
+    // one place (AvatarWithBadge firstLetterOnly, #2924)
+    it('falls back to the first-letter avatar without a pick', () => {
+        const { container } = render(<UserAvatar name="satoshi" avatarKey={null} />)
 
-        expect(screen.getByRole('img', { name: 'Avatar for Satoshi Nakamoto' })).toHaveTextContent(/^S$/)
-        expect(document.querySelector('img')).toBeNull()
+        expect(container.querySelector('img')).toBeNull()
+        expect(container).toHaveTextContent(/^S$/)
     })
 
     it('treats a key the manifest does not know as no pick', () => {
-        renderWithIntl(<UserAvatar username="hal" avatarKey="badge.NOPE.x" />)
+        const { container } = render(<UserAvatar name="hal" avatarKey="badge.NOPE.x" />)
 
-        expect(screen.getByRole('img', { name: 'Avatar for hal' })).toHaveTextContent(/^H$/)
+        expect(container.querySelector('img')).toBeNull()
+        expect(container).toHaveTextContent(/^H$/)
     })
 
-    it('shows the generic user glyph with no username at all', () => {
-        const { container } = renderWithIntl(<UserAvatar avatarKey={null} />)
+    it('shows the generic user glyph with no name at all', () => {
+        const { container } = render(<UserAvatar avatarKey={null} />)
 
-        expect(screen.queryByRole('img')).not.toBeInTheDocument()
         expect(container.querySelector('svg')).toBeInTheDocument()
+        expect(container).toHaveTextContent('')
     })
 })

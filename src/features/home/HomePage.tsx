@@ -27,6 +27,7 @@ export function HomePage() {
     const {
         isPageLoading,
         username,
+        avatarName,
         avatarKey,
         isActivated,
         activationStep,
@@ -45,7 +46,7 @@ export function HomePage() {
     return (
         <PageContainer>
             <div className="flex h-full w-full flex-col gap-6 p-4">
-                <HomeTopNav username={username ?? undefined} avatarKey={avatarKey} showRewards={isActivated} />
+                <HomeTopNav avatarName={avatarName} avatarKey={avatarKey} showRewards={isActivated} />
                 <BalanceSection
                     balance={spendableBalance}
                     isFetching={isFetchingSpendableBalance}

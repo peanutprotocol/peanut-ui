@@ -6,6 +6,8 @@ import posthog from 'posthog-js'
 import React, { useEffect, useRef } from 'react'
 import { twMerge } from '@/utils/tw'
 import AvatarWithBadge from '../AvatarWithBadge'
+import { UserAvatar } from '@/components/Avatar/UserAvatar'
+import { useTranslations } from 'next-intl'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
@@ -20,6 +22,8 @@ interface ProfileHeaderProps {
     className?: string
     showShareButton?: boolean
     haveSentMoneyToUser?: boolean
+    /** Self profile only: makes the avatar a button that opens the picker (TASK-22142). */
+    onChangeAvatar?: () => void
 }
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({
@@ -29,8 +33,10 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     className,
     showShareButton = true,
     haveSentMoneyToUser = false,
+    onChangeAvatar,
 }) => {
     const { user: authenticatedUser } = useAuth()
+    const tAvatar = useTranslations('avatar')
     // The self-profile verified badge means "this person's ID was confirmed" —
     // NOT "this person has an enabled payment rail." It reads identityVerification
     // (Sumsub-cleared), matching the counterparty badge logic (`isVerified` on
@@ -66,7 +72,18 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     else's public profile keeps initials (letters identify others).
                     The generated face (497ab2a5e) is parked until avatar v2. */}
                 {isSelfProfile ? (
-                    <AvatarWithBadge name={username} firstLetterOnly size="large" />
+                    onChangeAvatar ? (
+                        <button
+                            type="button"
+                            onClick={onChangeAvatar}
+                            aria-label={tAvatar('change')}
+                            className="rounded-full focus-visible:outline-[3px] focus-visible:outline-action-focus"
+                        >
+                            <UserAvatar name={username} avatarKey={authenticatedUser?.user.avatarKey} size="large" />
+                        </button>
+                    ) : (
+                        <UserAvatar name={username} avatarKey={authenticatedUser?.user.avatarKey} size="large" />
+                    )
                 ) : (
                     <AvatarWithBadge name={name || username} />
                 )}

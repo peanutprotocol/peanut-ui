@@ -51,13 +51,17 @@ export function useHomeFlow() {
         }
     }, [isWagmiConnected, disconnectWagmi])
 
-    // the picked avatar (TASK-22142); the top nav falls back to one username
-    // initial, never to the full name, so nothing else is derived here
+    // respect the showFullName preference for the avatar initials; a
+    // usernameless user still gets initials from their full name (initials
+    // only — the preference governs showing the full name, not its initials)
+    const avatarName = (user?.user.showFullName && user?.user.fullName) || username || user?.user.fullName || undefined
+    // the picked avatar (TASK-22142); null keeps the first-letter fallback
     const avatarKey = user?.user.avatarKey ?? null
 
     return {
         isPageLoading: isFetchingUser && !username,
         username,
+        avatarName,
         avatarKey,
         isActivated,
         activationStep,

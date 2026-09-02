@@ -91,7 +91,7 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                             checked && 'border-2 border-border-default shadow-[3px_3px_0_var(--color-shadow-primary)]'
                         )}
                     >
-                        <UserAvatar username={username} avatarKey={key} size="small" />
+                        <UserAvatar name={username} avatarKey={key} size="small" />
                     </button>
                 )
             })}

@@ -1,9 +1,14 @@
 import { screen } from '@testing-library/react'
+import type { ComponentProps } from 'react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { HomeTopNav } from '../HomeTopNav'
 
 jest.mock('@/hooks/useAppHaptic', () => ({ useAppHaptic: () => ({ triggerHaptic: jest.fn() }) }))
 jest.mock('@/components/Home/InvitesIcon', () => ({ __esModule: true, default: () => null }))
+jest.mock('next/image', () => ({
+    __esModule: true,
+    default: ({ unoptimized, ...rest }: ComponentProps<'img'> & { unoptimized?: boolean }) => <img {...rest} />,
+}))
 
 describe('HomeTopNav', () => {
     it('shows the first letter of the username — not two-letter initials, not a generated face', () => {
@@ -12,6 +17,15 @@ describe('HomeTopNav', () => {
         expect(container.querySelector('a[href="/profile"]')).toHaveTextContent(/^T$/)
         expect(screen.queryByText(/^TE$/i)).not.toBeInTheDocument()
         expect(container.querySelector('a[href="/profile"] svg')).not.toBeInTheDocument()
+    })
+
+    it('wears the picked avatar inside the profile link (TASK-22142)', () => {
+        const { container } = renderWithIntl(
+            <HomeTopNav avatarName="testuser" avatarKey="basic.frog" showRewards={false} />
+        )
+
+        expect(container.querySelector('a[href="/profile"] img')).toHaveAttribute('src', '/avatars/basic/frog.svg')
+        expect(container.querySelector('a[href="/profile"]')).not.toHaveTextContent('T')
     })
 
     it('falls back to the no-name circle when there is no username yet', () => {

@@ -1,14 +1,15 @@
 'use client'
 
+import { UserAvatar } from '@/components/Avatar/UserAvatar'
 import { Icon } from '@/components/Global/Icons/Icon'
 import InvitesIcon from '@/components/Home/InvitesIcon'
-import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import Link from 'next/link'
 
 interface HomeTopNavProps {
     avatarName?: string
+    avatarKey?: string | null
     showRewards: boolean
 }
 
@@ -17,7 +18,7 @@ interface HomeTopNavProps {
  * top-left linking to /profile (Vlad follow-up: one size down from 48),
  * rewards link top-right. The link keeps a 44px hit area via after: inset.
  */
-export function HomeTopNav({ avatarName, showRewards }: HomeTopNavProps) {
+export function HomeTopNav({ avatarName, avatarKey, showRewards }: HomeTopNavProps) {
     const t = useAppTranslations('home')
     const { triggerHaptic } = useAppHaptic()
 
@@ -30,20 +31,11 @@ export function HomeTopNav({ avatarName, showRewards }: HomeTopNavProps) {
                 className="relative block after:absolute after:-inset-1.5"
                 aria-label={t('openProfile')}
             >
-                {/* Own identity: the first letter of the username, here and on
-                    the profile header (the generated face is parked until avatar
-                    v2). A user with no name string at all still gets an
-                    avatar-toned circle (yellow — the palette's no-name default). */}
-                {avatarName ? (
-                    <AvatarWithBadge size="extra-small" name={avatarName} firstLetterOnly />
-                ) : (
-                    <AvatarWithBadge
-                        size="extra-small"
-                        icon="user"
-                        className="border border-avatar-yellow-border bg-avatar-yellow text-avatar-yellow-foreground"
-                        iconFillColor="var(--color-avatar-yellow-foreground)"
-                    />
-                )}
+                {/* Own identity: the picked avatar (TASK-22142), or the first
+                    letter of the name, here and on the profile header. A user
+                    with no name string at all still gets an avatar-toned circle
+                    (yellow — the palette's no-name default). */}
+                <UserAvatar name={avatarName} avatarKey={avatarKey} size="extra-small" />
             </Link>
             {showRewards && (
                 <Link
