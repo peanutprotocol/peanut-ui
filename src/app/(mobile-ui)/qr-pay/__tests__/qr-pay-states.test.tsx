@@ -1501,7 +1501,7 @@ describe('GROUP 5: Error States', () => {
      * locks — behind the retry caption — for an answer attempt one already had.
      */
     test.each([
-        ['MANTECA_SOURCE_OVER_MONTHLY_CAP', /monthly QR payment limit/i],
+        ['MANTECA_SOURCE_OVER_MONTHLY_CAP', /remaining monthly limit/i],
         ['MANTECA_MERCHANT_VOLUME_NEAR_CAP', /merchant can't accept QR payments/i],
         ['MANTECA_MERCHANT_RECENT_REFUND', /merchant can't accept QR payments/i],
         ['MANTECA_USER_NOT_PROVISIONED', /verifying your identity/i],
@@ -1525,9 +1525,41 @@ describe('GROUP 5: Error States', () => {
         expect(screen.queryByText(/currently experiencing issues/i)).not.toBeInTheDocument()
     })
 
+    /*
+     * The cap block fires when THIS payment exceeds the remaining headroom
+     * (`attempted <= available` in peanut-api-ts cap-check.ts), not when the
+     * headroom is gone — so the smaller-amount route is usually still open, and
+     * copy that only offers "wait until next month" sends a user who could pay
+     * ARS 5,000 away from the counter. The pool is also shared with deposits
+     * and withdrawals (mono product/kyc.md), so it must not be named a QR limit.
+     */
+    it('cap copy offers a smaller amount and does not call the limit QR-only', async () => {
+        mockMantecaApi.initiateQrPayment.mockRejectedValue(new Error('MANTECA_SOURCE_OVER_MONTHLY_CAP'))
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+        const message = await screen.findByText(/remaining monthly limit/i)
+        expect(message).toHaveTextContent(/smaller amount/i)
+        expect(message).toHaveTextContent(/deposits, withdrawals and QR/i)
+        expect(message).not.toHaveTextContent(/monthly QR payment limit/i)
+    })
+
+    // No ETA promise: mono product/lessons-from-corrections.md records
+    // "verification takes 2 minutes" as a correction — that is the happy path,
+    // and MANTECA_USER_NOT_PROVISIONED reaches this copy for users who may
+    // already be sitting in manual review (1-3 business days).
+    it('KYC copy promises no completion time', async () => {
+        mockMantecaApi.initiateQrPayment.mockRejectedValue(new Error('MANTECA_USER_NOT_PROVISIONED'))
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+        const message = await screen.findByText(/verifying your identity/i)
+        expect(message).not.toHaveTextContent(/few minutes|couple of minutes|takes? \d/i)
+    })
+
     // The KYC rejection's stable discriminant is its `code`; its `error` is a
     // plain sentence the backend can reword at any time.
-    it('routes the KYC rejection on its wire code, not its prose', async () => {
+    it('routes the KYC rejection on its wire code, and does not retry it', async () => {
         mockMantecaApi.initiateQrPayment.mockRejectedValue(
             Object.assign(new Error('some reworded backend sentence'), {
                 name: 'ApiError',
@@ -1541,8 +1573,16 @@ describe('GROUP 5: Error States', () => {
         await waitFor(() => {
             expect(screen.getByText(/verifying your identity/i)).toBeInTheDocument()
         })
+
+        /*
+         * Past the 3s backoff, not just to the copy. The result effect reads the
+         * wire code, so the KYC message appeared on attempt one either way — an
+         * assertion made before the first retry could fire passed while three
+         * more POSTs were still scheduled against a deterministic rejection.
+         */
+        await new Promise((resolve) => setTimeout(resolve, 4_000))
         expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
-    })
+    }, 20_000)
 
     /*
      * Offline is not an outcome. Under react-query's default networkMode a

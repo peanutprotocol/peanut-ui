@@ -116,6 +116,13 @@ const NON_RETRYABLE_QR_PAY_ERRORS = [
     'User KYC not approved',
 ]
 
+/*
+ * The same fail-fast set, keyed on the backend's stable wire discriminant
+ * rather than its prose. Kept beside the message list because a rejection may
+ * arrive with either — an older API build sends only the sentence.
+ */
+const NON_RETRYABLE_QR_PAY_CODES: string[] = [API_ERROR_CODES.MANTECA_KYC_REQUIRED]
+
 type PaymentProcessor = 'MANTECA'
 
 export default function QRPayPage() {
@@ -647,6 +654,17 @@ export default function QRPayPage() {
             if (NON_RETRYABLE_QR_PAY_ERRORS.some((code) => error?.message?.includes(code))) {
                 return false
             }
+            /*
+             * The wire code as well as the prose. The KYC 400's stable
+             * discriminant is its `code`; its `error` is an English sentence.
+             * Matching only the message meant a reworded rejection still
+             * scheduled three more POSTs behind the (correct) KYC copy the
+             * result effect had already shown.
+             */
+            const wireCode = wireErrorCode(error)
+            if (wireCode && NON_RETRYABLE_QR_PAY_CODES.includes(wireCode)) {
+                return false
+            }
             // Three retries on top of the first attempt (see the note above).
             return failureCount < 3
         },
@@ -730,9 +748,15 @@ export default function QRPayPage() {
                 setWaitingForMerchantAmount(false)
                 setErrorInitiatingPayment(t('errors.authError'))
             } else if (error.message.includes('MANTECA_SOURCE_OVER_MONTHLY_CAP')) {
-                // The user's own monthly limit, not an outage. product/providers/
-                // fiat/README.md records the cost of conflating them: a capped
-                // user sat blocked for three days behind "unexpected error".
+                /*
+                 * The user's own limit, not an outage — product/providers/fiat/
+                 * README.md records a capped user blocked for three days behind
+                 * "unexpected error". The copy leads with a smaller amount
+                 * because the backend blocks when THIS payment exceeds the
+                 * remaining headroom (`attempted <= available` in cap-check.ts),
+                 * not when the headroom is gone, and names the shared pool
+                 * because the cap spans deposits and withdrawals too (kyc.md).
+                 */
                 setWaitingForMerchantAmount(false)
                 setErrorInitiatingPayment(t('errors.monthlyCapReached'))
             } else if (
