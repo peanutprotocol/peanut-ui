@@ -129,8 +129,7 @@ async function checkAndStageUpdate(
         return 'up-to-date'
     } catch (err) {
         const message = err instanceof Error ? err.message : String(err ?? '')
-        // "No new version available" is the normal up-to-date path, not a failure.
-        if (message === 'No new version available') {
+        if (isUpToDateRejection(message)) {
             removeStoredValue(FAILURE_STREAK_KEY)
             return 'up-to-date'
         }
@@ -151,6 +150,12 @@ async function checkAndStageUpdate(
         onUpdateFailed?.(message)
         return 'failed'
     }
+}
+
+// The normal up-to-date path, not a failure. Plugin 8.45+ rejects getLatest()
+// with the server's error code; older builds used the sentence the docs list.
+function isUpToDateRejection(message: string): boolean {
+    return message === 'No new version available' || message.includes('no_new_version_available')
 }
 
 // disable_auto_update_under_native: the served bundle semver-sorts below the
@@ -178,6 +183,11 @@ function recordFailureStreak(message: string): number {
 // channel (production) and never sees these bundles.
 export const BETA_OTA_CHANNEL = 'staging'
 
+// The app's default channel (ios-release.yml / android-release.yml / release-ota.yml).
+// Leaving beta assigns the device here explicitly, so the channel must allow
+// device self-assign in the Capgo dashboard.
+export const PRODUCTION_OTA_CHANNEL = 'production'
+
 export interface OtaChannelStatus {
     channel: string | null
     bundleVersion: string | null
@@ -191,11 +201,19 @@ export interface OtaChannelStatus {
 // A leave that started but was never confirmed. Written before the channel is
 // cleared, because after that the device looks like it is on the default channel
 // while it still runs the beta bundle — invisible, and unreachable by any
-// production OTA.
+// production OTA. The value is the beta bundle that was running, so a later
+// launch can tell "still on it" from "replaced by the store bundle or any
+// production OTA" — a bare flag could only recognise the builtin bundle, and
+// the JS reading it after the reset may be a shell that has never seen the key.
 const PENDING_EXIT_KEY = 'capgoPendingBetaExit'
+export const UNKNOWN_BETA_EXIT_BUNDLE = '1'
+
+export function pendingBetaExitBundle(): string | null {
+    return readStoredValue(PENDING_EXIT_KEY)
+}
 
 export function hasPendingBetaExit(): boolean {
-    return readStoredValue(PENDING_EXIT_KEY) === '1'
+    return pendingBetaExitBundle() !== null
 }
 
 export function clearPendingBetaExit(): void {
@@ -265,11 +283,9 @@ export async function joinBetaOtaChannel(): Promise<OtaCheckOutcome> {
 // the two: production versions sort below it, so nothing will ever replace it.
 export class OtaResetFailedError extends Error {}
 
-// A device Capgo itself routes to the beta channel — forced from the dashboard,
-// which is the documented way to enrol someone outside the cohort. unsetChannel()
-// only clears the plugin's local preference (verified in the plugin source: both
-// platforms just drop a stored key and return ok), so this assignment outlives it
-// and nothing in the app can undo it.
+// A device Capgo still routes to the beta channel after the leave: the server
+// refused the production self-assign, or someone forced the device onto beta
+// from the dashboard and the assignment outlived the app's attempt to rewrite it.
 export class OtaChannelOverrideError extends Error {}
 
 // Capgo could not say which channel it will serve. Resetting on that guess is how
@@ -291,8 +307,29 @@ export async function leaveBetaOtaChannel(): Promise<void> {
     return queueOtaWork(async () => {
         // Before the unset, not after: everything below can fail, and once the
         // channel is cleared nothing else records that an exit is owed.
-        writeStoredValue(PENDING_EXIT_KEY, '1')
-        await CapacitorUpdater.unsetChannel({})
+        const running = await CapacitorUpdater.current().catch(() => null)
+        writeStoredValue(PENDING_EXIT_KEY, running?.bundle?.version || UNKNOWN_BETA_EXIT_BUNDLE)
+        try {
+            await CapacitorUpdater.unsetChannel({})
+        } catch (err) {
+            clearPendingBetaExit()
+            throw err
+        }
+
+        // unsetChannel() only drops the plugin's local preference (verified in
+        // the plugin source: both platforms just remove a stored key). The
+        // device→channel assignment lives on the server, and only setChannel()
+        // rewrites it — so leave by assigning production, not by forgetting beta.
+        let reassigned
+        try {
+            reassigned = await CapacitorUpdater.setChannel({
+                channel: PRODUCTION_OTA_CHANNEL,
+                triggerAutoUpdate: false,
+            })
+        } catch (err) {
+            throw new OtaChannelOverrideError(err instanceof Error ? err.message : String(err ?? ''))
+        }
+        if (reassigned.error) throw new OtaChannelOverrideError(reassigned.error)
 
         // getChannel() asks the backend what it will actually serve, and only a
         // successful, channel-bearing answer licenses the reset. Offline, rate
