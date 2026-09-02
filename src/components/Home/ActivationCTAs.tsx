@@ -54,7 +54,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     const tRegion = useTranslations('kyc.regionRestricted')
     const router = useRouter()
     const { setIsQRScannerOpen, openSupportWithMessage } = useModalsContext()
-    const { rails, channelOf, nextActions, canDo } = useCapabilities()
+    const { rails, channelOf, nextActions } = useCapabilities()
     const { user } = useAuth()
     // Card spend counts as activation too — card-access users get a card+QR
     // chooser on the outbound step instead of jumping straight to the scanner.
@@ -78,14 +78,30 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     // direct sends, offramps and withdrawals are volume, not activation — so
     // the spend step is only honest while one of those two is open to the user.
     //
-    // Keyed on provider + the `pay` op, never on the channel: Pix is a
+    // Keyed on the provider and the `pay` op, never on the channel: Pix is a
     // BANK-channel method that happens to carry `pay` (peanut-api-ts
     // METHOD_CHANNELS — MercadoPago is the only `qr-only` entry), and the QR
     // pool enables its rails one at a time, so a `qr-only` filter silently
     // drops every Brazilian user whose Pix pays but whose MercadoPago row did
-    // not enable. `canDo` reads `operations.pay ?? status`, so Manteca's pool
-    // tier reading `enabled` overall while `pay` needs an upgrade still fails.
-    const hasQrSpendRail = canDo('pay', { provider: 'manteca' })
+    // not enable.
+    //
+    // `pay` must be present AND enabled — deliberately not `canDo`/
+    // `operationStatus`, whose `operations.pay ?? status` fallback would read a
+    // bank-only rail's missing `pay` as the rail's enabled status and hand it a
+    // phantom QR capability. MANTECA_METHOD_OPERATIONS lists every op a method
+    // supports (BANK_TRANSFER_AR is deposit+withdraw only), so on a rail that
+    // carries the map an absent `pay` means "no merchant QR". The map is only
+    // absent for an unknown method or a response predating it, where the
+    // qr-only channel is pay by construction.
+    const hasQrSpendRail = useMemo(
+        () =>
+            rails.some((rail) => {
+                if (rail.provider !== 'manteca') return false
+                if (rail.operations) return rail.operations.pay === 'enabled'
+                return channelOf(rail) === 'qr-only' && rail.status === 'enabled'
+            }),
+        [rails, channelOf]
+    )
 
     // The activation funnel gates deposit/outbound, which routes through bank or
     // qr-only channels — never through card. Top-level status (not per-op

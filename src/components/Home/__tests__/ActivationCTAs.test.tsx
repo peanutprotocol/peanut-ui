@@ -138,6 +138,16 @@ const enabledMercadoPagoRail = {
     provider: 'manteca',
     channel: 'qr-only',
     status: 'enabled',
+    operations: { pay: 'enabled' },
+}
+// BANK_TRANSFER_AR supports deposit + withdraw only — no merchant QR, so its
+// operations map carries no `pay` key at all.
+const enabledMantecaBankRail = {
+    id: 'manteca.bank_transfer_ar',
+    provider: 'manteca',
+    channel: 'bank',
+    status: 'enabled',
+    operations: { deposit: 'enabled', withdraw: 'enabled' },
 }
 
 beforeEach(() => {
@@ -320,6 +330,23 @@ describe('ActivationCTAs — happy path renders the checklist', () => {
         render(<ActivationCTAs activationStep="outbound" />)
         fireEvent.click(screen.getByText('Start Spending'))
         expect(mockSetIsQRScannerOpen).toHaveBeenCalledWith(true)
+    })
+
+    // An operations map lists every op the method supports, so a missing `pay`
+    // means no merchant QR. Falling back to the rail's enabled status here would
+    // open the scanner for a user who has no way to pay a QR at all.
+    it('a bank-only Manteca rail is not a QR spend, even though the rail is enabled', () => {
+        mockHasCardAccess = false
+        mockRails = [enabledMantecaBankRail]
+        const { container } = render(<ActivationCTAs activationStep="outbound" />)
+        expect(container.firstChild).toBeNull()
+    })
+
+    it('a bank-only Manteca rail alongside a paying Pix rail still keeps the step', () => {
+        mockHasCardAccess = false
+        mockRails = [enabledMantecaBankRail, enabledQrRail]
+        render(<ActivationCTAs activationStep="outbound" />)
+        expect(screen.getByText('Make your first payment')).toBeInTheDocument()
     })
 
     it('outbound with card access offers the card/QR chooser', () => {
