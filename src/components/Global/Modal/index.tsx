@@ -114,14 +114,15 @@ const Modal = ({
                                     children
                                 )}
 
-                                {/* board 17800:57256 / 17829:74079: 40px circular close
-                                    button, black border + 4px hard shadow, overlapping
-                                    the panel's top-right corner */}
+                                {/* board 17829:74037: bare black X inside the panel's
+                                    top corner — no circle, border or shadow. The box is
+                                    still 40px for the touch target, inset so the glyph
+                                    lands ~16px from the panel edge. */}
                                 <button
                                     className={twMerge(
                                         video
                                             ? 'absolute top-3 right-3 h-14 w-14 fill-white p-2 text-0'
-                                            : 'absolute -top-5 -right-5 z-10 flex size-10 items-center justify-center rounded-round border border-border-button bg-background-default text-0 shadow-4 hover:bg-background-disabled',
+                                            : 'absolute top-1 right-1 z-10 flex size-10 items-center justify-center text-0 focus-visible:outline-[3px] focus-visible:outline-action-focus',
                                         classButtonClose
                                     )}
                                     onClick={onClose}

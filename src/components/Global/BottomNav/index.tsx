@@ -65,9 +65,9 @@ const tabClass =
 // tab / draggable pill underneath
 const iconClass = 'pointer-events-none relative z-10'
 
-// near-critically damped: the pill lands on the measured target without an
-// overshoot to walk back from. 0.3s = the `duration-moderate` motion token.
-const PILL_SPRING = { type: 'spring', duration: 0.3, bounce: 0.05 } as const
+// bouncy on purpose: a visible overshoot before the pill settles. 0.3s = the
+// `duration-moderate` motion token.
+const PILL_SPRING = { type: 'spring', duration: 0.3, bounce: 0.3 } as const
 
 /** A tab's box inside the bar, in the bar's own coordinates. */
 type TabBox = { left: number; width: number }
@@ -121,15 +121,12 @@ export const BottomNav = () => {
         return () => observer.disconnect()
     }, [])
 
-    // one active tab at a time so the shared pill has a single home
+    // one active tab at a time so the shared pill has a single home. The pill
+    // tracks the ROUTE only — the support drawer is an overlay, not
+    // navigation, so opening it must not move the pill (it used to slide over
+    // and spring back / vanish on close).
     const routeTab: TabId | null =
-        isSupportModalOpen || isSameRoute(pathname, '/support')
-            ? 'support'
-            : (pathname?.startsWith('/card') ?? false)
-              ? 'card'
-              : isSameRoute(pathname, '/home')
-                ? 'home'
-                : null
+        (pathname?.startsWith('/card') ?? false) ? 'card' : isSameRoute(pathname, '/home') ? 'home' : null
 
     // Start the slide AFTER the route commit, not during it.
     //
@@ -190,7 +187,8 @@ export const BottomNav = () => {
             // route commit eats the frame budget; applying it to a drag would
             // let dragSnapToOrigin pull the pill back to the tab it came from
             // for ~80ms before it turned around.
-            setActiveTab(nearest)
+            // support is an overlay, not a route — the pill stays where it is
+            if (nearest !== 'support') setActiveTab(nearest)
             activateTab(nearest)
         }
     }
@@ -247,6 +245,8 @@ export const BottomNav = () => {
                 >
                     <Icon name="credit-card" size={20} className={iconClass} />
                 </Link>
+                {/* while the drawer is open the tab shows a static pressed
+                    state (white fill) instead of borrowing the route pill */}
                 <button
                     type="button"
                     aria-label={t('support')}
@@ -254,7 +254,7 @@ export const BottomNav = () => {
                         triggerHaptic()
                         setIsSupportModalOpen(true)
                     }}
-                    className={tabClass}
+                    className={`${tabClass} ${isSupportModalOpen ? 'bg-background-default' : ''}`}
                     ref={(el) => {
                         tabRefs.current.support = el
                     }}

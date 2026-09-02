@@ -83,9 +83,10 @@ function ScannerControls({ onClose, onToggleCamera }: { onClose: () => void; onT
     return (
         // portalled overlay escapes the layout's safe-area padding; max() keeps the old 2.5rem on web
         <div className="fixed top-0 left-0 z-50 grid w-full grid-flow-col items-center pt-[max(2.5rem,calc(var(--safe-top)_+_0.5rem))] pb-2 text-center text-white">
+            {/* ds icon-button recipe: 40px circle + 20px icon */}
             <Button
                 variant="transparent-light"
-                className="mx-auto flex h-8 w-8 items-center justify-center border-white p-0"
+                className="mx-auto flex size-10 items-center justify-center border-white p-0"
                 onClick={onClose}
             >
                 <Icon name="cancel" size={20} fill="white" />
@@ -93,10 +94,10 @@ function ScannerControls({ onClose, onToggleCamera }: { onClose: () => void; onT
             <span className="text-heading-m text-foreground-inverse">{t('qrScanner.scanToPay')}</span>
             <Button
                 variant="transparent-light"
-                className="mx-auto flex h-8 w-8 items-center justify-center border-white p-0"
+                className="mx-auto flex size-10 items-center justify-center border-white p-0"
                 onClick={onToggleCamera}
             >
-                <Icon name="camera-flip" fill="white" height={24} width={24} />
+                <Icon name="camera-flip" fill="white" size={20} />
             </Button>
         </div>
     )
@@ -120,7 +121,7 @@ function PasteActions({
         <>
             <button
                 onClick={onPaste}
-                className="justify mx-auto mt-10 flex items-center gap-1 text-center text-white underline underline-offset-2"
+                className="mx-auto mt-4 flex items-center gap-1 text-center text-white underline underline-offset-2"
             >
                 <Icon name="paste" fill="white" height={16} width={16} />
                 <span className="text-body-s">{t('qrScanner.clickToPaste')}</span>
@@ -170,15 +171,24 @@ function ScanRegionOverlay({
                         <PinkCorner key={index} className={`absolute ${position} ${rotation}`} />
                     ))}
                 </div>
+            </div>
 
-                {/* Supported payment methods. This row is pinned to the top of the
-                    viewport while the paste actions rise from the bottom, so on a short
-                    screen the two meet. Measured: the gap between them is
-                    `viewportHeight - 714` px with the clipboard chip showing, so below
-                    730px it drops under the 16px this layout keeps elsewhere — hide the
-                    row rather than let it collide. */}
-                <div className="flex-column z-50 translate-y-[100%] transform items-center text-center">
-                    <div className="mt-10 flex flex-wrap justify-center gap-2 [@media(max-height:729px)]:hidden">
+            {/* The payment-method row, the paste link and the clipboard chips all
+                sit in ONE strip a fixed gap above the My QR drawer's collapsed
+                peek, so no locale's text length and no screen height can push
+                them underneath it (the row used to hang off the top-anchored
+                scan square — two coordinate systems that only lined up on a tall
+                screen in English). Paste sits BELOW the icons per the board. On
+                short screens the icon row hides rather than collide with the
+                scan square. Tailwind cannot JIT an interpolated arbitrary value,
+                so the offset is an inline style. The strip is full-width and
+                transparent, so it is click-through except for the actions. */}
+            <div
+                className="pointer-events-none fixed inset-x-0 z-50 flex flex-col items-center"
+                style={{ bottom: QR_DRAWER_PEEK_PX + QR_DRAWER_PASTE_GAP_PX }}
+            >
+                <div className="pointer-events-auto flex flex-col items-center">
+                    <div className="flex flex-wrap justify-center gap-2 [@media(max-height:729px)]:hidden">
                         {PAYMENT_METHODS.map((method) => (
                             <PaymentMethodBadge
                                 key={method.name ?? 'evm'}
@@ -188,23 +198,6 @@ function ScanRegionOverlay({
                             />
                         ))}
                     </div>
-                </div>
-            </div>
-
-            {/* The paste link and clipboard chips sit a fixed gap above the My QR
-                drawer's collapsed peek, so no locale's text length and no screen
-                height can push them underneath it. They used to hang off the scan
-                square, which is pinned to the top of the viewport, while the peek
-                grows from the bottom — two coordinate systems that only lined up
-                on a tall screen in English. Tailwind cannot JIT an interpolated
-                arbitrary value, so the offset is an inline style. The strip is
-                full-width and transparent, so it is click-through except for the
-                actions themselves. */}
-            <div
-                className="pointer-events-none fixed inset-x-0 z-50 flex flex-col items-center"
-                style={{ bottom: QR_DRAWER_PEEK_PX + QR_DRAWER_PASTE_GAP_PX }}
-            >
-                <div className="pointer-events-auto flex flex-col items-center">
                     <PasteActions
                         onPaste={onPaste}
                         detectedAddress={detectedAddress}

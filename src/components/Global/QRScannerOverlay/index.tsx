@@ -468,8 +468,7 @@ export default function QRScannerOverlay() {
                     {/* z-[60] keeps this drawer above the QRScanner portal (z-50) */}
                     <QRBottomDrawer
                         url={payUserUrl}
-                        collapsedTitle={t('qrScannerOverlay.myQrCollapsedTitle')}
-                        expandedTitle={t('qrScannerOverlay.myQrExpandedTitle')}
+                        title={t('qrScannerOverlay.myQrTitle')}
                         text={t('qrScannerOverlay.myQrText')}
                         buttonText={t('qrScannerOverlay.myQrButtonText')}
                         className="z-[60]"

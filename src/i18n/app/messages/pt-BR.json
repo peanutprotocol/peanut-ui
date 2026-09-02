@@ -1614,7 +1614,6 @@
         "title": "Adicionar dinheiro",
         "transferDetails": "Dados da transferência",
         "selectYourCountry": "Selecione seu país",
-        "howWouldYouLikeToAdd": "Como você quer adicionar dinheiro?",
         "addMoneyVia": "Adicionar dinheiro com",
         "recentMethods": "Métodos recentes",
         "selectNewMethod": "Escolher outro método",
@@ -3076,10 +3075,9 @@
             "titleExternalUrl": "Este é um link externo!",
             "eip681ParseError": "Erro ao interpretar a URL EIP-681",
             "notPeanutUrl": "O QR não foi reconhecido como uma URL da Peanut",
-            "myQrCollapsedTitle": "Meu QR",
-            "myQrExpandedTitle": "Mostre o QR para receber",
             "myQrText": "Deixe outras pessoas escanearem para te pagar",
-            "myQrButtonText": "Compartilhe seu perfil"
+            "myQrButtonText": "Compartilhe seu perfil",
+            "myQrTitle": "Meu QR"
         },
         "qrBottomDrawer": {
             "shareTitle": "Compartilhe seu perfil"

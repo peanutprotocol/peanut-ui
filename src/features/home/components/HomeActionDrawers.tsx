@@ -46,7 +46,7 @@ const DRAWER_OPTIONS: Record<HomeDrawer, DrawerOption[]> = {
         },
     ],
     add: [
-        { key: 'bank', titleKey: ['methods', 'bankTransfer'], icon: 'bank', href: '/add-money?method=bank' },
+        { key: 'bank', titleKey: ['methods', 'bankTransfer'], icon: 'bank', href: '/add-money' },
         { key: 'crypto', titleKey: ['methods', 'crypto'], icon: 'credit-card', href: '/add-money/crypto' },
     ],
 }

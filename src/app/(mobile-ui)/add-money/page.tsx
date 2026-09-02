@@ -1,6 +1,5 @@
 'use client'
 
-import AddMoneyMethodSelection from '@/components/AddMoney/views/AddMoneyMethodSelection.view'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import AddWithdrawCountriesList from '@/components/AddWithdraw/AddWithdrawCountriesList'
 import dynamic from 'next/dynamic'
@@ -14,7 +13,6 @@ import NavHeader from '@/components/Global/NavHeader'
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
-import { useQueryState, parseAsStringEnum } from 'nuqs'
 import { getRedirectUrl, clearRedirectUrl, getFromLocalStorage } from '@/utils/general.utils'
 import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
 import { isBridgeSupportedCountry } from '@/utils/regions.utils'
@@ -29,7 +27,6 @@ export default function AddMoneyPage() {
     const searchParams = useSearchParams()
     const t = useTranslations('addMoney')
     const { resetOnrampFlow } = useOnrampFlow()
-    const [method, setMethod] = useQueryState('method', parseAsStringEnum(['bank']))
 
     // native app passes country as query param instead of path segment
     const countryFromQuery = searchParams.get('country')
@@ -46,16 +43,10 @@ export default function AddMoneyPage() {
         // returnTo origin alive: dropping it here would strand the later backs
         // on /home instead of the caller (the bug returnTo exists to fix).
         if (countryFromQuery) {
-            const params = new URLSearchParams({ method: 'bank' })
+            const params = new URLSearchParams()
             const origin = searchParams.get(RETURN_TO_PARAM)
             if (origin) params.set(RETURN_TO_PARAM, origin)
-            router.push(`/add-money?${params.toString()}`)
-            return
-        }
-
-        // if on country list view, go back to method selection
-        if (method === 'bank') {
-            setMethod(null)
+            router.push(params.size ? `/add-money?${params.toString()}` : '/add-money')
             return
         }
 
@@ -119,21 +110,19 @@ export default function AddMoneyPage() {
         return <AddWithdrawCountriesList flow="add" />
     }
 
+    // The root IS the bank country list — the old "How would you like to add
+    // money?" method-selection screen is gone (crypto is offered by the home
+    // Add drawer, which links /add-money/crypto directly).
     return (
         <PageStack>
             {/* board Page/Add/Bank (17830:77534): country list titles "Bank transfer" */}
-            <NavHeader title={method === 'bank' ? t('methods.bankTransfer') : t('title')} onPrev={handleBack} />
-
-            {method === 'bank' ? (
-                <CountryList
-                    inputTitle={t('selectYourCountry')}
-                    viewMode="add-withdraw"
-                    flow="add"
-                    onCountryClick={handleCountryClick}
-                />
-            ) : (
-                <AddMoneyMethodSelection onBankTransferClick={() => setMethod('bank')} />
-            )}
+            <NavHeader title={t('methods.bankTransfer')} onPrev={handleBack} />
+            <CountryList
+                inputTitle={t('selectYourCountry')}
+                viewMode="add-withdraw"
+                flow="add"
+                onCountryClick={handleCountryClick}
+            />
         </PageStack>
     )
 }

@@ -790,7 +790,6 @@
     },
     "addMoney": {
         "selectYourCountry": "Seleccioná tu país",
-        "howWouldYouLikeToAdd": "¿Cómo querés agregar dinero?",
         "howMuchToAdd": "¿Cuánto querés agregar?",
         "mustMatchBankTransfer": "Esto debe coincidir exactamente con lo que enviás desde tu banco",
         "amountMustMatchBank": "¡El monto debe coincidir con lo que enviás desde tu banco!",
@@ -1331,8 +1330,8 @@
             "externalUrlIntro": "Peanut no admite este QR, pero podés abrirlo con tu navegador.",
             "externalUrlTrust": "¡Asegurate de confiar en este sitio web!",
             "pixRecurringBody": "Peanut no admite pagos PIX recurrentes: pedí un código QR de PIX normal.",
-            "myQrExpandedTitle": "Mostrá tu QR para cobrar",
-            "myQrButtonText": "Compartí tu perfil"
+            "myQrButtonText": "Compartí tu perfil",
+            "myQrTitle": "Mi QR"
         },
         "qrBottomDrawer": {
             "shareTitle": "Compartí tu perfil"

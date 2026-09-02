@@ -298,7 +298,15 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                     ) : (
                         <div className="flex flex-col items-end gap-1">
                             {hideTxnAmount ? (
-                                <span className="text-body-m-semibold">****</span>
+                                // mirror the unmasked structure (two lines when a
+                                // secondary currency line exists) so toggling the
+                                // balance visibility does not change the row height
+                                <>
+                                    <span className="text-body-m-semibold text-foreground-primary">****</span>
+                                    {currencyDisplayAmount && (
+                                        <span className="text-body-s text-foreground-secondary">****</span>
+                                    )}
+                                </>
                             ) : (
                                 <>
                                     <span

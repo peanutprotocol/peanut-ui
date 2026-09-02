@@ -1614,7 +1614,6 @@
         "title": "Add Money",
         "transferDetails": "Transfer details",
         "selectYourCountry": "Select your country",
-        "howWouldYouLikeToAdd": "How would you like to add money?",
         "addMoneyVia": "Add money via",
         "recentMethods": "Recent methods",
         "selectNewMethod": "Select new method",
@@ -3076,10 +3075,9 @@
             "titleExternalUrl": "This is an external link!",
             "eip681ParseError": "Error parsing EIP-681 URL",
             "notPeanutUrl": "QR not recognized as Peanut URL",
-            "myQrCollapsedTitle": "My QR",
-            "myQrExpandedTitle": "Show QR to Get Paid",
             "myQrText": "Let others scan this to pay you",
-            "myQrButtonText": "Share your profile"
+            "myQrButtonText": "Share your profile",
+            "myQrTitle": "My QR"
         },
         "qrBottomDrawer": {
             "shareTitle": "Share your profile"

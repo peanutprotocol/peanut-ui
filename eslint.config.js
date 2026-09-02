@@ -369,7 +369,6 @@ module.exports = [
             'src/app/(mobile-ui)/withdraw/page.tsx',
             'src/app/lp/card/CardLandingPage.tsx',
             'src/app/shhhhh/ShhhhhLandingPage.tsx',
-            'src/components/AddMoney/views/AddMoneyMethodSelection.view.tsx',
             'src/components/AddWithdraw/AddWithdrawCountriesList.tsx',
             'src/components/AddWithdraw/AddWithdrawRouterView.tsx',
             'src/components/Claim/Link/SendLinkActionList.tsx',
