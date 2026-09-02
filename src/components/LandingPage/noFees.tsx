@@ -25,6 +25,16 @@ export function NoFees({
 }) {
     const router = useRouter()
 
+    // One vw ramp can't serve every locale: "TRANSFER" only clips under ~340px,
+    // while "TRANSFERENCIA"/"TRANSFERÊNCIA" (both 491px at 60px) need ~545px.
+    // <html lang> stays "en" on these routes, so :lang() can't pick the ramp.
+    // At 320px the ramps carry a longest word of 337px / 540px at 60px, which
+    // is 8 / 14 characters — messages.test.ts holds the catalogs to that.
+    const headlineSize =
+        Math.max(...strings.zeroFees.split(' ').map((word) => word.length)) > 8
+            ? 'text-[min(10vw,3.75rem)]'
+            : 'text-[min(16vw,3.75rem)]'
+
     // The scribble circles the closing word of the line, so each catalog picks
     // what gets circled just by putting that word last.
     const lastSpace = strings.reallyZero.lastIndexOf(' ')
@@ -86,9 +96,9 @@ export function NoFees({
                     <Image src={Star} alt="Floating Star" width={50} height={50} />
                 </AnimateOnView>
 
-                {/* fluid below md so the longest translation of the headline
-                    ("CERO COMISIONES POR TRANSFERENCIA") still fits at 320px */}
-                <h1 className="font-roboto-flex-extrabold text-[min(10.5vw,3.75rem)] text-black md:text-headingMedium">
+                {/* fluid below md so the longest word of the headline still
+                    fits at 320px; unchanged from md up */}
+                <h1 className={`font-roboto-flex-extrabold ${headlineSize} text-black md:text-headingMedium`}>
                     {strings.zeroFees}
                 </h1>
 

@@ -55,6 +55,18 @@ describe('marketing message catalogs', () => {
         expect(getTranslations(locale).landingReallyZero).toMatch(/\s\S+$/)
     })
 
+    // noFees.tsx picks the mobile headline ramp from the longest word in
+    // landingZeroFees. Measured at 320px: the wide ramp (en) carries 8
+    // characters, the narrow one 14. Past that the headline clips again.
+    it.each(SUPPORTED_LOCALES)('%s landingZeroFees fits its headline ramp', (locale) => {
+        const longest = Math.max(
+            ...getTranslations(locale)
+                .landingZeroFees.split(' ')
+                .map((word) => word.length)
+        )
+        expect(longest).toBeLessThanOrEqual(locale === DEFAULT_LOCALE ? 8 : 14)
+    })
+
     it('falls back to en for an unsupported locale', () => {
         expect(getTranslations('de' as Locale)).toBe(getTranslations(DEFAULT_LOCALE))
     })
