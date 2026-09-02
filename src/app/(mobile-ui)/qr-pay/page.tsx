@@ -763,8 +763,18 @@ export default function QRPayPage() {
                 error.message.includes('MANTECA_MERCHANT_VOLUME_NEAR_CAP') ||
                 error.message.includes('MANTECA_MERCHANT_RECENT_REFUND')
             ) {
-                // A limit on the MERCHANT, so naming the user's own limit would
-                // be wrong — and so would blaming the rail.
+                /*
+                 * Neither code is a fact about the merchant: both are only
+                 * reached for pool payments (`isQr3ArgPoolPayment` — the shared
+                 * AR corporate account), so the volume cap counts EVERY Peanut
+                 * user's spend at that merchant and the refund block can be
+                 * another user's refund entirely. The merchant accepts QR fine;
+                 * our pooled source cannot pay it. The backend scopes its own
+                 * message the same way ("for our payments"), and surfacing a
+                 * shared-pool block as the counterparty's problem is a recorded
+                 * harm class — it sends the user and support after the wrong
+                 * cause (product/feedback/problems/limits-invisible-blocking.md).
+                 */
                 setWaitingForMerchantAmount(false)
                 setErrorInitiatingPayment(t('errors.merchantNotAvailable'))
             } else if (

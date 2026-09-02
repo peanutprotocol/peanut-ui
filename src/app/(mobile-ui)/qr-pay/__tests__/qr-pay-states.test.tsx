@@ -1502,8 +1502,8 @@ describe('GROUP 5: Error States', () => {
      */
     test.each([
         ['MANTECA_SOURCE_OVER_MONTHLY_CAP', /remaining monthly limit/i],
-        ['MANTECA_MERCHANT_VOLUME_NEAR_CAP', /merchant can't accept QR payments/i],
-        ['MANTECA_MERCHANT_RECENT_REFUND', /merchant can't accept QR payments/i],
+        ['MANTECA_MERCHANT_VOLUME_NEAR_CAP', /can't complete QR payments to this merchant/i],
+        ['MANTECA_MERCHANT_RECENT_REFUND', /can't complete QR payments to this merchant/i],
         ['MANTECA_USER_NOT_PROVISIONED', /verifying your identity/i],
         ['User KYC not approved', /verifying your identity/i],
     ])('%s fails fast with copy that names the real cause', async (code, copy) => {
@@ -1543,6 +1543,26 @@ describe('GROUP 5: Error States', () => {
         expect(message).toHaveTextContent(/deposits, withdrawals and QR/i)
         expect(message).not.toHaveTextContent(/monthly QR payment limit/i)
     })
+
+    /*
+     * Both merchant codes are reached only for pool payments, so the volume cap
+     * counts every Peanut user's spend at that merchant and the refund block may
+     * be another user's refund. The merchant is fine; our pooled source account
+     * is what cannot pay. Claiming otherwise sends the user — and support —
+     * after the wrong party, which product/feedback/problems/
+     * limits-invisible-blocking.md records as a harm class.
+     */
+    it.each([['MANTECA_MERCHANT_VOLUME_NEAR_CAP'], ['MANTECA_MERCHANT_RECENT_REFUND']])(
+        '%s blames us, not the merchant',
+        async (code) => {
+            mockMantecaApi.initiateQrPayment.mockRejectedValue(new Error(code))
+
+            renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+            const message = await screen.findByText(/can't complete QR payments to this merchant/i)
+            expect(message).not.toHaveTextContent(/merchant (can't|cannot|is unable)/i)
+        }
+    )
 
     // No ETA promise: mono product/lessons-from-corrections.md records
     // "verification takes 2 minutes" as a correction — that is the happy path,

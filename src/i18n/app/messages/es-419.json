@@ -1274,7 +1274,7 @@
             "genericDecode": "No pudimos decodificar este código QR. Pregúntale al comercio si puede generar un QR de Mercado Pago",
             "providerIssues": "Estamos teniendo problemas con los pagos de {method}. Estamos trabajando para solucionarlo lo antes posible",
             "monthlyCapReached": "Este pago supera tu límite mensual disponible, que se comparte entre depósitos, retiros y pagos con QR. Probá con un monto menor o aumentá tu límite en la app.",
-            "merchantNotAvailable": "Este comercio no puede recibir pagos con QR en este momento. Probá con otro método de pago o con otro comercio.",
+            "merchantNotAvailable": "No podemos completar pagos con QR a este comercio en este momento. Probá con otro método de pago o con otro comercio.",
             "kycRequired": "Terminá de verificar tu identidad para pagar con QR.",
             "merchantChargeExpired": "El cobro del cajero se venció. Pídele que ingrese el monto de nuevo y escanea otra vez.",
             "initiateUnexpected": "No se pudo iniciar el pago por un error inesperado. Contacta a soporte",
