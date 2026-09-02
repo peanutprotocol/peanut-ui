@@ -133,7 +133,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
                         <IconBubble
                             size="m"
                             icon={iconContent}
-                            className={customIconContainerClassName || defaultIconContainerClassName}
+                            className={twMerge(defaultIconContainerClassName, customIconContainerClassName)}
                         />
                     )}
 
