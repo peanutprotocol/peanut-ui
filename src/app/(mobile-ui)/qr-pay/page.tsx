@@ -98,6 +98,20 @@ const NON_RETRYABLE_QR_PAY_ERRORS = [
     // Missing auth header (AJV 400) — retrying sends the same headerless request,
     // so fail fast rather than waiting out three attempts.
     "required property 'authorization'",
+    /*
+     * Deterministic backend rejections from `/manteca/qr-payment/init`. None of
+     * them can change between attempts inside one scan, and each retry re-runs
+     * `createQrPaymentLock` against Manteca — so a capped user used to spend
+     * four round trips and four abandoned price locks to be told something the
+     * first response already knew. `mantecaApi.initiateQrPayment` throws the
+     * response's `error` field, which is the bare code for the 422s and this
+     * sentence for the KYC 400.
+     */
+    'MANTECA_SOURCE_OVER_MONTHLY_CAP',
+    'MANTECA_MERCHANT_VOLUME_NEAR_CAP',
+    'MANTECA_MERCHANT_RECENT_REFUND',
+    'MANTECA_USER_NOT_PROVISIONED',
+    'User KYC not approved',
 ]
 
 type PaymentProcessor = 'MANTECA'
@@ -601,6 +615,7 @@ export default function QRPayPage() {
         isLoading: isLoadingPaymentLock,
         error: paymentLockError,
         failureReason: paymentLockFailureReason,
+        fetchStatus: paymentLockFetchStatus,
         refetch: refetchPaymentLock,
     } = useQuery({
         queryKey: ['manteca-payment-lock', qrCode, timestamp],
@@ -662,8 +677,15 @@ export default function QRPayPage() {
              * immediately is correct and stays as it was; a network failure is
              * not yet an outcome, and `paymentLockError` — set only once the
              * query settles — is what separates the two.
+             *
+             * A PAUSED query is not pending either. Under react-query's default
+             * `networkMode: 'online'` a device that drops offline mid-retry
+             * parks the query: no fetch is in flight, so no AbortController
+             * ever fires and `paymentLockError` is never set. Without this the
+             * scan would sit on the retry caption forever, with no outcome and
+             * no way out — worse than the premature error it replaced.
              */
-            const retriesPending = !paymentLockError
+            const retriesPending = !paymentLockError && paymentLockFetchStatus !== 'paused'
             setLoadingState('Idle')
 
             // Provider-specific errors: show appropriate message

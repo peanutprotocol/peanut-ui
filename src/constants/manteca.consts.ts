@@ -9,9 +9,14 @@ export const MANTECA_QR_DEPOSIT_ADDRESS_NON_AR = '0x49200bF84dC26349C86ce0400190
 
 /*
  * Budget for the scan-time `/manteca/qr-payment/init`, deliberately half the 20s
- * client default. The backend answers this route with a p95 of ~2s and has not
- * exceeded 13s in a week of traffic, so 20s buys no successes — it only decides
- * how long someone stands at a till watching a spinner (PEANUT-UI-SZQ).
+ * client default, because 20s buys almost no successes — it only decides how
+ * long someone stands at a till watching a spinner (PEANUT-UI-SZQ).
+ *
+ * Measured over 13,708 requests in 7d: p50 0.1ms, p95 1.96s, p99 6.59s, max
+ * 12.94s. Exactly 10 of them — 0.073% — crossed this cutoff, and those are
+ * retried rather than failed. Raising the budget to clear the observed max
+ * would rescue that 0.073% by making every genuinely stalled scan wait 50%
+ * longer, which is the trade this constant deliberately refuses.
  *
  * This bounds a whole attempt, on every platform: `fetchWithSentry` sizes one
  * budget pool per call and the OS-client fallback draws on what the WebView leg

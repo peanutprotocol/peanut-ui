@@ -565,7 +565,7 @@ export const fetchWithSentry = async (
 
     /*
      * One budget pool for the whole call, sized to the transport attempts this
-     * method is allowed. `timeoutMs` used to be handed FRESH to every leg, so a
+     * method is allowed plus the backoff between them. `timeoutMs` used to be handed FRESH to every leg, so a
      * native POST could spend it in the WebView fetch and spend it again in the
      * OS-client fallback — twice the documented bound per caller-visible
      * attempt, three times for a tokenless session that tries the OS client
@@ -578,8 +578,14 @@ export const fetchWithSentry = async (
      * at the TLS layer rather than timing out (PEANUT-UI-R5F), so almost
      * nothing has been spent by the time the fallback runs.
      */
-    const deadline = Date.now() + timeoutMs * maxAttempts
+    const deadline = Date.now() + timeoutMs * maxAttempts + TRANSPORT_TIMEOUT_RETRY_DELAY_MS * (maxAttempts - 1)
     const legTimeoutMs = () => Math.min(timeoutMs, deadline - Date.now())
+    /*
+     * The floor can never exceed the caller's own budget: a call that asks for
+     * less than MIN_TRANSPORT_LEG_MS in total wants a short attempt, not no
+     * attempt at all. Absolute, this gate refused every leg of such a call.
+     */
+    const minLegMs = Math.min(MIN_TRANSPORT_LEG_MS, timeoutMs)
 
     /*
      * Tokenless native sessions go over the OS HTTP client FIRST, not as a
@@ -588,10 +594,13 @@ export const fetchWithSentry = async (
      * JS (Android's CapacitorCookies.getCookies evals document.cookie and
      * ignores its url param). A WebView POST reaches the backend with neither
      * header nor cookie and 400s — and because it gets an HTTP response, the
-     * rejection fallback below never engages. On OS-client failure, fall
-     * through to the WebView path so logged-out flows behave as before.
+     * rejection fallback below never engages. On a FAST OS-client failure, fall
+     * through to the WebView path so logged-out flows behave as before. On an
+     * OS-client TIMEOUT the pool is spent and the WebView leg is skipped: the
+     * network is stalled, so a second full-length leg would double the wait for
+     * a failure the caller is already going to see.
      */
-    if (preferNativeTransport && canUseNativeHttp(url, options) && legTimeoutMs() >= MIN_TRANSPORT_LEG_MS) {
+    if (preferNativeTransport && canUseNativeHttp(url, options) && legTimeoutMs() >= minLegMs) {
         try {
             const response = await nativeHttpRequest(url, options, legTimeoutMs())
             await reportNonOkResponse(url, options, response)
@@ -603,8 +612,20 @@ export const fetchWithSentry = async (
 
     const attemptFetch = async (): Promise<Response> => {
         for (let attempt = 1; ; attempt++) {
+            /*
+             * Gated, not floored. On the `preferNativeTransport` ordering the
+             * OS client runs FIRST and this is the fallback, so a stalled OS
+             * client can spend the pool before we get here — and flooring the
+             * budget would arm a 250ms fetch that cannot complete anything,
+             * turning a genuine second chance into pure added latency. Throwing
+             * the timeout the pool already earned is the honest outcome.
+             */
+            const legMs = legTimeoutMs()
+            if (legMs < minLegMs) {
+                throw Object.assign(new Error('transport budget exhausted'), { name: 'AbortError' })
+            }
             const controller = new AbortController()
-            const timeoutId = setTimeout(() => controller.abort(), Math.max(legTimeoutMs(), MIN_TRANSPORT_LEG_MS))
+            const timeoutId = setTimeout(() => controller.abort(), legMs)
             try {
                 return await fetch(url, {
                     ...options,
@@ -636,7 +657,7 @@ export const fetchWithSentry = async (
         // before declaring failure: the edge rejects Android WebView requests at
         // the TLS-fingerprint level (PEANUT-UI-R5F), which fetch can only
         // surface as an opaque TypeError.
-        if (canUseNativeHttp(url, options) && legTimeoutMs() >= MIN_TRANSPORT_LEG_MS) {
+        if (canUseNativeHttp(url, options) && legTimeoutMs() >= minLegMs) {
             try {
                 const response = await nativeHttpRequest(url, options, legTimeoutMs())
                 await reportNonOkResponse(url, options, response)

@@ -51,6 +51,17 @@ const transportNotices = () =>
 describe('fetchWithSentry — one budget across the transport legs', () => {
     const abort = () => Object.assign(new Error('aborted'), { name: 'AbortError' })
 
+    // Rejects exactly when the caller's AbortController fires, the way a real
+    // fetch does. A fixed-delay mock overshoots the budget it was given and
+    // eats the slack the next leg is supposed to inherit.
+    const stallingFetch = (onCall?: () => void) =>
+        jest.fn((_url: unknown, init?: RequestInit) => {
+            onCall?.()
+            return new Promise<Response>((_, reject) => {
+                init?.signal?.addEventListener('abort', () => reject(abort()))
+            })
+        })
+
     beforeEach(() => {
         jest.clearAllMocks()
         jest.spyOn(console, 'info').mockImplementation(() => {})
@@ -61,9 +72,7 @@ describe('fetchWithSentry — one budget across the transport legs', () => {
     it('gives the fallback only what the timed-out WebView leg left', async () => {
         mockCanUse.mockReturnValue(true)
         // A POST gets one WebView attempt, and it burns the whole budget.
-        global.fetch = jest.fn(
-            () => new Promise((_, reject) => setTimeout(() => reject(abort()), 60)) as Promise<Response>
-        )
+        global.fetch = stallingFetch()
         mockNativeRequest.mockResolvedValue(fakeResponse(200))
 
         await expect(
@@ -97,17 +106,58 @@ describe('fetchWithSentry — one budget across the transport legs', () => {
         expect(grantedMs).toBeLessThanOrEqual(5_000)
     })
 
+    /*
+     * The `preferNativeTransport` ordering, where the OS client runs FIRST and
+     * the WebView leg is the fallback. A stalled OS client spends the pool, so
+     * the WebView leg must be SKIPPED rather than armed with the floor — a
+     * 250ms fetch completes nothing and only delays the failure.
+     */
+    it('skips the WebView fallback when the OS client timed out the pool away', async () => {
+        mockCanUse.mockReturnValue(true)
+        mockNativeRequest.mockImplementation(
+            () => new Promise((_, reject) => setTimeout(() => reject(abort()), 60)) as Promise<Response>
+        )
+        global.fetch = jest.fn(() => Promise.resolve(fakeResponse(200)))
+
+        await expect(
+            fetchWithSentry(
+                'https://api.test.com/manteca/qr-payment/init',
+                { method: 'POST', body: '{}', preferNativeTransport: true },
+                50
+            )
+        ).rejects.toThrow(/taking too long/)
+
+        expect(global.fetch).not.toHaveBeenCalled()
+    })
+
+    // The other half of that ordering: a FAST OS-client failure leaves the pool
+    // whole, so the WebView leg is still the genuine second chance it was.
+    it('still runs the WebView fallback when the OS client fails fast', async () => {
+        mockCanUse.mockReturnValue(true)
+        mockNativeRequest.mockRejectedValue(new Error('bridge unavailable'))
+        global.fetch = jest.fn(() => Promise.resolve(fakeResponse(200)))
+
+        const res = await fetchWithSentry(
+            'https://api.test.com/manteca/qr-payment/init',
+            { method: 'POST', body: '{}', preferNativeTransport: true },
+            5_000
+        )
+
+        expect(res.status).toBe(200)
+        expect(global.fetch).toHaveBeenCalledTimes(1)
+    })
+
     // R44's silent GET retry is per-attempt and keeps its own budget: a GET is
     // allowed two transport attempts, so its pool is sized for both.
     it('leaves the idempotent GET retry a full second attempt', async () => {
         mockCanUse.mockReturnValue(false)
         const seen: number[] = []
-        global.fetch = jest.fn(() => {
-            seen.push(Date.now())
-            return new Promise((_, reject) => setTimeout(() => reject(abort()), 60)) as Promise<Response>
-        })
+        global.fetch = stallingFetch(() => seen.push(Date.now()))
 
-        await expect(fetchWithSentry('https://api.test.com/users/me', {}, 50)).rejects.toThrow(/taking too long/)
+        // 600ms, not 50: the pool is the two legs plus their 300ms backoff, so a
+        // budget of the same order as that backoff leaves timer jitter deciding
+        // the outcome. Production budgets are 10-20s against the same 300ms.
+        await expect(fetchWithSentry('https://api.test.com/users/me', {}, 600)).rejects.toThrow(/taking too long/)
 
         expect(seen).toHaveLength(2)
     })

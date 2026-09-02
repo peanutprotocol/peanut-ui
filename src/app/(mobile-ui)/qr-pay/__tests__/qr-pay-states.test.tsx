@@ -1472,6 +1472,31 @@ describe('GROUP 5: Error States', () => {
      * left. The terminal copy used to land on the FIRST one, so a scan that
      * recovered on attempt 2 had already told the user the rail was down.
      */
+    /*
+     * Deterministic backend rejections must reach their terminal state on the
+     * FIRST response. Each retry re-runs createQrPaymentLock against Manteca,
+     * so a capped user was spending four round trips and four abandoned price
+     * locks — behind the retry caption — for an answer attempt one already had.
+     */
+    test.each([
+        ['MANTECA_SOURCE_OVER_MONTHLY_CAP'],
+        ['MANTECA_MERCHANT_VOLUME_NEAR_CAP'],
+        ['MANTECA_MERCHANT_RECENT_REFUND'],
+        ['MANTECA_USER_NOT_PROVISIONED'],
+        ['User KYC not approved'],
+    ])('%s fails fast instead of waiting out the retries', async (code) => {
+        mockMantecaApi.initiateQrPayment.mockRejectedValue(new Error(code))
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+        await waitFor(() => {
+            expect(screen.getByText(/currently experiencing issues/i)).toBeInTheDocument()
+        })
+
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
+        expect(screen.queryByText(/still fetching details/i)).not.toBeInTheDocument()
+    })
+
     // Real timers, and the budget to sit through them: the page's retry policy
     // is the thing under test, and driving react-query's backoff with fake ones
     // left the page wedged on its mount-time loading gate.
