@@ -51,10 +51,11 @@ export function useHomeFlow() {
         }
     }, [isWagmiConnected, disconnectWagmi])
 
-    // respect the showFullName preference for the avatar initials; a
-    // usernameless user still gets initials from their full name (initials
-    // only — the preference governs showing the full name, not its initials)
-    const avatarName = (user?.user.showFullName && user?.user.fullName) || username || user?.user.fullName || undefined
+    // The avatar is the first letter of the username, on Home and on the
+    // profile header alike, whatever the showFullName preference (that governs
+    // the displayed name, not the avatar). A usernameless user falls back to
+    // their full name so the circle still carries a letter.
+    const avatarName = username || user?.user.fullName || undefined
 
     return {
         isPageLoading: isFetchingUser && !username,
