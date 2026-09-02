@@ -23,8 +23,11 @@ concurrency:
     cancel-in-progress: true
 
 # Default for every job that does not declare its own block. `checks: write`
-# used to live here, inherited by every PR-code job; it now sits only on the
-# one job that publishes check annotations (unit → dorny/test-reporter).
+# used to live here, inherited by every PR-code job — and nothing consumes it:
+# dorny/test-reporter runs with use-actions-summary (its v1 default), which
+# writes the job summary and creates no check run (none exists on dev either).
+# If check-run mode is ever turned back on, grant checks: write in a job that
+# runs no PR code — never in `unit`, which runs PR install/test code first.
 permissions:
     contents: read
 
@@ -194,11 +197,9 @@ jobs:
     unit:
         needs: be-baseline
         runs-on: ubuntu-latest
-        # The only job that publishes check annotations, so the only one that
-        # holds `checks: write` (dorny/test-reporter below).
-        permissions:
-            contents: read
-            checks: write
+        # No checks: write here even though dorny/test-reporter runs below —
+        # in summary mode it needs none, and this job runs PR-authored code
+        # before the reporter, so any token it holds is capturable.
         steps:
             - uses: actions/checkout@v4
               with:
