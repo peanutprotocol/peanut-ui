@@ -12,7 +12,7 @@ export { useAppLocale } from './locale-context'
  */
 export function AppIntlProvider({ children }: { children: React.ReactNode }) {
     return (
-        <IntlCore base={en} load={loadMessages}>
+        <IntlCore base={en} load={loadMessages} gatesSplash>
             {children}
         </IntlCore>
     )

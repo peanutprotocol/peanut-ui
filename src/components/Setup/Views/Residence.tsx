@@ -6,6 +6,7 @@ import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestriction
 import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
 import { useGeoLocation } from '@/hooks/useGeoLocation'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
+import { useBackHandler } from '@/hooks/useBackHandler'
 import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { isValidEmail } from '@/utils/format.utils'
@@ -29,6 +30,10 @@ const ResidenceStep = () => {
     const { sets: restrictionSets, settled: restrictionSetsSettled } = useResidenceRestrictionSetsWithStatus()
 
     const [view, setView] = useState<ResidenceView>('select')
+    useBackHandler(() => {
+        if (!isLoading) setView('select')
+        return true
+    }, view !== 'select')
     const [partialRestriction, setPartialRestriction] = useState<PartialRestriction>('card')
     const [showSecondCountry, setShowSecondCountry] = useState(!!secondResidenceCountry)
     const [email, setEmail] = useState('')

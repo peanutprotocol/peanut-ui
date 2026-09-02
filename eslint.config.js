@@ -133,7 +133,18 @@ const RESTRICTED_SYNTAX_BASE = [
         message:
             'Never return a Capacitor plugin object across an await/then boundary — resolving a promise with it probes .then, which the plugin proxy turns into a native call that never settles the promise. Wrap it: `return { Plugin }` and destructure at the call site. See src/utils/crisp.ts and src/utils/auth-token.ts.',
     },
+    {
+        // The --safe-* tokens (globals.css) are the only place the Android < 15
+        // zeroing and Capacitor's native inset injection land; a raw env() read
+        // paints the phantom status-bar band those exist to remove.
+        selector:
+            ':matches(Literal[value=/env\\(safe-area-inset-/], TemplateElement[value.raw=/env\\(safe-area-inset-/])',
+        message:
+            "Don't read env(safe-area-inset-*) directly — use var(--safe-top|--safe-right|--safe-bottom|--safe-left) (or the pt-safe-top / pb-safe-bottom utilities) from globals.css. The tokens carry the Android < 15 zeroing and the native inset injection; env() bypasses both. The only legal raw read is the diagnostic at src/app/(mobile-ui)/dev/safe-area/page.tsx.",
+    },
 ]
+
+const SAFE_AREA_ENV_SELECTOR = 'safe-area-inset'
 
 module.exports = [
     {
@@ -272,6 +283,21 @@ module.exports = [
                         !r.selector.includes("[property.name='length']") &&
                         !r.selector.includes("[callee.property.name='back']")
                 ),
+            ],
+        },
+    },
+    {
+        // The safe-area diagnostic renders raw env() next to the tokens on
+        // purpose; the DS token dump is generated from globals.css.
+        files: [
+            'src/app/(mobile-ui)/dev/safe-area/page.tsx',
+            'src/app/(mobile-ui)/dev/ds/foundations/tokens.generated.ts',
+        ],
+        rules: {
+            'no-restricted-syntax': [
+                'error',
+                ...RESTRICTED_SYNTAX_BASE.filter((r) => !r.selector.includes(SAFE_AREA_ENV_SELECTOR)),
+                ...QUERY_STRING_PUSH_RESTRICTIONS,
             ],
         },
     },

@@ -93,6 +93,50 @@ export function isIOSNative(): boolean {
 }
 
 /**
+ * The export's stylesheet needs `@layer` (Safari 15.4), `color-mix(in oklab)`
+ * (16.2) and `@property` (16.4); a WebView missing any of them paints the app
+ * unstyled, so ClientProviders swaps in UnsupportedWebViewScreen instead.
+ */
+export function isWebViewCssSupported(): boolean {
+    if (typeof window === 'undefined') return true
+    return (
+        'CSSLayerBlockRule' in window &&
+        typeof CSS !== 'undefined' &&
+        CSS.supports('color', 'color-mix(in oklab, red, red)') &&
+        'CSSPropertyRule' in window
+    )
+}
+
+const ANDROID_MAJOR_TO_SDK: Record<number, number> = { 9: 28, 10: 29, 11: 30, 12: 31, 13: 33, 14: 34, 15: 35, 16: 36 }
+
+/** SDK level from the `Android N` UA token; null when absent or unmapped. */
+export function androidSdkFromUserAgent(ua: string): number | null {
+    const major = Number(/Android (\d+)/.exec(ua)?.[1])
+    return ANDROID_MAJOR_TO_SDK[major] ?? null
+}
+
+const SAFE_AREA_EDGES = ['top', 'right', 'bottom', 'left'] as const
+
+function setInlineSafeAreaInsets(value: '0px' | null): void {
+    for (const edge of SAFE_AREA_EDGES) {
+        const property = `--safe-area-inset-${edge}`
+        if (value === null) document.documentElement.style.removeProperty(property)
+        else document.documentElement.style.setProperty(property, value)
+    }
+}
+
+/**
+ * Synchronous first pass of {@link zeroLegacyAndroidSafeAreaInsets} from the
+ * user agent so the first paint never shows the phantom band; the Device.getInfo
+ * pass stays authoritative and un-zeroes if the UA lied.
+ */
+export function applyLegacyAndroidSafeAreaZeroFromUserAgent(): void {
+    if (!isAndroidNative()) return
+    const sdk = androidSdkFromUserAgent(navigator.userAgent)
+    if (sdk !== null && sdk < 35) setInlineSafeAreaInsets('0px')
+}
+
+/**
  * Below Android 15 the app window is never edge-to-edge (enforcement starts at
  * SDK 35), so the webview never extends under the system bars and the correct
  * safe-area inset is zero on every edge — but some WebViews still report
@@ -100,17 +144,15 @@ export function isIOSNative(): boolean {
  * the real status bar. Capacitor's native inset injection is 15+ only, so on
  * older Android we occupy the same slot ourselves: the inline style on <html>
  * that outranks the env() seed in globals.css (see the :root contract there).
- * No-op on web, iOS and Android 15+.
+ * No-op on web and iOS; on Android 15+ it clears a zeroing the UA pass got wrong.
  */
 export async function zeroLegacyAndroidSafeAreaInsets(): Promise<void> {
     if (!isAndroidNative()) return
     try {
         const { Device } = await import('@capacitor/device')
         const { androidSDKVersion } = await Device.getInfo()
-        if (!androidSDKVersion || androidSDKVersion >= 35) return
-        for (const edge of ['top', 'right', 'bottom', 'left']) {
-            document.documentElement.style.setProperty(`--safe-area-inset-${edge}`, '0px')
-        }
+        if (!androidSDKVersion) return
+        setInlineSafeAreaInsets(androidSDKVersion >= 35 ? null : '0px')
     } catch {
         // older binary running OTA'd JS without @capacitor/device — keep the env() seed
     }
@@ -154,6 +196,13 @@ export function markInAppBrowserClosed(): void {
     inAppBrowserOpen = false
 }
 
+/**
+ * Dispatched on `document` once closeInAppBrowser has settled. The iOS plugin's
+ * close() dismisses the sheet without emitting `browserFinished`, so anything
+ * waiting on the sheet (hosted verification) must listen to both.
+ */
+export const IN_APP_BROWSER_CLOSED_EVENT = 'peanut:in-app-browser-closed'
+
 export async function closeInAppBrowser(): Promise<void> {
     if (!inAppBrowserOpen || !isCapacitor()) return
     inAppBrowserOpen = false
@@ -162,6 +211,8 @@ export async function closeInAppBrowser(): Promise<void> {
         await Browser.close()
     } catch {
         // Browser.close rejects when the sheet is already gone — fine.
+    } finally {
+        document.dispatchEvent(new CustomEvent(IN_APP_BROWSER_CLOSED_EVENT))
     }
 }
 
@@ -175,4 +226,13 @@ export async function openExternalUrl(url: string): Promise<void> {
         // store bounce was a silent dead tap there. Navigate in place instead.
         window.location.assign(url)
     }
+}
+
+// Android convention for back with nothing to go back to; iOS has no minimize.
+export async function minimizeNativeApp(): Promise<void> {
+    if (!isNativeBridge()) return
+    try {
+        const { App } = await import('@capacitor/app')
+        await App.minimizeApp()
+    } catch {}
 }
