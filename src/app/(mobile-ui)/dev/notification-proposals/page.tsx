@@ -327,31 +327,42 @@ const ModalChip = ({
  *  p-6 gap-6 centered stack, 48px IconBubble, Heading/XS title, full-width
  *  purple cta. Only `visible`/overlay plumbing is dropped. */
 const ModalPanelReplica = ({
-    icon = 'info',
+    icon,
     iconBubbleClassName = 'bg-action-primary',
     title,
+    description,
     cta,
+    ctaIcon,
     children,
 }: {
+    /** ActionModal renders no bubble when no icon is passed */
     icon?: IconName
     iconBubbleClassName?: string
     title: React.ReactNode
+    /** Body/S secondary line under the title, like ActionModal's description */
+    description?: React.ReactNode
     cta?: string
+    ctaIcon?: IconName
     children: React.ReactNode
 }) => (
-    <div className="w-full max-w-sm rounded border border-border-default bg-background-default">
+    <div className="w-full max-w-[375px] rounded border border-border-default bg-background-default">
         <div className="flex flex-col items-center gap-6 p-6 text-center">
             <div className="flex w-full flex-col items-center gap-4">
-                <IconBubble
-                    size="m"
-                    icon={<Icon name={icon} fill="currentColor" size={24} className="text-black" />}
-                    className={iconBubbleClassName}
-                />
-                <h3 className="text-heading-xs text-foreground-primary">{title}</h3>
+                {icon && (
+                    <IconBubble
+                        size="m"
+                        icon={<Icon name={icon} fill="currentColor" size={24} className="text-black" />}
+                        className={iconBubbleClassName}
+                    />
+                )}
+                <div className="flex w-full flex-col gap-1">
+                    <h3 className="text-heading-xs text-foreground-primary">{title}</h3>
+                    {description && <div className="text-body-s text-foreground-secondary">{description}</div>}
+                </div>
             </div>
             {children}
             {cta && (
-                <Button onClick={noop} className="w-full justify-center">
+                <Button onClick={noop} icon={ctaIcon} className="w-full justify-center">
                     {cta}
                 </Button>
             )}
@@ -385,7 +396,7 @@ const InModalComparison = ({
         <div className="grid items-start gap-4 md:grid-cols-2">
             <div className="flex flex-col gap-2">
                 <p className="text-body-xs text-foreground-secondary">current</p>
-                <ModalPanelReplica title="What if I lose my phone?" cta="Got it">
+                <ModalPanelReplica icon="info" title="What if I lose my phone?" cta="Got it">
                     <div className="space-y-3 w-full">
                         <Notification priority="info" title="Backup is enabled">
                             Sign into your new phone with your Apple ID. Your wallet restores automatically.
@@ -401,7 +412,7 @@ const InModalComparison = ({
             </div>
             <div className="flex flex-col gap-2">
                 <p className="text-body-xs text-foreground-secondary">proposal</p>
-                <ModalPanelReplica title="What if I lose my phone?" cta={footnote ? undefined : 'Got it'}>
+                <ModalPanelReplica icon="info" title="What if I lose my phone?" cta={footnote ? undefined : 'Got it'}>
                     {footnote ? (
                         <div className="flex w-full flex-col gap-3">
                             <Button onClick={noop} className="w-full justify-center">
@@ -433,6 +444,8 @@ type Usage = {
     items?: React.ReactNode[]
     /** self-designed content, no priority icon (toast hideIcon / custom content) */
     hideIcon?: boolean
+    /** overrides the group context for this one usage (e.g. a toast sample in the flow group) */
+    ctx?: 'page' | 'form' | 'modal' | 'toast'
 }
 
 type UsageGroup = {
@@ -443,138 +456,140 @@ type UsageGroup = {
     usages: Usage[]
 }
 
-const REP_ERROR = 'Something went wrong. Please try again.'
 const b = (s: string) => <b key={s}>{s}</b>
+
+// the 14 in-modal/in-drawer usages, named so the full host replicas below can
+// render the exact same usage objects the catalog counts
+const MODAL_USAGES = {
+    losePhoneEnabled: {
+        label: 'profile/backup:89 — lose-phone modal',
+        priority: 'success',
+        title: 'Backup is enabled',
+        body: 'Sign into your new phone with your Apple ID. Download Peanut. Your wallet restores automatically',
+    },
+    losePhoneNoBackup: {
+        label: 'profile/backup:92 — lose-phone modal',
+        priority: 'error',
+        title: 'No backup',
+        body: "Your funds are permanently lost, we can't recover your wallet. This is how self-custody works.",
+    },
+    changeIphone: {
+        label: 'profile/backup:112 — change-phone modal',
+        priority: 'success',
+        title: 'iPhone → iPhone',
+        body: 'Just sign in. Everything transfers.',
+    },
+    changeAndroid: {
+        label: 'profile/backup:115 — change-phone modal',
+        priority: 'success',
+        title: 'Android → Android',
+        body: 'Sign into Google. Your wallet follows.',
+    },
+    changeCross: {
+        label: 'profile/backup:118 — change-phone modal',
+        priority: 'attention',
+        title: 'iPhone ↔ Android',
+        body: "Create new wallet on new device. Transfer your funds. Passkeys don't work cross-platform unless you are using a third party password manager such as 1Password.",
+    },
+    welcomeUnlock: {
+        label: 'WelcomeUnlockModal:126 — unlock checklist',
+        priority: 'info',
+        items: [
+            <p key="1">QR Payments in {b('Argentina and Brazil')}</p>,
+            <p key="2">{b('United States')} ACH and Wire transfers</p>,
+            <p key="3">{b('Europe')} SEPA transfers (+30 countries)</p>,
+            <p key="4">{b('Mexico')} SPEI transfers</p>,
+        ],
+    },
+    passkeySteps: {
+        label: 'PasskeySetupHelpModal:89 — troubleshooting steps',
+        rep: true,
+        priority: 'info',
+        items: [
+            'Sign in to a Google account on this device',
+            'Update Google Play Services',
+            'Enable screen lock (Settings > Security)',
+        ],
+    },
+    passkeyNote: {
+        label: 'PasskeySetupHelpModal:92 — important note',
+        priority: 'error',
+        title: 'Important Note',
+        body: 'Lower end Android devices may require recent security updates for passkeys to work properly.',
+    },
+    unlockRegion: {
+        label: 'UnlockRegionModal:78 — unlock items',
+        priority: 'info',
+        items: [
+            <p key="sepa">{b('Europe')} SEPA transfers (+30 countries)</p>,
+            <p key="uk">{b('UK')} Faster payment transfers</p>,
+            <p key="ach">{b('United States')} ACH and Wire transfers</p>,
+            <p key="mx">{b('Mexico')} SPEI transfers</p>,
+            <p key="qr">QR Payments in {b('Argentina and Brazil')}</p>,
+        ],
+    },
+    howToDeposit: {
+        label: 'HowToDepositModal:39 — network warning',
+        priority: 'attention',
+        body: 'Sending to the wrong network or token will result in permanent loss.',
+    },
+    supportedNetworks: {
+        label: 'SupportedNetworksModal:26 — network warning',
+        priority: 'attention',
+        body: 'Sending to the wrong network or token will result in permanent loss.',
+    },
+    onrampNextStep: {
+        label: 'OnrampConfirmationModal:39 — next-step list (drawer)',
+        priority: 'helper',
+        body: (
+            <ul className="list-inside list-disc text-start">
+                <li>Bank details to send money to</li>
+                <li>A deposit reference code</li>
+            </ul>
+        ),
+    },
+    onrampChecklist: {
+        label: 'OnrampConfirmationModal:46 — you-must checklist (drawer)',
+        priority: 'info',
+        items: [
+            <span key="1">Send exactly {b('€50.00')} (the exact amount shown)</span>,
+            'Copy the one-time reference code exactly',
+            'Paste it in the description/reference field',
+        ],
+    },
+    onrampMismatch: {
+        label: 'OnrampConfirmationModal:60 — mismatch warning (drawer)',
+        priority: 'error',
+        title: "If the amount or reference don't match:",
+        body: 'Your deposit will fail and it will take 2 to 10 days to return to your bank and might incur fees. The reference code is single use.',
+    },
+} satisfies Record<string, Usage>
 
 // ponytail: catalog is hand-transcribed from grep + i18n on 2026-09-02 — if a
 // call site is added/removed in prod, this page drifts until someone re-greps
 const USAGE_GROUPS: UsageGroup[] = [
     {
-        name: 'flow and form errors — under an input or CTA (48 sites)',
+        name: 'flow and form errors — 48 call sites, 4 representative samples',
         ctx: 'form',
-        note: 'The biggest population: priority="error" under an amount input, form, or CTA. Most bodies are runtime API/validation messages.',
+        note: 'The biggest population: priority="error" under an amount input, form, or CTA — all 48 sites share this exact shape, so four samples stand in for the list (single-line, wrapping, error toast, long error toast). Nothing is lost: the sites are enumerated by grepping <Notification priority="error">.',
         usages: [
             {
-                label: 'SendInputView:114 — insufficient balance',
+                label: 'single-line error — e.g. SendInputView:114 (real copy; 46 similar sites)',
                 priority: 'error',
                 body: 'Not enough balance to fulfill this payment with Peanut',
             },
-            { label: 'SendInputView:116 — flow error', rep: true, priority: 'error', body: REP_ERROR },
             {
-                label: 'SemanticRequestInputView:201 — insufficient balance',
-                priority: 'error',
-                body: 'Not enough balance to fulfill this payment with Peanut',
-            },
-            { label: 'SemanticRequestInputView:203 — flow error', rep: true, priority: 'error', body: REP_ERROR },
-            {
-                label: 'ContributePotInputView:117 — insufficient balance',
-                priority: 'error',
-                body: 'Not enough balance to fulfill this request with Peanut',
-            },
-            { label: 'ContributePotInputView:119 — flow error', rep: true, priority: 'error', body: REP_ERROR },
-            { label: 'SemanticRequestConfirmView:290 — confirm error', rep: true, priority: 'error', body: REP_ERROR },
-            {
-                label: 'InputAmountStep:137 — add-money amount error',
-                rep: true,
-                priority: 'error',
-                body: 'Amount exceeds your remaining monthly limit.',
-            },
-            { label: 'add-money/[country]/bank:540 — onramp error', rep: true, priority: 'error', body: REP_ERROR },
-            { label: 'withdraw/page:470 — withdraw error', rep: true, priority: 'error', body: REP_ERROR },
-            { label: 'withdraw/[country]/bank:562 — submit error', rep: true, priority: 'error', body: REP_ERROR },
-            {
-                label: 'withdraw/[country]/bank:564 — balance error',
-                rep: true,
-                priority: 'error',
-                body: 'Not enough balance. Add funds to continue.',
-            },
-            {
-                label: 'withdraw/manteca:806 — balance error',
-                rep: true,
-                priority: 'error',
-                body: 'Not enough balance. Add funds to continue.',
-            },
-            { label: 'withdraw/manteca:917 — sumsub/flow error', rep: true, priority: 'error', body: REP_ERROR },
-            { label: 'withdraw/manteca:984 — sumsub/flow error', rep: true, priority: 'error', body: REP_ERROR },
-            { label: 'Initial.withdraw.view:246 — validation error', rep: true, priority: 'error', body: REP_ERROR },
-            { label: 'PixKeySend.view:90 — pix key error', rep: true, priority: 'error', body: REP_ERROR },
-            {
-                label: 'Confirm.withdraw.view:242 — not enough balance',
-                priority: 'error',
-                body: 'Not enough balance. Add funds to continue.',
-            },
-            {
-                label: 'Confirm.withdraw.view:245 — below minimum',
-                rep: true,
-                priority: 'error',
-                body: 'Minimum withdrawal is $5.00.',
-            },
-            { label: 'Confirm.withdraw.view:247 — submit error', rep: true, priority: 'error', body: REP_ERROR },
-            {
-                label: 'qr-pay:1654 — balance error',
-                rep: true,
-                priority: 'error',
-                body: 'Not enough balance. Add funds to continue.',
-            },
-            { label: 'qr-pay:1733 — payment error', rep: true, priority: 'error', body: REP_ERROR },
-            { label: 'qr/[code]:224 — qr claim error', rep: true, priority: 'error', body: REP_ERROR },
-            { label: 'DynamicBankAccountForm:678 — submission error', rep: true, priority: 'error', body: REP_ERROR },
-            {
-                label: 'DynamicBankAccountForm:680 — validation error',
-                rep: true,
-                priority: 'error',
-                body: 'This IBAN does not look valid.',
-            },
-            {
-                label: 'SetupPasskey:241 — username taken',
+                label: 'wrapping multi-line error — e.g. SetupPasskey:241 (real copy)',
                 priority: 'error',
                 body: 'This username is already registered — possibly from an earlier attempt on this device. If that was you, your passkey is ready: just log in.',
             },
-            { label: 'SetupPasskey:254 — inline error', rep: true, priority: 'error', body: REP_ERROR },
             {
-                label: 'InstallPWA:214 — install cancelled',
+                label: 'error toast — e.g. cancel link failed (real copy)',
+                ctx: 'toast',
                 priority: 'error',
-                body: 'Installation cancelled. You can try adding to Home Screen again.',
+                body: 'Failed to cancel link. Please try again.',
             },
-            { label: 'ProfileEdit.view:246 — save error', rep: true, priority: 'error', body: REP_ERROR },
-            { label: 'JoinWaitlistPage:411 — join error', rep: true, priority: 'error', body: REP_ERROR },
-            { label: 'AddCardEntryScreen:61 — apply error', rep: true, priority: 'error', body: REP_ERROR },
-            { label: 'CardRejectionScreen:219 — waitlist join error', rep: true, priority: 'error', body: REP_ERROR },
-            { label: 'card-recovery:116 — recovery error', rep: true, priority: 'error', body: REP_ERROR },
-            { label: 'recover-funds:406 — recovery error', rep: true, priority: 'error', body: REP_ERROR },
-            {
-                label: 'recover-wallet:188 — fatal error',
-                rep: true,
-                priority: 'error',
-                body: 'This recovery link is invalid or expired.',
-            },
-            {
-                label: 'recover-wallet:239 — no balance',
-                priority: 'error',
-                body: 'This wallet has no recoverable balance.',
-            },
-            { label: 'recover-wallet:261 — signing error', rep: true, priority: 'error', body: REP_ERROR },
-            {
-                label: 'AdditionalVerificationView:93 — hosted KYC start error',
-                rep: true,
-                priority: 'error',
-                body: REP_ERROR,
-            },
-            { label: 'CancelDepositActions:114 — cancel error', rep: true, priority: 'error', body: REP_ERROR },
-            { label: 'MantecaFlowManager:150 — sumsub error', rep: true, priority: 'error', body: REP_ERROR },
-            { label: 'MantecaReviewStep:148 — review error', rep: true, priority: 'error', body: REP_ERROR },
-            { label: 'MantecaDetailsStep:68 — details error', rep: true, priority: 'error', body: REP_ERROR },
-            { label: 'Confirm.bank-claim.view:135 — claim error', rep: true, priority: 'error', body: REP_ERROR },
-            { label: 'Claim/Initial.view:1004 — claim error', rep: true, priority: 'error', body: REP_ERROR },
-            { label: 'Claim/Onchain/Confirm.view:256 — claim error', rep: true, priority: 'error', body: REP_ERROR },
-            {
-                label: 'Claim/Onchain/Success.view:198 — claim failure',
-                rep: true,
-                priority: 'error',
-                body: 'This link has already been claimed.',
-            },
-            { label: 'Initial.direct.request.view:305 — request error', rep: true, priority: 'error', body: REP_ERROR },
-            { label: 'Initial.link.send.view:297 — create-link error', rep: true, priority: 'error', body: REP_ERROR },
+            { label: 'multi-line error toast', ctx: 'toast', rep: true, priority: 'error', body: LONG_COPY },
         ],
     },
     {
@@ -781,107 +796,10 @@ const USAGE_GROUPS: UsageGroup[] = [
         ],
     },
     {
-        name: 'inside modals and drawers (14 sites)',
+        name: 'inside modals and drawers (14 sites, 8 host surfaces)',
         ctx: 'modal',
-        usages: [
-            {
-                label: 'profile/backup:89 — lose-phone modal',
-                priority: 'success',
-                title: 'Backup is enabled',
-                body: 'Sign into your new phone with your Apple ID. Download Peanut. Your wallet restores automatically',
-            },
-            {
-                label: 'profile/backup:92 — lose-phone modal',
-                priority: 'error',
-                title: 'No backup',
-                body: "Your funds are permanently lost, we can't recover your wallet. This is how self-custody works.",
-            },
-            {
-                label: 'profile/backup:112 — change-phone modal',
-                priority: 'success',
-                title: 'iPhone → iPhone',
-                body: 'Just sign in. Everything transfers.',
-            },
-            {
-                label: 'profile/backup:115 — change-phone modal',
-                priority: 'success',
-                title: 'Android → Android',
-                body: 'Sign into Google. Your wallet follows.',
-            },
-            {
-                label: 'profile/backup:118 — change-phone modal',
-                priority: 'attention',
-                title: 'iPhone ↔ Android',
-                body: "Create new wallet on new device. Transfer your funds. Passkeys don't work cross-platform unless you are using a third party password manager such as 1Password.",
-            },
-            {
-                label: 'WelcomeUnlockModal:126 — unlock checklist',
-                priority: 'info',
-                items: [
-                    <p key="1">QR Payments in {b('Argentina and Brazil')}</p>,
-                    <p key="2">{b('United States')} ACH and Wire transfers</p>,
-                    <p key="3">{b('Europe')} SEPA transfers (+30 countries)</p>,
-                    <p key="4">{b('Mexico')} SPEI transfers</p>,
-                ],
-            },
-            {
-                label: 'PasskeySetupHelpModal:89 — troubleshooting steps',
-                rep: true,
-                priority: 'info',
-                items: [
-                    'Sign in to a Google account on this device',
-                    'Update Google Play Services',
-                    'Enable screen lock (Settings > Security)',
-                ],
-            },
-            {
-                label: 'PasskeySetupHelpModal:92 — important note',
-                priority: 'error',
-                title: 'Important Note',
-                body: 'Lower end Android devices may require recent security updates for passkeys to work properly.',
-            },
-            {
-                label: 'UnlockRegionModal:78 — unlock items',
-                rep: true,
-                priority: 'info',
-                items: ['Bank transfers in your country'],
-            },
-            {
-                label: 'HowToDepositModal:39 — network warning',
-                priority: 'attention',
-                body: 'Sending to the wrong network or token will result in permanent loss.',
-            },
-            {
-                label: 'SupportedNetworksModal:26 — network warning',
-                priority: 'attention',
-                body: 'Sending to the wrong network or token will result in permanent loss.',
-            },
-            {
-                label: 'OnrampConfirmationModal:39 — next-step list (drawer)',
-                priority: 'helper',
-                body: (
-                    <ul className="list-inside list-disc text-start">
-                        <li>Bank details to send money to</li>
-                        <li>A deposit reference code</li>
-                    </ul>
-                ),
-            },
-            {
-                label: 'OnrampConfirmationModal:46 — you-must checklist (drawer)',
-                priority: 'info',
-                items: [
-                    <span key="1">Send exactly {b('€50.00')} (the exact amount shown)</span>,
-                    'Copy the one-time reference code exactly',
-                    'Paste it in the description/reference field',
-                ],
-            },
-            {
-                label: 'OnrampConfirmationModal:60 — mismatch warning (drawer)',
-                priority: 'error',
-                title: "If the amount or reference don't match:",
-                body: 'Your deposit will fail and it will take 2 to 10 days to return to your bank and might incur fees. The reference code is single use.',
-            },
-        ],
+        note: 'Each site rendered below as its complete host modal/drawer at mobile width — icon bubble, title, content stack, CTAs, real copy.',
+        usages: Object.values(MODAL_USAGES),
     },
     {
         name: 'special: rich body with actions (1 site)',
@@ -958,8 +876,6 @@ const USAGE_GROUPS: UsageGroup[] = [
     },
 ]
 
-const USAGE_TOTAL = USAGE_GROUPS.reduce((n, g) => n + g.usages.length, 0)
-
 /** one usage rendered by a variant, wrapped in its minimal real context */
 const UsageCell = ({
     usage,
@@ -971,32 +887,199 @@ const UsageCell = ({
     render: (u: Usage) => React.ReactNode
 }) => {
     const note = render(usage)
+    const effCtx = usage.ctx ?? ctx
     return (
         <div className="flex min-w-0 flex-col gap-1.5">
             <p className="text-body-xs text-foreground-secondary">
                 {usage.label}
                 {usage.rep && <span className="text-foreground-error"> · representative copy</span>}
             </p>
-            {ctx === 'form' && (
+            {effCtx === 'form' && (
                 <div className="flex flex-col gap-1.5">
                     <BaseInput variant="sm" readOnly placeholder="Amount" />
                     {note}
                 </div>
             )}
-            {ctx === 'modal' && (
+            {effCtx === 'modal' && (
                 <div className="rounded border border-border-default bg-background-default p-3">{note}</div>
             )}
-            {ctx === 'toast' && (
+            {effCtx === 'toast' && (
                 <div className="flex justify-end rounded-sm bg-background-page p-3">
                     <div className="w-max max-w-full rounded-sm border border-border-default bg-background-default">
                         {note}
                     </div>
                 </div>
             )}
-            {ctx === 'page' && note}
+            {effCtx === 'page' && note}
         </div>
     )
 }
+
+/** small labelled wrapper for one host surface replica */
+const HostCell = ({ sites, children }: { sites: string; children: React.ReactNode }) => (
+    <div className="flex min-w-0 flex-col gap-1.5">
+        <p className="text-body-xs text-foreground-secondary">{sites}</p>
+        {children}
+    </div>
+)
+
+/**
+ * the 14 in-modal/in-drawer call sites as their 8 complete host surfaces,
+ * faithful to the production layouts (static replicas at ~375px width).
+ * duplicates grouped: lose-phone hosts 2 sites, change-phone 3, onramp drawer 3.
+ */
+const ModalHostReplicas = ({ render }: { render: (u: Usage) => React.ReactNode }) => (
+    <div className="grid items-start gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <HostCell sites="profile/backup lose-phone FAQ modal — sites backup:89 + backup:92">
+            <ModalPanelReplica icon="info" title="What if I lose my phone?">
+                <div className="space-y-3 w-full">
+                    {render(MODAL_USAGES.losePhoneEnabled)}
+                    {render(MODAL_USAGES.losePhoneNoBackup)}
+                </div>
+            </ModalPanelReplica>
+        </HostCell>
+
+        <HostCell sites="profile/backup change-phone FAQ modal — sites backup:112 + :115 + :118">
+            <ModalPanelReplica icon="info" title="What if I change phone?">
+                <div className="space-y-3 w-full">
+                    <ol className="list-decimal pl-6 text-left text-body-s text-foreground-primary">
+                        <li>Verify backup is working (check step 3 above)</li>
+                        <li>Know your Apple ID password</li>
+                        <li>Keep old phone until new one works</li>
+                    </ol>
+                    {render(MODAL_USAGES.changeIphone)}
+                    {render(MODAL_USAGES.changeAndroid)}
+                    {render(MODAL_USAGES.changeCross)}
+                </div>
+            </ModalPanelReplica>
+        </HostCell>
+
+        <HostCell sites="WelcomeUnlockModal — site :126">
+            <ModalPanelReplica icon="globe-lock" title="🎉 You're unlocked" cta="Start sending money">
+                <div className="flex w-full flex-col items-start gap-2">
+                    <p>You can now:</p>
+                    <div className="w-full">{render(MODAL_USAGES.welcomeUnlock)}</div>
+                </div>
+            </ModalPanelReplica>
+        </HostCell>
+
+        <HostCell sites="PasskeySetupHelpModal — sites :89 + :92">
+            <ModalPanelReplica icon="alert" iconBubbleClassName="bg-action-secondary" title="Passkeys Not Enabled">
+                <div className="flex w-full flex-col gap-4 text-left">
+                    <h2 className="mr-auto text-body-s text-foreground-secondary">
+                        Passkeys are not enabled on your device. Check your device settings to enable them
+                    </h2>
+                    <h3 className="mr-auto font-bold">Try these fixes:</h3>
+                    {render(MODAL_USAGES.passkeySteps)}
+                    {render(MODAL_USAGES.passkeyNote)}
+                    <div className="rounded-sm border border-border-disabled bg-background-disabled/5 p-3 text-body-xs text-foreground-secondary">
+                        <p className="mb-1 font-bold">Still having issues?</p>
+                        <p>
+                            Contact our support team at{' '}
+                            <span className="text-blue-500 underline">peanut.me/support</span>
+                        </p>
+                    </div>
+                    <Button icon="retry" onClick={noop} className="w-full justify-center">
+                        Retry
+                    </Button>
+                </div>
+            </ModalPanelReplica>
+        </HostCell>
+
+        <HostCell sites="UnlockRegionModal (europe) — site :78">
+            <ModalPanelReplica
+                icon="shield"
+                title="Unlock Europe"
+                description={
+                    <p className="text-black">
+                        To send and receive money here, confirm your ID with a <b>government-issued document.</b>
+                    </p>
+                }
+                cta="Unlock now"
+                ctaIcon="check-circle"
+            >
+                <div className="flex w-full flex-col items-start gap-2">
+                    <h2 className="text-label-m">What you&apos;ll unlock:</h2>
+                    <div className="w-full">{render(MODAL_USAGES.unlockRegion)}</div>
+                    <div className="flex items-center gap-2">
+                        <Icon name="info" size={16} className="text-foreground-secondary" />
+                        <p className="text-body-xs text-foreground-secondary">
+                            Peanut doesn&apos;t store any of your documents.
+                        </p>
+                    </div>
+                </div>
+            </ModalPanelReplica>
+        </HostCell>
+
+        <HostCell sites="HowToDepositModal — site :39">
+            <ModalPanelReplica title="How to Deposit">
+                <div className="flex w-full flex-col gap-4 text-left">
+                    <div className="flex flex-col overflow-hidden rounded-sm border border-border-default bg-background-default">
+                        {[
+                            'Copy your deposit address above',
+                            'Open your wallet or exchange and start a withdrawal',
+                            'Paste the address and select one of the supported networks',
+                            'Confirm and send — funds arrive within a few minutes',
+                        ].map((text, i) => (
+                            <div key={i} className={`px-4 py-3 ${i !== 3 ? 'border-b border-border-default' : ''}`}>
+                                <p className="text-label-l">Step {i + 1}</p>
+                                <p className="text-body-s text-foreground-secondary">{text}</p>
+                            </div>
+                        ))}
+                    </div>
+                    {render(MODAL_USAGES.howToDeposit)}
+                </div>
+            </ModalPanelReplica>
+        </HostCell>
+
+        <HostCell sites="SupportedNetworksModal — site :26">
+            <ModalPanelReplica
+                title="Supported Networks"
+                description="One address for all listed below EVM networks - send from any of them and your funds will be routed correctly."
+            >
+                <div className="flex w-full flex-col gap-4 text-left">
+                    <div className="flex flex-wrap gap-2">
+                        {['Ethereum', 'Arbitrum', 'Base', 'Optimism', 'Polygon'].map((c) => (
+                            <span
+                                key={c}
+                                className="rounded-round border border-border-default px-2 py-0.5 text-body-xs"
+                            >
+                                {c}
+                            </span>
+                        ))}
+                    </div>
+                    {render(MODAL_USAGES.supportedNetworks)}
+                </div>
+            </ModalPanelReplica>
+        </HostCell>
+
+        <HostCell sites="OnrampConfirmationModal (drawer) — sites :39 + :46 + :60">
+            <div className="w-full max-w-[375px] rounded-t-lg border border-b-0 border-border-default bg-background-default">
+                {/* drawer handle */}
+                <div className="mx-auto mt-2 h-1 w-10 rounded-round bg-border-subtle" />
+                <div className="flex flex-col items-center gap-4 px-4 pt-1 pb-6 text-center">
+                    <IconBubble
+                        size="m"
+                        icon={<Icon name="alert" fill="currentColor" size={24} className="text-black" />}
+                        className="bg-action-secondary"
+                    />
+                    <h3 className="text-heading-xs text-foreground-primary">IMPORTANT!</h3>
+                    <div className="flex w-full flex-col gap-4 text-left">
+                        <h2 className="mr-auto font-bold">In the next step you&apos;ll see:</h2>
+                        {render(MODAL_USAGES.onrampNextStep)}
+                        <h2 className="mr-auto font-bold">You must:</h2>
+                        {render(MODAL_USAGES.onrampChecklist)}
+                        {render(MODAL_USAGES.onrampMismatch)}
+                    </div>
+                    {/* static stand-in for SlideToConfirm */}
+                    <div className="flex h-11 w-full items-center justify-center rounded-round border border-border-default bg-background-page text-body-s text-foreground-secondary">
+                        Slide to Proceed →
+                    </div>
+                </div>
+            </div>
+        </HostCell>
+    </div>
+)
 
 const UsageShowcase = ({ render }: { render: (u: Usage) => React.ReactNode }) => (
     <div className="flex flex-col gap-6">
@@ -1004,11 +1087,15 @@ const UsageShowcase = ({ render }: { render: (u: Usage) => React.ReactNode }) =>
             <div key={group.name} className="flex flex-col gap-3">
                 <DevSectionLabel>{group.name}</DevSectionLabel>
                 {group.note && <p className="max-w-3xl text-body-xs text-foreground-secondary">{group.note}</p>}
-                <div className="grid items-start gap-x-6 gap-y-4 md:grid-cols-2 xl:grid-cols-3">
-                    {group.usages.map((u) => (
-                        <UsageCell key={u.label} usage={u} ctx={group.ctx} render={render} />
-                    ))}
-                </div>
+                {group.ctx === 'modal' ? (
+                    <ModalHostReplicas render={render} />
+                ) : (
+                    <div className="grid items-start gap-x-6 gap-y-4 md:grid-cols-2 xl:grid-cols-3">
+                        {group.usages.map((u) => (
+                            <UsageCell key={u.label} usage={u} ctx={group.ctx} render={render} />
+                        ))}
+                    </div>
+                )}
             </div>
         ))}
     </div>
@@ -1216,7 +1303,7 @@ export default function NotificationProposalsPage() {
                     the current Notification exactly as production styles it. This is what ships today.
                 </p>
                 <div className="grid items-start gap-4 lg:grid-cols-3">
-                    <ModalPanelReplica title="What if I lose my phone?">
+                    <ModalPanelReplica icon="info" title="What if I lose my phone?">
                         {/* profile/backup lose-phone faq modal, verbatim */}
                         <div className="space-y-3 w-full">
                             <Notification priority="success" title="Backup is enabled">
@@ -1229,7 +1316,7 @@ export default function NotificationProposalsPage() {
                             </Notification>
                         </div>
                     </ModalPanelReplica>
-                    <ModalPanelReplica title="What if I change phone?">
+                    <ModalPanelReplica icon="info" title="What if I change phone?">
                         {/* profile/backup change-phone faq modal, verbatim */}
                         <div className="space-y-3 w-full">
                             <ol className="list-decimal pl-6 text-left text-body-s text-foreground-primary">
@@ -1313,11 +1400,13 @@ export default function NotificationProposalsPage() {
             </VariantSection>
 
             <section className="flex flex-col gap-4">
-                <DevSectionLabel>variant A — full usage showcase ({USAGE_TOTAL} usages)</DevSectionLabel>
+                <DevSectionLabel>variant A — full usage showcase</DevSectionLabel>
                 <p className="max-w-3xl text-body-s text-foreground-secondary">
                     Every production render of Notification (96 inline call sites, grep-verified 2026-09-02) plus the
-                    toast surface as 6 configurations, rebuilt with the compact inline variant. Real i18n/hardcoded
-                    copy; runtime-only messages carry representative copy and are marked.
+                    toast surface as 6 configurations, rebuilt with the compact inline variant. The 48 flow/form error
+                    sites are sampled (4 shapes shown — they all share one shape); every other group is exhaustive. The
+                    14 in-modal sites render as their complete host modal/drawer. Real i18n/hardcoded copy; runtime-only
+                    messages carry representative copy and are marked.
                 </p>
                 <UsageShowcase
                     render={(u) => (
@@ -1334,10 +1423,10 @@ export default function NotificationProposalsPage() {
             </section>
 
             <section className="flex flex-col gap-4">
-                <DevSectionLabel>variant B — full usage showcase ({USAGE_TOTAL} usages)</DevSectionLabel>
+                <DevSectionLabel>variant B — full usage showcase</DevSectionLabel>
                 <p className="max-w-3xl text-body-s text-foreground-secondary">
-                    The same {USAGE_TOTAL} usages rebuilt with the slim accent banner. As a toast the accent row sits on
-                    a white bordered pill (a floating element needs a surface; inline it stays transparent).
+                    The same usages rebuilt with the slim accent banner. As a toast the accent row sits on a white
+                    bordered pill (a floating element needs a surface; inline it stays transparent).
                 </p>
                 <UsageShowcase
                     render={(u) => (
