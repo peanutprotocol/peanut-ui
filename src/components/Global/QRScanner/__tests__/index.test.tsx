@@ -53,7 +53,6 @@ jest.mock('../useQRScanner', () => ({
 }))
 
 import QRScanner from '../index'
-import { QR_DRAWER_PASTE_GAP_PX, QR_DRAWER_PEEK_PX } from '@/constants/qr-drawer.consts'
 
 const render = (ui: React.ReactElement, options?: Omit<Parameters<typeof rtlRender>[1], 'wrapper'>) =>
     rtlRender(ui, { wrapper: IntlWrapper, ...options })
@@ -254,24 +253,22 @@ it('chip tap: empty clipboard maps to the same copy as "Click to paste"', async 
 })
 
 /*
- * The bug this pins: the paste link used to be positioned from the top of the
- * viewport while the My QR drawer's collapsed peek grew from the bottom, so the
- * drawer covered the link on short screens and in locales whose drawer text
- * wraps. The link is now anchored to the peek instead. jsdom has no layout, so
- * the geometry itself was verified in a browser — what is worth pinning here is
- * the coupling: the offset must be DERIVED from the drawer's exported peek, so
- * changing the peek can never silently leave the link behind.
+ * The paste link belongs to the scanner: it sits in the block under the scan
+ * square, after the payment badges, not in a strip pinned above the My QR
+ * drawer (where it read as a stray control). jsdom has no layout, so the
+ * clearance from the drawer peek was verified in a browser; what is pinned
+ * here is the placement.
  */
-it('paste actions are anchored a fixed gap above the drawer peek', async () => {
+it('paste actions sit under the scan square, after the payment badges', async () => {
     mockIsAndroidNative.mockReturnValue(false)
     mockHasStrings.mockResolvedValue(false)
 
     renderScanner()
 
     const link = await screen.findByText('Click to paste')
-    const anchored = link.closest('[style*="bottom"]') as HTMLElement | null
-    expect(anchored).not.toBeNull()
-    expect(anchored!.style.bottom).toBe(`${QR_DRAWER_PEEK_PX + QR_DRAWER_PASTE_GAP_PX}px`)
-    // fixed to the viewport, not to the scan square
-    expect(anchored!.className).toContain('fixed')
+    const region = link.closest('[data-testid="qr-scan-region"]')
+    expect(region).not.toBeNull()
+    expect(link.closest('[style*="bottom"]')).toBeNull()
+    const badges = screen.getByText('Mercado Pago')
+    expect(badges.compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 })

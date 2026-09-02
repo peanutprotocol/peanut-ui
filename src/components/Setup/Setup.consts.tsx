@@ -34,7 +34,7 @@ export const setupSteps: ISetupStep[] = [
         component: InstallPWA,
         showBackButton: false,
         showSkipButton: false,
-        showLoginButton: true,
+        showLoginButton: false,
         imageClassName: 'w-[50%] md:w-[30%] h-auto',
         titleClassName: 'text-heading-s',
         contentClassName: 'flex flex-col items-center justify-center gap-6',
@@ -46,7 +46,7 @@ export const setupSteps: ISetupStep[] = [
         component: InstallPWA,
         showBackButton: false,
         showSkipButton: true,
-        showLoginButton: true,
+        showLoginButton: false,
         imageClassName: 'w-[50%] md:w-[30%] h-auto mt-16 md:mt-0',
     },
     {

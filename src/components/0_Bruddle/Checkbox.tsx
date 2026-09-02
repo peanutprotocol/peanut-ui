@@ -3,7 +3,7 @@ import { twMerge } from '@/utils/tw'
 
 type CheckboxProps = {
     className?: string
-    label?: string
+    label?: React.ReactNode
     value: boolean
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
 }

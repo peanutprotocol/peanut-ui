@@ -17,6 +17,10 @@ import ProfileHeader from '../components/ProfileHeader'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
 
+// Bio / phone / website have no backend yet. Kept as dead code behind a switch
+// (same pattern as OPEN_GATED) so the fields come back with the feature.
+const SHOW_COMING_SOON_FIELDS = false
+
 export const ProfileEditView = () => {
     const t = useTranslations('profile.edit')
     const tMenu = useTranslations('profile.menu')
@@ -189,13 +193,15 @@ export const ProfileEditView = () => {
                         disabled={!canEditName}
                     />
 
-                    <ProfileEditField
-                        label={t('fields.bio')}
-                        value={formData.bio}
-                        onChange={(value) => handleChange('bio', value)}
-                        badge={t('soonBadge')}
-                        disabled
-                    />
+                    {SHOW_COMING_SOON_FIELDS && (
+                        <ProfileEditField
+                            label={t('fields.bio')}
+                            value={formData.bio}
+                            onChange={(value) => handleChange('bio', value)}
+                            badge={t('soonBadge')}
+                            disabled
+                        />
+                    )}
                 </div>
 
                 <div className="flex flex-col gap-4">
@@ -207,23 +213,27 @@ export const ProfileEditView = () => {
                         disabled={isEmailSet}
                     />
 
-                    <ProfileEditField
-                        label={t('fields.phoneNumber')}
-                        value={formData.phone}
-                        onChange={(value) => handleChange('phone', value)}
-                        type="tel"
-                        badge={t('soonBadge')}
-                        disabled
-                    />
+                    {SHOW_COMING_SOON_FIELDS && (
+                        <>
+                            <ProfileEditField
+                                label={t('fields.phoneNumber')}
+                                value={formData.phone}
+                                onChange={(value) => handleChange('phone', value)}
+                                type="tel"
+                                badge={t('soonBadge')}
+                                disabled
+                            />
 
-                    <ProfileEditField
-                        label={t('fields.website')}
-                        value={formData.website}
-                        onChange={(value) => handleChange('website', value)}
-                        type="url"
-                        badge={t('soonBadge')}
-                        disabled
-                    />
+                            <ProfileEditField
+                                label={t('fields.website')}
+                                value={formData.website}
+                                onChange={(value) => handleChange('website', value)}
+                                type="url"
+                                badge={t('soonBadge')}
+                                disabled
+                            />
+                        </>
+                    )}
                 </div>
 
                 {/* Name visibility belongs with the name itself; only shown

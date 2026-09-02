@@ -12,6 +12,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { TAB_ORDER, TAB_SPRING, type TabId } from './tab-order'
 
 /**
  * Bottom navigation from the figma navigation board (17802:61534, component
@@ -53,10 +54,6 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
  * drag is disabled (taps only) and the pill move is instant.
  */
 
-type TabId = 'home' | 'card' | 'support'
-
-const TAB_ORDER: TabId[] = ['home', 'card', 'support']
-
 // tab pressable: px-6 py-4 + 20px icon = the 68x52 area annotated on the board
 const tabClass =
     'relative flex items-center justify-center rounded-round px-6 py-4 text-foreground-primary transition-colors duration-instant focus-visible:outline-[3px] focus-visible:outline-action-focus'
@@ -65,9 +62,12 @@ const tabClass =
 // tab / draggable pill underneath
 const iconClass = 'pointer-events-none relative z-10'
 
-// near-critically damped: the pill lands on the measured target without an
-// overshoot to walk back from. 0.3s = the `duration-moderate` motion token.
-const PILL_SPRING = { type: 'spring', duration: 0.3, bounce: 0.05 } as const
+const PILL_SPRING = TAB_SPRING
+
+// 3px ink drop in the border colour; the pill gets a 1px drop at 55% so it
+// reads as raised off the bar without a second full-weight edge
+const HARD_SHADOW = 'shadow-[3px_3px_0_0_var(--color-border-default)]'
+const PILL_SHADOW = 'shadow-[1px_1px_0_0_rgb(22_22_22/0.55)]'
 
 /** A tab's box inside the bar, in the bar's own coordinates. */
 type TabBox = { left: number; width: number }
@@ -217,11 +217,11 @@ export const BottomNav = () => {
                         e.stopPropagation()
                     }
                 }}
-                // Soft elevation (contrast study option E, ruled 2026-08-29):
-                // the lift shadow plus a tight contact shadow, carried by the bar
-                // AND the QR circle so the pair reads as one plane. No DS token
-                // carries a soft .35-alpha shadow — arbitrary value on purpose.
-                className="relative flex flex-1 items-center justify-between rounded-round border border-border-default bg-background-page shadow-[0_10px_22px_-6px_rgb(0_0_0/0.35),0_2px_6px_rgb(0_0_0/0.18)]"
+                // Hard offset shadow (contrast study "Hard offset shadow"): the
+                // DS 3px ink drop in the border colour, carried by the bar AND
+                // the QR circle so the pair reads as one plane. btn-shadow-* is
+                // pure black, so the token is spelled out here.
+                className={`relative flex flex-1 items-center justify-between rounded-round border border-border-default bg-background-page ${HARD_SHADOW}`}
             >
                 <Link
                     href="/home"
@@ -300,7 +300,7 @@ export const BottomNav = () => {
                         transition={reduceMotion ? { duration: 0 } : PILL_SPRING}
                         // -1px, not -2px: the bar's own border is 1px, so a 1px inset puts the
                         // pill's outer edge exactly on the bar's — at 2px it stood proud of it.
-                        className="absolute -top-px -bottom-px left-0 z-0 touch-none rounded-round border border-border-default bg-background-default"
+                        className={`absolute -top-px -bottom-px left-0 z-0 touch-none rounded-round border border-border-default bg-background-default ${PILL_SHADOW}`}
                     />
                 )}
             </div>
@@ -313,7 +313,7 @@ export const BottomNav = () => {
                     triggerHaptic()
                     setIsQRScannerOpen(true)
                 }}
-                className="flex size-13 shrink-0 items-center justify-center rounded-round border border-border-button bg-action-primary text-foreground-primary shadow-[0_10px_22px_-6px_rgb(0_0_0/0.35),0_2px_6px_rgb(0_0_0/0.18)] transition-transform duration-instant active:scale-95 disabled:opacity-40"
+                className={`flex size-13 shrink-0 items-center justify-center rounded-round border border-border-button bg-action-primary text-foreground-primary ${HARD_SHADOW} transition-transform duration-instant active:scale-95 disabled:opacity-40`}
             >
                 <Icon name="qr-code" size={24} />
             </button>

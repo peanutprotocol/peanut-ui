@@ -77,7 +77,7 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
 
             {showAutoRenew && (
                 <div className="flex items-start gap-3 rounded-sm border border-border-default bg-background-default p-4">
-                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-background-icon-bubble-yellow">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-background-icon-bubble-blue">
                         <Icon name="credit-card" size={20} />
                     </div>
                     <div className="flex-1">
@@ -110,39 +110,44 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
                 {t('payAsCreditBody')}
             </Notification>
 
-            <Section title={t('managementTitle')}>
-                <ListGroup>
-                    <ProfileMenuItem icon="more-horizontal" label={t('pin')} href="/card/pin" />
-                    <ProfileMenuItem icon="meter" label={t('spendingLimit')} href="/card/limit" />
-                    <ProfileMenuItem icon="credit-card" label={t('physicalCard')} href="/card/physical" />
-                    {walletLabel && <ProfileMenuItem icon="wallet" label={walletLabel} href="/card/add-to-wallet" />}
-                </ListGroup>
-            </Section>
+            {/* same group rhythm as the profile menu (space-y-4), not the page's gap-6 */}
+            <div className="space-y-4">
+                <Section title={t('managementTitle')}>
+                    <ListGroup>
+                        <ProfileMenuItem icon="more-horizontal" label={t('pin')} href="/card/pin" />
+                        <ProfileMenuItem icon="meter" label={t('spendingLimit')} href="/card/limit" />
+                        <ProfileMenuItem icon="credit-card" label={t('physicalCard')} href="/card/physical" />
+                        {walletLabel && (
+                            <ProfileMenuItem icon="wallet" label={walletLabel} href="/card/add-to-wallet" />
+                        )}
+                    </ListGroup>
+                </Section>
 
-            <Section title={t('redZone')}>
-                <ListGroup>
-                    <ProfileMenuItem
-                        icon="lock"
-                        label={isLocked ? t('unlockCard') : t('lockCard')}
-                        onClick={() => {
-                            posthog.capture(ANALYTICS_EVENTS.CARD_LOCK_OPENED, {
-                                mode: isLocked ? 'unlock' : 'lock',
-                            })
-                            void setAction(isLocked ? 'unlock' : 'lock')
-                        }}
-                        href="/dummy"
-                    />
-                    <ProfileMenuItem
-                        icon="trash"
-                        label={t('cancelCard')}
-                        onClick={() => {
-                            posthog.capture(ANALYTICS_EVENTS.CARD_CANCEL_OPENED)
-                            void setAction('cancel')
-                        }}
-                        href="/dummy"
-                    />
-                </ListGroup>
-            </Section>
+                <Section title={t('redZone')}>
+                    <ListGroup>
+                        <ProfileMenuItem
+                            icon="lock"
+                            label={isLocked ? t('unlockCard') : t('lockCard')}
+                            onClick={() => {
+                                posthog.capture(ANALYTICS_EVENTS.CARD_LOCK_OPENED, {
+                                    mode: isLocked ? 'unlock' : 'lock',
+                                })
+                                void setAction(isLocked ? 'unlock' : 'lock')
+                            }}
+                            href="/dummy"
+                        />
+                        <ProfileMenuItem
+                            icon="trash"
+                            label={t('cancelCard')}
+                            onClick={() => {
+                                posthog.capture(ANALYTICS_EVENTS.CARD_CANCEL_OPENED)
+                                void setAction('cancel')
+                            }}
+                            href="/dummy"
+                        />
+                    </ListGroup>
+                </Section>
+            </div>
 
             <LockCardModal
                 cardId={card.id}

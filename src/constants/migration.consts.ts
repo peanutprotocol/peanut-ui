@@ -60,6 +60,7 @@ export const MIGRATION_SURFACES = {
     HOME_BANNER: 'home_banner',
     SETUP: 'setup',
     GUEST_FLOW: 'guest_flow',
+    PROFILE_UPDATE: 'profile_update',
 } as const
 
 export type MigrationSurface = (typeof MIGRATION_SURFACES)[keyof typeof MIGRATION_SURFACES]

@@ -167,9 +167,12 @@ const DotFaceAvatar = ({ username, size, className }: { username: string; size?:
             strokeWidth={3 * sc}
             strokeLinecap="round"
         />,
+        // wide grin — this slot was a frown, and a generated self-avatar has
+        // no business looking unhappy. Array length stays 5 so no one else's
+        // face changes.
         <path
             key="m"
-            d={`M${cx - 6 * sc} ${my + 4 * sc} q${6 * sc} ${-6 * sc} ${12 * sc} 0`}
+            d={`M${cx - 9 * sc} ${my - sc} q${9 * sc} ${10 * sc} ${18 * sc} 0`}
             stroke="currentColor"
             strokeWidth={3 * sc}
             fill="none"
@@ -191,7 +194,7 @@ const DotFaceAvatar = ({ username, size, className }: { username: string; size?:
             >
                 <circle cx="50" cy="50" r="47.5" className={face.circle} strokeWidth="5" />
                 {eyes}
-                {mouths}
+                <g data-testid="dot-face-mouth">{mouths}</g>
                 {blush && (
                     <g className={face.blush} opacity="0.85">
                         <circle cx={cx - ex - 8 * sc} cy={cy + 5 * sc} r={3.2 * sc} />

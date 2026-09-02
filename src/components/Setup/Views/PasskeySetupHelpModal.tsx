@@ -94,18 +94,15 @@ export const PasskeySetupHelpModal = ({
                         </Notification>
                     )}
 
-                    <div className="rounded-sm border border-border-disabled bg-background-disabled/5 p-3 text-body-xs text-foreground-secondary">
-                        <p className="mb-1 font-bold">{t('stillHavingIssues')}</p>
-                        <p>
-                            {t.rich('contactSupport', {
-                                link: (chunks) => (
-                                    <a href="https://peanut.me/support" className="text-blue-500 underline">
-                                        {chunks}
-                                    </a>
-                                ),
-                            })}
-                        </p>
-                    </div>
+                    <Notification priority="info" hideIcon title={t('stillHavingIssues')}>
+                        {t.rich('contactSupport', {
+                            link: (chunks) => (
+                                <a href="https://peanut.me/support" className="underline">
+                                    {chunks}
+                                </a>
+                            ),
+                        })}
+                    </Notification>
                 </div>
             }
             preventClose={false}

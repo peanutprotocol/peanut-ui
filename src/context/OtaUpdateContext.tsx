@@ -1,0 +1,107 @@
+'use client'
+
+import type { BundleInfo } from '@capgo/capacitor-updater'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { isAndroidNativeBridge, isCapacitor } from '@/utils/capacitor'
+
+export type OtaApplyState = 'idle' | 'applying' | 'manual-restart'
+
+export interface OtaUpdateContextValue {
+    /** downloaded bundle queued by the plugin, waiting for a restart */
+    pendingBundle: BundleInfo | null
+    /** the newest bundle targets a newer native binary — only the store can update */
+    storeUpdateRequired: boolean
+    applyState: OtaApplyState
+    /** restart onto `pendingBundle` now (native only) */
+    applyNow: () => Promise<void>
+}
+
+// set() and reload() both tear the page down; still being here this long after
+// means neither did, and the app has to be closed by other means
+const RELOAD_GRACE_MS = 3_000
+
+const OtaUpdateContext = createContext<OtaUpdateContextValue>({
+    pendingBundle: null,
+    storeUpdateRequired: false,
+    applyState: 'idle',
+    applyNow: async () => {},
+})
+
+/**
+ * Runs the Capgo updater on native launches (notifyAppReady + one staged
+ * update check, see capgo-updater.ts) and exposes what it found, so the
+ * profile can offer a restart instead of leaving the bundle to the next
+ * cold start. No-op on web.
+ */
+export function OtaUpdateProvider({ children }: { children: React.ReactNode }) {
+    const [pendingBundle, setPendingBundle] = useState<BundleInfo | null>(null)
+    const [storeUpdateRequired, setStoreUpdateRequired] = useState(false)
+    const [applyState, setApplyState] = useState<OtaApplyState>('idle')
+    const fallbackTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+
+    useEffect(() => {
+        if (!isCapacitor()) return
+        let disposed = false
+        let cleanup: (() => void) | undefined
+
+        // a bundle staged on an earlier launch is still queued in the plugin
+        import('@capgo/capacitor-updater')
+            .then(({ CapacitorUpdater }) => CapacitorUpdater.getNextBundle())
+            .then((bundle) => {
+                if (!disposed && bundle) setPendingBundle((current) => current ?? bundle)
+            })
+            .catch((err) => console.warn('[capgo] next bundle read failed:', err))
+
+        import('@/utils/capgo-updater')
+            .then(({ initCapgoUpdater }) =>
+                initCapgoUpdater({
+                    onUpdateAvailable: (bundle) => setPendingBundle(bundle),
+                    onStoreUpdateRequired: () => setStoreUpdateRequired(true),
+                })
+            )
+            .then((fn) => {
+                // Unmounted while init was still resolving: run the cleanup now
+                // or the listeners it registered are never removed.
+                if (disposed) fn()
+                else cleanup = fn
+            })
+            .catch((err) => console.warn('[capgo] ota init failed:', err))
+
+        return () => {
+            disposed = true
+            cleanup?.()
+            clearTimeout(fallbackTimer.current)
+        }
+    }, [])
+
+    const applyNow = useCallback(async () => {
+        if (!pendingBundle || applyState !== 'idle') return
+        setApplyState('applying')
+        // Armed before set(): a set() that neither reloads nor rejects would
+        // otherwise leave the promise pending and the fallback never scheduled.
+        fallbackTimer.current = setTimeout(() => {
+            if (!isAndroidNativeBridge()) {
+                setApplyState('manual-restart')
+                return
+            }
+            import('@capacitor/app')
+                .then(({ App }) => App.exitApp())
+                .catch((err) => console.warn('[capgo] exitApp failed:', err))
+        }, RELOAD_GRACE_MS)
+        try {
+            const { applyStagedBundle } = await import('@/utils/capgo-updater')
+            await applyStagedBundle(pendingBundle.id)
+        } catch (err) {
+            console.warn('[capgo] apply failed:', err)
+        }
+    }, [pendingBundle, applyState])
+
+    const value = useMemo(
+        () => ({ pendingBundle, storeUpdateRequired, applyState, applyNow }),
+        [pendingBundle, storeUpdateRequired, applyState, applyNow]
+    )
+
+    return <OtaUpdateContext.Provider value={value}>{children}</OtaUpdateContext.Provider>
+}
+
+export const useOtaUpdate = () => useContext(OtaUpdateContext)

@@ -2,7 +2,7 @@ import { twMerge } from '@/utils/tw'
 import { Icon, type IconName } from '../Global/Icons/Icon'
 
 type IconBubbleSize = 'xs' | 's' | 'm' | 'l'
-type IconBubbleColor = 'green' | 'red' | 'yellow' | 'gray' | 'blue' | 'logo'
+export type IconBubbleColor = 'green' | 'red' | 'yellow' | 'gray' | 'blue' | 'logo'
 
 interface IconBubbleProps extends React.HTMLAttributes<HTMLDivElement> {
     icon: IconName | React.ReactElement

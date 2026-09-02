@@ -1,6 +1,7 @@
 import DocsLink from '@/components/Global/DocsLink'
 import PasskeyInfoModal from '@/components/Setup/components/PasskeyInfoModal'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { updateUserById } from '@/app/actions/users'
@@ -252,14 +253,12 @@ const SignTestTransaction = () => {
     if (accountReady) {
         return (
             <div className="flex w-full flex-col gap-3 text-left">
-                <div className="rounded-sm border border-border-default bg-background-default p-3">
-                    <p className="text-label-l">{t('accountReady.worksNowTitle')}</p>
-                    <p className="text-body-s">{t('accountReady.worksNowBody')}</p>
-                </div>
-                <div className="rounded-sm border border-border-default bg-background-default p-3">
-                    <p className="text-label-l">{t('accountReady.laterTitle')}</p>
-                    <p className="text-body-s">{t('accountReady.laterBody')}</p>
-                </div>
+                <Notification priority="info" hideIcon title={t('accountReady.worksNowTitle')}>
+                    {t('accountReady.worksNowBody')}
+                </Notification>
+                <Notification priority="info" hideIcon title={t('accountReady.laterTitle')}>
+                    {t('accountReady.laterBody')}
+                </Notification>
                 <Button
                     onClick={goToAccount}
                     loading={isRedirecting}
@@ -282,6 +281,7 @@ const SignTestTransaction = () => {
                     <p className="mb-1 text-body-s text-foreground-secondary">
                         {t('steps.sign-test-transaction.description')}
                     </p>
+                    {displayError && <Notification priority="error">{displayError}</Notification>}
                     <Button
                         loading={isLoading}
                         disabled={isDisabled}
@@ -291,7 +291,6 @@ const SignTestTransaction = () => {
                     >
                         {getButtonText()}
                     </Button>
-                    {displayError && <p className="text-label-l text-foreground-error">{displayError}</p>}
                 </div>
                 <div>
                     {/* In-app explainer instead of a browser redirect — leaving

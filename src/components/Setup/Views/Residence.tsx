@@ -1,3 +1,4 @@
+import { Notification } from '@/components/0_Bruddle/Notification'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import BaseSelect from '@/components/0_Bruddle/BaseSelect'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -381,14 +382,11 @@ const ResidenceStep = () => {
                                     )
                                 })}
                             </div>
-                            <div className="rounded-sm border border-border-default bg-background-default p-3 text-body-xs text-foreground-secondary">
-                                <p className="mb-1 font-bold text-foreground-primary">
-                                    {t('residenceStep.compare.guideTitle')}
-                                </p>
+                            <Notification priority="info" hideIcon title={t('residenceStep.compare.guideTitle')}>
                                 <p>{t('residenceStep.compare.guideDeclaration')}</p>
                                 <p className="mt-1">{t('residenceStep.compare.guideOrder')}</p>
                                 <p className="mt-1">{t('residenceStep.compare.guideSecond')}</p>
-                            </div>
+                            </Notification>
                         </div>
                     )}
             </div>

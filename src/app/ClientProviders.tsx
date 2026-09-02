@@ -13,11 +13,11 @@ import { UnsupportedWebViewScreen, hasUnsupportedWebViewBypass } from '@/compone
 import { MarketingIntlProvider } from '@/i18n/app/MarketingIntlProvider'
 import { PeanutProvider } from '@/config/peanut.config'
 import { ContextProvider } from '@/context/contextProvider'
+import { OtaUpdateProvider } from '@/context/OtaUpdateContext'
 import { FooterVisibilityProvider } from '@/context/footerVisibility'
 import { DEV_TOOLS_ENABLED } from '@/constants/dev-tools.consts'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import { useNativeAppLinks } from '@/hooks/useNativeAppLinks'
-import { useOtaUpdates } from '@/hooks/useOtaUpdates'
 import { useSplashGate } from '@/hooks/useSplashGate'
 import { useZeroLegacyAndroidSafeAreaInsets } from '@/hooks/useZeroLegacyAndroidSafeAreaInsets'
 import { applyLegacyAndroidSafeAreaZeroFromUserAgent, isCapacitor, isWebViewCssSupported } from '@/utils/capacitor'
@@ -58,8 +58,6 @@ const AppGlobals = dynamic(() => import('./AppGlobals').then((m) => m.AppGlobals
 const AppIntlProvider = dynamic(() => import('@/i18n/app/AppIntlProvider').then((m) => m.AppIntlProvider))
 
 export function ClientProviders({ children }: { children: React.ReactNode }) {
-    // initialize capgo ota updates (calls notifyAppReady on mount, no-op on web)
-    useOtaUpdates()
     useSplashGate()
     // App Links + push-tap routing must be registered on EVERY cold-start
     // destination (including logged-out /setup), hence here and not (mobile-ui).
@@ -83,25 +81,29 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
     return (
         <NuqsAdapter>
             <PeanutProvider>
-                {/* Must sit ABOVE ContextProvider: TokenContextProvider → useWallet
-                    → useSendMoney calls useTranslations, so the intl context has to
-                    exist by the time ContextProvider renders. */}
-                <IntlProvider>
-                    <ContextProvider>
-                        <FooterVisibilityProvider>
-                            <TranslationSafeWrapper>
-                                <ConsoleGreeting />
-                                <ScreenOrientationLocker />
-                                {HarnessBootstrap && (
-                                    <Suspense fallback={null}>
-                                        <HarnessBootstrap />
-                                    </Suspense>
-                                )}
-                                {marketing ? children : <AppGlobals>{children}</AppGlobals>}
-                            </TranslationSafeWrapper>
-                        </FooterVisibilityProvider>
-                    </ContextProvider>
-                </IntlProvider>
+                {/* OTA init (notifyAppReady) must run on every native launch, so
+                    the provider sits above every route-conditional layer. */}
+                <OtaUpdateProvider>
+                    {/* Must sit ABOVE ContextProvider: TokenContextProvider → useWallet
+                        → useSendMoney calls useTranslations, so the intl context has to
+                        exist by the time ContextProvider renders. */}
+                    <IntlProvider>
+                        <ContextProvider>
+                            <FooterVisibilityProvider>
+                                <TranslationSafeWrapper>
+                                    <ConsoleGreeting />
+                                    <ScreenOrientationLocker />
+                                    {HarnessBootstrap && (
+                                        <Suspense fallback={null}>
+                                            <HarnessBootstrap />
+                                        </Suspense>
+                                    )}
+                                    {marketing ? children : <AppGlobals>{children}</AppGlobals>}
+                                </TranslationSafeWrapper>
+                            </FooterVisibilityProvider>
+                        </ContextProvider>
+                    </IntlProvider>
+                </OtaUpdateProvider>
             </PeanutProvider>
         </NuqsAdapter>
     )

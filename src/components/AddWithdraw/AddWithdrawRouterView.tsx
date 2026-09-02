@@ -227,7 +227,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                 <NavHeader title={pageTitle} onPrev={onBackClick || defaultBackNavigation} />
                 <Card className="my-auto flex flex-col items-center justify-center gap-4 p-4">
                     <div className="space-y-2">
-                        <IconBubble icon="alert" size="m" color="yellow" className="mx-auto" />
+                        <IconBubble icon="bank" size="m" color="blue" className="mx-auto" />
                         <div className="space-y-1 text-center">
                             <h2 className="text-heading-card text-foreground-primary">{t('noAccountsTitle')}</h2>
                             <p className="text-body-s text-foreground-secondary">

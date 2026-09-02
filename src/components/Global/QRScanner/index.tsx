@@ -7,7 +7,7 @@ import { PEANUTMAN } from '@/assets/mascot'
 import { ETHEREUM_ICON } from '@/assets/icons'
 import Image from 'next/image'
 import { Icon } from '../Icons/Icon'
-import { QR_DRAWER_PASTE_GAP_PX, QR_DRAWER_PEEK_PX } from '@/constants/qr-drawer.consts'
+import { twMerge } from '@/utils/tw'
 import { useQRScanner, type QRScanHandler } from './useQRScanner'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import CameraPermissionModal from './CameraPermissionModal'
@@ -108,41 +108,40 @@ function PasteActions({
     onUseDetected,
     showPasteChip,
     onUsePasteChip,
+    className,
 }: {
     onPaste: () => void
     detectedAddress: string | null
     onUseDetected: () => void
     showPasteChip: boolean
     onUsePasteChip: () => void
+    className?: string
 }) {
     const t = useTranslations('global')
     return (
-        <>
-            <button
-                onClick={onPaste}
-                className="justify mx-auto mt-10 flex items-center gap-1 text-center text-white underline underline-offset-2"
-            >
-                <Icon name="paste" fill="white" height={16} width={16} />
+        <div className={twMerge('flex flex-col items-center gap-3', className)}>
+            <button onClick={onPaste} className="flex items-center gap-1 text-white underline underline-offset-2">
+                <Icon name="paste" fill="white" size={16} />
                 <span className="text-body-s">{t('qrScanner.clickToPaste')}</span>
             </button>
             {detectedAddress ? (
                 <button
                     onClick={onUseDetected}
-                    className="mx-auto mt-3 flex items-center gap-1 rounded-full border border-white/40 px-3 py-2 text-white"
+                    className="flex items-center gap-1 rounded-full border border-white/40 px-3 py-2 text-white"
                 >
-                    <Icon name="wallet" fill="white" height={16} width={16} />
+                    <Icon name="wallet" fill="white" size={16} />
                     <span className="text-label-l">{printableAddress(detectedAddress)}</span>
                 </button>
             ) : showPasteChip ? (
                 <button
                     onClick={onUsePasteChip}
-                    className="mx-auto mt-3 flex items-center gap-1 rounded-full border border-white/40 px-3 py-2 text-white"
+                    className="flex items-center gap-1 rounded-full border border-white/40 px-3 py-2 text-white"
                 >
-                    <Icon name="paste" fill="white" height={16} width={16} />
+                    <Icon name="paste" fill="white" size={16} />
                     <span className="text-label-l">{t('qrScanner.useCopiedCode')}</span>
                 </button>
             ) : null}
-        </>
+        </div>
     )
 }
 
@@ -171,13 +170,17 @@ function ScanRegionOverlay({
                     ))}
                 </div>
 
-                {/* Supported payment methods. This row is pinned to the top of the
-                    viewport while the paste actions rise from the bottom, so on a short
-                    screen the two meet. Measured: the gap between them is
-                    `viewportHeight - 714` px with the clipboard chip showing, so below
-                    730px it drops under the 16px this layout keeps elsewhere — hide the
-                    row rather than let it collide. */}
-                <div className="flex-column z-50 translate-y-[100%] transform items-center text-center">
+                {/* Supported payment methods, then the paste actions, stacked under
+                    the scan square so the paste link reads as part of the scanner
+                    rather than as a stray control above the My QR drawer. The
+                    square is pinned to the top of the viewport and the drawer peek
+                    (QR_DRAWER_PEEK_PX) grows from the bottom; the badge row is what
+                    gives on a short screen — hidden below 730px so the paste chip
+                    never lands under the peek. */}
+                <div
+                    className="flex-column z-50 translate-y-[100%] transform items-center text-center"
+                    data-testid="qr-scan-region"
+                >
                     <div className="mt-10 flex flex-wrap justify-center gap-2 [@media(max-height:729px)]:hidden">
                         {PAYMENT_METHODS.map((method) => (
                             <PaymentMethodBadge
@@ -188,24 +191,8 @@ function ScanRegionOverlay({
                             />
                         ))}
                     </div>
-                </div>
-            </div>
-
-            {/* The paste link and clipboard chips sit a fixed gap above the My QR
-                drawer's collapsed peek, so no locale's text length and no screen
-                height can push them underneath it. They used to hang off the scan
-                square, which is pinned to the top of the viewport, while the peek
-                grows from the bottom — two coordinate systems that only lined up
-                on a tall screen in English. Tailwind cannot JIT an interpolated
-                arbitrary value, so the offset is an inline style. The strip is
-                full-width and transparent, so it is click-through except for the
-                actions themselves. */}
-            <div
-                className="pointer-events-none fixed inset-x-0 z-50 flex flex-col items-center"
-                style={{ bottom: QR_DRAWER_PEEK_PX + QR_DRAWER_PASTE_GAP_PX }}
-            >
-                <div className="pointer-events-auto flex flex-col items-center">
                     <PasteActions
+                        className="mt-6"
                         onPaste={onPaste}
                         detectedAddress={detectedAddress}
                         onUseDetected={onUseDetected}
@@ -367,6 +354,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
             ) : error ? (
                 <ErrorView message={error} onClose={close} onRetry={retryCamera}>
                     <PasteActions
+                        className="mt-10"
                         onPaste={handlePaste}
                         detectedAddress={detectedAddress}
                         onUseDetected={() => scanValue(detectedAddress!)}

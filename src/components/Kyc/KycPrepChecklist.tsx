@@ -1,6 +1,5 @@
 'use client'
 
-import { Icon } from '@/components/Global/Icons/Icon'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { useTranslations } from 'next-intl'
 
@@ -34,22 +33,16 @@ const KycPrepChecklist = ({ path }: { path: KycPrepPath }) => {
     return (
         <div className="flex w-full flex-col gap-3 text-left" data-testid="kyc-prep-checklist">
             {!isHosted && <p className="text-body-s">{t(`intro.${path}`)}</p>}
-            <div className="overflow-hidden rounded-sm border border-border-default bg-background-default dark:border-white dark:bg-foreground-primary">
-                {items.map((item) => (
-                    <div
-                        key={item}
-                        className="flex items-start gap-2 border-t border-border-default p-3 first:border-t-0 dark:border-white"
-                    >
-                        <Icon name="check-circle" className="mt-0.5 size-4 shrink-0" />
-                        <span>
-                            <span className="block text-label-l">{t(`items.${item}.title`)}</span>
-                            <span className="block text-body-xs text-foreground-secondary">
-                                {t(`items.${item}.body`)}
-                            </span>
-                        </span>
-                    </div>
+            <Notification
+                priority="info"
+                hideIcon
+                items={items.map((item) => (
+                    <span key={item}>
+                        <span className="block text-label-l">{t(`items.${item}.title`)}</span>
+                        <span className="block text-body-xs text-foreground-secondary">{t(`items.${item}.body`)}</span>
+                    </span>
                 ))}
-            </div>
+            />
             {isHosted && (
                 <Notification
                     priority="attention"

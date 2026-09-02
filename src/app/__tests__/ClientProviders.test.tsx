@@ -11,7 +11,6 @@
 import React from 'react'
 import { ClientProviders } from '../ClientProviders'
 
-jest.mock('@/hooks/useOtaUpdates', () => ({ useOtaUpdates: jest.fn() }))
 jest.mock('@/hooks/useSplashGate', () => ({ useSplashGate: jest.fn() }))
 jest.mock('@/hooks/useNativeAppLinks', () => ({ useNativeAppLinks: jest.fn() }))
 jest.mock('@/hooks/useZeroLegacyAndroidSafeAreaInsets', () => ({ useZeroLegacyAndroidSafeAreaInsets: jest.fn() }))

@@ -104,7 +104,7 @@ describe('QRScannerOverlay case handling', () => {
     describe('all-uppercase payloads — QR alphanumeric mode uppercases, so retry lowercased', () => {
         it('accepts an uppercase EVM address', async () => {
             await scan(EVM_UPPERCASE)
-            expect(screen.getByText('ℹ️ Payment Confirmation')).toBeInTheDocument()
+            expect(screen.getByText('Payment Confirmation')).toBeInTheDocument()
         })
 
         it('accepts an uppercase bech32 Bitcoin address', async () => {
@@ -121,13 +121,13 @@ describe('QRScannerOverlay case handling', () => {
     describe('mixed case — the case is the user’s, so it must be honoured', () => {
         it('accepts a checksummed EVM address', async () => {
             await scan(EVM_CHECKSUMMED)
-            expect(screen.getByText('ℹ️ Payment Confirmation')).toBeInTheDocument()
+            expect(screen.getByText('Payment Confirmation')).toBeInTheDocument()
         })
 
         it('rejects an EVM address with a bad EIP-55 checksum rather than laundering it', async () => {
             await scan(EVM_BAD_CHECKSUM)
             expect(screen.getByText('Unrecognized QR code')).toBeInTheDocument()
-            expect(screen.queryByText('ℹ️ Payment Confirmation')).not.toBeInTheDocument()
+            expect(screen.queryByText('Payment Confirmation')).not.toBeInTheDocument()
         })
     })
 

@@ -4,11 +4,12 @@ import Card from '@/components/Global/Card'
 import DocsLink from '@/components/Global/DocsLink'
 import NavHeader from '@/components/Global/NavHeader'
 import NavigationArrow from '@/components/Global/NavigationArrow'
-import { BetaUpdatesCard } from '@/components/Profile/components/BetaUpdatesCard'
+import { BetaUpdatesCard, useBetaUpdatesAccess } from '@/components/Profile/components/BetaUpdatesCard'
+import { useToast } from '@/components/0_Bruddle/Toast'
 import { useAppVersion } from '@/hooks/useAppVersion'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useTranslations } from 'next-intl'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 /**
  * The one place every policy is reachable from inside the app, mirroring the
@@ -41,13 +42,27 @@ export const AboutView = ({ appVersion }: { appVersion: string }) => {
     const [betaRevealed, setBetaRevealed] = useState(false)
     const taps = useRef(0)
     const tapWindow = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+    const toast = useToast()
+    const betaAccess = useBetaUpdatesAccess()
+    const betaCardRef = useRef<HTMLDivElement>(null)
 
+    useEffect(() => {
+        if (betaRevealed) betaCardRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' })
+    }, [betaRevealed])
+
+    // The fifth tap always answers: the card renders nothing on the web and
+    // outside the cohort, and a silent gesture reads as a broken one.
     const onVersionTap = () => {
         clearTimeout(tapWindow.current)
         taps.current += 1
         if (taps.current >= TAPS_TO_REVEAL_BETA) {
             taps.current = 0
-            setBetaRevealed(true)
+            if (!betaAccess.supported) toast.info(t('beta.appOnly'))
+            else if (!betaAccess.visible) toast.warning(t('beta.notEnabled'))
+            else {
+                setBetaRevealed(true)
+                toast.info(t('beta.revealed'))
+            }
             return
         }
         tapWindow.current = setTimeout(() => {
@@ -73,7 +88,11 @@ export const AboutView = ({ appVersion }: { appVersion: string }) => {
                 ))}
             </div>
 
-            {betaRevealed && <BetaUpdatesCard />}
+            {betaRevealed && (
+                <div ref={betaCardRef}>
+                    <BetaUpdatesCard />
+                </div>
+            )}
 
             {/* Five taps reveal the internal-testing channel switch. */}
             <p className="text-center text-body-xs text-foreground-secondary" onClick={onVersionTap}>
