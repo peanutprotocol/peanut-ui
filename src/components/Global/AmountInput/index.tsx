@@ -342,8 +342,10 @@ const AmountInput = ({
             </div>
             {/* Conversion toggle */}
             {showConversion && (
-                <div
-                    className="absolute top-1/2 right-0 -translate-x-1/2 -translate-y-1/2 transform cursor-pointer"
+                <button
+                    type="button"
+                    aria-label={t('amountInput.switchCurrency')}
+                    className="absolute top-1/2 right-0 -translate-x-1/2 -translate-y-1/2 transform cursor-pointer transition-opacity duration-instant focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
                     onClick={(e) => {
                         e.preventDefault()
                         // keep editing state true - user is interacting, prevent sync from initialAmount
@@ -367,7 +369,7 @@ const AmountInput = ({
                         width={32}
                         height={32}
                     />
-                </div>
+                </button>
             )}
             {infoContent}
             {showSlider && maxAmount && (

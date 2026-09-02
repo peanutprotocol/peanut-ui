@@ -396,7 +396,12 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     const clearChainSelection = () => {
         return (
             <div className="absolute -top-4 right-0">
-                <Button variant="transparent" className="h-fit w-fit p-0" onClick={handleClearSelectedToken}>
+                <Button
+                    variant="transparent"
+                    aria-label={t('tokenSelector.clearNetworkSelection')}
+                    className="relative h-fit w-fit p-0 after:absolute after:-inset-3"
+                    onClick={handleClearSelectedToken}
+                >
                     <div className="flex size-6 items-center justify-center">
                         <Icon name="cancel" className="h-4 w-4" />
                     </div>

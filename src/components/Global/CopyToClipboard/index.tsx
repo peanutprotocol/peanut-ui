@@ -72,13 +72,20 @@ const CopyToClipboard = forwardRef<CopyToClipboardRef, Props>(
         }
 
         return (
-            <Icon
-                name={copied ? 'check' : 'copy'}
-                size={iconSizePx}
-                className={twMerge('cursor-pointer hover:opacity-80', className)}
-                fill={fill ? fill : 'white'}
+            // real button semantics for the inline glyph: keyboard focusable,
+            // pressed feedback, and a pseudo-element hit area >=44px (touch law)
+            // while the visual footprint stays the glyph size.
+            <button
+                type="button"
+                aria-label={t('copyField.copy')}
                 onClick={handleCopy}
-            />
+                className={twMerge(
+                    'relative inline-flex cursor-pointer items-center justify-center transition-opacity duration-instant after:absolute after:-inset-4 hover:opacity-80 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60',
+                    className
+                )}
+            >
+                <Icon name={copied ? 'check' : 'copy'} size={iconSizePx} fill={fill ? fill : 'white'} />
+            </button>
         )
     }
 )

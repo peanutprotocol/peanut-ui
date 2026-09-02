@@ -154,7 +154,7 @@ export const Notification = ({
                     type="button"
                     aria-label={t('close')}
                     onClick={onDismiss}
-                    className="-m-2.5 flex size-11 shrink-0 items-center justify-center rounded-round text-foreground-over-color-secondary"
+                    className="-m-2.5 flex size-11 shrink-0 items-center justify-center rounded-round text-foreground-over-color-secondary transition-opacity duration-instant focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
                 >
                     <Icon name="cancel" size={16} />
                 </button>

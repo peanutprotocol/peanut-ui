@@ -2254,8 +2254,10 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                                 />
                                 {searchQuery && (
                                     <button
+                                        type="button"
+                                        aria-label={t('tokenSelector.clearSearch')}
                                         onClick={handleClearSearch}
-                                        className="absolute top-1/2 right-2 -translate-y-1/2 rounded p-1 transition-colors"
+                                        className="absolute top-1/2 right-2 -translate-y-1/2 rounded p-1 transition-opacity duration-instant after:absolute after:-inset-3 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
                                     >
                                         <Icon name="cancel" size={14} />
                                     </button>

@@ -2988,7 +2988,8 @@
     },
     "global": {
         "amountInput": {
-            "balance": "Saldo:"
+            "balance": "Saldo:",
+            "switchCurrency": "Trocar moeda"
         },
         "tokenSelector": {
             "selectAToken": "Escolha um token",
@@ -3012,7 +3013,8 @@
             "noNetworksFoundTitle": "Nenhuma rede encontrada para {search}",
             "noNetworksFoundDescription": "Tente buscar outra rede",
             "searchPlaceholder": "Buscar...",
-            "clearSearch": "Limpar busca"
+            "clearSearch": "Limpar busca",
+            "clearNetworkSelection": "Limpar rede selecionada"
         },
         "qrScanner": {
             "scanToPay": "Escaneie para pagar",

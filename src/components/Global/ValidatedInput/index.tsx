@@ -244,11 +244,13 @@ const ValidatedInput = ({
                                 </div>
                             ) : (
                                 <button
+                                    type="button"
+                                    aria-label={t('invitesGraph.clear')}
                                     onClick={(e) => {
                                         e.preventDefault()
                                         onUpdate({ value: '', isValid: false, isChanging: false })
                                     }}
-                                    className="flex h-full w-6 items-center justify-center pr-2 md:w-8 md:pr-0"
+                                    className="relative flex h-full w-6 items-center justify-center pr-2 transition-opacity duration-instant after:absolute after:-inset-x-3 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60 md:w-8 md:pr-0"
                                 >
                                     <Icon className="h-6 w-6" name="cancel" />
                                 </button>

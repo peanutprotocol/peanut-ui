@@ -2988,7 +2988,8 @@
     },
     "global": {
         "amountInput": {
-            "balance": "Balance:"
+            "balance": "Balance:",
+            "switchCurrency": "Switch currency"
         },
         "tokenSelector": {
             "selectAToken": "Select a token",
@@ -3012,7 +3013,8 @@
             "noNetworksFoundTitle": "No networks found matching {search}",
             "noNetworksFoundDescription": "Try searching for a different network",
             "searchPlaceholder": "Search...",
-            "clearSearch": "Clear search"
+            "clearSearch": "Clear search",
+            "clearNetworkSelection": "Clear network selection"
         },
         "qrScanner": {
             "scanToPay": "Scan to pay",
