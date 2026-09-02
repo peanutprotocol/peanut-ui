@@ -51,6 +51,10 @@ export const useReturnExcessCollateral = () => {
             if (artifact.strategy !== 'collateral-only') {
                 throw new Error('Unexpected withdrawal strategy')
             }
+            // No cancel on a submit throw: the failure is execution-ambiguous
+            // (the withdrawal may have executed with the response lost). The
+            // backend's probe-verified TTL sweep owns abandoned-draft cleanup
+            // (TASK-21815 review).
             await rainApi.submitWithdrawal(artifact.rainWithdrawal)
 
             // Funds moved collateral → smart wallet; refresh both buckets so the

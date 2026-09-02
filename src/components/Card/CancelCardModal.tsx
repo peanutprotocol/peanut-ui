@@ -86,6 +86,8 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                 }
                 verifiedWithdrawal = artifact.rainWithdrawal
             }
+            // No draft back-out on a cancelCard throw: execution-ambiguous —
+            // the probe-verified TTL sweep owns cleanup (TASK-21815 review).
             await rainApi.cancelCard(cardId, { verifiedWithdrawal })
             posthog.capture(ANALYTICS_EVENTS.CARD_CANCEL_CONFIRMED)
             setCanceled(true)

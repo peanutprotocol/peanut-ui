@@ -182,6 +182,12 @@ describe('hasReferralNudge', () => {
         CRYPTO_DEPOSIT: { direction: 'add', expected: false },
         REFUND: { direction: 'receive', expected: false },
         PERK_REWARD: { direction: 'receive', expected: false },
+        // TASK-21817: IntentKind now derives from the generated wire
+        // vocabulary — the four ledger kinds get explicit nudge verdicts.
+        P2P_SEND: { direction: 'send', expected: true }, // legacy sends behave like DIRECT_TRANSFER
+        REWARD_PAYOUT: { direction: 'receive', expected: false },
+        INTERNAL_TRANSFER: { direction: 'send', expected: false },
+        CHARGEBACK: { direction: 'send', expected: false },
     }
 
     test.each(Object.entries(NUDGE_BY_KIND).map(([kind, row]) => ({ kind, ...row })))(

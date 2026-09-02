@@ -77,11 +77,12 @@ export interface RainCardOverview {
 }
 
 /**
- * Outbound spend-intent vocabulary. Mirrors the kind values accepted by
- * the backend's withdraw / auto-balancer endpoints — translated to the
- * Prisma `TransactionIntentKind` enum at the API boundary. Named distinctly
- * from the history renderer's `IntentKind` union in strategies/registry.ts
- * (the inbound wire shape) to prevent silent drift between the two.
+ * FE-internal spend-flow vocabulary — analytics events and the collateral
+ * preflight key on it. Since TASK-21815 the backend chooses the intent kind
+ * itself (from the verified destination), so this NEVER goes on the wire;
+ * `/rain/cards/withdraw/prepare` ignores a client-sent kind. Named
+ * distinctly from the history renderer's `IntentKind` union in
+ * strategies/registry.ts (the inbound wire shape).
  */
 export type RainCollateralKind =
     | 'P2P_SEND'
@@ -102,8 +103,6 @@ export interface PrepareRainWithdrawalInput {
     amount: string
     recipientAddress: string
     directTransfer: boolean
-    /** User-semantic kind — drives history categorization for the collateral webhook. */
-    kind: RainCollateralKind
     /** Total user-initiated spend in cents. For mixed strategy this differs from
      *  `amount` (which is only the collateral shortfall). History shows this. */
     totalAmountCents?: string
@@ -562,6 +561,24 @@ export const rainApi = {
             // Non-fatal: intent stays PENDING until expiry, no history
             // categorization until then. Log loudly but don't block the user.
             console.warn('[rainApi.stampWithdrawal] failed:', (e as Error).message)
+        }
+    },
+
+    /**
+     * Best-effort back-out for an unused preparation (TASK-21815). Fire and
+     * forget on flow abandonment — the backend refuses while the Rain
+     * signature could still execute (409) and the 30-min TTL sweep is the
+     * guaranteed cleanup, so every failure mode here is safe to swallow.
+     */
+    cancelPreparation: async (preparationId: string): Promise<void> => {
+        try {
+            await rainRequest<{ ok: boolean }>({
+                method: 'POST',
+                path: '/rain/cards/withdraw/prepare/cancel',
+                body: { preparationId },
+            })
+        } catch (e) {
+            console.warn('[rainApi.cancelPreparation] failed (non-fatal):', (e as Error).message)
         }
     },
 

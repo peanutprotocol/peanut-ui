@@ -15,31 +15,24 @@ import { fiatOnramp } from './intent/fiat-onramp'
 import { perkReward } from './intent/perk-reward'
 import { qrPay, cardSpend } from './intent/card'
 import { refund } from './intent/refund'
+import { internalTransfer, chargeback } from './intent/ledger-generic'
 import { intentFallback } from './fallback'
+import { type paths } from '@/types/api.generated'
 
-// IntentKind enumerates every raw TransactionIntentKind value the FE
-// renders, plus the synthetic 'PERK_REWARD' (sourced from perk_usage rows
-// rather than the transaction_intents table). A drift between this union
-// and the STRATEGIES map below is a TS error — adding a kind without a
-// strategy fails the build.
-export type IntentKind =
-    | 'DIRECT_TRANSFER'
-    | 'SEND_LINK'
-    | 'SEND_LINK_CLAIM'
-    | 'P2P_REQUEST_FULFILL'
-    | 'QR_PAY'
-    | 'CRYPTO_DEPOSIT'
-    | 'CRYPTO_WITHDRAW'
-    | 'ONRAMP'
-    | 'OFFRAMP'
-    | 'CARD_SPEND_AUTH'
-    | 'CARD_SPEND_CLEAR'
-    | 'CARD_AUTH_REVERSAL'
-    | 'REFUND'
-    | 'PERK_REWARD'
+// IntentKind is DERIVED from the generated OpenAPI types (TASK-21817): the
+// BE declares its wire-kind vocabulary — every TransactionIntentKind enum
+// value plus the synthetic 'PERK_REWARD' — on the /history/{entryId} `kind`
+// parameter, and `pnpm gen:api` carries it here. The STRATEGIES map below
+// is Record<IntentKind, …>, so a BE enum addition becomes a COMPILE ERROR
+// on the next type regen instead of a row that silently falls through to
+// the fallback and renders as an outgoing send (TASK-21403's failure
+// shape). No hand-maintained kind list remains.
+export type IntentKind = paths['/history/{entryId}']['get']['parameters']['query']['kind']
 
 const STRATEGIES: Record<IntentKind, TransactionStrategy> = {
     DIRECT_TRANSFER: p2pSendOrRequestFulfill,
+    // Legacy charge-backed sends (pre-2026-04 rows; no new writes).
+    P2P_SEND: p2pSendOrRequestFulfill,
     P2P_REQUEST_FULFILL: p2pSendOrRequestFulfill,
     SEND_LINK: sendLink,
     SEND_LINK_CLAIM: sendLink,
@@ -52,12 +45,19 @@ const STRATEGIES: Record<IntentKind, TransactionStrategy> = {
     CARD_SPEND_CLEAR: cardSpend,
     CARD_AUTH_REVERSAL: cardSpend,
     REFUND: refund,
+    // Reward payouts are credits from Peanut — same face as perk rewards.
+    REWARD_PAYOUT: perkReward,
+    INTERNAL_TRANSFER: internalTransfer,
+    CHARGEBACK: chargeback,
     PERK_REWARD: perkReward,
 }
 
-/** Runtime guard that the kind is one the FE renders. */
+/** Runtime guard that the kind is one the FE renders. Own-property check on
+ *  purpose: `in` walks the prototype chain, so a crafted receipt URL like
+ *  `?kind=toString` would dispatch Object.prototype.toString as a strategy
+ *  instead of falling back (TASK-21817 review). */
 export function isIntentKind(value: unknown): value is IntentKind {
-    return typeof value === 'string' && value in STRATEGIES
+    return typeof value === 'string' && Object.hasOwn(STRATEGIES, value)
 }
 
 // Legacy receipt back-compat. Before the decomplexify migration (commit
