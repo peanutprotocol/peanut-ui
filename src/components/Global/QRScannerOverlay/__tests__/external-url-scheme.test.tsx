@@ -96,4 +96,26 @@ describe('scanned external links', () => {
         expect(screen.queryByRole('button', { name: 'Open link' })).not.toBeInTheDocument()
         expect(mockOpenExternalUrl).not.toHaveBeenCalled()
     })
+
+    /**
+     * Every way a payload can look like a link without parsing as an http(s) one.
+     * The first four dodge the scheme test rather than fail it — whitespace and
+     * control characters inside the scheme, or a spelling the regex never
+     * anticipated — and the last two parse to no host at all, which the old
+     * "starts with https://" check waved through as a link worth offering.
+     */
+    it.each([
+        ['leading whitespace before the scheme', '  javascript:self.co?0:alert(1)'],
+        ['a newline inside the scheme', 'java\nscript:self.co'],
+        ['a tab inside the scheme', 'java\tscript:self.co'],
+        ['mixed case', 'JaVaScRiPt:self.co?0:alert(1)'],
+        ['a data: document', 'data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg=='],
+        ['no host to visit', 'https://#x.co'],
+        ['an unparseable host', '%.co'],
+    ])('refuses a payload with %s', async (_label, payload) => {
+        await scan(payload)
+        expect(screen.getByText('Unrecognized QR code')).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Open link' })).not.toBeInTheDocument()
+        expect(mockOpenExternalUrl).not.toHaveBeenCalled()
+    })
 })

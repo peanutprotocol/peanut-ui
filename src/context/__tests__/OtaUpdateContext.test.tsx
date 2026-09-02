@@ -23,13 +23,13 @@ const mockUpdater = {
     getNextBundle: jest.fn(),
 }
 const mockExitApp = jest.fn().mockResolvedValue(undefined)
-const platform = { android: true }
+const platform = { android: true, capacitor: true }
 
 jest.mock('@capgo/capacitor-updater', () => ({ CapacitorUpdater: mockUpdater }))
 jest.mock('@capacitor/app', () => ({ App: { exitApp: () => mockExitApp() } }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
 jest.mock('@/utils/capacitor', () => ({
-    isCapacitor: () => true,
+    isCapacitor: () => platform.capacitor,
     isAndroidNativeBridge: () => platform.android,
 }))
 
@@ -47,6 +47,7 @@ beforeEach(() => {
     jest.useFakeTimers()
     window.localStorage.clear()
     platform.android = true
+    platform.capacitor = true
     mockExitApp.mockClear()
     mockUpdater.set.mockReset().mockReturnValue(new Promise(() => {}))
     mockUpdater.reload.mockClear()
@@ -250,6 +251,95 @@ it('does not exit while the fallback re-download is still running after set() re
         await jest.advanceTimersByTimeAsync(3_000)
     })
     expect(mockExitApp).toHaveBeenCalled()
+})
+
+describe('a set() that resolves instead of reloading', () => {
+    /*
+     * The plugin's contract is that set() tears the page down, so its promise
+     * never settles — but a build where it resolves without reloading (a plugin
+     * that no-ops after a failed download) must not strand the modal on
+     * 'applying': it hides its close button and shows a loading CTA, so the
+     * watchdog armed before set() is the only way back out.
+     */
+    beforeEach(() => {
+        mockUpdater.set.mockReset().mockResolvedValue(undefined)
+    })
+
+    it('closes the app on Android once the grace period passes', async () => {
+        const { result } = await withStagedBundle()
+        await act(async () => {
+            await result.current.applyNow()
+        })
+        expect(mockExitApp).not.toHaveBeenCalled()
+
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(3_000)
+        })
+        expect(mockExitApp).toHaveBeenCalled()
+    })
+
+    it('asks for a manual restart off Android', async () => {
+        platform.android = false
+        const { result } = await withStagedBundle()
+        await act(async () => {
+            await result.current.applyNow()
+        })
+        expect(result.current.applyState).toBe('applying')
+
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(3_000)
+        })
+        expect(result.current.applyState).toBe('manual-restart')
+        expect(mockExitApp).not.toHaveBeenCalled()
+    })
+})
+
+it('has nothing to apply off native, so no restart can be offered there', async () => {
+    // The restart is native-only: the check that stages a bundle never runs off
+    // Capacitor, so `pendingBundle` stays null and applyNow returns before it
+    // can put the modal into 'applying' — including in a web preview build.
+    platform.capacitor = false
+    mockUpdater.getNextBundle.mockResolvedValue(STAGED)
+    const { result } = setup()
+    await act(async () => {
+        await jest.advanceTimersByTimeAsync(5_000)
+    })
+
+    expect(result.current.pendingBundle).toBeNull()
+    await act(async () => {
+        await result.current.applyNow()
+    })
+    expect(mockUpdater.set).not.toHaveBeenCalled()
+    expect(result.current.applyState).toBe('idle')
+})
+
+it('reports no failed apply when the marker retarget cannot be written', async () => {
+    // Storage can refuse a write mid-session (quota, site data blocked). The
+    // marker is dropped before the re-stage, so a refused retarget leaves NO
+    // marker rather than the dead id — the recovered launch has nothing to
+    // compare against and stays quiet, instead of logging a phantom failed
+    // apply at error level for a bundle the recovery replaced.
+    const write = Storage.prototype.setItem
+    jest.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, key, value) {
+        if (value === 'b-3') throw new Error('QuotaExceededError')
+        write.call(this, key, value)
+    })
+    mockUpdater.set.mockRejectedValue(new Error('no index.html'))
+    withRestageableBundle()
+    const { result } = await withStagedBundle()
+
+    await act(async () => {
+        await result.current.applyNow()
+    })
+    expect(mockUpdater.reload).toHaveBeenCalled()
+    expect(window.localStorage.getItem('capgoPendingApply')).toBeNull()
+
+    mockUpdater.current.mockResolvedValue({ bundle: { id: 'b-3' } })
+    setup()
+    await act(async () => {
+        await jest.advanceTimersByTimeAsync(0)
+    })
+    expect(error).not.toHaveBeenCalled()
 })
 
 describe('an apply that never reaches the plugin', () => {

@@ -72,12 +72,22 @@ function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose, onN
     // back to window.open/location.assign off-native, so a scanned `javascript:`
     // or `data:` payload would run as the app origin — and the URL regex that
     // classifies a scan as EQrType.URL admits schemed payloads.
+    //
+    // The verdict comes from the parser, not from a regex on the scan: a string
+    // that merely starts with "https://" is not the same claim as a URL whose
+    // parsed protocol is https, and what gets opened is the parsed href, so the
+    // value the user was shown and approved is the one handed to the browser.
     const externalUrl = (() => {
         if (!redirectTo) return undefined
         // scheme-less QR payloads ("example.com/x") make Browser.open throw —
         // the tap died silently.
         const candidate = /^[a-z][a-z0-9+.-]*:/i.test(redirectTo) ? redirectTo : `https://${redirectTo}`
-        return /^https?:\/\//i.test(candidate) ? candidate : undefined
+        try {
+            const parsed = new URL(candidate)
+            return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? parsed.href : undefined
+        } catch {
+            return undefined
+        }
     })()
 
     const unrecognizedContent: QrResultModalContent = {
