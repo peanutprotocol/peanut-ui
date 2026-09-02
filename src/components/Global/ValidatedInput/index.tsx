@@ -175,9 +175,9 @@ const ValidatedInput = ({
                 className={twMerge(
                     // the composed box IS the input chrome: DS states only, callers
                     // pass layout classes at most (input board has no valid state).
-                    // same state model as .input: pointer focus = 2px black (1px
-                    // border + 1px outline), keyboard focus = 3px blue ring only
-                    'relative w-full rounded-sm border border-border-default bg-background-default focus-within:outline-1 focus-within:outline-border-default focus-within:outline-solid has-[:focus-visible]:border-transparent has-[:focus-visible]:outline-[3px] has-[:focus-visible]:outline-action-focus has-[:focus-visible]:outline-solid',
+                    // same state model as .input: 3px blue ring replaces the border
+                    // on focus; base outline-color stops the black->blue flash
+                    'relative w-full rounded-sm border border-border-default bg-background-default outline-action-focus focus-within:border-transparent focus-within:outline-[3px] focus-within:outline-action-focus focus-within:outline-solid',
                     value && !isValidating && !isValid && debouncedValue === value ? 'border-border-error' : '',
                     className
                 )}

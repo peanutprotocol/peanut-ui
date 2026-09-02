@@ -995,17 +995,19 @@
     .btn-shadow-secondary-8 {
         @apply shadow-[0.5rem_-0.5rem_0_#000000] dark:shadow-[0.5rem_-0.5rem_0_rgba(255,255,255,.25)];
     }
-    /* input board 17802:61538 / set 17360:4441: the border IS the state —
-       1px border/default at rest, 2px on pointer focus (active), 3px blue
-       action-focus ring on keyboard focus ONLY (focus-visible replaces the
-       black, it does not stack on it — stacking was the double-border bug).
-       the 2px active step is a 1px outline in the border color so the
-       border-box never changes and content does not shift. red on
-       aria-invalid (outline follows), gray fill + subtle border when
-       disabled. height 48px per ruling (touch law; board's 40px sits under
-       the 44px minimum). */
+    /* input board 17802:61538 / set 17360:4441: 1px border/default at rest,
+       3px blue action-focus ring on focus — the ring REPLACES the border
+       (border-transparent), never stacks on it (stacking was the
+       double-border bug). browsers keep text inputs :focus-visible on any
+       focus, pointer included, so the ring is the ONLY focus state a text
+       input can have — the board's 2px black pointer step exists only on
+       non-text controls (BaseSelect). base outline-color is set so
+       transition-colors cannot animate the ring in from black (the flash
+       bug). red on aria-invalid, gray fill + subtle border when disabled.
+       height 48px per ruling (touch law; board's 40px sits under the 44px
+       minimum). */
     .input {
-        @apply h-12 w-full rounded-sm border border-border-default bg-background-default px-4 text-sm font-bold text-foreground-primary transition-colors outline-none placeholder:text-foreground-secondary focus:outline-1 focus:outline-border-default focus:outline-solid focus-visible:border-transparent focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid disabled:border-border-subtle disabled:bg-background-disabled disabled:text-foreground-secondary aria-invalid:border-border-error aria-invalid:focus:outline-border-error;
+        @apply h-12 w-full rounded-sm border border-border-default bg-background-default px-4 text-sm font-bold text-foreground-primary outline-action-focus transition-colors outline-none placeholder:text-foreground-secondary focus-visible:border-transparent focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid disabled:border-border-subtle disabled:bg-background-disabled disabled:text-foreground-secondary aria-invalid:border-border-error;
     }
     .bg-peanut-repeat-normal {
         @apply bg-[url('../assets/bg/peanut-bg.svg')] bg-[length:100px_100px] bg-repeat;

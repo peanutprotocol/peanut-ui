@@ -46,7 +46,6 @@ export const setupSteps: ISetupStep[] = [
         component: InstallPWA,
         showBackButton: false,
         showSkipButton: true,
-        showLoginButton: true,
         imageClassName: 'w-[50%] md:w-[30%] h-auto mt-16 md:mt-0',
     },
     {

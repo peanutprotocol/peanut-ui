@@ -2,7 +2,8 @@
     "common": {
         "genericError": "Algo salió mal. Intentá de nuevo o contactá soporte.",
         "tryDifferentCountry": "Probá con otro país.",
-        "slideToProceed": "Deslizá para continuar"
+        "slideToProceed": "Deslizá para continuar",
+        "search": "Buscar"
     },
     "errors": {
         "balanceSettling": "Tu saldo aún no está totalmente disponible. Intentalo de nuevo en unos segundos.",

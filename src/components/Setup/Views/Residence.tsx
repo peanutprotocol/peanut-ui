@@ -22,6 +22,7 @@ type PartialRestriction = 'card' | 'banking'
 
 const ResidenceStep = () => {
     const t = useTranslations('setup')
+    const tCommon = useTranslations('common')
     const locale = useLocale()
     const dispatch = useAppDispatch()
     const { residenceCountry, secondResidenceCountry } = useSetupStore()
@@ -209,14 +210,14 @@ const ResidenceStep = () => {
                             : t('residenceStep.congrats.descriptionNoRail')}
                     </p>
                 </div>
-                <div className="flex w-full flex-col gap-2">
+                <div className="flex w-full flex-col gap-4">
                     <Button shadowSize="4" onClick={() => void handleNext()} loading={isLoading} disabled={isLoading}>
                         {t('residenceStep.congrats.continue')}
                     </Button>
                     <button
                         type="button"
                         // after: pseudo-element extends the text row to a 44px hit area (LinkButton pattern)
-                        className="relative text-left text-body-s underline underline-offset-2 after:absolute after:inset-x-0 after:-inset-y-3 focus-visible:outline-[3px] focus-visible:outline-action-focus disabled:opacity-50"
+                        className="relative self-center text-center text-body-s underline underline-offset-2 after:absolute after:inset-x-0 after:-inset-y-3 focus-visible:outline-[3px] focus-visible:outline-action-focus disabled:opacity-50"
                         onClick={() => setView('select')}
                         disabled={isLoading}
                     >
@@ -240,14 +241,14 @@ const ResidenceStep = () => {
                             : t('residenceStep.partial.bankingDescription')}
                     </p>
                 </div>
-                <div className="flex w-full flex-col gap-2">
+                <div className="flex w-full flex-col gap-4">
                     <Button shadowSize="4" onClick={() => void handleNext()} loading={isLoading} disabled={isLoading}>
                         {t('residenceStep.partial.continue')}
                     </Button>
                     <button
                         type="button"
                         // after: pseudo-element extends the text row to a 44px hit area (LinkButton pattern)
-                        className="relative text-left text-body-s underline underline-offset-2 after:absolute after:inset-x-0 after:-inset-y-3 focus-visible:outline-[3px] focus-visible:outline-action-focus disabled:opacity-50"
+                        className="relative self-center text-center text-body-s underline underline-offset-2 after:absolute after:inset-x-0 after:-inset-y-3 focus-visible:outline-[3px] focus-visible:outline-action-focus disabled:opacity-50"
                         onClick={() => setView('select')}
                         disabled={isLoading}
                     >
@@ -283,7 +284,7 @@ const ResidenceStep = () => {
                         <p className="text-body-m">{t('residenceStep.restricted.notifyDone')}</p>
                     )}
                 </div>
-                <div className="flex w-full flex-col gap-2">
+                <div className="flex w-full flex-col gap-4">
                     {view === 'notify' ? (
                         <Button shadowSize="4" onClick={onNotifySubmit}>
                             {t('residenceStep.restricted.notifySubmit')}
@@ -301,7 +302,7 @@ const ResidenceStep = () => {
                     <button
                         type="button"
                         // after: pseudo-element extends the text row to a 44px hit area (LinkButton pattern)
-                        className="relative text-left text-body-s underline underline-offset-2 after:absolute after:inset-x-0 after:-inset-y-3 focus-visible:outline-[3px] focus-visible:outline-action-focus disabled:opacity-50"
+                        className="relative self-center text-center text-body-s underline underline-offset-2 after:absolute after:inset-x-0 after:-inset-y-3 focus-visible:outline-[3px] focus-visible:outline-action-focus disabled:opacity-50"
                         onClick={() => setView('select')}
                         disabled={isLoading}
                     >
@@ -323,6 +324,8 @@ const ResidenceStep = () => {
                 <BaseSelect
                     options={countryOptions}
                     placeholder={t('residenceStep.countryPlaceholder')}
+                    searchable
+                    searchPlaceholder={tCommon('search')}
                     // Falls back to the suggestion for the one frame between
                     // mount and the effect below committing it, so the field
                     // opens already filled instead of visibly changing itself.
@@ -351,6 +354,8 @@ const ResidenceStep = () => {
                     <BaseSelect
                         options={countryOptions}
                         placeholder={t('residenceStep.secondCountryPlaceholder')}
+                        searchable
+                        searchPlaceholder={tCommon('search')}
                         value={secondResidenceCountry || undefined}
                         onValueChange={(value) => dispatch(setupActions.setSecondResidenceCountry(value))}
                     />

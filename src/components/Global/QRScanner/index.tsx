@@ -7,7 +7,6 @@ import { PEANUTMAN } from '@/assets/mascot'
 import { ETHEREUM_ICON } from '@/assets/icons'
 import Image from 'next/image'
 import { Icon } from '../Icons/Icon'
-import { QR_DRAWER_PASTE_GAP_PX, QR_DRAWER_PEEK_PX } from '@/constants/qr-drawer.consts'
 import { useQRScanner, type QRScanHandler } from './useQRScanner'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import CameraPermissionModal from './CameraPermissionModal'
@@ -171,24 +170,14 @@ function ScanRegionOverlay({
                         <PinkCorner key={index} className={`absolute ${position} ${rotation}`} />
                     ))}
                 </div>
-            </div>
 
-            {/* The payment-method row, the paste link and the clipboard chips all
-                sit in ONE strip a fixed gap above the My QR drawer's collapsed
-                peek, so no locale's text length and no screen height can push
-                them underneath it (the row used to hang off the top-anchored
-                scan square — two coordinate systems that only lined up on a tall
-                screen in English). Paste sits BELOW the icons per the board. On
-                short screens the icon row hides rather than collide with the
-                scan square. Tailwind cannot JIT an interpolated arbitrary value,
-                so the offset is an inline style. The strip is full-width and
-                transparent, so it is click-through except for the actions. */}
-            <div
-                className="pointer-events-none fixed inset-x-0 z-50 flex flex-col items-center"
-                style={{ bottom: QR_DRAWER_PEEK_PX + QR_DRAWER_PASTE_GAP_PX }}
-            >
-                <div className="pointer-events-auto flex flex-col items-center">
-                    <div className="flex flex-wrap justify-center gap-2 [@media(max-height:729px)]:hidden">
+                {/* Icons (2-per-row grid) then paste actions, hanging one XL
+                    section gap (24px) below the scan square so the group reads
+                    as part of it. Ruled 2026-09-02 (TASK-22121 #20), replacing
+                    the drawer-anchored strip. On short screens the icon grid
+                    hides rather than collide with the drawer peek. */}
+                <div className="pointer-events-auto absolute inset-x-0 top-full z-50 mt-6 flex flex-col items-center">
+                    <div className="grid grid-cols-2 gap-2 [@media(max-height:729px)]:hidden">
                         {PAYMENT_METHODS.map((method) => (
                             <PaymentMethodBadge
                                 key={method.name ?? 'evm'}

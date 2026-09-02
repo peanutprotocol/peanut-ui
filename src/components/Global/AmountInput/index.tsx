@@ -266,8 +266,9 @@ const AmountInput = ({
             // 1px border-default, L/16 padding, square corners. The dead
             // dark: variant and disabled-text fixes from the earlier pass stay.
             // DS input state pattern (design.md names AmountInput as a ring
-            // carrier): pointer focus = 2px black, keyboard = 3px blue ring
-            className={`relative cursor-text border border-border-default bg-background-default p-4 focus-within:outline-1 focus-within:outline-border-default focus-within:outline-solid has-[:focus-visible]:border-transparent has-[:focus-visible]:outline-[3px] has-[:focus-visible]:outline-action-focus has-[:focus-visible]:outline-solid ${className}`}
+            // carrier): 3px blue ring replaces the border on focus; base
+            // outline-color stops the black->blue flash
+            className={`relative cursor-text border border-border-default bg-background-default p-4 outline-action-focus focus-within:border-transparent focus-within:outline-[3px] focus-within:outline-action-focus focus-within:outline-solid ${className}`}
             action=""
             onClick={() => inputRef.current?.focus()}
         >

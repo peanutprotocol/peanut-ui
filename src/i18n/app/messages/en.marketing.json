@@ -55,7 +55,8 @@
             "unknown": "Unknown"
         },
         "exchangeRate": "Exchange rate",
-        "slideToProceed": "Slide to Proceed"
+        "slideToProceed": "Slide to Proceed",
+        "search": "Search"
     },
     "errors": {
         "balanceSettling": "Your balance isn't fully available yet. Please try again in a few seconds.",

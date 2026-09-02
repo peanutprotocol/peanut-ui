@@ -1,6 +1,6 @@
 'use client'
 
-import { forwardRef } from 'react'
+import { forwardRef, useState } from 'react'
 import {
     Root,
     Trigger,
@@ -15,6 +15,7 @@ import {
 } from '@radix-ui/react-select'
 import { twMerge } from '@/utils/tw'
 import { Icon } from '@/components/Global/Icons/Icon'
+import BaseInput from '@/components/0_Bruddle/BaseInput'
 
 export interface BaseSelectOption {
     label: string
@@ -38,6 +39,10 @@ interface BaseSelectProps {
     error?: boolean
     /** accessible name — the trigger is a button, so a sibling <label htmlFor> cannot name it */
     'aria-label'?: string
+    /** off by default — shows a search input above the options that filters them by label */
+    searchable?: boolean
+    /** placeholder for the search input; caller passes a localized string */
+    searchPlaceholder?: string
 }
 
 const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
@@ -52,15 +57,24 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
             disabled,
             error,
             'aria-label': ariaLabel,
+            searchable = false,
+            searchPlaceholder = 'Search',
         },
         ref
     ) => {
+        const [search, setSearch] = useState('')
+        const visibleOptions =
+            searchable && search
+                ? options.filter((option) => option.label.toLowerCase().includes(search.toLowerCase()))
+                : options
         return (
             <Root
                 value={value}
                 onValueChange={onValueChange}
                 disabled={disabled}
                 onOpenChange={(open) => {
+                    // a reopened select starts unfiltered
+                    if (!open) setSearch('')
                     // Trigger onBlur when the select closes
                     if (!open && onBlur) {
                         onBlur()
@@ -73,9 +87,11 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
                     className={twMerge(
                         'notranslate flex h-12 w-full items-center justify-between rounded-sm border border-border-default bg-white px-4 text-label-l text-foreground-primary transition-colors outline-none placeholder:text-foreground-secondary',
                         'disabled:cursor-not-allowed disabled:opacity-50',
-                        // DS input state pattern: pointer focus = 2px black (1px
-                        // border + 1px outline), keyboard focus = 3px blue ring only
-                        'focus:outline-1 focus:outline-border-default focus:outline-solid focus-visible:border-transparent focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid',
+                        // DS input state pattern: pointer press = 2px black (1px
+                        // border + 1px outline), keyboard focus = 3px blue ring.
+                        // base outline colors are set per state so transition-colors
+                        // cannot animate a ring in from the wrong color (flash bug)
+                        'outline-border-default focus:outline-1 focus:outline-solid focus-visible:border-transparent focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid',
                         error && 'border-border-error',
                         className
                     )}
@@ -104,8 +120,22 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
                         collisionPadding={{ top: 8, right: 8, bottom: BOTTOM_NAV_CLEARANCE_PX, left: 8 }}
                         style={{ width: 'var(--radix-select-trigger-width)' }}
                     >
+                        {searchable && (
+                            <div className="border-b border-border-default p-2">
+                                <BaseInput
+                                    variant="sm"
+                                    placeholder={searchPlaceholder}
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    // radix select typeahead and arrow-nav grab key
+                                    // events at the content — the input owns its own
+                                    onKeyDown={(e) => e.stopPropagation()}
+                                    autoComplete="off"
+                                />
+                            </div>
+                        )}
                         <Viewport className="notranslate w-full p-1">
-                            {options.map((option) => (
+                            {visibleOptions.map((option) => (
                                 <Item
                                     key={option.value}
                                     value={option.value}

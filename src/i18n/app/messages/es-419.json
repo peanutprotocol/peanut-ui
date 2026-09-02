@@ -55,7 +55,8 @@
             "unknown": "Desconocido"
         },
         "exchangeRate": "Tipo de cambio",
-        "slideToProceed": "Desliza para continuar"
+        "slideToProceed": "Desliza para continuar",
+        "search": "Buscar"
     },
     "navigation": {
         "home": "Inicio",
