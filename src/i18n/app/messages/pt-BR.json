@@ -1,5 +1,6 @@
 {
     "common": {
+        "fundsOnTheWay": "Fundos a caminho",
         "cancel": "Cancelar",
         "continue": "Continuar",
         "back": "Voltar",
@@ -166,7 +167,7 @@
             "emptyDescription": "Comece enviando ou cobrando dinheiro"
         },
         "welcomeUnlock": {
-            "title": "🎉 Acesso liberado",
+            "title": "Acesso liberado",
             "cta": "Comece a enviar dinheiro",
             "youCanNow": "Agora você pode:",
             "yourCountry": "seu país",
@@ -294,7 +295,8 @@
             "exchangeRatesAndFees": "Câmbio e taxas",
             "starAlt": "estrela",
             "help": "Central de Ajuda",
-            "about": "Sobre o Peanut"
+            "about": "Sobre o Peanut",
+            "updateAvailable": "Atualização disponível"
         },
         "logOut": "Sair",
         "edit": {
@@ -515,6 +517,14 @@
                 "points": "Cashback"
             }
         },
+        "update": {
+            "title": "Atualização pronta",
+            "description": "Reinicie o Peanut para concluir a instalação da versão {version}.",
+            "restartNow": "Reiniciar agora",
+            "notNow": "Agora não",
+            "manualRestart": "Feche o Peanut pelo seletor de apps e abra de novo para concluir a atualização.",
+            "applyFailed": "Não foi possível aplicar a atualização. Verifique sua conexão e tente novamente — o Peanut continua na versão com que você abriu."
+        },
         "about": {
             "title": "Sobre o Peanut",
             "intro": "O Peanut torna os dólares fáceis: guarde seu saldo, envie para qualquer @usuário e mova dinheiro pelos trilhos locais após uma única verificação de identidade. Criado pela Squirrel Labs.",
@@ -547,7 +557,10 @@
                 "leftOverride": "Este aparelho foi colocado em beta pelo painel do Capgo, então o app não consegue tirá-lo. Peça a um administrador para remover a atribuição de canal do aparelho.",
                 "leftUnconfirmed": "Não foi possível falar com o Capgo para confirmar a mudança, então este aparelho continua na versão beta. Tente de novo quando estiver online.",
                 "closed": "O canal {channel} ainda não aceita testadores. Peça a um administrador para permitir a autoatribuição no Capgo.",
-                "failed": "Não foi possível alterar o canal de atualizações."
+                "failed": "Não foi possível alterar o canal de atualizações.",
+                "revealed": "O interruptor de atualizações beta está visível abaixo.",
+                "notEnabled": "As atualizações beta não estão ativadas para este dispositivo.",
+                "appOnly": "As atualizações beta só estão disponíveis no app do Peanut."
             }
         }
     },
@@ -971,7 +984,7 @@
     },
     "send": {
         "linkCard": {
-            "title": "Envie dinheiro com um link",
+            "title": "Envie dinheiro com link",
             "description": "Não precisa de conta para resgatar em carteira cripto. Banco, Pix e Mercado Pago exigem uma conta Peanut.",
             "cta": "Enviar por link"
         },
@@ -1039,7 +1052,7 @@
         "validation": {
             "talkToSupport": "Falar com o suporte",
             "learnHow": "Saiba como receber dinheiro pelo Peanut",
-            "sadPeanutAlt": "Peanut triste 😢"
+            "sadPeanutAlt": "Peanut triste"
         },
         "errorPage": {
             "title": "Algo deu errado!",
@@ -1130,7 +1143,7 @@
             "stillTrying": "Ainda estamos tentando... (tentativa {attempt}/{total})"
         },
         "errors": {
-            "sadPeanutAlt": "Peanut triste 😢",
+            "sadPeanutAlt": "Peanut triste",
             "talkToSupport": "Falar com o suporte",
             "goBackToHome": "Voltar ao início",
             "supportPrefill": "Cliquei neste link mas deu erro: {url}",
@@ -1367,7 +1380,7 @@
             "androidStep4": "Siga os passos na tela"
         },
         "status": {
-            "mascotAlt": "Peanutman chorando 😭",
+            "mascotAlt": "Peanutman chorando",
             "pendingTitle": "Preparando seu cartão…",
             "pendingBody": "Espera aí enquanto terminamos de preparar seu cartão. Normalmente leva alguns segundos.",
             "manualReviewTitle": "Precisamos fazer uma análise manual",
@@ -2276,7 +2289,7 @@
         "shareAchievement": "Compartilhar conquista",
         "shareText": "Ganhei o selo {badge} no Peanut!\n\nEntre no Peanut e comece a ganhar pontos, desbloquear conquistas e movimentar dinheiro pelo mundo\n\n{link}",
         "toastSingle": "Selo desbloqueado: {name}",
-        "toastMultiple": "Você desbloqueou {count, plural, one {# selo} other {# selos}} 🎉",
+        "toastMultiple": "Você desbloqueou {count, plural, one {# selo} other {# selos}}",
         "toastTapToView": "— toque para ver",
         "catalog": {
             "FIRST_INVITE": {
@@ -3081,7 +3094,7 @@
             "titlePixRecurring": "PIX Automático não é compatível",
             "titleNotSupported": "{qrName} ainda não é compatível.",
             "titleWillBeNotified": "Você está na lista!",
-            "titleDirectSend": "ℹ️ Confirmação de pagamento",
+            "titleDirectSend": "Confirmação de pagamento",
             "titleExternalUrl": "Este é um link externo!",
             "eip681ParseError": "Erro ao interpretar a URL EIP-681",
             "notPeanutUrl": "O QR não foi reconhecido como uma URL da Peanut",

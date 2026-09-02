@@ -1,10 +1,12 @@
 'use client'
 
 import { resolveEns } from '@/app/actions/ens'
-import { Button } from '@/components/0_Bruddle/Button'
-import Checkbox from '@/components/0_Bruddle/Checkbox'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import Modal from '@/components/Global/Modal'
+import ActionModal, {
+    type ActionModalButtonProps,
+    type ActionModalCheckboxProps,
+    type ActionModalTone,
+} from '@/components/Global/ActionModal'
 import QRBottomDrawer from '@/components/Global/QRBottomDrawer'
 import QRScanner from '@/components/Global/QRScanner'
 import { EQrType, NAME_BY_QR_TYPE, parseEip681, recognizeQr } from '@/components/Global/DirectSendQR/utils'
@@ -21,7 +23,7 @@ import * as Sentry from '@sentry/nextjs'
 import { useTranslations } from 'next-intl'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import posthog from 'posthog-js'
-import { useState, type ChangeEvent } from 'react'
+import { useEffect, useState } from 'react'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 
 enum EModalType {
@@ -33,186 +35,168 @@ enum EModalType {
     PIX_RECURRING = 'PIX_RECURRING',
 }
 
-interface ModalContentProps {
-    setModalContent: React.Dispatch<React.SetStateAction<EModalType | undefined>>
-    qrType: EQrType
-    setIsModalOpen: React.Dispatch<React.SetStateAction<boolean>>
+interface QrResultModalProps {
+    visible: boolean
+    modalContent: EModalType | undefined
+    qrType: EQrType | undefined
     redirectTo: string | undefined
+    onClose: () => void
+    onNotifyMe: () => void
 }
 
-function NotSupportedContent({ setModalContent, qrType }: ModalContentProps) {
-    const t = useTranslations('global')
-    return (
-        <div className="flex flex-col justify-center p-6">
-            <span className="text-body-s">{t('qrScannerOverlay.notSupportedWorking')}</span>
-            <span className="text-body-s">{t('qrScannerOverlay.notSupportedGetNotified')}</span>
-            <Button
-                onClick={() => {
-                    setModalContent(EModalType.WILL_BE_NOTIFIED)
-                    posthog.capture(ANALYTICS_EVENTS.QR_NOTIFY_ME_CLICKED, { qr_type: qrType })
-                }}
-                className="mt-4 w-full"
-                shadowType="primary"
-                shadowSize="4"
-            >
-                {t('qrScannerOverlay.getNotifiedCta')}
-            </Button>
-        </div>
-    )
+interface QrResultModalContent {
+    tone: ActionModalTone
+    title: string
+    description: React.ReactNode
+    ctas: ActionModalButtonProps[]
+    checkbox?: ActionModalCheckboxProps
 }
 
-function WillBeNotifiedContent({ qrType, setIsModalOpen }: ModalContentProps) {
-    const t = useTranslations('global')
-    const tCommon = useTranslations('common')
-    return (
-        <div className="flex flex-col justify-center p-6">
-            <span className="text-body-s">
-                {t('qrScannerOverlay.willBeNotified', { qrName: NAME_BY_QR_TYPE[qrType] ?? '' })}
-            </span>
-            <Button
-                onClick={() => setIsModalOpen(false)}
-                className="mt-4 w-full"
-                variant="primary-soft"
-                shadowType="primary"
-                shadowSize="4"
-            >
-                {tCommon('close')}
-            </Button>
-        </div>
-    )
-}
-
-function DirectSendContent({ redirectTo, setIsModalOpen }: ModalContentProps) {
-    const t = useTranslations('global')
-    const [userAcknowledged, setUserAcknowledged] = useState(false)
-    const router = useRouter()
-    return (
-        <div className="flex flex-col justify-center p-6">
-            <span className="text-body-s">{t('qrScannerOverlay.directSendCrossChain')}</span>
-            <span className="text-body-s">{t('qrScannerOverlay.directSendConfirm')}</span>
-            <Checkbox
-                value={userAcknowledged}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                    setUserAcknowledged(e.target.checked)
-                }}
-                className="mt-4"
-                label={t('qrScannerOverlay.directSendAcknowledge')}
-            />
-            <Button
-                onClick={() => {
-                    router.push(redirectTo!)
-                    setTimeout(() => {
-                        setIsModalOpen(false)
-                    }, 750)
-                }}
-                disabled={!userAcknowledged}
-                className="mt-4 w-full"
-                shadowType="primary"
-                shadowSize="4"
-            >
-                {t('qrScannerOverlay.continue')}
-            </Button>
-        </div>
-    )
-}
-
-function ExternalUrlContent({ redirectTo, setIsModalOpen }: ModalContentProps) {
+function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose, onNotifyMe }: QrResultModalProps) {
     const t = useTranslations('global')
     const tCommon = useTranslations('common')
     const toast = useToast()
-    return (
-        <div className="flex flex-col justify-center p-6">
-            <span className="text-body-s">{t('qrScannerOverlay.externalUrlIntro')}</span>
-            <span className="text-body-s">{t('qrScannerOverlay.externalUrlTrust')}</span>
-            <div className="flex items-center justify-center gap-2">
-                <Button
-                    onClick={async () => {
-                        if (redirectTo) {
-                            // scheme-less QR payloads ("example.com/x") make
-                            // Browser.open throw — the tap died silently.
-                            const url = /^[a-z][a-z0-9+.-]*:/i.test(redirectTo) ? redirectTo : `https://${redirectTo}`
-                            try {
-                                await openExternalUrl(url)
-                            } catch {
-                                toast.error(tCommon('somethingWentWrong'))
-                            }
-                        }
-                        setTimeout(() => {
-                            setIsModalOpen(false)
-                        }, 750)
-                    }}
-                    className="mt-4 w-full"
-                    shadowType="primary"
-                    shadowSize="4"
-                >
-                    {t('qrScannerOverlay.openLink')}
-                </Button>
-                <Button
-                    onClick={() => setIsModalOpen(false)}
-                    className="mt-4 w-full"
-                    variant="primary-soft"
-                    shadowType="primary"
-                    shadowSize="4"
-                >
-                    {tCommon('close')}
-                </Button>
-            </div>
-        </div>
-    )
-}
+    const router = useRouter()
+    const [acknowledged, setAcknowledged] = useState(false)
 
-function UnrecognizedContent({ setIsModalOpen }: ModalContentProps) {
-    const t = useTranslations('global')
-    return (
-        <div className="flex flex-col justify-center p-6">
-            <span className="text-body-s">{t('qrScannerOverlay.unrecognized')}</span>
-            <Button onClick={() => setIsModalOpen(false)} className="mt-4 w-full" shadowType="primary" shadowSize="4">
-                {t('qrScannerOverlay.okay')}
-            </Button>
-        </div>
-    )
-}
+    // every scan starts unacknowledged
+    useEffect(() => {
+        if (visible) setAcknowledged(false)
+    }, [visible, modalContent])
 
-function PixRecurringContent({ setIsModalOpen }: ModalContentProps) {
-    const t = useTranslations('global')
-    return (
-        <div className="flex flex-col justify-center p-6">
-            <span className="text-body-s">{t('qrScannerOverlay.pixRecurringIntro')}</span>
-            <span className="text-body-s">{t('qrScannerOverlay.pixRecurringBody')}</span>
-            <Button onClick={() => setIsModalOpen(false)} className="mt-4 w-full" shadowType="primary" shadowSize="4">
-                {t('qrScannerOverlay.okay')}
-            </Button>
-        </div>
-    )
-}
+    if (!modalContent) return null
 
-function getModalTitle(
-    t: ReturnType<typeof useTranslations<'global'>>,
-    modalContent: EModalType | undefined,
-    qrType: EQrType | undefined
-): string | undefined {
-    if (modalContent === EModalType.UNRECOGNIZED) return t('qrScannerOverlay.titleUnrecognized')
-    if (modalContent === EModalType.PIX_RECURRING) return t('qrScannerOverlay.titlePixRecurring')
-    if (!modalContent || !qrType) return undefined
-    switch (modalContent) {
-        case EModalType.QR_NOT_SUPPORTED:
-            return t('qrScannerOverlay.titleNotSupported', { qrName: NAME_BY_QR_TYPE[qrType] ?? '' })
-        case EModalType.WILL_BE_NOTIFIED:
-            return t('qrScannerOverlay.titleWillBeNotified')
-        case EModalType.DIRECT_SEND:
-            return t('qrScannerOverlay.titleDirectSend')
-        case EModalType.EXTERNAL_URL:
-            return t('qrScannerOverlay.titleExternalUrl')
+    const qrName = (qrType && NAME_BY_QR_TYPE[qrType]) ?? ''
+    const closeAfterNavigation = () => setTimeout(onClose, 750)
+    // Anything but http(s) is refused rather than forwarded. openExternalUrl falls
+    // back to window.open/location.assign off-native, so a scanned `javascript:`
+    // or `data:` payload would run as the app origin — and the URL regex that
+    // classifies a scan as EQrType.URL admits schemed payloads.
+    //
+    // The verdict comes from the parser, not from a regex on the scan: a string
+    // that merely starts with "https://" is not the same claim as a URL whose
+    // parsed protocol is https, and what gets opened is the parsed href, so the
+    // value the user was shown and approved is the one handed to the browser.
+    const externalUrl = (() => {
+        if (!redirectTo) return undefined
+        // scheme-less QR payloads ("example.com/x") make Browser.open throw —
+        // the tap died silently.
+        const candidate = /^[a-z][a-z0-9+.-]*:/i.test(redirectTo) ? redirectTo : `https://${redirectTo}`
+        try {
+            const parsed = new URL(candidate)
+            return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? parsed.href : undefined
+        } catch {
+            return undefined
+        }
+    })()
+
+    const unrecognizedContent: QrResultModalContent = {
+        tone: 'error',
+        title: t('qrScannerOverlay.titleUnrecognized'),
+        description: t('qrScannerOverlay.unrecognized'),
+        ctas: [{ text: t('qrScannerOverlay.okay'), shadowSize: '4', onClick: onClose }],
     }
-}
+    const openExternal = async () => {
+        if (externalUrl) {
+            try {
+                await openExternalUrl(externalUrl)
+            } catch {
+                toast.error(tCommon('somethingWentWrong'))
+            }
+        }
+        closeAfterNavigation()
+    }
 
-const MODAL_CONTENTS: Record<EModalType, React.ComponentType<ModalContentProps>> = {
-    [EModalType.QR_NOT_SUPPORTED]: NotSupportedContent,
-    [EModalType.WILL_BE_NOTIFIED]: WillBeNotifiedContent,
-    [EModalType.DIRECT_SEND]: DirectSendContent,
-    [EModalType.EXTERNAL_URL]: ExternalUrlContent,
-    [EModalType.UNRECOGNIZED]: UnrecognizedContent,
-    [EModalType.PIX_RECURRING]: PixRecurringContent,
+    const contents: Record<EModalType, QrResultModalContent> = {
+        [EModalType.QR_NOT_SUPPORTED]: {
+            tone: 'info',
+            title: t('qrScannerOverlay.titleNotSupported', { qrName }),
+            description: (
+                <>
+                    <p>{t('qrScannerOverlay.notSupportedWorking')}</p>
+                    <p>{t('qrScannerOverlay.notSupportedGetNotified')}</p>
+                </>
+            ),
+            ctas: [{ text: t('qrScannerOverlay.getNotifiedCta'), shadowSize: '4', onClick: onNotifyMe }],
+        },
+        [EModalType.WILL_BE_NOTIFIED]: {
+            tone: 'success',
+            title: t('qrScannerOverlay.titleWillBeNotified'),
+            description: t('qrScannerOverlay.willBeNotified', { qrName }),
+            ctas: [{ text: tCommon('close'), variant: 'stroke', onClick: onClose }],
+        },
+        [EModalType.DIRECT_SEND]: {
+            tone: 'info',
+            title: t('qrScannerOverlay.titleDirectSend'),
+            description: (
+                <>
+                    <p>{t('qrScannerOverlay.directSendCrossChain')}</p>
+                    <p>{t('qrScannerOverlay.directSendConfirm')}</p>
+                </>
+            ),
+            checkbox: {
+                text: t('qrScannerOverlay.directSendAcknowledge'),
+                checked: acknowledged,
+                onChange: setAcknowledged,
+            },
+            ctas: [
+                {
+                    text: t('qrScannerOverlay.continue'),
+                    shadowSize: '4',
+                    disabled: !acknowledged,
+                    onClick: () => {
+                        router.push(redirectTo!)
+                        closeAfterNavigation()
+                    },
+                },
+                // The only way out: preventClose covers Escape, the backdrop and
+                // the back handler, and the X is hidden, so without this the user
+                // has to accept the warning to leave the modal.
+                { text: tCommon('close'), variant: 'stroke', onClick: onClose },
+            ],
+        },
+        // A payload that is not an http(s) link is not one the user can be asked
+        // to trust, so it is reported as unrecognised instead of offered.
+        [EModalType.EXTERNAL_URL]: externalUrl
+            ? {
+                  tone: 'warning',
+                  title: t('qrScannerOverlay.titleExternalUrl'),
+                  description: (
+                      <>
+                          <p>{t('qrScannerOverlay.externalUrlIntro')}</p>
+                          <p className="font-bold break-all">{externalUrl}</p>
+                          <p>{t('qrScannerOverlay.externalUrlTrust')}</p>
+                      </>
+                  ),
+                  ctas: [
+                      { text: t('qrScannerOverlay.openLink'), shadowSize: '4', onClick: () => void openExternal() },
+                      { text: tCommon('close'), variant: 'stroke', onClick: onClose },
+                  ],
+              }
+            : unrecognizedContent,
+        [EModalType.UNRECOGNIZED]: unrecognizedContent,
+        [EModalType.PIX_RECURRING]: {
+            tone: 'info',
+            title: t('qrScannerOverlay.titlePixRecurring'),
+            description: (
+                <>
+                    <p>{t('qrScannerOverlay.pixRecurringIntro')}</p>
+                    <p>{t('qrScannerOverlay.pixRecurringBody')}</p>
+                </>
+            ),
+            ctas: [{ text: t('qrScannerOverlay.okay'), shadowSize: '4', onClick: onClose }],
+        },
+    }
+
+    return (
+        <ActionModal
+            visible={visible}
+            onClose={onClose}
+            preventClose={modalContent !== EModalType.QR_NOT_SUPPORTED}
+            hideModalCloseButton
+            {...contents[modalContent]}
+        />
+    )
 }
 
 export default function QRScannerOverlay() {
@@ -230,7 +214,11 @@ export default function QRScannerOverlay() {
     const { triggerHaptic } = useAppHaptic()
     const { isQRScannerOpen, setIsQRScannerOpen } = useModalsContext()
 
+    // Remounts the result modal per scan so its acknowledgement starts unticked
+    // on the first paint, not after an effect.
+    const [scanSeq, setScanSeq] = useState(0)
     const showModal = (type: EModalType) => {
+        setScanSeq((seq) => seq + 1)
         setModalContent(type)
         setIsModalOpen(true)
         setIsQRScannerOpen(false)
@@ -434,33 +422,20 @@ export default function QRScannerOverlay() {
         }
     }
 
-    const modalTitle = getModalTitle(t, modalContent, qrType)
-
     return (
         <>
-            <Modal
-                title={modalTitle}
+            <QrResultModal
+                key={scanSeq}
                 visible={isModalOpen && !!modalContent}
+                modalContent={modalContent}
+                qrType={qrType}
+                redirectTo={redirectTo}
                 onClose={() => setIsModalOpen(false)}
-                initialFocus={undefined}
-                preventClose={modalContent !== EModalType.QR_NOT_SUPPORTED}
-                className="items-center rounded-none"
-                classWrap="sm:m-auto sm:self-center self-center m-4 bg-background rounded-none border-0"
-                classButtonClose="hidden"
-            >
-                {modalContent &&
-                    (() => {
-                        const ModalComponent = MODAL_CONTENTS[modalContent]
-                        return (
-                            <ModalComponent
-                                setModalContent={setModalContent}
-                                qrType={qrType!}
-                                setIsModalOpen={setIsModalOpen}
-                                redirectTo={redirectTo}
-                            />
-                        )
-                    })()}
-            </Modal>
+                onNotifyMe={() => {
+                    setModalContent(EModalType.WILL_BE_NOTIFIED)
+                    posthog.capture(ANALYTICS_EVENTS.QR_NOTIFY_ME_CLICKED, { qr_type: qrType })
+                }}
+            />
 
             {isQRScannerOpen && (
                 <>

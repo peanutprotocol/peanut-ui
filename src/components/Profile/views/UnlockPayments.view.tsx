@@ -551,8 +551,7 @@ const UnlockPayments = () => {
                           ? providerRejectionMessage || tRegions('providerRejection.restartDescription')
                           : tRegions('providerRejection.unavailableDescription')
                 }
-                icon="alert"
-                iconContainerClassName="bg-background-icon-bubble-yellow"
+                tone="error"
                 ctas={[
                     providerRejectionForRegion.state === 'fixable'
                         ? {
@@ -595,8 +594,7 @@ const UnlockPayments = () => {
                         : tRegions('initError.notAvailableTitle')
                 }
                 description={flow.error || tCommon('genericError')}
-                icon="alert"
-                iconContainerClassName="bg-background-icon-bubble-yellow"
+                tone="error"
                 ctas={
                     failedRegionRetriable
                         ? [
