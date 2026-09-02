@@ -12,9 +12,9 @@ on:
     # read caches from its own ref, its base branch, and the default branch.
     # Remove it from all three allowlists once the DS branch merges to dev.
     push:
-        branches: [main, dev, feat/design-system]
+        branches: [main, dev, feat/design-system, tech-debt]
     pull_request:
-        branches: [main, dev, develop, feat/design-system]
+        branches: [main, dev, develop, feat/design-system, tech-debt]
     workflow_dispatch:
 
 # Cancel in-progress runs on the same PR / branch when a newer commit lands.
