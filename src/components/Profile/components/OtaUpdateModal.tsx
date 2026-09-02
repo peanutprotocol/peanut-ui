@@ -35,7 +35,10 @@ const OtaUpdateModal = ({ visible, onClose }: { visible: boolean; onClose: () =>
                       ? t('applyFailed')
                       : t('description', { version: pendingBundle?.version ?? '' })
             }
+            // Both props: preventClose covers Escape and the backdrop, hideModalCloseButton the X.
+            // Dismissing mid-apply would hide the failure state the user still has to act on.
             preventClose={applying}
+            hideModalCloseButton={applying}
             ctas={
                 manualRestart
                     ? [{ text: tCommon('gotIt'), variant: 'stroke', onClick: onClose }]
