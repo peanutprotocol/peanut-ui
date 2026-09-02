@@ -1,5 +1,6 @@
 {
     "common": {
+        "fundsOnTheWay": "Funds on the way",
         "cancel": "Cancel",
         "continue": "Continue",
         "back": "Back",
@@ -167,7 +168,7 @@
             "emptyDescription": "Start by sending or requesting money"
         },
         "welcomeUnlock": {
-            "title": "🎉 You're unlocked",
+            "title": "You're unlocked",
             "cta": "Start sending money",
             "youCanNow": "You can now:",
             "yourCountry": "your country",
@@ -295,7 +296,8 @@
             "exchangeRatesAndFees": "Exchange rates and fees",
             "starAlt": "star",
             "help": "Help Center",
-            "about": "About Peanut"
+            "about": "About Peanut",
+            "updateAvailable": "Update available"
         },
         "logOut": "Log out",
         "edit": {
@@ -516,6 +518,14 @@
                 "points": "Cashback"
             }
         },
+        "update": {
+            "title": "Update ready",
+            "description": "Restart Peanut to finish installing version {version}.",
+            "restartNow": "Restart now",
+            "notNow": "Not now",
+            "manualRestart": "Close Peanut from the app switcher and open it again to finish the update.",
+            "applyFailed": "The update couldn't be applied. Check your connection and try again — Peanut is still running the version you started with."
+        },
         "about": {
             "title": "About Peanut",
             "intro": "Peanut makes dollars easy: hold your balance, send to any @username, and move money on local rails after one ID check. Built by Squirrel Labs.",
@@ -538,7 +548,10 @@
                 "leftOverride": "This device was put on beta from the Capgo dashboard, so the app cannot take it off. Ask an admin to remove the device's channel override.",
                 "leftUnconfirmed": "Could not reach Capgo to confirm the switch, so this device is still on the beta build. Try again when you are back online.",
                 "closed": "The {channel} channel does not accept testers yet. Ask an admin to allow self-assignment in Capgo.",
-                "failed": "Could not change the update channel."
+                "failed": "Could not change the update channel.",
+                "revealed": "Beta updates switch revealed below.",
+                "notEnabled": "Beta updates aren't enabled for this device.",
+                "appOnly": "Beta updates are only available in the Peanut app."
             }
         }
     },
@@ -1030,7 +1043,7 @@
         "validation": {
             "talkToSupport": "Talk to support",
             "learnHow": "Learn how to receive money through Peanut",
-            "sadPeanutAlt": "Sad peanut 😢"
+            "sadPeanutAlt": "Sad peanut"
         },
         "errorPage": {
             "title": "Something went wrong!",
@@ -1121,7 +1134,7 @@
             "stillTrying": "We're still trying... (attempt {attempt}/{total})"
         },
         "errors": {
-            "sadPeanutAlt": "Sad peanut 😢",
+            "sadPeanutAlt": "Sad peanut",
             "talkToSupport": "Talk to support",
             "goBackToHome": "Go back to home",
             "supportPrefill": "I clicked on this link but got an error: {url}",
@@ -1358,7 +1371,7 @@
             "androidStep4": "Follow onscreen steps"
         },
         "status": {
-            "mascotAlt": "Peanutman crying 😭",
+            "mascotAlt": "Peanutman crying",
             "pendingTitle": "Setting up your card…",
             "pendingBody": "Hang tight while we finish setting up your card. This usually takes a few seconds.",
             "manualReviewTitle": "Manual review needed",
@@ -2267,7 +2280,7 @@
         "shareAchievement": "Share Achievement",
         "shareText": "I earned {badge} badge on Peanut!\n\nJoin Peanut now and start earning points, unlocking achievements and moving money worldwide\n\n{link}",
         "toastSingle": "Badge unlocked: {name}",
-        "toastMultiple": "You unlocked {count, plural, one {# badge} other {# badges}} 🎉",
+        "toastMultiple": "You unlocked {count, plural, one {# badge} other {# badges}}",
         "toastTapToView": "— tap to view",
         "catalog": {
             "FIRST_INVITE": {
@@ -3074,7 +3087,7 @@
             "titlePixRecurring": "PIX Automático not supported",
             "titleNotSupported": "{qrName} not supported yet.",
             "titleWillBeNotified": "You're on the list!",
-            "titleDirectSend": "ℹ️ Payment Confirmation",
+            "titleDirectSend": "Payment Confirmation",
             "titleExternalUrl": "This is an external link!",
             "eip681ParseError": "Error parsing EIP-681 URL",
             "notPeanutUrl": "QR not recognized as Peanut URL",

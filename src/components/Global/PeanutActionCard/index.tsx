@@ -10,14 +10,14 @@ interface PeanutActionCardProps {
 
 /**
  * intro card for the link flows, per the Request board (17831:78719) and
- * SendLink board (17832:79996): centered yellow icon bubble, title, sub,
+ * SendLink board (17832:79996): centered icon bubble, title, sub,
  * socials row.
  */
 const PeanutActionCard = ({ type }: PeanutActionCardProps) => {
     const t = useTranslations('global')
     return (
         <Card className="flex flex-col items-center gap-2 p-6 text-center">
-            <IconBubble icon={type === 'request' ? 'user-id' : 'link'} size="m" color="yellow" />
+            <IconBubble icon={type === 'request' ? 'user-id' : 'link'} size="m" color="blue" />
             <div className="flex flex-col items-center gap-1">
                 <div className="text-heading-card text-foreground-primary">
                     {type === 'request' ? t('peanutActionCard.requestTitle') : t('peanutActionCard.sendTitle')}

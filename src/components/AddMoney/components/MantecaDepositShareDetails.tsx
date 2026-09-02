@@ -106,7 +106,7 @@ const MantecaDepositShareDetails = ({
                                 height={48}
                                 className="h-12 w-12 rounded-full object-cover"
                             />
-                            <IconBubble icon="bank" size="xs" color="yellow" className="absolute -right-1 -bottom-1" />
+                            <IconBubble icon="bank" size="xs" color="blue" className="absolute -right-1 -bottom-1" />
                         </div>
                         <div>
                             <p className="flex items-center gap-1 text-center text-body-s text-foreground-secondary">

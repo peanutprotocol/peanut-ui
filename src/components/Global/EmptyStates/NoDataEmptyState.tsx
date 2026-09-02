@@ -26,13 +26,7 @@ const NoDataEmptyState = ({ message, cta, animSize }: NoDataEmptyStateProps) => 
 
     return (
         <div className="flex flex-col items-center justify-center gap-3">
-            <Image
-                src={PeanutCrying.src}
-                unoptimized
-                alt="Peanutman crying 😭"
-                width={getAnimSize}
-                height={getAnimSize}
-            />
+            <Image src={PeanutCrying.src} unoptimized alt="Peanutman crying" width={getAnimSize} height={getAnimSize} />
             <div>{message}</div>
             {cta && cta}
         </div>
