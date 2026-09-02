@@ -84,8 +84,18 @@ async function settle(page: Page): Promise<void> {
     await page.addStyleTag({ content: FREEZE_CSS })
     await page.evaluate(() => document.fonts.ready.then(() => undefined))
     // next/image decodes lazily; an image that lands after the shot is the
-    // classic one-pixel-different rerun.
-    await page.waitForFunction(() => Array.from(document.images).every((img) => img.complete))
+    // classic one-pixel-different rerun. Only in-viewport images count: the
+    // screenshot is viewport-only, and below-fold lazy images (the /add-money
+    // country list carries ~200 flags) never load at all, so requiring them
+    // would wait forever.
+    await page.waitForFunction(() =>
+        Array.from(document.images).every((img) => {
+            const box = img.getBoundingClientRect()
+            const offscreen =
+                box.width === 0 || box.bottom <= 0 || box.top >= innerHeight || box.right <= 0 || box.left >= innerWidth
+            return offscreen || img.complete
+        })
+    )
 
     // Text that a script drives frame by frame — /rewards counts the points
     // total up over 1.5s — ignores the stylesheet above, so wait for two equal
