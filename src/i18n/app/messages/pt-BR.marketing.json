@@ -55,8 +55,7 @@
             "unknown": "Desconhecido"
         },
         "exchangeRate": "Taxa de câmbio",
-        "slideToProceed": "Deslize para continuar",
-        "userAvatarAlt": "Avatar de {username}"
+        "slideToProceed": "Deslize para continuar"
     },
     "errors": {
         "balanceSettling": "Seu saldo ainda não está totalmente disponível. Tente novamente em alguns segundos.",

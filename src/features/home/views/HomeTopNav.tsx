@@ -2,7 +2,6 @@
 
 import { Icon } from '@/components/Global/Icons/Icon'
 import InvitesIcon from '@/components/Home/InvitesIcon'
-import DotFaceAvatar from '@/components/Global/DotFaceAvatar'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
@@ -31,14 +30,12 @@ export function HomeTopNav({ avatarName, showRewards }: HomeTopNavProps) {
                 className="relative block after:absolute after:-inset-1.5"
                 aria-label={t('openProfile')}
             >
-                {/* The generated face, which is what DotFaceAvatar exists for —
-                    own identity, here and on the profile header. This chip was
-                    rebuilt onto initials during the nav consolidation and the
-                    face was left behind in UserHeader, which nothing renders.
-                    A user with no name string at all still gets an avatar-toned
-                    circle (yellow — the palette's no-name default). */}
+                {/* Own identity: the first letter of the username, here and on
+                    the profile header (the generated face is parked until avatar
+                    v2). A user with no name string at all still gets an
+                    avatar-toned circle (yellow — the palette's no-name default). */}
                 {avatarName ? (
-                    <DotFaceAvatar username={avatarName} size={32} />
+                    <AvatarWithBadge size="extra-small" name={avatarName} firstLetterOnly />
                 ) : (
                     <AvatarWithBadge
                         size="extra-small"

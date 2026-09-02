@@ -1,6 +1,6 @@
 'use client'
 
-import DotFaceAvatar from '@/components/Global/DotFaceAvatar'
+import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import Link from 'next/link'
 import { Icon } from '../Global/Icons/Icon'
 import { twMerge } from '@/utils/tw'
@@ -28,7 +28,7 @@ export const UserHeader = ({ username }: UserHeaderProps) => {
                 shadowSize="3"
                 size="small"
             >
-                <DotFaceAvatar username={username} className="h-[30px] w-[30px]" />
+                <AvatarWithBadge size="extra-small" name={username} firstLetterOnly className="h-[30px] w-[30px]" />
                 <span className="pr-1 text-body-xs font-semibold whitespace-nowrap md:text-body-s">{username}</span>
             </Button>
         </Link>
