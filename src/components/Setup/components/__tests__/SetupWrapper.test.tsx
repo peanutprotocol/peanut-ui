@@ -9,6 +9,7 @@ import React from 'react'
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import posthog from 'posthog-js'
 import { renderWithIntl } from '@/test-utils/intl'
+import en from '@/i18n/app/messages/en.json'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { SetupWrapper } from '../SetupWrapper'
 
@@ -25,7 +26,10 @@ jest.mock('@/hooks/useBravePWAInstallState', () => ({ useBravePWAInstallState: (
 jest.mock('@/hooks/useKeepWebBypass', () => ({ useKeepWebBypass: () => false }))
 jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => false }))
 jest.mock('@/utils/capacitor', () => ({ ...jest.requireActual('@/utils/capacitor'), isCapacitor: () => false }))
-jest.mock('@/utils/webauthn.utils', () => ({ isAlreadyReported: () => false }))
+jest.mock('@/utils/webauthn.utils', () => ({
+    ...jest.requireActual('@/utils/webauthn.utils'),
+    isAlreadyReported: () => false,
+}))
 jest.mock('@/components/0_Bruddle/CloudsBackground', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Setup/Views/InstallPWA', () => ({ __esModule: true, default: () => null }))
 jest.mock('framer-motion', () => ({
@@ -106,5 +110,17 @@ describe('SetupWrapper navigation', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Log In' }))
         await waitFor(() => expect(mockToastError).toHaveBeenCalledWith('No passkey found'))
         expect(mockedCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_LOGIN_ERROR, { error_code: 'NO_PASSKEY' })
+    })
+
+    it('shows the catalog copy for a mapped passkey error code, not the curated English message', async () => {
+        const failure = Object.assign(new Error('Couldn’t reach Peanut’s servers (curated)'), {
+            name: 'PasskeyError',
+            code: 'NETWORK',
+        })
+        mockHandleLoginClick.mockRejectedValueOnce(failure)
+        renderWrapper({ showLoginButton: true })
+        fireEvent.click(screen.getByRole('button', { name: 'Log In' }))
+        await waitFor(() => expect(mockToastError).toHaveBeenCalledWith(en.setup.passkey.serverUnreachable))
+        expect(mockToastError).not.toHaveBeenCalledWith(failure.message)
     })
 })

@@ -12,7 +12,7 @@ import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import { useLogin } from '@/hooks/useLogin'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { isCapacitor } from '@/utils/capacitor'
-import { isAlreadyReported } from '@/utils/webauthn.utils'
+import { getPasskeyErrorSetupKey, isAlreadyReported } from '@/utils/webauthn.utils'
 import * as Sentry from '@sentry/nextjs'
 import classNames from 'classnames'
 import { motion, useReducedMotion } from 'framer-motion'
@@ -84,7 +84,10 @@ function LoginButton() {
             await handleLoginClick()
         } catch (error) {
             const errorCode = error instanceof Error && 'code' in error ? String(error.code) : undefined
-            toast.error((error instanceof Error && error.message) || t('loginFailed'))
+            // PasskeyError carries a curated English message; known codes have
+            // translated catalog copy, so prefer that.
+            const i18nKey = getPasskeyErrorSetupKey(error)
+            toast.error(i18nKey ? t(i18nKey) : (error instanceof Error && error.message) || t('loginFailed'))
             if (!isAlreadyReported(error)) {
                 Sentry.captureException(error, { extra: { errorCode } })
             }

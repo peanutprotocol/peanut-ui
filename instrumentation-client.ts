@@ -3,6 +3,7 @@ import posthog from 'posthog-js'
 import { beforeSendHandler } from './sentry.utils'
 import { inferSentryEnvironment } from '@/utils/sentry-env'
 import { withoutBrowserTracing } from '@/utils/sentry-integrations'
+import { posthogErrorMirror } from '@/utils/sentry-posthog-mirror'
 import { whenIdle } from '@/utils/defer-analytics'
 import { installPaymentNetworkGoogleAnalyticsGuard, isPaymentNetworkExplorerPath } from '@/utils/private-routes'
 
@@ -127,6 +128,9 @@ if (
                 integrations: (defaults) => [
                     ...withoutBrowserTracing(defaults),
                     Sentry.captureConsoleIntegration({ levels: ['error'] }),
+                    // Same PostHog $exception mirror as the web init, so native
+                    // errors keep their session-replay correlation.
+                    posthogErrorMirror(),
                 ],
             })
 
