@@ -172,7 +172,7 @@ export const ProfileEditView = () => {
         <div className="flex flex-col gap-8">
             <NavHeader title={t('title')} onPrev={onBack} />
 
-            <ProfileHeader name={fullName} username={username} isVerified={isKycApproved} />
+            <ProfileHeader name={fullName} username={username} isVerified={isKycApproved} showShareButton={false} />
 
             {/* two groups — who you are, then how we reach you. gap-6 (XL,
                 the section step) against gap-4 (L) inside a group, so the
