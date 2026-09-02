@@ -176,8 +176,12 @@ const mockStepper = {
     reset: jest.fn(),
     isFirst: false,
 }
+const mockStepperOptions = jest.fn()
 jest.mock('@/hooks/useFlowStepper', () => ({
-    useFlowStepper: () => mockStepper,
+    useFlowStepper: (options: unknown) => {
+        mockStepperOptions(options)
+        return mockStepper
+    },
 }))
 jest.mock('@/features/withdraw/useWithdrawAmount', () => ({
     useWithdrawAmount: () => ['50', jest.fn()],
@@ -208,6 +212,7 @@ const mockSetRecipient = jest.fn()
 const mockSetIsValidRecipient = jest.fn()
 const mockWithdrawFlow = {
     withdrawData,
+    transactionHash: null as string | null,
     setRecipient: mockSetRecipient,
     setIsValidRecipient: mockSetIsValidRecipient,
     setWithdrawData: jest.fn(),
@@ -503,6 +508,26 @@ describe('crypto withdraw retry — record-only replay (TASK-19581 double-spend)
 
         // No spend happened on attempt 1, so attempt 2 legitimately broadcasts.
         expect(mockSendMoney).toHaveBeenCalledTimes(2)
+    })
+})
+
+describe('crypto withdraw — success step demands execution proof (Chip review PR #2917)', () => {
+    afterEach(() => {
+        mockWithdrawFlow.transactionHash = null
+    })
+
+    const lastGuards = () => mockStepperOptions.mock.calls.at(-1)?.[0]?.guards as Record<string, { ok: boolean }>
+
+    test('with prepared charge data but no broadcast tx, the success guard refuses (?step=success tampering)', () => {
+        render(<WithdrawCryptoPage />)
+        expect(lastGuards().review.ok).toBe(true)
+        expect(lastGuards().success.ok).toBe(false)
+    })
+
+    test('after execution the success guard admits the step', () => {
+        mockWithdrawFlow.transactionHash = '0xabc'
+        render(<WithdrawCryptoPage />)
+        expect(lastGuards().success.ok).toBe(true)
     })
 })
 

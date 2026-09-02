@@ -11,6 +11,7 @@ import { useWithdrawFlow } from '@/features/withdraw/WithdrawFlowContext'
 import { useWithdrawAmount } from '@/features/withdraw/useWithdrawAmount'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { WITHDRAW_CRYPTO_STEPS, type WithdrawData } from '@/features/withdraw/types'
+import { cryptoStepGuards } from '@/features/withdraw/step-guards'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
@@ -79,6 +80,7 @@ export default function WithdrawCryptoPage() {
         setError: setWithdrawError,
         chargeDetails,
         setChargeDetails,
+        transactionHash,
         setTransactionHash,
         paymentDetails,
         setPaymentDetails,
@@ -93,13 +95,16 @@ export default function WithdrawCryptoPage() {
 
     // recipient → review → success as named screen ids in the URL. The guards
     // cover refresh/deep-link into a step whose prepared state (charge, route)
-    // did not survive — the flow restarts at the recipient step.
+    // did not survive — and the success step additionally demands EXECUTION
+    // proof (the broadcast transaction identifier), so a hand-edited
+    // ?step=success can never render a success screen for a transfer that
+    // never ran (Chip review, PR #2917).
     const stepper = useFlowStepper({
         steps: WITHDRAW_CRYPTO_STEPS,
-        guards: {
-            review: { ok: !!(chargeDetails && withdrawData) },
-            success: { ok: !!(chargeDetails && withdrawData) },
-        },
+        guards: cryptoStepGuards({
+            prepared: !!(chargeDetails && withdrawData),
+            executed: !!transactionHash,
+        }),
     })
 
     // hooks for route calculation and payment recording

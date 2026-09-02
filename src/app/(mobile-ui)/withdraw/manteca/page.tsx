@@ -74,6 +74,7 @@ import PixKeySendView from '@/features/withdraw/views/PixKeySendView'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useWithdrawAmount } from '@/features/withdraw/useWithdrawAmount'
 import { WITHDRAW_MANTECA_STEPS } from '@/features/withdraw/types'
+import { mantecaStepGuards, type MantecaOutcome } from '@/features/withdraw/step-guards'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { MantecaTransfersMaintenanceView } from '@/components/Global/Banner/MantecaTransfersMaintenanceView'
 import { useLocale, useTranslations } from 'next-intl'
@@ -141,17 +142,20 @@ function MantecaBankWithdrawFlow() {
     // price lock state - holds the locked price from /withdraw/init
     const [priceLock, setPriceLock] = useState<WithdrawPriceLock | null>(null)
     const [isLockingPrice, setIsLockingPrice] = useState(false)
+    // Execution proof for the terminal steps: set only by the withdrawal
+    // submission. A hand-edited ?step=success (or =failure) with no completed
+    // operation falls back to a working step (Chip review, PR #2917).
+    const [outcome, setOutcome] = useState<MantecaOutcome>(null)
     // amount → bank-details → review → success|failure as named screen ids in
     // the URL. Guards bounce a refresh/deep-link into a step whose local state
     // did not survive back to the amount step (which re-seeds from ?amount=).
     const stepper = useFlowStepper({
         steps: WITHDRAW_MANTECA_STEPS,
-        guards: {
-            'bank-details': { ok: !!usdAmount },
-            review: { ok: !!usdAmount && !!priceLock },
-            success: { ok: !!usdAmount },
-            failure: { ok: !!errorMessage },
-        },
+        guards: mantecaStepGuards({
+            hasAmount: !!usdAmount,
+            priceLocked: !!priceLock,
+            outcome,
+        }),
     })
     const step = stepper.step
     const router = useRouter()
@@ -496,6 +500,7 @@ function MantecaBankWithdrawFlow() {
                     setErrorMessage(t('errors.ownAccountOnly'))
                 } else if (result.error === 'Unexpected error') {
                     setErrorMessage(t('errors.unexpected'))
+                    setOutcome('failure')
                     void stepper.goTo('failure')
                 } else {
                     setErrorMessage(result.message ?? result.error)
@@ -503,6 +508,7 @@ function MantecaBankWithdrawFlow() {
                 return
             }
 
+            setOutcome('success')
             void stepper.goTo('success')
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_COMPLETED, {
                 amount_usd: usdAmount,
@@ -529,6 +535,7 @@ function MantecaBankWithdrawFlow() {
                 },
             })
             setErrorMessage(t('errors.unexpected'))
+            setOutcome('failure')
             void stepper.goTo('failure')
         } finally {
             setLoadingState('Idle')
@@ -539,6 +546,7 @@ function MantecaBankWithdrawFlow() {
     // "Try again" pairs this with stepper.reset()
     const resetState = () => {
         seededFromUrlRef.current = false
+        setOutcome(null)
         setCurrencyAmount(undefined)
         setUsdAmount(undefined)
         setOriginalCurrencyAmount(undefined)

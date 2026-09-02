@@ -37,6 +37,8 @@ import { parseAsString, useQueryState } from 'nuqs'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useWithdrawFlow } from './WithdrawFlowContext'
 import { useWithdrawAmount } from './useWithdrawAmount'
+import { bankStepGuards } from './step-guards'
+import { validateBankOfframpAmount } from './amount-validation'
 import { WITHDRAW_BANK_STEPS } from './types'
 
 /**
@@ -73,13 +75,21 @@ export function useBridgeOfframpFlow() {
     // confirmOfframp() call fails, this gates the UI into a "processing" state
     // instead of showing a Retry button that would re-fire sendMoney().
     const [submittedTxHash, setSubmittedTxHash] = useState<string | null>(null)
+    // Execution proof for the success step: set only after confirmOfframp
+    // succeeded. The ?step= param is user-editable — without this, a
+    // hand-edited ?step=success rendered a success screen for a withdrawal
+    // that never ran.
+    const [completedTxHash, setCompletedTxHash] = useState<string | null>(null)
     const params = useParams()
     // read country from path params (web) or query params (native/capacitor)
     const country = (params.country as string) || countryFromQuery
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
     const { hasPendingTransactions } = usePendingTransactions()
 
-    const stepper = useFlowStepper({ steps: WITHDRAW_BANK_STEPS })
+    const stepper = useFlowStepper({
+        steps: WITHDRAW_BANK_STEPS,
+        guards: bankStepGuards({ executed: !!completedTxHash }),
+    })
     const step = stepper.step
 
     // Country-scoped bank-channel withdraw gate. Same rationale as the
@@ -215,6 +225,23 @@ export function useBridgeOfframpFlow() {
             return
         }
 
+        // The amount is a user-editable URL param — revalidate synchronously
+        // before anything fires (Chip review, PR #2917): finite, positive, at
+        // or above the Bridge $1 floor, within the displayed balance. The
+        // normalized string is what goes on the wire.
+        const amountCheck = validateBankOfframpAmount(amountToWithdraw, balance)
+        if (!amountCheck.ok) {
+            const errorMessage =
+                amountCheck.reason === 'insufficientBalance'
+                    ? tErrors('notEnoughBalanceAddFunds')
+                    : amountCheck.reason === 'belowMinimum'
+                      ? t('errors.minimumWithdrawal', { amount: '$1' })
+                      : t('errors.invalidAmount')
+            setError({ showError: true, errorMessage })
+            return
+        }
+        const amountUsd = amountCheck.normalized
+
         setIsLoading(true)
         setError({ showError: false, errorMessage: '' })
 
@@ -231,7 +258,7 @@ export function useBridgeOfframpFlow() {
         }
 
         posthog.capture(ANALYTICS_EVENTS.WITHDRAW_CONFIRMED, {
-            amount_usd: amountToWithdraw,
+            amount_usd: amountUsd,
             method_type: 'bridge',
             country,
         })
@@ -251,7 +278,7 @@ export function useBridgeOfframpFlow() {
             const createPayload = {
                 // note: for bank withdrawals, minimum $1 is required
                 // reference: https://apidocs.bridge.xyz/docs/transaction-costs
-                amount: amountToWithdraw,
+                amount: amountUsd,
                 developer_fee: '0',
                 onBehalfOf: user.user.bridgeCustomerId,
                 source: {
@@ -322,9 +349,11 @@ export function useBridgeOfframpFlow() {
             // 30s tanstack staleTime + Bridge polling cadence.
             queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
 
+            // proof first, then the step — the success guard reads it
+            setCompletedTxHash(txIdentifier)
             void stepper.goTo('success')
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_COMPLETED, {
-                amount_usd: amountToWithdraw,
+                amount_usd: amountUsd,
                 method_type: 'bridge',
                 country,
             })
