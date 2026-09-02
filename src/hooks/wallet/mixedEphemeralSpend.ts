@@ -121,14 +121,26 @@ export async function tryMixedEphemeralSpend(args: MixedEphemeralSpendArgs): Pro
             session.uninstallCall,
         ]
 
-        // Encode BEFORE the broadcast signal — an encoding failure is
-        // provably pre-broadcast (same rule as useZeroDev's helper).
+        // Decomposed prepare → sign → transport (same rule as useZeroDev's
+        // helper): estimation, paymaster work, and the ephemeral-key signature
+        // all complete BEFORE onBroadcastAttempt, so any failure in them is
+        // provably pre-broadcast; the final call is pure transport.
         const callData = await session.account.encodeCalls(calls)
-        args.onBroadcastAttempt?.()
-        const userOpHash = await session.client.sendUserOperation({
+        const preparedOp = await session.client.prepareUserOperation({
             account: session.account,
             callData,
         })
+        // Same cast viem's sendUserOperation applies internally.
+        const signature = await session.account.signUserOperation(
+            preparedOp as Parameters<typeof session.account.signUserOperation>[0]
+        )
+        args.onBroadcastAttempt?.()
+        const userOpHash = await session.client.sendUserOperation({
+            ...preparedOp,
+            account: session.account,
+            signature,
+            parameters: [],
+        } as never)
 
         let receipt: TransactionReceipt | null = null
         try {

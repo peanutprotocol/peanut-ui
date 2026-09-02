@@ -17666,7 +17666,8 @@
                         "name": "limit",
                         "required": false,
                         "schema": {
-                            "type": "number"
+                            "minimum": 1,
+                            "type": "integer"
                         }
                     },
                     {

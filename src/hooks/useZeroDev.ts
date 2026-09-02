@@ -355,24 +355,40 @@ export const useZeroDev = () => {
             // Non-Arb chains (recover-funds) aren't pre-built — wait for lazy build.
             await ensureClientForChain(chainId)
             const client = getClientForChain(chainId)
+            // Encode BEFORE the sending-state flag: a rejecting encoder must
+            // not leave isSendingUserOp stuck true (that suppresses
+            // stale-deployment reloads for the rest of the session).
+            const encodedCallData = await client.account!.encodeCalls(calls)
             dispatch(zerodevActions.setIsSendingUserOp(true))
 
             let userOpHash: Hash
-            // Encode BEFORE signalling the broadcast boundary — an encoding
-            // failure is provably pre-broadcast and must not read as
-            // execution-ambiguous to the caller. The remaining pre-transport
-            // work inside sendUserOperation (estimation, paymaster, signing)
-            // cannot be split without decomposing the SDK call; the caller's
-            // WebAuthn-rejection carve-out covers the user-visible slice.
-            const encodedCallData = await client.account!.encodeCalls(calls)
-            opts?.onBroadcastAttempt?.()
             try {
-                userOpHash = await withCeremonyPurpose('user_op', async () =>
-                    client.sendUserOperation({
-                        account: client.account,
+                // Decomposed so onBroadcastAttempt fires at the TRUE transport
+                // boundary: estimation + paymaster (prepareUserOperation) and
+                // the WebAuthn signature both complete first, so any failure
+                // in them is provably pre-broadcast to the caller. The final
+                // sendUserOperation receives the fully-prepared request plus
+                // the signature with `parameters: []`, making it a pure
+                // eth_sendUserOperation transport call (viem skips both the
+                // prepare fill-list and signing when they are supplied).
+                userOpHash = await withCeremonyPurpose('user_op', async () => {
+                    const preparedOp = await client.prepareUserOperation({
+                        account: client.account!,
                         callData: encodedCallData,
                     })
-                )
+                    // Same cast viem's sendUserOperation applies internally
+                    // before calling account.signUserOperation.
+                    const signature = await client.account!.signUserOperation(
+                        preparedOp as Parameters<NonNullable<typeof client.account>['signUserOperation']>[0]
+                    )
+                    opts?.onBroadcastAttempt?.()
+                    return client.sendUserOperation({
+                        ...preparedOp,
+                        account: client.account!,
+                        signature,
+                        parameters: [],
+                    } as never)
+                })
             } catch (error) {
                 console.error('Error sending UserOp:', error)
                 capturePasskeySignFailure(error, 'send-user-op')
