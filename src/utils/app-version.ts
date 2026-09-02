@@ -25,19 +25,23 @@ export async function getBinaryInfo(): Promise<BinaryInfo | null> {
 }
 
 /**
- * How the app version reads on screen: `<major>.<minor>.<build>`.
+ * How the app version reads on screen: `<major>.<build>.<ota>.<ci-build>`.
  *
- * The build number takes the patch position because it is the digit that
- * actually moves between releases — the marketing version is stamped by hand
- * from the release workflow's input, while the build is the workflow run
- * number, so `1.1.1 (34534)` showed a patch digit that had not changed in
- * months next to the only number identifying the build.
+ * The first three segments are `appVersion` verbatim — Peanut's release scheme
+ * (scripts/release-version.mjs): major generation, native build counter, and
+ * the OTA counter within that build. None of them may be replaced: overwriting
+ * the third would name an OTA revision that never shipped.
  *
- * A binary reporting fewer than two version segments keeps the old
- * `<version> (<build>)` shape rather than rendering `undefined` into the digit
- * a support conversation depends on.
+ * The CI build number is appended as a fourth segment rather than parenthesised
+ * so the whole identifier reads as one string a user can dictate. It is the
+ * release workflow's run number, and it is NOT comparable across platforms:
+ * android-release.yml sets the version code to `10000 + run_number` while
+ * ios-release.yml uses the run number as-is, so the same release shows a
+ * ~10000 gap between an Android and an iOS device. That is a property of the
+ * build numbering, not of this format — it identifies a build, not an ordering.
  */
 export function formatBinaryVersion({ appVersion, appBuild }: BinaryInfo): string {
-    const [major, minor] = appVersion.split('.')
-    return major && minor ? `${major}.${minor}.${appBuild}` : `${appVersion} (${appBuild})`
+    if (!appVersion) return appBuild
+    if (!appBuild) return appVersion
+    return `${appVersion}.${appBuild}`
 }

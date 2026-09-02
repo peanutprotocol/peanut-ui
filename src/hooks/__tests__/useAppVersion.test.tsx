@@ -19,8 +19,8 @@ describe('useAppVersion', () => {
 
         const { result } = renderHook(() => useAppVersion('1.0.53'))
 
-        // the build number takes the patch position — it is the digit that moves
-        await waitFor(() => expect(result.current).toBe('1.1.412'))
+        // the release version is kept whole; the CI build is a fourth segment
+        await waitFor(() => expect(result.current).toBe('1.1.0.412'))
     })
 
     it('keeps the bundled version on web, where there is no binary to ask', async () => {
