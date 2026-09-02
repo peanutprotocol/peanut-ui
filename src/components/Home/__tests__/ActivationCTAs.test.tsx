@@ -241,10 +241,19 @@ describe('ActivationCTAs — rejection override respects existing transacting ab
 })
 
 describe('ActivationCTAs — happy path renders the checklist', () => {
-    it.each(['verify', 'deposit', 'card', 'outbound'] as const)('%s step renders the checklist', (step) => {
+    it.each(['verify', 'deposit'] as const)('%s step renders the checklist', (step) => {
         render(<ActivationCTAs activationStep={step} />)
         expect(screen.getByText('getting-started-checklist')).toBeInTheDocument()
     })
+
+    it.each(['outbound', 'card'] as const)(
+        '%s step (money has moved) hides the checklist — it is the empty state',
+        (step) => {
+            const { container } = render(<ActivationCTAs activationStep={step} />)
+            expect(screen.queryByText('getting-started-checklist')).not.toBeInTheDocument()
+            expect(container.firstChild).toBeNull()
+        }
+    )
 
     it('completed without rejection renders nothing', () => {
         const { container } = render(<ActivationCTAs activationStep="completed" />)

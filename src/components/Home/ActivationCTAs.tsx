@@ -333,7 +333,12 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     // region-restricted terminal explanation, which outranks the checklist:
     // every step on the list (bank money in, the card) is a door this user
     // cannot open, so offering the list would be dishonest.
-    if (!hasProviderRejection && !isRegionRestricted) return <GettingStartedChecklist />
+    if (!hasProviderRejection && !isRegionRestricted) {
+        // The checklist is the empty state: once money has moved on the
+        // account the activity list takes its place.
+        const hasActivity = activationStep === 'outbound' || activationStep === 'card'
+        return hasActivity ? null : <GettingStartedChecklist />
+    }
 
     return (
         <Card position="single" className="p-0">
