@@ -358,12 +358,19 @@ export const useZeroDev = () => {
             dispatch(zerodevActions.setIsSendingUserOp(true))
 
             let userOpHash: Hash
+            // Encode BEFORE signalling the broadcast boundary — an encoding
+            // failure is provably pre-broadcast and must not read as
+            // execution-ambiguous to the caller. The remaining pre-transport
+            // work inside sendUserOperation (estimation, paymaster, signing)
+            // cannot be split without decomposing the SDK call; the caller's
+            // WebAuthn-rejection carve-out covers the user-visible slice.
+            const encodedCallData = await client.account!.encodeCalls(calls)
             opts?.onBroadcastAttempt?.()
             try {
                 userOpHash = await withCeremonyPurpose('user_op', async () =>
                     client.sendUserOperation({
                         account: client.account,
-                        callData: await client.account!.encodeCalls(calls),
+                        callData: encodedCallData,
                     })
                 )
             } catch (error) {

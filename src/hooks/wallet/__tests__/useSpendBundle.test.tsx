@@ -16,6 +16,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { useSpendBundle } from '../useSpendBundle'
 import { resolveSpendStrategy, runCollateralSpendPreflight } from '../spendPreflight'
+import { tryMixedEphemeralSpend } from '../mixedEphemeralSpend'
 import { rainApi } from '@/services/rain'
 
 const ACCOUNT = '0xc97fffbf8768ca90cd62fae2e313b084fe13e553'
@@ -32,6 +33,7 @@ jest.mock('@/context/kernelClient.context', () => ({
     useKernelClient: () => ({
         getClientForChain: () => ({ account: { address: ACCOUNT, signTypedData: mockSignTypedData } }),
         rebuildClientForChain: jest.fn(),
+        getPatchedSudoValidator: jest.fn(async () => ({})),
     }),
 }))
 const mockAccounts: Array<{ type: string; identifier: string }> = []
@@ -50,7 +52,8 @@ jest.mock('@/hooks/useRainCardOverview', () => ({
 jest.mock('../useGrantSessionKey', () => ({ useGrantSessionKey: () => ({ grant: jest.fn() }) }))
 jest.mock('@/utils/rainWithdraw.utils', () => ({ buildRainWithdrawTypedData: jest.fn(() => ({})) }))
 jest.mock('@/app/actions/clients', () => ({ peanutPublicClient: {} }))
-jest.mock('@/constants/session-key-spend.consts', () => ({ sessionKeySpendEnabled: () => false }))
+let mockSessionKeyEnabled = false
+jest.mock('@/constants/session-key-spend.consts', () => ({ sessionKeySpendEnabled: () => mockSessionKeyEnabled }))
 jest.mock('./../mixedEphemeralSpend', () => ({ tryMixedEphemeralSpend: jest.fn() }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
 jest.mock('@/services/rain', () => ({
@@ -173,6 +176,34 @@ describe('useSpendBundle — draft back-out boundaries', () => {
                 await expect(result.current.spend(spendInput())).rejects.toThrow('bundler 502')
             })
             expect(mockCancelPreparation).not.toHaveBeenCalled()
+        })
+
+        it('a crossed session-key attempt stays ambiguous — a later ceremony rejection must NOT cancel', async () => {
+            // The ephemeral attempt broadcasts (boundary crossed) and falls
+            // through; the passkey fallback reuses the SAME prep and its
+            // ceremony is dismissed. The ceremony carve-out must not override
+            // the earlier ambiguous broadcast (Chip-filed follow-up on r2).
+            mockSessionKeyEnabled = true
+            try {
+                const mockEphemeral = tryMixedEphemeralSpend as jest.Mock
+                mockEphemeral.mockImplementationOnce(async (args) => {
+                    args.onBroadcastAttempt?.()
+                    return { ok: false, reason: 'timeout waiting for receipt' }
+                })
+                mockHandleSendUserOpEncoded.mockImplementationOnce(async (_calls, _chain, opts) => {
+                    opts?.onBroadcastAttempt?.()
+                    const err = new Error('ceremony dismissed')
+                    err.name = 'NotAllowedError'
+                    throw err
+                })
+                const { result } = renderHook(() => useSpendBundle(), { wrapper })
+                await act(async () => {
+                    await expect(result.current.spend(spendInput())).rejects.toThrow('ceremony dismissed')
+                })
+                expect(mockCancelPreparation).not.toHaveBeenCalled()
+            } finally {
+                mockSessionKeyEnabled = false
+            }
         })
     })
 })

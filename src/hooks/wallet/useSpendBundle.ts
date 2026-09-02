@@ -177,6 +177,12 @@ export const useSpendBundle = () => {
             // owns cleanup.
             let livePreparationId: string | undefined
             let broadcastAttempted = false
+            // Sticky: an attempt that crossed the broadcast boundary and then
+            // failed WITHOUT a ceremony rejection of its own (the session-key
+            // attempt falls through to the passkey path). Once set, NOTHING
+            // may cancel this draft — not even a later ceremony rejection on
+            // the fallback attempt: the earlier broadcast may have landed.
+            let ambiguousBroadcast = false
             try {
                 // Shared collateral pre-flights (root-validator migration gate +
                 // session-key grant) — ONE ordered sequence for both spend
@@ -297,11 +303,13 @@ export const useSpendBundle = () => {
                     posthog.capture(ANALYTICS_EVENTS.SESSION_KEY_SPEND_ATTEMPTED, { kind })
                     modals?.setIsSecurityVerificationOpen?.(true)
                     let attempt: Awaited<ReturnType<typeof tryMixedEphemeralSpend>>
+                    let ephemeralCrossed = false
                     try {
                         const patchedSudoValidator = await getPatchedSudoValidator(peanutPublicClient)
                         attempt = await tryMixedEphemeralSpend({
                             onBroadcastAttempt: () => {
                                 broadcastAttempted = true
+                                ephemeralCrossed = true
                             },
                             publicClient: peanutPublicClient,
                             chain: PEANUT_WALLET_CHAIN,
@@ -315,6 +323,11 @@ export const useSpendBundle = () => {
                     } finally {
                         modals?.setIsSecurityVerificationOpen?.(false)
                     }
+                    // A crossed-but-failed session-key attempt is ambiguous
+                    // forever — the fallback passkey attempt reuses the SAME
+                    // prep (only one can execute on-chain), so the draft must
+                    // never be cancelled after this point.
+                    if (!attempt.ok && ephemeralCrossed) ambiguousBroadcast = true
                     if (attempt.ok) {
                         const mixedTxHash = resolveSettledTxHash(
                             { receipt: attempt.receipt, userOpHash: attempt.userOpHash },
@@ -431,7 +444,7 @@ export const useSpendBundle = () => {
                 const ceremonyRejection = Object.values(WebAuthnErrorName).includes(
                     (e as Error)?.name as WebAuthnErrorName
                 )
-                if (livePreparationId && (!broadcastAttempted || ceremonyRejection)) {
+                if (livePreparationId && !ambiguousBroadcast && (!broadcastAttempted || ceremonyRejection)) {
                     void rainApi.cancelPreparation(livePreparationId)
                 }
                 const errorKind =

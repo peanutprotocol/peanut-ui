@@ -121,10 +121,13 @@ export async function tryMixedEphemeralSpend(args: MixedEphemeralSpendArgs): Pro
             session.uninstallCall,
         ]
 
+        // Encode BEFORE the broadcast signal — an encoding failure is
+        // provably pre-broadcast (same rule as useZeroDev's helper).
+        const callData = await session.account.encodeCalls(calls)
         args.onBroadcastAttempt?.()
         const userOpHash = await session.client.sendUserOperation({
             account: session.account,
-            callData: await session.account.encodeCalls(calls),
+            callData,
         })
 
         let receipt: TransactionReceipt | null = null
