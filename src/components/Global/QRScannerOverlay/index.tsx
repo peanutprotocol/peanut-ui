@@ -139,6 +139,10 @@ function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose, onN
                         closeAfterNavigation()
                     },
                 },
+                // The only way out: preventClose covers Escape, the backdrop and
+                // the back handler, and the X is hidden, so without this the user
+                // has to accept the warning to leave the modal.
+                { text: tCommon('close'), variant: 'stroke', onClick: onClose },
             ],
         },
         // A payload that is not an http(s) link is not one the user can be asked

@@ -2,8 +2,8 @@
 
 import { motion, useReducedMotion } from 'framer-motion'
 import { usePathname } from 'next/navigation'
-import { useEffect, useRef } from 'react'
-import { TAB_SPRING, tabSlideDirection } from '@/components/Global/BottomNav/tab-order'
+import { useRef } from 'react'
+import { TAB_SPRING, type TabSlideDirection, tabSlideDirection } from '@/components/Global/BottomNav/tab-order'
 
 // how far the incoming page starts off-center. Small on purpose: the nav pill
 // defers its own spring two frames past the route commit, and a long travel
@@ -22,16 +22,35 @@ const SLIDE_OFFSET_PX = 40
 export const TabSlide = ({ className, children }: { className?: string; children: React.ReactNode }) => {
     const pathname = usePathname()
     const reduceMotion = useReducedMotion()
-    const previous = useRef<string | null>(null)
-    const direction = reduceMotion ? null : tabSlideDirection(previous.current, pathname)
-
-    useEffect(() => {
-        previous.current = pathname
-    }, [pathname])
+    /**
+     * The key exists only to replay `initial`, so it may change ONLY when a
+     * slide actually plays. Keying on the pathname remounted the whole route
+     * subtree on every navigation, including the same-component ones the app
+     * router would otherwise reconcile (a dynamic segment swap, a router.replace
+     * mid-flow) — discarding their local state and re-firing every mount effect.
+     *
+     * Derived during render rather than in an effect: `initial` is read at mount,
+     * so a direction computed after paint arrives too late. Storing the path
+     * alongside the direction keeps both stable across a double render.
+     */
+    const slide = useRef<{ key: number; direction: TabSlideDirection | null; path: string | null }>({
+        key: 0,
+        direction: null,
+        path: null,
+    })
+    if (slide.current.path !== pathname) {
+        const direction = reduceMotion ? null : tabSlideDirection(slide.current.path, pathname)
+        slide.current = {
+            key: direction ? slide.current.key + 1 : slide.current.key,
+            direction,
+            path: pathname,
+        }
+    }
+    const { key, direction } = slide.current
 
     return (
         <motion.div
-            key={pathname}
+            key={key}
             className={className}
             initial={direction ? { x: direction === 'left' ? SLIDE_OFFSET_PX : -SLIDE_OFFSET_PX, opacity: 0 } : false}
             animate={{ x: 0, opacity: 1 }}
