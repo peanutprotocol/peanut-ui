@@ -55,8 +55,7 @@
             "unknown": "Desconhecido"
         },
         "exchangeRate": "Taxa de câmbio",
-        "slideToProceed": "Deslize para continuar",
-        "userAvatarAlt": "Avatar de {username}"
+        "slideToProceed": "Deslize para continuar"
     },
     "navigation": {
         "home": "Início",

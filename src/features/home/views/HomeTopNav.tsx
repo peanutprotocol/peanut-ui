@@ -1,15 +1,14 @@
 'use client'
 
-import { UserAvatar } from '@/components/Avatar/UserAvatar'
 import { Icon } from '@/components/Global/Icons/Icon'
 import InvitesIcon from '@/components/Home/InvitesIcon'
+import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import Link from 'next/link'
 
 interface HomeTopNavProps {
-    username?: string
-    avatarKey?: string | null
+    avatarName?: string
     showRewards: boolean
 }
 
@@ -18,7 +17,7 @@ interface HomeTopNavProps {
  * top-left linking to /profile (Vlad follow-up: one size down from 48),
  * rewards link top-right. The link keeps a 44px hit area via after: inset.
  */
-export function HomeTopNav({ username, avatarKey, showRewards }: HomeTopNavProps) {
+export function HomeTopNav({ avatarName, showRewards }: HomeTopNavProps) {
     const t = useAppTranslations('home')
     const { triggerHaptic } = useAppHaptic()
 
@@ -31,10 +30,20 @@ export function HomeTopNav({ username, avatarKey, showRewards }: HomeTopNavProps
                 className="relative block after:absolute after:-inset-1.5"
                 aria-label={t('openProfile')}
             >
-                {/* The user's picked avatar (TASK-22142), or the privacy-safe
-                    fallback: one username initial on its color. Never the full
-                    name — that is verification data. */}
-                <UserAvatar username={username} avatarKey={avatarKey} size="extra-small" />
+                {/* Own identity: the first letter of the username, here and on
+                    the profile header (the generated face is parked until avatar
+                    v2). A user with no name string at all still gets an
+                    avatar-toned circle (yellow — the palette's no-name default). */}
+                {avatarName ? (
+                    <AvatarWithBadge size="extra-small" name={avatarName} firstLetterOnly />
+                ) : (
+                    <AvatarWithBadge
+                        size="extra-small"
+                        icon="user"
+                        className="border border-avatar-yellow-border bg-avatar-yellow text-avatar-yellow-foreground"
+                        iconFillColor="var(--color-avatar-yellow-foreground)"
+                    />
+                )}
             </Link>
             {showRewards && (
                 <Link
