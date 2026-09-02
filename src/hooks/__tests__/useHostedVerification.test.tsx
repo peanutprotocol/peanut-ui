@@ -5,7 +5,7 @@
  * link closes it programmatically (closeInAppBrowser), which on iOS never
  * emits it — the document event is that second signal. Each must refetch.
  */
-import { act, renderHook } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { useHostedVerification } from '../useHostedVerification'
 
 const CLOSED_EVENT = 'peanut:in-app-browser-closed'
@@ -46,10 +46,9 @@ describe('useHostedVerification (native)', () => {
         await act(async () => {
             await hook.result.current.start()
         })
-        // flush the dynamic @capacitor/browser import chain
-        await act(async () => {})
         expect(mockOpenExternalUrl).toHaveBeenCalledWith('https://bridge.withpersona.com/verify')
-        expect(listeners.browserFinished).toBeDefined()
+        // the dynamic @capacitor/browser import chain settles a few ticks later
+        await waitFor(() => expect(listeners.browserFinished).toBeDefined())
         return hook
     }
 
