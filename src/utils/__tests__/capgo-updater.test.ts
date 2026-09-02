@@ -240,15 +240,29 @@ describe('beta channel opt-in', () => {
         expect(unsetOrder).toBeLessThan(setOrder)
     })
 
+    // A production channel that refuses self-assign is a valid dashboard
+    // configuration. The local unset already happened, so the exit must go on
+    // and let getChannel() decide — otherwise every retry would fail the same
+    // way and the device could never leave the beta bundle.
     it.each([
         ['rejects', () => mockUpdater.setChannel.mockRejectedValue(new Error('channel_self_set_not_allowed'))],
         [
             'answers with an error',
             () => mockUpdater.setChannel.mockResolvedValue({ status: 'error', error: 'channel_self_set_not_allowed' }),
         ],
-    ])('reports an override when the production self-assign %s', async (_case, arrange) => {
-        const { leaveBetaOtaChannel, OtaChannelOverrideError, hasPendingBetaExit } = await import('../capgo-updater')
+    ])('still resets when the production self-assign %s but beta no longer sticks', async (_case, arrange) => {
+        const { leaveBetaOtaChannel } = await import('../capgo-updater')
         arrange()
+        await leaveBetaOtaChannel()
+        expect(mockUpdater.getChannel).toHaveBeenCalled()
+        expect(mockUpdater.reset).toHaveBeenCalled()
+    })
+
+    it('reports an override when the self-assign is refused and beta still sticks', async () => {
+        const { leaveBetaOtaChannel, OtaChannelOverrideError, hasPendingBetaExit, BETA_OTA_CHANNEL } =
+            await import('../capgo-updater')
+        mockUpdater.setChannel.mockRejectedValue(new Error('channel_self_set_not_allowed'))
+        mockUpdater.getChannel.mockResolvedValue({ channel: BETA_OTA_CHANNEL, status: 'ok' })
         await expect(leaveBetaOtaChannel()).rejects.toBeInstanceOf(OtaChannelOverrideError)
         expect(mockUpdater.reset).not.toHaveBeenCalled()
         expect(hasPendingBetaExit()).toBe(true)

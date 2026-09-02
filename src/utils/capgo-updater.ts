@@ -184,8 +184,8 @@ function recordFailureStreak(message: string): number {
 export const BETA_OTA_CHANNEL = 'staging'
 
 // The app's default channel (ios-release.yml / android-release.yml / release-ota.yml).
-// Leaving beta assigns the device here explicitly, so the channel must allow
-// device self-assign in the Capgo dashboard.
+// Leaving beta also assigns the device here when the channel allows device
+// self-assign in the Capgo dashboard; otherwise the local unset has to do.
 export const PRODUCTION_OTA_CHANNEL = 'production'
 
 export interface OtaChannelStatus {
@@ -319,17 +319,19 @@ export async function leaveBetaOtaChannel(): Promise<void> {
         // unsetChannel() only drops the plugin's local preference (verified in
         // the plugin source: both platforms just remove a stored key). The
         // device→channel assignment lives on the server, and only setChannel()
-        // rewrites it — so leave by assigning production, not by forgetting beta.
-        let reassigned
+        // rewrites it — so also assign production. Best effort: a channel that
+        // refuses self-assign must not strand a device whose beta preference is
+        // already gone; getChannel() below is what decides whether beta still
+        // sticks server-side.
         try {
-            reassigned = await CapacitorUpdater.setChannel({
+            const reassigned = await CapacitorUpdater.setChannel({
                 channel: PRODUCTION_OTA_CHANNEL,
                 triggerAutoUpdate: false,
             })
+            if (reassigned.error) console.info(`[capgo] production self-assign refused: ${reassigned.error}`)
         } catch (err) {
-            throw new OtaChannelOverrideError(err instanceof Error ? err.message : String(err ?? ''))
+            console.info(`[capgo] production self-assign failed: ${err instanceof Error ? err.message : String(err)}`)
         }
-        if (reassigned.error) throw new OtaChannelOverrideError(reassigned.error)
 
         // getChannel() asks the backend what it will actually serve, and only a
         // successful, channel-bearing answer licenses the reset. Offline, rate
