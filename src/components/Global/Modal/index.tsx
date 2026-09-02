@@ -1,7 +1,9 @@
 import { Dialog, DialogBackdrop, DialogPanel, Transition } from '@headlessui/react'
 import { Fragment, useRef } from 'react'
+import { useTranslations } from 'next-intl'
 import { twMerge } from '@/utils/tw'
 import { useBackHandler } from '@/hooks/useBackHandler'
+import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '../Icons/Icon'
 
 type ModalProps = {
@@ -36,6 +38,7 @@ const Modal = ({
     preventClose = false,
 }: ModalProps) => {
     let dialogRef = useRef(null)
+    const tCommon = useTranslations('common')
 
     useBackHandler(() => {
         if (!preventClose) onClose()
@@ -118,17 +121,30 @@ const Modal = ({
                                     top corner — no circle, border or shadow. The box is
                                     still 40px for the touch target, inset so the glyph
                                     lands ~16px from the panel edge. */}
-                                <button
-                                    className={twMerge(
-                                        video
-                                            ? 'absolute top-3 right-3 h-14 w-14 fill-white p-2 text-0'
-                                            : 'absolute top-1 right-1 z-10 flex size-10 items-center justify-center text-0 focus-visible:outline-[3px] focus-visible:outline-action-focus',
-                                        classButtonClose
-                                    )}
-                                    onClick={onClose}
-                                >
-                                    <Icon name="cancel" size={video ? 24 : 20} className="transition-colors" />
-                                </button>
+                                {video ? (
+                                    <button
+                                        type="button"
+                                        aria-label={tCommon('close')}
+                                        className={twMerge(
+                                            'absolute top-3 right-3 h-14 w-14 fill-white p-2 text-0',
+                                            classButtonClose
+                                        )}
+                                        onClick={onClose}
+                                    >
+                                        <Icon name="cancel" size={24} className="transition-colors" />
+                                    </button>
+                                ) : (
+                                    <Button
+                                        type="button"
+                                        variant="transparent"
+                                        size="small"
+                                        shape="square"
+                                        aria-label={tCommon('close')}
+                                        icon={<Icon name="cancel" size={20} className="transition-colors" />}
+                                        className={twMerge('absolute top-1 right-1 z-10 w-10 text-0', classButtonClose)}
+                                        onClick={onClose}
+                                    />
+                                )}
                             </>
                         ) : (
                             <> {children}</>
