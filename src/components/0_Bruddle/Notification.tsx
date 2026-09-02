@@ -73,16 +73,14 @@ export const Notification = ({
     // not "fall back to children"
     const body = items
         ? items.length > 0 && (
-              // text-body-xs (12px/16px) is the density the deleted InfoCard
-              // shipped — 12px on mobile. At text-body-m a row like "Europe
-              // SEPA transfers (+30 countries)" wraps to two lines at 390px;
-              // a checklist is dense list content, so it keeps the smaller
-              // step. The 16px check matches the 16px line box, so the mark
-              // sits on the first line with no nudge.
-              <div className="flex flex-col gap-1 text-body-xs">
+              // rows read at the same Body/S step as every other body — the
+              // old text-body-xs (12px) checklist step is gone (TASK-22121:
+              // one body size everywhere). The 16px check sits in the 20px
+              // Body/S line box with a 2px nudge, pinned to the first line.
+              <div className="flex flex-col gap-1">
                   {items.map((item, index) => (
-                      <div key={index} className="flex items-start gap-2">
-                          <Icon name="check" size={16} className="shrink-0" />
+                      <div key={index} className="flex items-start gap-1.5">
+                          <Icon name="check" size={16} className="mt-0.5 shrink-0" />
                           <div className="min-w-0 flex-1">{item}</div>
                       </div>
                   ))}
@@ -92,8 +90,9 @@ export const Notification = ({
     // a checklist carries its own check marks — no leading priority icon
     const showIcon = !items && !hideIcon
     // the title body and the ctas line up under the title, which the leading
-    // icon pushes in by 28px. Without the icon there is nothing to clear.
-    const indent = showIcon ? 'pl-7' : ''
+    // icon pushes in by 22px (16px icon + 6px gap). Without the icon there is
+    // nothing to clear.
+    const indent = showIcon ? 'pl-5.5' : ''
     // an empty `items` array used to fall through to `children` (undefined at
     // every migrated call site) and paint a bare icon-only box — WelcomeUnlockModal
     // hits that when the user unlocked no channel at all
@@ -105,7 +104,9 @@ export const Notification = ({
                 // text-start is load-bearing: ActionModal centres its content
                 // container, and a notification inside a modal must still read
                 // left-aligned. The deleted InfoCard carried the same guard.
-                'flex items-start gap-2 rounded-sm border border-foreground-over-color-secondary p-3 text-start text-foreground-over-color-secondary',
+                // compact-inline (TASK-22121 variant A): tint only, no border,
+                // 8px padding, one type step down.
+                'flex items-start gap-1.5 rounded-sm p-2 text-start text-foreground-over-color-secondary',
                 bg,
                 className
             )}
@@ -117,19 +118,19 @@ export const Notification = ({
                     only the ctas sit a full step away. A flat gap-2 put 8px in
                     both places and the title read as a separate line. */}
                 <div className="flex flex-col gap-0.5">
-                    {/* items-start pins the icon to the first line. The icon is
-                        20px and every first-line token is a 20px line box, so a
-                        one-line banner is unchanged — but a list or a wrapping
-                        body no longer centres the icon against the whole block. */}
-                    <div className="flex items-start gap-2">
-                        {showIcon && <Icon name={icon} size={20} className="shrink-0" />}
+                    {/* items-start pins the icon to the first line. The 16px
+                        icon sits in the 20px Body/S line box with a 2px nudge —
+                        a list or a wrapping body never centres the icon against
+                        the whole block. */}
+                    <div className="flex items-start gap-1.5">
+                        {showIcon && <Icon name={icon} size={16} className="mt-0.5 shrink-0" />}
                         {title ? (
-                            <span className="text-body-m-semibold">{title}</span>
+                            <span className="text-body-s font-semibold">{title}</span>
                         ) : (
-                            <div className="min-w-0 flex-1 text-body-m break-words">{body}</div>
+                            <div className="min-w-0 flex-1 text-body-s break-words">{body}</div>
                         )}
                     </div>
-                    {title && <div className={twMerge('text-body-m break-words', indent)}>{body}</div>}
+                    {title && <div className={twMerge('text-body-s break-words', indent)}>{body}</div>}
                 </div>
                 {!!ctas?.length && (
                     <div className={twMerge('flex flex-wrap gap-2', indent)}>
@@ -154,9 +155,9 @@ export const Notification = ({
                     type="button"
                     aria-label={t('close')}
                     onClick={onDismiss}
-                    className="-m-2.5 flex size-11 shrink-0 items-center justify-center rounded-round text-foreground-over-color-secondary transition-opacity duration-instant focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
+                    className="-m-1 flex size-6 shrink-0 items-center justify-center rounded-round text-foreground-over-color-secondary transition-opacity duration-instant focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
                 >
-                    <Icon name="cancel" size={16} />
+                    <Icon name="cancel" size={12} />
                 </button>
             )}
         </div>
