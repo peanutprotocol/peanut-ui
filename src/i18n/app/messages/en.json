@@ -519,7 +519,16 @@
             "title": "About Peanut",
             "intro": "Peanut makes dollars easy: hold your balance, send to any @username, and move money on local rails after one ID check. Built by Squirrel Labs.",
             "policiesHeading": "Policies",
-            "terms": "Terms of Service",
+            "policies": {
+                "terms": "Terms of Service",
+                "privacy": "Privacy Policy",
+                "cardTermsUs": "Card Terms (U.S.)",
+                "cardTermsInternational": "Card Terms (International)",
+                "esign": "E-Sign Consent",
+                "cardPrivacy": "Account Opening Privacy Notice",
+                "prohibitedActivities": "Prohibited Activities Policy",
+                "securityDisclosure": "Security Disclosure"
+            },
             "version": "Version {version}",
             "beta": {
                 "heading": "Beta updates",

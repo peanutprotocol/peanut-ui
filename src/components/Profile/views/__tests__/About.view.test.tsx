@@ -45,19 +45,35 @@ describe('AboutView', () => {
         }
     })
 
-    // TASK-22146: the Terms of Service title follows the app language, but every
-    // language opens the same English document at /terms.
+    // TASK-22146: every policy title follows the app language. The legal hrefs
+    // do not, so each language opens the same English documents; only the help
+    // link is locale-targeted, like every other DocsLink.
     it.each([
-        ['en', 'Terms of Service'],
-        ['es-419', 'Términos de servicio'],
-        ['pt-BR', 'Termos de serviço'],
-    ] as const)('in %s the Terms of Service link reads "%s" and opens /terms', async (locale, title) => {
-        const messages = await loadMessages(locale)
-        rtlRender(
-            <NextIntlClientProvider locale={locale} messages={messages} timeZone="UTC">
-                <AboutView appVersion="1.2.3" />
-            </NextIntlClientProvider>
-        )
-        expect(screen.getByRole('link', { name: title })).toHaveAttribute('href', '/terms')
-    })
+        ['en', 'Terms of Service', '/en/help/security-disclosure'],
+        ['es-419', 'Términos de servicio', '/es-419/help/security-disclosure'],
+        ['pt-BR', 'Termos de serviço', '/pt-br/help/security-disclosure'],
+    ] as const)(
+        'in %s the policy titles follow the catalog and the legal hrefs stay put',
+        async (locale, termsTitle, helpHref) => {
+            const messages = await loadMessages(locale)
+            rtlRender(
+                <NextIntlClientProvider locale={locale} messages={messages} timeZone="UTC">
+                    <AboutView appVersion="1.2.3" />
+                </NextIntlClientProvider>
+            )
+            const links = screen.getAllByRole('link')
+            expect(links.map((link) => link.textContent)).toEqual(Object.values(messages.profile.about.policies))
+            expect(links.map((link) => link.getAttribute('href'))).toEqual([
+                '/terms',
+                '/privacy',
+                '/card-terms-us',
+                '/card-terms-international',
+                '/card-esign',
+                '/card-privacy',
+                '/card-prohibited-activities',
+                helpHref,
+            ])
+            expect(screen.getByRole('link', { name: termsTitle })).toHaveAttribute('href', '/terms')
+        }
+    )
 })

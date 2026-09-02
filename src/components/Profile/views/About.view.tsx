@@ -20,21 +20,20 @@ export const AboutView = ({ appVersion }: { appVersion: string }) => {
     const t = useTranslations('profile.about')
     /**
      * The one place every policy is reachable from inside the app, mirroring the
-     * ReConsent registry and the landing footer. Document titles stay in English
-     * on purpose: they are the legal names of the documents (same convention as
-     * the re-consent modal); the target pages localize their own prose. The Terms
-     * of Service title is the one exception (TASK-22146): it follows the app
-     * language, and every language opens the same English document.
+     * ReConsent registry and the landing footer. Titles follow the app language
+     * (TASK-22146, same strings as the landing footer). The legal hrefs are bare
+     * paths, so every language opens the same English documents; the help link
+     * follows the locale like every other DocsLink.
      */
     const policyLinks: ReadonlyArray<{ name: string; href: string }> = [
-        { name: t('terms'), href: '/terms' },
-        { name: 'Privacy Policy', href: '/privacy' },
-        { name: 'Card Terms (U.S.)', href: '/card-terms-us' },
-        { name: 'Card Terms (International)', href: '/card-terms-international' },
-        { name: 'E-Sign Consent', href: '/card-esign' },
-        { name: 'Account Opening Privacy Notice', href: '/card-privacy' },
-        { name: 'Prohibited Activities Policy', href: '/card-prohibited-activities' },
-        { name: 'Security Disclosure', href: '/en/help/security-disclosure' },
+        { name: t('policies.terms'), href: '/terms' },
+        { name: t('policies.privacy'), href: '/privacy' },
+        { name: t('policies.cardTermsUs'), href: '/card-terms-us' },
+        { name: t('policies.cardTermsInternational'), href: '/card-terms-international' },
+        { name: t('policies.esign'), href: '/card-esign' },
+        { name: t('policies.cardPrivacy'), href: '/card-privacy' },
+        { name: t('policies.prohibitedActivities'), href: '/card-prohibited-activities' },
+        { name: t('policies.securityDisclosure'), href: '/en/help/security-disclosure' },
     ]
     const onBack = useSafeBack('/profile', { replace: true })
     // the bundled version is only the web value and the pre-bridge fallback

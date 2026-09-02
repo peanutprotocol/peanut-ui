@@ -519,7 +519,16 @@
             "title": "Sobre o Peanut",
             "intro": "O Peanut torna os dólares fáceis: guarde seu saldo, envie para qualquer @usuário e mova dinheiro pelos trilhos locais após uma única verificação de identidade. Criado pela Squirrel Labs.",
             "policiesHeading": "Políticas",
-            "terms": "Termos de serviço",
+            "policies": {
+                "terms": "Termos de serviço",
+                "privacy": "Política de privacidade",
+                "cardTermsUs": "Termos do cartão (EUA)",
+                "cardTermsInternational": "Termos do cartão (internacional)",
+                "esign": "Consentimento de assinatura eletrônica",
+                "cardPrivacy": "Aviso de privacidade de abertura de conta",
+                "prohibitedActivities": "Política de atividades proibidas",
+                "securityDisclosure": "Divulgação de segurança"
+            },
             "version": "Versão {version}",
             "beta": {
                 "heading": "Atualizações beta",
