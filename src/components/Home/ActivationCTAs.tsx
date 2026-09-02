@@ -3,6 +3,7 @@
 import { railUserMessage, railVerdict } from '@/utils/capability-gate'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { type ActivationStep } from '@/hooks/useActivationStatus'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { useRouter } from 'next/navigation'
@@ -388,9 +389,10 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     {step.ctaLabel}
                 </Button>
                 {step.dismissable && onDismissCard && (
-                    <button type="button" onClick={onDismissCard} className="text-body-s text-black underline">
+                    // deliberate body-s size kept; states come from LinkButton
+                    <LinkButton onClick={onDismissCard} className="text-body-s text-foreground-primary">
                         {tCommon('maybeLater')}
-                    </button>
+                    </LinkButton>
                 )}
             </div>
             <ProvideEmailStep

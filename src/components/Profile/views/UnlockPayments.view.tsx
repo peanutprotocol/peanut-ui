@@ -22,6 +22,7 @@ import { useCardInfo } from '@/hooks/useCardInfo'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useLimits } from '@/hooks/useLimits'
 import ProgressBar from '@/components/0_Bruddle/ProgressBar'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { formatAmountWithCurrency, getLimitColorClass, getLimitData } from '@/features/limits/utils'
 import Link from 'next/link'
 import { findActiveCard } from '@/components/Card/cardState.utils'
@@ -366,16 +367,12 @@ const UnlockPayments = () => {
                             {residence?.verified ? t('residence.verified') : t('residence.unverified')}
                         </span>
                     )}
-                    <button
-                        type="button"
-                        className={twMerge(
-                            'shrink-0 text-body-xs underline underline-offset-2',
-                            !residenceIso2 && 'ml-auto'
-                        )}
+                    <LinkButton
+                        className={twMerge('shrink-0', !residenceIso2 && 'ml-auto')}
                         onClick={() => setIsChangeModalOpen(true)}
                     >
                         {residenceIso2 ? t('residence.change') : t('residence.set')}
-                    </button>
+                    </LinkButton>
                 </div>
                 {residence?.verified && residence?.declared && residence.declared !== residence.verified && (
                     <p className="mt-1 text-body-xs text-foreground-secondary">

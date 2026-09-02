@@ -2,6 +2,7 @@
 
 import Card from '@/components/Global/Card'
 import { Toggle } from '@/components/0_Bruddle/Toggle'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { useFeatureFlags } from '@/hooks/useFeatureFlag'
 import { useOtaChannel } from '@/hooks/useOtaChannel'
@@ -113,13 +114,12 @@ export const BetaUpdatesCard = () => {
                     <div className="flex justify-between gap-4">
                         <dt>{t('deviceLabel')}</dt>
                         <dd>
-                            <button
-                                type="button"
-                                className="text-left break-all underline"
+                            <LinkButton
+                                className="text-left break-all"
                                 onClick={() => void copyDeviceId(status.deviceId!)}
                             >
                                 {status.deviceId}
-                            </button>
+                            </LinkButton>
                         </dd>
                     </div>
                 )}

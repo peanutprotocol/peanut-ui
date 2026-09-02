@@ -35,6 +35,7 @@ import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { openExternalUrl } from '@/utils/capacitor'
 import { profileUrl } from '@/utils/native-routes'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -2326,9 +2327,9 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                                       selectedUserId}
                             </span>
                         </span>
-                        <button onClick={handleResetView} className="ml-2 font-semibold underline">
+                        <LinkButton onClick={handleResetView} className="ml-2">
                             {t('invitesGraph.clear')}
-                        </button>
+                        </LinkButton>
                     </div>
                 )}
             </div>
