@@ -12,17 +12,14 @@ const Checkbox = ({ className, label, value, onChange }: CheckboxProps) => (
     <label
         className={`group relative inline-flex cursor-pointer items-start select-none tap-highlight-color ${className}`}
     >
-        <input
-            className="invisible absolute top-0 left-0 opacity-0"
-            type="checkbox"
-            onChange={onChange}
-            checked={value}
-        />
+        {/* sr-only keeps the native input focusable for keyboard and assistive
+            tech; the visible box below mirrors its focus ring */}
+        <input className="peer sr-only" type="checkbox" onChange={onChange} checked={value} />
         {/* no figma checkbox board exists yet (form board 17802:61539 has no
             checkbox rows) — styled with semantic tokens, flagged for design */}
         <span
             className={twMerge(
-                'relative flex h-5 w-5 shrink-0 items-center justify-center rounded-sm border border-border-default bg-background-default transition-colors duration-instant',
+                'relative flex h-5 w-5 shrink-0 items-center justify-center rounded-sm border border-border-default bg-background-default transition-colors duration-instant peer-focus-visible:ring-2 peer-focus-visible:ring-action-primary peer-focus-visible:ring-offset-2',
                 value && 'bg-action-primary'
             )}
         >
