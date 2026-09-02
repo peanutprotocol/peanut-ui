@@ -12,7 +12,7 @@
  * terminal classification and restores a futile retry.
  */
 
-import { initiateSumsubKyc, isTerminalActionCode } from '@/app/actions/sumsub'
+import { initiateSumsubKyc, isTerminalActionCode, restartIdentityVerification } from '@/app/actions/sumsub'
 import { serverFetch } from '@/utils/api-fetch'
 
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
@@ -84,5 +84,36 @@ describe('initiateSumsubKyc — backend refusals', () => {
 
         expect(result.data?.token).toBe('tok')
         expect(result.error).toBeUndefined()
+    })
+})
+
+describe('restartIdentityVerification — wire shape', () => {
+    const okResponse = () =>
+        ({
+            ok: true,
+            json: async () => ({ token: 'tok', levelName: 'general', applicantId: 'app-1' }),
+        }) as unknown as Response
+
+    it('posts the region intent as JSON so the backend mints the matching level', async () => {
+        mockFetch.mockResolvedValue(okResponse())
+        const result = await restartIdentityVerification('LATAM')
+        expect(mockFetch).toHaveBeenCalledWith(
+            '/users/identity/restart',
+            expect.objectContaining({
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ regionIntent: 'LATAM' }),
+            })
+        )
+        expect(result.data?.token).toBe('tok')
+    })
+
+    it('sends an empty body without an intent, and drops one outside the known set', async () => {
+        mockFetch.mockResolvedValue(okResponse())
+        await restartIdentityVerification()
+        expect(mockFetch).toHaveBeenLastCalledWith('/users/identity/restart', expect.objectContaining({ body: '{}' }))
+
+        await restartIdentityVerification('BOGUS' as never)
+        expect(mockFetch).toHaveBeenLastCalledWith('/users/identity/restart', expect.objectContaining({ body: '{}' }))
     })
 })

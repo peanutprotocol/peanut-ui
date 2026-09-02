@@ -19,7 +19,7 @@ jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
 let mockUser: {
-    user?: { activationMilestone?: string }
+    user?: { activationMilestone?: string; firstPaymentAt?: string | null }
     residence?: { declared: string | null; verified: string | null }
 } | null = null
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser }) }))
@@ -82,6 +82,21 @@ describe('GettingStartedChecklist', () => {
         render()
         const addMoney = screen.getByText('Add money').closest('button')
         expect(addMoney).toBeDisabled()
+    })
+
+    // Any outgoing peer payment (a send to a saved contact included) completes
+    // the row, even though activation itself stays card/QR spend only.
+    it('marks the first payment done once the user has sent money to anyone', () => {
+        mockRestrictions = { banking: false, card: true }
+        // verified but not yet funded keeps the list on screen; the payment row
+        // alone completes from the peer-payment fact
+        mockUser = {
+            user: { activationMilestone: 'verified', firstPaymentAt: '2026-09-01T10:00:00.000Z' },
+            residence: { declared: 'BR', verified: 'BR' },
+        }
+        render()
+        expect(screen.getByText('Make your first payment').closest('button')).toBeDisabled()
+        expect(screen.getByText('Add money').closest('button')).not.toBeDisabled()
     })
 
     it('third slot is the card when eligible, and it routes to /card', () => {

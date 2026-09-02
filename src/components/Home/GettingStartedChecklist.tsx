@@ -47,6 +47,7 @@ const GettingStartedChecklist = () => {
     const { overview } = useRainCardOverview()
 
     const milestone = user?.user?.activationMilestone ?? 'registered'
+    const hasSentPayment = !!user?.user?.firstPaymentAt
     const isVerified = milestone === 'verified' || milestone === 'funded' || milestone === 'activated'
     const isFunded = milestone === 'funded' || milestone === 'activated'
     const hasActiveCard = !!findActiveCard(overview)
@@ -72,7 +73,7 @@ const GettingStartedChecklist = () => {
                   id: 'first-payment',
                   label: t('firstPayment'),
                   sub: t('firstPaymentNote'),
-                  done: milestone === 'activated',
+                  done: milestone === 'activated' || hasSentPayment,
                   onTap: tap('first-payment', () => router.push('/send')),
               }
         return [
@@ -89,7 +90,7 @@ const GettingStartedChecklist = () => {
             },
             thirdItem,
         ]
-    }, [cardAvailable, hasActiveCard, isFunded, isVerified, milestone, router, t])
+    }, [cardAvailable, hasActiveCard, hasSentPayment, isFunded, isVerified, milestone, router, t])
 
     const allDone = items.every((item) => item.done)
 

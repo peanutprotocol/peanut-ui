@@ -131,6 +131,10 @@ export interface RestartIdentityResponse {
  * "Verify with a different document" CTA on a Manteca rail that's blocked
  * because the user verified with a non-AR/BR document.
  */
+// The intents the restart route accepts; a server action is a public endpoint,
+// so anything else is dropped here rather than forwarded.
+const RESTART_REGION_INTENTS: ReadonlySet<string> = new Set(['LATAM', 'ROW', 'EU', 'NA'])
+
 export const restartIdentityVerification = async (
     regionIntent?: KYCRegionIntent
 ): Promise<{
@@ -139,10 +143,11 @@ export const restartIdentityVerification = async (
     code?: SumsubActionErrorCode
 }> => {
     try {
+        const intent = regionIntent && RESTART_REGION_INTENTS.has(regionIntent) ? regionIntent : undefined
         const response = await serverFetch('/users/identity/restart', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(regionIntent ? { regionIntent } : {}),
+            body: JSON.stringify(intent ? { regionIntent: intent } : {}),
         })
         const responseJson = await response.json()
         if (!response.ok) {

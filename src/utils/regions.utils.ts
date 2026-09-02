@@ -119,7 +119,8 @@ export const getRegionIntent = (regionPath: string): KYCRegionIntent => {
  */
 export const regionIntentForResidence = (iso2: string): KYCRegionIntent => {
     const code = iso2.toUpperCase()
-    if (code === 'BR' || code === 'AR' || code === 'CO') return 'LATAM'
+    // Colombia is not in the live Manteca set (its bank rail is deactivated)
+    if (code === 'BR' || code === 'AR') return 'LATAM'
     if (code === 'US' || code === 'MX') return 'NA'
     if (isBridgeSupportedCountry(code)) return 'EU'
     return 'ROW'

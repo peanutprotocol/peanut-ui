@@ -106,5 +106,7 @@ describe('regionIntentForResidence', () => {
         expect(regionIntentForResidence('PT')).toBe('EU')
         expect(regionIntentForResidence('GB')).toBe('EU')
         expect(regionIntentForResidence('NG')).toBe('ROW')
+        // Colombia's Manteca rail is deactivated: not LATAM until it comes back
+        expect(regionIntentForResidence('CO')).toBe('ROW')
     })
 })
