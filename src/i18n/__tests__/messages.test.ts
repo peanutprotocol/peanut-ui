@@ -32,6 +32,29 @@ describe('marketing message catalogs', () => {
         }
     })
 
+    // the no-fees lettering used to be baked into an SVG, so it silently stayed
+    // English on every locale — assert it is translated everywhere
+    it.each(SUPPORTED_LOCALES.filter((locale) => locale !== DEFAULT_LOCALE))(
+        '%s translates the no-fees lettering',
+        (locale) => {
+            const en = getTranslations(DEFAULT_LOCALE)
+            const messages = getTranslations(locale)
+            expect(messages.landingReallyZero).not.toBe(en.landingReallyZero)
+            expect(messages.landingNoHiddenFees).not.toBe(en.landingNoHiddenFees)
+        }
+    )
+
+    it.each(SUPPORTED_LOCALES)('%s keeps the no-fees lettering uppercase', (locale) => {
+        const messages = getTranslations(locale)
+        expect(messages.landingReallyZero).toBe(messages.landingReallyZero.toUpperCase())
+        expect(messages.landingNoHiddenFees).toBe(messages.landingNoHiddenFees.toUpperCase())
+    })
+
+    // the scribble is drawn around the closing word, so every catalog needs one
+    it.each(SUPPORTED_LOCALES)('%s puts a circleable word last in landingReallyZero', (locale) => {
+        expect(getTranslations(locale).landingReallyZero).toMatch(/\s\S+$/)
+    })
+
     it('falls back to en for an unsupported locale', () => {
         expect(getTranslations('de' as Locale)).toBe(getTranslations(DEFAULT_LOCALE))
     })
