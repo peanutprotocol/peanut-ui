@@ -398,6 +398,37 @@ describe('useSumsubKycFlow — multi-level workflows', () => {
         expect(result.current.isMultiLevel).toBe(true)
     })
 
+    // The backend derives the intent from the declared residence when the caller
+    // names none (the Manteca CTAs), and can overrule one that contradicts it.
+    // `levelName` cannot stand in: EU and NA share `bridge-requirements`, LATAM
+    // and ROW share `general`, and only EU and LATAM run a second level.
+    it('takes the multi-level shape from the intent the backend resolved', async () => {
+        mockRestart.mockResolvedValue({
+            data: { token: 'tok_restart', applicantId: 'app_1', levelName: 'general', regionIntent: 'LATAM' },
+        })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleRestartIdentity()
+        })
+
+        expect(mockRestart).toHaveBeenCalledWith(undefined)
+        expect(result.current.isMultiLevel).toBe(true)
+    })
+
+    it('a resolved ROW intent stays single-level even though it shares a level with LATAM', async () => {
+        mockRestart.mockResolvedValue({
+            data: { token: 'tok_restart', applicantId: 'app_1', levelName: 'general', regionIntent: 'ROW' },
+        })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleRestartIdentity('LATAM')
+        })
+
+        expect(result.current.isMultiLevel).toBe(false)
+    })
+
     // An applicant action is a single level whatever the region — cross-region
     // LATAM mints a `manteca` action token, so it must still close on submit.
     // Every path that closes the SDK must clear the flag, or a later single-level

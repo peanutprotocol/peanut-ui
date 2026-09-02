@@ -124,6 +124,14 @@ export interface RestartIdentityResponse {
     token: string
     levelName: string
     applicantId: string
+    /**
+     * The intent the SERVER resolved. Drive the SDK session from this, not from
+     * what was asked for: the declared residence can overrule the request, and
+     * `levelName` cannot stand in for it (EU and NA share `bridge-requirements`,
+     * LATAM and ROW share `general`, and only EU and LATAM are multi-level).
+     * Optional so a response from an older backend still parses.
+     */
+    regionIntent?: KYCRegionIntent
 }
 
 /**

@@ -116,4 +116,15 @@ describe('restartIdentityVerification — wire shape', () => {
         await restartIdentityVerification('BOGUS' as never)
         expect(mockFetch).toHaveBeenLastCalledWith('/users/identity/restart', expect.objectContaining({ body: '{}' }))
     })
+
+    // The backend resolves the intent from the declared residence and can
+    // overrule what we asked for, so the resolved value has to reach the caller.
+    it('surfaces the intent the backend resolved, not the one we sent', async () => {
+        mockFetch.mockResolvedValue({
+            ok: true,
+            json: async () => ({ token: 'tok', levelName: 'general', applicantId: 'app-1', regionIntent: 'LATAM' }),
+        } as unknown as Response)
+        const result = await restartIdentityVerification()
+        expect(result.data?.regionIntent).toBe('LATAM')
+    })
 })
