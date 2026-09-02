@@ -27,11 +27,6 @@ jest.mock('@/constants/zerodev.consts', () => ({
     PEANUT_WALLET_TOKEN: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
     PEANUT_WALLET_TOKEN_DECIMALS: 6,
 }))
-jest.mock('@/constants/rain.consts', () => ({
-    rainCoordinatorAbi: [
-        { type: 'function', name: 'withdrawAsset', inputs: [], outputs: [], stateMutability: 'nonpayable' },
-    ],
-}))
 const mockSignTypedData = jest.fn()
 jest.mock('@/context/kernelClient.context', () => ({
     useKernelClient: () => ({
@@ -39,10 +34,14 @@ jest.mock('@/context/kernelClient.context', () => ({
         rebuildClientForChain: jest.fn(),
     }),
 }))
+const mockAccounts: Array<{ type: string; identifier: string }> = []
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { accounts: [] } }),
+    useAuth: () => ({ user: { accounts: mockAccounts } }),
 }))
-jest.mock('@/hooks/useZeroDev', () => ({ useZeroDev: () => ({ handleSendUserOpEncoded: jest.fn() }) }))
+const mockHandleSendUserOpEncoded = jest.fn()
+jest.mock('@/hooks/useZeroDev', () => ({
+    useZeroDev: () => ({ handleSendUserOpEncoded: mockHandleSendUserOpEncoded }),
+}))
 jest.mock('@/context/ModalsContext', () => ({ useModalsContextOptional: () => undefined }))
 jest.mock('@/hooks/useRainCardOverview', () => ({
     useRainCardOverview: () => ({ overview: { cards: [] } }),
@@ -79,10 +78,10 @@ const PREP = {
     amount: '150000000',
     recipientAddress: RECIPIENT,
     directTransfer: true,
-    adminSalt: '0xsalt',
+    adminSalt: `0x${'a'.repeat(64)}`,
     adminNonce: '1',
-    executorSignature: '0xexecsig',
-    executorSalt: '0xexecsalt',
+    executorSignature: `0x${'b'.repeat(130)}`,
+    executorSalt: `0x${'c'.repeat(64)}`,
     expiresAt: 1234567890,
 }
 
@@ -140,5 +139,40 @@ describe('useSpendBundle — draft back-out boundaries', () => {
             await expect(result.current.spend(spendInput())).rejects.toThrow('gateway timeout')
         })
         expect(mockCancelPreparation).not.toHaveBeenCalled()
+    })
+
+    describe('mixed path — the broadcast boundary sits INSIDE the userop helper', () => {
+        beforeEach(() => {
+            mockAccounts.splice(0, mockAccounts.length, { type: 'peanut-wallet', identifier: ACCOUNT })
+            mockResolveSpendStrategy.mockResolvedValue({ strategy: 'mixed', smartBalance: 50_000_000n })
+            mockPrepareWithdrawal.mockResolvedValue({ ...PREP, directTransfer: false })
+        })
+        afterEach(() => mockAccounts.splice(0, mockAccounts.length))
+
+        it('a dismissed second ceremony (WebAuthn rejection) still cancels — the op was never signed', async () => {
+            mockHandleSendUserOpEncoded.mockImplementationOnce(async (_calls, _chain, opts) => {
+                opts?.onBroadcastAttempt?.()
+                const err = new Error('ceremony dismissed')
+                err.name = 'NotAllowedError'
+                throw err
+            })
+            const { result } = renderHook(() => useSpendBundle(), { wrapper })
+            await act(async () => {
+                await expect(result.current.spend(spendInput())).rejects.toThrow('ceremony dismissed')
+            })
+            expect(mockCancelPreparation).toHaveBeenCalledWith('prep-1')
+        })
+
+        it('a post-broadcast bundler failure is execution-ambiguous — no cancel fires', async () => {
+            mockHandleSendUserOpEncoded.mockImplementationOnce(async (_calls, _chain, opts) => {
+                opts?.onBroadcastAttempt?.()
+                throw new Error('bundler 502')
+            })
+            const { result } = renderHook(() => useSpendBundle(), { wrapper })
+            await act(async () => {
+                await expect(result.current.spend(spendInput())).rejects.toThrow('bundler 502')
+            })
+            expect(mockCancelPreparation).not.toHaveBeenCalled()
+        })
     })
 })

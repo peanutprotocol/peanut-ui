@@ -336,7 +336,15 @@ export const useZeroDev = () => {
             // of a reverted userOp so it can verify migration state against
             // on-chain truth (kernelMigration.utils.ts). Payment flows must
             // instead FAIL a reverted op — throwing is the default.
-            opts?: { returnRevertedReceipt?: boolean }
+            opts?: {
+                returnRevertedReceipt?: boolean
+                /** Fired immediately before the UserOp broadcast — the caller's
+                 *  "failures after this are execution-ambiguous" boundary. A
+                 *  WebAuthn ceremony rejection INSIDE the broadcast call still
+                 *  proves pre-broadcast (an unsigned op cannot submit) — see
+                 *  useSpendBundle's ceremony-rejection carve-out. */
+                onBroadcastAttempt?: () => void
+            }
         ): Promise<{ userOpHash: Hash; receipt: TransactionReceipt | null }> => {
             // demo mode: simulated success, no chain.
             if (isDemoMode()) {
@@ -350,6 +358,7 @@ export const useZeroDev = () => {
             dispatch(zerodevActions.setIsSendingUserOp(true))
 
             let userOpHash: Hash
+            opts?.onBroadcastAttempt?.()
             try {
                 userOpHash = await withCeremonyPurpose('user_op', async () =>
                     client.sendUserOperation({

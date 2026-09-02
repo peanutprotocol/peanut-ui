@@ -35,6 +35,9 @@ export interface MixedEphemeralSpendArgs {
     recipient?: Hex
     requiredUsdcAmount: bigint
     subsequentCalls: { to: Hex; value: bigint; data: Hex }[]
+    /** Fired immediately before the UserOp broadcast — the caller's
+     *  "failures after this are execution-ambiguous" boundary (TASK-21815). */
+    onBroadcastAttempt?: () => void
 }
 
 export type MixedEphemeralSpendResult =
@@ -118,6 +121,7 @@ export async function tryMixedEphemeralSpend(args: MixedEphemeralSpendArgs): Pro
             session.uninstallCall,
         ]
 
+        args.onBroadcastAttempt?.()
         const userOpHash = await session.client.sendUserOperation({
             account: session.account,
             callData: await session.account.encodeCalls(calls),
