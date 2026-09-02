@@ -437,7 +437,7 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                     )}
                 </Card>
 
-                <Notification priority="attention" title={t('bankDetails.doubleCheckTitle')}>
+                <Notification priority="attention" hideIcon title={t('bankDetails.doubleCheckTitle')}>
                     <ul className="list-inside list-disc text-start">
                         {[
                             t('bankDetails.doubleCheckAmount', { amount: formattedCurrencyAmount }),

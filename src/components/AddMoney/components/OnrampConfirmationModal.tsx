@@ -36,7 +36,7 @@ export const OnrampConfirmationModal = ({
                     <DrawerTitle>{t('title')}</DrawerTitle>
                     <div className="flex w-full flex-col gap-4 text-left">
                         <h2 className="mr-auto font-bold">{t('nextStep')}</h2>
-                        <Notification priority="helper" className="w-full">
+                        <Notification priority="helper" hideIcon className="w-full">
                             <ul className="list-inside list-disc text-start">
                                 <li>{t('bankDetailsItem')}</li>
                                 <li>{t('referenceCodeItem')}</li>
