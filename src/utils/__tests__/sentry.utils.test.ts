@@ -124,6 +124,30 @@ describe('fetchWithSentry — expected-response suppression', () => {
         expect(Sentry.captureMessage).not.toHaveBeenCalled()
     })
 
+    it('does NOT report qr-payment/init 409 when the retry guard held the key', async () => {
+        // QR_INIT_IN_PROGRESS is the idempotency guard doing its job: a retry met
+        // the in-flight attempt instead of minting a second Manteca price lock.
+        // Paging on it would page us for every rescued scan.
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(409, { error: 'QR_INIT_IN_PROGRESS' }))
+
+        await fetchWithSentry('https://api.peanut.me/manteca/qr-payment/init', { method: 'POST', body: '{}' })
+
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+    })
+
+    it('DOES report a refused idempotency key — that one means our derivation broke', async () => {
+        /*
+         * QR_INIT_KEY_MISMATCH is deliberately NOT suppressed. The client derives
+         * a key per (scan, amount), so the backend refusing it can only mean our
+         * own key derivation is wrong — exactly the thing Sentry should show us.
+         */
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(409, { error: 'QR_INIT_KEY_MISMATCH' }))
+
+        await fetchWithSentry('https://api.peanut.me/manteca/qr-payment/init', { method: 'POST', body: '{}' })
+
+        expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
+    })
+
     it('DOES report a different qr-payment/init 409 — the status alone must not suppress', async () => {
         global.fetch = jest.fn().mockResolvedValue(mockResponse(409, { error: 'DUPLICATE_PAYMENT_IN_FLIGHT' }))
 
