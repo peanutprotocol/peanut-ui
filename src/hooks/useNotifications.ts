@@ -65,6 +65,9 @@ const getServerSnapshot = () => INITIAL_STATE
 
 let currentExternalId: string | null = null
 let lastLinkedExternalId: string | null = null
+// the login in flight, so a second sync for the same id joins it instead of
+// starting another login() (the double-record race behind TASK-22209)
+let loginInFlight: { id: string; promise: Promise<void> } | null = null
 let disableExternalIdLogin = false
 let hasTrackedModalShown = false
 let initStarted = false
@@ -100,14 +103,21 @@ async function syncExternalIdLink() {
     const id = currentExternalId
     if (id && lastLinkedExternalId !== id) {
         if (disableExternalIdLogin) return
-        try {
-            const adapter = await getOneSignalAdapter()
-            await adapter.login(id)
-            // commit only on success so transient failures retry on the next sync
-            lastLinkedExternalId = id
-        } catch (err: unknown) {
-            handleLoginError(err)
-        }
+        if (loginInFlight?.id === id) return loginInFlight.promise
+        const promise = (async () => {
+            try {
+                const adapter = await getOneSignalAdapter()
+                await adapter.login(id)
+                // commit only on success so transient failures retry on the next sync
+                lastLinkedExternalId = id
+            } catch (err: unknown) {
+                handleLoginError(err)
+            } finally {
+                loginInFlight = null
+            }
+        })()
+        loginInFlight = { id, promise }
+        return promise
     } else if (!id && lastLinkedExternalId !== null) {
         lastLinkedExternalId = null
         try {
