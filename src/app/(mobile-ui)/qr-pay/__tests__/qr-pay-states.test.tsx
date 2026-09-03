@@ -315,6 +315,12 @@ jest.mock('@/context/ModalsContext', () => ({
 }))
 
 // Mock complex UI components that are hard to render in jsdom
+const mockCaptureNetworkTriagedFailure = jest.fn()
+jest.mock('@/utils/network-triage', () => ({
+    ...jest.requireActual('@/utils/network-triage'),
+    captureNetworkTriagedFailure: (...args: unknown[]) => mockCaptureNetworkTriagedFailure(...args),
+}))
+
 jest.mock('@/components/Global/AmountInput', () => ({
     __esModule: true,
     default: (props: any) => (
@@ -1571,6 +1577,43 @@ describe('GROUP 5: Error States', () => {
             expect(message).not.toHaveTextContent(/merchant (can't|cannot|is unable)/i)
         }
     )
+
+    /*
+     * The post-amount re-init, at the call site rather than through the
+     * classifier. An open-amount QR gets a lock with an EMPTY code from the
+     * scan, so its cap verdict only exists once the typed amount is
+     * re-submitted — and that POST creates a real Manteca price lock. Restoring
+     * the old `PIX_MIN_AMOUNT`-only check would put a capped user back on
+     * "unexpected error" with every other test in the suite still green.
+     */
+    it('open-amount cap rejection names the cap at the re-init call site', async () => {
+        mockMantecaApi.initiateQrPayment
+            .mockResolvedValueOnce({ ...reconnectLock, code: '' })
+            .mockRejectedValue(new Error('MANTECA_SOURCE_OVER_MONTHLY_CAP'))
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+        await waitFor(() => {
+            expect(screen.getByText(reconnectLock.paymentRecipientName)).toBeInTheDocument()
+        })
+
+        // The mocked AmountInput drives the USD leg with the same string, so
+        // this is $5 — inside the $100 test balance, which the Pay button gates on.
+        await act(async () => {
+            fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '5' } })
+        })
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+
+        await waitFor(() => {
+            expect(screen.getByText(/remaining monthly limit/i)).toBeInTheDocument()
+        })
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2)
+        expect(screen.queryByText(/unexpected error/i)).not.toBeInTheDocument()
+        // Deterministic rejection, not a transport surprise — no Sentry event.
+        expect(mockCaptureNetworkTriagedFailure).not.toHaveBeenCalled()
+    }, 20_000)
 
     // No ETA promise: mono product/lessons-from-corrections.md records
     // "verification takes 2 minutes" as a correction — that is the happy path,
