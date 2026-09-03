@@ -1,14 +1,15 @@
 'use client'
 
+import { UserAvatar } from '@/components/Avatar/UserAvatar'
 import { Icon } from '@/components/Global/Icons/Icon'
 import InvitesIcon from '@/components/Home/InvitesIcon'
-import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import Link from 'next/link'
 
 interface HomeTopNavProps {
-    avatarName?: string
+    username?: string
+    avatarKey?: string | null
     showRewards: boolean
 }
 
@@ -17,7 +18,7 @@ interface HomeTopNavProps {
  * top-left linking to /profile (Vlad follow-up: one size down from 48),
  * rewards link top-right. The link keeps a 44px hit area via after: inset.
  */
-export function HomeTopNav({ avatarName, showRewards }: HomeTopNavProps) {
+export function HomeTopNav({ username, avatarKey, showRewards }: HomeTopNavProps) {
     const t = useAppTranslations('home')
     const { triggerHaptic } = useAppHaptic()
 
@@ -30,21 +31,12 @@ export function HomeTopNav({ avatarName, showRewards }: HomeTopNavProps) {
                 className="relative block after:absolute after:-inset-1.5"
                 aria-label={t('openProfile')}
             >
-                {/* ds Avatar only (ruled 2026-09-02, TASK-22121): the generated
-                    dot-face experiment is reverted. A user with no name string
-                    still gets an avatar-toned circle (yellow — the palette's
-                    no-name default). */}
-                <AvatarWithBadge
-                    size="extra-small"
-                    name={avatarName}
-                    icon={avatarName ? undefined : 'user'}
-                    className={
-                        avatarName
-                            ? undefined
-                            : 'border border-avatar-yellow-border bg-avatar-yellow text-avatar-yellow-foreground'
-                    }
-                    iconFillColor={avatarName ? undefined : 'var(--color-avatar-yellow-foreground)'}
-                />
+                {/* Own identity: the picked avatar (TASK-22142), or the first
+                    letter of the USERNAME — the same seed as the profile header,
+                    so the letter and its palette never follow the display name.
+                    No username yet still gets an avatar-toned circle (yellow —
+                    the palette's no-name default). */}
+                <UserAvatar name={username} avatarKey={avatarKey} size="extra-small" />
             </Link>
             {showRewards && (
                 <Link

@@ -10,6 +10,7 @@
 // this registry replaced it.
 
 import type { Fixture } from './types'
+import { AVATAR_PICKER_PATH } from '@/components/Avatar/avatar.consts'
 
 // Hugo's overflow case: a username no header was designed for, and a points
 // total that is nine digits with separators.
@@ -355,6 +356,38 @@ export const FIXTURES: Record<string, Fixture> = {
                         needsAcceptance: true,
                     },
                 ],
+            },
+        },
+    },
+
+    // ---------------------------------------------------------------------
+    // Profile avatars (TASK-22142).
+    // ---------------------------------------------------------------------
+    'home-avatar': {
+        route: '/home',
+        about: 'Home top nav wearing a picked basic avatar instead of the initial.',
+        responses: { 'GET /users/me': { user: { avatarKey: 'basic.frog' } } },
+    },
+    'avatar-picker': {
+        route: AVATAR_PICKER_PATH,
+        about: 'Avatar picker open: three Bug Whisperer avatars unlocked above the twenty basics, beetle selected.',
+        responses: {
+            'GET /users/me': {
+                user: {
+                    avatarKey: 'badge.BUG_WHISPERER.beetle',
+                    badges: [
+                        {
+                            id: 'demo-badge-bug-whisperer',
+                            code: 'BUG_WHISPERER',
+                            name: 'Bug Whisperer',
+                            description: 'You found a real bug, reported it, and stayed. We owe you a beer.',
+                            iconUrl: '/badges/bug_whisperer.svg',
+                            color: null,
+                            earnedAt: '2026-08-30T12:00:00.000Z',
+                            isVisible: true,
+                        },
+                    ],
+                },
             },
         },
     },

@@ -56,7 +56,8 @@
             "unknown": "Unknown"
         },
         "exchangeRate": "Exchange rate",
-        "slideToProceed": "Slide to Proceed"
+        "slideToProceed": "Slide to Proceed",
+        "userAvatarAlt": "Avatar for {username}"
     },
     "navigation": {
         "home": "Home",
@@ -2501,7 +2502,9 @@
                 "name": "Skip Pass",
                 "description": "You skipped the waitlist. A friend handed you the key and you walked right in."
             }
-        }
+        },
+        "toastAvatars": "{count, plural, one {# new avatar unlocked} other {# new avatars unlocked}}",
+        "toastChooseAvatar": "Choose avatar"
     },
     "notifications": {
         "setupTitle": "Turn on notifications?",
@@ -3627,5 +3630,17 @@
             "android": "Update Android System WebView"
         },
         "continueAnyway": "Continue anyway"
+    },
+    "avatar": {
+        "title": "Your avatar",
+        "description": "Pick one, or roll the dice for a fresh row of basics.",
+        "fromBadges": "From your badges",
+        "basics": "Basics",
+        "unlocked": "{count} unlocked",
+        "noBadgeAvatars": "Earn a badge and its avatars appear here.",
+        "rollDice": "Roll the dice",
+        "useInitial": "Use my initial instead",
+        "change": "Change avatar",
+        "saveFailed": "Could not save your avatar. Try again."
     }
 }
