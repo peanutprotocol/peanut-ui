@@ -129,12 +129,12 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
             <div className="flex flex-col gap-6">
                 <p className="text-body-s text-foreground-secondary">{t('hiddenNote')}</p>
                 <div className="flex items-center gap-3">
-                    {/* Fixed-height slot keeps the row geometry constant across
-                     * masked / loading / revealed. the 6xl stock size in this repo's
-                     * Tailwind config is font-size 3rem / line-height 3.25rem
-                     * (52px), so the wrapper locks to that — `****`, the
+                    {/* Fixed-height 52px slot keeps the row geometry constant
+                     * across masked / loading / revealed — `****`, the
                      * skeleton, and the real digits all sit centered in the
-                     * same 52px row and the eye button never jumps. */}
+                     * same row and the eye button never jumps. The type token
+                     * (heading-big-input, 52px font / 64px line) centers in
+                     * the slot, so its taller line box never moves the row. */}
                     {/* ph-no-capture: PostHog skips this subtree in session
                      * replays so the revealed PIN digits never land in
                      * recordings. The skeleton + masked '****' state are
@@ -143,7 +143,7 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
                         {loading ? (
                             <div className="h-[52px] w-32 animate-pulse rounded bg-background-disabled" />
                         ) : (
-                            <span className="text-6xl leading-none font-extrabold">{pin ?? '****'}</span>
+                            <span className="text-heading-big-input">{pin ?? '****'}</span>
                         )}
                     </div>
                     <button
