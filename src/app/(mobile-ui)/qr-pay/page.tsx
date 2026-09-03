@@ -276,16 +276,19 @@ export default function QRPayPage() {
         if (isLoadingCapabilities || (!user && !userFetchSettled)) {
             return { kycGateState: QrKycState.LOADING, qrKycUserMessage: noAction, qrKycActionKey: noAction }
         }
-        if (canDo('pay', { provider: 'manteca' })) {
-            return { kycGateState: QrKycState.PROCEED_TO_PAY, qrKycUserMessage: noAction, qrKycActionKey: noAction }
-        }
-        // Above every rail-derived state: Sumsub rejected the document's
-        // jurisdiction, so no rail can ever enable — not even the pool, which
-        // is otherwise residence-agnostic. Without this the user falls through
-        // to REQUIRES_IDENTITY_VERIFICATION (they own no Manteca rail at all)
-        // and is re-offered the verification that just refused them.
+        // Above the enabled-pay return, not just the rail-derived states below.
+        // A terminal jurisdictional refusal is account-wide, but nothing revokes
+        // a pool rail granted by an earlier approval — so a residence change
+        // that re-verifies into a region rejection leaves an ENABLED rail
+        // behind, and ranking `canDo` first would keep the money path open on
+        // an identity we can no longer verify. Deliberately unlike deriveGate's
+        // ready-wins hoist, which exists to stop a STUCK SIBLING rail from
+        // blocking a working one — a refused identity is not a sibling rail.
         if (isRegionRestricted) {
             return { kycGateState: QrKycState.REGION_RESTRICTED, qrKycUserMessage: noAction, qrKycActionKey: noAction }
+        }
+        if (canDo('pay', { provider: 'manteca' })) {
+            return { kycGateState: QrKycState.PROCEED_TO_PAY, qrKycUserMessage: noAction, qrKycActionKey: noAction }
         }
         // Verdict-first via the shared railVerdict collapse (rail.resolved,
         // BE-derived; legacy fallback for older/cached responses). The

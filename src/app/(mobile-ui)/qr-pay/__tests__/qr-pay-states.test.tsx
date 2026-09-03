@@ -709,6 +709,17 @@ describe('GROUP 1: Loading & KYC Gate', () => {
         expect(screen.queryByText('Unlock now')).not.toBeInTheDocument()
     })
 
+    // nothing revokes a pool rail when a later reverification is refused on
+    // jurisdiction, so the enabled-pay shortcut must not outrank the refusal
+    test('a jurisdictional rejection closes the pay path even with an enabled QR rail', () => {
+        setCapabilitiesGate('proceed_to_pay')
+        mockIsRegionRestricted = true
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+        expect(screen.getByText(/doesn't accept documents issued in your country/i)).toBeInTheDocument()
+    })
+
     test('KYC verification in progress shows ActionModal with continue button', () => {
         setCapabilitiesGate('identity_verification_in_progress')
 
