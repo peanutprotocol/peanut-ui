@@ -34,6 +34,11 @@ describe('pickMantecaDepositAddress', () => {
         expect(mockCapture).not.toHaveBeenCalled()
     })
 
+    test('the zero address is syntactically valid but never a recipient — falls back AND reports', () => {
+        expect(pickMantecaDepositAddress('0x0000000000000000000000000000000000000000', FALLBACK)).toBe(FALLBACK)
+        expect(mockCapture).toHaveBeenCalledTimes(1)
+    })
+
     test('a malformed served value falls back AND reports to Sentry', () => {
         expect(pickMantecaDepositAddress('not-an-address', FALLBACK)).toBe(FALLBACK)
         expect(pickMantecaDepositAddress('0x1234', FALLBACK)).toBe(FALLBACK)

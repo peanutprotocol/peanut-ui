@@ -1,4 +1,4 @@
-import { isAddress, type Address } from 'viem'
+import { isAddress, zeroAddress, type Address } from 'viem'
 import * as Sentry from '@sentry/nextjs'
 
 /**
@@ -14,7 +14,12 @@ import * as Sentry from '@sentry/nextjs'
  * see it happening.
  */
 export function pickMantecaDepositAddress(served: unknown, fallback: Address): Address {
-    if (typeof served === 'string' && served.length > 0 && isAddress(served, { strict: false })) {
+    if (
+        typeof served === 'string' &&
+        served.length > 0 &&
+        isAddress(served, { strict: false }) &&
+        served.toLowerCase() !== zeroAddress
+    ) {
         return served as Address
     }
     if (served != null && served !== '') {
