@@ -326,7 +326,7 @@ const HistoryPage = () => {
                                     entry={item}
                                     position={position}
                                     username={user?.user?.username ?? undefined}
-                                    badges={user?.user?.badges}
+                                    badges={displayableBadges(user?.user?.badges ?? [])}
                                 />
                             ) : (
                                 (() => {
