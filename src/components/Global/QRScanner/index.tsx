@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom'
 import { useTranslations } from 'next-intl'
-import { useEffect, useState, type CSSProperties } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
 import { PEANUTMAN } from '@/assets/mascot'
@@ -175,16 +175,13 @@ function ScanRegionOverlay({
                 {/* Icons (2-per-row grid) then paste actions, hanging one XL
                     section gap (24px) below the scan square so the group reads
                     as part of it. Ruled 2026-09-02 (TASK-22121 #20), replacing
-                    the drawer-anchored strip. On short screens the icon grid
-                    hides AND the paste actions fall back to the old
-                    drawer-peek anchor — square-anchored they would sit under
-                    the z-60 drawer and be untappable. The offset comes in as a
-                    CSS var because Tailwind cannot JIT an interpolated value. */}
-                <div
-                    className="pointer-events-auto absolute inset-x-0 top-full z-50 mt-6 flex flex-col items-center [@media(max-height:729px)]:fixed [@media(max-height:729px)]:top-auto [@media(max-height:729px)]:bottom-(--qr-paste-bottom) [@media(max-height:729px)]:mt-0"
-                    style={{ '--qr-paste-bottom': `${QR_DRAWER_PEEK_PX + QR_DRAWER_PASTE_GAP_PX}px` } as CSSProperties}
-                >
-                    <div className="grid grid-cols-2 gap-2 [@media(max-height:729px)]:hidden">
+                    the drawer-anchored strip. Tall viewports only: the short
+                    fallback below cannot live in this subtree, because the
+                    square's transform makes it the containing block for
+                    position:fixed — a bottom offset here would resolve against
+                    the 256px square, not the viewport. */}
+                <div className="pointer-events-auto absolute inset-x-0 top-full z-50 mt-6 hidden flex-col items-center [@media(min-height:730px)]:flex">
+                    <div className="grid grid-cols-2 gap-2">
                         {PAYMENT_METHODS.map((method) => (
                             <PaymentMethodBadge
                                 key={method.name ?? 'evm'}
@@ -194,6 +191,27 @@ function ScanRegionOverlay({
                             />
                         ))}
                     </div>
+                    <PasteActions
+                        onPaste={onPaste}
+                        detectedAddress={detectedAddress}
+                        onUseDetected={onUseDetected}
+                        showPasteChip={showPasteChip}
+                        onUsePasteChip={onUsePasteChip}
+                    />
+                </div>
+            </div>
+
+            {/* Short-viewport fallback: a viewport-fixed sibling OUTSIDE the
+                transformed square, anchored a gap above the drawer peek (the
+                pre-#20 geometry). Only one copy is displayed at a time — the
+                media queries are complementary, and display:none removes the
+                hidden copy from the a11y tree and tab order. The offset is a
+                CSS var because Tailwind cannot JIT an interpolated value. */}
+            <div
+                className="pointer-events-none fixed inset-x-0 z-50 hidden flex-col items-center [@media(max-height:729px)]:flex"
+                style={{ bottom: QR_DRAWER_PEEK_PX + QR_DRAWER_PASTE_GAP_PX }}
+            >
+                <div className="pointer-events-auto flex flex-col items-center">
                     <PasteActions
                         onPaste={onPaste}
                         detectedAddress={detectedAddress}

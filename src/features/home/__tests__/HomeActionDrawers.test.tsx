@@ -75,7 +75,7 @@ describe('HomeActionDrawers', () => {
         renderWithUrl('?drawer=add')
 
         fireEvent.click(screen.getByTestId('home-drawer-add-bank'))
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money?method=bank'))
 
         fireEvent.click(screen.getByTestId('home-drawer-add-crypto'))
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/crypto'))

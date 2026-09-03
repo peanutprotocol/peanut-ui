@@ -156,7 +156,7 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     badges: { route: '/badges', about: 'Badge wall with three earned badges.' },
     history: { route: '/history', about: 'Activity list, four entries, both directions.' },
-    'add-money': { route: '/add-money', about: 'Add money: the bank-transfer country list.' },
+    'add-money': { route: '/add-money?method=bank', about: 'Add money: the bank-transfer country list.' },
     'add-money-crypto': { route: '/add-money/crypto', about: 'Crypto deposit: the network picker.' },
     withdraw: {
         route: '/withdraw',

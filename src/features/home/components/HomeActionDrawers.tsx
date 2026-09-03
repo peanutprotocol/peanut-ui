@@ -46,8 +46,9 @@ const DRAWER_OPTIONS: Record<HomeDrawer, DrawerOption[]> = {
         },
     ],
     add: [
-        { key: 'bank', titleKey: ['methods', 'bankTransfer'], icon: 'bank', href: '/add-money' },
+        // crypto first: the KYC-free path leads per product/activation-funnel.md
         { key: 'crypto', titleKey: ['methods', 'crypto'], icon: 'credit-card', href: '/add-money/crypto' },
+        { key: 'bank', titleKey: ['methods', 'bankTransfer'], icon: 'bank', href: '/add-money?method=bank' },
     ],
 }
 

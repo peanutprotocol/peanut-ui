@@ -970,26 +970,27 @@ beforeEach(() => {
 // screen is gone — crypto is linked directly from the home Add drawer)
 // ============================================================
 describe('GROUP 1: Landing', () => {
-    test('root shows the crypto row first, then the country list', () => {
+    test('bare /add-money redirects to the home add drawer (nuqs url state)', () => {
         renderWithProviders(<AddMoneyPage />)
 
-        // funnel rule: the KYC-free crypto path is listed first
-        expect(screen.getByText('Crypto')).toBeInTheDocument()
-        expect(screen.getByTestId('country-list')).toBeInTheDocument()
-        expect(screen.getByText('Select your country')).toBeInTheDocument()
+        // the drawer offers crypto AND bank, so generic entries lose nothing
+        expect(mockRouterReplace).toHaveBeenCalledWith('/home?drawer=add')
+        expect(screen.queryByTestId('country-list')).not.toBeInTheDocument()
     })
 
-    test('crypto row navigates to /add-money/crypto', () => {
+    test('?method=bank shows the country list', () => {
+        resetQueryState({ method: 'bank' })
         renderWithProviders(<AddMoneyPage />)
 
-        fireEvent.click(screen.getByText('Crypto'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/crypto')
+        expect(screen.getByTestId('country-list')).toBeInTheDocument()
+        expect(screen.getByText('Select your country')).toBeInTheDocument()
     })
 
     // TASK-20033: picking a bank-supported country skips the redundant per-country
     // method list and goes straight to the deposit screen (Manteca for AR/BR,
     // Bridge bank otherwise). Coming-soon countries keep the per-country screen.
     test('selecting a Manteca country (AR/BR) goes straight to the manteca deposit', () => {
+        resetQueryState({ method: 'bank' })
         renderWithProviders(<AddMoneyPage />)
 
         fireEvent.click(screen.getByTestId('country-argentina'))
@@ -997,6 +998,7 @@ describe('GROUP 1: Landing', () => {
     })
 
     test('selecting a Bridge-supported country goes straight to the bank deposit', () => {
+        resetQueryState({ method: 'bank' })
         renderWithProviders(<AddMoneyPage />)
 
         fireEvent.click(screen.getByTestId('country-germany'))
@@ -1004,6 +1006,7 @@ describe('GROUP 1: Landing', () => {
     })
 
     test('selecting a coming-soon country keeps the per-country method screen', () => {
+        resetQueryState({ method: 'bank' })
         renderWithProviders(<AddMoneyPage />)
 
         fireEvent.click(screen.getByTestId('country-chad'))
@@ -1011,6 +1014,7 @@ describe('GROUP 1: Landing', () => {
     })
 
     test('back from the country list navigates to /home', () => {
+        resetQueryState({ method: 'bank' })
         renderWithProviders(<AddMoneyPage />)
 
         fireEvent.click(screen.getByTestId('nav-header'))
@@ -1021,6 +1025,7 @@ describe('GROUP 1: Landing', () => {
     // strand the user: back reset to /home instead of the screen they came from.
     test('back honours ?returnTo when the flow was entered from another screen', () => {
         mockSearchParams.set('returnTo', '/profile/exchange-rate?from=USD&to=EUR')
+        resetQueryState({ method: 'bank' })
         renderWithProviders(<AddMoneyPage />)
 
         fireEvent.click(screen.getByTestId('nav-header'))
@@ -1030,6 +1035,7 @@ describe('GROUP 1: Landing', () => {
 
     test('back ignores an off-origin ?returnTo and still resets to /home', () => {
         mockSearchParams.set('returnTo', 'https://evil.example/phish')
+        resetQueryState({ method: 'bank' })
         renderWithProviders(<AddMoneyPage />)
 
         fireEvent.click(screen.getByTestId('nav-header'))

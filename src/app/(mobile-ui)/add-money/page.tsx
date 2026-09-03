@@ -1,8 +1,6 @@
 'use client'
 
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import AddWithdrawCountriesList from '@/components/AddWithdraw/AddWithdrawCountriesList'
 import dynamic from 'next/dynamic'
 
@@ -15,6 +13,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
+import { useQueryState, parseAsStringEnum } from 'nuqs'
 import { getRedirectUrl, clearRedirectUrl, getFromLocalStorage } from '@/utils/general.utils'
 import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
 import { isBridgeSupportedCountry } from '@/utils/regions.utils'
@@ -29,6 +28,7 @@ export default function AddMoneyPage() {
     const searchParams = useSearchParams()
     const t = useTranslations('addMoney')
     const { resetOnrampFlow } = useOnrampFlow()
+    const [method] = useQueryState('method', parseAsStringEnum(['bank']))
 
     // native app passes country as query param instead of path segment
     const countryFromQuery = searchParams.get('country')
@@ -48,7 +48,8 @@ export default function AddMoneyPage() {
             const params = new URLSearchParams()
             const origin = searchParams.get(RETURN_TO_PARAM)
             if (origin) params.set(RETURN_TO_PARAM, origin)
-            router.push(params.size ? `/add-money?${params.toString()}` : '/add-money')
+            params.set('method', 'bank')
+            router.push(`/add-money?${params.toString()}`)
             return
         }
 
@@ -99,6 +100,16 @@ export default function AddMoneyPage() {
         }
     }
 
+    // Bare /add-money (no method, no country) is not a screen of its own any
+    // more: it opens the home page's Add drawer through its nuqs url state
+    // (?drawer=add), so direct links and generic entries (checklists, CTAs,
+    // lifecycle emails) land on a surface that offers crypto AND bank. The
+    // country list lives on the explicit ?method=bank.
+    const isBareRoot = !method && !searchParams.get('country')
+    useEffect(() => {
+        if (isBareRoot) router.replace('/home?drawer=add')
+    }, [isBareRoot, router])
+
     // native app: render sub-views based on query params
     const viewFromQuery = searchParams.get('view')
     if (countryFromQuery && viewFromQuery === 'bank') {
@@ -112,22 +123,13 @@ export default function AddMoneyPage() {
         return <AddWithdrawCountriesList flow="add" />
     }
 
-    // The old "How would you like to add money?" interstitial is gone: the
-    // root is one screen — the KYC-free crypto row FIRST (the activation
-    // funnel rule in product/activation-funnel.md), then the bank country
-    // list. Generic entries (checklists, CTAs, lifecycle emails) land here,
-    // so crypto must stay reachable without the home Add drawer.
+    // redirecting — render nothing for the one frame before replace() lands
+    if (isBareRoot) return null
+
+    // ?method=bank: the bank country list (board Page/Add/Bank 17830:77534)
     return (
         <PageStack>
-            <NavHeader title={t('title')} onPrev={handleBack} />
-            <ListItem
-                title={t('methods.crypto')}
-                body={t('methods.cryptoDescription')}
-                leading={<IconBubble icon="currency" size="s" color="blue" />}
-                chevron
-                position="single"
-                onClick={() => router.push('/add-money/crypto')}
-            />
+            <NavHeader title={t('methods.bankTransfer')} onPrev={handleBack} />
             <CountryList
                 inputTitle={t('selectYourCountry')}
                 viewMode="add-withdraw"
