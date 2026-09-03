@@ -149,6 +149,9 @@ export default function QRPayPage() {
             [QR_INIT_CODE.DECODE]: qrType === EQrType.PIX ? t('errors.pixDecode') : t('errors.genericDecode'),
             [QR_INIT_CODE.PROVIDER_UNAVAILABLE]: t('errors.providerIssues', { method: qrMethodName }),
             [QR_INIT_CODE.IN_PROGRESS]: t('errors.providerIssues', { method: qrMethodName }),
+            // Never expected from this screen — it derives a key per (scan,
+            // amount). If it happens, it is ours to fix, not the user's.
+            [QR_INIT_CODE.KEY_MISMATCH]: t('errors.initiateUnexpected'),
             offline: t('errors.connectionLost'),
             'auth-missing': t('errors.authError'),
             'provider-issues': t('errors.providerIssues', { method: qrMethodName }),
