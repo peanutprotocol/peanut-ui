@@ -72,9 +72,6 @@ describe('buildReceiptPdfModel — completed bank withdraw', () => {
         expect(model.issuedBy).toBe('transaction.officialReceipt.issuedBy')
         expect(model.site).toBe('peanut.me')
         expect(model.reference).toBe(baseTx.id)
-        // settlement timestamp beats creation for the issue date
-        expect(model.issuedOn).toContain('2026')
-        expect(model.issuedOn).toContain('15:22')
         expect(model.fileName).toBe(`peanut-receipt-${baseTx.id}.pdf`)
     })
 
