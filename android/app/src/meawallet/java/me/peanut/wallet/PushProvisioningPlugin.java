@@ -10,12 +10,17 @@ import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.google.android.gms.tapandpay.TapAndPay;
 import com.google.android.gms.tapandpay.issuer.TokenInfo;
 import com.google.android.gms.tapandpay.issuer.UserAddress;
 import com.meawallet.mpp.GooglePayRegisteredTokensListener;
+import com.meawallet.mpp.GooglePayTokenInfo;
+import com.meawallet.mpp.GooglePayTokenListener;
+import com.meawallet.mpp.GooglePayTokenizeListener;
 import com.meawallet.mpp.MeaPushProvisioning;
 import com.meawallet.mpp.MppCardDataParameters;
 import com.meawallet.mpp.MppError;
+import com.meawallet.mpp.MppErrorCode;
 import com.meawallet.mpp.MppPaymentNetwork;
 import com.meawallet.mpp.MppPushCardToGooglePayListener;
 
@@ -78,9 +83,16 @@ public class PushProvisioningPlugin extends Plugin {
         MeaPushProvisioning.GooglePay.checkWalletForCardSuffix(last4, new GooglePayRegisteredTokensListener() {
             @Override
             public void onSuccess(@NonNull List<TokenInfo> tokens) {
+                boolean provisioned = false;
+                for (TokenInfo token : tokens) {
+                    if (isProvisioned(token.getTokenState())) {
+                        provisioned = true;
+                        break;
+                    }
+                }
                 JSObject out = new JSObject();
-                out.put("available", tokens.isEmpty());
-                out.put("alreadyInWallet", !tokens.isEmpty());
+                out.put("available", !provisioned);
+                out.put("alreadyInWallet", provisioned);
                 call.resolve(out);
             }
 
@@ -94,6 +106,17 @@ public class PushProvisioningPlugin extends Plugin {
                 call.resolve(out);
             }
         });
+    }
+
+    /**
+     * Only a token Google has finished provisioning counts as "already added".
+     * checkWalletForCardSuffix also returns tokens in the yellow path
+     * (TOKEN_STATE_NEEDS_IDENTITY_VERIFICATION) and ones still pending: those
+     * are registered to the wallet but unusable, and addCard resumes them via
+     * tokenize(), so the native row has to stay reachable for them.
+     */
+    private static boolean isProvisioned(int tokenState) {
+        return tokenState == TapAndPay.TOKEN_STATE_ACTIVE || tokenState == TapAndPay.TOKEN_STATE_SUSPENDED;
     }
 
     @PluginMethod
@@ -118,6 +141,58 @@ public class PushProvisioningPlugin extends Plugin {
         String displayName = call.getString("displayName", "Peanut Card");
         UserAddress userAddress = buildUserAddress(call);
 
+        // A token the wallet already holds cannot be pushed again: pushCard on a
+        // yellow-path token fails instead of resuming it, which is the only way
+        // the user can finish identity verification. Look the token up first and
+        // branch; anything we can't classify falls through to the normal push, so
+        // a lookup failure is never worse than not looking.
+        MeaPushProvisioning.GooglePay.checkWalletForCardToken(cardParams, new GooglePayTokenListener() {
+            @Override
+            public void onSuccess(@NonNull GooglePayTokenInfo token) {
+                switch (token.getTokenState()) {
+                    case TOKEN_STATE_NEEDS_IDENTITY_VERIFICATION:
+                    case TOKEN_STATE_PENDING:
+                    case TOKEN_STATE_FELICA_PENDING_PROVISIONING:
+                        resumeTokenization(call, token, displayName, activity);
+                        return;
+                    case TOKEN_STATE_ACTIVE:
+                    case TOKEN_STATE_SUSPENDED: {
+                        JSObject out = new JSObject();
+                        out.put("added", false);
+                        out.put("alreadyInWallet", true);
+                        call.resolve(out);
+                        return;
+                    }
+                    default:
+                        pushNewCard(call, cardParams, displayName, userAddress, activity);
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull MppError error) {
+                pushNewCard(call, cardParams, displayName, userAddress, activity);
+            }
+        });
+    }
+
+    /** Yellow path: the token exists but Google still needs the ID&V challenge. */
+    private static void resumeTokenization(PluginCall call, GooglePayTokenInfo token, String displayName, Activity activity) {
+        MeaPushProvisioning.GooglePay.tokenize(token, displayName, activity, new GooglePayTokenizeListener() {
+            @Override
+            public void onSuccess() {
+                JSObject out = new JSObject();
+                out.put("added", true);
+                call.resolve(out);
+            }
+
+            @Override
+            public void onFailure(@NonNull MppError error) {
+                call.resolve(failure(error));
+            }
+        });
+    }
+
+    private static void pushNewCard(PluginCall call, MppCardDataParameters cardParams, String displayName, UserAddress userAddress, Activity activity) {
         // LEGACY flow on purpose: pushCard(...) is Google's TSP-only Push
         // Provisioning, push(...) (same signature) is Unified Push Provisioning.
         // Rain does not support UPP yet (docs.rain.xyz/docs/push-provisioning);
@@ -136,12 +211,25 @@ public class PushProvisioningPlugin extends Plugin {
 
             @Override
             public void onFailure(MppError error) {
-                JSObject out = new JSObject();
-                out.put("added", false);
-                out.put("error", error != null ? error.getMessage() : "unknown");
-                call.resolve(out);
+                call.resolve(failure(error));
             }
         });
+    }
+
+    /**
+     * Closing the Google Pay sheet arrives as a failure, not a distinct callback.
+     * The JS layer has a quiet canceled path — without this it would report a
+     * failed provisioning and show the red toast for a deliberate dismissal.
+     */
+    private static JSObject failure(MppError error) {
+        JSObject out = new JSObject();
+        out.put("added", false);
+        if (error != null && error.getCode() == MppErrorCode.OPERATION_CANCELLED_BY_USER) {
+            out.put("canceled", true);
+            return out;
+        }
+        out.put("error", error != null ? error.getMessage() : "unknown");
+        return out;
     }
 
     /**

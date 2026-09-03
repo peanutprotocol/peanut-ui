@@ -71,7 +71,7 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
         } finally {
             setIsAdding(false)
         }
-    }, [card.id, card.last4])
+    }, [card.id])
 
     return { nativeAvailable, isAdding, addToWallet }
 }

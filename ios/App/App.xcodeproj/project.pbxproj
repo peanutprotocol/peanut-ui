@@ -368,7 +368,7 @@
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = PushProvisioningExtensionUI/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.0.53;
 				PRODUCT_BUNDLE_IDENTIFIER = me.peanut.wallet.PushProvisioningExtensionUI;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -544,7 +544,7 @@
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = PushProvisioningExtensionUI/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.0.53;
 				PRODUCT_BUNDLE_IDENTIFIER = me.peanut.wallet.PushProvisioningExtensionUI;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -563,7 +563,7 @@
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = PushProvisioningExtension/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.0.53;
 				PRODUCT_BUNDLE_IDENTIFIER = me.peanut.wallet.PushProvisioningExtension;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -582,7 +582,7 @@
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = PushProvisioningExtension/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.0.53;
 				PRODUCT_BUNDLE_IDENTIFIER = me.peanut.wallet.PushProvisioningExtension;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
