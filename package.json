@@ -67,7 +67,7 @@
         "@capgo/capacitor-crisp": "^8.0.27",
         "@capgo/capacitor-native-biometric": "8.6.0",
         "@capgo/capacitor-passkey": "^8.2.2",
-        "@capgo/capacitor-updater": "^8.45.9",
+        "@capgo/capacitor-updater": "8.51.14",
         "@headlessui/react": "^2.2.9",
         "@headlessui/tailwindcss": "^0.2.1",
         "@justaname.id/react": "0.4.0",
