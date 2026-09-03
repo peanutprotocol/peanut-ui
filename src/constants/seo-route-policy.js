@@ -77,7 +77,8 @@ const ROBOTS_DISALLOWED_PATHS = Object.freeze([
     '/withdraw',
 ])
 
-// GSC shows these exact shells (or their invite query variants) in Google's
+// GSC shows these exact shells (or their invite query variants — ?invited_by=
+// is what peanut-ui emits since ui#2828, ?code= the legacy alias) in Google's
 // index. They need a narrow crawl exception so search engines can observe and
 // refresh the X-Robots-Tag. Descendant transaction/profile URLs remain
 // blocked. Keep the exceptions while these routes exist; only remove one once
@@ -89,6 +90,7 @@ const GOOGLE_DEINDEX_CRAWL_ALLOW_PATHS = Object.freeze([
     '/setup$',
     '/invite$',
     '/invite?code=',
+    '/invite?invited_by=',
 ])
 
 const NOINDEX_HEADER = Object.freeze({ key: 'X-Robots-Tag', value: 'noindex, nofollow' })
