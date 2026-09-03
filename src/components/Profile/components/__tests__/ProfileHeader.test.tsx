@@ -49,7 +49,9 @@ afterAll(() => {
     Object.defineProperty(window, 'location', { value: originalLocation, writable: true })
 })
 
-const sharePill = () => screen.queryByRole('button', { name: 'peanut.example.org/satoshi' })
+// the label is two elements now — grey domain, black handle — so the accessible
+// name can carry the join whitespace between them
+const sharePill = () => screen.queryByRole('button', { name: /^peanut\.example\.org\/\s*satoshi$/ })
 
 describe('ProfileHeader share pill', () => {
     // Wrong-attribution guard: `showShareButton` defaults to true, so a caller
@@ -103,5 +105,22 @@ describe('ProfileHeader share pill', () => {
             source: REFERRAL_SOURCES.PROFILE_HEADER,
             link_type: 'profile',
         })
+    })
+
+    // One border, two hit areas. Nesting the picker inside the share button
+    // would be invalid html and would hand the avatar's tap to the share.
+    it('keeps the avatar picker beside the share button, not inside it', () => {
+        const onChangeAvatar = jest.fn()
+        renderWithIntl(
+            <ProfileHeader name="Satoshi" username="satoshi" showShareButton onChangeAvatar={onChangeAvatar} />
+        )
+
+        const picker = screen.getByRole('button', { name: 'Change avatar' })
+        expect(sharePill()!.contains(picker)).toBe(false)
+
+        fireEvent.click(picker)
+
+        expect(onChangeAvatar).toHaveBeenCalledTimes(1)
+        expect(posthog.capture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, expect.anything())
     })
 })
