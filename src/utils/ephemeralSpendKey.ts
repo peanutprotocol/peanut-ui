@@ -34,7 +34,7 @@ import {
 import { rainCoordinatorAbi } from '@/constants/rain.consts'
 
 /*
- * Per-transaction ephemeral session key (SESSION_KEY_SPEND flag).
+ * Per-transaction ephemeral session key for the one-tap mixed spend.
  *
  * One passkey tap signs a permission-enable for a throwaway ECDSA key whose
  * authority is enforced ON-CHAIN by the kernel's permission validator, scoped
