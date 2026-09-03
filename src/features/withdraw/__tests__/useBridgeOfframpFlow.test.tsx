@@ -59,10 +59,21 @@ jest.mock('@/utils/bridge-accounts.utils', () => ({
     getBridgeChainName: () => 'arbitrum',
 }))
 
+// mutable country so the GB/MX rail-minimum cases can flip the destination
+let mockCountryId = 'US'
 jest.mock('@/utils/bridge.utils', () => ({
     getOfframpConfigFromAccount: () => ({ currency: 'usd', paymentRail: 'ach' }),
-    getCountryFromPath: () => ({ id: 'US', name: 'United States' }),
+    getCountryFromPath: () => ({ id: mockCountryId, name: 'Testland' }),
     railJurisdictionForBank: () => 'US',
+    // mirrors the real per-country local-currency minimums ($1 / £3 / 50 MXN)
+    getMinimumAmount: (id: string) => (id === 'MX' ? 50 : id === 'GB' || id === 'GBR' ? 3 : 1),
+}))
+
+// sell rate: local currency per 1 USD (0.79 GBP ≈ 1 USD → £3 ≈ $4)
+let mockExchangeRate: string | undefined = '0.79'
+jest.mock('@/hooks/useGetExchangeRate', () => ({
+    __esModule: true,
+    default: () => ({ exchangeRate: mockExchangeRate, isFetchingRate: false }),
 }))
 
 jest.mock('@/utils/regions.utils', () => ({
@@ -185,6 +196,8 @@ beforeEach(() => {
     jest.clearAllMocks()
     mockGateKind = 'ready'
     mockBalance = 100n * 10n ** 6n
+    mockCountryId = 'US'
+    mockExchangeRate = '0.79'
 })
 
 // ---------- tests ----------
@@ -210,7 +223,7 @@ describe('useBridgeOfframpFlow — submit path (Chip review round 4)', () => {
         const view = renderFlow({ amount: '50', step: 'review' })
 
         // first render: capabilities + balance still loading — the click no-ops
-        expect(view.result.current.isBalanceReady).toBe(false)
+        expect(view.result.current.isSubmitReady).toBe(false)
         await act(async () => {
             view.result.current.handleCreateAndInitiateOfframp()
         })
@@ -220,7 +233,7 @@ describe('useBridgeOfframpFlow — submit path (Chip review round 4)', () => {
         mockGateKind = 'ready'
         mockBalance = 100n * 10n ** 6n
         view.rerender()
-        expect(view.result.current.isBalanceReady).toBe(true)
+        expect(view.result.current.isSubmitReady).toBe(true)
 
         await act(async () => {
             view.result.current.handleCreateAndInitiateOfframp()
@@ -257,6 +270,46 @@ describe('useBridgeOfframpFlow — submit path (Chip review round 4)', () => {
             showError: true,
             errorMessage: 'withdraw.errors.minimumWithdrawal',
         })
+    })
+
+    it('GB: an amount below the converted £3 rail minimum never reaches createOfframp (Chip round 5)', async () => {
+        mockCountryId = 'GB' // £3 ÷ 0.79 → $4 minimum
+        const view = renderFlow({ amount: '2', step: 'review' })
+
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+
+        expect(mockCreateOfframp).not.toHaveBeenCalled()
+        expect(mockSetError).toHaveBeenCalledWith({
+            showError: true,
+            errorMessage: 'withdraw.errors.minimumWithdrawal',
+        })
+    })
+
+    it('GB: an amount above the converted minimum proceeds', async () => {
+        armHappyOfframp()
+        mockCountryId = 'GB'
+        const view = renderFlow({ amount: '5', step: 'review' })
+
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+
+        expect(mockCreateOfframp).toHaveBeenCalledWith(expect.objectContaining({ amount: '5' }))
+    })
+
+    it('GB: while the FX rate behind the minimum loads, submit is not ready and the click no-ops', async () => {
+        armHappyOfframp()
+        mockCountryId = 'GB'
+        mockExchangeRate = undefined
+        const view = renderFlow({ amount: '50', step: 'review' })
+
+        expect(view.result.current.isSubmitReady).toBe(false)
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+        expect(mockCreateOfframp).not.toHaveBeenCalled()
     })
 
     it('a malformed ?amount= never reaches createOfframp', async () => {

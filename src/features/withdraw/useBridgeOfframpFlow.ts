@@ -38,7 +38,9 @@ import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useWithdrawFlow } from './WithdrawFlowContext'
 import { useWithdrawAmount } from './useWithdrawAmount'
 import { bankStepGuards } from './step-guards'
-import { validateBankOfframpAmount } from './amount-validation'
+import { validateBankOfframpAmount, bankWithdrawMinUsd, bankWithdrawMinNeedsRate } from './amount-validation'
+import useGetExchangeRate from '@/hooks/useGetExchangeRate'
+import { AccountType } from '@/interfaces/interfaces'
 import { WITHDRAW_BANK_STEPS } from './types'
 
 /**
@@ -99,6 +101,21 @@ export function useBridgeOfframpFlow() {
     const { gateFor } = useCapabilities()
     const bankCountry = useMemo(() => railJurisdictionForBank(getCountryFromPath(country)?.id), [country])
     const countryFromPath = getCountryFromPath(country)
+
+    // The destination's rail minimum, in USD — the amount step enforces it and
+    // the submit re-checks it (Chip round 5: the flat $1 floor bypassed the
+    // GB £3 / MX 50 MXN minimums). GB/MX minimums are local-currency, so they
+    // convert through the same sell rate the amount step uses; until that rate
+    // loads the submit stays disabled rather than under-enforcing.
+    const countryIso2 = countryFromPath?.id ?? ''
+    const minNeedsRate = bankWithdrawMinNeedsRate(countryIso2)
+    const { exchangeRate } = useGetExchangeRate({
+        accountType:
+            countryIso2 === 'GB' ? AccountType.GB : countryIso2 === 'MX' ? AccountType.CLABE : AccountType.IBAN,
+        enabled: minNeedsRate,
+    })
+    const minUsd = bankWithdrawMinUsd(countryIso2, exchangeRate)
+    const isMinReady = !minNeedsRate || parseFloat(exchangeRate || '0') > 0
     const gate = useMemo(() => gateFor('withdraw', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
     // bridge re-verification ("we're reviewing your details") modal for the
     // waiting-on-provider gate — keeps the status poll alive + auto-dismisses.
@@ -225,11 +242,16 @@ export function useBridgeOfframpFlow() {
             return
         }
 
+        // The GB/MX rail minimum converts through the FX rate — the submit is
+        // disabled until it loads; reaching here early is a race, not a user
+        // error: no-op rather than under-enforce.
+        if (!isMinReady) return
+
         // The amount is a user-editable URL param — revalidate synchronously
         // before anything fires (Chip review, PR #2917): finite, positive, at
-        // or above the Bridge $1 floor, within the displayed balance. The
-        // normalized string is what goes on the wire.
-        const amountCheck = validateBankOfframpAmount(amountToWithdraw, balance)
+        // or above the destination's rail minimum (round 5 — was a flat $1),
+        // within the displayed balance. The normalized string goes on the wire.
+        const amountCheck = validateBankOfframpAmount(amountToWithdraw, balance, minUsd)
         if (!amountCheck.ok) {
             // the submit button is disabled until the balance loads — reaching
             // here with balanceLoading is a race, not a user error: no-op.
@@ -238,7 +260,7 @@ export function useBridgeOfframpFlow() {
                 amountCheck.reason === 'insufficientBalance'
                     ? tErrors('notEnoughBalanceAddFunds')
                     : amountCheck.reason === 'belowMinimum'
-                      ? t('errors.minimumWithdrawal', { amount: '$1' })
+                      ? t('errors.minimumWithdrawal', { amount: `$${minUsd}` })
                       : t('errors.invalidAmount')
             setError({ showError: true, errorMessage })
             return
@@ -420,8 +442,10 @@ export function useBridgeOfframpFlow() {
         step,
         stepper,
         // submit stays disabled until the spendable balance has loaded — an
-        // unloaded balance must not be treated as headroom (Chip round 3)
-        isBalanceReady: balance !== undefined,
+        // unloaded balance must not be treated as headroom (Chip round 3) —
+        // and, for GB/MX, until the FX rate behind the rail minimum has
+        // loaded (Chip round 5)
+        isSubmitReady: balance !== undefined && isMinReady,
         amountToWithdraw,
         bankAccount,
         country,

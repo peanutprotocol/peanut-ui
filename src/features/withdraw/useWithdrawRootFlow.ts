@@ -2,7 +2,8 @@
 
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { getCountryFromAccount, getCountryFromPath, getMinimumAmount } from '@/utils/bridge.utils'
+import { getCountryFromAccount, getCountryFromPath } from '@/utils/bridge.utils'
+import { bankWithdrawMinUsd } from './amount-validation'
 import useGetExchangeRate from '@/hooks/useGetExchangeRate'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { AccountType } from '@/interfaces/interfaces'
@@ -128,15 +129,9 @@ export function useWithdrawRootFlow() {
         // per-network bridge minimums are enforced chain-aware at review time
         // (see withdraw/crypto), once the destination is known.
         if (isCryptoWithdraw) return 0
-        const localMin = getMinimumAmount(countryIso2)
-        // for US or unknown, minimum is already in USD
-        if (!countryIso2 || countryIso2 === 'US') return localMin
-        // for EUR countries, €1 ≈ $1
-        if (localMin === 1) return 1
-        // convert local minimum to USD: sellRate = local currency per 1 USD
-        const rate = parseFloat(exchangeRate || '0')
-        if (rate <= 0) return 1 // fallback while rate is loading
-        return Math.ceil(localMin / rate)
+        // shared with the submit-side re-check in useBridgeOfframpFlow (Chip
+        // round 5) — one conversion, two enforcement points
+        return bankWithdrawMinUsd(countryIso2, exchangeRate)
     }, [isCryptoWithdraw, countryIso2, exchangeRate])
 
     // validate against user's limits for bank withdrawals
