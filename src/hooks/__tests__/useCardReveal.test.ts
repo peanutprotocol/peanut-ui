@@ -103,20 +103,37 @@ describe('useCardReveal', () => {
         expect(captureSpy.mock.calls.at(-1)?.[1]?.error_message).not.toContain('correlationId')
     })
 
-    it('keeps details revealed when the app is backgrounded (blur / hidden)', async () => {
+    it('covers details while hidden and shows them again on resume without a refetch', async () => {
         mockedGetCardDetails.mockResolvedValueOnce(details)
         const { result } = renderHook(() => useCardReveal({ cardId: 'c1', autoMaskMs: 0 }))
         await act(async () => {
             await result.current.reveal()
         })
 
+        // Backgrounded: the task-switcher snapshot must not see the PAN.
         act(() => {
             Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true })
             document.dispatchEvent(new Event('visibilitychange'))
             window.dispatchEvent(new Event('blur'))
         })
+        expect(result.current.revealed).toBeNull()
 
-        // Switching to the merchant app to paste the number must not re-mask the card.
+        // Back from the merchant app: same payload, no second (rate-limited) fetch.
+        act(() => {
+            Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
+            document.dispatchEvent(new Event('visibilitychange'))
+        })
+        expect(result.current.revealed).toEqual(details)
+        expect(mockedGetCardDetails).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not mask on blur alone (native fires it spuriously)', async () => {
+        mockedGetCardDetails.mockResolvedValueOnce(details)
+        const { result } = renderHook(() => useCardReveal({ cardId: 'c1', autoMaskMs: 0 }))
+        await act(async () => {
+            await result.current.reveal()
+        })
+        act(() => window.dispatchEvent(new Event('blur')))
         expect(result.current.revealed).toEqual(details)
     })
 

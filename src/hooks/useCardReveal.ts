@@ -26,16 +26,22 @@ const DEFAULT_AUTO_MASK_MS = 30_000
 /**
  * Fetches a card's PAN/CVV/expiry from the backend and holds it in memory
  * with a safety auto-mask on timeout so secrets don't linger on screen.
- * Deliberately NOT masked on blur/visibilitychange: on native, switching to
- * the merchant app to paste the number fires both, and the user came back
- * to a masked card (and a rate-limited re-reveal). Never persist the
- * revealed payload — let it be recomputed on the next reveal.
+ * While the page is hidden the secrets are COVERED, not cleared: iOS and
+ * Android snapshot the backgrounded webview for the task switcher, so the
+ * PAN must not be painted then — but on native, switching to the merchant
+ * app to paste the number is the whole point, and clearing meant the user
+ * came back to a masked card and a rate-limited re-reveal. Not masked on
+ * blur: native fires it spuriously. Never persist the revealed payload —
+ * let it be recomputed on the next reveal.
  */
 export function useCardReveal({ cardId, autoMaskMs = DEFAULT_AUTO_MASK_MS }: UseCardRevealArgs): UseCardRevealResult {
     const [revealed, setRevealed] = useState<RainCardDetailsResponse | null>(null)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [isRateLimited, setIsRateLimited] = useState(false)
+    // ponytail: a JS cover races the OS snapshot; FLAG_SECURE / an iOS privacy
+    // overlay is the upgrade if a device check ever catches the PAN in recents.
+    const [obscured, setObscured] = useState(false)
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
     const hide = useCallback(() => {
@@ -96,10 +102,13 @@ export function useCardReveal({ cardId, autoMaskMs = DEFAULT_AUTO_MASK_MS }: Use
     }, [revealed, hide, reveal])
 
     useEffect(() => {
+        const sync = () => setObscured(document.visibilityState === 'hidden')
+        document.addEventListener('visibilitychange', sync)
         return () => {
+            document.removeEventListener('visibilitychange', sync)
             if (timeoutRef.current) clearTimeout(timeoutRef.current)
         }
     }, [])
 
-    return { revealed, isLoading, error, isRateLimited, reveal, hide, toggle }
+    return { revealed: obscured ? null : revealed, isLoading, error, isRateLimited, reveal, hide, toggle }
 }
