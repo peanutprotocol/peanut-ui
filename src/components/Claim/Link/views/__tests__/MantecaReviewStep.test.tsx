@@ -9,7 +9,7 @@
  *     withdraw — because the link cannot be re-claimed.
  */
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 
 const mockInitiateWithdraw = jest.fn()
@@ -36,7 +36,7 @@ jest.mock('@/hooks/useCurrency', () => ({
     useCurrency: () => ({ price: { sell: '1300' }, isLoading: false, refetch: jest.fn() }),
 }))
 
-jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
+jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), captureMessage: jest.fn() }))
 
 jest.mock('@/components/0_Bruddle/Toast', () => ({
     ...jest.requireActual('@/components/0_Bruddle/Toast'),
@@ -64,8 +64,10 @@ function renderStep() {
 }
 
 function clickConfirm() {
-    // The single primary action button on the review card.
-    fireEvent.click(screen.getAllByRole('button')[0])
+    // The single enabled primary action ("Withdraw") on the review card —
+    // by accessible name, never by position: a stale instance's disabled
+    // button at index 0 turned the click into a silent no-op on CI.
+    fireEvent.click(screen.getByRole('button', { name: /withdraw/i }))
 }
 
 beforeEach(() => {
@@ -101,7 +103,9 @@ describe('MantecaReviewStep — pre-claim entity lookup', () => {
 
     test('FAILS CLOSED on a malformed or zero served address', async () => {
         for (const bad of ['', 'not-an-address', '0x0000000000000000000000000000000000000000']) {
+            cleanup()
             jest.clearAllMocks()
+            mockClaimLinkSecure.mockResolvedValue('0x' + 'ab'.repeat(32))
             mockInitiateWithdraw.mockResolvedValue({ data: { priceLockCode: 'pl-1', depositAddress: bad } })
 
             renderStep()
