@@ -921,3 +921,51 @@ describe('useSumsubKycFlow — handleFixableRejection routing', () => {
         expect(mockStartAction).toHaveBeenCalledTimes(1)
     })
 })
+
+/**
+ * The restart request must not carry a STALE local intent.
+ *
+ * `resolveRestartIntent` on the route returns the intent canonical to the
+ * DECLARED residence in every non-null branch and never the one asked for, so a
+ * stale ref can only no-op — or 400, when it crosses the provider axis
+ * (`providerOfIntent` makes LATAM vs anything a crossing, so for an AR/BR
+ * resident ANY non-LATAM intent is a 400). Eight of the ten call sites pass no
+ * override, and `activeRegionIntent` survives an initiate error, so an Argentine
+ * resident who tapped a locked non-LATAM region first would otherwise be shown
+ * an error instead of the document upload.
+ */
+describe('useSumsubKycFlow — restart forwards only an explicit override', () => {
+    beforeEach(() => {
+        mockInitiate.mockReset()
+        mockRestart.mockReset()
+        mockWs.handler = undefined
+    })
+
+    it('sends nothing when the caller passes no override, even with a local intent', async () => {
+        mockInitiate.mockResolvedValue({ data: { token: 'tok_0', applicantId: 'app_1', status: 'PENDING' } })
+        mockRestart.mockResolvedValue({
+            data: { token: 'tok_1', levelName: 'general', applicantId: 'app_1', regionIntent: 'LATAM' },
+        })
+
+        const { result } = renderHook(() => useSumsubKycFlow({ regionIntent: 'ROW' }))
+        await waitFor(() => expect(mockInitiate).toHaveBeenCalled())
+        await act(async () => {
+            await result.current.handleRestartIdentity()
+        })
+
+        expect(mockRestart).toHaveBeenCalledWith(undefined)
+    })
+
+    it('forwards an explicit override — the residence-change caller supplies the NEW intent', async () => {
+        mockRestart.mockResolvedValue({
+            data: { token: 'tok_1', levelName: 'general', applicantId: 'app_1', regionIntent: 'LATAM' },
+        })
+
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+        await act(async () => {
+            await result.current.handleRestartIdentity('LATAM')
+        })
+
+        expect(mockRestart).toHaveBeenCalledWith('LATAM')
+    })
+})
