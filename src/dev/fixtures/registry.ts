@@ -164,6 +164,30 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] } },
     },
     limits: { route: '/limits', about: 'Payment limits: the unlocked regions and the crypto note.' },
+    // Masked state only ('****' — same span as the digits). Revealing needs a
+    // passkey step-up, which no fixture can answer.
+    'card-pin': {
+        route: '/card/pin',
+        about: 'Card PIN screen, masked, with an active fake card behind the gate.',
+        responses: {
+            'GET /rain/cards': {
+                status: { hasApplication: true },
+                cards: [
+                    {
+                        id: 'demo-card',
+                        rainCardId: 'demo-rain-card',
+                        last4: '4242',
+                        expiryMonth: 12,
+                        expiryYear: 2030,
+                        status: 'ACTIVE',
+                        network: 'VISA',
+                        issuedAt: '2026-01-01T00:00:00.000Z',
+                        hasWithdrawApproval: true,
+                    },
+                ],
+            },
+        },
+    },
     send: { route: '/send', about: 'Send: the method picker — link, contacts, bank or Mercado Pago.' },
     request: { route: '/request', about: 'Request money: amount entry.' },
 
