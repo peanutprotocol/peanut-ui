@@ -2,7 +2,7 @@
  * The cache is the risky part: too eager and one Face ID prompt unlocks
  * sensitive routes indefinitely, too shy and a withdrawal prompts twice.
  */
-import { clearStepUpToken, getStepUpToken, STEP_UP_HEADER, withStepUpHeader } from '../step-up'
+import { clearStepUpToken, getStepUpToken, primeStepUpToken, STEP_UP_HEADER, withStepUpHeader } from '../step-up'
 import { apiFetch } from '@/utils/api-fetch'
 import { startAuthentication } from '@simplewebauthn/browser'
 import { CeremonyTimeoutError, guardPasskeyCeremony } from '@/utils/passkeyCeremony.utils'
@@ -138,5 +138,26 @@ describe('ceremony telemetry', () => {
         happyPath()
         await getStepUpToken()
         expect(withCeremonyPurpose).toHaveBeenCalledWith('step_up', expect.any(Function))
+    })
+})
+
+describe('primeStepUpToken', () => {
+    it('serves a login-minted proof without a second ceremony until it expires', async () => {
+        clearStepUpToken()
+        mockedFetch.mockReset()
+        mockedAuth.mockReset()
+        primeStepUpToken('from-login', 300)
+        await expect(getStepUpToken()).resolves.toBe('from-login')
+        expect(mockedAuth).not.toHaveBeenCalled()
+        expect(mockedFetch).not.toHaveBeenCalled()
+    })
+
+    it('ignores a primed proof inside the expiry margin', async () => {
+        clearStepUpToken()
+        mockedAuth.mockResolvedValue({ id: 'cred' } as never)
+        primeStepUpToken('almost-dead', 10)
+        happyPath('fresh')
+        await expect(getStepUpToken()).resolves.toBe('fresh')
+        expect(mockedAuth).toHaveBeenCalledTimes(1)
     })
 })
