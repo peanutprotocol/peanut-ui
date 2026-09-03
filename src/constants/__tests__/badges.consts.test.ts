@@ -11,6 +11,20 @@ it('drops the permission record', () => {
     expect(displayableBadges([{ code: PEANUT_TEAM_BADGE }])).toEqual([])
 })
 
+// The server's own answer, so a future record badge needs no client change.
+it('drops anything the server marked invisible, whatever its code', () => {
+    expect(displayableBadges([{ code: 'SOME_FUTURE_RECORD', isVisible: false }])).toEqual([])
+})
+
+// Rows awarded before the server started marking them invisible.
+it('still drops a legacy record row that came back visible', () => {
+    expect(displayableBadges([{ code: PEANUT_TEAM_BADGE, isVisible: true }])).toEqual([])
+})
+
+it('keeps a badge with no isVisible field, which is how most of them arrive', () => {
+    expect(displayableBadges([{ code: 'ENS' }])).toEqual([{ code: 'ENS' }])
+})
+
 it('keeps every real collectible, including the other insider badges', () => {
     const badges = [{ code: 'BETA_TESTER' }, { code: PEANUT_TEAM_BADGE }, { code: 'CARD_PIONEER' }]
 

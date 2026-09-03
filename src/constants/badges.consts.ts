@@ -14,17 +14,26 @@ export const PEANUT_TEAM_BADGE = 'PEANUT_TEAM'
 /**
  * Badges that are permission records rather than collectibles, and are never
  * shown to anyone — including their owner.
+ *
+ * This is the backstop, not the rule: `isVisible` below is what actually
+ * decides. A code only needs listing here if rows of it were awarded before
+ * the server started marking them invisible.
  */
 const NEVER_DISPLAYED = new Set<string>([PEANUT_TEAM_BADGE])
 
 /**
- * Drops the records from a badge list before it is rendered.
+ * Drops permission records from a badge list before it is rendered.
  *
- * The public profile response already omits them (the query filters on
- * `isVisible`), but `/users/me` deliberately does not — that is how the beta
- * switch reads its own permission. So every surface that renders the CALLER's
- * badges has to filter here, or the badge shows up on their own profile.
+ * The public profile response already omits them — that query filters on
+ * `isVisible` — but `/users/me` deliberately does not, since that is how the
+ * beta switch reads its own permission. So every surface rendering the
+ * CALLER's own badges has to filter here, or the record shows up on their own
+ * profile.
+ *
+ * `isVisible` is the server's own answer and covers every future record badge
+ * with no client change; the code list catches rows awarded before the server
+ * began setting it. Same convention the badge-earn toast already uses.
  */
-export function displayableBadges<T extends { code: string }>(badges: readonly T[]): T[] {
-    return badges.filter((badge) => !NEVER_DISPLAYED.has(badge.code))
+export function displayableBadges<T extends { code: string; isVisible?: boolean }>(badges: readonly T[]): T[] {
+    return badges.filter((badge) => badge.isVisible !== false && !NEVER_DISPLAYED.has(badge.code))
 }
