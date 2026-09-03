@@ -65,6 +65,8 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { isPaymentProcessorQR, EQrType, NAME_BY_QR_TYPE, type QrType } from '@/components/Global/DirectSendQR/utils'
 import { QrKycState } from '@/constants/kyc.consts'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
 import ActionModal from '@/components/Global/ActionModal'
 import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
@@ -249,6 +251,7 @@ export default function QRPayPage() {
     //   otherwise → REQUIRES_IDENTITY_VERIFICATION. While loading → LOADING.
     // userMessage ← the rejecting rail's reason.userMessage (was useProviderRejectionStatus).
     const { canDo, railsForProvider, nextActions, isKycApproved, isLoading: isLoadingCapabilities } = useCapabilities()
+    const { isRegionRestricted } = useIdentityVerification()
     const { user, fetchUser } = useAuth()
 
     // On public routes (qr-pay) auth still auto-fetches via React Query, but trigger a one-shot
@@ -275,6 +278,14 @@ export default function QRPayPage() {
         }
         if (canDo('pay', { provider: 'manteca' })) {
             return { kycGateState: QrKycState.PROCEED_TO_PAY, qrKycUserMessage: noAction, qrKycActionKey: noAction }
+        }
+        // Above every rail-derived state: Sumsub rejected the document's
+        // jurisdiction, so no rail can ever enable — not even the pool, which
+        // is otherwise residence-agnostic. Without this the user falls through
+        // to REQUIRES_IDENTITY_VERIFICATION (they own no Manteca rail at all)
+        // and is re-offered the verification that just refused them.
+        if (isRegionRestricted) {
+            return { kycGateState: QrKycState.REGION_RESTRICTED, qrKycUserMessage: noAction, qrKycActionKey: noAction }
         }
         // Verdict-first via the shared railVerdict collapse (rail.resolved,
         // BE-derived; legacy fallback for older/cached responses). The
@@ -337,7 +348,7 @@ export default function QRPayPage() {
             qrKycUserMessage: noAction,
             qrKycActionKey: noAction,
         }
-    }, [isLoadingCapabilities, canDo, railsForProvider, nextActions, user, userFetchSettled])
+    }, [isLoadingCapabilities, canDo, railsForProvider, nextActions, user, userFetchSettled, isRegionRestricted])
 
     const shouldBlockPay = kycGateState !== QrKycState.PROCEED_TO_PAY
 
@@ -1246,6 +1257,18 @@ export default function QRPayPage() {
     // show loading while KYC state is being determined
     if (isLoadingKycState) {
         return <Loading variant="mascot" />
+    }
+
+    // Ranked above the provider-rejection and unlock screens: re-uploading
+    // cannot change a jurisdictional refusal, so this surface owes the same
+    // one honest ending the drawer and InitiateKycModal give.
+    if (kycGateState === QrKycState.REGION_RESTRICTED) {
+        return (
+            <div className="flex min-h-[inherit] flex-col gap-8">
+                <NavHeader title={tNav('pay')} />
+                <KycRegionRestrictedModal visible onClose={onBack} />
+            </div>
+        )
     }
 
     // provider rejection: user is sumsub-approved but manteca rejected

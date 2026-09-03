@@ -1802,7 +1802,8 @@
             "bankAccountSettingUp": "Your bank account is still being set up. Please try again in a moment."
         },
         "pixMaintenanceBadge": "Maintenance",
-        "addCryptoTitle": "Add crypto"
+        "addCryptoTitle": "Add crypto",
+        "bankNotAvailableNote": "Bank transfers aren't available in your country. You can still add and withdraw crypto."
     },
     "withdraw": {
         "amountToWithdraw": "Amount to withdraw",

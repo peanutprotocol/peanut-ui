@@ -102,6 +102,10 @@ jest.mock('@/assets/icons', () => ({
 // @/constants/kyc.consts — used as the real module here). Each gate-state test configures
 // the capability fixture via setCapabilitiesGate() below.
 const mockUseCapabilities = jest.fn()
+let mockIsRegionRestricted = false
+jest.mock('@/hooks/useIdentityVerification', () => ({
+    useIdentityVerification: () => ({ isRegionRestricted: mockIsRegionRestricted }),
+}))
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => mockUseCapabilities(),
 }))
@@ -666,6 +670,7 @@ function applyDefaults() {
 beforeEach(() => {
     jest.clearAllMocks()
     mockSearchParams.clear()
+    mockIsRegionRestricted = false
     applyDefaults()
 })
 
@@ -689,6 +694,19 @@ describe('GROUP 1: Loading & KYC Gate', () => {
         expect(modal).toBeInTheDocument()
         expect(screen.getByText('Unlock QR payments')).toBeInTheDocument()
         expect(screen.getByText('Unlock now')).toBeInTheDocument()
+    })
+
+    // Pool QR pay is residence-agnostic, so the offer is legitimate for almost
+    // every restricted residence — but not when Sumsub refuses the document's
+    // jurisdiction, which no rail can survive and no re-upload can change.
+    test('a jurisdictional rejection ends the flow instead of re-offering verification', () => {
+        setCapabilitiesGate('requires_identity_verification')
+        mockIsRegionRestricted = true
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+        expect(screen.getByText(/doesn't accept documents issued in your country/i)).toBeInTheDocument()
+        expect(screen.queryByText('Unlock now')).not.toBeInTheDocument()
     })
 
     test('KYC verification in progress shows ActionModal with continue button', () => {

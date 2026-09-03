@@ -1802,7 +1802,8 @@
             "bankAccountSettingUp": "Tu cuenta bancaria aún se está configurando. Inténtalo de nuevo en un momento."
         },
         "pixMaintenanceBadge": "Mantenimiento",
-        "addCryptoTitle": "Agregar cripto"
+        "addCryptoTitle": "Agregar cripto",
+        "bankNotAvailableNote": "Las transferencias bancarias no están disponibles en tu país. Todavía puedes ingresar y retirar cripto."
     },
     "withdraw": {
         "amountToWithdraw": "Monto a retirar",
