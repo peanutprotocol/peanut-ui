@@ -304,6 +304,8 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
                         sourceRhinoChain,
                         destRhinoChain,
                         tokenSymbol,
+                        context,
+                        contextId,
                         setTransactions,
                         setReceiveAmount,
                         setPayAmount,
@@ -398,6 +400,8 @@ interface BridgePathParams {
     sourceRhinoChain: string
     destRhinoChain: string
     tokenSymbol: string
+    context: RhinoTransferContext
+    contextId: string
     setTransactions: (tx: PreparedTransaction[] | null) => void
     setReceiveAmount: (v: string | null) => void
     setPayAmount: (v: string | null) => void
@@ -419,6 +423,8 @@ async function runBridgePath({
     sourceRhinoChain,
     destRhinoChain,
     tokenSymbol,
+    context,
+    contextId,
     setTransactions,
     setReceiveAmount,
     setPayAmount,
@@ -454,6 +460,9 @@ async function runBridgePath({
         recipient: destination.recipientAddress,
         depositor: source.address,
         mode,
+        // Names the charge so the API counts this bridge against the caller's
+        // cross-chain cap, same as the SDA path. claim-xchain has no charge.
+        ...(context !== 'claim-xchain' ? { context, contextId } : {}),
     })
 
     const commit: BridgeCommitResponse = await commitBridgeQuote(quote.quoteId, quote.isSwap, isSameChainSwap)

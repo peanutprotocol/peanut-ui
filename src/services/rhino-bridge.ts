@@ -25,6 +25,9 @@ export interface BridgeQuoteParams {
     recipient: string
     depositor: string
     mode: 'pay' | 'receive'
+    /** The charge this quote is for; lets the API apply the per-user cross-chain cap to the bridge path too. */
+    context?: 'withdraw' | 'pay-request'
+    contextId?: string
 }
 
 export interface BridgeQuoteResponse {
