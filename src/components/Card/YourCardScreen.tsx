@@ -13,7 +13,7 @@ import ProfileMenuItem from '@/components/Profile/components/ProfileMenuItem'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import CardFace from '@/components/Card/CardFace'
+import CardFace, { type CopyableCardField } from '@/components/Card/CardFace'
 import CancelCardModal from '@/components/Card/CancelCardModal'
 import LockCardModal from '@/components/Card/LockCardModal'
 import { shouldShowAutoRenewBanner, daysUntilExpiry } from '@/components/Card/cardExpiry.utils'
@@ -29,6 +29,12 @@ interface Props {
     overview: RainCardOverview
     card: RainCardSummary
     onPrev?: () => void
+}
+
+const COPIED_MESSAGE_KEY: Record<CopyableCardField, 'cardNumberCopied' | 'expiryCopied' | 'cvvCopied'> = {
+    pan: 'cardNumberCopied',
+    expiry: 'expiryCopied',
+    cvv: 'cvvCopied',
 }
 
 const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
@@ -50,13 +56,13 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
     const balanceDueCents = cardBalanceDueCents(overview.balance?.spendingPower)
 
     const handleCopy = useCallback(
-        async (value: string, field: 'pan' | 'cvv') => {
+        async (value: string, field: CopyableCardField) => {
             if (!(await copyTextToClipboard(value))) {
                 toast.error(tGlobal('copyToClipboard.copyFailed'))
                 return
             }
             triggerHaptic()
-            toast.success(field === 'pan' ? t('cardNumberCopied') : t('cvvCopied'))
+            toast.success(t(COPIED_MESSAGE_KEY[field]))
         },
         [triggerHaptic, toast, t, tGlobal]
     )

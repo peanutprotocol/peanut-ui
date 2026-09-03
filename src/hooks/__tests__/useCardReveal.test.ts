@@ -103,6 +103,23 @@ describe('useCardReveal', () => {
         expect(captureSpy.mock.calls.at(-1)?.[1]?.error_message).not.toContain('correlationId')
     })
 
+    it('keeps details revealed when the app is backgrounded (blur / hidden)', async () => {
+        mockedGetCardDetails.mockResolvedValueOnce(details)
+        const { result } = renderHook(() => useCardReveal({ cardId: 'c1', autoMaskMs: 0 }))
+        await act(async () => {
+            await result.current.reveal()
+        })
+
+        act(() => {
+            Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true })
+            document.dispatchEvent(new Event('visibilitychange'))
+            window.dispatchEvent(new Event('blur'))
+        })
+
+        // Switching to the merchant app to paste the number must not re-mask the card.
+        expect(result.current.revealed).toEqual(details)
+    })
+
     it('auto-masks after the configured timeout', async () => {
         jest.useFakeTimers()
         mockedGetCardDetails.mockResolvedValueOnce(details)

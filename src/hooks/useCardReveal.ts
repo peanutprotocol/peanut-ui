@@ -25,9 +25,11 @@ const DEFAULT_AUTO_MASK_MS = 30_000
 
 /**
  * Fetches a card's PAN/CVV/expiry from the backend and holds it in memory
- * with a safety auto-mask: hides on timeout, tab blur, and page unload so
- * secrets don't linger on screen. Never persist the revealed payload — let
- * it be recomputed on the next reveal.
+ * with a safety auto-mask on timeout so secrets don't linger on screen.
+ * Deliberately NOT masked on blur/visibilitychange: on native, switching to
+ * the merchant app to paste the number fires both, and the user came back
+ * to a masked card (and a rate-limited re-reveal). Never persist the
+ * revealed payload — let it be recomputed on the next reveal.
  */
 export function useCardReveal({ cardId, autoMaskMs = DEFAULT_AUTO_MASK_MS }: UseCardRevealArgs): UseCardRevealResult {
     const [revealed, setRevealed] = useState<RainCardDetailsResponse | null>(null)
@@ -92,24 +94,6 @@ export function useCardReveal({ cardId, autoMaskMs = DEFAULT_AUTO_MASK_MS }: Use
         }
         await reveal()
     }, [revealed, hide, reveal])
-
-    // Auto-mask when the user switches tabs or the window loses focus — a
-    // bystander who glances at an unattended screen shouldn't see secrets.
-    useEffect(() => {
-        if (!revealed) return
-        const onHide = () => setRevealed(null)
-        const onVisibilityChange = () => {
-            if (document.visibilityState === 'hidden') setRevealed(null)
-        }
-        window.addEventListener('blur', onHide)
-        window.addEventListener('pagehide', onHide)
-        document.addEventListener('visibilitychange', onVisibilityChange)
-        return () => {
-            window.removeEventListener('blur', onHide)
-            window.removeEventListener('pagehide', onHide)
-            document.removeEventListener('visibilitychange', onVisibilityChange)
-        }
-    }, [revealed])
 
     useEffect(() => {
         return () => {
