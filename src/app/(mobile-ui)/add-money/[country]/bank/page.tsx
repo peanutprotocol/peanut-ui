@@ -53,7 +53,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { addMoneyCountryUrl, rewriteMethodPath } from '@/utils/native-routes'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { useSafeBack } from '@/hooks/useSafeBack'
-import { getRegionIntent } from '@/utils/regions.utils'
+import { useBankRegionIntent } from '@/hooks/useBankRegionIntent'
 import { useLocale, useTranslations } from 'next-intl'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 
@@ -154,6 +154,7 @@ function BridgeBankOnrampPage() {
     // this page in a "Setting up your account…" wait loop. Unknown country
     // → undefined → falls back to channel-only filter.
     const { gateFor } = useCapabilities()
+    const bankRegionIntent = useBankRegionIntent()
     const bankCountry = useMemo(() => railJurisdictionForBank(selectedCountry?.id), [selectedCountry?.id])
     const gate = useMemo(() => gateFor('deposit', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
     // bridge re-verification ("we're reviewing your details") modal for the
@@ -291,7 +292,7 @@ function BridgeBankOnrampPage() {
             await sumsubFlow.handleSelfHealResubmit('BRIDGE')
         } else {
             await sumsubFlow.handleInitiateKyc(
-                getRegionIntent(selectedCountry?.region ?? 'rest-of-the-world'),
+                bankRegionIntent(selectedCountry?.region ?? 'rest-of-the-world'),
                 undefined,
                 gate.kind === 'needs-enrollment' || undefined,
                 selectedCountry?.id

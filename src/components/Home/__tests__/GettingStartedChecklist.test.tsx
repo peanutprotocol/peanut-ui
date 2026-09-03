@@ -81,6 +81,16 @@ describe('GettingStartedChecklist', () => {
         expect(screen.getAllByText(/one-time ID check/).length).toBe(1) // only the first render's copy
     })
 
+    it('drops the bank half for a residence no bank provider onboards', () => {
+        // the ID check would unlock nothing there, so it must not be the price
+        // named on the row (same ruling as the signup residence step)
+        mockRestrictions = { banking: true, card: false }
+        render()
+        expect(screen.getByText('Crypto from any wallet or exchange')).toBeInTheDocument()
+        expect(screen.queryByText(/one-time ID check/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/Bank transfer/)).not.toBeInTheDocument()
+    })
+
     it('marks add money done once funded', () => {
         mockUser = { user: { activationMilestone: 'funded' }, residence: { declared: 'BR', verified: 'BR' } }
         render()

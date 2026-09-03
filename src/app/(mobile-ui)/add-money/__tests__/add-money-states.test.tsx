@@ -187,6 +187,12 @@ jest.mock('@/hooks/useTosGuard', () => ({
     useTosGuard: () => mockUseTosGuard(),
 }))
 
+// The page derives its KYC intent from the residence; these cases are about
+// the gate, so keep the residence unrestricted (and out of the redux store).
+jest.mock('@/hooks/useResidenceRestrictions', () => ({
+    useResidenceRestrictions: () => ({ banking: false, card: false }),
+}))
+
 // OnrampFlowContext
 const mockOnrampFlow = {
     error: { showError: false, errorMessage: '' },

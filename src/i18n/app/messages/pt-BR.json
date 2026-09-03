@@ -140,6 +140,7 @@
             "firstPaymentNote": "Envie alguns dólares para um usuário Peanut, um nome ENS ou um endereço de carteira. Chega em segundos.",
             "addMoneyRoutes": "Transferência bancária ou cripto",
             "addMoneyRoutesKyc": "Transferência bancária ou cripto · o banco exige uma verificação de identidade única",
+            "addMoneyRoutesNoBank": "Cripto de qualquer carteira ou corretora",
             "getCardNote": "Seus dólares, em rosa, onde a Visa for aceita."
         },
         "autoBalance": {
@@ -1801,7 +1802,8 @@
             "bankAccountSettingUp": "Sua conta bancária ainda está sendo configurada. Tente de novo em instantes."
         },
         "pixMaintenanceBadge": "Manutenção",
-        "addCryptoTitle": "Adicionar cripto"
+        "addCryptoTitle": "Adicionar cripto",
+        "bankNotAvailableNote": "Transferências bancárias não estão disponíveis no seu país. Você ainda pode adicionar e sacar cripto."
     },
     "withdraw": {
         "amountToWithdraw": "Valor a sacar",
@@ -2566,6 +2568,8 @@
             "descriptionCrossRegion": "Sua identidade já está verificada. Para ativar os pagamentos em {region}, só precisamos confirmar mais alguns dados — cerca de um minuto.",
             "descriptionCrossRegionGeneric": "Sua identidade já está verificada. Para ativar os pagamentos aqui, só precisamos confirmar mais alguns dados — cerca de um minuto.",
             "descriptionRegionUnavailable": "Devido às regulamentações do Reino Unido, transferências bancárias não estão disponíveis para residentes do Reino Unido. Seu dinheiro está seguro — você pode sacá-lo como cripto a qualquer momento.",
+            "titleBankUnavailable": "Indisponível no seu país",
+            "descriptionBankUnavailable": "Transferências bancárias não estão disponíveis no seu país, então verificar seu documento não vai desbloqueá-las. Seu dinheiro está seguro e você ainda pode enviar e receber dinheiro de outras pessoas.",
             "descriptionDefault": "Confirme seu documento para desbloquear os pagamentos. Leva cerca de um minuto.",
             "ctaUploadDocument": "Enviar documento",
             "ctaUnlockNow": "Desbloquear agora",

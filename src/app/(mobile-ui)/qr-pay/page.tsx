@@ -65,6 +65,8 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { isPaymentProcessorQR, EQrType, NAME_BY_QR_TYPE, type QrType } from '@/components/Global/DirectSendQR/utils'
 import { QrKycState } from '@/constants/kyc.consts'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
 import ActionModal from '@/components/Global/ActionModal'
 import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
@@ -249,6 +251,7 @@ export default function QRPayPage() {
     //   otherwise → REQUIRES_IDENTITY_VERIFICATION. While loading → LOADING.
     // userMessage ← the rejecting rail's reason.userMessage (was useProviderRejectionStatus).
     const { canDo, railsForProvider, nextActions, isKycApproved, isLoading: isLoadingCapabilities } = useCapabilities()
+    const { isRegionRestricted } = useIdentityVerification()
     const { user, fetchUser } = useAuth()
 
     // On public routes (qr-pay) auth still auto-fetches via React Query, but trigger a one-shot
@@ -272,6 +275,17 @@ export default function QRPayPage() {
         // REQUIRES_IDENTITY_VERIFICATION for users whose auth state hasn't settled yet.
         if (isLoadingCapabilities || (!user && !userFetchSettled)) {
             return { kycGateState: QrKycState.LOADING, qrKycUserMessage: noAction, qrKycActionKey: noAction }
+        }
+        // Above the enabled-pay return, not just the rail-derived states below.
+        // A terminal jurisdictional refusal is account-wide, but nothing revokes
+        // a pool rail granted by an earlier approval — so a residence change
+        // that re-verifies into a region rejection leaves an ENABLED rail
+        // behind, and ranking `canDo` first would keep the money path open on
+        // an identity we can no longer verify. Deliberately unlike deriveGate's
+        // ready-wins hoist, which exists to stop a STUCK SIBLING rail from
+        // blocking a working one — a refused identity is not a sibling rail.
+        if (isRegionRestricted) {
+            return { kycGateState: QrKycState.REGION_RESTRICTED, qrKycUserMessage: noAction, qrKycActionKey: noAction }
         }
         if (canDo('pay', { provider: 'manteca' })) {
             return { kycGateState: QrKycState.PROCEED_TO_PAY, qrKycUserMessage: noAction, qrKycActionKey: noAction }
@@ -337,7 +351,7 @@ export default function QRPayPage() {
             qrKycUserMessage: noAction,
             qrKycActionKey: noAction,
         }
-    }, [isLoadingCapabilities, canDo, railsForProvider, nextActions, user, userFetchSettled])
+    }, [isLoadingCapabilities, canDo, railsForProvider, nextActions, user, userFetchSettled, isRegionRestricted])
 
     const shouldBlockPay = kycGateState !== QrKycState.PROCEED_TO_PAY
 
@@ -1237,7 +1251,8 @@ export default function QRPayPage() {
     // because unverified users should see KYC screen, not error screen
     const needsKycVerification =
         kycGateState === QrKycState.REQUIRES_IDENTITY_VERIFICATION ||
-        kycGateState === QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS
+        kycGateState === QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS ||
+        kycGateState === QrKycState.REGION_RESTRICTED
     const hasProviderRejection =
         kycGateState === QrKycState.PROVIDER_REJECTION_FIXABLE ||
         kycGateState === QrKycState.PROVIDER_REJECTION_BLOCKED ||
@@ -1346,6 +1361,10 @@ export default function QRPayPage() {
                     ]}
                     footer={<PeanutDoesntStoreAnyPersonalInformation />}
                 />
+                {/* Re-uploading cannot change a jurisdictional refusal, so this
+                    surface owes the same one honest ending the drawer and
+                    InitiateKycModal give — never the unlock offer above. */}
+                <KycRegionRestrictedModal visible={kycGateState === QrKycState.REGION_RESTRICTED} onClose={onBack} />
                 <ActionModal
                     visible={kycGateState === QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS}
                     onClose={onBack}

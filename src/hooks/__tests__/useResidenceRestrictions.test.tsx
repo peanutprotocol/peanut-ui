@@ -33,6 +33,8 @@ describe('deriveResidenceRestrictions', () => {
         ['KP', { banking: true, card: true }],
         ['IN', { banking: false, card: true }],
         ['JP', { banking: true, card: false }],
+        // in Bridge's table, absent from its prose note — the table wins
+        ['GW', { banking: true, card: false }],
         ['BR', { banking: false, card: false }],
         ['', { banking: false, card: false }],
     ])('%s → %j', (iso2, expected) => {
