@@ -1,9 +1,16 @@
 import { act, renderHook } from '@testing-library/react'
-import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
+import { NuqsTestingAdapter, type OnUrlUpdateFunction } from 'nuqs/adapters/testing'
 import type { ReactNode } from 'react'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { SetupFlowProvider, useSetupFlowContext } from '../SetupFlowContext'
 import { setupSteps } from '@/components/Setup/Setup.consts'
+
+// native detection is mocked so the history-mode contract below can flip it
+let mockIsNativeBridge = false
+jest.mock('@/utils/capacitor', () => ({
+    ...jest.requireActual('@/utils/capacitor'),
+    isNativeBridge: () => mockIsNativeBridge,
+}))
 
 // The setup cursor is a named screen id in the URL driven by the shared
 // stepper (TASK-21460) — these pin the contracts that replaced the redux
@@ -108,5 +115,59 @@ describe('useSetupFlow (URL stepper)', () => {
             await result.current.flow.setScreenId('signup')
         })
         expect(result.current.flow.step?.screenId).toBe('sign-test-transaction')
+    })
+})
+
+// Native hardware Back is consumed by useSetupBackHandler (it calls handleBack
+// directly), so setup transitions must NOT mint WebView history entries there:
+// pushed entries are never consumed during the flow, and Back after completing
+// setup would pop through stale /setup screens back into onboarding — the
+// contract the deleted useSetupStepUrlSync mirror kept via replaceState (Chip
+// review, PR #2949). The browser keeps push so web Back walks the steps.
+describe('useSetupFlow — history mode per platform', () => {
+    const renderWithUrlSpy = (onUrlUpdate: OnUrlUpdateFunction) =>
+        renderHook(
+            () => {
+                const context = useSetupFlowContext()
+                const flow = useSetupFlow()
+                return { context, flow }
+            },
+            {
+                wrapper: ({ children }: { children: ReactNode }) => (
+                    <NuqsTestingAdapter searchParams={{ screen: 'signup' }} onUrlUpdate={onUrlUpdate}>
+                        <SetupFlowProvider>{children}</SetupFlowProvider>
+                    </NuqsTestingAdapter>
+                ),
+            }
+        )
+
+    afterEach(() => {
+        mockIsNativeBridge = false
+    })
+
+    it('web: transitions push, so browser Back walks the steps', async () => {
+        mockIsNativeBridge = false
+        const onUrlUpdate = jest.fn()
+        const { result } = renderWithUrlSpy(onUrlUpdate)
+        await seedSteps(result)
+        await act(async () => {
+            await result.current.flow.handleNext()
+        })
+        const update = onUrlUpdate.mock.calls.at(-1)?.[0]
+        expect(update?.searchParams.get('screen')).toBe('residence')
+        expect(update?.options.history).toBe('push')
+    })
+
+    it('native: transitions replace — hardware Back is handled in-app, entries must not pile up', async () => {
+        mockIsNativeBridge = true
+        const onUrlUpdate = jest.fn()
+        const { result } = renderWithUrlSpy(onUrlUpdate)
+        await seedSteps(result)
+        await act(async () => {
+            await result.current.flow.handleNext()
+        })
+        const update = onUrlUpdate.mock.calls.at(-1)?.[0]
+        expect(update?.searchParams.get('screen')).toBe('residence')
+        expect(update?.options.history).toBe('replace')
     })
 })

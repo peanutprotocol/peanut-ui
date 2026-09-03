@@ -8,7 +8,7 @@ import { useSetupBackHandler } from '@/hooks/useSetupBackHandler'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
 import { useIosPwaInstallGate } from '@/hooks/useIosPwaInstallGate'
-import { readInviteCode } from '@/utils/invite-stash'
+import { readInviteCode, stashInvite } from '@/utils/invite-stash'
 import { Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { setupSteps as masterSetupSteps } from '../../../components/Setup/Setup.consts'
 import { hasKnownDeviceCredentials, resolveSetupEntryStep } from '@/components/Setup/setup-entry'
@@ -16,7 +16,7 @@ import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal
 import { isLikelyWebview, isDeviceOsSupported } from '@/components/Setup/Setup.utils'
 import { isCapacitor } from '@/utils/capacitor'
 import { isPwaSunsetOn } from '@/utils/migration.utils'
-import { saveToCookie, toInviteCode } from '@/utils/general.utils'
+import { toInviteCode } from '@/utils/general.utils'
 import { useSearchParams } from 'next/navigation'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useGeoLocation } from '@/hooks/useGeoLocation'
@@ -27,6 +27,7 @@ import { PeanutWavingHello } from '@/assets/mascot'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useTranslations } from 'next-intl'
+import { EInviteType } from '@/services/services.types'
 
 function SetupPageContent() {
     const t = useTranslations('setup')
@@ -158,7 +159,7 @@ function SetupPageContent() {
              */
             const codeFromUrl = inviteCodeParam
             if (codeFromUrl && toInviteCode(codeFromUrl)) {
-                saveToCookie('inviteCode', toInviteCode(codeFromUrl))
+                stashInvite(toInviteCode(codeFromUrl), EInviteType.DIRECT)
             }
             const userInviteCode = readInviteCode()
             // pwa-sunset notice window: web signups are closed (Landing hides

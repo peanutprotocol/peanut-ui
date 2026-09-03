@@ -5,6 +5,7 @@ import { setupSteps as masterSetupSteps } from '@/components/Setup/Setup.consts'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import type { FlowStepGuard } from '@/hooks/useFlowStepper.types'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
+import { isNativeBridge } from '@/utils/capacitor'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 
 /** ?screen=, not ?step=: at /setup entry, ?step=signup is an existing contract
@@ -17,10 +18,14 @@ export const SETUP_SCREEN_PARAM = 'screen'
  * index into the runtime-filtered step list whose next/previous clamps
  * silently dead-ended (TASK-21404).
  *
- * history: 'push' — a deliberate deviation from the design.md default: the
- * signup funnel wants the browser/hardware Back button to walk the steps
- * (mobile users reflexively use it), which is the contract the old
- * useSetupStepUrlSync pushState mirror established. Point of no return:
+ * history: 'push' on web — a deliberate deviation from the design.md default:
+ * the signup funnel wants the browser Back button to walk the steps (mobile
+ * users reflexively use it), which is the contract the old useSetupStepUrlSync
+ * pushState mirror established. On NATIVE it is 'replace' (also the mirror's
+ * contract): hardware Back is consumed by useSetupBackHandler, which calls
+ * handleBack directly — pushed WebView entries would never be consumed during
+ * the flow, and Back after completing setup would pop through stale /setup
+ * entries back into onboarding (Chip review round 1). Point of no return:
  * once a step with showBackButton=false renders (e.g. sign-test-transaction —
  * the passkey is already registered), every earlier step's guard refuses and
  * bounces back, so a history pop cannot re-enter the forms.
@@ -57,7 +62,7 @@ export const useSetupFlow = () => {
     const stepper = useFlowStepper<ScreenId>({
         steps: screenIds,
         urlKey: SETUP_SCREEN_PARAM,
-        history: 'push',
+        history: isNativeBridge() ? 'replace' : 'push',
         guards,
     })
 

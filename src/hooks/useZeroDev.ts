@@ -38,7 +38,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
 import { rescueUserOpReceipt } from '@/utils/userop-rescue.utils'
-import { clearInvite, readInviteCode, readInviteType } from '@/utils/invite-stash'
+import { clearInvite, extendInviteForRetry, readInviteCode, readInviteType } from '@/utils/invite-stash'
 
 // types
 type UserOpEncodedParams = {
@@ -121,7 +121,7 @@ export const useZeroDev = () => {
                  * a systematic accept failure looks like a completed signup otherwise.
                  * The cookie is only cleared on confirmed success.
                  */
-                const keepInviteCodeForRetry = () => saveToCookie('inviteCode', userInviteCode, 30)
+                const keepInviteCodeForRetry = () => extendInviteForRetry(30)
                 const clearAcceptedInviteCode = () => {
                     clearInvite()
                 }
