@@ -558,7 +558,6 @@
                 "closed": "The {channel} channel does not accept testers yet. Ask an admin to allow self-assignment in Capgo.",
                 "failed": "Could not change the update channel.",
                 "revealed": "Beta updates switch revealed below.",
-                "notEnabled": "Beta updates aren't enabled for this device.",
                 "appOnly": "Beta updates are only available in the Peanut app."
             }
         }

@@ -13,8 +13,8 @@ const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper 
 
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
-const access = { supported: true, visible: true }
-const toast = { info: jest.fn(), warning: jest.fn() }
+const access = { supported: true }
+const toast = { info: jest.fn() }
 
 jest.mock('@/components/Profile/components/BetaUpdatesCard', () => ({
     BetaUpdatesCard: () => <div data-testid="beta-updates-card" />,
@@ -24,9 +24,7 @@ jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => toast }))
 
 beforeEach(() => {
     access.supported = true
-    access.visible = true
     toast.info.mockClear()
-    toast.warning.mockClear()
 })
 
 const tapVersion = (times: number) => {
@@ -55,23 +53,14 @@ describe('AboutView', () => {
         expect(toast.info).toHaveBeenCalledWith('Beta updates switch revealed below.')
     })
 
-    // The card renders nothing on the web and outside the cohort, so without a
-    // toast the fifth tap would look like the gesture is simply broken.
+    // The card renders nothing on the web, so without a toast the fifth tap
+    // would look like the gesture is simply broken.
     it('says the switch is app-only when tapped on the web', () => {
         access.supported = false
-        access.visible = false
         render(<AboutView appVersion="1.2.3" />)
         tapVersion(5)
         expect(screen.queryByTestId('beta-updates-card')).not.toBeInTheDocument()
         expect(toast.info).toHaveBeenCalledWith('Beta updates are only available in the Peanut app.')
-    })
-
-    it('says beta is not enabled when the device is outside the cohort', () => {
-        access.visible = false
-        render(<AboutView appVersion="1.2.3" />)
-        tapVersion(5)
-        expect(screen.queryByTestId('beta-updates-card')).not.toBeInTheDocument()
-        expect(toast.warning).toHaveBeenCalledWith("Beta updates aren't enabled for this device.")
     })
 
     it('forgets a partial tap streak once the window lapses', () => {

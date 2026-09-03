@@ -1,25 +1,19 @@
 /**
- * Two things keep the staging lane off customer devices: the card is native-only
- * and it is gated on an internal PostHog cohort — the five-tap gesture only
- * hides it. Beyond that, every join outcome has to read honestly: a tester told
- * to restart when nothing was downloaded goes looking for a build that isn't
- * there.
+ * The card is native-only, and the five-tap gesture is the only thing that keeps
+ * the staging lane off customer devices. Beyond that, every join outcome has to
+ * read honestly: a tester told to restart when nothing was downloaded goes
+ * looking for a build that isn't there.
  */
 import React from 'react'
 import { fireEvent, render as rtlRender, screen, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
-import { BETA_OTA_FLAG, BetaUpdatesCard } from '../BetaUpdatesCard'
+import { BetaUpdatesCard } from '../BetaUpdatesCard'
 import type { OtaChannelSwitchResult, UseOtaChannel } from '@/hooks/useOtaChannel'
 
 const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
 
 const toast = { success: jest.fn(), error: jest.fn(), info: jest.fn(), warning: jest.fn() }
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => toast }))
-
-const flags = { enabled: [BETA_OTA_FLAG] as string[] }
-jest.mock('@/hooks/useFeatureFlag', () => ({
-    useFeatureFlags: () => (flag: string) => flags.enabled.includes(flag),
-}))
 
 const channel = { current: {} as UseOtaChannel }
 jest.mock('@/hooks/useOtaChannel', () => ({ useOtaChannel: () => channel.current }))
@@ -40,7 +34,6 @@ const switching = (result: OtaChannelSwitchResult) => ({ setBeta: jest.fn().mock
 
 beforeEach(() => {
     jest.clearAllMocks()
-    flags.enabled = [BETA_OTA_FLAG]
 })
 
 it('renders nothing off native, where there is no OTA layer at all', () => {
@@ -48,16 +41,9 @@ it('renders nothing off native, where there is no OTA layer at all', () => {
     expect(screen.queryByRole('switch')).not.toBeInTheDocument()
 })
 
-it('stays hidden for accounts outside the internal cohort', () => {
-    flags.enabled = []
-    setup()
-    expect(screen.queryByRole('switch')).not.toBeInTheDocument()
-})
-
-// Offboarding a tester (or a flag that fails to load) must not take the exit
-// with it: the device is already on staging, and nothing else can bring it back.
+// The off switch is the only way back to the store bundle, so it stays reachable
+// on any native build for a device already on staging.
 it('keeps the exit reachable for a device already on the channel', async () => {
-    flags.enabled = []
     setup({
         isBeta: true,
         status: { channel: 'staging', bundleVersion: '1.1.10846', deviceId: 'abc-123', onBuiltinBundle: false },

@@ -558,7 +558,6 @@
                 "closed": "O canal {channel} ainda não aceita testadores. Peça a um administrador para permitir a autoatribuição no Capgo.",
                 "failed": "Não foi possível alterar o canal de atualizações.",
                 "revealed": "O interruptor de atualizações beta está visível abaixo.",
-                "notEnabled": "As atualizações beta não estão ativadas para este dispositivo.",
                 "appOnly": "As atualizações beta só estão disponíveis no app do Peanut."
             }
         }
