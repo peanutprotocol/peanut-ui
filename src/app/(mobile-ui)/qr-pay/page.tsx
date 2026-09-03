@@ -32,7 +32,7 @@ import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { rainCentsToUsdcUnits, isAmountWithinBalance } from '@/utils/balance.utils'
 import { formatNumberForDisplay } from '@/utils/general.utils'
 import { getShakeClass, type ShakeIntensity } from '@/utils/perk.utils'
-import { calculateSavingsInCents, hasCardMarkupComparison } from '@/utils/qr-payment.utils'
+import { calculateSavingsInCents, hasCardMarkupComparison, qrInitIdempotencyKey } from '@/utils/qr-payment.utils'
 import { useCardMarkupRate } from '@/hooks/useCardMarkupRate'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { PERK_HOLD_DURATION_MS } from '@/constants/general.consts'
@@ -54,9 +54,13 @@ import { getCurrencyPrice } from '@/app/actions/currency'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { captureNetworkTriagedFailure, isNetworkLayerFailure } from '@/utils/network-triage'
 import { criticalFlowTags } from '@/utils/sentry-critical-flow'
-import { deterministicInitErrorMessage, type QrInitCopy } from '@/app/(mobile-ui)/qr-pay/init-error-classifier'
-import { wireErrorCode } from '@/services/api-error'
-import { API_ERROR_CODES } from '@/services/api-error'
+import {
+    classifyQrInitError,
+    classifyScanOutcome,
+    isNonRetryableQrInitError,
+    QR_INIT_CODE,
+    type QrScanFailure,
+} from '@/app/(mobile-ui)/qr-pay/init-error-classifier'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { isPaymentProcessorQR, EQrType, NAME_BY_QR_TYPE, type QrType } from '@/components/Global/DirectSendQR/utils'
@@ -91,41 +95,6 @@ import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 const MAX_QR_PAYMENT_AMOUNT = '2000'
 const MIN_QR_PAYMENT_AMOUNT = '0.1'
 
-// Deterministic provider rejections — retrying the payment-lock query can't
-// change the outcome, so fail fast instead of burning the 3-attempt budget.
-const NON_RETRYABLE_QR_PAY_ERRORS = [
-    'PAYMENT_DESTINATION_DECODING_ERROR',
-    // The cashier's charge timed out on the till. Only the cashier can clear it,
-    // so retrying the same destination just burns the attempt budget.
-    'PAYMENT_DESTINATION_EXPIRED',
-    'PIX_MIN_AMOUNT',
-    'PIX_RECURRING_NOT_SUPPORTED',
-    // Missing auth header (AJV 400) — retrying sends the same headerless request,
-    // so fail fast rather than waiting out three attempts.
-    "required property 'authorization'",
-    /*
-     * Deterministic backend rejections from `/manteca/qr-payment/init`. None of
-     * them can change between attempts inside one scan, and each retry re-runs
-     * `createQrPaymentLock` against Manteca — so a capped user used to spend
-     * four round trips and four abandoned price locks to be told something the
-     * first response already knew. `mantecaApi.initiateQrPayment` throws the
-     * response's `error` field, which is the bare code for the 422s and this
-     * sentence for the KYC 400.
-     */
-    'MANTECA_SOURCE_OVER_MONTHLY_CAP',
-    'MANTECA_MERCHANT_VOLUME_NEAR_CAP',
-    'MANTECA_MERCHANT_RECENT_REFUND',
-    'MANTECA_USER_NOT_PROVISIONED',
-    'User KYC not approved',
-]
-
-/*
- * The same fail-fast set, keyed on the backend's stable wire discriminant
- * rather than its prose. Kept beside the message list because a rejection may
- * arrive with either — an older API build sends only the sentence.
- */
-const NON_RETRYABLE_QR_PAY_CODES: string[] = [API_ERROR_CODES.MANTECA_KYC_REQUIRED]
-
 type PaymentProcessor = 'MANTECA'
 
 export default function QRPayPage() {
@@ -143,15 +112,6 @@ export default function QRPayPage() {
     // deep links, and mapped from the backend's typed 400 PIX_RECURRING_NOT_SUPPORTED.
     const pixRecurringErrorMessage = t('errors.pixRecurring')
 
-    const qrInitCopy: QrInitCopy = useMemo(
-        () => ({
-            cap: t('errors.monthlyCapReached'),
-            merchant: t('errors.merchantNotAvailable'),
-            kyc: t('errors.kycRequired'),
-            pixMinAmount: pixMinAmountErrorMessage,
-        }),
-        [t, pixMinAmountErrorMessage]
-    )
     const searchParams = useSearchParams()
     const router = useRouter()
     // QR-pay screens are terminal — leaving /qr-pay in history would let browser back from
@@ -160,6 +120,64 @@ export default function QRPayPage() {
     const qrCode = decodeURIComponent(searchParams.get('qrCode') || '')
     const timestamp = searchParams.get('t')
     const qrType = searchParams.get('type')
+    // Rail name for outage copy. Defined here rather than reusing
+    // `paymentMethodName` below because the failure-copy maps need it.
+    const qrMethodName = (qrType && NAME_BY_QR_TYPE[qrType as QrType]) || 'QR'
+
+    /*
+     * Stable across this scan's four attempts, so a retry after a timeout
+     * replays the price lock the first attempt may already have created rather
+     * than minting a second one at Manteca.
+     */
+    const scanIdempotencyKey = useMemo(() => qrInitIdempotencyKey({ qrCode, timestamp }), [qrCode, timestamp])
+
+    /*
+     * Copy for a refusal seen at SCAN time, where the amount is the merchant's
+     * and the user cannot change it. The cap and merchant-volume strings
+     * therefore offer a smaller CHARGE (something the cashier can ring again),
+     * never a smaller amount the screen has no field for.
+     */
+    const scanFailureCopy: Record<QrScanFailure, string> = useMemo(
+        () => ({
+            [QR_INIT_CODE.CAP]: t('errors.monthlyCapReachedFixedAmount'),
+            [QR_INIT_CODE.MERCHANT_VOLUME]: t('errors.merchantNotAvailable'),
+            [QR_INIT_CODE.MERCHANT_REFUND]: t('errors.merchantNotAvailable'),
+            [QR_INIT_CODE.NOT_PROVISIONED]: t('errors.kycRequired'),
+            [QR_INIT_CODE.KYC]: t('errors.kycRequired'),
+            [QR_INIT_CODE.PIX_MIN_AMOUNT]: pixMinAmountErrorMessage,
+            [QR_INIT_CODE.PIX_RECURRING]: pixRecurringErrorMessage,
+            [QR_INIT_CODE.MISSING_AMOUNT]: t('errors.genericQrDetails'),
+            [QR_INIT_CODE.EXPIRED]: t('errors.merchantChargeExpired'),
+            [QR_INIT_CODE.DECODE]: qrType === EQrType.PIX ? t('errors.pixDecode') : t('errors.genericDecode'),
+            [QR_INIT_CODE.PROVIDER_UNAVAILABLE]: t('errors.providerIssues', { method: qrMethodName }),
+            [QR_INIT_CODE.IN_PROGRESS]: t('errors.providerIssues', { method: qrMethodName }),
+            /*
+             * Never expected from this screen — it derives a key per (scan,
+             * amount) — so reaching this is ours to fix, and Sentry still
+             * reports it. But the user's way out is a fresh scan (a new key),
+             * not a support ticket, so the copy says that rather than the
+             * generic "contact support".
+             */
+            [QR_INIT_CODE.KEY_MISMATCH]: t('errors.restartScan'),
+            offline: t('errors.connectionLost'),
+            'auth-missing': t('errors.authError'),
+            'provider-issues': t('errors.providerIssues', { method: qrMethodName }),
+        }),
+        [t, pixMinAmountErrorMessage, pixRecurringErrorMessage, qrType, qrMethodName]
+    )
+
+    /*
+     * Same refusals seen AFTER the user entered an amount. Only the two
+     * amount-shaped ones differ: here a smaller number is something the user can
+     * actually type, so the copy says so.
+     */
+    const amountEntryFailureCopy: Partial<Record<QrScanFailure, string>> = useMemo(
+        () => ({
+            [QR_INIT_CODE.CAP]: t('errors.monthlyCapReached'),
+            [QR_INIT_CODE.MERCHANT_VOLUME]: t('errors.merchantNotAvailableTrySmaller'),
+        }),
+        [t]
+    )
     const { spendableBalance: balance } = useWallet()
     const { signSpend } = useSignSpendBundle()
     const handleStaleSession = useStaleSessionGuard()
@@ -175,7 +193,12 @@ export default function QRPayPage() {
         setErrorCode(code)
     }, [])
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
-    const [errorInitiatingPayment, setErrorInitiatingPayment] = useState<string | null>(null)
+    /*
+     * Refusals decided BEFORE the query runs (recurring Pix, unparseable QR).
+     * Kept as state because nothing in the query describes them; every refusal
+     * the query CAN describe is derived from it instead.
+     */
+    const [entryGuardError, setEntryGuardError] = useState<string | null>(null)
     const [paymentLock, setPaymentLock] = useState<QrPaymentLock | null>(null)
     const [showOrderNotReadyModal, setShowOrderNotReadyModal] = useState(false)
     const [isFirstLoad, setIsFirstLoad] = useState(true)
@@ -365,7 +388,7 @@ export default function QRPayPage() {
         setIsSuccess(false)
         setErrorMessage(null)
         setBalanceErrorMessage(null)
-        setErrorInitiatingPayment(null)
+        setEntryGuardError(null)
         setPaymentLock(null)
         setShowOrderNotReadyModal(false)
         setIsFirstLoad(true)
@@ -462,12 +485,12 @@ export default function QRPayPage() {
         // Before isPaymentProcessorQR: recurrence codes can match PIX_REGEX, and the
         // specific message must win over the generic "Invalid QR code scanned".
         if (qrCode && isPixRecurringCode(qrCode)) {
-            setErrorInitiatingPayment(pixRecurringErrorMessage)
+            setEntryGuardError(pixRecurringErrorMessage)
             return
         }
 
         if (!qrCode || !isPaymentProcessorQR(qrCode)) {
-            setErrorInitiatingPayment(t('errors.invalidQr'))
+            setEntryGuardError(t('errors.invalidQr'))
             return
         }
 
@@ -652,7 +675,7 @@ export default function QRPayPage() {
                 return null
             }
             return mantecaApi.initiateQrPayment(
-                { qrCode, qrType: qrType ?? undefined },
+                { qrCode, qrType: qrType ?? undefined, idempotencyKey: scanIdempotencyKey },
                 { timeoutMs: MANTECA_QR_INIT_SCAN_TIMEOUT_MS }
             )
         },
@@ -669,21 +692,14 @@ export default function QRPayPage() {
             // doomed /init still fires on every scan during a provider outage.
             !isProviderDisabled,
         retry: (failureCount, error) => {
-            // Don't retry provider-specific errors
-            if (NON_RETRYABLE_QR_PAY_ERRORS.some((code) => error?.message?.includes(code))) {
-                return false
-            }
             /*
-             * The wire code as well as the prose. The KYC 400's stable
-             * discriminant is its `code`; its `error` is an English sentence.
-             * Matching only the message meant a reworded rejection still
-             * scheduled three more POSTs behind the (correct) KYC copy the
-             * result effect had already shown.
+             * One predicate over one table (`init-error-classifier`), reading
+             * the wire code with an allow-listed prose fallback. The retry gate
+             * and the copy mapping can no longer disagree about which refusals
+             * are deterministic — a drift that previously let a reworded
+             * rejection schedule three more POSTs behind the correct copy.
              */
-            const wireCode = wireErrorCode(error)
-            if (wireCode && NON_RETRYABLE_QR_PAY_CODES.includes(wireCode)) {
-                return false
-            }
+            if (isNonRetryableQrInitError(error)) return false
             // Three retries on top of the first attempt (see the note above).
             return failureCount < 3
         },
@@ -692,130 +708,74 @@ export default function QRPayPage() {
         gcTime: 0, // Don't cache for garbage collection
     })
 
-    // Handle payment lock fetch results
+    /*
+     * What the scan screen is showing, DERIVED from the query instead of
+     * latched into state by an effect.
+     *
+     * The previous version wrote three pieces of state from a nine-branch
+     * if/else ladder, and every defect this screen accumulated was a
+     * consequence: an error that outlived its cause (a recovered scan stuck
+     * behind a stale outage message), a caption with no exit (an offline pause
+     * that never settles), and branch ordering that had to be re-derived by
+     * hand each time a case was added. `classifyScanOutcome` checks the lock
+     * first and unconditionally, so those are no longer reachable states rather
+     * than bugs to be re-fixed.
+     */
+    const scanOutcome = useMemo(
+        () =>
+            classifyScanOutcome({
+                hasLock: !!paymentLock || !!fetchedPaymentLock,
+                settledError: paymentLockError,
+                failureReason: paymentLockFailureReason,
+                fetchStatus: paymentLockFetchStatus,
+            }),
+        [paymentLock, fetchedPaymentLock, paymentLockError, paymentLockFailureReason, paymentLockFetchStatus]
+    )
+
+    /*
+     * The guard wins: it fires before the query is even enabled, and its
+     * verdicts (a recurring Pix code, an unparseable QR) are terminal.
+     */
+    const errorInitiatingPayment = useMemo(
+        () => entryGuardError ?? (scanOutcome.kind === 'failed' ? scanFailureCopy[scanOutcome.reason] : null),
+        [entryGuardError, scanOutcome, scanFailureCopy]
+    )
+
+    // Side effects only. Everything the screen RENDERS is derived above.
     useEffect(() => {
         if (paymentProcessor !== 'MANTECA') return
 
-        if (isLoadingPaymentLock && !paymentLockFailureReason) {
-            setLoadingState('Fetching details')
-            return
-        }
+        if (fetchedPaymentLock && !paymentLock) setPaymentLock(fetchedPaymentLock)
 
-        if (fetchedPaymentLock && !paymentLock) {
-            setPaymentLock(fetchedPaymentLock)
-            setWaitingForMerchantAmount(false)
-            setLoadingState('Idle')
-            /*
-             * A lock in hand outranks any earlier failure. Offline pauses the
-             * query and shows the error, but the query stays resumable — so
-             * without this a scan that recovered on reconnect had its payment
-             * screen hidden behind a latched outage message it could never
-             * clear. `errorInitiatingPayment` gates the render at the top.
-             */
-            setErrorInitiatingPayment(null)
-        }
+        if (scanOutcome.kind === 'awaiting-merchant-amount') setWaitingForMerchantAmount(true)
+        else if (scanOutcome.kind !== 'pending' && scanOutcome.kind !== 'idle') setWaitingForMerchantAmount(false)
 
-        const error = paymentLockError ?? paymentLockFailureReason
-        if (error) {
-            /*
-             * `failureReason` carries the FIRST failure, which for a retryable
-             * one arrives with three attempts still to come. The provider
-             * rejections below are all non-retryable, so acting on them
-             * immediately is correct and stays as it was; a network failure is
-             * not yet an outcome, and `paymentLockError` — set only once the
-             * query settles — is what separates the two.
-             *
-             * A PAUSED query is not pending either. Under react-query's default
-             * `networkMode: 'online'` a device that drops offline mid-retry
-             * parks the query: no fetch is in flight, so no AbortController
-             * ever fires and `paymentLockError` is never set. Without this the
-             * scan would sit on the retry caption forever, with no outcome and
-             * no way out — worse than the premature error it replaced.
-             */
-            const retriesPending = !paymentLockError && paymentLockFetchStatus !== 'paused'
-            const deterministicMessage = deterministicInitErrorMessage(error, qrInitCopy)
-            setLoadingState('Idle')
+        /*
+         * `idle` deliberately touches nothing. A disabled query — invalid QR,
+         * KYC-blocked user, provider maintenance — must not drive the app-wide
+         * loading context, which survives navigation away from this route.
+         */
+        if (scanOutcome.kind === 'pending') setLoadingState('Fetching details')
+        else if (scanOutcome.kind === 'retrying') setLoadingState('Still fetching details')
+        else if (scanOutcome.kind !== 'idle') setLoadingState('Idle')
 
-            // Provider-specific errors: show appropriate message
-            if (error.message.includes('PAYMENT_DESTINATION_MISSING_AMOUNT')) {
-                setWaitingForMerchantAmount(true)
-            } else if (error.message.includes('PAYMENT_DESTINATION_DECODING_ERROR')) {
-                // Pix has no fallback rail in Brazil — ask the merchant to regenerate.
-                // For Argentina (MERCADO_PAGO and ARGENTINA_QR3), MP is the dominant
-                // rail, so suggesting an MP QR is the most useful fallback.
-                setErrorInitiatingPayment(qrType === EQrType.PIX ? t('errors.pixDecode') : t('errors.genericDecode'))
+        if (scanOutcome.kind === 'failed') {
+            if (scanOutcome.reason === QR_INIT_CODE.DECODE) {
                 posthog.capture(ANALYTICS_EVENTS.QR_DECODING_ERROR_SHOWN, { qr_type: qrType })
-                setWaitingForMerchantAmount(false)
-            } else if (error.message.includes('PAYMENT_DESTINATION_EXPIRED')) {
-                // The QR is fine — a static POS sticker never expires. The charge
-                // the cashier rang up on the till did. Name the cashier action
-                // instead of blaming the rail.
-                setErrorInitiatingPayment(t('errors.merchantChargeExpired'))
+            } else if (scanOutcome.reason === QR_INIT_CODE.EXPIRED) {
                 posthog.capture(ANALYTICS_EVENTS.QR_MERCHANT_CHARGE_EXPIRED_SHOWN, { qr_type: qrType })
-                setWaitingForMerchantAmount(false)
-            } else if (error.message.includes('PIX_MIN_AMOUNT')) {
-                // Deterministic rejection — the merchant-encoded amount is below
-                // the rail minimum, so there's no merchant amount to wait for.
-                setWaitingForMerchantAmount(false)
-                setErrorInitiatingPayment(pixMinAmountErrorMessage)
-            } else if (error.message.includes('PIX_RECURRING_NOT_SUPPORTED')) {
-                setWaitingForMerchantAmount(false)
-                setErrorInitiatingPayment(pixRecurringErrorMessage)
-            } else if (error.message.includes("required property 'authorization'")) {
-                // Session token wasn't attached to the request (not a provider
-                // outage) — surface an honest, retryable message instead of
-                // blaming the payment rail.
-                setWaitingForMerchantAmount(false)
-                setErrorInitiatingPayment(t('errors.authError'))
-            } else if (deterministicMessage) {
-                // Cap, merchant-limit and KYC rejections, shared with the
-                // post-amount re-init so both paths name the same real cause.
-                setWaitingForMerchantAmount(false)
-                setErrorInitiatingPayment(deterministicMessage.message)
-            } else if (paymentLockFetchStatus === 'paused') {
-                /*
-                 * Paused is a positive signal that the DEVICE lost connectivity
-                 * — it is the only thing that parks a query under react-query's
-                 * default networkMode. Blaming the rail here would be the same
-                 * misdiagnosis this branch's siblings exist to remove, and it
-                 * sends a user with two bars of signal to support about
-                 * MercadoPago.
-                 */
-                setWaitingForMerchantAmount(false)
-                setErrorInitiatingPayment(t('errors.connectionLost'))
-            } else if (retriesPending) {
-                /*
-                 * Retryable network/timeout failure with attempts left. The
-                 * terminal copy used to land here, contradicting what the query
-                 * was still doing: a scan that recovered on attempt 2 had
-                 * already told the user the rail was down. Say we are still
-                 * trying, and let the branch below own the outcome.
-                 */
-                setLoadingState('Still fetching details')
-                setWaitingForMerchantAmount(false)
-            } else {
-                // Network/timeout errors after all retries exhausted
-                setErrorInitiatingPayment(
-                    t('errors.providerIssues', { method: (qrType && NAME_BY_QR_TYPE[qrType as QrType]) || 'QR' })
-                )
-                setWaitingForMerchantAmount(false)
             }
         }
-    }, [
-        fetchedPaymentLock,
-        isLoadingPaymentLock,
-        paymentLockError,
-        paymentLockFailureReason,
-        paymentLock,
-        qrType,
-        paymentProcessor,
-        setLoadingState,
-        t,
-        pixMinAmountErrorMessage,
-        pixRecurringErrorMessage,
-        paymentLockFetchStatus,
-        qrInitCopy,
-    ])
+    }, [scanOutcome, fetchedPaymentLock, paymentLock, paymentProcessor, qrType, setLoadingState])
+
+    /*
+     * The loading context is app-wide and outlives this route, so leaving it set
+     * on the way out locks the send/request handlers, which read `isLoading` as
+     * a hard gate. Nothing on this page needs it once the page is gone.
+     */
+    useEffect(() => {
+        return () => setLoadingState('Idle')
+    }, [setLoadingState])
 
     /*
      * Editing the amount clears the last init error. A cap or Pix-minimum
@@ -854,6 +814,9 @@ export default function QRPayPage() {
                     qrCode,
                     amount: currencyAmount,
                     qrType: qrType ?? undefined,
+                    // The amount is part of the identity: a different number is
+                    // a genuinely different lock, so it must not replay the last one.
+                    idempotencyKey: qrInitIdempotencyKey({ qrCode, timestamp, amount: currencyAmount }),
                 })
                 setPaymentLock(finalPaymentLock)
             } catch (error) {
@@ -864,7 +827,7 @@ export default function QRPayPage() {
                  * headroom. Routing that to "unexpected error" threw away the
                  * one screen that could tell them to try a smaller amount.
                  */
-                const deterministic = deterministicInitErrorMessage(error, qrInitCopy)
+                const deterministic = classifyQrInitError(error, 'amount-entry')
                 if (deterministic) {
                     // Deterministic rejection — actionable copy, not a
                     // Sentry-worthy surprise.
@@ -876,7 +839,10 @@ export default function QRPayPage() {
                      * be followed — the same dead end `balanceSettling` exists
                      * to avoid.
                      */
-                    setErrorMessage(deterministic.message, deterministic.amountRetryable ? 'amountRetryable' : null)
+                    setErrorMessage(
+                        amountEntryFailureCopy[deterministic.code] ?? scanFailureCopy[deterministic.code],
+                        deterministic.amountRetryable ? 'amountRetryable' : null
+                    )
                 } else {
                     void captureNetworkTriagedFailure(error, {
                         tags: { ...criticalFlowTags('qr-pay'), qr_pay_step: 'initiate' },
@@ -1036,7 +1002,9 @@ export default function QRPayPage() {
         rainCardOverview,
         qrCode,
         currencyAmount,
-        qrInitCopy,
+        scanFailureCopy,
+        amountEntryFailureCopy,
+        timestamp,
         setLoadingState,
         qrType,
         handleStaleSession,

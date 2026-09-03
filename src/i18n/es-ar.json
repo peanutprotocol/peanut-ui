@@ -157,6 +157,8 @@
     "landingHeroTapScan": "TOCÁ. ESCANEÁ. DONDE SEA.",
     "landingHeroNoLocalId": "Sin documento local ni banco.",
     "landingZeroFees": "CERO COMISIONES POR TRANSFERENCIA",
+    "landingReallyZero": "EN SERIO, CERO",
+    "landingNoHiddenFees": "SIN COMISIONES DE ENVÍO",
     "landingSeeMarkupOn": "Mirá el recargo en:",
     "landingDropLinkHeading": "PAGAR ES TAN FÁCIL COMO UN MENSAJE.",
     "landingDropLinkBody": "Por chat o en persona. Funciona en WhatsApp, SMS y códigos QR. Sin datos bancarios, y no necesitan registrarse ni instalar Peanut.",

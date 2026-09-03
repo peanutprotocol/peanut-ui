@@ -1301,7 +1301,9 @@
             "providerIssues": "We are currently experiencing issues with {method} payments. We are working to fix it as soon as possible",
             "connectionLost": "Your device seems to be offline. Check your connection and scan again — nothing has been charged.",
             "monthlyCapReached": "This payment is over your remaining monthly limit, which is shared across deposits, withdrawals and QR payments. Try a smaller amount, or contact support to raise your limit.",
+            "monthlyCapReachedFixedAmount": "This charge is over your remaining monthly limit, which is shared across deposits, withdrawals and QR payments. Ask for a smaller charge, or contact support to raise your limit.",
             "merchantNotAvailable": "We can't complete QR payments to this merchant right now. Try another payment method, or a different merchant.",
+            "merchantNotAvailableTrySmaller": "We can't complete QR payments of this size to this merchant right now. Try a smaller amount, another payment method, or a different merchant.",
             "kycRequired": "Finish verifying your identity to pay with QR.",
             "merchantChargeExpired": "The cashier's charge has timed out. Ask them to enter the amount again, then scan once more.",
             "initiateUnexpected": "Could not initiate payment due to unexpected error. Please contact support",
@@ -1311,6 +1313,7 @@
             "signFailed": "Could not sign the transaction.",
             "accountStateChanged": "Transaction failed due to account state change. Please try again. If the problem persists, contact support.",
             "sessionExpired": "Payment session expired. Please scan the QR code again.",
+            "restartScan": "We couldn't start this payment. Please scan the QR code again.",
             "merchantNotSupported": "This specific QR code or merchant is not supported. Please try again with a different QR code.",
             "completeFailed": "Could not complete payment. Please scan the QR code again. If problem persists contact support",
             "minMantecaAmount": "Payment amount must be at least ${amount}",
@@ -2994,7 +2997,7 @@
             "card_rejected": "Your card application couldn't be approved. Message support if you think this is a mistake.",
             "manteca_us_nationality": "Payments from this country are not available for US citizens at this time.",
             "country_not_supported": "This rail needs a document from a supported country. You can verify with a different ID.",
-            "tax_id_unresolved": "Local deposits and withdrawals need a local tax ID, and we couldn't read one from your documents. You can verify again with an ID that carries one. QR payments aren't affected.",
+            "tax_id_unresolved": "We couldn't read the tax ID that local deposits and withdrawals need. You can verify again to provide it. QR payments aren't affected.",
             "uk_resident_blocked": "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe — you can withdraw them as crypto anytime.",
             "identity_region_restricted": "Our verification partner doesn't accept documents issued in your country. Re-uploading won't change the result."
         }

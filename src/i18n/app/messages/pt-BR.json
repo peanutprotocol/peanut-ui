@@ -1301,7 +1301,9 @@
             "providerIssues": "Estamos com problemas nos pagamentos de {method}. Estamos trabalhando para resolver o quanto antes",
             "connectionLost": "Seu dispositivo parece estar sem conexão. Verifique sua conexão e escaneie novamente — nada foi cobrado.",
             "monthlyCapReached": "Este pagamento excede seu limite mensal disponível, que é compartilhado entre depósitos, saques e pagamentos por QR. Tente um valor menor ou fale com o suporte para aumentar seu limite.",
+            "monthlyCapReachedFixedAmount": "Esta cobrança excede seu limite mensal disponível, que é compartilhado entre depósitos, saques e pagamentos por QR. Peça uma cobrança menor ou fale com o suporte para aumentar seu limite.",
             "merchantNotAvailable": "Não conseguimos concluir pagamentos por QR para este estabelecimento agora. Tente outro método de pagamento ou outro estabelecimento.",
+            "merchantNotAvailableTrySmaller": "Não conseguimos concluir pagamentos por QR deste valor para este estabelecimento agora. Tente um valor menor, outro método de pagamento ou outro estabelecimento.",
             "kycRequired": "Conclua a verificação da sua identidade para pagar com QR.",
             "merchantChargeExpired": "A cobrança do caixa expirou. Peça para inserir o valor de novo e escaneie mais uma vez.",
             "initiateUnexpected": "Não foi possível iniciar o pagamento por um erro inesperado. Fale com o suporte",
@@ -1311,6 +1313,7 @@
             "signFailed": "Não foi possível assinar a transação.",
             "accountStateChanged": "A transação falhou por uma mudança no estado da conta. Tente de novo. Se o problema continuar, fale com o suporte.",
             "sessionExpired": "A sessão de pagamento expirou. Escaneie o código QR de novo.",
+            "restartScan": "Não conseguimos iniciar este pagamento. Escaneie o código QR novamente.",
             "merchantNotSupported": "Este código QR ou lojista não é aceito. Tente de novo com outro código QR.",
             "completeFailed": "Não foi possível concluir o pagamento. Escaneie o código QR de novo. Se o problema continuar, fale com o suporte",
             "minMantecaAmount": "O valor do pagamento deve ser de pelo menos ${amount}",
@@ -2994,7 +2997,7 @@
             "card_rejected": "Sua solicitação de cartão não pôde ser aprovada. Fale com o suporte se achar que isso é um engano.",
             "manteca_us_nationality": "Pagamentos deste país não estão disponíveis para cidadãos dos EUA no momento.",
             "country_not_supported": "Este método exige um documento de um país compatível. Você pode verificar com outro documento.",
-            "tax_id_unresolved": "Depósitos e saques locais exigem um número de identificação fiscal, e não conseguimos ler nenhum nos seus documentos. Você pode verificar novamente com um documento que o contenha. Os pagamentos por QR não são afetados.",
+            "tax_id_unresolved": "Não conseguimos ler o número de identificação fiscal que os depósitos e saques locais exigem. Você pode verificar novamente para fornecê-lo. Os pagamentos por QR não são afetados.",
             "uk_resident_blocked": "Devido às regulamentações do Reino Unido, transferências bancárias não estão disponíveis para residentes do Reino Unido. Seu dinheiro está seguro — você pode sacá-lo como cripto a qualquer momento.",
             "identity_region_restricted": "Nosso parceiro de verificação não aceita documentos emitidos no seu país. Enviar de novo não vai mudar o resultado."
         }

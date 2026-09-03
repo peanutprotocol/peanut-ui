@@ -32,6 +32,41 @@ describe('marketing message catalogs', () => {
         }
     })
 
+    // the no-fees lettering used to be baked into an SVG, so it silently stayed
+    // English on every locale — assert it is translated everywhere
+    it.each(SUPPORTED_LOCALES.filter((locale) => locale !== DEFAULT_LOCALE))(
+        '%s translates the no-fees lettering',
+        (locale) => {
+            const en = getTranslations(DEFAULT_LOCALE)
+            const messages = getTranslations(locale)
+            expect(messages.landingReallyZero).not.toBe(en.landingReallyZero)
+            expect(messages.landingNoHiddenFees).not.toBe(en.landingNoHiddenFees)
+        }
+    )
+
+    it.each(SUPPORTED_LOCALES)('%s keeps the no-fees lettering uppercase', (locale) => {
+        const messages = getTranslations(locale)
+        expect(messages.landingReallyZero).toBe(messages.landingReallyZero.toUpperCase())
+        expect(messages.landingNoHiddenFees).toBe(messages.landingNoHiddenFees.toUpperCase())
+    })
+
+    // the scribble is drawn around the closing word, so every catalog needs one
+    it.each(SUPPORTED_LOCALES)('%s puts a circleable word last in landingReallyZero', (locale) => {
+        expect(getTranslations(locale).landingReallyZero).toMatch(/\s\S+$/)
+    })
+
+    // noFees.tsx picks the mobile headline ramp from the longest word in
+    // landingZeroFees. Measured at 320px: the wide ramp (en) carries 8
+    // characters, the narrow one 14. Past that the headline clips again.
+    it.each(SUPPORTED_LOCALES)('%s landingZeroFees fits its headline ramp', (locale) => {
+        const longest = Math.max(
+            ...getTranslations(locale)
+                .landingZeroFees.split(' ')
+                .map((word) => word.length)
+        )
+        expect(longest).toBeLessThanOrEqual(locale === DEFAULT_LOCALE ? 8 : 14)
+    })
+
     it('falls back to en for an unsupported locale', () => {
         expect(getTranslations('de' as Locale)).toBe(getTranslations(DEFAULT_LOCALE))
     })
