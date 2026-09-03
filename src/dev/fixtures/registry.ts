@@ -335,7 +335,7 @@ export const FIXTURES: Record<string, Fixture> = {
 
     reconsent: {
         route: '/home',
-        about: 'Re-consent modal over home: two updated documents as bordered link rows.',
+        about: 'Re-consent modal over home: two updated documents as a centered link line.',
         responses: {
             'GET /users/consent/status': {
                 needsReConsent: true,

@@ -3,12 +3,10 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
+import { Fragment } from 'react'
 import ActionModal from '../ActionModal'
 import DocsLink from '@/components/Global/DocsLink'
-import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Notification } from '@/components/0_Bruddle/Notification'
-import { getCardPosition } from '@/components/Global/Card/card.utils'
-import { Icon } from '@/components/Global/Icons/Icon'
 import { legalPolicyForSlug } from '@/constants/legal-policies'
 import { useAuth } from '@/context/authContext'
 import { acceptedLegalDocument, consentApi, type ConsentStatusDocument } from '@/services/consent'
@@ -147,23 +145,25 @@ const ReConsentModal = () => {
             }
             content={
                 <div className="space-y-3 w-full">
-                    {/* one bordered row per updated document, the whole row is the link
-                        (DocsLink handles web/PWA/native targets) */}
-                    <div>
+                    {/* the updated documents on one centered line, separator-joined
+                        (wraps when it must) — inline-link treatment per the Signup
+                        consent line; DocsLink handles web/PWA/native targets */}
+                    <p className="text-body-s">
                         {outdatedDocs.map((doc, index) => {
                             const policy = legalPolicyForSlug(doc.slug)
                             return (
-                                <DocsLink key={doc.slug} href={policy?.href ?? `/${doc.slug}`} className="block">
-                                    <ListItem
-                                        position={getCardPosition(index, outdatedDocs.length)}
-                                        leading={<Icon name="docs" size={24} />}
-                                        title={policy ? tPolicies(policy.key) : doc.slug}
-                                        trailing={<Icon name="external-link" size={20} />}
-                                    />
-                                </DocsLink>
+                                <Fragment key={doc.slug}>
+                                    {index > 0 && <span className="text-foreground-secondary"> · </span>}
+                                    <DocsLink
+                                        href={policy?.href ?? `/${doc.slug}`}
+                                        className="text-foreground-primary underline underline-offset-2"
+                                    >
+                                        {policy ? tPolicies(policy.key) : doc.slug}
+                                    </DocsLink>
+                                </Fragment>
                             )
                         })}
-                    </div>
+                    </p>
                     {error && <Notification priority="error">{error}</Notification>}
                 </div>
             }
