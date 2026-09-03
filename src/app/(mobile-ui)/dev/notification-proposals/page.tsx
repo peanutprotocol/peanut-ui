@@ -155,6 +155,17 @@ const MODAL_USAGES = {
             'Enable screen lock (Settings > Security)',
         ],
     },
+    passkeySupport: {
+        label: 'PasskeySetupHelpModal:97 — still-having-issues note (hideIcon, titled)',
+        priority: 'info',
+        hideIcon: true,
+        title: 'Still having issues?',
+        body: (
+            <>
+                Contact our support team at <span className="underline">peanut.me/support</span>
+            </>
+        ),
+    },
     passkeyNote: {
         label: 'PasskeySetupHelpModal:92 — important note',
         priority: 'error',
@@ -215,14 +226,14 @@ const MODAL_USAGES = {
 // call site is added/removed in prod, this page drifts until someone re-greps
 const USAGE_GROUPS: UsageGroup[] = [
     {
-        name: 'flow and form errors — 48 call sites, 4 representative samples',
+        name: 'flow and form errors — 41 call sites, 4 representative samples',
         ctx: 'form',
-        note: 'The biggest population: priority="error" under an amount input, form, or CTA — all 48 sites share this exact shape, so four samples stand in for the list (single-line, wrapping, error toast, multi-line toast). Nothing is lost: the sites are enumerated by grepping <Notification priority="error">.',
+        note: 'The biggest population: priority="error" under an input, form, or CTA. The error-split is DONE (16ac0c9bb + 31283a67c): client validation moved to FieldError/FieldColumn under the input, so ONLY backend/API failures remain in this channel — 41 sites, down from 48. All share one shape; four samples stand in for the list.',
         usages: [
             {
-                label: 'single-line error — e.g. SendInputView:114 (real copy; 46 similar sites)',
+                label: 'single-line error — e.g. Confirm.withdraw.view (real copy; ~39 similar sites)',
                 priority: 'error',
-                body: 'Not enough balance to fulfill this payment with Peanut',
+                body: 'Not enough balance. Add funds to continue.',
             },
             {
                 label: 'wrapping multi-line error — e.g. SetupPasskey:241 (real copy)',
@@ -239,9 +250,61 @@ const USAGE_GROUPS: UsageGroup[] = [
         ],
     },
     {
-        name: 'titled and info/attention banners on pages (29 sites)',
+        name: 'titled and info/attention banners on pages (35 sites)',
         ctx: 'page',
         usages: [
+            {
+                label: 'UnlockPayments.view:384 — KYC degraded (title + cta)',
+                priority: 'attention',
+                title: 'Verification is temporarily down',
+                body: "You can't start or continue an ID check right now.",
+            },
+            {
+                label: 'UnlockPayments.view:402 — ID check in review',
+                rep: true,
+                priority: 'helper',
+                title: 'ID check in review since Sep 1',
+                body: 'Most reviews finish within 1 to 3 business days.',
+            },
+            {
+                label: 'Setup/Residence:407 — residency order guide (hideIcon, titled)',
+                priority: 'info',
+                hideIcon: true,
+                title: 'Which country goes first?',
+                body: 'Both entries must be countries where you genuinely hold legal residence. This is a declaration, and providers verify it during the ID check, including proof of address.',
+            },
+            {
+                label: 'Setup/SignTestTransaction:256 — works right now (hideIcon, titled)',
+                priority: 'info',
+                hideIcon: true,
+                title: 'Works right now',
+                body: 'Receive dollars, send to any @username, and hold your balance. No ID needed for any of that.',
+            },
+            {
+                label: 'Setup/SignTestTransaction:259 — when you want bank payments (hideIcon, titled)',
+                priority: 'info',
+                hideIcon: true,
+                title: 'When you want bank payments or the card',
+                body: 'One ID check, about 10 minutes for most people. If a reviewer has to look, 1 to 3 business days.',
+            },
+            {
+                label: 'KycPrepChecklist:36 — requirements checklist (items, hideIcon)',
+                priority: 'info',
+                items: [
+                    <span key="id">
+                        <span className="block text-label-l">A government ID that has not expired</span>
+                        <span className="block text-body-xs text-foreground-secondary">
+                            Passport, national ID, residence permit, or most driver&apos;s licenses.
+                        </span>
+                    </span>,
+                    <span key="selfie">
+                        <span className="block text-label-l">Your face</span>
+                        <span className="block text-body-xs text-foreground-secondary">
+                            A short selfie in the app. Good light helps.
+                        </span>
+                    </span>,
+                ],
+            },
             {
                 label: 'add-money/bank:510 — amount must match',
                 priority: 'attention',
@@ -557,13 +620,7 @@ const MODAL_HOSTS: { sites: string; build: (render: RenderFn) => React.ReactNode
                         <h3 className="mr-auto font-bold">Try these fixes:</h3>
                         {render(MODAL_USAGES.passkeySteps)}
                         {render(MODAL_USAGES.passkeyNote)}
-                        <div className="rounded-sm border border-border-disabled bg-background-disabled/5 p-3 text-body-xs text-foreground-secondary">
-                            <p className="mb-1 font-bold">Still having issues?</p>
-                            <p>
-                                Contact our support team at{' '}
-                                <span className="text-blue-500 underline">peanut.me/support</span>
-                            </p>
-                        </div>
+                        {render(MODAL_USAGES.passkeySupport)}
                         <Button icon="retry" onClick={noop} className="w-full justify-center">
                             Retry
                         </Button>
@@ -970,7 +1027,7 @@ export default function NotificationUsageInventoryPage() {
     return (
         <DevPageShell
             title="Notification usage inventory"
-            description="Every place the (shipped, compact) production Notification renders today, grouped by context — the working inventory for designing the second notification component. The in-modal/drawer group is the over-served context that component targets."
+            description="Every place the (shipped, compact) production Notification renders today (92 inline sites, grep-verified 2026-09-03), grouped by context — the working inventory for designing the second notification component. The error-split is DONE: client validation lives in FieldError/FieldColumn now, so only backend/API failures remain in this channel. The in-modal/drawer group is the over-served context the second component targets."
         >
             <nav className="sticky top-0 z-10 -my-2 flex gap-2 overflow-x-auto border-b border-border-subtle bg-background-default py-2">
                 {NAV.map(([id, label]) => (
