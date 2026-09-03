@@ -76,6 +76,14 @@ describe('InitiateKycModal — residence check', () => {
         expect(screen.getByText('Not available for UK residents')).toBeInTheDocument()
     })
 
+    // page presentation drops the visible heading for the generic unlock offer;
+    // the unavailable ending is not generic and must keep its own title
+    it('shows the unavailable title in page presentation, not the generic nav title', () => {
+        mockRestrictions = { banking: true, card: false }
+        renderModal({ presentation: 'page', navTitle: 'Unlock payments' })
+        expect(screen.getByRole('heading', { name: 'Not available in your country' })).toBeInTheDocument()
+    })
+
     it('yields to the document-jurisdiction screen', () => {
         mockRestrictions = { banking: true, card: true }
         mockIsRegionRestricted = true

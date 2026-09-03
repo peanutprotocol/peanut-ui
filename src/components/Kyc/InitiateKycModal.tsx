@@ -293,7 +293,7 @@ export const InitiateKycModal = ({
          * where it can wrap; NavHeader truncates at the width between its two
          * side buttons.
          */
-        const titleIsGeneric = variant === 'default' && !error
+        const titleIsGeneric = resolvedVariant === 'default' && !error
         const headerTitle = navTitle ?? getTitle()
         return (
             <div className="flex flex-col gap-6">
