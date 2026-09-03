@@ -302,7 +302,15 @@ export const useSignSpendBundle = () => {
                     }),
                 }
 
-                const signedUserOp = await signCallsUserOp([withdrawCall, transferCall], chainIdStr)
+                // Tap #2 follows the admin signature; tell the user so the second
+                // sheet is not dismissed as a duplicate (same beat as useSpendBundle).
+                modals?.setIsSecurityVerificationOpen?.(true, 'next-passkey')
+                let signedUserOp: SignedUserOpData
+                try {
+                    signedUserOp = await signCallsUserOp([withdrawCall, transferCall], chainIdStr)
+                } finally {
+                    modals?.setIsSecurityVerificationOpen?.(false)
+                }
                 return { strategy, signedUserOp, rainPreparationId: prep.preparationId }
             } catch (e) {
                 posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_FAILED, {
