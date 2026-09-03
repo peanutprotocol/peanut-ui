@@ -65,7 +65,11 @@ public class PushProvisioningPlugin extends Plugin {
 
     @PluginMethod
     public void isAvailable(PluginCall call) {
-        if (!hasMeaConfig() || !initialize(getContext())) {
+        // Without Google Wallet installed the suffix lookup finds no token and
+        // reports the card as addable, so the UI would swap the manual flow for
+        // a one-tap action that fetches PAN-equivalent credentials and can only
+        // fail. Rule it out before the lookup.
+        if (!hasMeaConfig() || !initialize(getContext()) || !MeaPushProvisioning.GooglePay.isWalletAvailable(getContext())) {
             JSObject out = new JSObject();
             out.put("available", false);
             out.put("alreadyInWallet", false);

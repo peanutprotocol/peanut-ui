@@ -73,9 +73,13 @@ public class PushProvisioningPlugin: CAPPlugin, CAPBridgedPlugin {
                 return
             }
             // Non-empty primaryAccountIdentifier + no addable device = the pass
-            // already exists everywhere it can.
+            // already exists everywhere it can. Both checks are required: a card
+            // already on the iPhone can still be addable to a paired Watch, and
+            // resolving alreadyInWallet there hides the row that is the only way
+            // to reach the Watch.
             if let pai = data.primaryAccountIdentifier, !pai.isEmpty,
-               !MeaPushProvisioning.canAddSecureElementPass(withPrimaryAccountIdentifier: pai) {
+               !MeaPushProvisioning.canAddSecureElementPass(withPrimaryAccountIdentifier: pai),
+               !MeaPushProvisioning.canAddRemoteSecureElementPass(withPrimaryAccountIdentifier: pai) {
                 call.resolve(["added": false, "alreadyInWallet": true])
                 return
             }
