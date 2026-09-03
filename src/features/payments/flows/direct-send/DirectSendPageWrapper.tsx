@@ -12,7 +12,7 @@
  */
 
 import { useUserByUsername } from '@/hooks/useUserByUsername'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { AccountType } from '@/interfaces/interfaces'
 import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
@@ -60,12 +60,18 @@ export function DirectSendPageWrapper({ username }: DirectSendPageWrapperProps) 
         )
     }
 
-    // error state
+    // error state — centered card (ruled 2026-09-03: no more lone top banner)
     if (error || !recipient) {
         return (
-            <div className="flex w-full flex-col gap-4">
+            <div className="flex min-h-[inherit] w-full flex-col gap-4">
                 <NavHeader title={t('headers.send')} onPrev={onBack} />
-                <Notification priority="error">{error || t('errors.userNotFound', { username })}</Notification>
+                <div className="flex flex-grow flex-col justify-center py-8">
+                    <EmptyState
+                        icon="user"
+                        title={t('errors.userNotFoundTitle')}
+                        description={error || t('errors.userNotFoundDescription', { username })}
+                    />
+                </div>
             </div>
         )
     }

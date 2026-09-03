@@ -8,6 +8,7 @@ import { Notification } from '@/components/0_Bruddle/Notification'
 import DevPageShell from '../_components/DevPageShell'
 import DevSectionLabel from '../_components/DevSectionLabel'
 import DevNoteCard from '../_components/DevNoteCard'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 
 /**
  * /dev/notification-proposals — notification USAGE INVENTORY.
@@ -238,20 +239,7 @@ const USAGE_GROUPS: UsageGroup[] = [
         ],
     },
     {
-        name: 'page-wrapper load errors (3 sites)',
-        ctx: 'page',
-        usages: [
-            {
-                label: 'DirectSendPageWrapper:68 — user not found',
-                priority: 'error',
-                body: 'user @satoshi not found or has no peanut wallet',
-            },
-            { label: 'SemanticRequestPageWrapper:104 — invalid url', priority: 'error', body: 'invalid payment url' },
-            { label: 'ContributePotPageWrapper:75 — request not found', priority: 'error', body: 'request not found' },
-        ],
-    },
-    {
-        name: 'titled and info/attention banners on pages (30 sites)',
+        name: 'titled and info/attention banners on pages (29 sites)',
         ctx: 'page',
         usages: [
             {
@@ -412,12 +400,7 @@ const USAGE_GROUPS: UsageGroup[] = [
                 body: 'Exchange rates are temporarily unavailable. Please try again in a moment.',
             },
             {
-                label: 'Global/Banner:43 — offline (top of shell)',
-                priority: 'error',
-                body: "No internet connection — some features won't work until you reconnect",
-            },
-            {
-                label: 'Global/Banner:57 — maintenance (top of shell)',
+                label: 'Global/Banner:57 — maintenance (top of shell; redesign in progress with the designer)',
                 priority: 'error',
                 body: "Maintenance mode, some functionalities won't be available. Funds safe",
             },
@@ -734,7 +717,7 @@ const renderCurrent: RenderFn = (u) => (
     </Notification>
 )
 
-const [G_ERRORS, G_WRAPPERS, G_BANNERS, G_SPECIAL] = USAGE_GROUPS
+const [G_ERRORS, G_BANNERS, G_SPECIAL] = USAGE_GROUPS
 
 // ---------------------------------------------------------------------------
 // full-page banner frames — the notification in its real on-page position
@@ -798,22 +781,7 @@ const HomeScaffold = () => (
 
 const BANNER_PAGES: { label: string; frame: React.ReactNode }[] = [
     {
-        label: 'Global/Banner:43 — offline, top of the shell on home (also has a degraded-connectivity attention state)',
-        frame: (
-            <PageFrame
-                tabBar
-                banner={
-                    <Notification priority="error" className="mx-4 mt-2">
-                        No internet connection — some features won&apos;t work until you reconnect
-                    </Notification>
-                }
-            >
-                <HomeScaffold />
-            </PageFrame>
-        ),
-    },
-    {
-        label: 'Global/Banner:57 — maintenance, same shell position',
+        label: 'Global/Banner:57 — maintenance, top of shell (stays a banner; redesign in progress with the designer)',
         frame: (
             <PageFrame
                 tabBar
@@ -828,38 +796,56 @@ const BANNER_PAGES: { label: string; frame: React.ReactNode }[] = [
         ),
     },
     {
-        label: 'DirectSendPageWrapper:68 — load error IS the page (first element under the header)',
+        label: 'DirectSendPageWrapper — ruled 2026-09-03: centered card error state (was a lone top banner)',
         frame: (
             <PageFrame>
                 <div className="flex items-center gap-2">
                     <Icon name="chevron-right" size={20} className="rotate-180" />
                     <p className="text-heading-xs">Send</p>
                 </div>
-                <Notification priority="error">user @satoshi not found or has no peanut wallet</Notification>
+                <div className="flex flex-grow flex-col justify-center py-8">
+                    <EmptyState
+                        icon="user"
+                        title="User not found"
+                        description="We couldn't find @satoshi on Peanut. Check the username and try again."
+                    />
+                </div>
             </PageFrame>
         ),
     },
     {
-        label: 'SemanticRequestPageWrapper:104 — load error IS the page (first element under the header)',
+        label: 'SemanticRequestPageWrapper — ruled 2026-09-03: centered card error state (was a lone top banner)',
         frame: (
             <PageFrame>
                 <div className="flex items-center gap-2">
                     <Icon name="chevron-right" size={20} className="rotate-180" />
                     <p className="text-heading-xs">Pay</p>
                 </div>
-                <Notification priority="error">invalid payment url</Notification>
+                <div className="flex flex-grow flex-col justify-center py-8">
+                    <EmptyState
+                        icon="link"
+                        title="This payment link doesn't work"
+                        description="The link is incomplete or mistyped. Ask the sender to share it again."
+                    />
+                </div>
             </PageFrame>
         ),
     },
     {
-        label: 'ContributePotPageWrapper:75 — load error IS the page (first element under the header)',
+        label: 'ContributePotPageWrapper — ruled 2026-09-03: centered card error state (was a lone top banner)',
         frame: (
             <PageFrame>
                 <div className="flex items-center gap-2">
                     <Icon name="chevron-right" size={20} className="rotate-180" />
                     <p className="text-heading-xs">Pay</p>
                 </div>
-                <Notification priority="error">request not found</Notification>
+                <div className="flex flex-grow flex-col justify-center py-8">
+                    <EmptyState
+                        icon="search"
+                        title="Request not found"
+                        description="This payment request doesn't exist or was removed. Ask the sender for a new link."
+                    />
+                </div>
             </PageFrame>
         ),
     },
@@ -1015,13 +1001,11 @@ export default function NotificationUsageInventoryPage() {
                     <div className="flex flex-col gap-3">
                         <DevSectionLabel>in full-page context — every top-of-page banner, framed</DevSectionLabel>
                         <p className="max-w-3xl text-body-xs text-foreground-secondary">
-                            6 call sites render as a top-of-page banner. Exact top of the shell, above everything
-                            including the page header: 2 — Global/Banner&apos;s connectivity and maintenance states.
-                            First element of the route&apos;s content, directly under the page header: 4 — the three
-                            payment-wrapper load errors (the error is the whole page) and the limits page description.
-                            Every other catalog site is mid-page, below content, or in a modal/drawer. The add-money,
-                            KYC and receipt frames below are kept as below-the-fold contrast examples. Banner =
-                            page-level context; the second component probably isn&apos;t for these.
+                            2 call sites still render as a top-of-page banner after the 2026-09-03 rulings (was 6): the
+                            maintenance shell banner (redesign in progress with the designer) and the limits page
+                            description. Offline/degraded connectivity moved to the toast surface (ConnectivityToast),
+                            and the three payment-wrapper load errors became centered card error states — framed below
+                            with their new treatment so the change is visible.
                         </p>
                         <div className="grid items-start gap-6 md:grid-cols-2 xl:grid-cols-3">
                             {BANNER_PAGES.map((p) => (
@@ -1032,7 +1016,6 @@ export default function NotificationUsageInventoryPage() {
                             ))}
                         </div>
                     </div>
-                    <GroupBlock group={G_WRAPPERS} />
                     <GroupBlock group={G_BANNERS} />
                 </div>
             </PageSection>
@@ -1082,6 +1065,19 @@ export default function NotificationUsageInventoryPage() {
                         </Notification>
                     </div>
                     <div className="max-w-md">
+                        {/* ConnectivityToast (was Global/Banner:43) — ruled 2026-09-03: offline
+                            rides the toast surface, persistent while offline */}
+                        <Notification priority="error" onDismiss={noop}>
+                            No internet connection — some features won&apos;t work until you reconnect
+                        </Notification>
+                    </div>
+                    <div className="max-w-md">
+                        {/* ConnectivityToast degraded state — also moved to toast (warning tone) */}
+                        <Notification priority="attention" onDismiss={noop}>
+                            Trouble reaching Peanut — check your connection, retrying…
+                        </Notification>
+                    </div>
+                    <div className="max-w-md">
                         {/* toast.warning maps to attention; representative copy */}
                         <Notification priority="attention" onDismiss={noop}>
                             Your session is about to expire.
@@ -1120,10 +1116,10 @@ export default function NotificationUsageInventoryPage() {
 
             <DevNoteCard title="Inventory notes">
                 Hand-transcribed from grep + i18n (2026-09-02, re-checked 2026-09-03) — re-grep before trusting counts
-                after big merges. 96 inline call sites + the toast surface; flow errors sampled, everything else
-                exhaustive. Runtime-only copy is marked &quot;representative&quot;. The old double-icon toast bug is
-                gone: ToastStack suppresses the stock icon whenever custom content is set (bea446822), pinned by
-                ToastStack.test.tsx.
+                after big merges. 92 inline call sites + the toast surface after the 2026-09-03 rulings (offline →
+                toast, 3 wrapper errors → centered cards); flow errors sampled, everything else exhaustive. Runtime-only
+                copy is marked &quot;representative&quot;. The old double-icon toast bug is gone: ToastStack suppresses
+                the stock icon whenever custom content is set (bea446822), pinned by ToastStack.test.tsx.
             </DevNoteCard>
         </DevPageShell>
     )

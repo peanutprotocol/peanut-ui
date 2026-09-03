@@ -1125,11 +1125,14 @@
             "paymentDetailsLoadFailed": "não foi possível carregar os detalhes do pagamento",
             "noRequestId": "nenhum id de cobrança fornecido",
             "requestLoadFailed": "não foi possível carregar a cobrança. ela pode não existir ou ter sido excluída.",
-            "requestNotFound": "cobrança não encontrada",
             "invalidUrlFormat": "Formato de URL inválido",
-            "invalidPaymentUrl": "url de pagamento inválida",
-            "userNotFound": "o usuário @{username} não existe ou não tem uma carteira peanut",
-            "usernameArbitrumOnly": "Pagamentos para nomes de usuário da Peanut só podem ser feitos na Arbitrum"
+            "usernameArbitrumOnly": "Pagamentos para nomes de usuário da Peanut só podem ser feitos na Arbitrum",
+            "userNotFoundTitle": "Usuário não encontrado",
+            "userNotFoundDescription": "Não encontramos @{username} na Peanut. Confira o nome de usuário e tente de novo.",
+            "invalidPaymentUrlTitle": "Este link de pagamento não funciona",
+            "invalidPaymentUrlDescription": "O link está incompleto ou digitado errado. Peça para quem enviou compartilhar de novo.",
+            "requestNotFoundTitle": "Cobrança não encontrada",
+            "requestNotFoundDescription": "Esta cobrança não existe ou foi removida. Peça um novo link para quem enviou."
         }
     },
     "claim": {
