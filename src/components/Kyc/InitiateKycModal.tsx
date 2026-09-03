@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
-import ActionModal from '@/components/Global/ActionModal'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { useKycDegraded } from '@/hooks/useKycDegraded'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import posthog from 'posthog-js'
@@ -15,6 +15,16 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
+import { useRegionRestrictedCta } from '@/components/Kyc/KycRegionRestrictedContent'
+import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
+
+type InitiateKycVariant =
+    | 'default'
+    | 'provider_rejection'
+    | 'blocked'
+    | 'restart_identity'
+    | 'cross_region'
+    | 'region-unavailable'
 
 interface InitiateKycModalProps {
     visible: boolean
@@ -25,7 +35,7 @@ interface InitiateKycModalProps {
     /** error message from a failed verify/resubmit attempt */
     error?: string | null
     /** when set, shows context-specific messaging instead of the generic "unlock" copy */
-    variant?: 'default' | 'provider_rejection' | 'blocked' | 'restart_identity' | 'cross_region' | 'region-unavailable'
+    variant?: InitiateKycVariant
     providerMessage?: string
     /** Stable `CapabilityReason.code` behind `providerMessage` — known codes
      *  render localized identity.reasons.* copy; unknown fall back to prose. */
@@ -55,6 +65,9 @@ interface InitiateKycModalProps {
 // blocked            → "We couldn't unlock this — contact support"
 // restart_identity   → "Verify with a different document" (self-fix for country mismatch)
 // cross_region       → "Unlock {region}"
+// Three states are decided HERE and outrank whatever variant the caller asked
+// for: the verification outage, a region-restricted rejection, and a residence
+// no bank provider onboards.
 export const InitiateKycModal = ({
     visible,
     onClose,
@@ -85,18 +98,37 @@ export const InitiateKycModal = ({
     // site to miss.
     const { isRegionRestricted } = useIdentityVerification()
     const isKycDegraded = useKycDegraded()
+    // Every gate that opens this modal unlocks a BANK rail (the two bank pages,
+    // the shared country list, both Manteca flow managers, the Manteca
+    // withdraw), so a residence no bank provider onboards has nothing behind
+    // the offer. The gates cannot see this themselves: pre-KYC there is no rail
+    // to carry `uk_resident_blocked` and no rejection to set `isRegionRestricted`,
+    // so a restricted resident reads as plain `needs-identity` and would be sold
+    // an ID check that unlocks nothing. Ranked BELOW the region screen (a
+    // document-jurisdiction block is the more specific ending) and below the
+    // outage, and it yields to `region-unavailable`, whose UK copy is more
+    // specific than this country-neutral one.
+    const { banking: isBankRestricted } = useResidenceRestrictions()
     const reasonKey = reasonCodeKey(reasonCode)
     const resolvedProviderMessage = reasonKey ? tIdentity(reasonKey) : providerMessage
-    const isProviderRejection = variant === 'provider_rejection'
-    const isBlocked = variant === 'blocked'
-    const isRestartIdentity = variant === 'restart_identity'
-    const isCrossRegion = variant === 'cross_region'
     const isRegionUnavailable = variant === 'region-unavailable'
+    // Resolved once so every branch below reads one variant rather than each
+    // re-checking the residence — the caller's variant is what the rail gate
+    // could see, this is what the user's residence makes of it.
+    const resolvedVariant: InitiateKycVariant | 'bank-unavailable' =
+        isBankRestricted && !isRegionUnavailable ? 'bank-unavailable' : variant
+    const isBankUnavailable = resolvedVariant === 'bank-unavailable'
+    const isProviderRejection = resolvedVariant === 'provider_rejection'
+    const isBlocked = resolvedVariant === 'blocked'
+    const isRestartIdentity = resolvedVariant === 'restart_identity'
+    const isCrossRegion = resolvedVariant === 'cross_region'
     const router = useRouter()
+    const regionRestrictedCta = useRegionRestrictedCta(onClose)
 
     const getTitle = () => {
         if (error) return tCommon('somethingWentWrong')
         if (isRegionUnavailable) return t('initiate.titleRegionUnavailable')
+        if (isBankUnavailable) return t('initiate.titleBankUnavailable')
         if (isBlocked) return t('initiate.titleBlocked')
         if (isRestartIdentity) return t('initiate.titleRestartIdentity')
         if (isProviderRejection) return t('initiate.titleProviderRejection')
@@ -110,6 +142,7 @@ export const InitiateKycModal = ({
     const getDescription = () => {
         if (error) return t('initiate.descriptionError', { error })
         if (isRegionUnavailable) return t('initiate.descriptionRegionUnavailable')
+        if (isBankUnavailable) return t('initiate.descriptionBankUnavailable')
         if (isBlocked) return resolvedProviderMessage || t('initiate.descriptionBlocked')
         if (isRestartIdentity) return resolvedProviderMessage || t('initiate.descriptionRestartIdentity')
         if (isProviderRejection) return resolvedProviderMessage || t('initiate.descriptionProviderRejection')
@@ -122,6 +155,12 @@ export const InitiateKycModal = ({
     }
 
     const getCta = (): { text: string; onClick: () => void; icon?: IconName } => {
+        // No retry and no contact-support: nobody can lift a residence block, so
+        // the only useful CTA is the part of the app that still works. Same three
+        // rules as KycRegionRestrictedContent, whose CTA this reuses.
+        if (isBankUnavailable) {
+            return { text: regionRestrictedCta.label, onClick: regionRestrictedCta.onClick }
+        }
         if (error || isBlocked) {
             return {
                 text: tCommon('contactSupport'),
@@ -172,28 +211,39 @@ export const InitiateKycModal = ({
     // below — six gates share this modal, so the invariant lives here once.
     if (isKycDegraded) {
         return (
-            <ActionModal
-                visible={visible}
-                onClose={onClose}
-                title={t('degraded.title')}
-                description={t('degraded.description')}
-                tone="warning"
-                ctas={[
-                    {
-                        text: t('degraded.notifyMe'),
-                        variant: 'purple',
-                        shadowSize: '4',
-                        onClick: () => {
-                            posthog.capture(ANALYTICS_EVENTS.KYC_DEGRADED_NOTIFY_REQUESTED)
-                            // cohort tag: ops pushes to exactly these users when
-                            // the flag flips back off
-                            posthog.setPersonProperties({ kyc_down_notify_requested: true })
-                            onClose()
-                        },
-                    },
-                    { text: tCommon('gotIt'), variant: 'stroke', onClick: onClose },
-                ]}
-            />
+            <Drawer
+                open={visible}
+                onOpenChange={(isOpen) => {
+                    if (!isOpen) onClose()
+                }}
+            >
+                <DrawerContent>
+                    <div className="flex flex-col items-center gap-4 px-4 pt-1 pb-6 text-center">
+                        <IconBubble icon="alert" color="yellow" />
+                        <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
+                            <DrawerTitle>{t('degraded.title')}</DrawerTitle>
+                            <DrawerDescription>{t('degraded.description')}</DrawerDescription>
+                        </DrawerHeader>
+                        <Button
+                            variant="purple"
+                            shadowSize="4"
+                            className="w-full justify-center"
+                            onClick={() => {
+                                posthog.capture(ANALYTICS_EVENTS.KYC_DEGRADED_NOTIFY_REQUESTED)
+                                // cohort tag: ops pushes to exactly these users when
+                                // the flag flips back off
+                                posthog.setPersonProperties({ kyc_down_notify_requested: true })
+                                onClose()
+                            }}
+                        >
+                            {t('degraded.notifyMe')}
+                        </Button>
+                        <Button variant="stroke" className="w-full justify-center" onClick={onClose}>
+                            {tCommon('gotIt')}
+                        </Button>
+                    </div>
+                </DrawerContent>
+            </Drawer>
         )
     }
 
@@ -208,7 +258,7 @@ export const InitiateKycModal = ({
     // the cross-region unlock) carry the prep checklist, so no path reaches the
     // vendor without it. Every other variant is an error/action state where the
     // list would be noise.
-    const showPrepChecklist = (variant === 'default' || variant === 'cross_region') && !error
+    const showPrepChecklist = (resolvedVariant === 'default' || resolvedVariant === 'cross_region') && !error
     // The checklist is left-aligned, so the paragraph introducing it is too:
     // centered prose stacked on a left-aligned list reads as two columns.
     const description = showPrepChecklist ? (
@@ -222,11 +272,15 @@ export const InitiateKycModal = ({
     // Red for anything the user has to recover from (a rejection, a block, an
     // unavailable region), blue for the plain "start verification" offer — never
     // green, which the app reserves for a finished state.
-    const isErrorState = !!error || isBlocked || isRestartIdentity || isProviderRejection || isRegionUnavailable
-    const tone = isErrorState ? 'error' : 'info'
+    const isErrorState =
+        !!error || isBlocked || isRestartIdentity || isProviderRejection || isRegionUnavailable || isBankUnavailable
     const iconName = (isErrorState ? 'alert' : 'badge') as IconName
     const footer =
-        isProviderRejection || isBlocked || isRestartIdentity || isRegionUnavailable ? undefined : (
+        isProviderRejection ||
+        isBlocked ||
+        isRestartIdentity ||
+        isRegionUnavailable ||
+        isBankUnavailable ? undefined : (
             <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />
         )
 
@@ -239,7 +293,7 @@ export const InitiateKycModal = ({
          * where it can wrap; NavHeader truncates at the width between its two
          * side buttons.
          */
-        const titleIsGeneric = variant === 'default' && !error
+        const titleIsGeneric = resolvedVariant === 'default' && !error
         const headerTitle = navTitle ?? getTitle()
         return (
             <div className="flex flex-col gap-6">
@@ -267,29 +321,38 @@ export const InitiateKycModal = ({
         )
     }
 
+    // The modal was preventClose + a visible X: no accidental overlay dismissal,
+    // one deliberate way out. The drawer keeps that contract — swipe / hardware
+    // back / overlay all route through the same onClose the X called; there is
+    // no stray-click path because vaul only dismisses on a deliberate gesture.
     return (
-        <ActionModal
-            visible={visible}
-            onClose={onClose}
-            title={getTitle()}
-            description={description}
-            preventClose
-            tone={tone}
-            icon={iconName}
-            modalPanelClassName="max-w-full m-2"
-            ctaClassName="grid grid-cols-1 gap-3"
-            ctas={[
-                {
-                    text: cta.text,
-                    onClick: cta.onClick,
-                    variant: 'purple',
-                    disabled: isLoading && !isBlocked,
-                    shadowSize: '4',
-                    ...(cta.icon ? { icon: cta.icon } : {}),
-                    className: 'h-11',
-                },
-            ]}
-            footer={footer}
-        />
+        <Drawer
+            open={visible}
+            onOpenChange={(isOpen) => {
+                if (!isOpen) onClose()
+            }}
+        >
+            <DrawerContent>
+                <div className="flex flex-col items-center gap-4 px-4 pt-1 pb-6 text-center">
+                    <IconBubble icon={iconName} color={isErrorState ? 'red' : 'blue'} />
+                    <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
+                        <DrawerTitle>{getTitle()}</DrawerTitle>
+                    </DrawerHeader>
+                    {/* body div, not DrawerDescription: the prep-checklist form nests block elements */}
+                    <div className="w-full text-body-s text-foreground-secondary">{description}</div>
+                    <Button
+                        variant="purple"
+                        shadowSize="4"
+                        className="w-full justify-center"
+                        disabled={isLoading && !isBlocked}
+                        onClick={cta.onClick}
+                        {...(cta.icon ? { icon: cta.icon } : {})}
+                    >
+                        {cta.text}
+                    </Button>
+                    {footer}
+                </div>
+            </DrawerContent>
+        </Drawer>
     )
 }

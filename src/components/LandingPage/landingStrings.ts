@@ -12,6 +12,8 @@ export interface LandingStrings {
     heroTapScan: string
     heroNoLocalId: string
     zeroFees: string
+    reallyZero: string
+    noHiddenFees: string
     seeMarkupOn: string
     learnMore: string
     dropLinkHeading: string
@@ -52,6 +54,8 @@ export function landingStrings(i18n: Translations): LandingStrings {
         heroTapScan: i18n.landingHeroTapScan,
         heroNoLocalId: i18n.landingHeroNoLocalId,
         zeroFees: i18n.landingZeroFees,
+        reallyZero: i18n.landingReallyZero,
+        noHiddenFees: i18n.landingNoHiddenFees,
         seeMarkupOn: i18n.landingSeeMarkupOn,
         learnMore: i18n.landingLearnMore,
         dropLinkHeading: i18n.landingDropLinkHeading,

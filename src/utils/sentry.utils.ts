@@ -40,11 +40,21 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[]; erro
     // provider can't decode (bad/expired/unsupported) — both are user-input
     // outcomes shown to the user, not server bugs. (BE peanut-api-ts #1041.)
     { pattern: /qr-payment\/init/, statuses: [400, 422] },
-    // 409 on the same route is expected for exactly one outcome: the charge the
-    // cashier rang up on the till timed out (BE peanut-api-ts #1484). Scoped to
-    // that code, so a different conflict on this route — a double-submit, say —
-    // still reaches Sentry instead of being swallowed by the status alone.
-    { pattern: /qr-payment\/init/, statuses: [409], errorCodes: ['PAYMENT_DESTINATION_EXPIRED'] },
+    // 409 on the same route is expected for two outcomes: the charge the cashier
+    // rang up on the till timed out (BE peanut-api-ts #1484), and a retry that
+    // met the in-flight attempt already holding this scan's idempotency key
+    // (peanut-api-ts #1500) — the retry guard doing precisely its job, which
+    // would otherwise page us for every rescued scan.
+    //
+    // QR_INIT_KEY_MISMATCH is deliberately NOT here. The client derives a key
+    // per (scan, amount), so that code can only mean our own derivation broke —
+    // it should reach Sentry. Scoped to codes for the same reason as before: an
+    // unlisted conflict on this route still reports.
+    {
+        pattern: /qr-payment\/init/,
+        statuses: [409],
+        errorCodes: ['PAYMENT_DESTINATION_EXPIRED', 'QR_INIT_IN_PROGRESS'],
+    },
     // Rain card secrets endpoints are intentionally rate-limited (5/min) — a
     // 429 here is an expected outcome surfaced to the user, not a server bug.
     { pattern: /\/rain\/cards\/[^/]+\/details/, statuses: [429] },
@@ -299,7 +309,13 @@ export const sanitizeResponseBody = (url: string, body: unknown): unknown => {
  * Map URL → feature tag so Sentry issues can be filtered by product surface
  * without wrapping every call site. Add new entries here as features grow.
  */
-const FEATURE_TAGS: Array<{ pattern: RegExp; tag: string }> = [{ pattern: /\/rain\//, tag: 'card' }]
+// First match wins, so the narrower QR rule precedes the general Manteca one.
+const FEATURE_TAGS: Array<{ pattern: RegExp; tag: string }> = [
+    { pattern: /\/rain\//, tag: 'card' },
+    { pattern: /\/manteca\/qr-payment\//, tag: 'qr-pay' },
+    { pattern: /\/manteca\//, tag: 'manteca' },
+    { pattern: /\/fx\//, tag: 'fx' },
+]
 
 function getFeatureTag(url: string): string | null {
     for (const rule of FEATURE_TAGS) {
@@ -366,6 +382,13 @@ export const SERVER_FETCH_TIMEOUT_MS = 10_000
 export const CLIENT_FETCH_TIMEOUT_MS = 20_000
 export const TRANSPORT_TIMEOUT_RETRY_DELAY_MS = 300
 
+/*
+ * Floor for a single transport leg. Below this the budget pool is spent and a
+ * further leg cannot complete anything — attempting one would only add latency
+ * to a failure the caller is already going to see.
+ */
+export const MIN_TRANSPORT_LEG_MS = 250
+
 /**
  * `NEXT_PUBLIC_FETCH_TIMEOUT_MS` is an explicit override of both budgets. It
  * must be a positive integer of milliseconds within the 32-bit timer range:
@@ -430,6 +453,21 @@ export const sanitizeUrl = (url: string) => {
             .replace(/\/\d+(?=\/|$)/g, '/{id}')
             // Replace UUIDs in path
             .replace(/\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?=\/|$)/gi, '/{uuid}')
+            /*
+             * Hex identifiers in the path — wallet addresses, tx hashes, send-link
+             * ids. Without this every address opened its own Sentry issue holding
+             * a single event: `/rhino/status/0xfe73…`, `/rhino/status/0x0f78…` and
+             * `/send-links/claim/<hash>/associate-user` were three issues for one
+             * phenomenon. 16+ chars so short hex-looking slugs stay intact, and the
+             * `/`-anchored prefix keeps this off query values (handled below).
+             */
+            .replace(/\/(?:0x)?[0-9a-f]{16,}(?=[/?]|$)/gi, '/{hash}')
+            /*
+             * Usernames are free text, so no shape rule can catch them — the route
+             * is the only signal. One timeout on a profile lookup was one issue per
+             * username looked up.
+             */
+            .replace(/\/users\/username\/[^/?]+/gi, '/users/username/{value}')
             // Replace numeric IDs in query params. Anchored to the end of the
             // value: unanchored, this ate the leading 0 of an 0x-prefixed
             // address and left `{id}xaf88d065`, so every wallet still got its
@@ -450,6 +488,13 @@ export const sanitizeUrl = (url: string) => {
             .replace(/([?&][^=&]*=)(?!\{id\})[^&]*/g, '$1{value}')
     )
 }
+
+/**
+ * Sanitized path for Sentry tag values. The origin is stripped so staging and
+ * production share one route value — `environment` already separates them —
+ * and so the tag reads as the endpoint it names.
+ */
+export const routeTag = (url: string): string => sanitizeUrl(url).replace(/^https?:\/\/[^/]+/, '') || '/'
 
 const reportNonOkResponse = async (url: string, options: RequestInit, response: Response): Promise<void> => {
     if (response.ok) return
@@ -484,6 +529,8 @@ const reportNonOkResponse = async (url: string, options: RequestInit, response: 
     Sentry.withScope((scope) => {
         // Set fingerprint to group similar errors
         scope.setFingerprint([method, sanitizeUrl(url), String(response.status)])
+        scope.setTag('route', routeTag(url))
+        scope.setTag('http.method', method)
         if (featureTag) scope.setTag('feature', featureTag)
 
         Sentry.captureMessage(`${method} to ${url} failed with status ${response.status}`, {
@@ -500,14 +547,55 @@ const reportNonOkResponse = async (url: string, options: RequestInit, response: 
     })
 }
 
-export type FetchWithSentryOptions = RequestInit & { preferNativeTransport?: boolean }
+export type FetchWithSentryOptions = RequestInit & {
+    preferNativeTransport?: boolean
+    /*
+     * Opt out of the Sentry capture on timeout. For call sites that own a
+     * designed fallback for exactly this failure — `useCardMarkupRate` returns
+     * the static markup table and renders the row anyway — an error-level issue
+     * reports a path that behaved as specified. The throw is unchanged, so the
+     * fallback still runs; only the report is dropped, and a breadcrumb keeps
+     * it visible on any real error that follows.
+     */
+    silentTimeout?: boolean
+}
 
 export const fetchWithSentry = async (
     url: string,
     optionsWithTransport: FetchWithSentryOptions = {},
     timeoutMs: number = DEFAULT_TIMEOUT_MS
 ): Promise<Response> => {
-    const { preferNativeTransport, ...options } = optionsWithTransport
+    const { preferNativeTransport, silentTimeout, ...options } = optionsWithTransport
+
+    // Idempotent requests get one silent retry on timeout: stalled-transport
+    // failures (Android webview, flaky mobile networks) usually clear on a
+    // fresh attempt (PEANUT-UI-R44).
+    const method = (options.method || 'GET').toUpperCase()
+    const maxAttempts = method === 'GET' || method === 'HEAD' ? 2 : 1
+
+    /*
+     * One budget pool for the whole call, sized to the transport attempts this
+     * method is allowed plus the backoff between them. `timeoutMs` used to be handed FRESH to every leg, so a
+     * native POST could spend it in the WebView fetch and spend it again in the
+     * OS-client fallback — twice the documented bound per caller-visible
+     * attempt, three times for a tokenless session that tries the OS client
+     * first. On a QR scan, whose four React Query attempts each pay that, the
+     * 10s budget bought a ~49s worst case on the web and still ~89s on native.
+     *
+     * The WebView retry keeps its own per-attempt budget, so R44 is unchanged.
+     * The fallback legs now draw on what is LEFT, which still hands them nearly
+     * the whole pool in the case they exist for: there the WebView rejects fast
+     * at the TLS layer rather than timing out (PEANUT-UI-R5F), so almost
+     * nothing has been spent by the time the fallback runs.
+     */
+    const deadline = Date.now() + timeoutMs * maxAttempts + TRANSPORT_TIMEOUT_RETRY_DELAY_MS * (maxAttempts - 1)
+    const legTimeoutMs = () => Math.min(timeoutMs, deadline - Date.now())
+    /*
+     * The floor can never exceed the caller's own budget: a call that asks for
+     * less than MIN_TRANSPORT_LEG_MS in total wants a short attempt, not no
+     * attempt at all. Absolute, this gate refused every leg of such a call.
+     */
+    const minLegMs = Math.min(MIN_TRANSPORT_LEG_MS, timeoutMs)
 
     /*
      * Tokenless native sessions go over the OS HTTP client FIRST, not as a
@@ -516,12 +604,15 @@ export const fetchWithSentry = async (
      * JS (Android's CapacitorCookies.getCookies evals document.cookie and
      * ignores its url param). A WebView POST reaches the backend with neither
      * header nor cookie and 400s — and because it gets an HTTP response, the
-     * rejection fallback below never engages. On OS-client failure, fall
-     * through to the WebView path so logged-out flows behave as before.
+     * rejection fallback below never engages. On a FAST OS-client failure, fall
+     * through to the WebView path so logged-out flows behave as before. On an
+     * OS-client TIMEOUT the pool is spent and the WebView leg is skipped: the
+     * network is stalled, so a second full-length leg would double the wait for
+     * a failure the caller is already going to see.
      */
-    if (preferNativeTransport && canUseNativeHttp(url, options)) {
+    if (preferNativeTransport && canUseNativeHttp(url, options) && legTimeoutMs() >= minLegMs) {
         try {
-            const response = await nativeHttpRequest(url, options, timeoutMs)
+            const response = await nativeHttpRequest(url, options, legTimeoutMs())
             await reportNonOkResponse(url, options, response)
             return response
         } catch {
@@ -529,16 +620,22 @@ export const fetchWithSentry = async (
         }
     }
 
-    // Idempotent requests get one silent retry on timeout: stalled-transport
-    // failures (Android webview, flaky mobile networks) usually clear on a
-    // fresh attempt (PEANUT-UI-R44).
-    const method = (options.method || 'GET').toUpperCase()
-    const maxAttempts = method === 'GET' || method === 'HEAD' ? 2 : 1
-
     const attemptFetch = async (): Promise<Response> => {
         for (let attempt = 1; ; attempt++) {
+            /*
+             * Gated, not floored. On the `preferNativeTransport` ordering the
+             * OS client runs FIRST and this is the fallback, so a stalled OS
+             * client can spend the pool before we get here — and flooring the
+             * budget would arm a 250ms fetch that cannot complete anything,
+             * turning a genuine second chance into pure added latency. Throwing
+             * the timeout the pool already earned is the honest outcome.
+             */
+            const legMs = legTimeoutMs()
+            if (legMs < minLegMs) {
+                throw Object.assign(new Error('transport budget exhausted'), { name: 'AbortError' })
+            }
             const controller = new AbortController()
-            const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+            const timeoutId = setTimeout(() => controller.abort(), legMs)
             try {
                 return await fetch(url, {
                     ...options,
@@ -570,9 +667,9 @@ export const fetchWithSentry = async (
         // before declaring failure: the edge rejects Android WebView requests at
         // the TLS-fingerprint level (PEANUT-UI-R5F), which fetch can only
         // surface as an opaque TypeError.
-        if (canUseNativeHttp(url, options)) {
+        if (canUseNativeHttp(url, options) && legTimeoutMs() >= minLegMs) {
             try {
-                const response = await nativeHttpRequest(url, options, timeoutMs)
+                const response = await nativeHttpRequest(url, options, legTimeoutMs())
                 await reportNonOkResponse(url, options, response)
                 return response
             } catch {
@@ -619,24 +716,45 @@ export const fetchWithSentry = async (
         console.info(error)
 
         if (error instanceof Error && error.name === 'AbortError') {
-            const timeoutError = new Error(`Request to ${url} timed out after ${timeoutMs}ms`)
+            /*
+             * Stable title, deliberately carrying no url. Interpolating it gave
+             * every endpoint its own issue TITLE, so one phenomenon — mobile
+             * clients giving up on a request — arrived as 30 single-event issues
+             * in a week: too small to alert on individually and invisible in
+             * aggregate. The endpoint moves to the `route` tag, which Sentry can
+             * break down and alert on within the single issue; the raw url and
+             * the budget that expired stay in `extra`.
+             */
+            const timeoutError = new Error('Request timed out')
 
             const timeoutFeatureTag = getFeatureTag(url)
-            if (!repeatFailure) {
+            if (!repeatFailure && !silentTimeout) {
                 Sentry.withScope((scope) => {
-                    scope.setFingerprint(['timeout', sanitizeUrl(url), options.method || 'GET'])
+                    scope.setFingerprint(['timeout'])
+                    scope.setTag('route', routeTag(url))
+                    scope.setTag('http.method', method)
                     if (timeoutFeatureTag) scope.setTag('feature', timeoutFeatureTag)
 
                     Sentry.captureException(timeoutError, {
                         level: 'error',
                         extra: {
                             url,
-                            method: options.method || 'GET',
+                            method,
                             timeoutMs,
                             requestHeaders: sanitizeHeaders(options.headers || {}),
                             requestBody: sanitizeRequestBody(url, options.body),
                         },
                     })
+                })
+            } else if (silentTimeout) {
+                // Not reported, but not erased: if the caller's fallback later
+                // fails for its own reasons, the timeout that preceded it is on
+                // the trail.
+                Sentry.addBreadcrumb({
+                    category: 'fetch',
+                    level: 'warning',
+                    message: 'Request timed out (silent)',
+                    data: { route: routeTag(url), method, timeoutMs },
                 })
             }
 
@@ -669,6 +787,8 @@ export const fetchWithSentry = async (
             Sentry.withScope((scope) => {
                 // Set fingerprint for network errors
                 scope.setFingerprint(['network-error', sanitizeUrl(url), options.method || 'GET'])
+                scope.setTag('route', routeTag(url))
+                scope.setTag('http.method', method)
                 if (networkFeatureTag) scope.setTag('feature', networkFeatureTag)
 
                 Sentry.captureException(error, {

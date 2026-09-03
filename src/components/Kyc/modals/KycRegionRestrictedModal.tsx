@@ -1,5 +1,7 @@
 import { useTranslations } from 'next-intl'
-import ActionModal from '@/components/Global/ActionModal'
+import { Button } from '@/components/0_Bruddle/Button'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { KycRegionRestrictedContent, useRegionRestrictedCta } from '../KycRegionRestrictedContent'
 
 interface KycRegionRestrictedModalProps {
@@ -20,28 +22,26 @@ export const KycRegionRestrictedModal = ({ visible, onClose }: KycRegionRestrict
     const cta = useRegionRestrictedCta(onClose)
 
     return (
-        <ActionModal
-            visible={visible}
-            onClose={onClose}
-            icon="globe-lock"
-            iconContainerClassName="bg-action-primary"
-            title={t('title')}
-            content={
-                <div className="w-full">
-                    <KycRegionRestrictedContent />
+        <Drawer
+            open={visible}
+            onOpenChange={(isOpen) => {
+                if (!isOpen) onClose()
+            }}
+        >
+            <DrawerContent>
+                <div className="flex flex-col items-center gap-4 px-4 pt-1 pb-6 text-center">
+                    <IconBubble icon="globe-lock" className="bg-action-primary" />
+                    <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
+                        <DrawerTitle>{t('title')}</DrawerTitle>
+                    </DrawerHeader>
+                    <div className="w-full">
+                        <KycRegionRestrictedContent />
+                    </div>
+                    <Button variant="purple" shadowSize="4" className="w-full justify-center" onClick={cta.onClick}>
+                        {cta.label}
+                    </Button>
                 </div>
-            }
-            modalPanelClassName="max-w-full m-2"
-            ctaClassName="grid grid-cols-1 gap-3"
-            ctas={[
-                {
-                    text: cta.label,
-                    onClick: cta.onClick,
-                    variant: 'purple',
-                    shadowSize: '4',
-                    className: 'h-11',
-                },
-            ]}
-        />
+            </DrawerContent>
+        </Drawer>
     )
 }

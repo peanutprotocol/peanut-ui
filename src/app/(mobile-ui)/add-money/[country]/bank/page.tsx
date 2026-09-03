@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
@@ -52,7 +53,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { addMoneyCountryUrl, rewriteMethodPath } from '@/utils/native-routes'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { useSafeBack } from '@/hooks/useSafeBack'
-import { getRegionIntent } from '@/utils/regions.utils'
+import { useBankRegionIntent } from '@/hooks/useBankRegionIntent'
 import { useLocale, useTranslations } from 'next-intl'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 
@@ -91,6 +92,9 @@ function BridgeBankOnrampPage() {
     const [showWarningModal, setShowWarningModal] = useState<boolean>(false)
     const [showKycModal, setShowKycModal] = useState<boolean>(false)
     const { setError, error, setOnrampData, onrampData } = useOnrampFlow()
+    // client-side amount validation renders as the field's own error, never in
+    // the flow-level Notification (which keeps backend/API failures only)
+    const [validationError, setValidationError] = useState<string>('')
 
     const { balance } = useWallet()
     const { user, fetchUser } = useAuth()
@@ -150,6 +154,7 @@ function BridgeBankOnrampPage() {
     // this page in a "Setting up your account…" wait loop. Unknown country
     // → undefined → falls back to channel-only filter.
     const { gateFor } = useCapabilities()
+    const bankRegionIntent = useBankRegionIntent()
     const bankCountry = useMemo(() => railJurisdictionForBank(selectedCountry?.id), [selectedCountry?.id])
     const gate = useMemo(() => gateFor('deposit', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
     // bridge re-verification ("we're reviewing your details") modal for the
@@ -246,22 +251,22 @@ function BridgeBankOnrampPage() {
     const validateAmount = useCallback(
         (amountStr: string): boolean => {
             if (!amountStr) {
-                setError({ showError: false, errorMessage: '' })
+                setValidationError('')
                 return true
             }
             const amount = Number(amountStr)
             if (!Number.isFinite(amount)) {
-                setError({ showError: true, errorMessage: t('errors.invalidNumber') })
+                setValidationError(t('errors.invalidNumber'))
                 return false
             }
             if (amount && amount < minimumAmount) {
-                setError({ showError: true, errorMessage: t('errors.minimumDeposit', { amount: minimumAmount }) })
+                setValidationError(t('errors.minimumDeposit', { amount: minimumAmount }))
                 return false
             }
-            setError({ showError: false, errorMessage: '' })
+            setValidationError('')
             return true
         },
-        [setError, minimumAmount, t]
+        [minimumAmount, t]
     )
 
     // Handle amount change - sync to URL state
@@ -273,13 +278,11 @@ function BridgeBankOnrampPage() {
         [setUrlState]
     )
 
-    // Validate amount when it changes
+    // Validate amount when it changes. Editing the amount also clears any stale
+    // flow error, as before the validation/flow split.
     useEffect(() => {
-        if (rawTokenAmount === '') {
-            setError({ showError: false, errorMessage: '' })
-        } else {
-            validateAmount(rawTokenAmount)
-        }
+        setError({ showError: false, errorMessage: '' })
+        validateAmount(rawTokenAmount)
     }, [rawTokenAmount, validateAmount, setError])
 
     const handleVerify = async () => {
@@ -289,7 +292,7 @@ function BridgeBankOnrampPage() {
             await sumsubFlow.handleSelfHealResubmit('BRIDGE')
         } else {
             await sumsubFlow.handleInitiateKyc(
-                getRegionIntent(selectedCountry?.region ?? 'rest-of-the-world'),
+                bankRegionIntent(selectedCountry?.region ?? 'rest-of-the-world'),
                 undefined,
                 gate.kind === 'needs-enrollment' || undefined,
                 selectedCountry?.id
@@ -477,23 +480,26 @@ function BridgeBankOnrampPage() {
                 <NavHeader title={t('title')} onPrev={onBack} />
                 <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                     <div className="text-label-l">{t('howMuchToAdd')}</div>
-                    <AmountInput
-                        initialAmount={rawTokenAmount}
-                        setPrimaryAmount={handleTokenAmountChange}
-                        walletBalance={peanutWalletBalance}
-                        primaryDenomination={
-                            selectedCountry
-                                ? {
-                                      symbol: getCurrencySymbol(
-                                          getCurrencyConfig(selectedCountry.id, 'onramp').currency
-                                      ),
-                                      price: 1,
-                                      decimals: 2,
-                                  }
-                                : undefined
-                        }
-                        hideBalance
-                    />
+                    {/* only show the field error if limits blocking card is not displayed (warnings can coexist) */}
+                    <FieldColumn error={!limitsValidation.isBlocking ? validationError : undefined}>
+                        <AmountInput
+                            initialAmount={rawTokenAmount}
+                            setPrimaryAmount={handleTokenAmountChange}
+                            walletBalance={peanutWalletBalance}
+                            primaryDenomination={
+                                selectedCountry
+                                    ? {
+                                          symbol: getCurrencySymbol(
+                                              getCurrencyConfig(selectedCountry.id, 'onramp').currency
+                                          ),
+                                          price: 1,
+                                          decimals: 2,
+                                      }
+                                    : undefined
+                            }
+                            hideBalance
+                        />
+                    </FieldColumn>
 
                     {/* limits warning/error card */}
                     {showLimitsCard &&
@@ -524,6 +530,7 @@ function BridgeBankOnrampPage() {
                             !parseFloat(rawTokenAmount) ||
                             parseFloat(rawTokenAmount) < minimumAmount ||
                             error.showError ||
+                            !!validationError ||
                             isCreatingOnramp ||
                             limitsValidation.isBlocking ||
                             // fail closed: without a rate the limit check can't run, so don't

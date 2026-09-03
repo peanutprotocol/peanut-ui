@@ -156,7 +156,7 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     badges: { route: '/badges', about: 'Badge wall with three earned badges.' },
     history: { route: '/history', about: 'Activity list, four entries, both directions.' },
-    'add-money': { route: '/add-money', about: 'Add money: the crypto and bank-transfer picker.' },
+    'add-money': { route: '/add-money?method=bank', about: 'Add money: the bank-transfer country list.' },
     'add-money-crypto': { route: '/add-money/crypto', about: 'Crypto deposit: the network picker.' },
     withdraw: {
         route: '/withdraw',
@@ -329,6 +329,32 @@ export const FIXTURES: Record<string, Fixture> = {
                     ],
                     restrictions: [],
                 },
+            },
+        },
+    },
+
+    reconsent: {
+        route: '/home',
+        about: 'Re-consent modal over home: two updated documents as a centered link line.',
+        responses: {
+            'GET /users/consent/status': {
+                needsReConsent: true,
+                documents: [
+                    {
+                        slug: 'terms',
+                        currentVersion: '2026-07-15',
+                        acceptedVersion: '2026-01-01',
+                        acceptedAt: '2026-01-01T00:00:00.000Z',
+                        needsAcceptance: true,
+                    },
+                    {
+                        slug: 'privacy',
+                        currentVersion: '2026-07-15',
+                        acceptedVersion: '2026-01-01',
+                        acceptedAt: '2026-01-01T00:00:00.000Z',
+                        needsAcceptance: true,
+                    },
+                ],
             },
         },
     },

@@ -20,11 +20,6 @@ interface AvatarWithBadgeProps {
     iconFillColor?: string
     logo?: string | StaticImageData
     /**
-     * The user's own avatar (home chip, self profile header) shows the first
-     * letter of the username only; contacts keep two-letter initials.
-     */
-    firstLetterOnly?: boolean
-    /**
      * Rendered when `logo` fails to load (next/image onError). Lets a parent
      * provide a semantic fallback (e.g. bank tx → bank icon on dark bg)
      * instead of a generic broken-image placeholder when an obscure flag /
@@ -47,7 +42,6 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
     iconFillColor,
     logo,
     fallback,
-    firstLetterOnly,
 }) => {
     const [logoFailed, setLogoFailed] = useState(false)
     // board 17802:61529 sizes XS/S/M/L are 24/32/48/64 — the boxes here already
@@ -72,9 +66,11 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
     }
 
     const initials = useMemo(() => {
-        if (!name) return ''
-        return firstLetterOnly ? name.trim().charAt(0).toUpperCase() : getInitialsFromName(name)
-    }, [name, firstLetterOnly])
+        if (name) {
+            return getInitialsFromName(name)
+        }
+        return ''
+    }, [name])
 
     if (logo && !logoFailed) {
         return (

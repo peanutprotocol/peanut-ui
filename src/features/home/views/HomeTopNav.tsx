@@ -30,20 +30,21 @@ export function HomeTopNav({ avatarName, showRewards }: HomeTopNavProps) {
                 className="relative block after:absolute after:-inset-1.5"
                 aria-label={t('openProfile')}
             >
-                {/* Own identity: the first letter of the username, here and on
-                    the profile header (the generated face is parked until avatar
-                    v2). A user with no name string at all still gets an
-                    avatar-toned circle (yellow — the palette's no-name default). */}
-                {avatarName ? (
-                    <AvatarWithBadge size="extra-small" name={avatarName} firstLetterOnly />
-                ) : (
-                    <AvatarWithBadge
-                        size="extra-small"
-                        icon="user"
-                        className="border border-avatar-yellow-border bg-avatar-yellow text-avatar-yellow-foreground"
-                        iconFillColor="var(--color-avatar-yellow-foreground)"
-                    />
-                )}
+                {/* ds Avatar only (ruled 2026-09-02, TASK-22121): the generated
+                    dot-face experiment is reverted. A user with no name string
+                    still gets an avatar-toned circle (yellow — the palette's
+                    no-name default). */}
+                <AvatarWithBadge
+                    size="extra-small"
+                    name={avatarName}
+                    icon={avatarName ? undefined : 'user'}
+                    className={
+                        avatarName
+                            ? undefined
+                            : 'border border-avatar-yellow-border bg-avatar-yellow text-avatar-yellow-foreground'
+                    }
+                    iconFillColor={avatarName ? undefined : 'var(--color-avatar-yellow-foreground)'}
+                />
             </Link>
             {showRewards && (
                 <Link

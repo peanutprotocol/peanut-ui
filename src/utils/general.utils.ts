@@ -43,6 +43,14 @@ export const shortenStringLong = (s?: string, chars?: number, firstChars?: numbe
     return firstBit + '...' + endingBit
 }
 
+// one-line account identifiers: head + ellipsis + the last 4 characters
+// (whitespace ignored) people recognize an account by. no-op when it fits.
+export const middleEllipsisAccount = (value: string, max: number): string => {
+    if (value.length <= max) return value
+    const tail = value.replace(/\s/g, '').slice(-4)
+    return `${value.slice(0, max - 7).trimEnd()} … ${tail}`
+}
+
 // Address detection patterns (permissive to handle lowercase-stored addresses)
 // These are for display purposes, not cryptographic validation
 const SOLANA_ADDRESS_REGEX = /^[1-9a-zA-Z]{32,44}$/

@@ -34,7 +34,7 @@ import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { resolveKycModalVariant, getGateUserMessage, getGateReasonCode } from '@/utils/capability-gate'
 import { railJurisdictionForBank } from '@/utils/bridge.utils'
-import { getRegionIntent } from '@/utils/regions.utils'
+import { useBankRegionIntent } from '@/hooks/useBankRegionIntent'
 import { useTosGuard } from '@/hooks/useTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
@@ -136,6 +136,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     // them. The prior unscoped `isBankRailUnderReview` check did exactly that
     // and dead-ended ready users behind a "You're all set / Go back" modal.
     const { isKycApproved, gateFor } = useCapabilities()
+    const bankRegionIntent = useBankRegionIntent()
     const isUserKycApproved = isKycApproved
     const bankCountry = useMemo(() => railJurisdictionForBank(currentCountry?.id), [currentCountry?.id])
     const gate = useMemo(() => gateFor('deposit', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
@@ -261,7 +262,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         // name and email are now collected by sumsub sdk — no need to save them beforehand
         if (!isUserKycApproved) {
             await sumsubFlow.handleInitiateKyc(
-                getRegionIntent(currentCountry?.region ?? 'rest-of-the-world'),
+                bankRegionIntent(currentCountry?.region ?? 'rest-of-the-world'),
                 undefined,
                 undefined,
                 currentCountry?.id
@@ -376,7 +377,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                         await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                     } else {
                         await sumsubFlow.handleInitiateKyc(
-                            getRegionIntent(currentCountry?.region ?? 'rest-of-the-world'),
+                            bankRegionIntent(currentCountry?.region ?? 'rest-of-the-world'),
                             undefined,
                             gate.kind === 'needs-enrollment' || undefined,
                             currentCountry?.id

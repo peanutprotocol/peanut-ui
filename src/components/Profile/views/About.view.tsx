@@ -6,6 +6,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import NavigationArrow from '@/components/Global/NavigationArrow'
 import { BetaUpdatesCard, useBetaUpdatesAccess } from '@/components/Profile/components/BetaUpdatesCard'
 import { useToast } from '@/components/0_Bruddle/Toast'
+import { LEGAL_POLICIES } from '@/constants/legal-policies'
 import { useAppVersion } from '@/hooks/useAppVersion'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useTranslations } from 'next-intl'
@@ -19,23 +20,6 @@ const TAP_WINDOW_MS = 2_000
 
 export const AboutView = ({ appVersion }: { appVersion: string }) => {
     const t = useTranslations('profile.about')
-    /**
-     * The one place every policy is reachable from inside the app, mirroring the
-     * ReConsent registry and the landing footer. Titles follow the app language
-     * (TASK-22146, same strings as the landing footer). The legal hrefs are bare
-     * paths, so every language opens the same English documents; the help link
-     * follows the locale like every other DocsLink.
-     */
-    const policyLinks: ReadonlyArray<{ name: string; href: string }> = [
-        { name: t('policies.terms'), href: '/terms' },
-        { name: t('policies.privacy'), href: '/privacy' },
-        { name: t('policies.cardTermsUs'), href: '/card-terms-us' },
-        { name: t('policies.cardTermsInternational'), href: '/card-terms-international' },
-        { name: t('policies.esign'), href: '/card-esign' },
-        { name: t('policies.cardPrivacy'), href: '/card-privacy' },
-        { name: t('policies.prohibitedActivities'), href: '/card-prohibited-activities' },
-        { name: t('policies.securityDisclosure'), href: '/en/help/security-disclosure' },
-    ]
     const onBack = useSafeBack('/profile', { replace: true })
     // the bundled version is only the web value and the pre-bridge fallback
     const version = useAppVersion(appVersion)
@@ -78,10 +62,10 @@ export const AboutView = ({ appVersion }: { appVersion: string }) => {
 
             <div>
                 <h1 className="mb-2 font-bold text-black">{t('policiesHeading')}</h1>
-                {policyLinks.map((doc, index) => (
-                    <Card key={doc.href} position={cardPosition(index, policyLinks.length)}>
+                {LEGAL_POLICIES.map((doc, index) => (
+                    <Card key={doc.href} position={cardPosition(index, LEGAL_POLICIES.length)}>
                         <DocsLink href={doc.href} className="flex cursor-pointer justify-between py-1">
-                            <span className="text-body-s text-black">{doc.name}</span>
+                            <span className="text-body-s text-black">{t(`policies.${doc.key}`)}</span>
                             <NavigationArrow size={24} className="fill-black" />
                         </DocsLink>
                     </Card>

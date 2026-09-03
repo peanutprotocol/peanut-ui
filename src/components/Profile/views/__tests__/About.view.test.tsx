@@ -8,6 +8,7 @@ import { fireEvent, render as rtlRender, screen } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import { IntlWrapper } from '@/test-utils/intl'
 import { loadMessages } from '@/i18n/app/messages'
+import en from '@/i18n/app/messages/en.json'
 import { AboutView } from '../About.view'
 
 const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
@@ -36,6 +37,17 @@ const tapVersion = (times: number) => {
 }
 
 describe('AboutView', () => {
+    it('lists every policy under its catalog name', () => {
+        render(<AboutView appVersion="1.2.3" />)
+        const names = Object.values(en.profile.about.policies)
+        expect(names).toHaveLength(8)
+        for (const name of names) expect(screen.getByRole('link', { name })).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: 'Security Disclosure' })).toHaveAttribute(
+            'href',
+            '/en/help/security-disclosure'
+        )
+    })
+
     it('keeps the beta switch hidden until the fifth tap', () => {
         render(<AboutView appVersion="1.2.3" />)
         tapVersion(4)
@@ -83,7 +95,7 @@ describe('AboutView', () => {
     it.each([
         ['en', 'Terms of Service', '/en/help/security-disclosure'],
         ['es-419', 'Términos de servicio', '/es-419/help/security-disclosure'],
-        ['pt-BR', 'Termos de serviço', '/pt-br/help/security-disclosure'],
+        ['pt-BR', 'Termos de Serviço', '/pt-br/help/security-disclosure'],
     ] as const)(
         'in %s the policy titles follow the catalog and the legal hrefs stay put',
         async (locale, termsTitle, helpHref) => {

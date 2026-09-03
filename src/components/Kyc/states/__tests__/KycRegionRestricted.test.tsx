@@ -11,6 +11,11 @@ jest.mock('@/hooks/useIdentityVerification', () => ({
 }))
 let mockKycDegraded = false
 jest.mock('@/hooks/useKycDegraded', () => ({ useKycDegraded: () => mockKycDegraded }))
+// InitiateKycModal also checks the residence; unrestricted keeps these
+// cases about the outage and region-rejection short-circuits alone.
+jest.mock('@/hooks/useResidenceRestrictions', () => ({
+    useResidenceRestrictions: () => ({ banking: false, card: false }),
+}))
 
 const push = jest.fn()
 jest.mock('next/navigation', () => ({

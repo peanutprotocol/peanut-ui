@@ -153,9 +153,19 @@ export function isMutatingMethod(method: string | undefined): boolean {
     return MUTATING_METHODS.includes((method || '').toUpperCase())
 }
 
+/*
+ * The method comes from the `http.method` tag, with the fingerprint's third
+ * slot as fallback. The timeout capture no longer carries url and method in its
+ * fingerprint — it groups on `['timeout']` alone so one phenomenon is one issue
+ * — and reading the method positionally would have made this rescue silently
+ * inert for exactly the events it exists to keep: a POST that dies on the
+ * network. The fallback keeps the non-2xx and network-error captures, which
+ * still fingerprint positionally, working unchanged.
+ */
 function isFetchSiteMutationFailure(event: ErrorEvent): boolean {
-    const [kind, , method] = event.fingerprint ?? []
-    return FETCH_SITE_FINGERPRINTS.includes(kind) && isMutatingMethod(method)
+    const [kind, , fingerprintMethod] = event.fingerprint ?? []
+    const method = event.tags?.['http.method'] ?? fingerprintMethod
+    return FETCH_SITE_FINGERPRINTS.includes(kind) && isMutatingMethod(typeof method === 'string' ? method : undefined)
 }
 
 /*

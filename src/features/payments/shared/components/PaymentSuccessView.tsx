@@ -14,10 +14,10 @@
  */
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
 import CreateAccountButton from '@/components/Global/CreateAccountButton'
-import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { type StatusPillType } from '@/components/Global/StatusPill'
@@ -306,13 +306,7 @@ const PaymentSuccessView = ({
                 />
                 <Card className="flex items-center gap-3 p-4">
                     <div className="flex items-center gap-3">
-                        <div
-                            className={
-                                'flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-green-500 font-bold'
-                            }
-                        >
-                            <Icon name="check" size={24} />
-                        </div>
+                        <IconBubble icon="check" color="green" />
                     </div>
 
                     <div className="space-y-1">

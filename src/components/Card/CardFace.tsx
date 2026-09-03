@@ -148,7 +148,7 @@ const CardFace: FC<Props> = ({
                                         type="button"
                                         aria-label={t('copyCardNumber')}
                                         onClick={() => handleCopy(revealed.pan, 'pan')}
-                                        className="p-1"
+                                        className="relative p-1 transition-opacity duration-instant after:absolute after:-inset-2 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
                                     >
                                         <Icon name={copiedField === 'pan' ? 'check' : 'copy'} size={16} />
                                     </button>
@@ -198,7 +198,7 @@ const CardFace: FC<Props> = ({
                                                 type="button"
                                                 aria-label={t('copyCvv')}
                                                 onClick={() => handleCopy(revealed.cvv, 'cvv')}
-                                                className="p-1"
+                                                className="relative p-1 transition-opacity duration-instant after:absolute after:-inset-3 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
                                             >
                                                 <Icon name={copiedField === 'cvv' ? 'check' : 'copy'} size={14} />
                                             </button>
@@ -210,7 +210,7 @@ const CardFace: FC<Props> = ({
                                         type="button"
                                         aria-label={t('hideDetails')}
                                         onClick={onToggleReveal}
-                                        className="p-1"
+                                        className="relative p-1 transition-opacity duration-instant after:absolute after:-inset-2 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
                                     >
                                         <Icon name="eye-slash" size={22} />
                                     </button>

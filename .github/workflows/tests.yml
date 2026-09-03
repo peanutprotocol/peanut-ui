@@ -22,11 +22,14 @@ concurrency:
     group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
     cancel-in-progress: true
 
+# Default for every job that does not declare its own block. `checks: write`
+# used to live here, inherited by every PR-code job — and nothing consumes it:
+# dorny/test-reporter runs with use-actions-summary (its v1 default), which
+# writes the job summary and creates no check run (none exists on dev either).
+# If check-run mode is ever turned back on, grant checks: write in a job that
+# runs no PR code — never in `unit`, which runs PR install/test code first.
 permissions:
     contents: read
-    # `checks: write` lets dorny/test-reporter publish per-PR check
-    # annotations from the JUnit XML below.
-    checks: write
 
 jobs:
     # Prettier formatting + content-link validation. Fast, no node_modules
@@ -40,6 +43,10 @@ jobs:
               with:
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
+                  # The token is only needed to CLONE the submodule; no git op
+                  # after checkout needs it, and pnpm install runs PR-authored
+                  # lifecycle scripts, so don't leave it in .git/config.
+                  persist-credentials: false
 
             - uses: pnpm/action-setup@v4
 
@@ -98,6 +105,8 @@ jobs:
               with:
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
+                  # Clone-only token — see the format job.
+                  persist-credentials: false
 
             - uses: pnpm/action-setup@v4
 
@@ -120,6 +129,8 @@ jobs:
               with:
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
+                  # Clone-only token — see the format job.
+                  persist-credentials: false
 
             - uses: pnpm/action-setup@v4
 
@@ -139,6 +150,62 @@ jobs:
 
             - name: Typecheck
               run: pnpm typecheck
+
+    # The only pre-merge coverage for the Capacitor static export. Nothing else
+    # in this workflow touches it: native-build.js renames the dynamic routes
+    # out of src/app and swaps in next.config.native.js, so that lane can break
+    # while every other job stays green — which is exactly what a Next 16.3
+    # type-check scope change did. The release lanes (capgo-deploy,
+    # ios-release, android-release) only reach it after merge, on a push to
+    # dev, so without this the first red build is a release.
+    native-export:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  submodules: true
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
+                  # Clone-only token — see the format job. This job runs both
+                  # pnpm install and the native build, so PR-authored code must
+                  # never see it in .git/config.
+                  persist-credentials: false
+
+            - uses: pnpm/action-setup@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'pnpm'
+
+            - run: pnpm install --frozen-lockfile
+
+            # Deliberately NOT the release lanes' env block. This job proves the
+            # export compiles and never uploads a bundle, so it must not pull
+            # the production NEXT_PUBLIC_* secrets into a job that also runs
+            # PR-authored code. The public literals are real; every secret is a
+            # placeholder. Values only have to be non-empty and inlined:
+            # native-build.js fails closed in CI on a missing
+            # .env.production.local, then verifies each one reached out/.
+            - name: Write placeholder NEXT_PUBLIC_* for the compile check
+              run: |
+                  cat > .env.production.local <<'ENVEOF'
+                  NEXT_PUBLIC_NATIVE_RP_ID=peanut.me
+                  NEXT_PUBLIC_BASE_URL=https://peanut.me
+                  NEXT_PUBLIC_PEANUT_API_URL=https://api.peanut.me
+                  NEXT_PUBLIC_SENTRY_DSN=https://ci0placeholder@o0.ingest.sentry.invalid/0
+                  NEXT_PUBLIC_POSTHOG_KEY=phc_ci0placeholder0000000000000000000000
+                  NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL=https://bundler.ci-placeholder.invalid
+                  NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL=https://paymaster.ci-placeholder.invalid
+                  NEXT_PUBLIC_ONESIGNAL_APP_ID=00000000-0000-4000-8000-000000000000
+                  ENVEOF
+
+            - name: Build the static export
+              run: node scripts/native-build.js
+
+            - name: Verify export output
+              run: |
+                  test -f out/index.html || { echo "::error::out/index.html missing"; exit 1; }
+                  echo "Export ready. File count: $(find out -type f | wc -l)"
 
     # Isolated on purpose. The BE's living fixture lives in peanut-api-ts, so
     # fetching it needs a cross-repo secret — and a secret must never share a
@@ -186,11 +253,16 @@ jobs:
     unit:
         needs: be-baseline
         runs-on: ubuntu-latest
+        # No checks: write here even though dorny/test-reporter runs below —
+        # in summary mode it needs none, and this job runs PR-authored code
+        # before the reporter, so any token it holds is capturable.
         steps:
             - uses: actions/checkout@v4
               with:
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
+                  # Clone-only token — see the format job.
+                  persist-credentials: false
 
             - uses: pnpm/action-setup@v4
 
@@ -616,9 +688,10 @@ jobs:
         permissions:
             contents: read
             pull-requests: write
+        # No checkout on purpose: every step below consumes artifacts, and this
+        # job holds a write token — a checkout would let PR-authored config
+        # (e.g. an added nyc.config.js) run with that token in reach.
         steps:
-            - uses: actions/checkout@v4
-
             - uses: actions/setup-node@v4
               with:
                   node-version: '20'
@@ -907,7 +980,7 @@ jobs:
     ci-success:
         name: ci-success
         if: always()
-        needs: [format, ds-lint, eslint, typecheck, unit, report, human-authors]
+        needs: [format, ds-lint, eslint, typecheck, native-export, unit, report, human-authors]
         runs-on: ubuntu-latest
         steps:
             - name: Verify all required jobs passed
@@ -919,6 +992,7 @@ jobs:
                       echo "  ds-lint:   ${{ needs['ds-lint'].result }}"
                       echo "  eslint:    ${{ needs.eslint.result }}"
                       echo "  typecheck: ${{ needs.typecheck.result }}"
+                      echo "  native-export: ${{ needs['native-export'].result }}"
                       echo "  unit:      ${{ needs.unit.result }}"
                       echo "  report:    ${{ needs.report.result }}"
                       echo "  human-authors: ${{ needs['human-authors'].result }}"

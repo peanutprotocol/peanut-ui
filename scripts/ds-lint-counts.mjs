@@ -19,6 +19,11 @@ import {
     countOffScaleRadius,
     OFF_SCALE_ICON_RE,
     RAW_DURATION_RE,
+    RETYPED_CARD_RE,
+    hasHoverWithoutActive,
+    ARBITRARY_FONT_SIZE_RE,
+    RAW_ERROR_TEXT_RE,
+    hasHandRolledCloseGlyph,
 } from './ds-lint-rules.cjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -283,6 +288,22 @@ counts.rawDuration = files
     .filter((f) => !allowed(f.path))
     .reduce((sum, f) => sum + countMatches(f.text, RAW_DURATION_RE), 0)
 
+// TASK-22121 sweep ratchets. same shape as the composition metrics above:
+// matchers in ds-lint-rules.cjs, baseline holds the current debt, growth fails.
+counts.retypedCardLiteral = files
+    .filter((f) => !allowed(f.path))
+    .reduce((sum, f) => sum + countMatches(f.text, RETYPED_CARD_RE), 0)
+counts.hoverNoActiveFiles = files.filter((f) => !allowed(f.path) && hasHoverWithoutActive(f.text)).length
+counts.arbitraryFontSize = files
+    .filter((f) => !allowed(f.path))
+    .reduce((sum, f) => sum + countMatches(f.text, ARBITRARY_FONT_SIZE_RE), 0)
+counts.rawErrorText = files
+    .filter((f) => !allowed(f.path) && !f.path.includes('0_Bruddle/FieldError'))
+    .reduce((sum, f) => sum + countMatches(f.text, RAW_ERROR_TEXT_RE), 0)
+counts.handRolledCloseGlyphFiles = files.filter(
+    (f) => !allowed(f.path) && !f.path.includes('0_Bruddle/') && hasHandRolledCloseGlyph(f.text)
+).length
+
 // dsTextScale and nuqsFiles are adoption counts (should go UP) — everything
 // else is debt (must only go DOWN). the ratchet only enforces the debt keys.
 const DEBT_KEYS = [
@@ -302,6 +323,11 @@ const DEBT_KEYS = [
     'iconOffScale',
     'offScaleRadius',
     'rawDuration',
+    'retypedCardLiteral',
+    'hoverNoActiveFiles',
+    'arbitraryFontSize',
+    'rawErrorText',
+    'handRolledCloseGlyphFiles',
 ]
 
 const mode = process.argv[2] ?? ''

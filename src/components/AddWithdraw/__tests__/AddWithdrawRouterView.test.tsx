@@ -12,7 +12,7 @@
  * the tests exercise the actual context wiring instead of a hand-rolled copy.
  */
 import React, { useEffect } from 'react'
-import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent, cleanup } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 
 const mockRouterPush = jest.fn()
@@ -58,6 +58,11 @@ jest.mock('@/redux/hooks', () => ({
 
 jest.mock('@/context/OnrampFlowContext', () => ({
     useOnrampFlow: () => ({ setFromBankSelected: jest.fn() }),
+}))
+
+let mockRestrictions = { banking: false, card: false }
+jest.mock('@/hooks/useResidenceRestrictions', () => ({
+    useResidenceRestrictions: () => mockRestrictions,
 }))
 
 jest.mock('@/components/0_Bruddle/Button', () => ({
@@ -162,6 +167,21 @@ function Harness({ user }: { user: MockUser }) {
 describe('AddWithdrawRouterView — withdraw method selection', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        mockRestrictions = { banking: false, card: false }
+    })
+
+    // Every country on the list dead-ends for these residents; say so once here
+    // rather than after three taps into a flow that cannot finish.
+    test('names the bank restriction above the country list, and only when it applies', () => {
+        render(<Harness user={makeUser()} />)
+        fireEvent.click(screen.getByTestId('select-new-method'))
+        expect(screen.queryByText(/Bank transfers aren't available in your country/i)).not.toBeInTheDocument()
+
+        cleanup()
+        mockRestrictions = { banking: true, card: false }
+        render(<Harness user={makeUser()} />)
+        fireEvent.click(screen.getByTestId('select-new-method'))
+        expect(screen.getByText(/Bank transfers aren't available in your country/i)).toBeInTheDocument()
     })
 
     test('shows saved accounts by default when bank accounts exist', () => {

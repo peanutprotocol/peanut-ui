@@ -99,9 +99,9 @@ describe('ResidenceStep', () => {
 
     it('reveals the second selector via the multi-doc link', () => {
         render(<ResidenceStep />)
-        expect(screen.queryByText('Select your second country')).not.toBeInTheDocument()
+        expect(screen.queryByPlaceholderText('Select your second country')).not.toBeInTheDocument()
         fireEvent.click(screen.getByText('Have documents from more than one country?'))
-        expect(screen.getByText('Select your second country')).toBeInTheDocument()
+        expect(screen.getByPlaceholderText('Select your second country')).toBeInTheDocument()
     })
 
     it('clears the stored second residence when the selector is collapsed', () => {
@@ -118,9 +118,13 @@ describe('ResidenceStep', () => {
         render(<ResidenceStep />)
         expect(screen.getByText('Available with Brazil')).toBeInTheDocument()
         expect(screen.getByText('Available with Germany')).toBeInTheDocument()
-        // BR is PIX-only — no BANK_TRANSFER_BR rail exists, so the item must not claim one
-        expect(screen.getByText('PIX')).toBeInTheDocument()
-        expect(screen.getByText('SEPA transfers')).toBeInTheDocument()
+        // BR rides Manteca only — no Bridge rail exists for it, so the card must not claim one
+        expect(screen.getByText('PIX payments & transfers')).toBeInTheDocument()
+        // DE is Bridge-served: one verification opens every Bridge virtual-account rail
+        expect(screen.getByText('SEPA transfers (EUR)')).toBeInTheDocument()
+        expect(screen.getByText('GBP transfers (Faster Payments)')).toBeInTheDocument()
+        expect(screen.getByText('USD transfers (ACH & Wire)')).toBeInTheDocument()
+        expect(screen.getAllByText('Peanut-to-Peanut payments')).toHaveLength(2)
         expect(screen.getByText('Which country goes first?')).toBeInTheDocument()
         expect(screen.getByText(/genuinely hold legal residence/)).toBeInTheDocument()
     })

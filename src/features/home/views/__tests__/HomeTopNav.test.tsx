@@ -6,11 +6,11 @@ jest.mock('@/hooks/useAppHaptic', () => ({ useAppHaptic: () => ({ triggerHaptic:
 jest.mock('@/components/Home/InvitesIcon', () => ({ __esModule: true, default: () => null }))
 
 describe('HomeTopNav', () => {
-    it('shows the first letter of the username — not two-letter initials, not a generated face', () => {
+    it('wears the ds initials avatar — the dot-face experiment is reverted', () => {
         const { container } = renderWithIntl(<HomeTopNav avatarName="testuser" showRewards={false} />)
 
-        expect(container.querySelector('a[href="/profile"]')).toHaveTextContent(/^T$/)
-        expect(screen.queryByText(/^TE$/i)).not.toBeInTheDocument()
+        // AvatarWithBadge renders the initials; the dot face drew an svg
+        expect(screen.getByText(/^TE$/i)).toBeInTheDocument()
         expect(container.querySelector('a[href="/profile"] svg')).not.toBeInTheDocument()
     })
 

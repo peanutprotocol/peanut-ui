@@ -18,13 +18,8 @@ const mockPush = jest.fn()
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
-const mockSetIsQRScannerOpen = jest.fn()
-jest.mock('@/context/ModalsContext', () => ({
-    useModalsContext: () => ({ setIsQRScannerOpen: mockSetIsQRScannerOpen }),
-}))
-
 let mockUser: {
-    user?: { activationMilestone?: string }
+    user?: { activationMilestone?: string; firstPaymentAt?: string | null }
     residence?: { declared: string | null; verified: string | null }
 } | null = null
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser }) }))
@@ -52,10 +47,14 @@ describe('GettingStartedChecklist', () => {
         mockOverview = null
     })
 
+    // ListItem renders a div[role=button] only for tappable rows and marks done
+    // rows aria-disabled, so rows are counted by test id and state read off aria.
     it('renders exactly three rows with registration pre-checked', () => {
         render()
-        expect(screen.getAllByRole('button')).toHaveLength(3)
+        expect(screen.getAllByTestId(/^checklist-/)).toHaveLength(3)
+        expect(screen.getAllByRole('button')).toHaveLength(2)
         expect(screen.getByText('Create your account')).toBeInTheDocument()
+        expect(screen.getByTestId('checklist-create-account')).toHaveAttribute('aria-disabled', 'true')
         expect(screen.getByText('Done. Your money has a username now')).toBeInTheDocument()
     })
 
@@ -82,11 +81,36 @@ describe('GettingStartedChecklist', () => {
         expect(screen.getAllByText(/one-time ID check/).length).toBe(1) // only the first render's copy
     })
 
+    it('drops the bank half for a residence no bank provider onboards', () => {
+        // the ID check would unlock nothing there, so it must not be the price
+        // named on the row (same ruling as the signup residence step)
+        mockRestrictions = { banking: true, card: false }
+        render()
+        expect(screen.getByText('Crypto from any wallet or exchange')).toBeInTheDocument()
+        expect(screen.queryByText(/one-time ID check/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/Bank transfer/)).not.toBeInTheDocument()
+    })
+
     it('marks add money done once funded', () => {
         mockUser = { user: { activationMilestone: 'funded' }, residence: { declared: 'BR', verified: 'BR' } }
         render()
-        const addMoney = screen.getByText('Add money').closest('button')
-        expect(addMoney).toBeDisabled()
+        expect(screen.getByTestId('checklist-add-money')).toHaveAttribute('aria-disabled', 'true')
+    })
+
+    // Any outgoing peer payment (a send to a saved contact included) completes
+    // the row, even though activation itself stays card/QR spend only.
+    it('marks the first payment done once the user has sent money to anyone', () => {
+        mockRestrictions = { banking: false, card: true }
+        // verified but not yet funded keeps the list on screen; the payment row
+        // alone completes from the peer-payment fact
+        mockUser = {
+            user: { activationMilestone: 'verified', firstPaymentAt: '2026-09-01T10:00:00.000Z' },
+            residence: { declared: 'BR', verified: 'BR' },
+        }
+        render()
+        expect(screen.getByTestId('checklist-first-payment')).toHaveAttribute('aria-disabled', 'true')
+        expect(screen.getByTestId('checklist-add-money')).not.toHaveAttribute('aria-disabled')
+        expect(screen.getByTestId('checklist-add-money')).toHaveAttribute('role', 'button')
     })
 
     it('third slot is the card when eligible, and it routes to /card', () => {
@@ -96,12 +120,17 @@ describe('GettingStartedChecklist', () => {
         expect(screen.queryByText('Make your first payment')).not.toBeInTheDocument()
     })
 
-    it('third slot falls back to first payment when the card is unavailable, opening the scanner', () => {
+    // The note promises a send to a Peanut user, ENS name or wallet address —
+    // that is the /send flow, not the QR scanner the row used to open.
+    it('third slot falls back to first payment when the card is unavailable, routing to /send', () => {
         mockRestrictions = { banking: false, card: true }
         render()
         expect(screen.queryByText('Get your Peanut card')).not.toBeInTheDocument()
+        expect(
+            screen.getByText('Send a few dollars to a Peanut user, ENS name or wallet address. It lands in seconds.')
+        ).toBeInTheDocument()
         fireEvent.click(screen.getByText('Make your first payment'))
-        expect(mockSetIsQRScannerOpen).toHaveBeenCalledWith(true)
+        expect(mockPush).toHaveBeenCalledWith('/send')
     })
 
     it('ineligible card (server says no) also falls back to first payment', () => {

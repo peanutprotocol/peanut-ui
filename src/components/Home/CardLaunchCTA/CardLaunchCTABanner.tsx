@@ -47,7 +47,7 @@ export default function CardLaunchCTABanner({ onTryDoor, onDismiss }: CardLaunch
                 type="button"
                 aria-label={t('dismissAriaLabel')}
                 onClick={handleDismiss}
-                className="absolute top-2 right-2.5 z-10 cursor-pointer p-1 text-foreground-primary outline-none"
+                className="absolute top-2 right-2.5 z-10 cursor-pointer p-1 text-foreground-primary transition-opacity duration-instant after:absolute after:-inset-3 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
             >
                 <Icon name="cancel" size={16} />
             </button>

@@ -222,7 +222,9 @@ export default function HomeCTAsPreviewPage() {
 
                 <DevNoteCard>
                     Activation steps read defensive hooks (useCapabilities / useIdentityVerification) that return empty
-                    defaults when logged out, so every step renders here regardless of real KYC state.
+                    defaults when logged out, so every step renders here regardless of real KYC state — except the spend
+                    step, which needs card access or a QR rail to have an activating spend to route to, and so stays
+                    empty in a logged-out preview.
                 </DevNoteCard>
             </div>
         </DevPageShell>

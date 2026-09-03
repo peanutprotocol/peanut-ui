@@ -28,7 +28,7 @@ export const UserHeader = ({ username }: UserHeaderProps) => {
                 shadowSize="3"
                 size="small"
             >
-                <AvatarWithBadge size="extra-small" name={username} firstLetterOnly className="h-[30px] w-[30px]" />
+                <AvatarWithBadge name={username} size="extra-small" />
                 <span className="pr-1 text-body-xs font-semibold whitespace-nowrap md:text-body-s">{username}</span>
             </Button>
         </Link>

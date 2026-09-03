@@ -137,9 +137,10 @@
             "getCard": "Peça seu cartão Peanut",
             "addMoney": "Adicionar dinheiro",
             "firstPayment": "Faça seu primeiro pagamento",
-            "firstPaymentNote": "Envie alguns dólares para qualquer @usuário. Chega em segundos.",
+            "firstPaymentNote": "Envie alguns dólares para um usuário Peanut, um nome ENS ou um endereço de carteira. Chega em segundos.",
             "addMoneyRoutes": "Transferência bancária ou cripto",
             "addMoneyRoutesKyc": "Transferência bancária ou cripto · o banco exige uma verificação de identidade única",
+            "addMoneyRoutesNoBank": "Cripto de qualquer carteira ou corretora",
             "getCardNote": "Seus dólares, em rosa, onde a Visa for aceita."
         },
         "autoBalance": {
@@ -394,7 +395,7 @@
                 "cardRestrictionNote": "Atenção: o cartão não está disponível para residentes deste país.",
                 "bankingRestrictionNote": "Atenção: transferências bancárias não estão disponíveis para residentes deste país.",
                 "save": "Salvar",
-                "saveAndReverify": "Salvar e verificar agora",
+                "saveAndReverify": "Enviar documentos",
                 "cooldownNote": "Você mudou sua residência há pouco tempo. Pode mudá-la de novo depois de {until}."
             },
             "degraded": {
@@ -410,8 +411,6 @@
                 "messageUs": "Fale com a gente e vamos atrás"
             },
             "limits": {
-                "viewAll": "Limites de pagamento",
-                "details": "Ver",
                 "monthlyLeft": "Restam {remaining} de {limit} neste mês",
                 "perTransfer": "Até {amount} por transferência",
                 "p2pNoLimit": "Os pagamentos de Peanut para Peanut não têm limite"
@@ -530,14 +529,14 @@
             "intro": "O Peanut torna os dólares fáceis: guarde seu saldo, envie para qualquer @usuário e mova dinheiro pelos trilhos locais após uma única verificação de identidade. Criado pela Squirrel Labs.",
             "policiesHeading": "Políticas",
             "policies": {
-                "terms": "Termos de serviço",
-                "privacy": "Política de privacidade",
-                "cardTermsUs": "Termos do cartão (EUA)",
-                "cardTermsInternational": "Termos do cartão (internacional)",
-                "esign": "Consentimento de assinatura eletrônica",
-                "cardPrivacy": "Aviso de privacidade de abertura de conta",
-                "prohibitedActivities": "Política de atividades proibidas",
-                "securityDisclosure": "Divulgação de segurança"
+                "terms": "Termos de Serviço",
+                "privacy": "Política de Privacidade",
+                "cardTermsUs": "Termos do Cartão (EUA)",
+                "cardTermsInternational": "Termos do Cartão (Internacional)",
+                "cardEsign": "Consentimento de Assinatura Eletrônica",
+                "cardPrivacy": "Aviso de Privacidade de Abertura de Conta",
+                "cardProhibitedActivities": "Política de Atividades Proibidas",
+                "securityDisclosure": "Divulgação de Segurança"
             },
             "version": "Versão {version}",
             "beta": {
@@ -792,8 +791,9 @@
                     "pix": "transferências PIX",
                     "arQr": "pagamentos e transferências por QR",
                     "spei": "transferências SPEI",
-                    "achWire": "transferências ACH e wire",
-                    "sepa": "transferências bancárias SEPA"
+                    "usdAch": "transferências em USD (ACH e wire)",
+                    "eurSepa": "transferências bancárias SEPA",
+                    "gbpFps": "transferências bancárias em GBP (Faster Payments)"
                 },
                 "continue": "Continuar"
             },
@@ -810,12 +810,13 @@
             "compare": {
                 "cardTitle": "Disponível com {country}",
                 "items": {
-                    "p2p": "Pagamentos para qualquer @usuário",
-                    "pix": "PIX",
+                    "p2p": "Pagamentos de Peanut para Peanut",
+                    "pix": "Pagamentos e transferências PIX",
                     "arQr": "Pagamentos QR e transferências",
-                    "spei": "Transferências bancárias SPEI",
-                    "achWire": "Transferências ACH e Wire",
-                    "sepa": "Transferências SEPA",
+                    "spei": "Transferências SPEI (MXN)",
+                    "usdAch": "Transferências em USD (ACH e Wire)",
+                    "eurSepa": "Transferências SEPA (EUR)",
+                    "gbpFps": "Transferências em GBP (Faster Payments)",
                     "bank": "Transferências bancárias onde houver suporte",
                     "card": "Cartão Peanut"
                 },
@@ -823,6 +824,7 @@
                     "banking": "Transferências bancárias",
                     "card": "Cartão Peanut"
                 },
+                "multiCurrencyNote": "Transferências em outra moeda exigem uma conta bancária nessa moeda.",
                 "guideTitle": "Qual país vem primeiro?",
                 "guideDeclaration": "Os dois devem ser países onde você realmente tem residência legal. Isso é uma declaração, e os provedores a verificam durante a verificação de identidade, incluindo o comprovante de residência.",
                 "guideOrder": "Se os dois países são realmente seu lar, qualquer ordem é honesta. A ordem só muda o que o app mostra primeiro, nunca aquilo a que você é elegível. A elegibilidade é decidida pela própria verificação.",
@@ -926,6 +928,7 @@
         "switchingNetwork": "Trocando de rede",
         "fetchingRoute": "Buscando a rota",
         "fetchingDetails": "Obtendo os detalhes",
+        "stillFetchingDetails": "Ainda buscando os detalhes",
         "awaitingRouteFulfillment": "Aguardando a execução da rota",
         "assertingValues": "Verificando os valores",
         "generatingDetails": "Gerando os detalhes",
@@ -1123,11 +1126,14 @@
             "paymentDetailsLoadFailed": "não foi possível carregar os detalhes do pagamento",
             "noRequestId": "nenhum id de cobrança fornecido",
             "requestLoadFailed": "não foi possível carregar a cobrança. ela pode não existir ou ter sido excluída.",
-            "requestNotFound": "cobrança não encontrada",
             "invalidUrlFormat": "Formato de URL inválido",
-            "invalidPaymentUrl": "url de pagamento inválida",
-            "userNotFound": "o usuário @{username} não existe ou não tem uma carteira peanut",
-            "usernameArbitrumOnly": "Pagamentos para nomes de usuário da Peanut só podem ser feitos na Arbitrum"
+            "usernameArbitrumOnly": "Pagamentos para nomes de usuário da Peanut só podem ser feitos na Arbitrum",
+            "userNotFoundTitle": "Usuário não encontrado",
+            "userNotFoundDescription": "Não encontramos @{username} na Peanut. Confira o nome de usuário e tente de novo.",
+            "invalidPaymentUrlTitle": "Este link de pagamento não funciona",
+            "invalidPaymentUrlDescription": "O link está incompleto ou digitado errado. Peça para quem enviou compartilhar de novo.",
+            "requestNotFoundTitle": "Cobrança não encontrada",
+            "requestNotFoundDescription": "Esta cobrança não existe ou foi removida. Peça um novo link para quem enviou."
         }
     },
     "claim": {
@@ -1294,6 +1300,12 @@
             "pixDecode": "Não conseguimos decodificar este código QR do Pix. Peça ao lojista para gerar um novo.",
             "genericDecode": "Não conseguimos decodificar este código QR. Pergunte ao lojista se ele pode gerar um QR do Mercado Pago",
             "providerIssues": "Estamos com problemas nos pagamentos de {method}. Estamos trabalhando para resolver o quanto antes",
+            "connectionLost": "Seu dispositivo parece estar sem conexão. Verifique sua conexão e escaneie novamente — nada foi cobrado.",
+            "monthlyCapReached": "Este pagamento excede seu limite mensal disponível, que é compartilhado entre depósitos, saques e pagamentos por QR. Tente um valor menor ou fale com o suporte para aumentar seu limite.",
+            "monthlyCapReachedFixedAmount": "Esta cobrança excede seu limite mensal disponível, que é compartilhado entre depósitos, saques e pagamentos por QR. Peça uma cobrança menor ou fale com o suporte para aumentar seu limite.",
+            "merchantNotAvailable": "Não conseguimos concluir pagamentos por QR para este estabelecimento agora. Tente outro método de pagamento ou outro estabelecimento.",
+            "merchantNotAvailableTrySmaller": "Não conseguimos concluir pagamentos por QR deste valor para este estabelecimento agora. Tente um valor menor, outro método de pagamento ou outro estabelecimento.",
+            "kycRequired": "Conclua a verificação da sua identidade para pagar com QR.",
             "merchantChargeExpired": "A cobrança do caixa expirou. Peça para inserir o valor de novo e escaneie mais uma vez.",
             "initiateUnexpected": "Não foi possível iniciar o pagamento por um erro inesperado. Fale com o suporte",
             "fetchDetails": "Não foi possível obter os detalhes do pagamento QR",
@@ -1302,6 +1314,7 @@
             "signFailed": "Não foi possível assinar a transação.",
             "accountStateChanged": "A transação falhou por uma mudança no estado da conta. Tente de novo. Se o problema continuar, fale com o suporte.",
             "sessionExpired": "A sessão de pagamento expirou. Escaneie o código QR de novo.",
+            "restartScan": "Não conseguimos iniciar este pagamento. Escaneie o código QR novamente.",
             "merchantNotSupported": "Este código QR ou lojista não é aceito. Tente de novo com outro código QR.",
             "completeFailed": "Não foi possível concluir o pagamento. Escaneie o código QR de novo. Se o problema continuar, fale com o suporte",
             "minMantecaAmount": "O valor do pagamento deve ser de pelo menos ${amount}",
@@ -1638,7 +1651,6 @@
         "title": "Adicionar dinheiro",
         "transferDetails": "Dados da transferência",
         "selectYourCountry": "Selecione seu país",
-        "howWouldYouLikeToAdd": "Como você quer adicionar dinheiro?",
         "addMoneyVia": "Adicionar dinheiro com",
         "recentMethods": "Métodos recentes",
         "selectNewMethod": "Escolher outro método",
@@ -1792,7 +1804,8 @@
             "bankAccountSettingUp": "Sua conta bancária ainda está sendo configurada. Tente de novo em instantes."
         },
         "pixMaintenanceBadge": "Manutenção",
-        "addCryptoTitle": "Adicionar cripto"
+        "addCryptoTitle": "Adicionar cripto",
+        "bankNotAvailableNote": "Transferências bancárias não estão disponíveis no seu país. Você ainda pode adicionar e sacar cripto."
     },
     "withdraw": {
         "amountToWithdraw": "Valor a sacar",
@@ -2358,6 +2371,10 @@
                 "name": "Pioneiro fundador",
                 "description": "Você já construía Peanut antes de existir lançamento."
             },
+            "ENS": {
+                "name": "Nome próprio",
+                "description": "Você pagou para um nome. Ou recebeu no seu."
+            },
             "VERIFIED": {
                 "name": "Verificado",
                 "description": "Documento conferido, identidade confirmada. Verificação oficial concluída."
@@ -2553,6 +2570,8 @@
             "descriptionCrossRegion": "Sua identidade já está verificada. Para ativar os pagamentos em {region}, só precisamos confirmar mais alguns dados — cerca de um minuto.",
             "descriptionCrossRegionGeneric": "Sua identidade já está verificada. Para ativar os pagamentos aqui, só precisamos confirmar mais alguns dados — cerca de um minuto.",
             "descriptionRegionUnavailable": "Devido às regulamentações do Reino Unido, transferências bancárias não estão disponíveis para residentes do Reino Unido. Seu dinheiro está seguro — você pode sacá-lo como cripto a qualquer momento.",
+            "titleBankUnavailable": "Indisponível no seu país",
+            "descriptionBankUnavailable": "Transferências bancárias não estão disponíveis no seu país, então verificar seu documento não vai desbloqueá-las. Seu dinheiro está seguro e você ainda pode enviar e receber dinheiro de outras pessoas.",
             "descriptionDefault": "Confirme seu documento para desbloquear os pagamentos. Leva cerca de um minuto.",
             "ctaUploadDocument": "Enviar documento",
             "ctaUnlockNow": "Desbloquear agora",
@@ -2988,6 +3007,7 @@
             "card_rejected": "Sua solicitação de cartão não pôde ser aprovada. Fale com o suporte se achar que isso é um engano.",
             "manteca_us_nationality": "Pagamentos deste país não estão disponíveis para cidadãos dos EUA no momento.",
             "country_not_supported": "Este método exige um documento de um país compatível. Você pode verificar com outro documento.",
+            "tax_id_unresolved": "Não conseguimos ler o número de identificação fiscal que os depósitos e saques locais exigem. Você pode verificar novamente para fornecê-lo. Os pagamentos por QR não são afetados.",
             "uk_resident_blocked": "Devido às regulamentações do Reino Unido, transferências bancárias não estão disponíveis para residentes do Reino Unido. Seu dinheiro está seguro — você pode sacá-lo como cripto a qualquer momento.",
             "identity_region_restricted": "Nosso parceiro de verificação não aceita documentos emitidos no seu país. Enviar de novo não vai mudar o resultado."
         }
@@ -3014,7 +3034,8 @@
     },
     "global": {
         "amountInput": {
-            "balance": "Saldo:"
+            "balance": "Saldo:",
+            "switchCurrency": "Trocar moeda"
         },
         "tokenSelector": {
             "selectAToken": "Escolha um token",
@@ -3038,7 +3059,8 @@
             "noNetworksFoundTitle": "Nenhuma rede encontrada para {search}",
             "noNetworksFoundDescription": "Tente buscar outra rede",
             "searchPlaceholder": "Buscar...",
-            "clearSearch": "Limpar busca"
+            "clearSearch": "Limpar busca",
+            "clearNetworkSelection": "Limpar rede selecionada"
         },
         "qrScanner": {
             "scanToPay": "Escaneie para pagar",
@@ -3100,10 +3122,9 @@
             "titleExternalUrl": "Este é um link externo!",
             "eip681ParseError": "Erro ao interpretar a URL EIP-681",
             "notPeanutUrl": "O QR não foi reconhecido como uma URL da Peanut",
-            "myQrCollapsedTitle": "Meu QR",
-            "myQrExpandedTitle": "Mostre o QR para receber",
             "myQrText": "Deixe outras pessoas escanearem para te pagar",
-            "myQrButtonText": "Compartilhe seu perfil"
+            "myQrButtonText": "Compartilhe seu perfil",
+            "myQrTitle": "Meu QR"
         },
         "qrBottomDrawer": {
             "shareTitle": "Compartilhe seu perfil"
@@ -3409,6 +3430,10 @@
             "inviteFriendsModal": {
                 "description": "Compartilhe seu link. Toda vez que um amigo que você trouxe fizer um pagamento, você ganha cashback."
             }
+        },
+        "countryCombobox": {
+            "noResults": "Nenhum país encontrado",
+            "clear": "Limpar busca"
         }
     },
     "errors": {

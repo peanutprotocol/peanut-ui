@@ -90,7 +90,8 @@ const CarouselCTA = ({
                     onClick={handleClose}
                     className={twMerge(
                         CAROUSEL_CLOSE_BUTTON_POSITION,
-                        'z-10 cursor-pointer p-0 text-black outline-none'
+                        // 16px glyph keeps its spot; pseudo-element grows the hit area past 44px (touch law)
+                        'z-10 cursor-pointer p-0 text-black transition-opacity duration-instant after:absolute after:-inset-4 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60'
                     )}
                 >
                     <Icon name="cancel" size={CAROUSEL_CLOSE_ICON_SIZE} />
