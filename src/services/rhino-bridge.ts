@@ -11,6 +11,7 @@
  * Pairs with peanut-api-ts /rhino/bridge/* routes.
  */
 
+import { apiErrorFromResponse } from '@/services/api-error'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { getAuthHeaders, authReady } from '@/utils/auth-token'
@@ -79,10 +80,10 @@ async function postJson<TReq, TRes>(path: string, body: TReq, errorLabel: string
         headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify(body),
     })
-    if (!response.ok) {
-        const text = await response.text().catch(() => '')
-        throw new Error(`${errorLabel}: ${response.status} ${text}`)
-    }
+    // ApiError keeps the backend's `error` text as the message and carries its
+    // `code` / `retryAfterSec`, so the cap's 429 on the bridge path renders the
+    // same localized copy as the SDA path instead of "contact support".
+    if (!response.ok) throw await apiErrorFromResponse(response, errorLabel)
     return (await response.json()) as TRes
 }
 
@@ -92,10 +93,10 @@ async function getJson<TRes>(path: string, errorLabel: string): Promise<TRes> {
         method: 'GET',
         headers: getAuthHeaders(),
     })
-    if (!response.ok) {
-        const text = await response.text().catch(() => '')
-        throw new Error(`${errorLabel}: ${response.status} ${text}`)
-    }
+    // ApiError keeps the backend's `error` text as the message and carries its
+    // `code` / `retryAfterSec`, so the cap's 429 on the bridge path renders the
+    // same localized copy as the SDA path instead of "contact support".
+    if (!response.ok) throw await apiErrorFromResponse(response, errorLabel)
     return (await response.json()) as TRes
 }
 
