@@ -8,6 +8,7 @@
  * regress here.
  */
 
+import { PEANUT_TEAM_BADGE } from '@/constants/badges.consts'
 import { SeededRandom } from '../seededRandom'
 import {
     CANVAS_W,
@@ -62,6 +63,38 @@ describe('placeStamps', () => {
 
     it('returns 0 stamps for 0 badges', () => {
         expect(placeStamps([], rng())).toEqual([])
+    })
+
+    /*
+     * The asset is generated to be posted, so a permission record reaching it
+     * is worse than one on a profile row — it leaves the app entirely. Filtering
+     * at the call sites was missed twice; these pin the boundary itself.
+     */
+    describe('permission records never become stickers', () => {
+        it('drops PEANUT_TEAM, the badge any five-tap gesture awards', () => {
+            const placed = placeStamps([badge(PEANUT_TEAM_BADGE), badge('OG_2025_10_12')], rng())
+
+            expect(placed.map((s) => s.badge.code)).toEqual(['OG_2025_10_12'])
+        })
+
+        it('drops anything the server marked invisible, whatever its code', () => {
+            const placed = placeStamps([{ ...badge('SOME_FUTURE_RECORD'), isVisible: false }], rng())
+
+            expect(placed).toEqual([])
+        })
+
+        it('still stamps a badge the server marked visible', () => {
+            const placed = placeStamps([{ ...badge('ENS'), isVisible: true }], rng())
+
+            expect(placed.map((s) => s.badge.code)).toEqual(['ENS'])
+        })
+
+        it('lays out the survivors as if the record was never passed', () => {
+            const real = [badge('ENS', 2025), badge('OG_2025_10_12', 2024)]
+            const withRecord = [real[0], badge(PEANUT_TEAM_BADGE, 2026), real[1]]
+
+            expect(placeStamps(withRecord, rng())).toEqual(placeStamps(real, rng()))
+        })
     })
 
     it('returns N stamps for N badges (N ≤ 6)', () => {
