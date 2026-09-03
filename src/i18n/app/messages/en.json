@@ -2069,7 +2069,7 @@
             "tokenAmount": "Token amount",
             "tokenAndNetwork": "Token and network",
             "tokenOnChain": "{token} on {chain}",
-            "txId": "TX ID",
+            "txId": "Transaction ID",
             "fee": "Fee",
             "transferId": "Transfer ID",
             "pointsEarned": "Points earned",

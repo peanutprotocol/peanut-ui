@@ -2069,7 +2069,7 @@
             "tokenAmount": "Valor do token",
             "tokenAndNetwork": "Token e rede",
             "tokenOnChain": "{token} na {chain}",
-            "txId": "ID da TX",
+            "txId": "ID da transação",
             "fee": "Taxa",
             "transferId": "ID da transferência",
             "pointsEarned": "Pontos ganhos",
