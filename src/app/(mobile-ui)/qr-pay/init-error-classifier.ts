@@ -29,6 +29,7 @@ export const QR_INIT_CODE = {
     DECODE: 'PAYMENT_DESTINATION_DECODING_ERROR',
     PROVIDER_UNAVAILABLE: 'PROVIDER_UNAVAILABLE',
     IN_PROGRESS: 'QR_INIT_IN_PROGRESS',
+    KEY_MISMATCH: 'QR_INIT_KEY_MISMATCH',
 } as const
 
 export type QrInitCode = (typeof QR_INIT_CODE)[keyof typeof QR_INIT_CODE]
@@ -74,6 +75,14 @@ const DETERMINISTIC: Partial<Record<QrInitCode, { amountRetryable: boolean }>> =
     [QR_INIT_CODE.MISSING_AMOUNT]: { amountRetryable: false },
     [QR_INIT_CODE.EXPIRED]: { amountRetryable: false },
     [QR_INIT_CODE.DECODE]: { amountRetryable: false },
+    /*
+     * The backend refuses an idempotency key presented for a different request.
+     * A client bug, not a transport blip: the same key with the same body would
+     * be refused identically, so retrying only burns POSTs and dead-ends on the
+     * generic error. This screen derives keys per (scan, amount), so reaching
+     * it means the derivation broke.
+     */
+    [QR_INIT_CODE.KEY_MISMATCH]: { amountRetryable: false },
 }
 
 /**
