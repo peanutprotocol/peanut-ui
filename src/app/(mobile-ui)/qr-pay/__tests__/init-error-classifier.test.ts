@@ -61,6 +61,7 @@ describe('isNonRetryableQrInitError', () => {
         QR_INIT_CODE.MISSING_AMOUNT,
         QR_INIT_CODE.EXPIRED,
         QR_INIT_CODE.DECODE,
+        QR_INIT_CODE.KEY_MISMATCH,
     ]
 
     it.each(deterministic)('fails fast on %s, by wire code and by legacy prose', (code) => {
