@@ -550,7 +550,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         actionKeyRef.current = null
 
         try {
-            const response = await restartIdentityVerification()
+            const response = await restartIdentityVerification(regionIntentRef.current)
             if (response.error) {
                 userInitiatedRef.current = false
                 setError(actionErrorMessage(response))
@@ -558,14 +558,20 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             }
             if (response.data?.token) {
                 setAccessToken(response.data.token)
-                // The restart reopens the SAME workflow the original initiate ran
-                // (the token targets the applicant's existing level), so re-derive
-                // the multi-level flag. Left false, a restarted LATAM `general`
-                // session would close on first submit — before the
-                // manteca-requirements questionnaire. Best-effort: the ref is
-                // undefined when this hook instance never initiated, which keeps
-                // today's single-level behavior.
-                setIsMultiLevel(isMultiLevelIntent(regionIntentRef.current))
+                // The restart no longer reopens the applicant's existing level:
+                // the backend targets the level the DECLARED residence needs, and
+                // can overrule the intent we sent. So the multi-level flag comes
+                // from the intent the SERVER resolved, falling back to ours only
+                // for a backend that predates the field. Left false, a restarted
+                // LATAM `general` session closes on first submit — before the
+                // manteca-requirements questionnaire.
+                //
+                // `levelName` cannot substitute: EU and NA both mint
+                // `bridge-requirements`, LATAM and ROW both mint `general`, and
+                // only EU and LATAM are multi-level.
+                const resolvedIntent = response.data.regionIntent ?? regionIntentRef.current
+                regionIntentRef.current = resolvedIntent
+                setIsMultiLevel(isMultiLevelIntent(resolvedIntent))
                 setShowWrapper(true)
             } else {
                 userInitiatedRef.current = false
