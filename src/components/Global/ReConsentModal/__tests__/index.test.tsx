@@ -33,6 +33,7 @@ jest.mock('@/components/Global/ActionModal', () => ({
     default: (props: {
         visible: boolean
         title?: string
+        description?: React.ReactNode
         content?: React.ReactNode
         checkbox?: { text: string; checked: boolean; onChange: (checked: boolean) => void }
         ctas?: { text: string; disabled?: boolean; onClick: () => void }[]
@@ -42,6 +43,7 @@ jest.mock('@/components/Global/ActionModal', () => ({
         return (
             <div data-testid="modal">
                 <h3>{props.title}</h3>
+                <div>{props.description}</div>
                 <div>{props.content}</div>
                 {checkbox && (
                     <input
