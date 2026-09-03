@@ -337,7 +337,7 @@ export const useSpendBundle = () => {
                 // look at and the UI feels intentional rather than frozen.
                 // try/finally guarantees the overlay closes on success AND on
                 // bundler / kernel failure.
-                modals?.setIsSecurityVerificationOpen?.(true)
+                modals?.setIsSecurityVerificationOpen?.(true, 'next-passkey')
                 try {
                     // Backend `/prepare` normalizes the executor salt (bytes32) and signature
                     // to 0x-hex regardless of what Rain returned — trust the wire shape here.

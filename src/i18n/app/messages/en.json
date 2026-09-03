@@ -3257,7 +3257,8 @@
             "doneCta": "Done"
         },
         "securityVerificationOverlay": {
-            "message": "Verifying security…"
+            "message": "Verifying security…",
+            "nextPasskeyMessage": "Verifying security… one more passkey confirmation comes next"
         },
         "iframeWrapper": {
             "troubleTitle": "Need a hand?",
