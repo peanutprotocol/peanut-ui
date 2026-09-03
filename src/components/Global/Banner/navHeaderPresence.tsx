@@ -55,6 +55,11 @@ export function useRegisterNavHeader(ref: React.RefObject<HTMLElement | null>, d
             }
         }
         sync()
+        // resize is the only re-sync trigger — visibility here only ever
+        // changes via breakpoint classes (md:hidden) or unmount, which resize
+        // and the effect lifecycle cover. A header whose visibility flipped
+        // via a state-driven class toggle would stay mis-registered; no such
+        // caller exists today, so no observer machinery until one does.
         window.addEventListener('resize', sync)
         return () => {
             window.removeEventListener('resize', sync)
