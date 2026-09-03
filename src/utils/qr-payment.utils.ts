@@ -46,15 +46,22 @@ export function isArgentinaMantecaQrPayment(qrType: string | null, paymentProces
  * what lets the backend replay that lock instead of minting a second one, so it
  * MUST be identical across every retry of one scan and different across scans.
  *
- * Derived rather than random so it also survives a remount, and hashed rather
- * than sent raw because a payment destination can encode a Pix key (CPF, email,
- * phone) that has no business becoming a durable cache key. `amount` is part of
- * the identity: an open-amount QR re-inits with the user's number, and a
- * different amount is a genuinely different lock.
+ * Derived rather than random so it also survives a remount. Every input is
+ * HASHED rather than embedded: `qrCode` because a payment destination can
+ * encode a Pix key (CPF, email, phone) that has no business becoming a durable
+ * cache key, and `timestamp` because it comes straight off an untrusted URL
+ * parameter — a long enough `t` would push the composed key past the backend's
+ * 200-character bound, where it is dropped, silently restoring the very
+ * duplicate-lock behaviour this exists to prevent.
+ *
+ * `amount` is part of the identity: an open-amount QR re-inits with the user's
+ * number, and a different amount is a genuinely different lock.
  */
 export function qrInitIdempotencyKey(input: { qrCode: string; timestamp: string | null; amount?: string }): string {
-    const scan = `${input.timestamp ?? ''}:${fnv1a64(input.qrCode)}:${input.qrCode.length}`
-    return input.amount ? `${scan}:${input.amount}` : scan
+    const canonical = [input.timestamp ?? '', input.qrCode, input.amount ?? ''].join('\u0000')
+    // Two independently seeded 64-bit halves; the separator is a byte that
+    // cannot appear in any of the fields, so adjacent values can never blur.
+    return `${fnv1a64(canonical)}${fnv1a64(`${canonical.length}\u0000${canonical}`)}`
 }
 
 /** FNV-1a over 64 bits, as two 32-bit halves with different offsets. */

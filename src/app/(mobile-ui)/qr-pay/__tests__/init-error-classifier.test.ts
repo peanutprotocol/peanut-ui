@@ -173,7 +173,18 @@ describe('classifyScanOutcome', () => {
         })
     })
 
-    it('is pending until something happens', () => {
-        expect(classifyScanOutcome(scan())).toEqual({ kind: 'pending' })
+    it('is pending only while a fetch is actually in flight', () => {
+        expect(classifyScanOutcome(scan({ fetchStatus: 'fetching' }))).toEqual({ kind: 'pending' })
+    })
+
+    it('a disabled query is idle, not loading', () => {
+        /*
+         * The query is disabled for an invalid or recurring QR, a KYC-blocked
+         * user, and provider maintenance — idle, with no data and no error.
+         * Calling that "loading" drove the app-wide LoadingStateContext, which
+         * outlives this route: after Go back, send/request handlers read
+         * `isLoading` as a hard lock and stayed wedged.
+         */
+        expect(classifyScanOutcome(scan({ fetchStatus: 'idle' }))).toEqual({ kind: 'idle' })
     })
 })

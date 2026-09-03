@@ -145,6 +145,8 @@ export function classifyQrInitError(error: unknown, callSite: QrInitCallSite): Q
  */
 export type QrScanOutcome =
     | { kind: 'ready' }
+    /** Disabled or not started — NOT the same as in flight. See `classifyScanOutcome`. */
+    | { kind: 'idle' }
     | { kind: 'pending' }
     | { kind: 'retrying' }
     | { kind: 'awaiting-merchant-amount' }
@@ -167,7 +169,16 @@ export function classifyScanOutcome(input: QrScanInput): QrScanOutcome {
     if (input.hasLock) return { kind: 'ready' }
 
     const error = input.settledError ?? input.failureReason
-    if (!error) return { kind: 'pending' }
+    if (!error) {
+        /*
+         * `idle` and `pending` must stay distinct. The query is DISABLED for an
+         * invalid or recurring QR, a KYC-blocked user, and provider
+         * maintenance — idle, with no data and no error. Reporting that as
+         * loading drives the app-wide LoadingStateContext, which outlives this
+         * route and which the send/request handlers treat as a hard lock.
+         */
+        return input.fetchStatus === 'fetching' ? { kind: 'pending' } : { kind: 'idle' }
+    }
 
     const code = qrInitCode(error)
     if (code === QR_INIT_CODE.MISSING_AMOUNT) return { kind: 'awaiting-merchant-amount' }

@@ -1663,6 +1663,84 @@ describe('GROUP 5: Error States', () => {
     }, 20_000)
 
     /*
+     * The re-init POST mints a REAL Manteca price lock, so it must carry its own
+     * idempotency key. Reusing the scan's key would have the backend replay the
+     * scan's empty-code lock; `finalPaymentLock.code === ''` then falls to
+     * `errors.fetchDetails` and every open-amount QR becomes unpayable — with
+     * typecheck and the rest of this suite green.
+     */
+    it('open-amount re-init sends its own idempotency key, keyed to the amount', async () => {
+        // Cap rejection keeps us on the form (it is amount-retryable), so the
+        // second submit can be compared against the first.
+        mockMantecaApi.initiateQrPayment
+            .mockResolvedValueOnce({ ...reconnectLock, code: '' })
+            .mockRejectedValue(new Error('MANTECA_SOURCE_OVER_MONTHLY_CAP'))
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+        await waitFor(() => {
+            expect(screen.getByText(reconnectLock.paymentRecipientName)).toBeInTheDocument()
+        })
+
+        await act(async () => {
+            fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '5' } })
+        })
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+        await waitFor(() => {
+            expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2)
+        })
+
+        const scanKey = mockMantecaApi.initiateQrPayment.mock.calls[0][0].idempotencyKey
+        const reInitKey = mockMantecaApi.initiateQrPayment.mock.calls[1][0].idempotencyKey
+        expect(scanKey).toBeTruthy()
+        expect(reInitKey).toBeTruthy()
+        // Reusing the scan's key would have the backend replay the empty-code
+        // lock, and every open-amount QR would land on `errors.fetchDetails`.
+        expect(reInitKey).not.toBe(scanKey)
+
+        // A different amount is a genuinely different lock.
+        await act(async () => {
+            fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '2' } })
+        })
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+        await waitFor(() => {
+            expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(3)
+        })
+        expect(mockMantecaApi.initiateQrPayment.mock.calls[2][0].idempotencyKey).not.toBe(reInitKey)
+    }, 20_000)
+
+    /*
+     * The merchant volume cap compares `rolling30dTotal + attempted >= LIMIT`
+     * (peanut-api-ts cap-check.ts), so after amount entry a smaller number can
+     * still fit — and the copy has to say so. The scan-time string does not,
+     * because there the amount is the merchant's.
+     */
+    it('merchant volume cap offers a smaller amount only at the amount-entry call site', async () => {
+        mockMantecaApi.initiateQrPayment
+            .mockResolvedValueOnce({ ...reconnectLock, code: '' })
+            .mockRejectedValue(new Error('MANTECA_MERCHANT_VOLUME_NEAR_CAP'))
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+        await waitFor(() => {
+            expect(screen.getByText(reconnectLock.paymentRecipientName)).toBeInTheDocument()
+        })
+        await act(async () => {
+            fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '5' } })
+        })
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+
+        const message = await screen.findByText(/can't complete QR payments of this size/i)
+        expect(message).toHaveTextContent(/smaller amount/i)
+    }, 20_000)
+
+    /*
      * The other half of the amount-edit rule. A terminal rejection must STAY
      * latched: an unfinished KYC or a merchant refund block is not something a
      * different number fixes, and clearing on any keystroke re-enabled Pay so

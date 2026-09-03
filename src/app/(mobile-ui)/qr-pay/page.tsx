@@ -738,11 +738,16 @@ export default function QRPayPage() {
         if (fetchedPaymentLock && !paymentLock) setPaymentLock(fetchedPaymentLock)
 
         if (scanOutcome.kind === 'awaiting-merchant-amount') setWaitingForMerchantAmount(true)
-        else if (scanOutcome.kind !== 'pending') setWaitingForMerchantAmount(false)
+        else if (scanOutcome.kind !== 'pending' && scanOutcome.kind !== 'idle') setWaitingForMerchantAmount(false)
 
+        /*
+         * `idle` deliberately touches nothing. A disabled query — invalid QR,
+         * KYC-blocked user, provider maintenance — must not drive the app-wide
+         * loading context, which survives navigation away from this route.
+         */
         if (scanOutcome.kind === 'pending') setLoadingState('Fetching details')
         else if (scanOutcome.kind === 'retrying') setLoadingState('Still fetching details')
-        else setLoadingState('Idle')
+        else if (scanOutcome.kind !== 'idle') setLoadingState('Idle')
 
         if (scanOutcome.kind === 'failed') {
             if (scanOutcome.reason === QR_INIT_CODE.DECODE) {
@@ -752,6 +757,15 @@ export default function QRPayPage() {
             }
         }
     }, [scanOutcome, fetchedPaymentLock, paymentLock, paymentProcessor, qrType, setLoadingState])
+
+    /*
+     * The loading context is app-wide and outlives this route, so leaving it set
+     * on the way out locks the send/request handlers, which read `isLoading` as
+     * a hard gate. Nothing on this page needs it once the page is gone.
+     */
+    useEffect(() => {
+        return () => setLoadingState('Idle')
+    }, [setLoadingState])
 
     /*
      * Editing the amount clears the last init error. A cap or Pix-minimum

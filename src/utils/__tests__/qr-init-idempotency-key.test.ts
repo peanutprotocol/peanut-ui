@@ -51,11 +51,31 @@ describe('qrInitIdempotencyKey', () => {
         expect(key).not.toContain(PIX_QR)
     })
 
-    it('stays within the backend’s 200-character key bound', () => {
-        const key = qrInitIdempotencyKey({ qrCode: 'x'.repeat(5_000), timestamp: '1700000000', amount: '123.45' })
-        // Longer than this and normalizeIdempotencyKey drops it, silently
-        // restoring the un-guarded behaviour.
-        expect(key.length).toBeLessThanOrEqual(200)
+    it('is a fixed length no input can inflate', () => {
+        /*
+         * `t` comes straight off the URL. Embedding it in the clear let a
+         * crafted /qr-pay link push the key past the backend's 200-character
+         * bound, where `normalizeIdempotencyKey` drops it — silently restoring
+         * the duplicate-lock behaviour this exists to prevent.
+         */
+        const short = qrInitIdempotencyKey({ qrCode: 'x', timestamp: '1' })
+        const huge = qrInitIdempotencyKey({
+            qrCode: 'x'.repeat(5_000),
+            timestamp: '9'.repeat(5_000),
+            amount: '1'.repeat(5_000),
+        })
+        expect(huge).toHaveLength(short.length)
+        expect(huge.length).toBeLessThanOrEqual(200)
+    })
+
+    it('does not let adjacent fields blur into each other', () => {
+        // A naive join makes (timestamp "1", qr "23") and (timestamp "12", qr "3") collide.
+        expect(qrInitIdempotencyKey({ qrCode: '23', timestamp: '1' })).not.toBe(
+            qrInitIdempotencyKey({ qrCode: '3', timestamp: '12' })
+        )
+        expect(qrInitIdempotencyKey({ qrCode: 'a', timestamp: '1', amount: '2' })).not.toBe(
+            qrInitIdempotencyKey({ qrCode: 'a', timestamp: '1', amount: undefined })
+        )
     })
 
     it('handles a missing timestamp without collapsing distinct QRs together', () => {
