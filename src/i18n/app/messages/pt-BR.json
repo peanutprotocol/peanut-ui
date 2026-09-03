@@ -557,9 +557,9 @@
                 "leftOverride": "Este aparelho foi colocado em beta pelo painel do Capgo, então o app não consegue tirá-lo. Peça a um administrador para remover a atribuição de canal do aparelho.",
                 "leftUnconfirmed": "Não foi possível falar com o Capgo para confirmar a mudança, então este aparelho continua na versão beta. Tente de novo quando estiver online.",
                 "closed": "O canal {channel} ainda não aceita testadores. Peça a um administrador para permitir a autoatribuição no Capgo.",
+                "notEligible": "As atualizações beta ainda não estão habilitadas para esta conta. Toque cinco vezes no número da versão para tentar de novo.",
                 "failed": "Não foi possível alterar o canal de atualizações.",
                 "revealed": "O interruptor de atualizações beta está visível abaixo.",
-                "notEnabled": "As atualizações beta não estão ativadas para este dispositivo.",
                 "appOnly": "As atualizações beta só estão disponíveis no app do Peanut."
             }
         }
