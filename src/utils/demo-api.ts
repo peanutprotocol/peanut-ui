@@ -45,6 +45,8 @@ function json(data: unknown, status = 200): Response {
 }
 
 type DemoRequestBody = {
+    /** profile avatar pick (TASK-22142): string sets, null clears */
+    avatarKey?: string | null
     tokenAmount?: string | number
     requestProps?: { tokenAmount?: string | number }
     local_price?: { amount?: string | number }
@@ -365,6 +367,11 @@ const stampDemoActivationCelebrated = (): void => {
     } catch {}
 }
 
+// The picked profile avatar (TASK-22142), tab-scoped like the rest of the
+// demo state: a pick made through the picker must survive the next
+// GET /users/me or the tile snaps back. Fixtures still override on top.
+let demoAvatarKey: string | null = null
+
 // ---- routes (ordered: literal paths before :param paths) ----
 
 const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
@@ -374,9 +381,14 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         pattern: '/users/me',
         handler: () => {
             const celebratedAt = getDemoActivationCelebratedAt()
-            return celebratedAt
-                ? { ...DEMO_USER, user: { ...DEMO_USER.user, activationCelebratedAt: celebratedAt } }
-                : DEMO_USER
+            return {
+                ...DEMO_USER,
+                user: {
+                    ...DEMO_USER.user,
+                    avatarKey: demoAvatarKey,
+                    ...(celebratedAt ? { activationCelebratedAt: celebratedAt } : {}),
+                },
+            }
         },
     },
     {
@@ -443,6 +455,8 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         handler: ({ options }) => {
             const body = parseBody(options)
             if (body.dismissActivationCelebration) stampDemoActivationCelebrated()
+            // string sets, null clears, absent leaves it alone — as the API does
+            if ('avatarKey' in body) demoAvatarKey = body.avatarKey ?? null
             return demoApiUser(body.username ?? 'demo')
         },
     },

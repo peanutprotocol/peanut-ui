@@ -41,6 +41,32 @@ describe('useCardReveal', () => {
         expect(result.current.error).toBeNull()
     })
 
+    it('ignores a second reveal while the first is still in flight', async () => {
+        let resolveDetails!: (v: RainCardDetailsResponse) => void
+        mockedGetCardDetails.mockImplementationOnce(
+            () =>
+                new Promise<RainCardDetailsResponse>((resolve) => {
+                    resolveDetails = resolve
+                })
+        )
+        const { result } = renderHook(() => useCardReveal({ cardId: 'c1', autoMaskMs: 0 }))
+
+        let first!: Promise<void>
+        act(() => {
+            first = result.current.reveal()
+        })
+        await act(async () => {
+            await result.current.reveal()
+        })
+        expect(mockedGetCardDetails).toHaveBeenCalledTimes(1)
+
+        await act(async () => {
+            resolveDetails(details)
+            await first
+        })
+        expect(result.current.revealed).toEqual(details)
+    })
+
     it('hides revealed details on hide()', async () => {
         mockedGetCardDetails.mockResolvedValueOnce(details)
         const { result } = renderHook(() => useCardReveal({ cardId: 'c1', autoMaskMs: 0 }))

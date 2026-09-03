@@ -15,6 +15,7 @@ import { apiFetch } from '@/utils/api-fetch'
 import { getNativeRpId, isCapacitor } from '@/utils/capacitor'
 import { guardPasskeyCeremony, isCeremonyGuardError } from '@/utils/passkeyCeremony.utils'
 import { classifyPasskeyError } from '@/utils/webauthn.utils'
+import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
 
 export const STEP_UP_HEADER = 'x-step-up-token'
 
@@ -64,7 +65,7 @@ export async function getStepUpToken(): Promise<string> {
     // as StepUpError so callers render the curated copy, not a raw timeout.
     let cred: Awaited<ReturnType<typeof startAuthentication>>
     try {
-        cred = await guardPasskeyCeremony(() => startAuthentication(options))
+        cred = await withCeremonyPurpose('step_up', () => guardPasskeyCeremony(() => startAuthentication(options)))
     } catch (error) {
         if (isCeremonyGuardError(error)) throw new StepUpError(classifyPasskeyError(error).message)
         throw error

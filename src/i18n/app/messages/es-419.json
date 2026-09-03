@@ -56,7 +56,8 @@
             "unknown": "Desconocido"
         },
         "exchangeRate": "Tipo de cambio",
-        "slideToProceed": "Desliza para continuar"
+        "slideToProceed": "Desliza para continuar",
+        "userAvatarAlt": "Avatar de {username}"
     },
     "navigation": {
         "home": "Inicio",
@@ -556,9 +557,9 @@
                 "leftOverride": "Este dispositivo fue puesto en beta desde el panel de Capgo, así que la app no puede sacarlo. Pedile a un administrador que quite la asignación de canal del dispositivo.",
                 "leftUnconfirmed": "No se pudo contactar a Capgo para confirmar el cambio, así que este dispositivo sigue en la compilación beta. Probá de nuevo cuando tengas conexión.",
                 "closed": "El canal {channel} todavía no acepta testers. Pedile a un administrador que habilite la autoasignación en Capgo.",
+                "notEligible": "Las actualizaciones beta todavía no están habilitadas para esta cuenta. Toca cinco veces el número de versión para reintentar.",
                 "failed": "No se pudo cambiar el canal de actualizaciones.",
                 "revealed": "El interruptor de actualizaciones beta ya está visible abajo.",
-                "notEnabled": "Las actualizaciones beta no están habilitadas para este dispositivo.",
                 "appOnly": "Las actualizaciones beta solo están disponibles en la app de Peanut."
             }
         }
@@ -2069,7 +2070,7 @@
             "tokenAmount": "Monto del token",
             "tokenAndNetwork": "Token y red",
             "tokenOnChain": "{token} en {chain}",
-            "txId": "ID de TX",
+            "txId": "ID de transacción",
             "fee": "Comisión",
             "transferId": "ID de transferencia",
             "pointsEarned": "Puntos ganados",
@@ -2501,7 +2502,9 @@
                 "name": "Pase directo",
                 "description": "Te saltaste la lista de espera. Un amigo te dio la llave y entraste directo."
             }
-        }
+        },
+        "toastAvatars": "{count, plural, one {# avatar nuevo desbloqueado} other {# avatares nuevos desbloqueados}}",
+        "toastChooseAvatar": "Elegir avatar"
     },
     "notifications": {
         "setupTitle": "¿Activar las notificaciones?",
@@ -3254,7 +3257,8 @@
             "doneCta": "Listo"
         },
         "securityVerificationOverlay": {
-            "message": "Verificando seguridad…"
+            "message": "Verificando seguridad…",
+            "nextPasskeyMessage": "Verificando seguridad… falta una confirmación más con tu passkey"
         },
         "iframeWrapper": {
             "troubleTitle": "¿Necesitas ayuda?",
@@ -3627,5 +3631,17 @@
             "android": "Actualizar Android System WebView"
         },
         "continueAnyway": "Continuar de todos modos"
+    },
+    "avatar": {
+        "title": "Tu avatar",
+        "description": "Elige uno o tira los dados para ver otros básicos.",
+        "fromBadges": "De tus insignias",
+        "basics": "Básicos",
+        "unlocked": "{count} desbloqueados",
+        "noBadgeAvatars": "Gana una insignia y sus avatares aparecen aquí.",
+        "rollDice": "Tirar los dados",
+        "useInitial": "Usar mi inicial",
+        "change": "Cambiar avatar",
+        "saveFailed": "No pudimos guardar tu avatar. Inténtalo de nuevo."
     }
 }

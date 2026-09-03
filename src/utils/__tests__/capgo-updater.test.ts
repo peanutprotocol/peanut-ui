@@ -15,12 +15,18 @@ const mockUpdater = {
     getChannel: jest.fn(),
     current: jest.fn(),
     reset: jest.fn().mockResolvedValue(undefined),
+    getPluginVersion: jest.fn(),
 }
+const mockPlatform = { android: true }
 
 jest.mock('@capgo/capacitor-updater', () => ({ CapacitorUpdater: mockUpdater }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
+jest.mock('@/utils/capacitor', () => ({
+    ...jest.requireActual('@/utils/capacitor'),
+    isAndroidNativeBridge: () => mockPlatform.android,
+}))
 
-import { initCapgoUpdater } from '../capgo-updater'
+import { canRestartInPlace, initCapgoUpdater } from '../capgo-updater'
 
 let info: jest.SpyInstance
 let error: jest.SpyInstance
@@ -28,6 +34,8 @@ let error: jest.SpyInstance
 beforeEach(() => {
     jest.useFakeTimers()
     window.localStorage.clear()
+    mockPlatform.android = true
+    mockUpdater.getPluginVersion.mockReset()
     info = jest.spyOn(console, 'info').mockImplementation(() => {})
     error = jest.spyOn(console, 'error').mockImplementation(() => {})
 })
@@ -368,5 +376,46 @@ describe('beta channel opt-in', () => {
         const { leaveBetaOtaChannel } = await import('../capgo-updater')
         mockUpdater.reset.mockRejectedValueOnce(new Error('reset failed')).mockResolvedValueOnce(undefined)
         await expect(leaveBetaOtaChannel()).resolves.toBeUndefined()
+    })
+})
+
+describe('canRestartInPlace', () => {
+    /*
+     * Capgo < 8.46.0 runs set() inline on Capacitor Android's single plugin
+     * thread and blocks it there waiting for notifyAppReady(), which is queued
+     * behind it — the restart deadlocks on a blank page until Capgo rolls the
+     * bundle back. The check reads the NATIVE plugin version because this JS is
+     * shipped over the air onto binaries built months apart.
+     */
+    it('refuses an in-place restart on the deadlocking Android plugin', async () => {
+        mockUpdater.getPluginVersion.mockResolvedValue({ version: '8.45.9' })
+        await expect(canRestartInPlace()).resolves.toBe(false)
+    })
+
+    it('allows it from the version that moved set() off the plugin thread', async () => {
+        mockUpdater.getPluginVersion.mockResolvedValue({ version: '8.46.0' })
+        await expect(canRestartInPlace()).resolves.toBe(true)
+    })
+
+    it('compares versions numerically, not lexically', async () => {
+        mockUpdater.getPluginVersion.mockResolvedValue({ version: '8.5.0' })
+        await expect(canRestartInPlace()).resolves.toBe(false)
+        mockUpdater.getPluginVersion.mockResolvedValue({ version: '8.51.15' })
+        await expect(canRestartInPlace()).resolves.toBe(true)
+        mockUpdater.getPluginVersion.mockResolvedValue({ version: '9.0.0' })
+        await expect(canRestartInPlace()).resolves.toBe(true)
+    })
+
+    it('fails closed on a version it cannot read', async () => {
+        mockUpdater.getPluginVersion.mockRejectedValue(new Error('not implemented'))
+        await expect(canRestartInPlace()).resolves.toBe(false)
+        mockUpdater.getPluginVersion.mockResolvedValue({ version: 'unknown' })
+        await expect(canRestartInPlace()).resolves.toBe(false)
+    })
+
+    it('never asks on iOS, where the plugin does not block the caller', async () => {
+        mockPlatform.android = false
+        await expect(canRestartInPlace()).resolves.toBe(true)
+        expect(mockUpdater.getPluginVersion).not.toHaveBeenCalled()
     })
 })

@@ -1,10 +1,10 @@
 /**
  * useClaimSuccessPolling — replaces the bare 250ms setInterval that stacked
  * concurrent GETs (89 in one Android session). The contract under test:
- * requests never overlap, CLAIMED without a projected claim keeps polling
- * (the status flips before the claim intent is projected), the cadence backs
- * off after the fast phase, and the ceiling surfaces through onGaveUp instead
- * of stopping silently. Callbacks are one-shot.
+ * requests never overlap, CLAIMED settles as success even without a projected
+ * claim hash (the same point the backend marks the claim done and notifies),
+ * the cadence backs off after the fast phase, and the ceiling surfaces through
+ * onGaveUp instead of stopping silently. Callbacks are one-shot.
  */
 import { renderHook, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -107,28 +107,22 @@ describe('useClaimSuccessPolling', () => {
         expect(onGaveUp).not.toHaveBeenCalled()
     })
 
-    it('keeps polling through CLAIMED without a projected claim until the hash appears', async () => {
-        // the claim write flips status before the claim intent is projected —
-        // {status: CLAIMED, claim: undefined} must NOT be treated as terminal
-        mockGet
-            .mockResolvedValueOnce({ status: 'CLAIMED', events: [] })
-            .mockResolvedValueOnce({ status: 'CLAIMED', events: [] })
-            .mockResolvedValue({ status: 'CLAIMED', claim: { txHash: '0xdef' }, events: [] })
+    it('settles on CLAIMED without a projected claim, reporting a null hash', async () => {
+        // CLAIMED is the point the backend marks the claim done and notifies, so
+        // the view settles on it whether or not the claim intent's txHash has
+        // projected yet — no waiting the hash out on a screen the user is on.
+        mockGet.mockResolvedValue({ status: 'CLAIMED', events: [] })
         const { onClaimed, onGaveUp } = renderPolling()
 
         await advance(0)
+        await advance(1) // flush the batched observer notify through to the effect
         expect(mockGet).toHaveBeenCalledTimes(1)
-        expect(onClaimed).not.toHaveBeenCalled()
-
-        await advance(2 * CLAIM_POLL_INTERVAL_MS)
-        await advance(1)
-        expect(mockGet).toHaveBeenCalledTimes(3)
         expect(onClaimed).toHaveBeenCalledTimes(1)
-        expect(onClaimed).toHaveBeenCalledWith('0xdef')
+        expect(onClaimed).toHaveBeenCalledWith(null)
 
-        // now terminal — polling stopped
+        // terminal — polling stopped
         await advance(10 * CLAIM_POLL_SLOW_INTERVAL_MS)
-        expect(mockGet).toHaveBeenCalledTimes(3)
+        expect(mockGet).toHaveBeenCalledTimes(1)
         expect(onGaveUp).not.toHaveBeenCalled()
     })
 

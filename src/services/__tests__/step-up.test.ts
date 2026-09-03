@@ -6,8 +6,12 @@ import { clearStepUpToken, getStepUpToken, STEP_UP_HEADER, withStepUpHeader } fr
 import { apiFetch } from '@/utils/api-fetch'
 import { startAuthentication } from '@simplewebauthn/browser'
 import { CeremonyTimeoutError, guardPasskeyCeremony } from '@/utils/passkeyCeremony.utils'
+import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
 
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: jest.fn() }))
+jest.mock('@/utils/webauthn-ceremony-telemetry', () => ({
+    withCeremonyPurpose: jest.fn((_purpose: string, fn: () => Promise<unknown>) => fn()),
+}))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false, getNativeRpId: () => 'peanut.me' }))
 // passthrough spy — the suite asserts the ceremony is routed through the guard
 // (shim gate + timeout, TASK-21782) without changing its behavior
@@ -124,5 +128,15 @@ describe('withStepUpHeader', () => {
             'Content-Type': 'application/json',
             [STEP_UP_HEADER]: 'proof-token',
         })
+    })
+})
+
+describe('ceremony telemetry', () => {
+    it('tags the assertion as step_up so it stops showing as unknown', async () => {
+        clearStepUpToken()
+        mockedAuth.mockResolvedValue({ id: 'cred' } as never)
+        happyPath()
+        await getStepUpToken()
+        expect(withCeremonyPurpose).toHaveBeenCalledWith('step_up', expect.any(Function))
     })
 })

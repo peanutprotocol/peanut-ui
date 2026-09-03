@@ -19,6 +19,9 @@ import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import InviteFriendsModal from '../Global/InviteFriendsModal'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import Image from 'next/image'
+import { useQueryState } from 'nuqs'
+import { AvatarPicker } from '@/components/Avatar/AvatarPicker'
+import { AVATAR_PICKER_PARAM, avatarPickerParser } from '@/components/Avatar/avatar.consts'
 import { useOtaUpdate } from '@/context/OtaUpdateContext'
 import OtaUpdateModal from './components/OtaUpdateModal'
 import { openStore } from '@/utils/migration.utils'
@@ -28,6 +31,8 @@ import { isIOSNative } from '@/utils/capacitor'
 export const Profile = () => {
     const { logoutUser, isLoggingOut, user } = useAuth()
     const [isInviteFriendsModalOpen, setIsInviteFriendsModalOpen] = useState(false)
+    // URL state so the badge-earned toast can deep-link straight into the picker
+    const [avatarPickerOpen, setAvatarPickerOpen] = useQueryState(AVATAR_PICKER_PARAM, avatarPickerParser)
     const router = useRouter()
     const onBack = useSafeBack('/home')
     // Profile "verified" reflects identity verification only (the human was ID-verified) — NOT
@@ -59,8 +64,12 @@ export const Profile = () => {
     }
 
     const username = user?.user.username || 'anonymous'
-    // respect user's showFullName preference: use fullName only if showFullName is true, otherwise use username
-    const displayName = user?.user.showFullName && user?.user.fullName ? user.user.fullName : username
+    // Full name or nothing: the share pill below already spells out
+    // peanut.me/<username>, so falling back to the username here only printed
+    // the handle twice. Empty name → ProfileHeader drops the row entirely.
+    // Still respects the showFullName preference — opting out means there is
+    // no name to show.
+    const displayName = user?.user.showFullName && user?.user.fullName ? user.user.fullName : ''
 
     return (
         <div className="h-full w-full bg-background">
@@ -70,7 +79,13 @@ export const Profile = () => {
                     copy-username icon it used to lean on was removed
                     (TASK-22121 #24), so suppressing the pill here left the
                     page with no way to share at all */}
-                <ProfileHeader name={displayName} username={username} isVerified={isUserSumsubKycApproved} />
+                <ProfileHeader
+                    name={displayName}
+                    username={username}
+                    isVerified={isUserSumsubKycApproved}
+                    onChangeAvatar={() => setAvatarPickerOpen(true)}
+                />
+                <AvatarPicker open={avatarPickerOpen} onOpenChange={setAvatarPickerOpen} />
                 <div className="space-y-4">
                     {/* IA from #2834: identity/products first, then social +
                         account, then app settings. Payment limits moved inline

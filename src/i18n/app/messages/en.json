@@ -56,7 +56,8 @@
             "unknown": "Unknown"
         },
         "exchangeRate": "Exchange rate",
-        "slideToProceed": "Slide to Proceed"
+        "slideToProceed": "Slide to Proceed",
+        "userAvatarAlt": "Avatar for {username}"
     },
     "navigation": {
         "home": "Home",
@@ -556,9 +557,9 @@
                 "leftOverride": "This device was put on beta from the Capgo dashboard, so the app cannot take it off. Ask an admin to remove the device's channel override.",
                 "leftUnconfirmed": "Could not reach Capgo to confirm the switch, so this device is still on the beta build. Try again when you are back online.",
                 "closed": "The {channel} channel does not accept testers yet. Ask an admin to allow self-assignment in Capgo.",
+                "notEligible": "Beta updates are not enabled for this account yet. Tap the version number five times again to retry.",
                 "failed": "Could not change the update channel.",
                 "revealed": "Beta updates switch revealed below.",
-                "notEnabled": "Beta updates aren't enabled for this device.",
                 "appOnly": "Beta updates are only available in the Peanut app."
             }
         }
@@ -2069,7 +2070,7 @@
             "tokenAmount": "Token amount",
             "tokenAndNetwork": "Token and network",
             "tokenOnChain": "{token} on {chain}",
-            "txId": "TX ID",
+            "txId": "Transaction ID",
             "fee": "Fee",
             "transferId": "Transfer ID",
             "pointsEarned": "Points earned",
@@ -2501,7 +2502,9 @@
                 "name": "Skip Pass",
                 "description": "You skipped the waitlist. A friend handed you the key and you walked right in."
             }
-        }
+        },
+        "toastAvatars": "{count, plural, one {# new avatar unlocked} other {# new avatars unlocked}}",
+        "toastChooseAvatar": "Choose avatar"
     },
     "notifications": {
         "setupTitle": "Turn on notifications?",
@@ -3254,7 +3257,8 @@
             "doneCta": "Done"
         },
         "securityVerificationOverlay": {
-            "message": "Verifying security…"
+            "message": "Verifying security…",
+            "nextPasskeyMessage": "Verifying security… one more passkey confirmation comes next"
         },
         "iframeWrapper": {
             "troubleTitle": "Need a hand?",
@@ -3627,5 +3631,17 @@
             "android": "Update Android System WebView"
         },
         "continueAnyway": "Continue anyway"
+    },
+    "avatar": {
+        "title": "Your avatar",
+        "description": "Pick one, or roll the dice for a fresh row of basics.",
+        "fromBadges": "From your badges",
+        "basics": "Basics",
+        "unlocked": "{count} unlocked",
+        "noBadgeAvatars": "Earn a badge and its avatars appear here.",
+        "rollDice": "Roll the dice",
+        "useInitial": "Use my initial instead",
+        "change": "Change avatar",
+        "saveFailed": "Could not save your avatar. Try again."
     }
 }
