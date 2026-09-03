@@ -125,6 +125,9 @@ describe('useSetupFlow (URL stepper)', () => {
 // contract the deleted useSetupStepUrlSync mirror kept via replaceState (Chip
 // review, PR #2949). The browser keeps push so web Back walks the steps.
 describe('useSetupFlow — history mode per platform', () => {
+    // rateLimitFactor 0: handleNext fire-and-forgets the URL write (void
+    // goTo), so without it the assertion can outrun nuqs's throttle queue on
+    // a slow runner (this exact pair passed locally and failed in CI)
     const renderWithUrlSpy = (onUrlUpdate: OnUrlUpdateFunction) =>
         renderHook(
             () => {
@@ -134,7 +137,11 @@ describe('useSetupFlow — history mode per platform', () => {
             },
             {
                 wrapper: ({ children }: { children: ReactNode }) => (
-                    <NuqsTestingAdapter searchParams={{ screen: 'signup' }} onUrlUpdate={onUrlUpdate}>
+                    <NuqsTestingAdapter
+                        searchParams={{ screen: 'signup' }}
+                        onUrlUpdate={onUrlUpdate}
+                        rateLimitFactor={0}
+                    >
                         <SetupFlowProvider>{children}</SetupFlowProvider>
                     </NuqsTestingAdapter>
                 ),
@@ -152,6 +159,8 @@ describe('useSetupFlow — history mode per platform', () => {
         await seedSteps(result)
         await act(async () => {
             await result.current.flow.handleNext()
+            // one macrotask: let the (fire-and-forget) URL write flush
+            await new Promise((resolve) => setTimeout(resolve, 0))
         })
         const update = onUrlUpdate.mock.calls.at(-1)?.[0]
         expect(update?.searchParams.get('screen')).toBe('residence')
@@ -165,6 +174,8 @@ describe('useSetupFlow — history mode per platform', () => {
         await seedSteps(result)
         await act(async () => {
             await result.current.flow.handleNext()
+            // one macrotask: let the (fire-and-forget) URL write flush
+            await new Promise((resolve) => setTimeout(resolve, 0))
         })
         const update = onUrlUpdate.mock.calls.at(-1)?.[0]
         expect(update?.searchParams.get('screen')).toBe('residence')
