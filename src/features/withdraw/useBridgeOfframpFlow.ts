@@ -82,6 +82,10 @@ export function useBridgeOfframpFlow() {
     // hand-edited ?step=success rendered a success screen for a withdrawal
     // that never ran.
     const [completedTxHash, setCompletedTxHash] = useState<string | null>(null)
+    // The USD amount the completed offramp actually moved. The success screen
+    // renders THIS — `?amount=` stays user-editable after completion, and
+    // rendering it would let a URL edit forge the confirmation (Chip round 8).
+    const [executedAmountUsd, setExecutedAmountUsd] = useState<string | null>(null)
     const params = useParams()
     // read country from path params (web) or query params (native/capacitor)
     const country = (params.country as string) || countryFromQuery
@@ -376,8 +380,11 @@ export function useBridgeOfframpFlow() {
             // 30s tanstack staleTime + Bridge polling cadence.
             queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
 
-            // proof first, then the step — the success guard reads it
+            // proof first, then the step — the success guard reads it. The
+            // executed amount pins alongside it: the success screen must show
+            // what moved, not what the URL says now.
             setCompletedTxHash(txIdentifier)
+            setExecutedAmountUsd(amountUsd)
             void stepper.goTo('success')
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_COMPLETED, {
                 amount_usd: amountUsd,
@@ -448,6 +455,9 @@ export function useBridgeOfframpFlow() {
         // and, for GB/MX, until the FX rate behind the rail minimum has
         // loaded (Chip round 5)
         isSubmitReady: balance !== undefined && isMinReady,
+        // the amount the completed offramp moved — success screens render this,
+        // never the still-editable ?amount= (Chip round 8)
+        executedAmountUsd,
         amountToWithdraw,
         bankAccount,
         country,
