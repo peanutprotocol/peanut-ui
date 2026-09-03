@@ -229,19 +229,21 @@ export async function executeClaimXChain({
         depositContractVersion: params.contractVersion,
     })
 
-    // Fail-open backstop: if the backend could not derive the amount (RPC/price
-    // hiccup) it returns the SDA anyway, so re-check here against Rhino's live
-    // minimum before signing — no funds have moved yet (provisioning is a lookup,
-    // not a transfer). The pre-flight guard's static floor is the first line.
-    if (
-        typeof amountUsd === 'number' &&
-        Number.isFinite(amountUsd) &&
-        sda.minDepositLimitUsd != null &&
-        amountUsd < sda.minDepositLimitUsd
-    ) {
-        throw new Error(
-            `Cross-chain claim to ${destRhinoChain} requires at least $${sda.minDepositLimitUsd} — the $${amountUsd.toFixed(2)} claim would be stranded by the bridge.`
-        )
+    // Client-side backstop before signing — no funds have moved yet (provisioning
+    // is a lookup, not a transfer). The pre-flight static floor is the first line;
+    // the backend's server-authoritative guard is the authority. Treat a missing
+    // or non-positive live minimum as UNVERIFIABLE (Rhino stores 0 when it omits
+    // supportedTokens) and refuse rather than trust it as "no minimum".
+    if (typeof amountUsd === 'number' && Number.isFinite(amountUsd)) {
+        const min = sda.minDepositLimitUsd
+        if (min == null || min <= 0) {
+            throw new Error('Could not verify the claim amount against the bridge minimum. Please try again.')
+        }
+        if (amountUsd < min) {
+            throw new Error(
+                `Cross-chain claim to ${destRhinoChain} requires at least $${min} — the $${amountUsd.toFixed(2)} claim would be stranded by the bridge.`
+            )
+        }
     }
 
     // Sign the withdrawal message targeting the SDA as the on-chain recipient.

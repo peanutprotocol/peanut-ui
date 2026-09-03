@@ -135,13 +135,24 @@ describe('executeClaimXChain sub-minimum guard', () => {
         expect(fetchMock).toHaveBeenCalledTimes(1)
     })
 
-    it('does not block when the route reports no minimum', async () => {
-        mockProvisionSdaTransfer.mockResolvedValue({ sdaAddress: '0xsda' })
-        const fetchMock = mockFetchOk()
+    it('refuses (unverifiable) when the route minimum is missing or zero', async () => {
+        // Rhino stores 0 when it omits supportedTokens — treat it as unknown, not
+        // "no minimum", and do not sign against it.
+        for (const sda of [{ sdaAddress: '0xsda' }, { sdaAddress: '0xsda', minDepositLimitUsd: 0 }]) {
+            jest.clearAllMocks()
+            mockGetParamsFromLink.mockReturnValue({
+                password: 'link-secret',
+                contractVersion: 'v4.2',
+                chainId: '42161',
+                depositIdx: '17',
+            })
+            mockSignWithdrawalMessage.mockResolvedValue({ signature: '0xsigned', recipient: '0xrecipient' })
+            mockProvisionSdaTransfer.mockResolvedValue(sda)
+            const fetchMock = mockFetchOk()
 
-        const result = await executeClaimXChain({ ...CLAIM_ARGS, amountUsd: 0.01 })
-
-        expect(result).toBe('0xxchainhash')
-        expect(fetchMock).toHaveBeenCalledTimes(1)
+            await expect(executeClaimXChain({ ...CLAIM_ARGS, amountUsd: 0.01 })).rejects.toThrow(/Could not verify/)
+            expect(mockSignWithdrawalMessage).not.toHaveBeenCalled()
+            expect(fetchMock).not.toHaveBeenCalled()
+        }
     })
 })
