@@ -56,25 +56,6 @@ export function avatarSrc(key: string | null | undefined): string | null {
     return null
 }
 
-// the seven avatar triples (board 17802:61529) as full class literals so the
-// tailwind scanner emits them; fill and border travel together
-const PALETTE_CLASSES = [
-    'bg-avatar-pink border-avatar-pink-border',
-    'bg-avatar-yellow border-avatar-yellow-border',
-    'bg-avatar-purple border-avatar-purple-border',
-    'bg-avatar-blue border-avatar-blue-border',
-    'bg-avatar-red border-avatar-red-border',
-    'bg-avatar-orange border-avatar-orange-border',
-    'bg-avatar-green border-avatar-green-border',
-] as const
-
-/** Fill + border classes of one avatar triple, stable per key. */
-export function avatarPaletteClass(key: string): string {
-    let hash = 5381
-    for (let i = 0; i < key.length; i++) hash = ((hash << 5) + hash + key.charCodeAt(i)) >>> 0
-    return PALETTE_CLASSES[hash % PALETTE_CLASSES.length]
-}
-
 /**
  * Sticker art for the first letter of a name, or null when the first character
  * is not a-z. The letter set is art in `public/avatars/letter/`, not a manifest

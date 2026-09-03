@@ -1,15 +1,7 @@
 import { existsSync } from 'fs'
 import { join } from 'path'
 import badgeAssets from '@/types/badge-assets.json'
-import {
-    avatarPaletteClass,
-    avatarPool,
-    avatarSrc,
-    badgeAvatarKeys,
-    basicAvatarKeys,
-    letterAvatarSrc,
-    offerBasics,
-} from '../avatar.utils'
+import { avatarPool, avatarSrc, badgeAvatarKeys, basicAvatarKeys, letterAvatarSrc, offerBasics } from '../avatar.utils'
 
 describe('avatar catalog', () => {
     // the manifest is the API's contract: every slug it names must be real art
@@ -88,12 +80,5 @@ describe('avatar catalog', () => {
         // a badge pick is not a basic: five random basics, nothing kept
         expect(offerBasics('badge.BUG_WHISPERER.beetle', 5, seeded(3))).toHaveLength(5)
         expect(offerBasics(null, 5, seeded(4))).toHaveLength(5)
-    })
-
-    it('keeps a stable palette per key, from the seven avatar triples', () => {
-        expect(avatarPaletteClass('basic.apple')).toBe(avatarPaletteClass('basic.apple'))
-        expect(avatarPaletteClass('basic.apple')).toMatch(
-            /^bg-avatar-(pink|yellow|purple|blue|red|orange|green) border-avatar-\1-border$/
-        )
     })
 })
