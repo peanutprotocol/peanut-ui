@@ -2367,6 +2367,10 @@
                 "name": "Founding Pioneer",
                 "description": "You were building Peanut before it had a launch."
             },
+            "ENS": {
+                "name": "Name Dropper",
+                "description": "You paid at a name. Or got paid at yours."
+            },
             "VERIFIED": {
                 "name": "Verified",
                 "description": "ID checked, identity confirmed. You're officially verified."
