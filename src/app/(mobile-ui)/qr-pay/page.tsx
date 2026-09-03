@@ -1248,7 +1248,8 @@ export default function QRPayPage() {
     // because unverified users should see KYC screen, not error screen
     const needsKycVerification =
         kycGateState === QrKycState.REQUIRES_IDENTITY_VERIFICATION ||
-        kycGateState === QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS
+        kycGateState === QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS ||
+        kycGateState === QrKycState.REGION_RESTRICTED
     const hasProviderRejection =
         kycGateState === QrKycState.PROVIDER_REJECTION_FIXABLE ||
         kycGateState === QrKycState.PROVIDER_REJECTION_BLOCKED ||
@@ -1257,18 +1258,6 @@ export default function QRPayPage() {
     // show loading while KYC state is being determined
     if (isLoadingKycState) {
         return <Loading variant="mascot" />
-    }
-
-    // Ranked above the provider-rejection and unlock screens: re-uploading
-    // cannot change a jurisdictional refusal, so this surface owes the same
-    // one honest ending the drawer and InitiateKycModal give.
-    if (kycGateState === QrKycState.REGION_RESTRICTED) {
-        return (
-            <div className="flex min-h-[inherit] flex-col gap-8">
-                <NavHeader title={tNav('pay')} />
-                <KycRegionRestrictedModal visible onClose={onBack} />
-            </div>
-        )
     }
 
     // provider rejection: user is sumsub-approved but manteca rejected
@@ -1369,6 +1358,10 @@ export default function QRPayPage() {
                     ]}
                     footer={<PeanutDoesntStoreAnyPersonalInformation />}
                 />
+                {/* Re-uploading cannot change a jurisdictional refusal, so this
+                    surface owes the same one honest ending the drawer and
+                    InitiateKycModal give — never the unlock offer above. */}
+                <KycRegionRestrictedModal visible={kycGateState === QrKycState.REGION_RESTRICTED} onClose={onBack} />
                 <ActionModal
                     visible={kycGateState === QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS}
                     onClose={onBack}
