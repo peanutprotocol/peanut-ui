@@ -90,14 +90,17 @@ function setCapabilities(gateKind: string, rails: Array<{ status: string; channe
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: { accounts: [] }, fetchUser: jest.fn() }),
 }))
+const mockSetSelectedBankAccount = jest.fn()
+const mockSetSelectedMethod = jest.fn()
 jest.mock('@/features/withdraw/WithdrawFlowContext', () => ({
     useOptionalWithdrawFlow: () => ({
-        setSelectedBankAccount: jest.fn(),
-        setSelectedMethod: jest.fn(),
+        setSelectedBankAccount: mockSetSelectedBankAccount,
+        setSelectedMethod: mockSetSelectedMethod,
     }),
 }))
+let mockUrlAmount = ''
 jest.mock('@/features/withdraw/useWithdrawAmount', () => ({
-    useWithdrawAmount: () => ['', jest.fn()],
+    useWithdrawAmount: () => [mockUrlAmount, jest.fn()],
 }))
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }),
@@ -124,7 +127,7 @@ jest.mock('@/redux/slices/bank-form-slice', () => ({ bankFormActions: { clearFor
 jest.mock('@/app/actions/users', () => ({ addBankAccount: jest.fn() }))
 jest.mock('@/utils/native-routes', () => ({
     rewriteMethodPath: (p: string) => p,
-    withdrawBankUrl: (p: string) => `/withdraw/${p}`,
+    withdrawBankUrl: (p: string, qs: string = '') => `/withdraw/${p}/bank${qs}`,
 }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
 jest.mock('@/utils/color.utils', () => ({ getColorForUsername: () => ({ lightShade: '#fff' }) }))
@@ -159,7 +162,15 @@ jest.mock('@/components/Global/Badges/StatusBadge', () => ({
 }))
 jest.mock('@/components/Profile/AvatarWithBadge', () => ({ __esModule: true, default: () => <span /> }))
 jest.mock('@/components/Global/EmptyStates/EmptyState', () => ({ __esModule: true, default: () => <div /> }))
-jest.mock('@/components/AddWithdraw/DynamicBankAccountForm', () => ({ DynamicBankAccountForm: () => <div /> }))
+// capture the props the list hands the bank form — the existing-account
+// handler is the withdraw destination selector (Chip round 9)
+const mockBankFormProps = jest.fn()
+jest.mock('@/components/AddWithdraw/DynamicBankAccountForm', () => ({
+    DynamicBankAccountForm: (props: unknown) => {
+        mockBankFormProps(props)
+        return <div data-testid="bank-form" />
+    },
+}))
 jest.mock('@/components/Global/TokenAndNetworkConfirmationModal', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
 jest.mock('@/components/Kyc/BridgeTosStep', () => ({ BridgeTosStep: () => null }))
@@ -346,5 +357,38 @@ describe('AddWithdrawCountriesList — PIX onramp maintenance tag', () => {
 
         expect(within(screen.getByTestId('method-pix')).queryByText('Maintenance')).toBeNull()
         expect(within(screen.getByTestId('method-bank')).queryByText('Maintenance')).toBeNull()
+    })
+})
+
+describe('AddWithdrawCountriesList — existing-account shortcut (Chip round 9)', () => {
+    beforeEach(() => {
+        mockPush.mockClear()
+        mockSetSelectedBankAccount.mockClear()
+        mockBankFormProps.mockClear()
+        mockUrlAmount = '50'
+        setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
+    })
+
+    afterEach(() => {
+        mockUrlAmount = ''
+    })
+
+    it('withdraw flow: a typed account that already exists selects it and routes to review with the amount', () => {
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+
+        // flow=withdraw + ?amount= lands straight on the bank form
+        expect(screen.getByTestId('bank-form')).toBeInTheDocument()
+        const props = mockBankFormProps.mock.calls.at(-1)?.[0] as {
+            onExistingAccount?: (account: unknown) => void
+        }
+        expect(typeof props.onExistingAccount).toBe('function')
+
+        const existing = { id: 'acct-1', identifier: 'de89370400440532013000', type: 'iban' }
+        props.onExistingAccount!(existing)
+
+        // the account becomes the withdraw flow's destination…
+        expect(mockSetSelectedBankAccount).toHaveBeenCalledWith(existing)
+        // …and the push carries the typed amount into the review page
+        expect(mockPush).toHaveBeenCalledWith('/withdraw/testland/bank?amount=50')
     })
 })

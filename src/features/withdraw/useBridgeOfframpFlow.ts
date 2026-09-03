@@ -180,11 +180,15 @@ export function useBridgeOfframpFlow() {
 
     const onBack = useSafeBack(fromSendFlow ? '/send' : '/withdraw')
 
-    // Calculate points API call
+    // Calculate points API call. Once the offramp executed, the estimate keys
+    // off the EXECUTED amount — the URL stays editable after completion, and
+    // keying off it let ?amount=5000 fetch a false $5,000 points preview onto
+    // the success screen (Chip round 9).
+    const pointsAmount = executedAmountUsd ?? amountToWithdraw
     const { pointsData } = usePointsCalculation(
         PointsAction.BRIDGE_TRANSFER,
-        amountToWithdraw,
-        !!(amountToWithdraw && bankAccount),
+        pointsAmount,
+        !!(pointsAmount && bankAccount),
         bankAccount?.id
     )
 

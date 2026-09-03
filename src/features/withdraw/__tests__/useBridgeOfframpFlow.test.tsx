@@ -114,8 +114,12 @@ jest.mock('@/hooks/useSendFlowOrigin', () => ({
     useSendFlowOrigin: () => ({ isBankFromSend: false }),
 }))
 
+const mockPointsCalls: unknown[][] = []
 jest.mock('@/hooks/usePointsCalculation', () => ({
-    usePointsCalculation: () => ({ pointsData: null }),
+    usePointsCalculation: (...args: unknown[]) => {
+        mockPointsCalls.push(args)
+        return { pointsData: null }
+    },
 }))
 
 jest.mock('@/hooks/wallet/usePendingTransactions', () => ({
@@ -210,6 +214,7 @@ beforeEach(() => {
     mockCountryId = 'US'
     mockExchangeRate = '0.79'
     mockExchangeRateCalls.length = 0
+    mockPointsCalls.length = 0
 })
 
 // ---------- tests ----------
@@ -305,6 +310,9 @@ describe('useBridgeOfframpFlow — submit path (Chip review round 4)', () => {
         expect(view.result.current.flow.amountToWithdraw).toBe('5000')
         // the success screen renders executedAmountUsd — still the moved amount
         expect(view.result.current.flow.executedAmountUsd).toBe('50')
+        // the points estimate keys off the executed amount too — never the
+        // edited URL (Chip round 9)
+        expect(mockPointsCalls.at(-1)?.[1]).toBe('50')
     })
 
     it('GB: an amount below the converted £3 rail minimum never reaches createOfframp (Chip round 5)', async () => {
