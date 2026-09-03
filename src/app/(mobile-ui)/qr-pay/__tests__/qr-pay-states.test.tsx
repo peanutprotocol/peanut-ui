@@ -1621,7 +1621,7 @@ describe('GROUP 5: Error States', () => {
      * scan could never clear, because `errorInitiatingPayment` gates the whole
      * render. The lock has to win when it finally lands.
      */
-    test('Going offline shows an outcome, and reconnecting clears it for the recovered scan', async () => {
+    test('Going offline blames the connection, and reconnecting clears it for the recovered scan', async () => {
         mockMantecaApi.initiateQrPayment
             .mockRejectedValueOnce(new Error('Network timeout'))
             .mockResolvedValue(reconnectLock)
@@ -1637,12 +1637,19 @@ describe('GROUP 5: Error States', () => {
             onlineManager.setOnline(false)
         })
 
+        /*
+         * A paused query is a positive signal that the DEVICE lost
+         * connectivity — nothing else parks it. Blaming MercadoPago here is
+         * the misdiagnosis the rest of this screen's copy exists to remove,
+         * and it sends a user with no signal to support about the rail.
+         */
         await waitFor(
             () => {
-                expect(screen.getByText(/currently experiencing issues/i)).toBeInTheDocument()
+                expect(screen.getByText(/device seems to be offline/i)).toBeInTheDocument()
             },
             { timeout: 12_000 }
         )
+        expect(screen.queryByText(/currently experiencing issues/i)).not.toBeInTheDocument()
 
         await act(async () => {
             onlineManager.setOnline(true)
@@ -1654,7 +1661,7 @@ describe('GROUP 5: Error States', () => {
             },
             { timeout: 12_000 }
         )
-        expect(screen.queryByText(/currently experiencing issues/i)).not.toBeInTheDocument()
+        expect(screen.queryByText(/device seems to be offline/i)).not.toBeInTheDocument()
     }, 30_000)
 
     // Real timers, and the budget to sit through them: the page's retry policy

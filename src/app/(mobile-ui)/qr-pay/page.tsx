@@ -123,6 +123,34 @@ const NON_RETRYABLE_QR_PAY_ERRORS = [
  */
 const NON_RETRYABLE_QR_PAY_CODES: string[] = [API_ERROR_CODES.MANTECA_KYC_REQUIRED]
 
+export type QrInitCopy = { cap: string; merchant: string; kyc: string; pixMinAmount: string }
+
+/**
+ * Deterministic `/manteca/qr-payment/init` rejections → copy that names the
+ * real cause. Shared by the scan-time query and the post-amount re-init
+ * because they hit the same backend checks: an open-amount QR only learns its
+ * cap verdict once the user types a number, and that second path used to
+ * collapse every one of these into "unexpected error" — the framing
+ * product/providers/fiat/README.md records as having blocked a capped user for
+ * three days.
+ *
+ * Returns null when the failure is not one of these; the generic and retry
+ * handling differ between the two paths, so each caller keeps its own.
+ */
+export function deterministicInitErrorMessage(error: unknown, copy: QrInitCopy): string | null {
+    const message = error instanceof Error ? error.message : ''
+    // Wire code first: the KYC rejection's prose is a plain sentence the
+    // backend can reword, its `code` is stable.
+    if (wireErrorCode(error) === API_ERROR_CODES.MANTECA_KYC_REQUIRED) return copy.kyc
+    if (message.includes('MANTECA_SOURCE_OVER_MONTHLY_CAP')) return copy.cap
+    if (message.includes('MANTECA_MERCHANT_VOLUME_NEAR_CAP') || message.includes('MANTECA_MERCHANT_RECENT_REFUND')) {
+        return copy.merchant
+    }
+    if (message.includes('MANTECA_USER_NOT_PROVISIONED') || message.includes('User KYC not approved')) return copy.kyc
+    if (message.includes('PIX_MIN_AMOUNT')) return copy.pixMinAmount
+    return null
+}
+
 type PaymentProcessor = 'MANTECA'
 
 export default function QRPayPage() {
@@ -139,6 +167,16 @@ export default function QRPayPage() {
     // PIX Automático (recurring) codes — rejected at the entry guard for scanned/pasted
     // deep links, and mapped from the backend's typed 400 PIX_RECURRING_NOT_SUPPORTED.
     const pixRecurringErrorMessage = t('errors.pixRecurring')
+
+    const qrInitCopy: QrInitCopy = useMemo(
+        () => ({
+            cap: t('errors.monthlyCapReached'),
+            merchant: t('errors.merchantNotAvailable'),
+            kyc: t('errors.kycRequired'),
+            pixMinAmount: pixMinAmountErrorMessage,
+        }),
+        [t, pixMinAmountErrorMessage]
+    )
     const searchParams = useSearchParams()
     const router = useRouter()
     // QR-pay screens are terminal — leaving /qr-pay in history would let browser back from
@@ -714,6 +752,7 @@ export default function QRPayPage() {
              * no way out — worse than the premature error it replaced.
              */
             const retriesPending = !paymentLockError && paymentLockFetchStatus !== 'paused'
+            const deterministicMessage = deterministicInitErrorMessage(error, qrInitCopy)
             setLoadingState('Idle')
 
             // Provider-specific errors: show appropriate message
@@ -747,51 +786,22 @@ export default function QRPayPage() {
                 // blaming the payment rail.
                 setWaitingForMerchantAmount(false)
                 setErrorInitiatingPayment(t('errors.authError'))
-            } else if (error.message.includes('MANTECA_SOURCE_OVER_MONTHLY_CAP')) {
+            } else if (deterministicMessage) {
+                // Cap, merchant-limit and KYC rejections, shared with the
+                // post-amount re-init so both paths name the same real cause.
+                setWaitingForMerchantAmount(false)
+                setErrorInitiatingPayment(deterministicMessage)
+            } else if (paymentLockFetchStatus === 'paused') {
                 /*
-                 * The user's own limit, not an outage — product/providers/fiat/
-                 * README.md records a capped user blocked for three days behind
-                 * "unexpected error". The copy leads with a smaller amount
-                 * because the backend blocks when THIS payment exceeds the
-                 * remaining headroom (`attempted <= available` in cap-check.ts),
-                 * not when the headroom is gone, and names the shared pool
-                 * because the cap spans deposits and withdrawals too (kyc.md).
-                 * It points at support, not "in the app": self-service raising
-                 * is gated on isBrUserEligibleForLimitIncrease (BRL/BRA at or
-                 * under 1000 USDT), so every AR QR user — this branch's whole
-                 * population — gets a support chat, which is what kyc.md
-                 * documents as the path.
+                 * Paused is a positive signal that the DEVICE lost connectivity
+                 * — it is the only thing that parks a query under react-query's
+                 * default networkMode. Blaming the rail here would be the same
+                 * misdiagnosis this branch's siblings exist to remove, and it
+                 * sends a user with two bars of signal to support about
+                 * MercadoPago.
                  */
                 setWaitingForMerchantAmount(false)
-                setErrorInitiatingPayment(t('errors.monthlyCapReached'))
-            } else if (
-                error.message.includes('MANTECA_MERCHANT_VOLUME_NEAR_CAP') ||
-                error.message.includes('MANTECA_MERCHANT_RECENT_REFUND')
-            ) {
-                /*
-                 * Neither code is a fact about the merchant: both are only
-                 * reached for pool payments (`isQr3ArgPoolPayment` — the shared
-                 * AR corporate account), so the volume cap counts EVERY Peanut
-                 * user's spend at that merchant and the refund block can be
-                 * another user's refund entirely. The merchant accepts QR fine;
-                 * our pooled source cannot pay it. The backend scopes its own
-                 * message the same way ("for our payments"), and surfacing a
-                 * shared-pool block as the counterparty's problem is a recorded
-                 * harm class — it sends the user and support after the wrong
-                 * cause (product/feedback/problems/limits-invisible-blocking.md).
-                 */
-                setWaitingForMerchantAmount(false)
-                setErrorInitiatingPayment(t('errors.merchantNotAvailable'))
-            } else if (
-                wireErrorCode(error) === API_ERROR_CODES.MANTECA_KYC_REQUIRED ||
-                error.message.includes('MANTECA_USER_NOT_PROVISIONED') ||
-                error.message.includes('User KYC not approved')
-            ) {
-                // Actionable and the user's to resolve. Matched on the wire code
-                // first so a backend rewording of the prose cannot silently send
-                // this back to the retry-then-outage path.
-                setWaitingForMerchantAmount(false)
-                setErrorInitiatingPayment(t('errors.kycRequired'))
+                setErrorInitiatingPayment(t('errors.connectionLost'))
             } else if (retriesPending) {
                 /*
                  * Retryable network/timeout failure with attempts left. The
@@ -822,6 +832,8 @@ export default function QRPayPage() {
         t,
         pixMinAmountErrorMessage,
         pixRecurringErrorMessage,
+        paymentLockFetchStatus,
+        qrInitCopy,
     ])
 
     const merchantName = useMemo(() => {
@@ -843,10 +855,18 @@ export default function QRPayPage() {
                 })
                 setPaymentLock(finalPaymentLock)
             } catch (error) {
-                if (error instanceof Error && error.message.includes('PIX_MIN_AMOUNT')) {
-                    // Deterministic rejection (user-entered amount below the rail
-                    // minimum) — actionable copy, not a Sentry-worthy surprise.
-                    setErrorMessage(pixMinAmountErrorMessage)
+                /*
+                 * An open-amount QR only learns its cap verdict HERE: the scan
+                 * returned a lock with an empty code, and the amount the user
+                 * just typed is what the backend measures against the remaining
+                 * headroom. Routing that to "unexpected error" threw away the
+                 * one screen that could tell them to try a smaller amount.
+                 */
+                const deterministic = deterministicInitErrorMessage(error, qrInitCopy)
+                if (deterministic) {
+                    // Deterministic rejection — actionable copy, not a
+                    // Sentry-worthy surprise.
+                    setErrorMessage(deterministic)
                 } else {
                     void captureNetworkTriagedFailure(error, {
                         tags: { ...criticalFlowTags('qr-pay'), qr_pay_step: 'initiate' },
@@ -1006,13 +1026,13 @@ export default function QRPayPage() {
         rainCardOverview,
         qrCode,
         currencyAmount,
+        qrInitCopy,
         setLoadingState,
         qrType,
         handleStaleSession,
         t,
         toFriendlyError,
         setErrorMessage,
-        pixMinAmountErrorMessage,
     ])
 
     const payQR = useCallback(async () => {
