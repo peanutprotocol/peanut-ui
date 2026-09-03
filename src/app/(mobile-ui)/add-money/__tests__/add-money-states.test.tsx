@@ -978,6 +978,16 @@ describe('GROUP 1: Landing', () => {
         expect(screen.queryByTestId('country-list')).not.toBeInTheDocument()
     })
 
+    test('bare /add-money carries returnTo through the drawer redirect', () => {
+        mockSearchParams.set('returnTo', '/profile/exchange-rate?from=USD&to=EUR')
+        renderWithProviders(<AddMoneyPage />)
+
+        // dropping it would strand the exchange-rate widget's back contract
+        expect(mockRouterReplace).toHaveBeenCalledWith(
+            `/home?drawer=add&returnTo=${encodeURIComponent('/profile/exchange-rate?from=USD&to=EUR')}`
+        )
+    })
+
     test('?method=bank shows the country list', () => {
         resetQueryState({ method: 'bank' })
         renderWithProviders(<AddMoneyPage />)
@@ -1752,6 +1762,53 @@ describe('GROUP 8: InputAmountStep Component', () => {
 
         expect(screen.getByTestId('error-alert')).toBeInTheDocument()
         expect(screen.getByText('Deposit amount must be at least $1')).toBeInTheDocument()
+    })
+
+    // TASK-22121 #26: client-side validation renders as the field's own error
+    // under the amount input, not in the flow-level Notification
+    test('validationError renders as a field error and disables Continue', () => {
+        renderWithProviders(
+            <InputAmountStep
+                tokenAmount="0.01"
+                setTokenAmount={jest.fn()}
+                onSubmit={jest.fn()}
+                isLoading={false}
+                error={null}
+                validationError="Deposit amount must be at least $1"
+                setCurrencyAmount={jest.fn()}
+                limitsValidation={{ isBlocking: false, isWarning: false, currency: 'USD' }}
+                limitsCurrency="USD"
+                onBack={jest.fn()}
+            />
+        )
+
+        expect(screen.getByTestId('error-alert')).toHaveTextContent('Deposit amount must be at least $1')
+        expect(screen.getByText('Continue')).toBeDisabled()
+    })
+
+    test('validationError hidden when limits blocking (warnings can coexist, blocks cannot)', () => {
+        const { getLimitsWarningCardProps } = require('@/features/limits/utils')
+        getLimitsWarningCardProps.mockReturnValue({
+            variant: 'error',
+            message: 'Limit exceeded',
+        })
+
+        renderWithProviders(
+            <InputAmountStep
+                tokenAmount="0.01"
+                setTokenAmount={jest.fn()}
+                onSubmit={jest.fn()}
+                isLoading={false}
+                error={null}
+                validationError="Deposit amount must be at least $1"
+                setCurrencyAmount={jest.fn()}
+                limitsValidation={{ isBlocking: true, isWarning: false, currency: 'USD' }}
+                limitsCurrency="USD"
+                onBack={jest.fn()}
+            />
+        )
+
+        expect(screen.queryByTestId('error-alert')).not.toBeInTheDocument()
     })
 
     test('error hidden when limits blocking (even if error prop set)', () => {

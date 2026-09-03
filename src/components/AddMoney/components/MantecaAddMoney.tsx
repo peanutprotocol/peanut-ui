@@ -69,7 +69,10 @@ const MantecaAddMoney: FC = () => {
 
     // Other local UI state (not URL-appropriate - transient or API responses)
     const [isCreatingDeposit, setIsCreatingDeposit] = useState(false)
+    // flow-level failures (API/provider) — rendered in the Notification
     const [error, setError] = useState<string | null>(null)
+    // client-side minimum-amount validation — rendered as the field's own error
+    const [validationError, setValidationError] = useState<string | null>(null)
     const [depositDetails, setDepositDetails] = useState<MantecaDepositResponseData>()
 
     // path params (web) or query params (native static export)
@@ -110,22 +113,22 @@ const MantecaAddMoney: FC = () => {
     useEffect(() => {
         // if user hasn't entered any amount yet, don't show error
         if (!displayedAmount || displayedAmount === '0') {
-            setError(null)
+            setValidationError(null)
             return
         }
 
         // user has entered something - validate the USD equivalent
         // if USD amount is effectively zero or too small, show minimum error
         if (!usdAmount || usdAmount === '0.00') {
-            setError(t('manteca.minDepositAmount', { amount: MIN_MANTECA_DEPOSIT_AMOUNT }))
+            setValidationError(t('manteca.minDepositAmount', { amount: MIN_MANTECA_DEPOSIT_AMOUNT }))
             return
         }
 
         const paymentAmount = parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS)
         if (paymentAmount < parseUnits(MIN_MANTECA_DEPOSIT_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
-            setError(t('manteca.minDepositAmount', { amount: MIN_MANTECA_DEPOSIT_AMOUNT }))
+            setValidationError(t('manteca.minDepositAmount', { amount: MIN_MANTECA_DEPOSIT_AMOUNT }))
         } else {
-            setError(null)
+            setValidationError(null)
         }
     }, [usdAmount, displayedAmount, t])
 
@@ -310,6 +313,7 @@ const MantecaAddMoney: FC = () => {
                     onSubmit={handleAmountSubmit}
                     isLoading={isCreatingDeposit}
                     error={error || sumsubFlow.error}
+                    validationError={validationError}
                     currencyData={currencyData}
                     setCurrencyAmount={handleLocalCurrencyAmountChange}
                     setCurrentDenomination={handleDenominationChange}

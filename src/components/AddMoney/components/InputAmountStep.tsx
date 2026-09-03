@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
@@ -22,7 +23,10 @@ interface InputAmountStepProps {
     isLoading: boolean
     tokenAmount: string
     setTokenAmount: ((value: string) => void) | React.Dispatch<React.SetStateAction<string>>
+    // flow-level failure (API/provider/sumsub) — renders in the Notification
     error: string | null
+    // client-side amount validation — renders as the field's own error under the input
+    validationError?: string | null
     setCurrencyAmount: (amount: string | undefined) => void
     currencyData?: ICurrency
     setCurrentDenomination?: (denomination: string) => void
@@ -42,6 +46,7 @@ const InputAmountStep = ({
     onSubmit,
     isLoading,
     error,
+    validationError,
     currencyData,
     setCurrencyAmount,
     setCurrentDenomination,
@@ -89,25 +94,31 @@ const InputAmountStep = ({
                 {maintenanceBanner}
                 <div className="text-label-l">{t('howMuchToAdd')}</div>
 
-                <AmountInput
-                    initialAmount={tokenAmount}
-                    initialDenomination={initialDenomination}
-                    setPrimaryAmount={setCurrencyAmount}
-                    setSecondaryAmount={setTokenAmount}
-                    setDisplayedAmount={setDisplayedAmount}
-                    secondaryDenomination={{ symbol: 'USD', price: 1, decimals: 2 }}
-                    primaryDenomination={
-                        currencyData?.price && currencyData.symbol
-                            ? {
-                                  symbol: currencyData.symbol,
-                                  price: currencyData.price.buy,
-                                  decimals: 2,
-                              }
-                            : undefined
-                    }
-                    setCurrentDenomination={setCurrentDenomination}
-                    hideBalance
-                />
+                {/* only show the field error if limits blocking card is not displayed (warnings can coexist) */}
+                <FieldColumn
+                    error={!limitsValidation?.isBlocking ? validationError : undefined}
+                    errorTestId="error-alert"
+                >
+                    <AmountInput
+                        initialAmount={tokenAmount}
+                        initialDenomination={initialDenomination}
+                        setPrimaryAmount={setCurrencyAmount}
+                        setSecondaryAmount={setTokenAmount}
+                        setDisplayedAmount={setDisplayedAmount}
+                        secondaryDenomination={{ symbol: 'USD', price: 1, decimals: 2 }}
+                        primaryDenomination={
+                            currencyData?.price && currencyData.symbol
+                                ? {
+                                      symbol: currencyData.symbol,
+                                      price: currencyData.price.buy,
+                                      decimals: 2,
+                                  }
+                                : undefined
+                        }
+                        setCurrentDenomination={setCurrentDenomination}
+                        hideBalance
+                    />
+                </FieldColumn>
 
                 {/* limits warning/error card */}
                 {limitsCardProps && <LimitsWarningCard {...limitsCardProps} />}
@@ -122,6 +133,7 @@ const InputAmountStep = ({
                     onClick={onSubmit}
                     disabled={
                         !!error ||
+                        !!validationError ||
                         isLoading ||
                         !parseFloat(tokenAmount) ||
                         limitsValidation?.isBlocking ||
