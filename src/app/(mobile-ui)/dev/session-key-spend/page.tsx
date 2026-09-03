@@ -18,17 +18,17 @@ import {
     SESSION_KEY_SPEND_BUILD_ENABLED,
     SESSION_KEY_SPEND_FLAG,
     sessionKeySpendDeviceOptIn,
-    sessionKeySpendEnabled,
     setSessionKeySpendDeviceOptIn,
 } from '@/constants/session-key-spend.consts'
-import { isFeatureFlagEnabled } from '@/utils/featureFlag.utils'
+import { useFeatureFlags } from '@/hooks/useFeatureFlag'
 import DevPageShell from '../_components/DevPageShell'
 
 export default function SessionKeySpendPage() {
     const [, setTick] = useState(0)
+    const isFlagEnabled = useFeatureFlags()
     const deviceOn = sessionKeySpendDeviceOptIn()
-    const flagOn = isFeatureFlagEnabled(SESSION_KEY_SPEND_FLAG)
-    const effective = sessionKeySpendEnabled()
+    const flagOn = isFlagEnabled(SESSION_KEY_SPEND_FLAG)
+    const effective = SESSION_KEY_SPEND_BUILD_ENABLED && (deviceOn || flagOn)
 
     const toggle = () => {
         setSessionKeySpendDeviceOptIn(!deviceOn)
