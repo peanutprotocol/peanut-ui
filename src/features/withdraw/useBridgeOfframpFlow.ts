@@ -196,19 +196,26 @@ export function useBridgeOfframpFlow() {
         // Prerequisites live in the URL (amount) and the flow context (account).
         // A refresh on the success step loses the context — send the user back
         // to the flow entry rather than rendering a dead screen.
-        // Both targets keep ?method=bank: land on a bare /withdraw and the step
-        // the user is sent back to silently reverts to withdraw copy.
-        const sendMarker = fromSendFlow ? '?method=bank' : ''
+        // The recovery targets keep ?method=bank (land on a bare /withdraw and
+        // the step the user is sent back to silently reverts to withdraw copy)
+        // AND ?amount= (the URL is the sole durable amount store — dropping it
+        // on the context-loss redirect forced a second amount entry, Chip
+        // round 10).
+        const recovery = new URLSearchParams()
+        if (fromSendFlow) recovery.set('method', 'bank')
+        if (amountToWithdraw) recovery.set('amount', amountToWithdraw)
+        const recoveryQs = recovery.toString()
+        const recoveryQuery = recoveryQs ? `?${recoveryQs}` : ''
         if (step === 'success') {
-            if (!bankAccount) router.replace(`/withdraw${sendMarker}`)
+            if (!bankAccount) router.replace(`/withdraw${recoveryQuery}`)
             return
         }
         if (!amountToWithdraw) {
             // If no amount, go back to main page
-            router.replace(`/withdraw${sendMarker}`)
+            router.replace(`/withdraw${recoveryQuery}`)
         } else if (!bankAccount && amountToWithdraw) {
             // If amount is set but no bank account, go to country method selection
-            router.replace(withdrawCountryUrl(country, sendMarker))
+            router.replace(withdrawCountryUrl(country, recoveryQuery))
         }
     }, [bankAccount, router, amountToWithdraw, country, step, fromSendFlow])
 

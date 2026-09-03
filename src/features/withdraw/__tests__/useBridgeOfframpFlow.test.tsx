@@ -15,9 +15,10 @@ import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 
 // ---------- module-level mocks ----------
 
+const mockRouterReplace = jest.fn()
 jest.mock('next/navigation', () => ({
     useParams: () => ({ country: 'us' }),
-    useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn(), prefetch: jest.fn() }),
+    useRouter: () => ({ push: jest.fn(), replace: mockRouterReplace, back: jest.fn(), prefetch: jest.fn() }),
 }))
 
 jest.mock('@tanstack/react-query', () => ({
@@ -110,8 +111,10 @@ jest.mock('@/hooks/useSafeBack', () => ({
     useSafeBack: () => jest.fn(),
 }))
 
+// mutable: the recovery cases assert the send marker rides along
+let mockIsBankFromSend = false
 jest.mock('@/hooks/useSendFlowOrigin', () => ({
-    useSendFlowOrigin: () => ({ isBankFromSend: false }),
+    useSendFlowOrigin: () => ({ isBankFromSend: mockIsBankFromSend }),
 }))
 
 const mockPointsCalls: unknown[][] = []
@@ -178,9 +181,12 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
 
 const mockSetError = jest.fn()
 const bankAccount = { id: 'acct-1', bridgeAccountId: 'ext-1' }
+// mutable: the context-loss recovery cases simulate a refresh that remounted
+// the withdraw-scoped provider without a selected account
+let mockBankAccount: typeof bankAccount | null = bankAccount
 jest.mock('@/features/withdraw/WithdrawFlowContext', () => ({
     useWithdrawFlow: () => ({
-        selectedBankAccount: bankAccount,
+        selectedBankAccount: mockBankAccount,
         error: { showError: false, errorMessage: '' },
         setError: mockSetError,
     }),
@@ -215,6 +221,8 @@ beforeEach(() => {
     mockExchangeRate = '0.79'
     mockExchangeRateCalls.length = 0
     mockPointsCalls.length = 0
+    mockBankAccount = bankAccount
+    mockIsBankFromSend = false
 })
 
 // ---------- tests ----------
@@ -371,5 +379,33 @@ describe('useBridgeOfframpFlow — submit path (Chip review round 4)', () => {
             showError: true,
             errorMessage: 'withdraw.errors.invalidAmount',
         })
+    })
+})
+
+// A refresh on the review page remounts the withdraw-scoped provider without
+// the selected account. The URL is the sole durable amount store — the
+// recovery redirect must carry ?amount= forward, or the user re-enters the
+// amount they already typed (Chip round 10).
+describe('useBridgeOfframpFlow — context-loss recovery preserves the URL amount (Chip round 10)', () => {
+    it('review without a selected account: recovery to country selection carries ?amount=', () => {
+        mockBankAccount = null
+        renderFlow({ amount: '50', step: 'review' })
+
+        expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw/us?amount=50')
+    })
+
+    it('from the send flow, the method marker rides along with the amount', () => {
+        mockBankAccount = null
+        mockIsBankFromSend = true
+        renderFlow({ amount: '50', step: 'review' })
+
+        expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw/us?method=bank&amount=50')
+    })
+
+    it('no amount at all: recovery to the flow entry keeps only the send marker', () => {
+        mockIsBankFromSend = true
+        renderFlow({ step: 'review' })
+
+        expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw?method=bank')
     })
 })

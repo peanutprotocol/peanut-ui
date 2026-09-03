@@ -16,6 +16,12 @@ describe('validateBankOfframpAmount', () => {
         }
     })
 
+    it('rejects non-plain-decimal raw syntax even when Number() would accept it (Chip P13)', () => {
+        for (const raw of ['5e1', '0x10', ' 50', '50 ', '+5', '5,5']) {
+            expect(validateBankOfframpAmount(raw, balance)).toEqual({ ok: false, reason: 'invalid' })
+        }
+    })
+
     it('rejects amounts under the $1 Bridge floor', () => {
         expect(validateBankOfframpAmount('0.5', balance)).toEqual({ ok: false, reason: 'belowMinimum' })
     })
@@ -32,8 +38,9 @@ describe('validateBankOfframpAmount', () => {
     it('accepts and normalizes valid amounts — the wire never sees the raw param', () => {
         expect(validateBankOfframpAmount('50', balance)).toEqual({ ok: true, normalized: '50' })
         expect(validateBankOfframpAmount('050.10', balance)).toEqual({ ok: true, normalized: '50.1' })
-        // exponent notation normalizes to a plain decimal
-        expect(validateBankOfframpAmount('5e1', balance)).toEqual({ ok: true, normalized: '50' })
+        // honest mid-typing decimals are tolerated and normalized
+        expect(validateBankOfframpAmount('2.', balance)).toEqual({ ok: true, normalized: '2' })
+        expect(validateBankOfframpAmount('50.', balance)).toEqual({ ok: true, normalized: '50' })
     })
 })
 

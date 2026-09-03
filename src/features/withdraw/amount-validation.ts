@@ -15,11 +15,16 @@ export type WithdrawAmountCheck =
 
 /**
  * Fail-closed parse of a user-supplied USD amount string: a finite positive
- * number that round-trips to a plain decimal, or null. Exponential and
- * oversized forms (`1e21`) are refused — downstream `parseUnits` calls throw
- * on scientific notation, so they must never survive parsing (Chip round 7).
+ * number that round-trips to a plain decimal, or null. The RAW string must be
+ * plain-decimal syntax before it is normalized — `Number()` alone also accepts
+ * exponential (`5e1`), hex (`0x10`), `Infinity` and whitespace-padded forms,
+ * and checking only the normalized output let those through (Chip P13).
+ * Downstream `parseUnits` calls throw on scientific notation, so oversized
+ * forms (`1e21`) must never survive parsing either (Chip round 7). `.5` and
+ * `5.` are tolerated as honest mid-typing decimals.
  */
 export function parseUsdAmount(amount: string): string | null {
+    if (!/^(\d+\.?\d*|\.\d+)$/.test(amount)) return null
     const value = Number(amount)
     if (!Number.isFinite(value) || value <= 0) return null
     const normalized = value.toString()
