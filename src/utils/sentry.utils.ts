@@ -40,11 +40,21 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[]; erro
     // provider can't decode (bad/expired/unsupported) — both are user-input
     // outcomes shown to the user, not server bugs. (BE peanut-api-ts #1041.)
     { pattern: /qr-payment\/init/, statuses: [400, 422] },
-    // 409 on the same route is expected for exactly one outcome: the charge the
-    // cashier rang up on the till timed out (BE peanut-api-ts #1484). Scoped to
-    // that code, so a different conflict on this route — a double-submit, say —
-    // still reaches Sentry instead of being swallowed by the status alone.
-    { pattern: /qr-payment\/init/, statuses: [409], errorCodes: ['PAYMENT_DESTINATION_EXPIRED'] },
+    // 409 on the same route is expected for two outcomes: the charge the cashier
+    // rang up on the till timed out (BE peanut-api-ts #1484), and a retry that
+    // met the in-flight attempt already holding this scan's idempotency key
+    // (peanut-api-ts #1500) — the retry guard doing precisely its job, which
+    // would otherwise page us for every rescued scan.
+    //
+    // QR_INIT_KEY_MISMATCH is deliberately NOT here. The client derives a key
+    // per (scan, amount), so that code can only mean our own derivation broke —
+    // it should reach Sentry. Scoped to codes for the same reason as before: an
+    // unlisted conflict on this route still reports.
+    {
+        pattern: /qr-payment\/init/,
+        statuses: [409],
+        errorCodes: ['PAYMENT_DESTINATION_EXPIRED', 'QR_INIT_IN_PROGRESS'],
+    },
     // Rain card secrets endpoints are intentionally rate-limited (5/min) — a
     // 429 here is an expected outcome surfaced to the user, not a server bug.
     { pattern: /\/rain\/cards\/[^/]+\/details/, statuses: [429] },
