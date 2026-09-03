@@ -15,7 +15,6 @@ import { rainCoordinatorAbi } from '@/constants/rain.consts'
 import { buildRainWithdrawTypedData } from '@/utils/rainWithdraw.utils'
 import { rainApi, type RainCollateralKind } from '@/services/rain'
 import { peanutPublicClient } from '@/app/actions/clients'
-import { sessionKeySpendEnabled } from '@/constants/session-key-spend.consts'
 import { tryMixedEphemeralSpend } from './mixedEphemeralSpend'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
@@ -271,15 +270,15 @@ export const useSpendBundle = () => {
                 })
 
                 /*
-                 * One-tap variant (dark flag): a per-transaction ephemeral key
-                 * signs both the admin EIP-712 and the UserOp after a single
-                 * enable-signature tap. Falls through to the passkey path on
-                 * any failure — safe even for ambiguous post-broadcast errors
-                 * because both attempts reuse THIS prep, and the coordinator's
-                 * adminNonce lets only one of them execute (the loser's batch
-                 * reverts atomically). See mixedEphemeralSpend.ts.
+                 * One tap: a per-transaction ephemeral key signs both the admin
+                 * EIP-712 and the UserOp after a single enable-signature tap.
+                 * Falls through to the two-tap passkey path on any failure —
+                 * safe even for ambiguous post-broadcast errors because both
+                 * attempts reuse THIS prep, and the coordinator's adminNonce
+                 * lets only one of them execute (the loser's batch reverts
+                 * atomically). See mixedEphemeralSpend.ts.
                  */
-                if (sessionKeySpendEnabled()) {
+                {
                     posthog.capture(ANALYTICS_EVENTS.SESSION_KEY_SPEND_ATTEMPTED, { kind })
                     modals?.setIsSecurityVerificationOpen?.(true)
                     let attempt: Awaited<ReturnType<typeof tryMixedEphemeralSpend>>
@@ -421,7 +420,17 @@ export const useSpendBundle = () => {
                 throw e
             }
         },
-        [getClientForChain, rebuildClientForChain, handleSendUserOpEncoded, user, overview, grant, modals, queryClient]
+        [
+            getClientForChain,
+            rebuildClientForChain,
+            getPatchedSudoValidator,
+            handleSendUserOpEncoded,
+            user,
+            overview,
+            grant,
+            modals,
+            queryClient,
+        ]
     )
 
     return { spend }

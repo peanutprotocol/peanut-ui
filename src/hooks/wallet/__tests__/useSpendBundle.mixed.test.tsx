@@ -1,6 +1,5 @@
 /**
- * The mixed spend's one-tap branch (SESSION_KEY_SPEND) is production-reachable
- * once the flag is on. These pin the two money-critical invariants: a settled
+ * The mixed spend's one-tap branch is live for everyone. These pin the two money-critical invariants: a settled
  * ephemeral op is what gets returned and stamped, and a failed attempt falls
  * back to the passkey path with the SAME Rain preparation — never a second one.
  */
@@ -73,10 +72,6 @@ jest.mock('@/services/rain', () => ({
     rainApi: { prepareWithdrawal: jest.fn(), stampWithdrawal: jest.fn(async () => undefined) },
 }))
 jest.mock('@/app/actions/clients', () => ({ peanutPublicClient: { tag: 'public' } }))
-const mockSessionKeySpendEnabled = jest.fn(() => false)
-jest.mock('@/constants/session-key-spend.consts', () => ({
-    sessionKeySpendEnabled: () => mockSessionKeySpendEnabled(),
-}))
 jest.mock('../mixedEphemeralSpend', () => ({ tryMixedEphemeralSpend: jest.fn() }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
 jest.mock('@/utils/demo-balance', () => ({ debitDemoBalance: jest.fn() }))
@@ -141,17 +136,8 @@ beforeEach(() => {
     mockGetPatchedSudoValidator.mockResolvedValue({ validator: 'patched' })
 })
 
-describe('useSpendBundle — mixed, SESSION_KEY_SPEND one-tap branch', () => {
-    it('flag off: two-tap passkey path, ephemeral signer never consulted', async () => {
-        mockSessionKeySpendEnabled.mockReturnValue(false)
-        const outcome = await spendMixed()
-        expect(mockEphemeral).not.toHaveBeenCalled()
-        expect(mockSignTypedData).toHaveBeenCalledTimes(1)
-        expect(outcome).toMatchObject({ strategy: 'mixed', userOpHash: '0xpasskeyop', intentId: 'prep-1' })
-    })
-
-    it('flag on, ephemeral op settles: returns and stamps the SETTLED hash, no passkey signatures', async () => {
-        mockSessionKeySpendEnabled.mockReturnValue(true)
+describe('useSpendBundle — mixed, one-tap branch', () => {
+    it('ephemeral op settles: returns and stamps the SETTLED hash, no passkey signatures', async () => {
         mockEphemeral.mockResolvedValue({ ok: true, userOpHash: '0xephemeralop', receipt: SETTLED_RECEIPT })
 
         const outcome = await spendMixed()
@@ -179,8 +165,7 @@ describe('useSpendBundle — mixed, SESSION_KEY_SPEND one-tap branch', () => {
         })
     })
 
-    it('flag on, ephemeral op reverted on-chain: falls back to the passkey path with the SAME prep', async () => {
-        mockSessionKeySpendEnabled.mockReturnValue(true)
+    it('ephemeral op reverted on-chain: falls back to the passkey path with the SAME prep', async () => {
         mockEphemeral.mockResolvedValue({ ok: false, reason: 'ephemeral userOp reverted on-chain' })
 
         const outcome = await spendMixed()
@@ -209,8 +194,7 @@ describe('useSpendBundle — mixed, SESSION_KEY_SPEND one-tap branch', () => {
         )
     })
 
-    it('flag on, ephemeral op submitted but receipt unresolved: reported as submitted, NOT stamped with the userOp hash', async () => {
-        mockSessionKeySpendEnabled.mockReturnValue(true)
+    it('ephemeral op submitted but receipt unresolved: reported as submitted, NOT stamped with the userOp hash', async () => {
         mockEphemeral.mockResolvedValue({ ok: true, userOpHash: '0xephemeralop', receipt: null })
 
         const outcome = await spendMixed()
@@ -226,8 +210,7 @@ describe('useSpendBundle — mixed, SESSION_KEY_SPEND one-tap branch', () => {
         })
     })
 
-    it('flag on, sudo validator cannot be resolved: falls back to the passkey path instead of failing the spend', async () => {
-        mockSessionKeySpendEnabled.mockReturnValue(true)
+    it('sudo validator cannot be resolved: falls back to the passkey path instead of failing the spend', async () => {
         mockGetPatchedSudoValidator.mockRejectedValue(new Error('Cannot resolve sudo validator: not authenticated'))
 
         const outcome = await spendMixed()
@@ -245,8 +228,7 @@ describe('useSpendBundle — mixed, SESSION_KEY_SPEND one-tap branch', () => {
         expect(outcome).toMatchObject({ strategy: 'mixed', userOpHash: '0xpasskeyop', intentId: 'prep-1' })
     })
 
-    it('flag on, ephemeral preflight fails before broadcast: same fallback, same prep', async () => {
-        mockSessionKeySpendEnabled.mockReturnValue(true)
+    it('ephemeral preflight fails before broadcast: same fallback, same prep', async () => {
         mockEphemeral.mockResolvedValue({ ok: false, reason: 'ephemeral key: validator nonce floored' })
         await spendMixed()
         expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(1)

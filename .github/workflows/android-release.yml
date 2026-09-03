@@ -136,7 +136,6 @@ jobs:
                   NEXT_PUBLIC_ONESIGNAL_APP_ID=${{ secrets.NEXT_PUBLIC_ONESIGNAL_APP_ID }}
                   NEXT_PUBLIC_SAFARI_WEB_ID=${{ vars.NEXT_PUBLIC_SAFARI_WEB_ID }}
                   NEXT_PUBLIC_ONESIGNAL_WEBHOOK=${{ vars.NEXT_PUBLIC_ONESIGNAL_WEBHOOK }}
-                  NEXT_PUBLIC_SESSION_KEY_SPEND=true
                   EOF
                   if [ "${{ inputs.pushDebug }}" = "true" ]; then
                       echo "NEXT_PUBLIC_ONESIGNAL_DEBUG=true" >> .env.production.local

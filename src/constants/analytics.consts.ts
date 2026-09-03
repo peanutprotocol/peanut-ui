@@ -216,7 +216,7 @@ export const ANALYTICS_EVENTS = {
     // approval is bound to a deprecated validator; user must re-enable the card.
     CARD_STALE_APPROVAL_HIT: 'card_stale_approval_hit',
     // One-tap mixed spend via per-transaction ephemeral session key
-    // (SESSION_KEY_SPEND flag). A fallback means the passkey path took over —
+    // (one-tap mixed spend). A fallback means the passkey path took over —
     // `reason` says why; watch this before widening the flag.
     SESSION_KEY_SPEND_ATTEMPTED: 'session_key_spend_attempted',
     SESSION_KEY_SPEND_FALLBACK: 'session_key_spend_fallback',

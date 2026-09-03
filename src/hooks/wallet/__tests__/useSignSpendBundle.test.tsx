@@ -63,10 +63,6 @@ jest.mock('@/context/kernelClient.context', () => ({
     }),
 }))
 jest.mock('@/app/actions/clients', () => ({ peanutPublicClient: { tag: 'public' } }))
-const mockSessionKeySignEnabled = jest.fn(() => false)
-jest.mock('@/constants/session-key-spend.consts', () => ({
-    sessionKeySignEnabled: () => mockSessionKeySignEnabled(),
-}))
 jest.mock('../mixedEphemeralSign', () => ({ signMixedEphemeralSpend: jest.fn() }))
 jest.mock('@/hooks/useZeroDev', () => ({ useZeroDev: () => ({ handleSendUserOpEncoded: jest.fn() }) }))
 jest.mock('@/context/ModalsContext', () => ({ useModalsContextOptional: () => undefined }))
@@ -177,7 +173,7 @@ describe('useSignSpendBundle — forceStrategy: collateral-only', () => {
     })
 })
 
-describe('useSignSpendBundle — mixed, SESSION_KEY_SIGN one-tap path', () => {
+describe('useSignSpendBundle — mixed, one-tap path', () => {
     const mockSignEphemeral = signMixedEphemeralSpend as jest.Mock
     const SIGNED = { signedUserOp: { sender: ACCOUNT }, chainId: '42161', entryPointAddress: '0xentry' }
 
@@ -200,15 +196,7 @@ describe('useSignSpendBundle — mixed, SESSION_KEY_SIGN one-tap path', () => {
         return artifact
     }
 
-    it('flag off: the two-tap passkey path signs the admin EIP-712 itself', async () => {
-        mockSessionKeySignEnabled.mockReturnValue(false)
-        await signMixed()
-        expect(mockSignEphemeral).not.toHaveBeenCalled()
-        expect(mockSignTypedData).toHaveBeenCalledTimes(1)
-    })
-
     it('flag on: returns the ephemeral-signed artifact for the same prep, no passkey admin signature', async () => {
-        mockSessionKeySignEnabled.mockReturnValue(true)
         mockSignEphemeral.mockResolvedValue({ ok: true, signedUserOp: SIGNED })
         const artifact = await signMixed()
         expect(artifact).toEqual({ strategy: 'mixed', signedUserOp: SIGNED, rainPreparationId: 'prep-1' })
@@ -222,8 +210,7 @@ describe('useSignSpendBundle — mixed, SESSION_KEY_SIGN one-tap path', () => {
         })
     })
 
-    it('flag on, ephemeral signing fails: falls back to the two-tap path with the SAME prep and reports why', async () => {
-        mockSessionKeySignEnabled.mockReturnValue(true)
+    it('ephemeral signing fails: falls back to the two-tap path with the SAME prep and reports why', async () => {
         mockSignEphemeral.mockResolvedValue({ ok: false, reason: 'ephemeral key: session setup failed' })
         await signMixed()
         expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(1)
@@ -235,8 +222,7 @@ describe('useSignSpendBundle — mixed, SESSION_KEY_SIGN one-tap path', () => {
         })
     })
 
-    it('flag on, sudo validator cannot be resolved: falls back to the two-tap path with the SAME prep', async () => {
-        mockSessionKeySignEnabled.mockReturnValue(true)
+    it('sudo validator cannot be resolved: falls back to the two-tap path with the SAME prep', async () => {
         mockGetPatchedSudoValidator.mockRejectedValue(new Error('Cannot resolve sudo validator: not authenticated'))
         await signMixed()
         expect(mockSignEphemeral).not.toHaveBeenCalled()

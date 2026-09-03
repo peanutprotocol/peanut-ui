@@ -10,7 +10,7 @@ import { buildWithdrawCall } from './mixedEphemeralSpend'
 import type { SignedUserOpData } from './useSignUserOp'
 
 /*
- * Sign-only twin of tryMixedEphemeralSpend (SESSION_KEY_SIGN flag) for the
+ * Sign-only twin of tryMixedEphemeralSpend for the
  * engine whose UserOp the BACKEND broadcasts (QR pay, Manteca withdraw, card
  * lock/cancel). Same one tap: the enable signature inside
  * createEphemeralSpendSession; the Rain admin EIP-712 and the UserOp are then
@@ -19,9 +19,7 @@ import type { SignedUserOpData } from './useSignUserOp'
  * What differs from the broadcasting twin: nothing is sent from here, so a
  * signing failure falls back to the two-tap path with nothing at stake — but
  * a permission that turns out not to validate on-chain surfaces later, as
- * the backend's broadcast reverting, with no client-side retry. That is why
- * this path sits behind its own flag, flipped only after the broadcasting
- * engine has proven the ERC-1271 ordering on production contracts.
+ * the backend's broadcast reverting, with no client-side retry.
  *
  * The permission outlives the broadcasting default because the backend
  * may hold the op briefly before eth_sendUserOperation; the op's nonce

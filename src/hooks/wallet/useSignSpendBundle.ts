@@ -9,7 +9,6 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useKernelClient } from '@/context/kernelClient.context'
 import { peanutPublicClient } from '@/app/actions/clients'
-import { sessionKeySignEnabled } from '@/constants/session-key-spend.consts'
 import { signMixedEphemeralSpend, type MixedEphemeralSignResult } from './mixedEphemeralSign'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { rainCoordinatorAbi } from '@/constants/rain.consts'
@@ -271,11 +270,11 @@ export const useSignSpendBundle = () => {
                 })
 
                 /*
-                 * SESSION_KEY_SIGN: one tap instead of two — see mixedEphemeralSign.ts.
-                 * Falls through to the two-tap path on any failure; nothing has
-                 * been broadcast, so the same prep is reused with nothing at stake.
+                 * One tap instead of two — see mixedEphemeralSign.ts. Falls
+                 * through to the two-tap path on any failure; nothing has been
+                 * broadcast, so the same prep is reused with nothing at stake.
                  */
-                if (sessionKeySignEnabled()) {
+                {
                     posthog.capture(ANALYTICS_EVENTS.SESSION_KEY_SPEND_ATTEMPTED, { kind, flow: 'sign-only' })
                     modals?.setIsSecurityVerificationOpen?.(true)
                     let attempt: MixedEphemeralSignResult
