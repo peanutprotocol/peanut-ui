@@ -1741,6 +1741,28 @@ describe('GROUP 5: Error States', () => {
     }, 20_000)
 
     /*
+     * A refused idempotency key is our bug, not the user's — but their way out
+     * is a fresh scan (which mints a new key), not a support ticket. The generic
+     * "contact support" copy would strand someone at a till with an action that
+     * cannot help them.
+     */
+    it('a refused idempotency key tells the user to scan again, not to contact support', async () => {
+        mockMantecaApi.initiateQrPayment.mockRejectedValue(
+            Object.assign(new Error('key reused'), { name: 'ApiError', status: 409, code: 'QR_INIT_KEY_MISMATCH' })
+        )
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+        const message = await screen.findByText(/scan the QR code again/i)
+        expect(message).toBeInTheDocument()
+        expect(screen.queryByText(/contact support/i)).not.toBeInTheDocument()
+
+        // Deterministic: one POST, not four.
+        await new Promise((resolve) => setTimeout(resolve, 4_000))
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
+    }, 20_000)
+
+    /*
      * The other half of the amount-edit rule. A terminal rejection must STAY
      * latched: an unfinished KYC or a merchant refund block is not something a
      * different number fixes, and clearing on any keystroke re-enabled Pay so

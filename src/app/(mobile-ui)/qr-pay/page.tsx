@@ -149,9 +149,14 @@ export default function QRPayPage() {
             [QR_INIT_CODE.DECODE]: qrType === EQrType.PIX ? t('errors.pixDecode') : t('errors.genericDecode'),
             [QR_INIT_CODE.PROVIDER_UNAVAILABLE]: t('errors.providerIssues', { method: qrMethodName }),
             [QR_INIT_CODE.IN_PROGRESS]: t('errors.providerIssues', { method: qrMethodName }),
-            // Never expected from this screen — it derives a key per (scan,
-            // amount). If it happens, it is ours to fix, not the user's.
-            [QR_INIT_CODE.KEY_MISMATCH]: t('errors.initiateUnexpected'),
+            /*
+             * Never expected from this screen — it derives a key per (scan,
+             * amount) — so reaching this is ours to fix, and Sentry still
+             * reports it. But the user's way out is a fresh scan (a new key),
+             * not a support ticket, so the copy says that rather than the
+             * generic "contact support".
+             */
+            [QR_INIT_CODE.KEY_MISMATCH]: t('errors.restartScan'),
             offline: t('errors.connectionLost'),
             'auth-missing': t('errors.authError'),
             'provider-issues': t('errors.providerIssues', { method: qrMethodName }),
