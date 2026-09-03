@@ -28,6 +28,13 @@ let nextConfig = {
     // Trailing slashes help with static file serving
     trailingSlash: true,
 
+    // This build renames dynamic routes out of the tree, so the tests that
+    // import them stop resolving. Next 16.3 type-checks them where 16.2 did
+    // not; `pnpm typecheck` still covers them against the intact tree.
+    typescript: {
+        tsconfigPath: 'tsconfig.native.json',
+    },
+
     env: {
         NEXT_PUBLIC_GIT_COMMIT_HASH: gitCommitHash,
         // Flag to detect native context in code

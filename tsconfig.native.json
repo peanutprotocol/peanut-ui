@@ -1,0 +1,12 @@
+{
+    "extends": "./tsconfig.json",
+    "exclude": [
+        "node_modules",
+        "src/app/sw.ts",
+        ".next",
+        "capacitor.config.ts",
+        "**/__tests__/**",
+        "**/*.test.ts",
+        "**/*.test.tsx"
+    ]
+}
