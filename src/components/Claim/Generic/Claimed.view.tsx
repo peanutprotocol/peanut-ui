@@ -21,7 +21,7 @@ export const ClaimedView: FC<ClaimedViewProps> = ({ amount, senderUsername }) =>
         <Card className="shadow-none sm:shadow-4">
             <Card.Header className="space-y-2 border-0">
                 <Card.Title className="mx-auto">
-                    {/* drift fix: was off-token #FFCC00 — snapped to the DS yellow */}
+                    {/* drift fix: was an off-token yellow hex — snapped to the DS yellow */}
                     <div className="flex size-8 items-center justify-center rounded-full bg-background-icon-bubble-yellow">
                         <Icon name="info" size={16} />
                     </div>
