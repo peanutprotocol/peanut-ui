@@ -2367,6 +2367,10 @@
                 "name": "Pionero fundador",
                 "description": "Ya construías Peanut antes de que existiera el lanzamiento."
             },
+            "ENS": {
+                "name": "Nombre propio",
+                "description": "Pagaste a un nombre. O te pagaron al tuyo."
+            },
             "VERIFIED": {
                 "name": "Verificado",
                 "description": "Documento revisado, identidad confirmada. Verificación oficial completa."
