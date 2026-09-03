@@ -129,7 +129,10 @@ for (const [name, fixture] of Object.entries(FIXTURES)) {
         await page.clock.setFixedTime(FROZEN_NOW)
         await page.addInitScript(seenOnceModals)
 
-        await page.goto(`${fixture.route}?${FIXTURE_PARAM}=${name}`, { waitUntil: 'domcontentloaded' })
+        // a fixture route may already pin url state (?method=bank) — join accordingly
+        await page.goto(`${fixture.route}${fixture.route.includes('?') ? '&' : '?'}${FIXTURE_PARAM}=${name}`, {
+            waitUntil: 'domcontentloaded',
+        })
         await settle(page)
 
         // A build without NEXT_PUBLIC_VERCEL_ENV=preview ignores the param and
