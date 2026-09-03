@@ -626,6 +626,9 @@ describe('crypto withdraw — URL amount validation (Chip review round 4)', () =
         clickReview()
 
         await waitFor(() => expect(chargesApi.get).toHaveBeenCalledWith(CHARGE_UUID))
+        // a new review invalidates the previous attempt's execution proof —
+        // otherwise ?step=success re-renders the old success screen (Chip round 7)
+        expect(mockSetTransactionHash).toHaveBeenCalledWith(null)
         expect(requestsApi.create).toHaveBeenCalledWith(expect.objectContaining({ tokenAmount: '50.000000' }))
         expect(chargesApi.create).toHaveBeenCalledWith(
             expect.objectContaining({ local_price: { amount: '50', currency: 'USD' } })

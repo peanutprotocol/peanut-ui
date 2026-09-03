@@ -70,8 +70,9 @@ describe('useMantecaAmountSeed', () => {
         expect(goToBankDetails).toHaveBeenCalledTimes(1)
     })
 
-    it('ignores malformed or missing amounts and never advances', () => {
-        for (const urlAmount of ['', '0', '-5', 'abc']) {
+    it('ignores malformed, missing, and exponential amounts and never advances', () => {
+        // '1e21' crashes downstream parseUnits if it survives (Chip round 7)
+        for (const urlAmount of ['', '0', '-5', 'abc', '1e21', '1e-3x']) {
             const { setUsdAmount, goToBankDetails } = harness({ urlAmount })
             expect(setUsdAmount).not.toHaveBeenCalled()
             expect(goToBankDetails).not.toHaveBeenCalled()
