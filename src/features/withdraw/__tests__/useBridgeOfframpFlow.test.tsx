@@ -59,11 +59,16 @@ jest.mock('@/utils/bridge-accounts.utils', () => ({
     getBridgeChainName: () => 'arbitrum',
 }))
 
-// mutable country so the GB/MX rail-minimum cases can flip the destination
+// mutable country so the GB/MX rail-minimum cases can flip the destination.
+// Records mirror the REAL country table shapes — the UK is { id: 'GBR',
+// iso2: 'GB' }, which is exactly what round 6 caught an id-keyed ternary on.
 let mockCountryId = 'US'
 jest.mock('@/utils/bridge.utils', () => ({
     getOfframpConfigFromAccount: () => ({ currency: 'usd', paymentRail: 'ach' }),
-    getCountryFromPath: () => ({ id: mockCountryId, name: 'Testland' }),
+    getCountryFromPath: () =>
+        mockCountryId === 'GB'
+            ? { id: 'GBR', iso2: 'GB', title: 'United Kingdom' }
+            : { id: 'US', iso2: 'US', title: 'United States' },
     railJurisdictionForBank: () => 'US',
     // mirrors the real per-country local-currency minimums ($1 / £3 / 50 MXN)
     getMinimumAmount: (id: string) => (id === 'MX' ? 50 : id === 'GB' || id === 'GBR' ? 3 : 1),
@@ -71,9 +76,13 @@ jest.mock('@/utils/bridge.utils', () => ({
 
 // sell rate: local currency per 1 USD (0.79 GBP ≈ 1 USD → £3 ≈ $4)
 let mockExchangeRate: string | undefined = '0.79'
+const mockExchangeRateCalls: Array<{ accountType: unknown; enabled?: boolean }> = []
 jest.mock('@/hooks/useGetExchangeRate', () => ({
     __esModule: true,
-    default: () => ({ exchangeRate: mockExchangeRate, isFetchingRate: false }),
+    default: (args: { accountType: unknown; enabled?: boolean }) => {
+        mockExchangeRateCalls.push(args)
+        return { exchangeRate: mockExchangeRate, isFetchingRate: false }
+    },
 }))
 
 jest.mock('@/utils/regions.utils', () => ({
@@ -174,6 +183,7 @@ jest.mock('@/features/withdraw/WithdrawFlowContext', () => ({
 }))
 
 import { useBridgeOfframpFlow } from '../useBridgeOfframpFlow'
+import { AccountType } from '@/interfaces/interfaces'
 
 // ---------- helpers ----------
 
@@ -198,6 +208,7 @@ beforeEach(() => {
     mockBalance = 100n * 10n ** 6n
     mockCountryId = 'US'
     mockExchangeRate = '0.79'
+    mockExchangeRateCalls.length = 0
 })
 
 // ---------- tests ----------
@@ -273,7 +284,7 @@ describe('useBridgeOfframpFlow — submit path (Chip review round 4)', () => {
     })
 
     it('GB: an amount below the converted £3 rail minimum never reaches createOfframp (Chip round 5)', async () => {
-        mockCountryId = 'GB' // £3 ÷ 0.79 → $4 minimum
+        mockCountryId = 'GB' // real record: { id: 'GBR', iso2: 'GB' }; £3 ÷ 0.79 → $4 minimum
         const view = renderFlow({ amount: '2', step: 'review' })
 
         await act(async () => {
@@ -285,6 +296,9 @@ describe('useBridgeOfframpFlow — submit path (Chip review round 4)', () => {
             showError: true,
             errorMessage: 'withdraw.errors.minimumWithdrawal',
         })
+        // the £3 minimum must convert through the GBP rate, not fall through
+        // to IBAN/EUR on the 'GBR' id (Chip round 6)
+        expect(mockExchangeRateCalls.some((c) => c.accountType === AccountType.GB && c.enabled)).toBe(true)
     })
 
     it('GB: an amount above the converted minimum proceeds', async () => {

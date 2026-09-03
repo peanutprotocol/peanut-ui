@@ -375,6 +375,22 @@ describe('manteca withdraw — submit-time gates (Chip review round 5)', () => {
         expect(mockWithdrawWithSignedTx).not.toHaveBeenCalled()
     })
 
+    it('balance drops below the amount on review: Confirm bounces synchronously and moves no money', async () => {
+        const view = await reachReview()
+
+        // the live balance drops under the $50 amount while the user sits on
+        // review — the gate must ask the LIVE balance, not the effect-lagged
+        // message state (Chip round 6)
+        mockBalance = 10n * 10n ** 6n
+        view.rerender(<MantecaWithdrawFlow />)
+        mockStepperGoTo.mockClear()
+        clickConfirm()
+
+        await waitFor(() => expect(mockStepperGoTo).toHaveBeenCalledWith('amount'))
+        expect(mockSignSpend).not.toHaveBeenCalled()
+        expect(mockWithdrawWithSignedTx).not.toHaveBeenCalled()
+    })
+
     it('limits still loading at the price-lock boundary: bank-details submit bounces to amount', async () => {
         mockInitiateWithdraw.mockResolvedValue({ data: PRICE_LOCK })
         mockStepper.step = 'amount'
