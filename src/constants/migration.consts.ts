@@ -28,7 +28,7 @@ export const NOTIF_PROMPT_SNOOZE_DAYS = 14
 // store review deep links ("Love it" on the review prompt); the ios id is the
 // App Store Connect app id (6786373552).
 export const REVIEW_URL = {
-    ios: 'https://apps.apple.com/app/id6786373552?action=write-review',
+    ios: 'https://apps.apple.com/us/app/id6786373552?action=write-review',
     android: 'https://play.google.com/store/apps/details?id=me.peanut.wallet',
 } as const
 
@@ -41,7 +41,7 @@ export const KEEP_WEB_TOKEN = 'walnut-still-cracks'
 export const KEEP_WEB_COOKIE_DAYS = 90
 
 export const STORE_URL = {
-    ios: 'https://apps.apple.com/app/id6786373552',
+    ios: 'https://apps.apple.com/us/app/id6786373552',
     android: 'https://play.google.com/store/apps/details?id=me.peanut.wallet',
 } as const
 
