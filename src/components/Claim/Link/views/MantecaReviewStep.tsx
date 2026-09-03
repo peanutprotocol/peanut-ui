@@ -118,7 +118,11 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
                     }
                 }
 
-                const { data, error: withdrawError } = await mantecaApi.withdraw({
+                const {
+                    data,
+                    error: withdrawError,
+                    message: withdrawMessage,
+                } = await mantecaApi.withdraw({
                     amount,
                     destinationAddress: destinationAddress.toLowerCase(),
                     txHash,
@@ -129,7 +133,10 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
                     if (withdrawError === 'TAX_ID_MISMATCH' || withdrawError === 'CUIT_MISMATCH') {
                         setError(t('manteca.ownAccountOnly'))
                     } else {
-                        setError(withdrawError || t('manteca.errors.generic'))
+                        // Prefer the API's human-written message over the raw
+                        // wire code — CLAIM_STORE_UNAVAILABLE as literal screen
+                        // text helps nobody whose funds already left the link.
+                        setError(withdrawMessage || withdrawError || t('manteca.errors.generic'))
                     }
                     return
                 }
