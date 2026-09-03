@@ -31,6 +31,7 @@ import { useHostedVerification } from '@/hooks/useHostedVerification'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useSumsubReloadResume } from '@/hooks/useSumsubReloadResume'
+import { displayableBadges } from '@/constants/badges.consts'
 
 // localStorage key for the one-time celebration gate (per-device by design:
 // re-doing the funnel re-celebrates, see the eligibility-check effect below).
@@ -698,9 +699,12 @@ const CardPage: FC = () => {
                 // Share asset shows ALL earned badges, not just skip-badges.
                 // `user.user.badges` is the full collection from /get-user
                 // (with earnedAt) — fall back to cardInfo.skipBadges if it
-                // hasn't loaded yet so we still render something.
+                // hasn't loaded yet so we still render something. Filtered:
+                // this builds a shareable image, and permission records must
+                // never be stamped onto one.
+                const shareableBadges = user?.user?.badges && displayableBadges(user.user.badges)
                 const allBadges =
-                    user?.user?.badges?.map((b) => ({
+                    shareableBadges?.map((b) => ({
                         code: b.code,
                         iconUrl: b.iconUrl,
                         earnedAt: b.earnedAt,
