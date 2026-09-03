@@ -3,8 +3,10 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
+import { Fragment } from 'react'
 import ActionModal from '../ActionModal'
 import DocsLink from '@/components/Global/DocsLink'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { legalPolicyForSlug } from '@/constants/legal-policies'
 import { useAuth } from '@/context/authContext'
 import { acceptedLegalDocument, consentApi, type ConsentStatusDocument } from '@/services/consent'
@@ -127,35 +129,42 @@ const ReConsentModal = () => {
         <ActionModal
             visible
             onClose={handlePostpone}
-            icon="info"
+            tone="info"
             title={t('reConsent.title')}
+            description={
+                /* The first sentence answers the question this modal actually raises
+                 * ("is something being taken from me?") before anything else. The
+                 * what-changed line describes the 2026-07-15 tos-v1 rewrite — revisit
+                 * it when a future version bump shows this modal for a different
+                 * change. "No rush" is literal: "Not now" snoozes to the effective
+                 * date (see utils.ts). */
+                <div className="space-y-3">
+                    <p>{t('reConsent.reassurance')}</p>
+                    <p>{t('reConsent.whatChanged')}</p>
+                </div>
+            }
             content={
-                // no text-left: modal body is centered per the modal board
                 <div className="space-y-3 w-full">
-                    {/* The first sentence answers the question this modal actually raises
-                     * ("is something being taken from me?") before anything else. The
-                     * what-changed line describes the 2026-07-15 tos-v1 rewrite — revisit
-                     * it when a future version bump shows this modal for a different
-                     * change. "No rush" is literal: "Not now" snoozes to the effective
-                     * date (see utils.ts). */}
-                    <p className="text-body-s text-foreground-secondary">{t('reConsent.reassurance')}</p>
-                    <p className="text-body-s text-foreground-secondary">{t('reConsent.whatChanged')}</p>
-                    <ul className="space-y-1 text-body-s">
-                        {outdatedDocs.map((doc) => {
+                    {/* the updated documents on one centered line, separator-joined
+                        (wraps when it must) — inline-link treatment per the Signup
+                        consent line; DocsLink handles web/PWA/native targets */}
+                    <p className="text-body-s">
+                        {outdatedDocs.map((doc, index) => {
                             const policy = legalPolicyForSlug(doc.slug)
                             return (
-                                <li key={doc.slug}>
+                                <Fragment key={doc.slug}>
+                                    {index > 0 && <span className="text-foreground-secondary"> · </span>}
                                     <DocsLink
                                         href={policy?.href ?? `/${doc.slug}`}
-                                        className="text-foreground-primary underline"
+                                        className="text-foreground-primary underline underline-offset-2"
                                     >
                                         {policy ? tPolicies(policy.key) : doc.slug}
                                     </DocsLink>
-                                </li>
+                                </Fragment>
                             )
                         })}
-                    </ul>
-                    {error && <p className="text-body-s text-foreground-error">{error}</p>}
+                    </p>
+                    {error && <Notification priority="error">{error}</Notification>}
                 </div>
             }
             checkbox={{
