@@ -360,7 +360,10 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
                 })
                 setPath('sda')
             } catch (err) {
-                setError(toFriendlyError(err))
+                // A payer cannot switch to Arbitrum — the request fixed the destination.
+                setError(
+                    toFriendlyError(err, { crossChainSurface: context === 'pay-request' ? 'payment' : 'withdraw' })
+                )
                 setIsFeeEstimationError(true)
                 captureException(err)
             } finally {

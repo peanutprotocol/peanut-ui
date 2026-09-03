@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useTranslations } from 'next-intl'
-import { friendlyError } from '@/utils/friendly-error.utils'
+import { friendlyError, type FriendlyErrorOptions } from '@/utils/friendly-error.utils'
 
 /**
  * Maps a caught error to user-facing copy. `friendlyError` classifies the error
@@ -10,8 +10,8 @@ import { friendlyError } from '@/utils/friendly-error.utils'
 export function useFriendlyError() {
     const t = useTranslations('errors')
     return useCallback(
-        (error: unknown): string => {
-            const result = friendlyError(error)
+        (error: unknown, opts?: FriendlyErrorOptions): string => {
+            const result = friendlyError(error, opts)
             switch (result.kind) {
                 case 'text':
                     return result.text
@@ -26,6 +26,8 @@ export function useFriendlyError() {
                         case 'rainCooldownRetry':
                             return t(result.code, result.values)
                         case 'xchainWithdrawLimitRetry':
+                            return t(result.code, result.values)
+                        case 'xchainPaymentLimitRetry':
                             return t(result.code, result.values)
                     }
             }

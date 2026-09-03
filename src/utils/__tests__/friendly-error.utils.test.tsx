@@ -150,6 +150,7 @@ describe('friendly error copy catalog', () => {
         'rainCooldownRetryShortly',
         'cardRateLimited',
         'xchainWithdrawLimit',
+        'xchainPaymentLimit',
         'linkTransactionHashFetch',
     ]
 
@@ -434,6 +435,19 @@ describe('cross-chain withdraw cap (XCHAIN_WITHDRAW_LIMIT_REACHED)', () => {
 
     it('falls back to the copy without a countdown when the wait is missing', () => {
         expect(friendlyError(at(undefined))).toEqual({ kind: 'code', code: 'xchainWithdrawLimit' })
+    })
+
+    it('on the payment surface uses the payment copy (no Arbitrum advice — the request fixed the destination)', () => {
+        expect(friendlyError(at(90), { crossChainSurface: 'payment' })).toEqual({
+            kind: 'params',
+            code: 'xchainPaymentLimitRetry',
+            values: { days: 0, hours: 0, minutes: 2 },
+        })
+        expect(friendlyError(at(undefined), { crossChainSurface: 'payment' })).toEqual({
+            kind: 'code',
+            code: 'xchainPaymentLimit',
+        })
+        expect(en.errors.xchainPaymentLimitRetry).not.toContain('Arbitrum')
     })
 
     it('has ICU copy that resolves for every unit', () => {
