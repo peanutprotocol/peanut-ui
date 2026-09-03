@@ -16,11 +16,7 @@ const mockInterceptGuestCta = jest.fn(() => false)
 const mockUseUserInteractions = jest.fn()
 let mockAuth: { user: null | { user: { username: string; hasAppAccess: boolean } }; isFetchingUser: boolean }
 
-jest.mock('next/navigation', () => ({
-    useRouter: () => ({ push: mockPush, back: mockBack }),
-    // the real Banner (mounted in the guest branch) reads the pathname
-    usePathname: () => '/satoshi',
-}))
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush, back: mockBack }) }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => mockAuth }))
 jest.mock('@/services/users', () => ({ usersApi: { getByUsername: (u: string) => mockGetByUsername(u) } }))
 jest.mock('@/hooks/useUserInteractions', () => ({
@@ -40,21 +36,6 @@ jest.mock('@/utils/general.utils', () => {
     return { ...actual, saveToCookie: (...args: unknown[]) => mockSaveToCookie(...args) }
 })
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
-
-// mutable so the maintenance-banner regression test can flip the switches;
-// the guest profile is the one public surface with no NavHeader, so it must
-// mount the Banner itself (chip finding on PR #2946)
-const mockMaintenanceConfig = {
-    enableFullMaintenance: false,
-    enableMaintenanceBanner: false,
-    maintenanceBannerPaths: [] as string[],
-}
-jest.mock('@/config/underMaintenance.config', () => ({
-    __esModule: true,
-    get default() {
-        return mockMaintenanceConfig
-    },
-}))
 
 // Stubbed neighbours — this suite is about the guest door, back navigation and
 // the prior-transfer indicator, not the page furniture.
@@ -125,9 +106,6 @@ const deferValidation = () => {
 beforeEach(() => {
     jest.clearAllMocks()
     safeBackTesting.reset()
-    mockMaintenanceConfig.enableFullMaintenance = false
-    mockMaintenanceConfig.enableMaintenanceBanner = false
-    mockMaintenanceConfig.maintenanceBannerPaths = []
     mockAuth = { user: null, isFetchingUser: false }
     mockInterceptGuestCta.mockReturnValue(false)
     mockGetByUsername.mockResolvedValue(null)
@@ -263,23 +241,6 @@ describe('PublicProfile guest door', () => {
 // The "sent money before" badge comes from the interaction-status endpoint (the
 // complete source — send-link claims included), never from the profile payload's
 // narrow received-from-you sum (TASK-21929).
-describe('PublicProfile maintenance banner', () => {
-    // guest view renders no NavHeader (which carries the banner everywhere
-    // else), so the page mounts the Banner itself — a maintenance notice must
-    // stay visible on this public surface
-    it('shows the maintenance banner to a guest when maintenance is on', async () => {
-        mockMaintenanceConfig.enableMaintenanceBanner = true
-        renderWithIntl(<PublicProfile username="satoshi" />)
-        expect(await screen.findByText(en.global.maintenanceBanner)).toBeInTheDocument()
-    })
-
-    it('shows no banner to a guest outside maintenance mode', async () => {
-        renderWithIntl(<PublicProfile username="satoshi" />)
-        await screen.findByTestId('profile-header')
-        expect(screen.queryByText(en.global.maintenanceBanner)).not.toBeInTheDocument()
-    })
-})
-
 describe('PublicProfile prior-transfer indicator', () => {
     beforeEach(() => {
         mockAuth = { user: { user: { username: 'hal', hasAppAccess: true } }, isFetchingUser: false }

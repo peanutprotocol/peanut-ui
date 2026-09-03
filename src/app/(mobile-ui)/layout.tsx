@@ -18,6 +18,8 @@ import SupportDeepLink from '@/components/Global/SupportDeepLink'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import JoinWaitlistPage from '@/components/Invites/JoinWaitlistPage'
 import { useRouter } from 'next/navigation'
+import { NavHeaderPresenceProvider } from '@/components/Global/Banner/navHeaderPresence'
+import { ShellBannerFallback } from '@/components/Global/Banner/ShellBannerFallback'
 import { useSetupStore } from '@/redux/hooks'
 import ForceIOSPWAInstall from '@/components/ForceIOSPWAInstall'
 import { isPublicRoute } from '@/constants/routes'
@@ -173,44 +175,47 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     }
 
     return (
-        <AppShell
-            variant="app"
-            nav={!isDev && isUserLoggedIn && <BottomNav />}
-            contentClassName={twMerge(
-                'pb-[calc(6rem_+_var(--safe-bottom))]',
-                isSupport && 'p-0 pb-[calc(5rem_+_var(--safe-bottom))]',
-                isHome && 'p-0',
-                isUserLoggedIn ? 'pb-[calc(6rem_+_var(--safe-bottom))]' : 'pb-[calc(1rem_+_var(--safe-bottom))]',
-                isDev && 'p-0 pb-0',
-                isHome && isCapacitor() && 'px-0 pt-0'
-            )}
-            innerClassName={twMerge(
-                alignStart && 'items-start',
-                isSupport && 'h-full',
-                isUserLoggedIn
-                    ? 'min-h-[calc(100dvh_-_160px_-_var(--safe-top)_-_var(--safe-bottom))]'
-                    : 'min-h-[calc(100dvh_-_64px_-_var(--safe-top)_-_var(--safe-bottom))]',
-                isDev && 'max-w-full min-h-[100dvh] items-start justify-start'
-            )}
-            modals={
-                <>
-                    <GuestLoginModal />
-                    <ReConsentModal />
-                    <SupportDrawer />
-                    {/* Suspense is required: nuqs reads useSearchParams, which triggers
+        <NavHeaderPresenceProvider>
+            <AppShell
+                variant="app"
+                banner={!isDev && <ShellBannerFallback />}
+                nav={!isDev && isUserLoggedIn && <BottomNav />}
+                contentClassName={twMerge(
+                    'pb-[calc(6rem_+_var(--safe-bottom))]',
+                    isSupport && 'p-0 pb-[calc(5rem_+_var(--safe-bottom))]',
+                    isHome && 'p-0',
+                    isUserLoggedIn ? 'pb-[calc(6rem_+_var(--safe-bottom))]' : 'pb-[calc(1rem_+_var(--safe-bottom))]',
+                    isDev && 'p-0 pb-0',
+                    isHome && isCapacitor() && 'px-0 pt-0'
+                )}
+                innerClassName={twMerge(
+                    alignStart && 'items-start',
+                    isSupport && 'h-full',
+                    isUserLoggedIn
+                        ? 'min-h-[calc(100dvh_-_160px_-_var(--safe-top)_-_var(--safe-bottom))]'
+                        : 'min-h-[calc(100dvh_-_64px_-_var(--safe-top)_-_var(--safe-bottom))]',
+                    isDev && 'max-w-full min-h-[100dvh] items-start justify-start'
+                )}
+                modals={
+                    <>
+                        <GuestLoginModal />
+                        <ReConsentModal />
+                        <SupportDrawer />
+                        {/* Suspense is required: nuqs reads useSearchParams, which triggers
                         a client-side-rendering bailout without a boundary. */}
-                    <Suspense fallback={null}>
-                        <SupportDeepLink />
-                    </Suspense>
-                    <QRScannerOverlay />
-                    <SecurityVerificationOverlay />
-                    {/* dev fixture warning strip — renders null outside fixture mode */}
-                    <FixtureBanner />
-                </>
-            }
-        >
-            {children}
-        </AppShell>
+                        <Suspense fallback={null}>
+                            <SupportDeepLink />
+                        </Suspense>
+                        <QRScannerOverlay />
+                        <SecurityVerificationOverlay />
+                        {/* dev fixture warning strip — renders null outside fixture mode */}
+                        <FixtureBanner />
+                    </>
+                }
+            >
+                {children}
+            </AppShell>
+        </NavHeaderPresenceProvider>
     )
 }
 

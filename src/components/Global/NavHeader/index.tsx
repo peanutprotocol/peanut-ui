@@ -8,6 +8,7 @@ import { twMerge } from '@/utils/tw'
 import { Icon, type IconName } from '../Icons/Icon'
 import { useAuth } from '@/context/authContext'
 import { Banner } from '@/components/Global/Banner'
+import { useRegisterNavHeader } from '@/components/Global/Banner/navHeaderPresence'
 
 interface NavHeaderProps {
     onPrev?: () => void
@@ -63,6 +64,10 @@ const NavHeader = ({
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const label = title ?? (titleKey ? tNav(titleKey) : undefined)
+
+    // tell the shell a header is on screen, so its headerless-state
+    // maintenance-banner fallback stays quiet (this header carries the banner)
+    useRegisterNavHeader()
 
     return (
         <div className="w-full">
