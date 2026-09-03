@@ -41,7 +41,7 @@ export type MixedEphemeralSpendResult =
     | { ok: true; userOpHash: Hash; receipt: TransactionReceipt | null }
     | { ok: false; reason: string }
 
-export function buildWithdrawCall(prep: PrepareRainWithdrawalResponse, adminSignature: Hex): EphemeralCall {
+function buildWithdrawCall(prep: PrepareRainWithdrawalResponse, adminSignature: Hex): EphemeralCall {
     return {
         to: prep.coordinatorAddress as Hex,
         value: 0n,
