@@ -183,6 +183,7 @@ jest.mock('@/features/withdraw/WithdrawFlowContext', () => ({
 }))
 
 import { useBridgeOfframpFlow } from '../useBridgeOfframpFlow'
+import { useWithdrawAmount } from '../useWithdrawAmount'
 import { AccountType } from '@/interfaces/interfaces'
 
 // ---------- helpers ----------
@@ -281,6 +282,29 @@ describe('useBridgeOfframpFlow — submit path (Chip review round 4)', () => {
             showError: true,
             errorMessage: 'withdraw.errors.minimumWithdrawal',
         })
+    })
+
+    it('a post-completion ?amount= edit cannot forge the success amount — executedAmountUsd stays pinned (Chip round 8)', async () => {
+        armHappyOfframp()
+        // probe hook alongside: the amount setter drives the SAME nuqs adapter
+        const view = renderHook(() => ({ flow: useBridgeOfframpFlow(), amountState: useWithdrawAmount() }), {
+            wrapper: ({ children }: { children: React.ReactNode }) => (
+                <NuqsTestingAdapter searchParams={{ amount: '50', step: 'review' }}>{children}</NuqsTestingAdapter>
+            ),
+        })
+
+        await act(async () => {
+            view.result.current.flow.handleCreateAndInitiateOfframp()
+        })
+        expect(view.result.current.flow.executedAmountUsd).toBe('50')
+
+        // tamper the URL after completion
+        await act(async () => {
+            await view.result.current.amountState[1]('5000')
+        })
+        expect(view.result.current.flow.amountToWithdraw).toBe('5000')
+        // the success screen renders executedAmountUsd — still the moved amount
+        expect(view.result.current.flow.executedAmountUsd).toBe('50')
     })
 
     it('GB: an amount below the converted £3 rail minimum never reaches createOfframp (Chip round 5)', async () => {

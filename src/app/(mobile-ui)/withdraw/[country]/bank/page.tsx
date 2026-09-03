@@ -84,7 +84,7 @@ export default function WithdrawBankPage() {
                 <PaymentSuccessView
                     isWithdrawFlow
                     isFromSendFlow={fromSendFlow}
-                    currencyAmount={`$${amountToWithdraw}`}
+                    currencyAmount={`$${flow.executedAmountUsd ?? amountToWithdraw}`}
                     message={bankAccount ? shortenStringLong(bankAccount.identifier.toUpperCase()) : ''}
                     points={flow.pointsData?.estimatedPoints}
                 />
