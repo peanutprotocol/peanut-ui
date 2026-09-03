@@ -212,9 +212,11 @@ function MantecaBankWithdrawFlow() {
     })
 
     // Synchronous twin of the balanceErrorMessage effect below (same
-    // minimum/ceiling predicates, live balance). The seed must not advance on
-    // an effect-lagged verdict, so it asks this instead of the message state.
-    const isSeededAmountAllowed = useCallback(
+    // minimum/ceiling predicates, live balance). Effect-set state lags the
+    // render by a tick, so every decision that must not outrun the balance —
+    // the ?amount= seed advance, the price lock, and the submission itself —
+    // asks this instead of the message state (Chip rounds 3+6).
+    const isAmountWithinLiveBalance = useCallback(
         (usd: string) => {
             if (balance === undefined) return false
             const paymentAmount = parseUnits(usd, PEANUT_WALLET_TOKEN_DECIMALS)
@@ -245,7 +247,7 @@ function MantecaBankWithdrawFlow() {
         urlAmount,
         currencyPriceSell: currencyPrice?.sell,
         step,
-        isAmountAllowed: isSeededAmountAllowed,
+        isAmountAllowed: isAmountWithinLiveBalance,
         limitsLoading: limitsValidation.isLoading,
         limitsBlocking: limitsValidation.isBlocking,
         setUsdAmount,
@@ -372,9 +374,16 @@ function MantecaBankWithdrawFlow() {
 
         // The amount may have arrived via the user-editable ?amount= and the
         // async balance/limits gates live on the amount screen — re-check them
-        // before locking a price. A failure returns to the amount screen,
-        // which renders the reason (Chip review round 3).
-        if (balance === undefined || balanceErrorMessage || limitsValidation.isLoading || limitsValidation.isBlocking) {
+        // before locking a price, against the LIVE balance (the message state
+        // is effect-set and lags a render). A failure returns to the amount
+        // screen, which renders the reason (Chip review rounds 3+6).
+        if (
+            balance === undefined ||
+            balanceErrorMessage ||
+            (usdAmount && !isAmountWithinLiveBalance(usdAmount)) ||
+            limitsValidation.isLoading ||
+            limitsValidation.isBlocking
+        ) {
             void stepper.goTo('amount')
             return
         }
@@ -421,6 +430,7 @@ function MantecaBankWithdrawFlow() {
         usdAmount,
         currencyCode,
         currencyAmount,
+        isAmountWithinLiveBalance,
         isUserMantecaKycApprovedForCountry,
         isLockingPrice,
         handleOnboardingError,
@@ -437,10 +447,17 @@ function MantecaBankWithdrawFlow() {
         if (!destinationAddress || !usdAmount || !currencyCode || !priceLock) return
 
         // last line of defense before the money operation: the balance and the
-        // async LATAM limits must hold for this amount RIGHT NOW — a seeded or
-        // stale amount that outran the gates goes back to the amount screen,
-        // which renders the reason (Chip review round 3)
-        if (balance === undefined || balanceErrorMessage || limitsValidation.isLoading || limitsValidation.isBlocking) {
+        // async LATAM limits must hold for this amount RIGHT NOW — checked
+        // against the live balance, not the effect-lagged message state — and
+        // a stale amount that outran the gates goes back to the amount screen,
+        // which renders the reason (Chip review rounds 3+6)
+        if (
+            balance === undefined ||
+            balanceErrorMessage ||
+            !isAmountWithinLiveBalance(usdAmount) ||
+            limitsValidation.isLoading ||
+            limitsValidation.isBlocking
+        ) {
             void stepper.goTo('amount')
             return
         }

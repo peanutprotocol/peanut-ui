@@ -107,7 +107,9 @@ export function useBridgeOfframpFlow() {
     // GB £3 / MX 50 MXN minimums). GB/MX minimums are local-currency, so they
     // convert through the same sell rate the amount step uses; until that rate
     // loads the submit stays disabled rather than under-enforcing.
-    const countryIso2 = countryFromPath?.id ?? ''
+    // iso2, not id: the UK record is { id: 'GBR', iso2: 'GB' } and an id-keyed
+    // ternary silently picked the EUR rate for the £3 minimum (Chip round 6)
+    const countryIso2 = countryFromPath?.iso2 ?? countryFromPath?.id ?? ''
     const minNeedsRate = bankWithdrawMinNeedsRate(countryIso2)
     const { exchangeRate } = useGetExchangeRate({
         accountType:
