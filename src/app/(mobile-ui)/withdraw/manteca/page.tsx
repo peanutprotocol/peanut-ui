@@ -383,7 +383,10 @@ function MantecaBankWithdrawFlow() {
                 const requiredUsdcAmount = parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS)
                 signedArtifact = await signSpend({
                     requiredUsdcAmount,
-                    recipient: MANTECA_DEPOSIT_ADDRESS,
+                    // Entity-aware deposit address served by /withdraw/init
+                    // (per-entity balances from 2026-09-14); the constant is
+                    // only the fallback for an older API without the field.
+                    recipient: (priceLock.depositAddress as `0x${string}` | undefined) ?? MANTECA_DEPOSIT_ADDRESS,
                     rainSpendingPower: rainCentsToUsdcUnits(rainCardOverview?.balance?.spendingPower),
                     kind: 'FIAT_OFFRAMP',
                 })

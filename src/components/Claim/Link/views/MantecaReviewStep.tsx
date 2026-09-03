@@ -62,9 +62,27 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
                 setError(null)
                 setIsSubmitting(true)
 
+                // Entity-aware deposit address (per-entity balances from
+                // 2026-09-14): ask /withdraw/init where THIS currency's
+                // offramp must be funded BEFORE spending the one-shot claim
+                // link. If init fails outright, abort — no funds have moved
+                // and the user can retry; claiming to a hardcoded address and
+                // then failing would strand the link's funds at the wrong
+                // entity. The constant remains only for an older API that
+                // does not return the field yet.
+                let depositAddress: string = MANTECA_DEPOSIT_ADDRESS
+                const { data: initData, error: initError } = await mantecaApi.initiateWithdraw({ amount, currency })
+                if (initError) {
+                    setError(t('manteca.errors.generic'))
+                    return
+                }
+                if (initData?.depositAddress) {
+                    depositAddress = initData.depositAddress
+                }
+
                 // Use secure SDK claim (password stays client-side, only signature sent to backend)
                 const txHash = await claimLinkSecure({
-                    address: MANTECA_DEPOSIT_ADDRESS,
+                    address: depositAddress,
                     link: claimLink,
                 })
 
