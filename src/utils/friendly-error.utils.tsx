@@ -327,6 +327,10 @@ const classifyError = (error: unknown): FriendlyError => {
         text.includes('timed out after')
     )
         return code('networkBusyTimeout')
+    // Client-side backstop for a claim whose bridge minimum couldn't be verified
+    // (Rhino returned no/zero minimum) — a transient, retryable condition, so
+    // surface the retry copy rather than "contact support".
+    if (text.includes('Could not verify the claim amount against the bridge minimum')) return code('networkBusyTimeout')
     // Browser-native fetch rejection — the request never reached a server, so
     // there is no status and no wire code to key off, only the engine's own
     // TypeError copy: `Failed to fetch` (Chromium, so every Android WebView),
