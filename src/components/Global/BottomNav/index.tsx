@@ -6,13 +6,12 @@ import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { isSameRoute } from '@/constants/routes'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useSupportUnread } from '@/hooks/useSupportUnread'
-import { motion, useReducedMotion } from 'framer-motion'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { TAB_ORDER, TAB_SPRING, type TabId } from './tab-order'
+import { TAB_ORDER, type TabId } from './tab-order'
 
 /**
  * Bottom navigation from the figma navigation board (17802:61534, component
@@ -27,50 +26,31 @@ import { TAB_ORDER, TAB_SPRING, type TabId } from './tab-order'
  * landed on exactly the same row in the same color, which read as the pill's
  * border being clipped by the bar edge.
  *
- * Why a measured transform and not framer's `layoutId`:
- * the pill used to be re-mounted inside whichever tab was active, and framer
- * animated the gap with a shared-layout projection. A projection reads the
- * target box AFTER the new tree paints, so the spring can begin against the
- * box framer had at mount time and get re-pointed mid-flight when the real
- * box arrives — one motion, two targets. That matches the report we got
- * (reading the tabs as positions 1 / 10 / 20: 1 -> 10 lands near 9 and then
- * creeps to 10, 10 -> 1 overshoots to about 2 and creeps back).
+ * Ruled 2026-09-03 (kush, supersedes the framer-spring approach): the pill is
+ * a CSS compositor transition on `transform`, retargeted ON TAP. Two reasons,
+ * both native-feel:
+ * - a JS-driven spring shares the main thread with the route commit, so the
+ *   commit's long frame stuttered the motion (the old code even deferred the
+ *   start by two rAFs to dodge it, which read as input lag instead). A CSS
+ *   transform transition runs on the compositor and glides straight through
+ *   the commit.
+ * - native tab bars respond on touch, not after navigation settles — the
+ *   pill now moves in the same tick as the tap, like the drag path used to.
+ * The bezier overshoots a few percent: the ruled "little bounce", no jitter.
  *
- * Caveat worth keeping honest: that report never reproduced in the harness,
- * on the old code either, even under 6x CPU throttling. So this is not a
- * measured before/after — it removes the mechanism that can produce the
- * described behavior, rather than a defect anyone captured.
- *
- * Now every tab's left/width is measured up front (and again on resize), so
- * the destination x is a number known BEFORE the spring starts. Nothing is
- * re-measured mid-flight, so the pill travels once and stops on the target.
- * The travel is over the 300ms moderate token; the pill's spring bounces (0.3,
- * Kush's ruling) while the shared TAB_SPRING that drives the page slide stays
- * near-critically damped.
- *
- * The pill is also draggable (drag="x", clamped to the measured tab range):
- * hold and drag it along the bar, release, and it snaps to the nearest tab
- * and navigates there. Taps keep working — a click right after a drag is
- * swallowed by the bar's capture handler. Under prefers-reduced-motion the
- * drag is disabled (taps only) and the pill move is instant.
+ * Drag-the-pill survives the framer removal as manual pointer events: while
+ * a finger holds the pill the transition is suspended and the transform
+ * tracks the pointer 1:1 (clamped to the tab range); release snaps to the
+ * nearest tab with the same transition and navigates. Support is an overlay,
+ * so releasing on it opens the drawer and the pill glides home.
  */
 
 // tab pressable: px-6 py-4 + 20px icon = the 68x52 area annotated on the board
 const tabClass =
     'relative flex items-center justify-center rounded-round px-6 py-4 text-foreground-primary transition-colors duration-instant focus-visible:outline-[3px] focus-visible:outline-action-focus'
 
-// icons sit above the pill (z) and let pointer events fall through to the
-// tab / draggable pill underneath
+// icons sit above the pill (z) and let pointer events fall through
 const iconClass = 'pointer-events-none relative z-10'
-
-// The pill overshoots on purpose (Kush, 2026-09-02); TAB_SPRING stays
-// near-critically damped because it also drives the full-page tab slide, where
-// visible overshoot reads as a glitch rather than as bounce.
-const PILL_SPRING = { ...TAB_SPRING, bounce: 0.3 } as const
-
-// The pill gets a 1px drop at 55% so it reads as raised off the bar without a
-// second full-weight edge; the bar and QR circle carry the DS shadow-4 token.
-const PILL_SHADOW = 'shadow-[1px_1px_0_0_rgb(22_22_22/0.55)]'
 
 /** A tab's box inside the bar, in the bar's own coordinates. */
 type TabBox = { left: number; width: number }
@@ -86,16 +66,16 @@ export const BottomNav = () => {
     const { isSupportModalOpen, setIsSupportModalOpen, setIsQRScannerOpen } = useModalsContext()
     const { triggerHaptic } = useAppHaptic()
     const hasUnreadSupport = useSupportUnread()
-    const reduceMotion = useReducedMotion()
 
     const barRef = useRef<HTMLDivElement>(null)
     const tabRefs = useRef<Partial<Record<TabId, HTMLElement | null>>>({})
-    // set while a pill drag is in flight so the click the browser fires on
-    // release doesn't ALSO trigger the tab underneath
-    const didDragRef = useRef(false)
+    const pillRef = useRef<HTMLSpanElement>(null)
+    // live drag bookkeeping — refs, not state: the transform is written to the
+    // DOM directly per move so the drag never waits on a render
+    const dragRef = useRef<{ pointerId: number; startClientX: number; baseX: number; moved: boolean } | null>(null)
 
-    // Every tab's box, measured once and again on any bar resize. This is the
-    // whole fix: the destination is a number before the spring starts.
+    // Every tab's box, measured once and again on any bar resize — the
+    // destination x is a number known before the transition starts.
     const [boxes, setBoxes] = useState<Partial<Record<TabId, TabBox>>>({})
 
     useLayoutEffect(() => {
@@ -131,44 +111,50 @@ export const BottomNav = () => {
     const routeTab: TabId | null =
         (pathname?.startsWith('/card') ?? false) ? 'card' : isSameRoute(pathname, '/home') ? 'home' : null
 
-    // Start the slide AFTER the route commit, not during it.
-    //
-    // Measured on a prod build, sampling the pill every frame: tapping a tab
-    // blocked the main thread for 45.6ms while React committed the new route.
-    // The spring's first step therefore integrated ~46ms of elapsed time at
-    // once and the pill teleported 21px before settling into a normal 8ms
-    // cadence — the "beginning teleports" report. Spring parameters cannot fix
-    // that; the frame budget was simply gone.
-    //
-    // Two rAFs after the commit the main thread is free again, so the spring
-    // starts from rest on a clean frame and every step is even. The cost is
-    // ~16-32ms before the pill starts moving, which is below the threshold
-    // where a delay reads as lag.
+    // Optimistic: taps retarget the pill in the same tick (the Link onClick
+    // below), and this effect only reconciles EXTERNAL navigation — deep
+    // links, hardware back, programmatic pushes.
     const [activeTab, setActiveTab] = useState<TabId | null>(routeTab)
     useEffect(() => {
-        if (routeTab === activeTab) return
-        let inner = 0
-        const outer = requestAnimationFrame(() => {
-            inner = requestAnimationFrame(() => setActiveTab(routeTab))
-        })
-        return () => {
-            cancelAnimationFrame(outer)
-            cancelAnimationFrame(inner)
-        }
-    }, [routeTab, activeTab])
+        if (routeTab !== null && routeTab !== activeTab) setActiveTab(routeTab)
+        // activeTab is deliberately read-only here: including it would undo an
+        // optimistic tap on the render before the route commits
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [routeTab])
 
-    const activateTab = (tab: TabId) => {
-        if (tab === 'support') setIsSupportModalOpen(true)
-        else router.push(tab === 'home' ? '/home' : '/card')
+    const activeBox = activeTab ? boxes[activeTab] : undefined
+
+    const clampX = (x: number) => {
+        const first = boxes[TAB_ORDER[0]]
+        const last = boxes[TAB_ORDER[TAB_ORDER.length - 1]]
+        if (!first || !last) return x
+        return Math.min(Math.max(x, restingX(first)), restingX(last))
     }
 
-    const handleDragEnd = (event: PointerEvent | MouseEvent | TouchEvent) => {
-        // release the click-suppression only after the post-drag click has fired
-        setTimeout(() => {
-            didDragRef.current = false
-        }, 0)
-        const clientX = 'clientX' in event ? event.clientX : (event.changedTouches?.[0]?.clientX ?? Number.NaN)
-        if (Number.isNaN(clientX)) return
+    const onPillPointerDown = (e: React.PointerEvent<HTMLSpanElement>) => {
+        if (!activeBox || !pillRef.current) return
+        pillRef.current.setPointerCapture(e.pointerId)
+        dragRef.current = { pointerId: e.pointerId, startClientX: e.clientX, baseX: restingX(activeBox), moved: false }
+        // the finger owns the transform now — the transition would lag it
+        pillRef.current.style.transitionProperty = 'none'
+    }
+
+    const onPillPointerMove = (e: React.PointerEvent<HTMLSpanElement>) => {
+        const drag = dragRef.current
+        if (!drag || !pillRef.current || e.pointerId !== drag.pointerId) return
+        const dx = e.clientX - drag.startClientX
+        if (Math.abs(dx) > 4) drag.moved = true
+        pillRef.current.style.transform = `translateX(${clampX(drag.baseX + dx)}px)`
+    }
+
+    const endPillDrag = (e: React.PointerEvent<HTMLSpanElement>, cancelled: boolean) => {
+        const drag = dragRef.current
+        if (!drag || !pillRef.current || e.pointerId !== drag.pointerId) return
+        dragRef.current = null
+        // hand the transform back to the transition before the snap target lands
+        pillRef.current.style.transitionProperty = ''
+        pillRef.current.style.transform = ''
+        if (cancelled || !drag.moved) return
         // snap to the tab whose center is nearest the release point
         let nearest: TabId | null = null
         let best = Number.POSITIVE_INFINITY
@@ -176,33 +162,21 @@ export const BottomNav = () => {
             const el = tabRefs.current[id]
             if (!el) continue
             const rect = el.getBoundingClientRect()
-            const distance = Math.abs(clientX - (rect.left + rect.width / 2))
+            const distance = Math.abs(e.clientX - (rect.left + rect.width / 2))
             if (distance < best) {
                 best = distance
                 nearest = id
             }
         }
-        // same tab: dragSnapToOrigin springs the pill back on its own
-        if (nearest && nearest !== activeTab) {
-            triggerHaptic()
-            // Retarget the pill in the same tick as the release, ahead of the
-            // route. The two-rAF deferral below is there for TAPS, where the
-            // route commit eats the frame budget; applying it to a drag would
-            // let dragSnapToOrigin pull the pill back to the tab it came from
-            // for ~80ms before it turned around.
-            // support is an overlay, not a route — the pill stays where it is
-            if (nearest !== 'support') setActiveTab(nearest)
-            activateTab(nearest)
+        if (!nearest || nearest === activeTab) return
+        triggerHaptic()
+        if (nearest === 'support') {
+            // overlay, not a route — the drawer opens and the pill glides home
+            setIsSupportModalOpen(true)
+            return
         }
-    }
-
-    const activeBox = activeTab ? boxes[activeTab] : undefined
-    // the drag range is the first and last tab's resting x. Numeric bounds
-    // rather than `dragConstraints={barRef}`: the pill is 1px wider than a tab
-    // on each side, so a bar-sized box clamps it 1px short at both ends.
-    const dragBounds = {
-        left: boxes[TAB_ORDER[0]] ? restingX(boxes[TAB_ORDER[0]]!) : 0,
-        right: boxes[TAB_ORDER[TAB_ORDER.length - 1]] ? restingX(boxes[TAB_ORDER[TAB_ORDER.length - 1]]!) : 0,
+        setActiveTab(nearest)
+        router.push(nearest === 'home' ? '/home' : '/card')
     }
 
     return (
@@ -212,12 +186,6 @@ export const BottomNav = () => {
         <nav className="flex w-full items-center gap-4 px-4 py-2" translate="no">
             <div
                 ref={barRef}
-                onClickCapture={(e) => {
-                    if (didDragRef.current) {
-                        e.preventDefault()
-                        e.stopPropagation()
-                    }
-                }}
                 // Hard offset shadow (contrast study "Hard offset shadow"),
                 // carried by the bar AND the QR circle so the pair reads as one
                 // plane. shadow-4 is the DS token for it (Kush's ruling).
@@ -227,7 +195,10 @@ export const BottomNav = () => {
                     href="/home"
                     draggable={false}
                     aria-label={t('home')}
-                    onClick={() => triggerHaptic()}
+                    onClick={() => {
+                        triggerHaptic()
+                        setActiveTab('home')
+                    }}
                     className={tabClass}
                     ref={(el) => {
                         tabRefs.current.home = el
@@ -239,7 +210,10 @@ export const BottomNav = () => {
                     href="/card"
                     draggable={false}
                     aria-label={t('card')}
-                    onClick={() => triggerHaptic()}
+                    onClick={() => {
+                        triggerHaptic()
+                        setActiveTab('card')
+                    }}
                     className={tabClass}
                     ref={(el) => {
                         tabRefs.current.card = el
@@ -276,33 +250,24 @@ export const BottomNav = () => {
                 </button>
                 {/* Last in the bar so it paints over the tab boxes, but under
                     the icons (z-10, and the tabs make no stacking context of
-                    their own). Icons are pointer-events-none, so a press over
-                    the active tab reaches the pill and can start a drag.
-                    Width is set, not animated: all three tabs are px-6 around
-                    a 20px icon, so it never changes — animating it would cost
-                    a layout pass per frame for nothing. */}
+                    their own). Width is set, not animated: all three tabs are
+                    px-6 around a 20px icon, so it never changes. */}
                 {activeBox && (
-                    <motion.span
+                    <span
+                        ref={pillRef}
                         aria-hidden
                         data-testid="bottom-nav-pill"
-                        drag={reduceMotion ? false : 'x'}
-                        dragConstraints={dragBounds}
-                        dragElastic={0.05}
-                        dragMomentum={false}
-                        dragSnapToOrigin
-                        onDragStart={() => {
-                            didDragRef.current = true
-                        }}
-                        onDragEnd={(event) => handleDragEnd(event)}
-                        // initial={false} adopts the target on mount, so the
-                        // pill appears already on its tab instead of sliding
-                        // in from the left on the first paint.
-                        initial={false}
-                        animate={{ x: restingX(activeBox), width: activeBox.width + 2 }}
-                        transition={reduceMotion ? { duration: 0 } : PILL_SPRING}
+                        onPointerDown={onPillPointerDown}
+                        onPointerMove={onPillPointerMove}
+                        onPointerUp={(e) => endPillDrag(e, false)}
+                        onPointerCancel={(e) => endPillDrag(e, true)}
                         // -1px, not -2px: the bar's own border is 1px, so a 1px inset puts the
                         // pill's outer edge exactly on the bar's — at 2px it stood proud of it.
-                        className={`absolute -top-px -bottom-px left-0 z-0 touch-none rounded-round border border-border-default bg-background-default ${PILL_SHADOW}`}
+                        className="absolute -top-px -bottom-px left-0 z-0 touch-none rounded-round border border-border-default bg-background-default motion-safe:transition-transform motion-safe:duration-[250ms] motion-safe:ease-[cubic-bezier(0.3,1.06,0.4,1)]"
+                        style={{
+                            transform: `translateX(${restingX(activeBox)}px)`,
+                            width: activeBox.width + 2,
+                        }}
                     />
                 )}
             </div>
