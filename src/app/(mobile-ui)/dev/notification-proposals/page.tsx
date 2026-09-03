@@ -1,7 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import { twMerge } from '@/utils/tw'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { BaseInput } from '@/components/0_Bruddle/BaseInput'
@@ -12,365 +10,23 @@ import DevSectionLabel from '../_components/DevSectionLabel'
 import DevNoteCard from '../_components/DevNoteCard'
 
 /**
- * /dev/notification-proposals — PROPOSAL ONLY, nothing here ships.
+ * /dev/notification-proposals — notification USAGE INVENTORY.
  *
- * Team complaints about the current Notification: text too big (Body/M 16px),
- * footprint too big (breaks layouts), tinted box is ugly next to the line-based
- * DS components, especially bad inside modals, and the toast variant renders
- * two icons when a caller passes `content` with its own icon (RainCooldownContext
- * clock pill) without `hideIcon`.
- *
- * Four redesigned variants below, each built from existing tokens only
- * (badge backgrounds, icon-bubble accents, foreground-error, radius-sm,
- * body-s/xs type steps). All proposal components live in this file.
+ * The compact-inline redesign shipped (production Notification is now Body/S,
+ * 16px icon, tight padding, one size everywhere). This page is no longer a
+ * proposal: it renders the real production component in every place it is
+ * actually used, grouped by context, as the working inventory for designing
+ * the SECOND notification component (Vlad) — the current one is over-used,
+ * especially inside modals and drawers.
  */
 
 type Priority = 'info' | 'success' | 'attention' | 'error' | 'helper'
-
-const PRIORITY_META: Record<Priority, { icon: IconName; bg: string; accent: string; accentText: string }> = {
-    // accents reuse the icon-bubble palette (saturated marks that already
-    // exist) + the error semantic tokens. no new colors.
-    info: {
-        icon: 'info',
-        bg: 'bg-background-badge-info',
-        accent: 'border-background-icon-bubble-blue',
-        accentText: 'text-avatar-blue-foreground',
-    },
-    success: {
-        icon: 'check',
-        bg: 'bg-background-badge-success',
-        accent: 'border-background-icon-bubble-green',
-        accentText: 'text-avatar-green-foreground',
-    },
-    attention: {
-        icon: 'alert',
-        bg: 'bg-background-badge-attention',
-        accent: 'border-background-icon-bubble-yellow',
-        accentText: 'text-avatar-yellow-foreground',
-    },
-    error: {
-        icon: 'ban',
-        bg: 'bg-background-badge-error',
-        accent: 'border-border-error',
-        accentText: 'text-foreground-error',
-    },
-    helper: {
-        icon: 'info',
-        bg: 'bg-background-badge-helper',
-        accent: 'border-border-subtle',
-        accentText: 'text-foreground-secondary',
-    },
-}
-
-const PRIORITIES: Priority[] = ['info', 'success', 'attention', 'error', 'helper']
 
 const LONG_COPY =
     'Your transfer could not be completed because the receiving bank rejected the payment. Check the account details and try again, or contact support if the problem does not go away.'
 
 // ---------------------------------------------------------------------------
 // variant A — compact inline (tinted box, one type step down, half the padding)
-// ---------------------------------------------------------------------------
-
-/** checklist rows shared by the A/B variants (mirrors the production `items` prop) */
-const CheckRows = ({ items }: { items: React.ReactNode[] }) => (
-    // no own type step: inherits the variant's body size (A/B both set Body/S),
-    // so a checklist reads at the same size as every other render of the variant
-    <div className="flex flex-col gap-1">
-        {items.map((item, i) => (
-            <div key={i} className="flex items-start gap-1.5">
-                <Icon name="check" size={16} className="mt-0.5 shrink-0" />
-                <div className="min-w-0 flex-1">{item}</div>
-            </div>
-        ))}
-    </div>
-)
-
-const CompactNotification = ({
-    priority = 'info',
-    title,
-    children,
-    items,
-    hideIcon,
-    onDismiss,
-    className,
-}: {
-    priority?: Priority
-    title?: string
-    children?: React.ReactNode
-    items?: React.ReactNode[]
-    hideIcon?: boolean
-    onDismiss?: () => void
-    className?: string
-}) => {
-    const { icon, bg } = PRIORITY_META[priority]
-    const showIcon = !items && !hideIcon
-    return (
-        <div
-            role={priority === 'error' || priority === 'attention' ? 'alert' : 'status'}
-            className={twMerge(
-                'flex items-start gap-1.5 rounded-sm p-2 text-start text-foreground-over-color-secondary',
-                bg,
-                className
-            )}
-        >
-            {showIcon && <Icon name={icon} size={16} className="mt-0.5 shrink-0" />}
-            <div className="min-w-0 flex-1 text-body-s break-words">
-                {title && <span className="text-body-s font-semibold">{title} </span>}
-                {items ? <CheckRows items={items} /> : children}
-            </div>
-            {onDismiss && (
-                <button
-                    type="button"
-                    aria-label="close"
-                    onClick={onDismiss}
-                    className="-m-1 flex size-6 shrink-0 items-center justify-center rounded-round"
-                >
-                    <Icon name="cancel" size={12} />
-                </button>
-            )}
-        </div>
-    )
-}
-
-// ---------------------------------------------------------------------------
-// variant B — slim accent banner (left rule instead of a tint block)
-// ---------------------------------------------------------------------------
-
-const AccentNotification = ({
-    priority = 'info',
-    title,
-    children,
-    items,
-    hideIcon,
-    className,
-}: {
-    priority?: Priority
-    title?: string
-    children?: React.ReactNode
-    items?: React.ReactNode[]
-    hideIcon?: boolean
-    className?: string
-}) => {
-    const { icon, accent, accentText } = PRIORITY_META[priority]
-    const showIcon = !items && !hideIcon
-    return (
-        <div
-            role={priority === 'error' || priority === 'attention' ? 'alert' : 'status'}
-            className={twMerge('flex items-start gap-2 border-l-2 py-0.5 pl-2.5 text-start', accent, className)}
-        >
-            {showIcon && <Icon name={icon} size={16} className={twMerge('mt-0.5 shrink-0', accentText)} />}
-            <div className="min-w-0 flex-1 text-body-s break-words text-foreground-primary">
-                {title && <span className="font-semibold">{title} </span>}
-                {items ? <CheckRows items={items} /> : children}
-            </div>
-        </div>
-    )
-}
-
-// ---------------------------------------------------------------------------
-// variant B2 — accent banner, no icon: text tinted to the accent tone
-// ---------------------------------------------------------------------------
-
-/** B without any glyphs. Text (title + body + list rows) takes the priority's
- *  accent tone. The raw border hues (icon-bubble blue/green/yellow, subtle
- *  gray) are too light for text, so the text uses the darkest DS token of the
- *  same hue — the avatar foregrounds (blue #2563eb, green #3b730c, yellow
- *  #885b00), foreground-secondary for helper; error is #ff3b30 on both. */
-const AccentNoIconNotification = ({
-    priority = 'info',
-    title,
-    children,
-    items,
-    className,
-}: {
-    priority?: Priority
-    title?: string
-    children?: React.ReactNode
-    items?: React.ReactNode[]
-    className?: string
-}) => {
-    const { accent, accentText } = PRIORITY_META[priority]
-    return (
-        <div
-            role={priority === 'error' || priority === 'attention' ? 'alert' : 'status'}
-            className={twMerge('border-l-2 py-0.5 pl-2.5 text-start', accent, accentText, className)}
-        >
-            <div className="min-w-0 text-body-s break-words">
-                {title && <span className="font-semibold">{title} </span>}
-                {items ? (
-                    // no check glyphs either — plain text bullets, body size
-                    <div className="flex flex-col gap-1">
-                        {items.map((item, i) => (
-                            <div key={i} className="flex items-start gap-1.5">
-                                <span className="shrink-0">•</span>
-                                <div className="min-w-0 flex-1">{item}</div>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    children
-                )}
-            </div>
-        </div>
-    )
-}
-
-// ---------------------------------------------------------------------------
-// variant C — quiet modal note (no box at all, reads as helper text)
-// ---------------------------------------------------------------------------
-
-const QuietNotification = ({
-    priority = 'info',
-    children,
-    className,
-}: {
-    priority?: Priority
-    children?: React.ReactNode
-    className?: string
-}) => {
-    const { icon, accentText } = PRIORITY_META[priority]
-    // error keeps the semantic red; everything else stays secondary so the
-    // note never competes with the modal's title and cta
-    const tone = priority === 'error' ? 'text-foreground-error' : 'text-foreground-secondary'
-    return (
-        <div
-            role={priority === 'error' || priority === 'attention' ? 'alert' : 'status'}
-            className={twMerge('flex items-start justify-center gap-1.5 text-start', tone, className)}
-        >
-            <Icon name={icon} size={16} className={twMerge('mt-px shrink-0', priority !== 'error' && accentText)} />
-            <span className="min-w-0 text-body-xs break-words">{children}</span>
-        </div>
-    )
-}
-
-// ---------------------------------------------------------------------------
-// variant D — toast redesign (compact pill, ONE icon slot, dismiss affordance)
-// ---------------------------------------------------------------------------
-
-const ToastProposal = ({
-    priority = 'info',
-    children,
-    content,
-    onDismiss,
-    className,
-}: {
-    priority?: Priority
-    children?: React.ReactNode
-    /** custom content REPLACES the icon+message slot entirely — the double-icon
-        bug cannot happen because there is no second slot to stack onto */
-    content?: React.ReactNode
-    onDismiss?: () => void
-    className?: string
-}) => {
-    const { icon, accentText } = PRIORITY_META[priority]
-    return (
-        <div
-            role="status"
-            className={twMerge(
-                'flex w-max max-w-full items-center gap-2 rounded-sm border border-border-default bg-background-default py-2 pr-2 pl-3',
-                className
-            )}
-        >
-            {content ?? (
-                <>
-                    <Icon name={icon} size={16} className={twMerge('shrink-0', accentText)} />
-                    <span className="min-w-0 text-body-s break-words text-foreground-primary">{children}</span>
-                </>
-            )}
-            {onDismiss && (
-                <button
-                    type="button"
-                    aria-label="close"
-                    onClick={onDismiss}
-                    className="flex size-6 shrink-0 items-center justify-center rounded-round text-foreground-secondary"
-                >
-                    <Icon name="cancel" size={12} />
-                </button>
-            )}
-        </div>
-    )
-}
-
-// ---------------------------------------------------------------------------
-// in-modal variants E/F/G — tuned for inside ActionModal only
-// ---------------------------------------------------------------------------
-
-// variant E — modal body row: icon + Body/S at the modal's own body type step,
-// so the note reads as part of the description stack, not as a foreign block
-const ModalBodyNote = ({
-    priority = 'info',
-    title,
-    children,
-}: {
-    priority?: Priority
-    title?: string
-    children?: React.ReactNode
-}) => {
-    const { icon, accentText } = PRIORITY_META[priority]
-    return (
-        <div
-            role={priority === 'error' || priority === 'attention' ? 'alert' : 'status'}
-            className="flex w-full items-start gap-2 text-start"
-        >
-            <Icon name={icon} size={16} className={twMerge('mt-0.5 shrink-0', accentText)} />
-            <span
-                className={twMerge(
-                    'min-w-0 flex-1 text-body-s break-words',
-                    priority === 'error' ? 'text-foreground-error' : 'text-foreground-primary'
-                )}
-            >
-                {title && <span className="font-semibold">{title} </span>}
-                {children}
-            </span>
-        </div>
-    )
-}
-
-// variant F — footnote under the CTA: Body/XS centered, dimmed; the note is
-// the least important thing in the modal and finally looks like it
-const ModalFootnote = ({ priority = 'info', children }: { priority?: Priority; children?: React.ReactNode }) => (
-    <p
-        role={priority === 'error' || priority === 'attention' ? 'alert' : 'status'}
-        className={twMerge(
-            'w-full text-center text-body-xs break-words',
-            priority === 'error' ? 'text-foreground-error' : 'text-foreground-secondary'
-        )}
-    >
-        {children}
-    </p>
-)
-
-// variant G — tinted chip: badge-weight, keeps a hint of the tinted background
-// but at Label/M chip scale, so the tone survives without the slab
-const ModalChip = ({
-    priority = 'info',
-    title,
-    children,
-}: {
-    priority?: Priority
-    title?: string
-    children?: React.ReactNode
-}) => {
-    const { icon, bg } = PRIORITY_META[priority]
-    return (
-        <div
-            role={priority === 'error' || priority === 'attention' ? 'alert' : 'status'}
-            className={twMerge(
-                'flex w-full items-start gap-1.5 rounded-sm px-2 py-1 text-start text-foreground-over-color-secondary',
-                bg
-            )}
-        >
-            <Icon name={icon} size={12} className="mt-0.5 shrink-0" />
-            <span className="min-w-0 flex-1 text-body-xs break-words">
-                {title && <span className="font-semibold">{title} </span>}
-                {children}
-            </span>
-        </div>
-    )
-}
-
-// ---------------------------------------------------------------------------
-// faithful ActionModal panel replica (static — real ActionModal is an overlay)
 // ---------------------------------------------------------------------------
 
 /** copies ActionModal's panel exactly: white bg, border-default, rounded (4px),
@@ -419,69 +75,6 @@ const ModalPanelReplica = ({
         </div>
     </div>
 )
-
-/** side-by-side pair for the in-modal variants: the same modal frame (backup
- *  lose-phone content) once with the current Notification, once with the
- *  proposed variant — info + error priorities and a long-copy case each.
- *  `footnote` renders the variant's notes below the CTA instead of above it. */
-const InModalComparison = ({
-    render,
-    footnote = false,
-}: {
-    render: (priority: Priority, title: string, copy: string) => React.ReactNode
-    footnote?: boolean
-}) => {
-    const variantNotes = (
-        <div className={twMerge('flex w-full flex-col items-start', footnote ? 'gap-1' : 'gap-2')}>
-            {render(
-                'info',
-                'Backup is enabled',
-                'Sign into your new phone with your Apple ID. Your wallet restores automatically.'
-            )}
-            {render('error', 'No backup', "Your funds are permanently lost, we can't recover your wallet.")}
-            {render('error', 'Transfer failed.', LONG_COPY)}
-        </div>
-    )
-    return (
-        <div className="grid items-start gap-4 md:grid-cols-2">
-            <div className="flex flex-col gap-2">
-                <p className="text-body-xs text-foreground-secondary">current</p>
-                <ModalPanelReplica icon="info" title="What if I lose my phone?" cta="Got it">
-                    <div className="space-y-3 w-full">
-                        <Notification priority="info" title="Backup is enabled">
-                            Sign into your new phone with your Apple ID. Your wallet restores automatically.
-                        </Notification>
-                        <Notification priority="error" title="No backup">
-                            Your funds are permanently lost, we can&apos;t recover your wallet.
-                        </Notification>
-                        <Notification priority="error" title="Transfer failed.">
-                            {LONG_COPY}
-                        </Notification>
-                    </div>
-                </ModalPanelReplica>
-            </div>
-            <div className="flex flex-col gap-2">
-                <p className="text-body-xs text-foreground-secondary">proposal</p>
-                <ModalPanelReplica icon="info" title="What if I lose my phone?" cta={footnote ? undefined : 'Got it'}>
-                    {footnote ? (
-                        <div className="flex w-full flex-col gap-3">
-                            <Button onClick={noop} className="w-full justify-center">
-                                Got it
-                            </Button>
-                            {variantNotes}
-                        </div>
-                    ) : (
-                        variantNotes
-                    )}
-                </ModalPanelReplica>
-            </div>
-        </div>
-    )
-}
-
-// ---------------------------------------------------------------------------
-// full usage catalog — every production render of Notification
-// ---------------------------------------------------------------------------
 
 type Usage = {
     /** file — context */
@@ -621,9 +214,9 @@ const MODAL_USAGES = {
 // call site is added/removed in prod, this page drifts until someone re-greps
 const USAGE_GROUPS: UsageGroup[] = [
     {
-        name: 'flow and form errors — 48 call sites, 3 representative samples',
+        name: 'flow and form errors — 48 call sites, 4 representative samples',
         ctx: 'form',
-        note: 'The biggest population: priority="error" under an amount input, form, or CTA — all 48 sites share this exact shape, so three samples stand in for the list (single-line, wrapping, error toast). Nothing is lost: the sites are enumerated by grepping <Notification priority="error">.',
+        note: 'The biggest population: priority="error" under an amount input, form, or CTA — all 48 sites share this exact shape, so four samples stand in for the list (single-line, wrapping, error toast, multi-line toast). Nothing is lost: the sites are enumerated by grepping <Notification priority="error">.',
         usages: [
             {
                 label: 'single-line error — e.g. SendInputView:114 (real copy; 46 similar sites)',
@@ -641,6 +234,7 @@ const USAGE_GROUPS: UsageGroup[] = [
                 priority: 'error',
                 body: 'Failed to cancel link. Please try again.',
             },
+            { label: 'multi-line error toast', ctx: 'toast', rep: true, priority: 'error', body: LONG_COPY },
         ],
     },
     {
@@ -1106,62 +700,7 @@ const MODAL_HOSTS: { sites: string; build: (render: RenderFn) => React.ReactNode
     },
 ]
 
-const UsageShowcase = ({ render }: { render: (u: Usage) => React.ReactNode }) => (
-    <div className="flex flex-col gap-6">
-        {USAGE_GROUPS.map((group) => (
-            <div key={group.name} className="flex flex-col gap-3">
-                <DevSectionLabel>{group.name}</DevSectionLabel>
-                {group.note && <p className="max-w-3xl text-body-xs text-foreground-secondary">{group.note}</p>}
-                <div className="grid items-start gap-x-6 gap-y-4 md:grid-cols-2 xl:grid-cols-3">
-                    {group.usages.map((u) => (
-                        <UsageCell key={u.label} usage={u} ctx={group.ctx} render={render} />
-                    ))}
-                </div>
-            </div>
-        ))}
-    </div>
-)
-
-// ---------------------------------------------------------------------------
-// page scaffolding
-// ---------------------------------------------------------------------------
-
 const noop = () => {}
-
-/** real form controls + a mock modal panel, so each variant is judged in the
- *  two contexts the team complained about */
-const ContextStrip = ({
-    inline,
-    modal,
-}: {
-    /** the variant rendered as a form-level note */
-    inline: React.ReactNode
-    /** the variant rendered inside a mock ActionModal panel */
-    modal: React.ReactNode
-}) => (
-    <div className="grid gap-4 md:grid-cols-2">
-        <div className="flex flex-col gap-2 rounded-sm border border-border-subtle p-4">
-            <p className="text-body-xs text-foreground-secondary">next to Input + Button</p>
-            <BaseInput placeholder="IBAN" defaultValue="ES91 2100 0418 4502 0005 1332" readOnly />
-            {inline}
-            <Button size="small" onClick={noop} className="w-auto min-w-28 self-start">
-                Continue
-            </Button>
-        </div>
-        <div className="flex flex-col gap-2 rounded-sm border border-border-subtle p-4">
-            <p className="text-body-xs text-foreground-secondary">inside a modal panel</p>
-            {/* mimics ActionModal: centered content, p-6, heading-xs title */}
-            <div className="flex flex-col items-center gap-3 rounded-sm border border-border-default bg-background-default p-6 text-center">
-                <h3 className="text-heading-xs">Confirm withdrawal</h3>
-                <p className="text-body-s text-foreground-secondary">You are about to withdraw $50.00 to your bank.</p>
-                {modal}
-                <Button size="small" onClick={noop} className="w-auto min-w-28">
-                    Confirm
-                </Button>
-            </div>
-        </div>
-    </div>
-)
 
 const PageSection = ({
     id,
@@ -1181,21 +720,12 @@ const PageSection = ({
     </section>
 )
 
-const Fold = ({ summary, children }: { summary: string; children: React.ReactNode }) => (
-    <details className="rounded-sm border border-border-subtle p-3">
-        <summary className="cursor-pointer text-body-s font-semibold">{summary}</summary>
-        <div className="flex flex-col gap-3 pt-3">{children}</div>
-    </details>
-)
-
 const NAV = [
-    ['problem', 'problem'],
-    ['variant-a', 'A — compact inline'],
-    ['variant-b', 'B — accent banner'],
-    ['modals', 'modals side by side'],
+    ['errors', 'flow errors'],
+    ['banners', 'page banners'],
+    ['modals', 'modals & drawers'],
+    ['special', 'rich body'],
     ['toasts', 'toasts'],
-    ['secondary', 'other ideas'],
-    ['variant-b2', 'B2 — iconless accent'],
 ] as const
 
 const renderCurrent: RenderFn = (u) => (
@@ -1203,38 +733,27 @@ const renderCurrent: RenderFn = (u) => (
         {u.body}
     </Notification>
 )
-const renderA: RenderFn = (u) => (
-    <CompactNotification priority={u.priority} title={u.title} items={u.items} hideIcon={u.hideIcon}>
-        {u.body}
-    </CompactNotification>
-)
-const renderB: RenderFn = (u) => (
-    <AccentNotification priority={u.priority} title={u.title} items={u.items} hideIcon={u.hideIcon}>
-        {u.body}
-    </AccentNotification>
-)
-// no hideIcon pass-through: B2 has no icons at all
-const renderB2: RenderFn = (u) => (
-    <AccentNoIconNotification priority={u.priority} title={u.title} items={u.items}>
-        {u.body}
-    </AccentNoIconNotification>
+
+const [G_ERRORS, G_WRAPPERS, G_BANNERS, G_SPECIAL] = USAGE_GROUPS
+
+/** one usage group: label + note + grid of real-component renders */
+const GroupBlock = ({ group }: { group: UsageGroup }) => (
+    <div className="flex flex-col gap-3">
+        <DevSectionLabel>{group.name}</DevSectionLabel>
+        {group.note && <p className="max-w-3xl text-body-xs text-foreground-secondary">{group.note}</p>}
+        <div className="grid items-start gap-x-6 gap-y-4 md:grid-cols-2 xl:grid-cols-3">
+            {group.usages.map((u) => (
+                <UsageCell key={u.label} usage={u} ctx={group.ctx} render={renderCurrent} />
+            ))}
+        </div>
+    </div>
 )
 
-const SHORT_COPY: Record<Priority, string> = {
-    info: 'A short info message',
-    success: 'Success, details changed',
-    attention: 'Pay attention, this is important',
-    error: 'Ups, something went wrong',
-    helper: 'Leave empty to let payers choose amounts',
-}
-
-export default function NotificationProposalsPage() {
-    const [toasts, setToasts] = useState<Priority[]>(['info', 'success', 'attention', 'error'])
-
+export default function NotificationUsageInventoryPage() {
     return (
         <DevPageShell
-            title="Notification redesign proposals"
-            description="Finalists A and B rendered in the actual app places, modal hosts compared side by side with the current component, and the toast redesign. Existing tokens only."
+            title="Notification usage inventory"
+            description="Every place the (shipped, compact) production Notification renders today, grouped by context — the working inventory for designing the second notification component. The in-modal/drawer group is the over-served context that component targets."
         >
             <nav className="sticky top-0 z-10 -my-2 flex gap-2 overflow-x-auto border-b border-border-subtle bg-background-default py-2">
                 {NAV.map(([id, label]) => (
@@ -1249,233 +768,104 @@ export default function NotificationProposalsPage() {
             </nav>
 
             <PageSection
-                id="problem"
-                title="The problem today"
-                blurb="Current component: Body/M 16px text, 20px icon, 12px padding, full tint block — too big, breaks layouts, worst inside modals."
+                id="errors"
+                title="Flow and form errors"
+                blurb="48 call sites, one shape: priority=error under an input or CTA. Four samples stand in for the list. This context is well-served by the current component — probably not the second component's job."
             >
-                <div className="flex max-w-xl flex-col gap-2">
-                    <Notification priority="error">Ups, something went wrong</Notification>
-                    <Notification priority="info" title="EUR accounts only">
-                        {LONG_COPY}
-                    </Notification>
-                </div>
+                <GroupBlock group={G_ERRORS} />
             </PageSection>
 
             <PageSection
-                id="variant-a"
-                title="Finalist A — compact inline"
-                blurb="Same anatomy one type step down: Body/S 14px, 16px icon, half the padding. States first, then every real app place rendered with A (errors sampled — all 48 share one shape)."
+                id="banners"
+                title="Page banners"
+                blurb="Exhaustive: every page-level banner — load errors, titled info/attention notices, transaction-detail nudges, the shell connectivity/maintenance banner. Note the stacking smell: AddMoneyBankDetails shows three attention boxes on one screen."
             >
-                <div className="flex max-w-xl flex-col gap-2">
-                    {PRIORITIES.map((p) => (
-                        <CompactNotification key={p} priority={p}>
-                            {SHORT_COPY[p]}
-                        </CompactNotification>
-                    ))}
-                    <CompactNotification priority="error" title="Transfer failed." onDismiss={noop}>
-                        {LONG_COPY}
-                    </CompactNotification>
+                <div className="flex flex-col gap-6">
+                    <GroupBlock group={G_WRAPPERS} />
+                    <GroupBlock group={G_BANNERS} />
                 </div>
-                <UsageShowcase render={renderA} />
-            </PageSection>
-
-            <PageSection
-                id="variant-b"
-                title="Finalist B — slim accent banner"
-                blurb="No tint block: transparent background, 2px left rule + tinted 16px icon carry the priority. Same states and real app places, rendered with B."
-            >
-                <div className="flex max-w-xl flex-col gap-2">
-                    {PRIORITIES.map((p) => (
-                        <AccentNotification key={p} priority={p}>
-                            {SHORT_COPY[p]}
-                        </AccentNotification>
-                    ))}
-                    <AccentNotification priority="error" title="Transfer failed.">
-                        {LONG_COPY}
-                    </AccentNotification>
-                </div>
-                <UsageShowcase render={renderB} />
             </PageSection>
 
             <PageSection
                 id="modals"
-                title="Modals and drawers — current vs A vs B"
-                blurb="The 8 host surfaces (all 14 in-modal call sites) rendered completely, three ways next to each other. Real production copy and layout."
+                title="Inside modals and drawers — the over-served context"
+                blurb="All 14 in-modal/in-drawer call sites as their 8 complete host surfaces (real copy and layout, ~375px). This is where the current component fits worst and where the second component should win. Labels list the call sites each host covers."
             >
-                <div className="flex flex-col gap-10">
+                <div className="grid items-start gap-6 md:grid-cols-2 xl:grid-cols-3">
                     {MODAL_HOSTS.map((host) => (
-                        <div key={host.sites} className="flex flex-col gap-3">
-                            <DevSectionLabel>{host.sites}</DevSectionLabel>
-                            <div className="grid items-start gap-4 xl:grid-cols-3">
-                                {(
-                                    [
-                                        ['current', renderCurrent],
-                                        ['A — compact inline', renderA],
-                                        ['B — accent banner', renderB],
-                                    ] as const
-                                ).map(([label, fn]) => (
-                                    <div key={label} className="flex min-w-0 flex-col gap-1.5">
-                                        <p className="text-body-xs font-semibold">{label}</p>
-                                        {host.build(fn)}
-                                    </div>
-                                ))}
-                            </div>
+                        <div key={host.sites} className="flex min-w-0 flex-col gap-1.5">
+                            <p className="text-body-xs text-foreground-secondary">{host.sites}</p>
+                            {host.build(renderCurrent)}
                         </div>
                     ))}
                 </div>
+            </PageSection>
+
+            <PageSection
+                id="special"
+                title="Rich body with actions"
+                blurb="One site stretches the component furthest: bullet list + divider + action link inside the notification body. A shape the second component should either own properly or reject."
+            >
+                <GroupBlock group={G_SPECIAL} />
             </PageSection>
 
             <PageSection
                 id="toasts"
-                title="Toasts — current vs proposal D"
-                blurb="Left: today's toast (the full Notification floating; last pill reproduces the live double-icon bug). Right: D — compact pill, single icon slot, custom content replaces it entirely."
+                title="Toasts"
+                blurb="Every useToast caller renders the same component floating bottom-right (ToastStack). Four generic types plus two custom-content pills; the cooldown pill still shows the double-icon bug (content brings its own icon, hideIcon not passed)."
             >
-                <div className="grid items-start gap-4 md:grid-cols-2">
-                    <div className="flex flex-col items-end gap-2 rounded-sm border border-border-subtle bg-background-page p-4">
-                        <p className="mr-auto text-body-xs text-foreground-secondary">current</p>
-                        <div className="max-w-md">
-                            <Notification priority="info" onDismiss={noop}>
-                                Link copied
-                            </Notification>
-                        </div>
-                        <div className="max-w-md">
-                            <Notification priority="error" onDismiss={noop}>
-                                Failed to cancel link. Please try again.
-                            </Notification>
-                        </div>
-                        <div className="max-w-md">
-                            {/* the double-icon bug, reproduced with the production component:
-                                priority icon + the content's own clock icon */}
-                            <Notification priority="info" onDismiss={noop}>
-                                <span className="flex items-center gap-2">
-                                    <Icon name="clock" size={16} className="shrink-0" />
-                                    Card locked for 4:32
+                <div className="flex max-w-xl flex-col items-end gap-2 rounded-sm border border-border-subtle bg-background-page p-4">
+                    <div className="max-w-md">
+                        <Notification priority="success" onDismiss={noop}>
+                            Document submitted! Your limits will be updated shortly.
+                        </Notification>
+                    </div>
+                    <div className="max-w-md">
+                        <Notification priority="error" onDismiss={noop}>
+                            Failed to cancel link. Please try again.
+                        </Notification>
+                    </div>
+                    <div className="max-w-md">
+                        <Notification priority="info" onDismiss={noop}>
+                            Link copied
+                        </Notification>
+                    </div>
+                    <div className="max-w-md">
+                        {/* toast.warning maps to attention; representative copy */}
+                        <Notification priority="attention" onDismiss={noop}>
+                            Your session is about to expire.
+                        </Notification>
+                    </div>
+                    <div className="max-w-md">
+                        {/* RainCooldownContext:109 — renders like this today: priority icon
+                            AND the content's clock icon (the double-icon bug) */}
+                        <Notification priority="info" onDismiss={noop}>
+                            <span className="flex items-center gap-2">
+                                <Icon name="clock" size={16} className="shrink-0" />
+                                Card locked for 4:32
+                            </span>
+                        </Notification>
+                    </div>
+                    <div className="max-w-md">
+                        {/* BadgeEarnToast:84 — custom content with hideIcon, badge art mocked */}
+                        <Notification priority="success" hideIcon onDismiss={noop}>
+                            <span className="flex items-center gap-2">
+                                <span className="flex size-7 shrink-0 items-center justify-center rounded-round bg-background-badge-accent">
+                                    🏅
                                 </span>
-                            </Notification>
-                        </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-2 rounded-sm border border-border-subtle bg-background-page p-4">
-                        <p className="mr-auto text-body-xs text-foreground-secondary">
-                            proposal D — dismiss works, reset below
-                        </p>
-                        {toasts.map((p) => (
-                            <ToastProposal
-                                key={p}
-                                priority={p}
-                                onDismiss={() => setToasts((prev) => prev.filter((t) => t !== p))}
-                            >
-                                {p === 'error' ? 'Ups, something went wrong' : `A short ${p} toast`}
-                            </ToastProposal>
-                        ))}
-                        {toasts.length < 4 && (
-                            <Button
-                                size="small"
-                                variant="stroke"
-                                onClick={() => setToasts(['info', 'success', 'attention', 'error'])}
-                                className="w-auto"
-                            >
-                                Reset stack
-                            </Button>
-                        )}
-                        <ToastProposal priority="error" onDismiss={noop} className="max-w-md">
-                            {LONG_COPY}
-                        </ToastProposal>
-                        <ToastProposal
-                            content={
-                                <span className="flex items-center gap-2 text-body-s">
-                                    <Icon name="clock" size={16} className="shrink-0" />
-                                    Card locked for 4:32
-                                </span>
-                            }
-                            onDismiss={noop}
-                        />
+                                Badge unlocked: First Steps
+                            </span>
+                        </Notification>
                     </div>
                 </div>
             </PageSection>
 
-            <PageSection
-                id="secondary"
-                title="Other ideas (not finalists)"
-                blurb="Kept for reference, collapsed. C is a quiet no-box note; E/F/G are in-modal-only treatments, each compared against the current component inside the lose-phone modal."
-            >
-                <Fold summary="C — quiet modal note (no box: tinted 16px icon + Body/XS secondary text)">
-                    <div className="flex max-w-xl flex-col items-start gap-2">
-                        {PRIORITIES.map((p) => (
-                            <QuietNotification key={p} priority={p}>
-                                {SHORT_COPY[p]}
-                            </QuietNotification>
-                        ))}
-                        <QuietNotification priority="error">{LONG_COPY}</QuietNotification>
-                    </div>
-                    <ContextStrip
-                        inline={<QuietNotification priority="error">This IBAN is not a EUR account.</QuietNotification>}
-                        modal={
-                            <QuietNotification priority="attention">
-                                Withdrawals over $1,000 need extra verification.
-                            </QuietNotification>
-                        }
-                    />
-                </Fold>
-                <Fold summary="E — modal body row (icon + Body/S at the modal's own body type step)">
-                    <InModalComparison
-                        render={(p, title, copy) => (
-                            <ModalBodyNote priority={p} title={title}>
-                                {copy}
-                            </ModalBodyNote>
-                        )}
-                    />
-                </Fold>
-                <Fold summary="F — footnote under the CTA (Body/XS centered, dimmed; error stays red)">
-                    <InModalComparison
-                        footnote
-                        render={(p, _title, copy) => <ModalFootnote priority={p}>{copy}</ModalFootnote>}
-                    />
-                </Fold>
-                <Fold summary="G — tinted chip (badge-weight: Body/XS, 12px icon, 4px vertical padding)">
-                    <InModalComparison
-                        render={(p, title, copy) => (
-                            <ModalChip priority={p} title={title}>
-                                {copy}
-                            </ModalChip>
-                        )}
-                    />
-                </Fold>
-            </PageSection>
-
-            <PageSection
-                id="variant-b2"
-                title="B2 — accent banner, no icon"
-                blurb="B with every glyph removed: the 2px left rule alone carries the priority, and the text takes the accent tone (darkest DS token of the same hue where the border color is too light for text — avatar foregrounds for info/success/attention, foreground-secondary for helper; error is the same red both sides). Standalone showcase, no comparison."
-            >
-                <div className="flex max-w-xl flex-col gap-2">
-                    {PRIORITIES.map((p) => (
-                        <AccentNoIconNotification key={p} priority={p}>
-                            {SHORT_COPY[p]}
-                        </AccentNoIconNotification>
-                    ))}
-                    <AccentNoIconNotification priority="error" title="Transfer failed.">
-                        {LONG_COPY}
-                    </AccentNoIconNotification>
-                </div>
-                <UsageShowcase render={renderB2} />
-                <div className="flex flex-col gap-3">
-                    <DevSectionLabel>inside modals and drawers — the 8 host surfaces, B2 only</DevSectionLabel>
-                    <div className="grid items-start gap-6 md:grid-cols-2 xl:grid-cols-3">
-                        {MODAL_HOSTS.map((host) => (
-                            <div key={host.sites} className="flex min-w-0 flex-col gap-1.5">
-                                <p className="text-body-xs text-foreground-secondary">{host.sites}</p>
-                                {host.build(renderB2)}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </PageSection>
-
-            <DevNoteCard title="Proposal notes">
-                All colors come from existing tokens: badge backgrounds, the icon-bubble accents, avatar foregrounds,
-                and the error semantics. No new colors, shadows, or radii. Root cause of the double-icon toast bug:
-                Toast passes caller content as Notification children while Notification still prepends its priority icon
-                — hideIcon is opt-in and RainCooldownContext forgot it.
+            <DevNoteCard title="Inventory notes">
+                Hand-transcribed from grep + i18n (2026-09-02, re-checked 2026-09-03) — re-grep before trusting counts
+                after big merges. 96 inline call sites + the toast surface; flow errors sampled, everything else
+                exhaustive. Runtime-only copy is marked &quot;representative&quot;. Known bug for the toast rows:
+                RainCooldownContext passes content with its own clock icon and no hideIcon, so the pill renders two
+                icons.
             </DevNoteCard>
         </DevPageShell>
     )
