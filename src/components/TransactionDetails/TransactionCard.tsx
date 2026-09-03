@@ -213,7 +213,12 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     // pending treatment — no greyed amount, no pending chip. See
     // isOpenRequestDisplay for the reasoning; PR #2813 review.
     const isOpenRequest = isOpenRequestDisplay(transaction)
-    const isPendingAmount = !!status && PENDING_AMOUNT_STATUSES.has(status) && !isOpenRequest
+    // Card payments are exempt from the greyed amount only (ruled 2026-09-03,
+    // Kush): an authorized card spend is money already committed, so the grey
+    // read as "amount in doubt". The pending chip stays. Block-based predicate
+    // on purpose — card refunds arrive with legacy kinds (see isFxBearingFlow).
+    const isPendingAmount =
+        !!status && PENDING_AMOUNT_STATUSES.has(status) && !isOpenRequest && !isCardPaymentEntry(transaction)
     const isStruckAmount = !!status && STRUCK_AMOUNT_STATUSES.has(status) && !isFailedCardRefund
     const showStatusChip =
         !!status &&
