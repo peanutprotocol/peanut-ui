@@ -63,11 +63,9 @@ interface CameraPermissionModalProps {
     visible: boolean
     onRetry: () => void
     onClose: () => void
-    // Pasting a code is a camera-free way to pay, so it stays offered here
-    onPaste?: () => void
 }
 
-export default function CameraPermissionModal({ visible, onRetry, onClose, onPaste }: CameraPermissionModalProps) {
+export default function CameraPermissionModal({ visible, onRetry, onClose }: CameraPermissionModalProps) {
     const t = useTranslations('global')
     const tCommon = useTranslations('common')
     const { deviceType } = useDeviceType()
@@ -86,6 +84,10 @@ export default function CameraPermissionModal({ visible, onRetry, onClose, onPas
             title={t('qrScanner.cameraPermission.title')}
             modalClassName="!z-[60]"
             modalPanelClassName="max-w-md mx-8"
+            // one primary + one secondary (Dismiss, in the footer) — the old
+            // paste CTA made two secondaries, off the modal recipe (ruled
+            // 2026-09-03, kush). trade-off accepted: a camera-denied native
+            // user loses the paste entry on this screen
             ctas={[
                 {
                     text: tCommon('tryAgain'),
@@ -93,16 +95,6 @@ export default function CameraPermissionModal({ visible, onRetry, onClose, onPas
                     shadowSize: '4',
                     onClick: onRetry,
                 },
-                ...(onPaste
-                    ? [
-                          {
-                              text: t('qrScanner.clickToPaste'),
-                              variant: 'primary-soft' as const,
-                              shadowSize: '4' as const,
-                              onClick: onPaste,
-                          },
-                      ]
-                    : []),
             ]}
             footer={
                 <Button variant="stroke" className="w-full" onClick={onClose}>

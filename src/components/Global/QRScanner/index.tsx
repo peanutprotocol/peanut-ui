@@ -392,7 +392,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                  * for a copied Pix code. The modal owns the whole screen here, so the
                  * action has to sit inside it to be reachable.
                  */
-                <CameraPermissionModal visible onRetry={retryCamera} onClose={close} onPaste={handlePaste} />
+                <CameraPermissionModal visible onRetry={retryCamera} onClose={close} />
             ) : error ? (
                 <ErrorView message={error} onClose={close} onRetry={retryCamera}>
                     <PasteActions

@@ -36,8 +36,15 @@ jest.mock('next/image', () => ({
 // the denied state, so paste is only reachable if it is rendered inside it.
 jest.mock('../CameraPermissionModal', () => ({
     __esModule: true,
-    default: ({ onPaste }: { onPaste?: () => void }) =>
-        onPaste ? <button onClick={onPaste}>{'Click to paste'}</button> : null,
+    // mirrors the real contract: Try again + Dismiss, and a paste button ONLY
+    // if a caller were to pass onPaste (it must not — the assertion relies on it)
+    default: ({ onRetry, onClose, onPaste }: { onRetry: () => void; onClose: () => void; onPaste?: () => void }) => (
+        <div>
+            <button onClick={onRetry}>{'Try again'}</button>
+            <button onClick={onClose}>{'Dismiss'}</button>
+            {onPaste && <button onClick={onPaste}>{'Click to paste'}</button>}
+        </div>
+    ),
 }))
 const cameraState = { error: null as string | null, isPermissionDenied: false }
 jest.mock('../useQRScanner', () => ({
@@ -81,15 +88,14 @@ beforeEach(() => {
     cameraState.isPermissionDenied = false
 })
 
-// Pasting a Pix code needs no camera, but the paste UI used to live only inside
-// the live viewfinder — so on native, where the OS camera grant is a sticky
-// per-install decision, declining it removed the app's only paste entry point.
-describe.each([
-    ['camera permission denied', { isPermissionDenied: true, error: null as string | null }],
-    ['camera unavailable', { isPermissionDenied: false, error: 'Camera unavailable' }],
-])('%s: paste stays reachable', (_label, state) => {
+// The camera-unavailable ERROR view keeps a paste path (pasting a Pix code
+// needs no camera). The permission-denied MODAL deliberately does not any
+// more: two secondary CTAs broke the modal recipe (ruled 2026-09-03, kush) —
+// it offers Try again + Dismiss only. The accepted trade-off: a native user
+// with a sticky camera denial pastes via the error view, not this modal.
+describe('camera unavailable: paste stays reachable', () => {
     it('pastes a Pix code without a working camera', async () => {
-        Object.assign(cameraState, state)
+        Object.assign(cameraState, { isPermissionDenied: false, error: 'Camera unavailable' })
         mockIsAndroidNative.mockReturnValue(false)
         mockHasStrings.mockResolvedValue(false)
         mockRead.mockResolvedValue({ value: PIX_CODE, type: 'text/plain' })
@@ -100,6 +106,20 @@ describe.each([
             fireEvent.click(await screen.findByText('Click to paste'))
         })
         expect(onScan).toHaveBeenCalledWith(PIX_CODE)
+    })
+})
+
+describe('camera permission denied: the modal keeps one primary + Dismiss', () => {
+    it('offers Try again and Dismiss, and no paste CTA', async () => {
+        Object.assign(cameraState, { isPermissionDenied: true, error: null })
+        mockIsAndroidNative.mockReturnValue(false)
+        mockHasStrings.mockResolvedValue(false)
+
+        renderScanner()
+
+        expect(await screen.findByText('Try again')).toBeInTheDocument()
+        expect(screen.getByText('Dismiss')).toBeInTheDocument()
+        expect(screen.queryByText('Click to paste')).toBeNull()
     })
 })
 
