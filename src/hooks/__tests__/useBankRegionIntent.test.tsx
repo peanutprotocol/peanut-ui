@@ -52,6 +52,7 @@ describe('useBankRegionIntent', () => {
         ['GB', 'the UK rule'],
         ['RU', 'a sanctioned residence'],
         ['JP', 'a Bridge banking exclusion'],
+        ['GW', 'a Bridge banking exclusion its prose note omits'],
     ])('forces ROW for %s (%s), whatever the destination', (iso2) => {
         mockUser = { residence: { declared: iso2 } }
         expect(intentFor('europe')).toBe('ROW')
