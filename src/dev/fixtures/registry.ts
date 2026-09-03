@@ -333,6 +333,32 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
 
+    reconsent: {
+        route: '/home',
+        about: 'Re-consent modal over home: two updated documents as a centered link line.',
+        responses: {
+            'GET /users/consent/status': {
+                needsReConsent: true,
+                documents: [
+                    {
+                        slug: 'terms',
+                        currentVersion: '2026-07-15',
+                        acceptedVersion: '2026-01-01',
+                        acceptedAt: '2026-01-01T00:00:00.000Z',
+                        needsAcceptance: true,
+                    },
+                    {
+                        slug: 'privacy',
+                        currentVersion: '2026-07-15',
+                        acceptedVersion: '2026-01-01',
+                        acceptedAt: '2026-01-01T00:00:00.000Z',
+                        needsAcceptance: true,
+                    },
+                ],
+            },
+        },
+    },
+
     // ---------------------------------------------------------------------
     // Error states.
     // ---------------------------------------------------------------------
