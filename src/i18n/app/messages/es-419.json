@@ -1162,6 +1162,7 @@
             "offrampUnavailable": "Retiro no disponible",
             "bankClaimUnavailable": "No puedes reclamar este enlace a tu cuenta bancaria.",
             "belowMinimum": "Este enlace está por debajo del mínimo de {amount} para retiros bancarios.",
+            "belowNetworkMinimum": "Reclamar a {network} requiere al menos {amount}. Elige otra red o reclama a tu saldo de Peanut.",
             "aboveMaximum": "Este enlace supera el máximo de {amount} para retiros bancarios."
         },
         "claimed": {

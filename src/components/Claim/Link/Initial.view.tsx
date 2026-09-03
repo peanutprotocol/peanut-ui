@@ -42,7 +42,8 @@ import { BankFlowManager } from './views/BankFlowManager.view'
 import { type ClaimXChainPreview } from '../Claim.consts'
 import { previewSdaTransfer } from '@/services/rhino-sda'
 import { evmChainIdToRhinoName } from '@/constants/rhino.consts'
-import { getTokenSymbol } from '@/utils/general.utils'
+import { getTokenSymbol, getChainName } from '@/utils/general.utils'
+import { getMinWithdrawUsdForChain } from '@/utils/cross-chain-fee.utils'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import Image from 'next/image'
@@ -379,12 +380,36 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     if (!selectedTokenData?.chainId || !selectedTokenData?.address) {
                         throw new Error('Selected token data is required for cross-chain claims')
                     }
+
+                    // Rhino parks (and does NOT auto-refund) a cross-chain deposit
+                    // below the route minimum — the funds strand at the SDA and the
+                    // recipient is never credited. Block a sub-minimum claim before
+                    // any SDA is provisioned, mirroring the crypto-withdraw guard.
+                    // tokenPrice gates the check: without a price we can't size the
+                    // claim in USD, so we defer to the backend's own floor.
+                    const claimUsdAmount =
+                        Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * tokenPrice
+                    const hasUsdAmount = tokenPrice > 0 && Number.isFinite(claimUsdAmount)
+                    const minUsd = getMinWithdrawUsdForChain(selectedTokenData.chainId)
+                    if (hasUsdAmount && claimUsdAmount < minUsd) {
+                        setErrorState({
+                            showError: true,
+                            errorMessage: t('errors.belowNetworkMinimum', {
+                                amount: format.number(minUsd, { style: 'currency', currency: 'USD' }),
+                                network: getChainName(selectedTokenData.chainId) ?? selectedTokenData.chainId,
+                            }),
+                        })
+                        setLoadingState('Idle')
+                        return
+                    }
+
                     claimTxHash = await claimLinkXchain({
                         address: recipientAddress,
                         link: claimLinkData.link,
                         destinationChainId: selectedTokenData.chainId,
                         destinationToken: selectedTokenData.address,
                         campaignTag: campaignTag ?? undefined,
+                        amountUsd: hasUsdAmount ? claimUsdAmount : undefined,
                     })
                     setClaimType('claimxchain')
                 } else {
@@ -465,9 +490,12 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             claimLinkData.tokenAddress,
             claimLinkData.pubKey,
             claimLinkData.amount,
+            claimLinkData.tokenDecimals,
             claimLinkData.status,
             claimLinkData.createdAt,
             claimLinkData.senderAddress,
+            tokenPrice,
+            format,
             isPeanutWallet,
             fetchBalance,
             recipient.address,

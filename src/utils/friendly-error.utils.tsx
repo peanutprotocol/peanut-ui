@@ -212,6 +212,13 @@ const classifyError = (error: unknown): FriendlyError => {
             ? code('rainCooldownRetryShortly')
             : { kind: 'params', code: 'rainCooldownRetry', values: { minutes } }
     }
+    // The backend already ships a specific, user-ready sentence for a
+    // sub-minimum bridge ("Amount ($2.00) is below the $5 minimum to bridge to
+    // ETHEREUM.") with the interpolated amounts and chain — pass it through
+    // rather than collapsing to a generic coded string.
+    if (wire === API_ERROR_CODES.BELOW_MIN_BRIDGE_AMOUNT) {
+        return message ? passthrough(message) : code('genericSupport')
+    }
     if (wire) {
         const mapped = WIRE_CODE_MAP[wire as ApiErrorCode]
         if (mapped) return code(mapped)

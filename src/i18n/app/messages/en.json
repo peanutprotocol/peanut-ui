@@ -1162,6 +1162,7 @@
             "offrampUnavailable": "Offramp unavailable",
             "bankClaimUnavailable": "You can not claim this link to your bank account.",
             "belowMinimum": "This link is below the {amount} minimum for bank payouts.",
+            "belowNetworkMinimum": "Claiming to {network} needs at least {amount}. Pick a different network or claim to your Peanut balance.",
             "aboveMaximum": "This link is above the {amount} maximum for bank payouts."
         },
         "claimed": {

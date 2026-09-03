@@ -177,6 +177,7 @@ export async function executeClaimXChain({
     destinationChainId,
     destinationToken,
     campaignTag,
+    amountUsd,
     baseUrl = `${PEANUT_API_URL}/claim`,
 }: {
     link: string
@@ -184,6 +185,8 @@ export async function executeClaimXChain({
     destinationChainId: string
     destinationToken: string
     campaignTag?: string
+    /** USD value of the funds being claimed, used to block sub-minimum bridges. */
+    amountUsd?: number
     baseUrl?: string
     isMainnet?: boolean
     slippage?: number
@@ -217,7 +220,24 @@ export async function executeClaimXChain({
         destinationChain: destRhinoChain,
         destinationAddress: recipientAddress as `0x${string}`,
         tokenOut: tokenSymbol,
+        payAmountUsd: amountUsd,
     })
+
+    // Rhino parks (never auto-refunds) a deposit below the route minimum, so
+    // block the claim before signing — no funds have moved yet at this point
+    // (provisioning an SDA is a lookup, not a transfer). The FE pre-flight guard
+    // uses a static per-chain floor; this uses Rhino's live route minimum as an
+    // exact backstop for routes where the real minimum exceeds that floor.
+    if (
+        typeof amountUsd === 'number' &&
+        Number.isFinite(amountUsd) &&
+        sda.minDepositLimitUsd != null &&
+        amountUsd < sda.minDepositLimitUsd
+    ) {
+        throw new Error(
+            `Cross-chain claim to ${destRhinoChain} requires at least $${sda.minDepositLimitUsd} — the $${amountUsd.toFixed(2)} claim would be stranded by the bridge.`
+        )
+    }
 
     // Sign the withdrawal message targeting the SDA as the on-chain recipient.
     // Whoever knows the password (= anyone with the link) authorizes the claim;
@@ -393,12 +413,14 @@ const useClaimLink = () => {
             destinationChainId,
             destinationToken,
             campaignTag,
+            amountUsd,
         }: {
             address: string
             link: string
             destinationChainId: string
             destinationToken: string
             campaignTag?: string
+            amountUsd?: number
         }) => {
             const isTestnet = isTestnetChain(destinationChainId)
             return await executeClaimXChain({
@@ -407,6 +429,7 @@ const useClaimLink = () => {
                 destinationChainId,
                 destinationToken,
                 campaignTag,
+                amountUsd,
                 isMainnet: !isTestnet,
             })
         },
@@ -464,12 +487,14 @@ const useClaimLink = () => {
         destinationChainId,
         destinationToken,
         campaignTag,
+        amountUsd,
     }: {
         address: string
         link: string
         destinationChainId: string
         destinationToken: string
         campaignTag?: string
+        amountUsd?: number
     }) => {
         return await claimLinkXChainMutation.mutateAsync({
             address,
@@ -477,6 +502,7 @@ const useClaimLink = () => {
             destinationChainId,
             destinationToken,
             campaignTag,
+            amountUsd,
         })
     }
 
