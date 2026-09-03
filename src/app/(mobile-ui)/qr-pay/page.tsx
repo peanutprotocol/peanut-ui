@@ -76,6 +76,7 @@ import { STAR_STRAIGHT_ICON } from '@/assets/icons'
 import { useAuth } from '@/context/authContext'
 import { PointsAction } from '@/services/services.types'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
+import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import { useModalsContext } from '@/context/ModalsContext'
 import maintenanceConfig from '@/config/underMaintenance.config'
@@ -1206,6 +1207,10 @@ export default function QRPayPage() {
             queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
         }
     }, [isSuccess, queryClient])
+
+    // the success here is optimistic — a post-factum claim failure keeps the
+    // user on this screen with an error, and that is not a moment to ask
+    useAppReviewNudge(user?.user.userId, 'qr_payment_completed', isSuccess && !errorMessage)
 
     useEffect(() => {
         if (waitingForMerchantAmount && !isLoadingPaymentLock) {

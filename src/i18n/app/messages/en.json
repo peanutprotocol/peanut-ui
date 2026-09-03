@@ -537,6 +537,8 @@
                 "cardProhibitedActivities": "Prohibited Activities Policy",
                 "securityDisclosure": "Security Disclosure"
             },
+            "rateHeading": "Rate the app",
+            "rate": "Leave a review",
             "version": "Version {version}",
             "beta": {
                 "heading": "Beta updates",

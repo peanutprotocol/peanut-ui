@@ -419,6 +419,10 @@ export type UserPreferences = {
      *  legacy permanent `notifModalClosed` so we can re-ask after a cooldown
      *  during the migration window. */
     notifModalClosedAt?: string
+    /** App-review nudge budget (see utils/app-review.ts). `moments` counts
+     *  qualifying happy moments seen; `requestedAt` holds the ISO timestamps of
+     *  past OS review requests, oldest first. */
+    reviewNudge?: { moments: number; requestedAt: string[] }
     /** Dismissal fingerprints (`bridgeTaskDismissalKey`: key|requirement|due)
      *  of the pending Bridge verification tasks the user individually
      *  dismissed on /home. A task that turns blocking or changes substance

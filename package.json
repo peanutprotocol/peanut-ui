@@ -52,6 +52,7 @@
     "dependencies": {
         "@capacitor/android": "8.2.0",
         "@capacitor/app": "^8.1.0",
+        "@capacitor/app-launcher": "8.0.1",
         "@capacitor/browser": "^8.0.3",
         "@capacitor/camera": "^8.2.0",
         "@capacitor/cli": "8.2.0",
@@ -65,6 +66,7 @@
         "@capacitor/splash-screen": "^8.0.1",
         "@capacitor/status-bar": "^8.0.2",
         "@capgo/capacitor-crisp": "^8.0.27",
+        "@capgo/capacitor-in-app-review": "8.2.3",
         "@capgo/capacitor-native-biometric": "8.6.0",
         "@capgo/capacitor-passkey": "^8.2.2",
         "@capgo/capacitor-updater": "^8.45.9",

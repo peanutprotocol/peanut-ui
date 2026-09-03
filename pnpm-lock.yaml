@@ -33,6 +33,9 @@ importers:
       '@capacitor/app':
         specifier: ^8.1.0
         version: 8.1.0(@capacitor/core@8.2.0)
+      '@capacitor/app-launcher':
+        specifier: 8.0.1
+        version: 8.0.1(@capacitor/core@8.2.0)
       '@capacitor/browser':
         specifier: ^8.0.3
         version: 8.0.3(@capacitor/core@8.2.0)
@@ -72,6 +75,9 @@ importers:
       '@capgo/capacitor-crisp':
         specifier: ^8.0.27
         version: 8.0.27(@capacitor/core@8.2.0)
+      '@capgo/capacitor-in-app-review':
+        specifier: 8.2.3
+        version: 8.2.3(@capacitor/core@8.2.0)
       '@capgo/capacitor-native-biometric':
         specifier: 8.6.0
         version: 8.6.0(@capacitor/core@8.2.0)
@@ -602,6 +608,11 @@ packages:
     peerDependencies:
       '@capacitor/core': ^8.2.0
 
+  '@capacitor/app-launcher@8.0.1':
+    resolution: {integrity: sha512-23D8zi74sn7kxvISix8qYwgqdxGJN+4NImcNGvHen98LB1zb4eZfkJvFvp7pwntxGw4OjIE7yuf4wbzZxQHpog==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
+
   '@capacitor/app@8.1.0':
     resolution: {integrity: sha512-MlmttTOWHDedr/G4SrhNRxsXMqY+R75S4MM4eIgzsgCzOYhb/MpCkA5Q3nuOCfL1oHm26xjUzqZ5aupbOwdfYg==}
     peerDependencies:
@@ -667,6 +678,11 @@ packages:
 
   '@capgo/capacitor-crisp@8.0.27':
     resolution: {integrity: sha512-Qq5gQIHuXfW7UD7uKYQuccTpMYwnsvvryiFWv5bvEYsEvtp77oRDr2o+TBh8/sdJcaOrHNUKNaOhF1c9HO/iEA==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
+
+  '@capgo/capacitor-in-app-review@8.2.3':
+    resolution: {integrity: sha512-uTFp0IZc6JaCALEg1Z/Ku+95hrhIs8fgKmgqCxQn4MAC5m2EtkjVhSw1+Px9fk3wVbgyAZqFpRvDzK83HUB5Zw==}
     peerDependencies:
       '@capacitor/core': '>=8.0.0'
 
@@ -8916,6 +8932,10 @@ snapshots:
     dependencies:
       '@capacitor/core': 8.2.0
 
+  '@capacitor/app-launcher@8.0.1(@capacitor/core@8.2.0)':
+    dependencies:
+      '@capacitor/core': 8.2.0
+
   '@capacitor/app@8.1.0(@capacitor/core@8.2.0)':
     dependencies:
       '@capacitor/core': 8.2.0
@@ -8987,6 +9007,10 @@ snapshots:
       '@capacitor/core': 8.2.0
 
   '@capgo/capacitor-crisp@8.0.27(@capacitor/core@8.2.0)':
+    dependencies:
+      '@capacitor/core': 8.2.0
+
+  '@capgo/capacitor-in-app-review@8.2.3(@capacitor/core@8.2.0)':
     dependencies:
       '@capacitor/core': 8.2.0
 
@@ -10194,7 +10218,7 @@ snapshots:
       debug: 4.4.3(supports-color@10.2.2)
       lodash: 4.18.1
       pony-cause: 2.1.11
-      semver: 7.7.3
+      semver: 7.8.5
       uuid: 9.0.1
     transitivePeerDependencies:
       - supports-color
@@ -10204,7 +10228,7 @@ snapshots:
       '@ethereumjs/tx': 4.2.0
       '@types/debug': 4.1.12
       debug: 4.4.3(supports-color@10.2.2)
-      semver: 7.7.3
+      semver: 7.8.5
       superstruct: 1.0.4
     transitivePeerDependencies:
       - supports-color
@@ -10218,7 +10242,7 @@ snapshots:
       '@types/debug': 4.1.12
       debug: 4.4.3(supports-color@10.2.2)
       pony-cause: 2.1.11
-      semver: 7.7.3
+      semver: 7.8.5
       uuid: 9.0.1
     transitivePeerDependencies:
       - supports-color
@@ -10232,7 +10256,7 @@ snapshots:
       '@types/debug': 4.1.12
       debug: 4.4.3(supports-color@10.2.2)
       pony-cause: 2.1.11
-      semver: 7.7.3
+      semver: 7.8.5
       uuid: 9.0.1
     transitivePeerDependencies:
       - supports-color
@@ -10600,7 +10624,7 @@ snapshots:
       '@types/shimmer': 1.2.0
       import-in-the-middle: 1.15.0
       require-in-the-middle: 7.5.2
-      semver: 7.7.3
+      semver: 7.8.5
       shimmer: 1.2.1
     transitivePeerDependencies:
       - supports-color
@@ -10612,7 +10636,7 @@ snapshots:
       '@types/shimmer': 1.2.0
       import-in-the-middle: 1.15.0
       require-in-the-middle: 7.5.2
-      semver: 7.7.3
+      semver: 7.8.5
       shimmer: 1.2.1
     transitivePeerDependencies:
       - supports-color
@@ -10884,7 +10908,7 @@ snapshots:
       extract-zip: 2.0.1
       progress: 2.0.3
       proxy-agent: 6.5.0
-      semver: 7.7.3
+      semver: 7.8.5
       tar-fs: 3.1.1
       yargs: 17.7.2
     transitivePeerDependencies:
@@ -16312,7 +16336,7 @@ snapshots:
 
   make-dir@4.0.0:
     dependencies:
-      semver: 7.7.3
+      semver: 7.8.5
 
   make-error@1.3.6: {}
 
@@ -17927,8 +17951,7 @@ snapshots:
 
   semver@7.7.3: {}
 
-  semver@7.8.5:
-    optional: true
+  semver@7.8.5: {}
 
   serialize-javascript@7.0.5: {}
 
