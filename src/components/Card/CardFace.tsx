@@ -183,7 +183,7 @@ const CardFace: FC<Props> = ({
                                                 }
                                                 className="p-1"
                                             >
-                                                <Icon name={copiedField === 'expiry' ? 'check' : 'copy'} size={14} />
+                                                <Icon name={copiedField === 'expiry' ? 'check' : 'copy'} size={16} />
                                             </button>
                                         )}
                                     </div>
@@ -200,7 +200,7 @@ const CardFace: FC<Props> = ({
                                                 onClick={() => handleCopy(revealed.cvv, 'cvv')}
                                                 className="relative p-1 transition-opacity duration-instant after:absolute after:-inset-3 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
                                             >
-                                                <Icon name={copiedField === 'cvv' ? 'check' : 'copy'} size={14} />
+                                                <Icon name={copiedField === 'cvv' ? 'check' : 'copy'} size={16} />
                                             </button>
                                         )}
                                     </div>
