@@ -79,7 +79,7 @@ export const useZeroDev = () => {
         // handles cases where: old cookies persist, session expired, user didn't logout properly
         console.log('[useZeroDev] starting new passkey registration, clearing any stale state')
         removeFromCookie(WEB_AUTHN_COOKIE_KEY) // clear old passkey cookie
-        zeroDevFlowActions.reset() // clear redux state (including old address)
+        zeroDevFlowActions.reset() // clear the flow flags (including old address)
 
         zeroDevFlowActions.setIsRegistering(true)
         try {

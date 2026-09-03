@@ -364,7 +364,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             // Drop any in-flight lazy builds — their results would be useless
             // (and re-applying them would write into a fresh post-logout state).
             inFlightRef.current.clear()
-            zeroDevFlowActions.setAddress(undefined) // explicitly clear address from redux
+            zeroDevFlowActions.setAddress(undefined) // explicitly clear the published address
             return
         }
 
