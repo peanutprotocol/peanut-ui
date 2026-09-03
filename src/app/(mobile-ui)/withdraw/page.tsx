@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { AddWithdrawRouterView } from '@/components/AddWithdraw/AddWithdrawRouterView'
 import NavHeader from '@/components/Global/NavHeader'
@@ -96,6 +97,10 @@ export default function WithdrawPage() {
 
     // raw amount currently typed in the input
     const [rawTokenAmount, setRawTokenAmount] = useState<string>(amountFromContext || '')
+
+    // client-side amount validation renders as the field's own error, never in
+    // the flow-level Notification (which keeps routing/setup failures only)
+    const [validationError, setValidationError] = useState<string>('')
 
     const { spendableBalance: balance, formattedSpendableBalance } = useWallet()
 
@@ -206,13 +211,13 @@ export default function WithdrawPage() {
     const validateAmount = useCallback(
         (amountStr: string): boolean => {
             if (!amountStr) {
-                setError({ showError: false, errorMessage: '' })
+                setValidationError('')
                 return true
             }
 
             const amount = Number(amountStr)
             if (!Number.isFinite(amount) || amount <= 0) {
-                setError({ showError: true, errorMessage: t('errors.invalidNumber') })
+                setValidationError(t('errors.invalidNumber'))
                 return false
             }
 
@@ -226,7 +231,7 @@ export default function WithdrawPage() {
             // re-validates once it lands (validateAmount is in its deps).
             const balanceLoaded = balance !== undefined
             if (usdEquivalent >= minUsdAmount && (!balanceLoaded || amount <= maxDecimalAmount)) {
-                setError({ showError: false, errorMessage: '' })
+                setValidationError('')
                 return true
             }
 
@@ -242,10 +247,10 @@ export default function WithdrawPage() {
             } else {
                 message = t('errors.invalidAmount')
             }
-            setError({ showError: true, errorMessage: message })
+            setValidationError(message)
             return false
         },
-        [balance, maxDecimalAmount, setError, selectedTokenData?.price, isFromSendFlow, minUsdAmount, t, tErrors]
+        [balance, maxDecimalAmount, selectedTokenData?.price, isFromSendFlow, minUsdAmount, t, tErrors]
     )
 
     const handleTokenAmountChange = useCallback(
@@ -272,6 +277,7 @@ export default function WithdrawPage() {
             if (error.showError) {
                 setError({ showError: false, errorMessage: '' })
             }
+            setValidationError('')
         },
         [setRawTokenAmount, error.showError, setError]
     )
@@ -281,6 +287,7 @@ export default function WithdrawPage() {
         if (step === 'inputAmount') {
             if (rawTokenAmount === '') {
                 setError({ showError: false, errorMessage: '' })
+                setValidationError('')
             } else {
                 // add a small delay to avoid validating while user is still typing
                 const timeoutId = setTimeout(() => {
@@ -378,8 +385,8 @@ export default function WithdrawPage() {
 
         // only apply the balance ceiling once it has loaded (maxDecimalAmount is 0
         // while spendableBalance is undefined) — else Continue is disabled during load
-        return (balance !== undefined && numericAmount > maxDecimalAmount) || error.showError
-    }, [rawTokenAmount, balance, maxDecimalAmount, error.showError, minUsdAmount])
+        return (balance !== undefined && numericAmount > maxDecimalAmount) || error.showError || !!validationError
+    }, [rawTokenAmount, balance, maxDecimalAmount, error.showError, validationError, minUsdAmount])
 
     // native app: render country-specific views when ?country= is present
     const viewFromQuery = searchParams.get('view')
@@ -430,17 +437,23 @@ export default function WithdrawPage() {
                             {isFromSendFlow ? t('amountToSend') : t('amountToWithdraw')}
                         </div>
                     </div>
-                    <AmountInput
-                        initialAmount={rawTokenAmount}
-                        setPrimaryAmount={handleTokenAmountChange}
-                        primaryDenomination={{
-                            symbol: '$',
-                            price: 1,
-                            decimals: 6, // we want USDC decimals to be able to pay exactly
-                        }}
-                        walletBalance={peanutWalletBalance}
-                        hideCurrencyToggle
-                    />
+                    {/* only show the field error if limits blocking card is not displayed (warnings can coexist) */}
+                    <FieldColumn
+                        error={!limitsValidation.isBlocking ? validationError : undefined}
+                        errorTestId="error-alert"
+                    >
+                        <AmountInput
+                            initialAmount={rawTokenAmount}
+                            setPrimaryAmount={handleTokenAmountChange}
+                            primaryDenomination={{
+                                symbol: '$',
+                                price: 1,
+                                decimals: 6, // we want USDC decimals to be able to pay exactly
+                            }}
+                            walletBalance={peanutWalletBalance}
+                            hideCurrencyToggle
+                        />
+                    </FieldColumn>
 
                     {/* limits warning/error card for bank withdrawals */}
                     {showLimitsCard &&

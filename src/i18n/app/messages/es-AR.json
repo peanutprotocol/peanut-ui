@@ -3,8 +3,7 @@
         "fundsOnTheWay": "Fondos en camino",
         "genericError": "Algo salió mal. Intentá de nuevo o contactá soporte.",
         "tryDifferentCountry": "Probá con otro país.",
-        "slideToProceed": "Deslizá para continuar",
-        "userAvatarAlt": "Avatar de {username}"
+        "slideToProceed": "Deslizá para continuar"
     },
     "home": {
         "activation": {
@@ -629,7 +628,10 @@
             "insufficientPayment": "No tenés saldo suficiente para completar este pago con Peanut",
             "insufficientRequest": "No tenés saldo suficiente para completar esta solicitud con Peanut",
             "pleaseLoginToContinue": "Iniciá sesión para continuar",
-            "logInToContinue": "iniciá sesión para continuar"
+            "logInToContinue": "iniciá sesión para continuar",
+            "userNotFoundDescription": "No encontramos a @{username} en Peanut. Revisá el nombre de usuario e intentá de nuevo.",
+            "invalidPaymentUrlDescription": "El enlace está incompleto o mal escrito. Pedile a quien lo envió que lo comparta de nuevo.",
+            "requestNotFoundDescription": "Esta solicitud de pago no existe o fue eliminada. Pedile un nuevo enlace a quien la envió."
         }
     },
     "claim": {
@@ -838,7 +840,6 @@
     },
     "addMoney": {
         "selectYourCountry": "Seleccioná tu país",
-        "howWouldYouLikeToAdd": "¿Cómo querés agregar dinero?",
         "howMuchToAdd": "¿Cuánto querés agregar?",
         "mustMatchBankTransfer": "Esto debe coincidir exactamente con lo que enviás desde tu banco",
         "amountMustMatchBank": "¡El monto debe coincidir con lo que enviás desde tu banco!",
@@ -1380,8 +1381,8 @@
             "externalUrlIntro": "Peanut no admite este QR, pero podés abrirlo con tu navegador.",
             "externalUrlTrust": "¡Asegurate de confiar en este sitio web!",
             "pixRecurringBody": "Peanut no admite pagos PIX recurrentes: pedí un código QR de PIX normal.",
-            "myQrExpandedTitle": "Mostrá tu QR para cobrar",
-            "myQrButtonText": "Compartí tu perfil"
+            "myQrButtonText": "Compartí tu perfil",
+            "myQrTitle": "Mi QR"
         },
         "qrBottomDrawer": {
             "shareTitle": "Compartí tu perfil"

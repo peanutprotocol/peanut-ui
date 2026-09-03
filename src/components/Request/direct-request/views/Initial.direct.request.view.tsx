@@ -1,5 +1,6 @@
 'use client'
 import { Button } from '@/components/0_Bruddle/Button'
+import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import FileUploadInput from '@/components/Global/FileUploadInput'
@@ -52,6 +53,9 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
+    // recipient/amount validation renders as the field's own error under the
+    // recipient input; errorState keeps API failures only (Notification + reset CTA)
+    const [fieldError, setFieldError] = useState<string>('')
     const [validationError, setValidationError] = useState<ValidationErrorViewProps | null>(null)
 
     const {
@@ -93,10 +97,11 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
 
     const createRequestCharge = useCallback(async () => {
         if (isButtonDisabled) {
-            setErrorState({ showError: true, errorMessage: t('errors.missingUsernameOrAmount') })
+            setFieldError(t('errors.missingUsernameOrAmount'))
             return
         }
         setLoadingState('Requesting')
+        setFieldError('')
         setErrorState({ showError: false, errorMessage: '' })
         try {
             // Determine the recipient address
@@ -246,33 +251,33 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                         className="h-11"
                     />
                     {!authUser?.user.userId && (
-                        <GeneralRecipientInput
-                            placeholder={t('recipientPlaceholder')}
-                            recipient={recipient}
-                            onUpdate={(update: GeneralRecipientUpdate) => {
-                                setRecipient(update.recipient)
-                                if (update.isChanging) {
-                                    setErrorState({ showError: false, errorMessage: '' })
-                                } else {
-                                    if (!update.isValid && update.errorMessage) {
-                                        setErrorState({ showError: true, errorMessage: update.errorMessage })
+                        <FieldColumn error={fieldError}>
+                            <GeneralRecipientInput
+                                placeholder={t('recipientPlaceholder')}
+                                recipient={recipient}
+                                onUpdate={(update: GeneralRecipientUpdate) => {
+                                    setRecipient(update.recipient)
+                                    if (update.isChanging) {
+                                        setErrorState({ showError: false, errorMessage: '' })
+                                        setFieldError('')
                                     } else {
-                                        if (
-                                            (update.isValid && update.recipient.address) ||
-                                            (!update.isValid && !update.errorMessage)
-                                        ) {
-                                            setErrorState({ showError: false, errorMessage: '' })
+                                        if (!update.isValid && update.errorMessage) {
+                                            setFieldError(update.errorMessage)
                                         } else {
-                                            setErrorState({
-                                                showError: true,
-                                                errorMessage: update.errorMessage || t('errors.validatingRecipient'),
-                                            })
+                                            if (
+                                                (update.isValid && update.recipient.address) ||
+                                                (!update.isValid && !update.errorMessage)
+                                            ) {
+                                                setFieldError('')
+                                            } else {
+                                                setFieldError(update.errorMessage || t('errors.validatingRecipient'))
+                                            }
                                         }
                                     }
-                                }
-                            }}
-                            showInfoText={false}
-                        />
+                                }}
+                                showInfoText={false}
+                            />
+                        </FieldColumn>
                     )}
 
                     {errorState.showError ? (

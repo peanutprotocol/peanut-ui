@@ -56,8 +56,7 @@
             "unknown": "Desconhecido"
         },
         "exchangeRate": "Taxa de câmbio",
-        "slideToProceed": "Deslize para continuar",
-        "userAvatarAlt": "Avatar de {username}"
+        "slideToProceed": "Deslize para continuar"
     },
     "navigation": {
         "home": "Início",
@@ -1126,11 +1125,14 @@
             "paymentDetailsLoadFailed": "não foi possível carregar os detalhes do pagamento",
             "noRequestId": "nenhum id de cobrança fornecido",
             "requestLoadFailed": "não foi possível carregar a cobrança. ela pode não existir ou ter sido excluída.",
-            "requestNotFound": "cobrança não encontrada",
             "invalidUrlFormat": "Formato de URL inválido",
-            "invalidPaymentUrl": "url de pagamento inválida",
-            "userNotFound": "o usuário @{username} não existe ou não tem uma carteira peanut",
-            "usernameArbitrumOnly": "Pagamentos para nomes de usuário da Peanut só podem ser feitos na Arbitrum"
+            "usernameArbitrumOnly": "Pagamentos para nomes de usuário da Peanut só podem ser feitos na Arbitrum",
+            "userNotFoundTitle": "Usuário não encontrado",
+            "userNotFoundDescription": "Não encontramos @{username} na Peanut. Confira o nome de usuário e tente de novo.",
+            "invalidPaymentUrlTitle": "Este link de pagamento não funciona",
+            "invalidPaymentUrlDescription": "O link está incompleto ou digitado errado. Peça para quem enviou compartilhar de novo.",
+            "requestNotFoundTitle": "Cobrança não encontrada",
+            "requestNotFoundDescription": "Esta cobrança não existe ou foi removida. Peça um novo link para quem enviou."
         }
     },
     "claim": {
@@ -1646,7 +1648,6 @@
         "title": "Adicionar dinheiro",
         "transferDetails": "Dados da transferência",
         "selectYourCountry": "Selecione seu país",
-        "howWouldYouLikeToAdd": "Como você quer adicionar dinheiro?",
         "addMoneyVia": "Adicionar dinheiro com",
         "recentMethods": "Métodos recentes",
         "selectNewMethod": "Escolher outro método",
@@ -3023,7 +3024,8 @@
     },
     "global": {
         "amountInput": {
-            "balance": "Saldo:"
+            "balance": "Saldo:",
+            "switchCurrency": "Trocar moeda"
         },
         "tokenSelector": {
             "selectAToken": "Escolha um token",
@@ -3047,7 +3049,8 @@
             "noNetworksFoundTitle": "Nenhuma rede encontrada para {search}",
             "noNetworksFoundDescription": "Tente buscar outra rede",
             "searchPlaceholder": "Buscar...",
-            "clearSearch": "Limpar busca"
+            "clearSearch": "Limpar busca",
+            "clearNetworkSelection": "Limpar rede selecionada"
         },
         "qrScanner": {
             "scanToPay": "Escaneie para pagar",
@@ -3109,10 +3112,9 @@
             "titleExternalUrl": "Este é um link externo!",
             "eip681ParseError": "Erro ao interpretar a URL EIP-681",
             "notPeanutUrl": "O QR não foi reconhecido como uma URL da Peanut",
-            "myQrCollapsedTitle": "Meu QR",
-            "myQrExpandedTitle": "Mostre o QR para receber",
             "myQrText": "Deixe outras pessoas escanearem para te pagar",
-            "myQrButtonText": "Compartilhe seu perfil"
+            "myQrButtonText": "Compartilhe seu perfil",
+            "myQrTitle": "Meu QR"
         },
         "qrBottomDrawer": {
             "shareTitle": "Compartilhe seu perfil"

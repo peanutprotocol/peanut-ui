@@ -130,7 +130,8 @@ const ReConsentModal = () => {
             icon="info"
             title={t('reConsent.title')}
             content={
-                <div className="space-y-3 w-full text-left">
+                // no text-left: modal body is centered per the modal board
+                <div className="space-y-3 w-full">
                     {/* The first sentence answers the question this modal actually raises
                      * ("is something being taken from me?") before anything else. The
                      * what-changed line describes the 2026-07-15 tos-v1 rewrite — revisit
@@ -146,7 +147,7 @@ const ReConsentModal = () => {
                                 <li key={doc.slug}>
                                     <DocsLink
                                         href={policy?.href ?? `/${doc.slug}`}
-                                        className="text-black underline dark:text-white"
+                                        className="text-foreground-primary underline"
                                     >
                                         {policy ? tPolicies(policy.key) : doc.slug}
                                     </DocsLink>
@@ -154,7 +155,7 @@ const ReConsentModal = () => {
                             )
                         })}
                     </ul>
-                    {error && <p className="text-body-s text-error">{error}</p>}
+                    {error && <p className="text-body-s text-foreground-error">{error}</p>}
                 </div>
             }
             checkbox={{
@@ -175,11 +176,10 @@ const ReConsentModal = () => {
                 },
                 {
                     text: 'Not now',
-                    variant: 'transparent',
+                    variant: 'stroke',
                     disabled: submitting,
                     onClick: handlePostpone,
-                    // secondary de-emphasis: .btn is font-bold by default
-                    className: 'sm:flex-none font-normal text-foreground-secondary',
+                    className: 'sm:flex-none',
                 },
             ]}
             ctaClassName={STACKED_CTAS}

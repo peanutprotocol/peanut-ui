@@ -2,14 +2,13 @@ import Divider from '@/components/0_Bruddle/Divider'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ShareButton from '@/components/Global/ShareButton'
 import { useTranslations } from 'next-intl'
-import { useState, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Drawer, DrawerContent, DrawerTitle } from '../Drawer'
 import { QR_DRAWER_EXPANDED_PX, QR_DRAWER_PEEK_PX } from '@/constants/qr-drawer.consts'
 
 interface QRBottomDrawerProps {
     url: string
-    collapsedTitle: string
-    expandedTitle: string
+    title: string
     text: string
     buttonText: string
     className?: string
@@ -34,7 +33,7 @@ interface QRBottomDrawerProps {
  */
 const snapPoints = [`${QR_DRAWER_PEEK_PX}px`, `${QR_DRAWER_EXPANDED_PX}px`]
 
-const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, className }: QRBottomDrawerProps) => {
+const QRBottomDrawer = ({ url, title, text, buttonText, className }: QRBottomDrawerProps) => {
     const t = useTranslations('global')
     const tCommon = useTranslations('common')
     const [activeSnapPoint, setActiveSnapPoint] = useState<number | string | null>(snapPoints[0])
@@ -42,6 +41,23 @@ const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, 
     const handleSnapPointChange = (snapPoint: number | string | null) => {
         setActiveSnapPoint(snapPoint)
     }
+
+    // Whether the scroll area actually overflows. At default font sizes the
+    // content fits the expanded window, so the wrapper can stay touch-none at
+    // BOTH snaps — a downward drag then always belongs to vaul and the drawer
+    // collapses in one gesture. Only when content really overflows (font
+    // scaling, long locale) does the wrapper give panning back to the browser.
+    const scrollAreaRef = useRef<HTMLDivElement | null>(null)
+    const [scrollable, setScrollable] = useState(false)
+    useEffect(() => {
+        const el = scrollAreaRef.current
+        if (!el || typeof ResizeObserver === 'undefined') return
+        const measure = () => setScrollable(el.scrollHeight > el.clientHeight + 1)
+        measure()
+        const observer = new ResizeObserver(measure)
+        observer.observe(el)
+        return () => observer.disconnect()
+    }, [])
 
     return (
         <>
@@ -63,8 +79,11 @@ const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, 
                     browser claims a swipe as a scroll, fires pointercancel, and the drawer
                     needs two swipes. the touch-action walk stops at the shared overflow-auto
                     wrapper (even when nothing overflows), so the outer class only covers the
-                    drag handle area. content touches need the wrapper's own copy, applied
-                    only while collapsed so overflowing content can scroll at full snap. */}
+                    drag handle area. content touches need the wrapper's own copy — applied
+                    while collapsed and, at full snap, whenever the content does not really
+                    overflow (the measured `scrollable` above), so the drawer collapses in
+                    one drag. overscroll-contain keeps pull-to-refresh from stealing the
+                    gesture in the overflowing case. */}
                 {/* mt-0 + full height (twMerge drops the wrapper's mt-24): vaul resolves a
                     snap point as `window.innerHeight - snapPoint`, so the drawer has to be
                     exactly innerHeight tall for a px snap to equal the visible height.
@@ -88,12 +107,11 @@ const QRBottomDrawer = ({ url, collapsedTitle, expandedTitle, text, buttonText, 
                 <DrawerContent
                     className={`mt-0 h-screen touch-none p-4 supports-[height:100dvh]:h-[100dvh] ${className || ''}`}
                     style={{ '--qr-drawer-expanded': `${QR_DRAWER_EXPANDED_PX}px` } as CSSProperties}
-                    scrollAreaClassName={`max-h-[calc(var(--qr-drawer-expanded)-3.3125rem)] ${activeSnapPoint === snapPoints[0] ? 'touch-none' : ''}`}
+                    scrollAreaRef={scrollAreaRef}
+                    scrollAreaClassName={`overscroll-contain max-h-[calc(var(--qr-drawer-expanded)-3.3125rem)] ${activeSnapPoint === snapPoints[0] || !scrollable ? 'touch-none' : ''}`}
                 >
                     <DrawerTitle className="space-y-2 mb-8">
-                        <h2 className="text-heading-card">
-                            {activeSnapPoint === snapPoints[0] ? collapsedTitle : expandedTitle}
-                        </h2>
+                        <h2 className="text-heading-card">{title}</h2>
                     </DrawerTitle>
                     {/* the button's shadow is offset 4px right AND 4px down, so the
                         drawer's overflow-auto scroll wrapper clips it on both edges

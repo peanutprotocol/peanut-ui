@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { Button } from '@/components/0_Bruddle/Button'
+import { FieldError } from '@/components/0_Bruddle/FieldError'
 import PinInput from '@/components/Card/PinInput'
 import { type PinRejectionReason, validatePin } from '@/components/Card/pin.utils'
 import { rainApi, RainCardRateLimitError } from '@/services/rain'
@@ -115,15 +116,18 @@ const CardPinSetupFlow: FC<Props> = ({ cardId, onDone }) => {
                 <h1 className="text-heading-xs">{t('pin.chooseTitle')}</h1>
                 <p className="text-body-s text-foreground-secondary">{t('pin.chooseBody')}</p>
             </div>
-            <PinInput value={first} onChange={setFirst} />
+            {/* pin input + its field error form one column, 4px apart (form-field board 17788:19179) */}
+            <div className="flex flex-col items-center gap-1">
+                <PinInput value={first} onChange={setFirst} />
+                {choosePinValidation && !choosePinValidation.valid && choosePinValidation.reason && (
+                    <FieldError>{t(REJECTION_KEYS[choosePinValidation.reason])}</FieldError>
+                )}
+            </div>
             <ul className="w-full list-inside list-disc text-left text-body-s text-foreground-secondary">
                 <li>{t('pin.ruleSequential')}</li>
                 <li>{t('pin.ruleRepeating')}</li>
                 <li>{t('pin.ruleChangeLater')}</li>
             </ul>
-            {choosePinValidation && !choosePinValidation.valid && choosePinValidation.reason && (
-                <p className="text-body-s text-foreground-error">{t(REJECTION_KEYS[choosePinValidation.reason])}</p>
-            )}
             {error && <p className="text-body-s text-foreground-error">{error}</p>}
             <Button
                 variant="purple"

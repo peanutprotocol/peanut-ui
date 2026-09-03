@@ -18,10 +18,26 @@ interface Props {
     type?: 'button' | 'icon'
     buttonSize?: ButtonSize
     onCopy?: () => void
+    /** icon mode only: render a plain glyph with no button semantics — for
+     *  hosts that are themselves the copy button (nesting <button> is invalid
+     *  DOM). The host drives copy() through the imperative ref. */
+    interactive?: boolean
 }
 
 const CopyToClipboard = forwardRef<CopyToClipboardRef, Props>(
-    ({ textToCopy, fill = 'black', className, iconSize = '6', type = 'icon', buttonSize, onCopy }, ref) => {
+    (
+        {
+            textToCopy,
+            fill = 'black',
+            className,
+            iconSize = '6',
+            type = 'icon',
+            buttonSize,
+            onCopy,
+            interactive = true,
+        },
+        ref
+    ) => {
         const t = useTranslations('global')
         const toast = useToast()
         const [copied, setCopied] = useState(false)
@@ -71,14 +87,29 @@ const CopyToClipboard = forwardRef<CopyToClipboardRef, Props>(
             )
         }
 
+        if (!interactive) {
+            return (
+                <span className={twMerge('inline-flex items-center justify-center', className)} aria-hidden>
+                    <Icon name={copied ? 'check' : 'copy'} size={iconSizePx} fill={fill ? fill : 'white'} />
+                </span>
+            )
+        }
+
         return (
-            <Icon
-                name={copied ? 'check' : 'copy'}
-                size={iconSizePx}
-                className={twMerge('cursor-pointer hover:opacity-80', className)}
-                fill={fill ? fill : 'white'}
+            // real button semantics for the inline glyph: keyboard focusable,
+            // pressed feedback, and a pseudo-element hit area >=44px (touch law)
+            // while the visual footprint stays the glyph size.
+            <button
+                type="button"
+                aria-label={t('copyField.copy')}
                 onClick={handleCopy}
-            />
+                className={twMerge(
+                    'relative inline-flex cursor-pointer items-center justify-center transition-opacity duration-instant after:absolute after:-inset-4 hover:opacity-80 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60',
+                    className
+                )}
+            >
+                <Icon name={copied ? 'check' : 'copy'} size={iconSizePx} fill={fill ? fill : 'white'} />
+            </button>
         )
     }
 )

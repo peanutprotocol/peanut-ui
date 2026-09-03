@@ -15,6 +15,7 @@
 
 import { useEffect, useContext, useMemo } from 'react'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
+import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
@@ -167,17 +168,20 @@ export function SemanticRequestInputView() {
                     />
                 )}
 
-                {/* amount input */}
-                <AmountInput
-                    initialAmount={amount}
-                    setPrimaryAmount={setAmount}
-                    primaryDenomination={primaryDenomination}
-                    onSubmit={handleSubmit}
-                    walletBalance={isLoggedIn ? formattedBalance : undefined}
-                    hideBalance={!isLoggedIn}
-                    hideCurrencyToggle={true}
-                    disabled={isAmountFromUrl || !!chargeIdFromUrl}
-                />
+                {/* amount input + its field error form one column, 4px apart */}
+                <div className="flex flex-col gap-1">
+                    <AmountInput
+                        initialAmount={amount}
+                        setPrimaryAmount={setAmount}
+                        primaryDenomination={primaryDenomination}
+                        onSubmit={handleSubmit}
+                        walletBalance={isLoggedIn ? formattedBalance : undefined}
+                        hideBalance={!isLoggedIn}
+                        hideCurrencyToggle={true}
+                        disabled={isAmountFromUrl || !!chargeIdFromUrl}
+                    />
+                    {isInsufficientBalance && <FieldError>{t('errors.insufficientPayment')}</FieldError>}
+                </div>
 
                 {/* token selector for chain/token selection (not for USERNAME) */}
                 {showTokenSelector && <TokenSelector viewType="req_pay" />}
@@ -197,9 +201,6 @@ export function SemanticRequestInputView() {
                         loading={isLoading}
                         insufficientBalance={isInsufficientBalance}
                     />
-                    {isInsufficientBalance && (
-                        <Notification priority="error">{t('errors.insufficientPayment')}</Notification>
-                    )}
                     {error.showError && <Notification priority="error">{error.errorMessage}</Notification>}
                 </div>
 

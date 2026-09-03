@@ -1,7 +1,9 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import ActionModal from '../Global/ActionModal'
+import { Button } from '@/components/0_Bruddle/Button'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import KycPrepChecklist, { type KycPrepPath } from '@/components/Kyc/KycPrepChecklist'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
 
@@ -36,32 +38,41 @@ const UnlockMethodModal = ({
     const tCommon = useTranslations('common')
 
     return (
-        <ActionModal
-            visible={visible}
-            onClose={onClose}
-            title={methodLabel ? t('title', { method: methodLabel }) : t('titleGeneric')}
-            description={<KycPrepChecklist path={path} />}
-            descriptionClassName="text-black"
-            icon="shield"
-            iconContainerClassName="bg-action-primary"
-            iconProps={{ className: 'text-black' }}
-            ctas={[
-                {
-                    shadowSize: '4',
-                    icon: 'check-circle',
-                    text: isLoading ? tCommon('loading') : tPrep('startCta'),
-                    disabled: isLoading,
-                    onClick: onUnlock,
-                    variant: 'purple',
-                },
-                {
-                    text: t('notNow'),
-                    onClick: onClose,
-                    variant: 'stroke',
-                },
-            ]}
-            footer={<PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />}
-        />
+        <Drawer
+            open={visible}
+            onOpenChange={(isOpen) => {
+                if (!isOpen) onClose()
+            }}
+        >
+            <DrawerContent>
+                <div className="flex flex-col items-center gap-4 px-4 pt-1 pb-6 text-center">
+                    <IconBubble icon="shield" className="bg-action-primary" />
+                    <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
+                        <DrawerTitle>
+                            {methodLabel ? t('title', { method: methodLabel }) : t('titleGeneric')}
+                        </DrawerTitle>
+                    </DrawerHeader>
+                    {/* the checklist is the body — left-aligned like the modal's descriptionClassName override */}
+                    <div className="w-full text-left">
+                        <KycPrepChecklist path={path} />
+                    </div>
+                    <Button
+                        icon="check-circle"
+                        shadowSize="4"
+                        variant="purple"
+                        className="w-full justify-center"
+                        disabled={isLoading}
+                        onClick={onUnlock}
+                    >
+                        {isLoading ? tCommon('loading') : tPrep('startCta')}
+                    </Button>
+                    <Button variant="stroke" className="w-full justify-center" onClick={onClose}>
+                        {t('notNow')}
+                    </Button>
+                    <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />
+                </div>
+            </DrawerContent>
+        </Drawer>
     )
 }
 

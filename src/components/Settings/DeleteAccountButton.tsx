@@ -8,6 +8,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { PeanutSad, PeanutCrying, PeanutPointing } from '@/assets/mascot'
 import { useToast } from '@/components/0_Bruddle/Toast'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import ActionModal, { type ActionModalButtonProps } from '@/components/Global/ActionModal'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -144,13 +145,10 @@ const DeleteAccountButton: FC = () => {
 
     return (
         <>
-            <button
-                type="button"
-                onClick={open}
-                className="w-full text-center text-label-l text-foreground-error underline underline-offset-2"
-            >
+            {/* deliberate bigger size + destructive red kept; states come from LinkButton */}
+            <LinkButton onClick={open} className="w-full justify-center text-label-l text-foreground-error">
                 {t('button')}
-            </button>
+            </LinkButton>
 
             <ActionModal
                 visible={modalState !== 'closed'}

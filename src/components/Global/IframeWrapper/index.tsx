@@ -118,14 +118,14 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                         text: t('iframeWrapper.chatWithSupport'),
                         icon: 'peanut-support' as IconName,
                         onClick: () => setIsSupportModalOpen(true),
-                        variant: 'transparent' as ButtonVariant,
-                        className: 'underline text-body-s w-full fill-none h-fit mt-3',
+                        variant: 'stroke' as ButtonVariant,
+                        className: 'w-full',
                     },
                     {
                         text: t('iframeWrapper.cancel'),
                         onClick: () => setIsHelpModalOpen(false),
-                        variant: 'transparent' as ButtonVariant,
-                        className: 'underline text-body-s w-full h-fit mt-3',
+                        variant: 'stroke' as ButtonVariant,
+                        className: 'w-full',
                     },
                 ],
             }
@@ -149,8 +149,8 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                 {
                     text: t('iframeWrapper.continueVerifying'),
                     onClick: () => setIsHelpModalOpen(false),
-                    variant: 'transparent' as ButtonVariant,
-                    className: 'underline text-body-s w-full h-fit mt-3',
+                    variant: 'stroke' as ButtonVariant,
+                    className: 'w-full',
                 },
             ],
         }
@@ -219,8 +219,8 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                     />
                     <div className="flex h-[15%] w-full flex-col items-center justify-center gap-2 px-4">
                         <Button
-                            variant={'transparent'}
-                            className={`h-8 max-w-md font-normal underline`}
+                            variant={'stroke'}
+                            className={`max-w-md`}
                             onClick={() => {
                                 setModalVariant('stop-verification')
                                 setIsHelpModalOpen(true)

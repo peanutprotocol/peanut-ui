@@ -165,9 +165,12 @@ const RhinoDepositView = ({
                                 <p className="w-full text-body-s" ref={containerRef}>
                                     {truncatedAddress}
                                 </p>
+                                {/* the row Button IS the copy control — the glyph
+                                    must not nest a second <button> */}
                                 <CopyToClipboard
                                     ref={copyRef}
                                     type="icon"
+                                    interactive={false}
                                     textToCopy={depositAddressData.depositAddress}
                                 />
                             </Button>

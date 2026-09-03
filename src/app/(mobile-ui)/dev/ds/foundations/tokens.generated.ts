@@ -186,11 +186,6 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "section": "legacy"
     },
     {
-        "name": "error",
-        "value": "#b3261e",
-        "section": "legacy"
-    },
-    {
         "name": "error-1",
         "value": "#ffd8d8",
         "section": "legacy"

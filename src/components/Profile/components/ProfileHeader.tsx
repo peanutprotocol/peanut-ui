@@ -6,11 +6,9 @@ import posthog from 'posthog-js'
 import React, { useEffect, useRef } from 'react'
 import { twMerge } from '@/utils/tw'
 import AvatarWithBadge from '../AvatarWithBadge'
-import DotFaceAvatar from '@/components/Global/DotFaceAvatar'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
-import CopyToClipboard from '@/components/Global/CopyToClipboard'
 
 const REFERRAL_PILL_PROPS = { source: REFERRAL_SOURCES.PROFILE_HEADER, link_type: 'profile' } as const
 
@@ -63,13 +61,9 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     return (
         <>
             <div className={twMerge('space-y-2 flex flex-col items-center', className)}>
-                {/* Own profile gets the generated dot face; someone else's
-                    public profile keeps initials (letters identify others). */}
-                {isSelfProfile ? (
-                    <DotFaceAvatar username={username} size={88} />
-                ) : (
-                    <AvatarWithBadge name={name || username} />
-                )}
+                {/* ds Avatar only (ruled 2026-09-02, TASK-22121): the
+                    generated dot-face experiment is reverted. */}
+                <AvatarWithBadge name={name || username} />
 
                 {/* Name */}
                 <div className="flex items-center gap-1">
@@ -82,7 +76,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                         haveSentMoneyToUser={haveSentMoneyToUser}
                         isAuthenticatedUserVerified={isAuthenticatedUserVerified && isSelfProfile} // can be true only for self profile
                     />
-                    <CopyToClipboard textToCopy={username} fill="black" iconSize="5" />
                 </div>
                 {/* `isSelfProfile` guards wrong attribution: `showShareButton`
                     defaults to true, so a caller on someone else's profile would

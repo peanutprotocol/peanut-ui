@@ -1,6 +1,8 @@
 'use client'
 
 import { railUserMessage, railVerdict } from '@/utils/capability-gate'
+import { FieldError } from '@/components/0_Bruddle/FieldError'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -1367,8 +1369,8 @@ export default function QRPayPage() {
                         {
                             text: t('kyc.notNow'),
                             onClick: onBack,
-                            variant: 'transparent',
-                            className: 'underline text-body-s w-full h-fit mt-3',
+                            variant: 'stroke',
+                            className: 'w-full',
                         },
                     ]}
                 />
@@ -1507,13 +1509,7 @@ export default function QRPayPage() {
                     {!perkClaimed && !qrPayment?.perk?.claimed && (
                         <Card className="flex flex-row items-center gap-3 p-4">
                             <div className="flex items-center gap-3">
-                                <div
-                                    className={
-                                        'flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-green-500 font-bold'
-                                    }
-                                >
-                                    <Icon name="check" size={24} />
-                                </div>
+                                <IconBubble icon="check" color="green" />
                             </div>
 
                             <div className="space-y-1">
@@ -1759,32 +1755,34 @@ export default function QRPayPage() {
 
                     {/* Amount Card */}
                     {currency && (
-                        <AmountInput
-                            initialAmount={currencyAmount}
-                            setPrimaryAmount={handleCurrencyAmountChange}
-                            primaryDenomination={{
-                                symbol: currency.symbol,
-                                price: currency.price,
-                                decimals: 2,
-                            }}
-                            secondaryDenomination={{
-                                symbol: 'USD',
-                                price: 1,
-                                decimals: 2,
-                            }}
-                            setSecondaryAmount={setAmount}
-                            disabled={
-                                !!qrPayment || isLoading || (paymentProcessor === 'MANTECA' && paymentLock?.code !== '')
-                            }
-                            walletBalance={balance ? formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS) : undefined}
-                            hideBalance
-                        />
-                    )}
-                    {/* only show balance error if limits blocking card is not displayed (warnings can coexist) */}
-                    {balanceErrorMessage && !limitsValidation.isBlocking && (
-                        <Notification priority="error" data-testid="error-alert">
-                            {balanceErrorMessage}
-                        </Notification>
+                        <div className="flex flex-col gap-1">
+                            <AmountInput
+                                initialAmount={currencyAmount}
+                                setPrimaryAmount={handleCurrencyAmountChange}
+                                primaryDenomination={{
+                                    symbol: currency.symbol,
+                                    price: currency.price,
+                                    decimals: 2,
+                                }}
+                                secondaryDenomination={{
+                                    symbol: 'USD',
+                                    price: 1,
+                                    decimals: 2,
+                                }}
+                                setSecondaryAmount={setAmount}
+                                disabled={
+                                    !!qrPayment ||
+                                    isLoading ||
+                                    (paymentProcessor === 'MANTECA' && paymentLock?.code !== '')
+                                }
+                                walletBalance={balance ? formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS) : undefined}
+                                hideBalance
+                            />
+                            {/* only show balance error if limits blocking card is not displayed (warnings can coexist) */}
+                            {balanceErrorMessage && !limitsValidation.isBlocking && (
+                                <FieldError data-testid="error-alert">{balanceErrorMessage}</FieldError>
+                            )}
+                        </div>
                     )}
 
                     {/* Limits Warning/Error Card */}

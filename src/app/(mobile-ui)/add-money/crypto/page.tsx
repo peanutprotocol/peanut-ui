@@ -14,8 +14,10 @@ import { getExplorerUrl } from '@/utils/general.utils'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { useQuery } from '@tanstack/react-query'
 import { useCallback, useMemo, useState } from 'react'
-import { useQueryState, parseAsStringEnum } from 'nuqs'
+import { useQueryState, parseAsStringEnum, parseAsString } from 'nuqs'
+import { useRouter } from 'next/navigation'
 import { useSafeBack } from '@/hooks/useSafeBack'
+import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useTranslations } from 'next-intl'
@@ -26,7 +28,18 @@ const DEPOSIT_EXPLORER_BASE_URL = getExplorerUrl(PEANUT_WALLET_CHAIN.id.toString
 const AddMoneyCryptoPage = () => {
     const { user } = useAuth()
     const t = useTranslations('addMoney')
-    const onBack = useSafeBack('/add-money')
+    // an explicit (sanitized) origin wins over history-back: the home Add
+    // drawer carries the caller's returnTo here, and popping history would
+    // land on the intermediate /home entry instead (chip P15). nuqs per the
+    // URL-as-State rule; readReturnTo validates same-origin on the raw value.
+    const [rawReturnTo] = useQueryState(RETURN_TO_PARAM, parseAsString)
+    const safeBack = useSafeBack('/add-money')
+    const returnTo = readReturnTo(
+        { get: (key: string) => (key === RETURN_TO_PARAM ? rawReturnTo : null) },
+        '/add-money/crypto'
+    )
+    const router = useRouter()
+    const onBack = returnTo ? () => router.push(returnTo) : safeBack
     const { address: peanutWalletAddress } = useWallet()
     // no default: a bare /add-money/crypto shows the choose-network step per the
     // Add/Crypto board (17830:78020); ?network= deep-links keep working

@@ -167,7 +167,7 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                                                 type="button"
                                                 aria-label={t('pendingTasks.dismiss', { task: copy.title })}
                                                 onClick={() => handleDismissTask(task)}
-                                                className="absolute top-3 right-3 z-10 cursor-pointer p-0 text-black outline-none"
+                                                className="absolute top-3 right-3 z-10 cursor-pointer p-0 text-black transition-opacity duration-instant after:absolute after:-inset-4 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
                                             >
                                                 <Icon name="cancel" size={16} />
                                             </button>

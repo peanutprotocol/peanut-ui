@@ -56,8 +56,7 @@
             "unknown": "Unknown"
         },
         "exchangeRate": "Exchange rate",
-        "slideToProceed": "Slide to Proceed",
-        "userAvatarAlt": "Avatar for {username}"
+        "slideToProceed": "Slide to Proceed"
     },
     "errors": {
         "balanceSettling": "Your balance isn't fully available yet. Please try again in a few seconds.",
