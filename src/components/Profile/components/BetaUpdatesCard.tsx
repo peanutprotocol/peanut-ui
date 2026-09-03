@@ -4,6 +4,7 @@ import Card from '@/components/Global/Card'
 import { Toggle } from '@/components/0_Bruddle/Toggle'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { useToast } from '@/components/0_Bruddle/Toast'
+import { useFeatureFlags } from '@/hooks/useFeatureFlag'
 import { useOtaChannel } from '@/hooks/useOtaChannel'
 import { BETA_OTA_CHANNEL } from '@/utils/capgo-updater'
 import { copyTextToClipboard } from '@/utils/clipboard.utils'
@@ -14,16 +15,22 @@ import { useTranslations } from 'next-intl'
  * points the device at the `staging` Capgo channel, which every merge to `dev`
  * publishes to; leaving drops it back to the store bundle.
  *
- * The five-tap gesture is the only thing that keeps `staging` off the devices
- * of people who did not mean to be there — there is no cohort and no server
- * check. It is not a security boundary: `setChannel` talks to Capgo directly,
- * and Capgo refuses the join unless the channel allows self-assignment, which
- * is where the real access control lives.
+ * Joining is gated on the `beta-ota-channel` cohort. The tap gesture only
+ * controls discoverability, and Capgo's self-assignment setting is global —
+ * it cannot tell an internal tester from a customer — so without the cohort
+ * the two together let anyone who finds the gesture onto the `dev` firehose
+ * whenever self-assignment is open.
  *
- * The card renders on every native build, so the off switch is always
- * reachable: it is the only way back to the store bundle, and hiding it would
- * strand a device on beta code.
+ * The cohort gates the JOIN, never the card. An earlier version gated the
+ * whole reveal, so the flag going missing hid the switch from everyone and
+ * looked exactly like being outside the cohort — invisible for months. A
+ * blocked device now says so on screen and names the fix.
+ *
+ * The card therefore renders on every native build, and the off switch stays
+ * live whatever the cohort says: it is the only way back to the store bundle,
+ * and a device offboarded mid-beta would otherwise be stranded on beta code.
  */
+export const BETA_OTA_FLAG = 'beta-ota-channel'
 
 /**
  * What the About screen's five-tap reveal can promise: the card only renders
@@ -34,12 +41,22 @@ export function useBetaUpdatesAccess(): { supported: boolean } {
     return { supported }
 }
 
+/** Outside the cohort, only a device already on beta may work the switch — off. */
+function useCanJoinBeta(): boolean {
+    // nonProdBypass: staging and preview builds are internal by construction,
+    // so the cohort only has to exist for the production store binary.
+    return useFeatureFlags()(BETA_OTA_FLAG, { nonProdBypass: true })
+}
+
 export const BetaUpdatesCard = () => {
     const t = useTranslations('profile.about.beta')
     const toast = useToast()
     const { supported, status, isBeta, busy, setBeta } = useOtaChannel()
+    const canJoin = useCanJoinBeta()
 
     if (!supported) return null
+
+    const blockedFromJoining = !canJoin && !isBeta
 
     const copyDeviceId = async (deviceId: string) => {
         if (await copyTextToClipboard(deviceId)) toast.info(t('deviceCopied'))
@@ -96,8 +113,15 @@ export const BetaUpdatesCard = () => {
                         {t('description', { channel: BETA_OTA_CHANNEL })}
                     </p>
                 </div>
-                <Toggle checked={isBeta} disabled={busy} onChange={onToggle} aria-label={t('heading')} />
+                <Toggle
+                    checked={isBeta}
+                    disabled={busy || blockedFromJoining}
+                    onChange={onToggle}
+                    aria-label={t('heading')}
+                />
             </div>
+
+            {blockedFromJoining && <p className="text-body-xs text-foreground-secondary">{t('notEligible')}</p>}
 
             <dl className="space-y-1 text-body-xs text-foreground-secondary">
                 <div className="flex justify-between gap-4">

@@ -1,8 +1,10 @@
 /**
- * The card is native-only, and the five-tap gesture is the only thing that keeps
- * the staging lane off customer devices. Beyond that, every join outcome has to
- * read honestly: a tester told to restart when nothing was downloaded goes
- * looking for a build that isn't there.
+ * The card is native-only. The tap gesture controls discoverability; the
+ * `beta-ota-channel` cohort is what decides who may JOIN. It must never decide
+ * who may leave, and it must never hide the card — a blocked device has to be
+ * able to read why. Beyond that, every join outcome has to read honestly: a
+ * tester told to restart when nothing was downloaded goes looking for a build
+ * that isn't there.
  */
 import React from 'react'
 import { fireEvent, render as rtlRender, screen, waitFor } from '@testing-library/react'
@@ -17,6 +19,9 @@ jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => toast }))
 
 const channel = { current: {} as UseOtaChannel }
 jest.mock('@/hooks/useOtaChannel', () => ({ useOtaChannel: () => channel.current }))
+
+let inCohort = true
+jest.mock('@/hooks/useFeatureFlag', () => ({ useFeatureFlags: () => () => inCohort }))
 
 const setup = (overrides: Partial<UseOtaChannel> = {}) => {
     channel.current = {
@@ -34,11 +39,47 @@ const switching = (result: OtaChannelSwitchResult) => ({ setBeta: jest.fn().mock
 
 beforeEach(() => {
     jest.clearAllMocks()
+    inCohort = true
 })
 
 it('renders nothing off native, where there is no OTA layer at all', () => {
     setup({ supported: false })
     expect(screen.queryByRole('switch')).not.toBeInTheDocument()
+})
+
+describe('cohort gating', () => {
+    it('will not let an account outside the cohort join', () => {
+        inCohort = false
+        setup()
+        expect(screen.getByRole('switch')).toBeDisabled()
+    })
+
+    // The cohort going missing must never look like silence: that is how the
+    // previous gate hid the switch from its own testers for months.
+    it('tells a blocked account why, and what to ask for', () => {
+        inCohort = false
+        setup()
+        expect(screen.getByText(/internal testers/i)).toBeInTheDocument()
+    })
+
+    // Offboarding someone mid-beta must not strand them on beta code.
+    it('still lets a device already on beta leave once it is out of the cohort', async () => {
+        inCohort = false
+        setup({
+            isBeta: true,
+            status: { channel: 'staging', bundleVersion: '1.1.10846', deviceId: 'abc-123', onBuiltinBundle: false },
+        })
+        const toggle = screen.getByRole('switch')
+        expect(toggle).toBeEnabled()
+        fireEvent.click(toggle)
+        await waitFor(() => expect(channel.current.setBeta).toHaveBeenCalledWith(false))
+    })
+
+    it('says nothing about eligibility to an account that can join', () => {
+        setup()
+        expect(screen.queryByText(/internal testers/i)).not.toBeInTheDocument()
+        expect(screen.getByRole('switch')).toBeEnabled()
+    })
 })
 
 // The off switch is the only way back to the store bundle, so it stays reachable
