@@ -90,6 +90,33 @@ export function OtaUpdateProvider({ children }: { children: React.ReactNode }) {
         if (!pendingBundle || applyingRef.current || applyState === 'manual-restart') return
         applyingRef.current = true
         setApplyState('applying')
+
+        let updater: typeof import('@/utils/capgo-updater')
+        try {
+            updater = await import('@/utils/capgo-updater')
+        } catch (err) {
+            console.warn('[capgo] updater chunk failed to load:', err)
+            applyingRef.current = false
+            setApplyState('failed')
+            return
+        }
+
+        // Binaries whose plugin deadlocks on an in-place restart (see
+        // canRestartInPlace) can only quit. next() already staged the bundle, so
+        // relaunching applies it — and the state is set BEFORE the exit, so an
+        // exitApp that fails leaves the instruction on screen rather than a spinner.
+        if (!(await updater.canRestartInPlace())) {
+            updater.markPendingApply(pendingBundle.id)
+            setApplyState('manual-restart')
+            try {
+                const { App } = await import('@capacitor/app')
+                await App.exitApp()
+            } catch (err) {
+                console.warn('[capgo] exitApp failed:', err)
+            }
+            return
+        }
+
         const armWatchdog = () => {
             clearTimeout(fallbackTimer.current)
             fallbackTimer.current = setTimeout(() => {
@@ -116,8 +143,7 @@ export function OtaUpdateProvider({ children }: { children: React.ReactNode }) {
         armWatchdog()
         let outcome: OtaApplyOutcome = 'failed'
         try {
-            const { applyStagedBundle } = await import('@/utils/capgo-updater')
-            outcome = await applyStagedBundle(pendingBundle.id, {
+            outcome = await updater.applyStagedBundle(pendingBundle.id, {
                 onSetRejected: () => clearTimeout(fallbackTimer.current),
                 onRestaged: (bundle) => setPendingBundle(bundle),
             })

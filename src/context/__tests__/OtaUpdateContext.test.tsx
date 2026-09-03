@@ -21,6 +21,7 @@ const mockUpdater = {
     reload: jest.fn().mockResolvedValue(undefined),
     current: jest.fn().mockResolvedValue({ bundle: { id: 'builtin' } }),
     getNextBundle: jest.fn(),
+    getPluginVersion: jest.fn(),
 }
 const mockExitApp = jest.fn().mockResolvedValue(undefined)
 const platform = { android: true, capacitor: true }
@@ -54,6 +55,9 @@ beforeEach(() => {
     mockUpdater.getNextBundle.mockResolvedValue(null)
     mockUpdater.getLatest.mockReset().mockRejectedValue(new Error('no_new_version_available'))
     mockUpdater.current.mockResolvedValue({ bundle: { id: 'builtin' } })
+    // A binary whose plugin restarts in place without deadlocking, so the
+    // existing cases still exercise the set() path.
+    mockUpdater.getPluginVersion.mockReset().mockResolvedValue({ version: '8.51.15' })
     warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
     error = jest.spyOn(console, 'error').mockImplementation(() => {})
 })
@@ -106,6 +110,68 @@ it('applyNow records the marker and hands the bundle to set()', async () => {
     })
     expect(mockUpdater.reload).not.toHaveBeenCalled()
     expect(mockExitApp).toHaveBeenCalled()
+})
+
+describe('Android binaries whose plugin deadlocks on an in-place restart', () => {
+    // Capgo < 8.46.0 runs set() inline on Capacitor's single plugin thread and
+    // blocks it waiting for notifyAppReady(), which is queued behind it there —
+    // the page reloads onto a blank screen for 30 s and the bundle is rolled
+    // back. Those binaries must quit instead; next() already staged the bundle.
+    beforeEach(() => {
+        mockUpdater.getPluginVersion.mockResolvedValue({ version: '8.45.9' })
+    })
+
+    it('quits instead of calling set(), keeping the marker on the staged bundle', async () => {
+        const { result } = await withStagedBundle()
+        await act(async () => {
+            await result.current.applyNow()
+        })
+        expect(mockUpdater.set).not.toHaveBeenCalled()
+        expect(mockExitApp).toHaveBeenCalled()
+        expect(window.localStorage.getItem('capgoPendingApply')).toBe('b-2')
+        expect(result.current.applyState).toBe('manual-restart')
+    })
+
+    it('leaves the close-and-reopen instruction up when the exit fails', async () => {
+        mockExitApp.mockRejectedValueOnce(new Error('exitApp unavailable'))
+        const { result } = await withStagedBundle()
+        await act(async () => {
+            await result.current.applyNow()
+        })
+        expect(result.current.applyState).toBe('manual-restart')
+    })
+
+    it('arms no watchdog, so a user who never reopens is not exited twice', async () => {
+        const { result } = await withStagedBundle()
+        await act(async () => {
+            await result.current.applyNow()
+        })
+        mockExitApp.mockClear()
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(3_000)
+        })
+        expect(mockExitApp).not.toHaveBeenCalled()
+    })
+
+    it('treats an unreadable plugin version as deadlocking rather than risking the bundle', async () => {
+        mockUpdater.getPluginVersion.mockRejectedValue(new Error('not implemented'))
+        const { result } = await withStagedBundle()
+        await act(async () => {
+            await result.current.applyNow()
+        })
+        expect(mockUpdater.set).not.toHaveBeenCalled()
+        expect(mockExitApp).toHaveBeenCalled()
+    })
+
+    it('still restarts in place on iOS, where the plugin does not block the caller', async () => {
+        platform.android = false
+        const { result } = await withStagedBundle()
+        act(() => {
+            void result.current.applyNow()
+        })
+        await waitFor(() => expect(mockUpdater.set).toHaveBeenCalledWith({ id: 'b-2' }))
+        expect(mockExitApp).not.toHaveBeenCalled()
+    })
 })
 
 it('re-stages and reloads when set() rejects, then closes the app on Android', async () => {
