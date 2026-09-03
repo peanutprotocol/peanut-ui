@@ -40,6 +40,7 @@ import { completeHistoryEntry, dedupeHistoryEntriesByUuid } from '@/utils/histor
 import { twMerge } from '@/utils/tw'
 import { formatUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
+import { displayableBadges } from '@/constants/badges.consts'
 
 /**
  * displays the user's transaction history with infinite scrolling and date grouping.
@@ -186,7 +187,7 @@ const HistoryPage = () => {
         ]
 
         // inject badge items from user profile, placed by earnedAt
-        const badges = user?.user?.badges ?? []
+        const badges = displayableBadges(user?.user?.badges ?? [])
         badges.forEach((b) => {
             if (!b.earnedAt) return
             entries.push({
