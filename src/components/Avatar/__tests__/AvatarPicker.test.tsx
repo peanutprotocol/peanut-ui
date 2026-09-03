@@ -147,6 +147,38 @@ describe('AvatarPicker', () => {
         expect(radio(A)).toHaveAttribute('aria-checked', 'false')
     })
 
+    it('a tap during the closing refetch is sent, not dropped', async () => {
+        const server = fakeServer()
+        // hold the refetch open so a tap can land while it is in flight
+        let releaseFetch: () => void = () => {}
+        mockFetchUser.mockImplementation(
+            () =>
+                new Promise<null>((resolve) => {
+                    releaseFetch = () => {
+                        mockUser.user.avatarKey = server.committed()
+                        resolve(null)
+                    }
+                })
+        )
+        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        fireEvent.click(radio(A))
+        await server.settle(0)
+        await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
+
+        fireEvent.click(radio(B))
+        expect(server.posts.map((p) => p.key)).toEqual([KEY_A])
+        await act(async () => releaseFetch())
+
+        // the queued tap drains after the refetch: B is posted, committed, refetched
+        await waitFor(() => expect(server.posts.map((p) => p.key)).toEqual([KEY_A, KEY_B]))
+        await server.settle(1)
+        await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(2))
+        await act(async () => releaseFetch())
+        expect(server.committed()).toBe(KEY_B)
+        expect(radio(B)).toHaveAttribute('aria-checked', 'true')
+    })
+
     it('a rejected first save still lets the second go through and clears pending', async () => {
         const server = fakeServer()
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)

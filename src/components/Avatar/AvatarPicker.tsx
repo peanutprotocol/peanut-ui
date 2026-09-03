@@ -51,17 +51,21 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
     const drain = async () => {
         draining.current = true
         try {
-            while (wanted.current !== undefined) {
-                const key = wanted.current
-                wanted.current = undefined
-                try {
-                    const { error } = await updateUserById({ userId, avatarKey: key })
-                    if (error) toast({ type: 'error', message: t('saveFailed') })
-                } catch {
-                    toast({ type: 'error', message: t('saveFailed') })
+            // a tap that lands while the refetch is in flight queues on
+            // `wanted`; drain again rather than drop it with the finally
+            do {
+                while (wanted.current !== undefined) {
+                    const key = wanted.current
+                    wanted.current = undefined
+                    try {
+                        const { error } = await updateUserById({ userId, avatarKey: key })
+                        if (error) toast({ type: 'error', message: t('saveFailed') })
+                    } catch {
+                        toast({ type: 'error', message: t('saveFailed') })
+                    }
                 }
-            }
-            await fetchUser()
+                await fetchUser()
+            } while (wanted.current !== undefined)
         } finally {
             draining.current = false
             setPending(undefined)
