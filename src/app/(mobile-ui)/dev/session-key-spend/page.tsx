@@ -16,6 +16,7 @@ import { useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import {
     SESSION_KEY_SPEND_BUILD_ENABLED,
+    SESSION_KEY_SIGN_FLAG,
     SESSION_KEY_SPEND_FLAG,
     sessionKeySpendDeviceOptIn,
     setSessionKeySpendDeviceOptIn,
@@ -28,6 +29,7 @@ export default function SessionKeySpendPage() {
     const isFlagEnabled = useFeatureFlags()
     const deviceOn = sessionKeySpendDeviceOptIn()
     const flagOn = isFlagEnabled(SESSION_KEY_SPEND_FLAG)
+    const signFlagOn = isFlagEnabled(SESSION_KEY_SIGN_FLAG)
     const effective = SESSION_KEY_SPEND_BUILD_ENABLED && (deviceOn || flagOn)
 
     const toggle = () => {
@@ -49,6 +51,10 @@ export default function SessionKeySpendPage() {
                 <div>
                     <span className="font-bold">PostHog flag ({SESSION_KEY_SPEND_FLAG}) for this user: </span>
                     {flagOn ? '✅ on' : '❌ off'}
+                </div>
+                <div>
+                    <span className="font-bold">PostHog flag ({SESSION_KEY_SIGN_FLAG}) — sign-only engine: </span>
+                    {signFlagOn ? '✅ on' : '❌ off'}
                 </div>
                 <div>
                     <span className="font-bold">Device opt-in: </span>

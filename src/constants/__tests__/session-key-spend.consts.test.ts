@@ -60,3 +60,25 @@ describe('sessionKeySpendEnabled', () => {
         spy.mockRestore()
     })
 })
+
+describe('sessionKeySignEnabled', () => {
+    beforeEach(() => {
+        window.localStorage.clear()
+        mockIsFeatureFlagEnabled.mockReset().mockReturnValue(false)
+    })
+
+    it('is off when the build gate is off', () => {
+        const gate = loadGate(undefined)
+        mockIsFeatureFlagEnabled.mockReturnValue(true)
+        expect(gate.sessionKeySignEnabled()).toBe(false)
+    })
+
+    it('follows its own flag, not the broadcasting engine flag or the device opt-in', () => {
+        const gate = loadGate('true')
+        gate.setSessionKeySpendDeviceOptIn(true)
+        mockIsFeatureFlagEnabled.mockImplementation((key: string) => key === 'session_key_spend')
+        expect(gate.sessionKeySignEnabled()).toBe(false)
+        mockIsFeatureFlagEnabled.mockImplementation((key: string) => key === 'session_key_spend_sign')
+        expect(gate.sessionKeySignEnabled()).toBe(true)
+    })
+})
