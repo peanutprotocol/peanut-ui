@@ -1,6 +1,7 @@
 'use client'
 
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
+import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { Notification } from '@/components/0_Bruddle/Notification'
@@ -100,6 +101,10 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
+    // client-side validation (recipient input, cashout min/max) renders as the
+    // field's own error under the recipient input; errorState keeps flow
+    // failures (claim/route/provider errors) in the Notification above
+    const [fieldError, setFieldError] = useState<string>('')
     const [isXchainLoading, setIsXchainLoading] = useState<boolean>(false)
     const [routes, setRoutes] = useState<ClaimXChainPreview[]>([])
     const [inputChanging, setInputChanging] = useState<boolean>(false)
@@ -495,6 +500,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 showError: false,
                 errorMessage: '',
             })
+            setFieldError('')
             setLoadingState('Fetching route')
 
             if (tokenPrice) {
@@ -502,16 +508,10 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * tokenPrice
                 const usd = (amount: number) => format.number(amount, { style: 'currency', currency: 'USD' })
                 if (cashoutUSDAmount < MIN_CASHOUT_LIMIT) {
-                    setErrorState({
-                        showError: true,
-                        errorMessage: t('errors.belowMinimum', { amount: usd(MIN_CASHOUT_LIMIT) }),
-                    })
+                    setFieldError(t('errors.belowMinimum', { amount: usd(MIN_CASHOUT_LIMIT) }))
                     return
                 } else if (cashoutUSDAmount > MAX_CASHOUT_LIMIT) {
-                    setErrorState({
-                        showError: true,
-                        errorMessage: t('errors.aboveMaximum', { amount: usd(MAX_CASHOUT_LIMIT) }),
-                    })
+                    setFieldError(t('errors.aboveMaximum', { amount: usd(MAX_CASHOUT_LIMIT) }))
                     return
                 }
             }
@@ -1018,36 +1018,42 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     {/* Alternative options section with divider */}
                     {/* Manual Input Section - Always visible in non-peanut-only mode */}
                     {!!claimToExternalWallet && (
-                        <GeneralRecipientInput
-                            placeholder={t('initial.recipientPlaceholder')}
-                            recipient={recipient}
-                            onUpdate={(update: GeneralRecipientUpdate) => {
-                                setRecipient(update.recipient)
-                                if (!update.recipient.address) {
-                                    setRecipientType('address')
-                                    // Reset loading state when input is cleared
-                                    setLoadingState('Idle')
+                        <FieldColumn error={fieldError}>
+                            <GeneralRecipientInput
+                                placeholder={t('initial.recipientPlaceholder')}
+                                recipient={recipient}
+                                onUpdate={(update: GeneralRecipientUpdate) => {
+                                    setRecipient(update.recipient)
+                                    if (!update.recipient.address) {
+                                        setRecipientType('address')
+                                        // Reset loading state when input is cleared
+                                        setLoadingState('Idle')
+                                        setErrorState({
+                                            showError: false,
+                                            errorMessage: '',
+                                        })
+                                    } else {
+                                        setRecipientType(update.type)
+                                        if (update.isValid && !update.isChanging) {
+                                            posthog.capture(ANALYTICS_EVENTS.CLAIM_RECIPIENT_SELECTED, {
+                                                recipient_type: update.type,
+                                            })
+                                        }
+                                    }
+                                    setIsValidRecipient(update.isValid)
+                                    // recipient validity is field-level; editing the
+                                    // recipient also releases any stale flow error, as
+                                    // before the validation/flow split
+                                    setFieldError(!update.isChanging && !update.isValid ? update.errorMessage : '')
                                     setErrorState({
                                         showError: false,
                                         errorMessage: '',
                                     })
-                                } else {
-                                    setRecipientType(update.type)
-                                    if (update.isValid && !update.isChanging) {
-                                        posthog.capture(ANALYTICS_EVENTS.CLAIM_RECIPIENT_SELECTED, {
-                                            recipient_type: update.type,
-                                        })
-                                    }
-                                }
-                                setIsValidRecipient(update.isValid)
-                                setErrorState({
-                                    showError: !update.isChanging && !update.isValid,
-                                    errorMessage: update.errorMessage,
-                                })
-                                setInputChanging(update.isChanging)
-                            }}
-                            showInfoText={false}
-                        />
+                                    setInputChanging(update.isChanging)
+                                }}
+                                showInfoText={false}
+                            />
+                        </FieldColumn>
                     )}
                     {recipientType === 'username' && !!claimToExternalWallet && (
                         <div className="text-body-xs text-foreground-secondary">{t('initial.usdcArbitrumOnly')}</div>

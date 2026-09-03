@@ -1,7 +1,7 @@
 'use client'
 
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
-import { FieldError } from '@/components/0_Bruddle/FieldError'
+import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
@@ -123,6 +123,10 @@ function MantecaBankWithdrawFlow() {
     const [destinationAddress, setDestinationAddress] = useState<string>(paramAddress ?? '')
     const [selectedBank, setSelectedBank] = useState<MantecaBankCode | null>(null)
     const [accountType, setAccountType] = useState<MantecaAccountType | null>(null)
+    // client-side destination/bank-details validation renders as the field's
+    // own error under the inputs; errorMessage keeps flow failures (rate lock,
+    // provider, signing) in the Notification
+    const [fieldError, setFieldError] = useState<string | null>(null)
     const [errorMessage, setErrorMessageRaw] = useState<string | null>(null)
     // Companion code for `errorMessage` so the retry-vs-block gate compares a
     // stable identifier, never the localized string. Every set clears it unless
@@ -231,7 +235,7 @@ function MantecaBankWithdrawFlow() {
                 const argResult = validateCbuCvuAlias(value)
                 isValid = argResult.valid
                 if (!argResult.valid) {
-                    setErrorMessage(argResult.message!)
+                    setFieldError(argResult.message!)
                 }
                 break
             case 'brazil':
@@ -239,7 +243,7 @@ function MantecaBankWithdrawFlow() {
                 const pixResult = validatePixKey(value)
                 isValid = pixResult.valid
                 if (!pixResult.valid) {
-                    setErrorMessage(pixResult.message!)
+                    setFieldError(pixResult.message!)
                 }
                 break
             default:
@@ -295,13 +299,14 @@ function MantecaBankWithdrawFlow() {
         if (isLockingPrice) return
 
         if (!destinationAddress.trim()) {
-            setErrorMessage(t('errors.enterAccountAddress'))
+            setFieldError(t('errors.enterAccountAddress'))
             return
         }
         if ((countryConfig?.needsBankCode && !selectedBank) || (countryConfig?.needsAccountType && !accountType)) {
-            setErrorMessage(t('errors.completeBankDetails'))
+            setFieldError(t('errors.completeBankDetails'))
             return
         }
+        setFieldError(null)
         setErrorMessage(null)
 
         if (!isUserMantecaKycApprovedForCountry) {
@@ -526,6 +531,7 @@ function MantecaBankWithdrawFlow() {
         setDestinationAddress(paramAddress ?? '')
         setSelectedBank(null)
         setAccountType(null)
+        setFieldError(null)
         setErrorMessage(null)
         setIsDestinationAddressValid(false)
         setIsDestinationAddressChanging(false)
@@ -744,7 +750,8 @@ function MantecaBankWithdrawFlow() {
             {step === 'amountInput' && (
                 <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     <div className="text-heading-xs text-foreground-primary">{t('amountToWithdraw')}</div>
-                    <div className="flex flex-col gap-1">
+                    {/* only show the balance error if limits blocking card is not displayed (warnings can coexist) */}
+                    <FieldColumn error={!limitsValidation.isBlocking ? balanceErrorMessage : undefined}>
                         <AmountInput
                             initialAmount={currencyAmount}
                             setPrimaryAmount={setCurrencyAmount}
@@ -761,11 +768,7 @@ function MantecaBankWithdrawFlow() {
                             }}
                             walletBalance={balance !== undefined ? formattedSpendableBalance : undefined}
                         />
-                        {/* only show balance error if limits blocking card is not displayed (warnings can coexist) */}
-                        {balanceErrorMessage && !limitsValidation.isBlocking && (
-                            <FieldError>{balanceErrorMessage}</FieldError>
-                        )}
-                    </div>
+                    </FieldColumn>
 
                     {/* limits warning/error card - uses centralized helper for props */}
                     {(() => {
@@ -849,22 +852,25 @@ function MantecaBankWithdrawFlow() {
                             {t('manteca.enterMethodDetails', { method: methodDisplayInfo.name })}
                         </h2>
                         <div className="space-y-2">
-                            <ValidatedInput
-                                value={destinationAddress}
-                                placeholder={countryConfig!.accountNumberLabel}
-                                onUpdate={(update) => {
-                                    // Auto-normalize PIX keys for Brazil: strip whitespace and normalize phone numbers
-                                    const normalizedValue =
-                                        countryPath === 'brazil' ? normalizePixInput(update.value) : update.value
-                                    setDestinationAddress(normalizedValue)
-                                    setIsDestinationAddressValid(update.isValid)
-                                    setIsDestinationAddressChanging(update.isChanging)
-                                    if (update.isValid || update.value === '') {
-                                        setErrorMessage(null)
-                                    }
-                                }}
-                                validate={validateDestinationAddress}
-                            />
+                            <FieldColumn error={fieldError}>
+                                <ValidatedInput
+                                    value={destinationAddress}
+                                    placeholder={countryConfig!.accountNumberLabel}
+                                    onUpdate={(update) => {
+                                        // Auto-normalize PIX keys for Brazil: strip whitespace and normalize phone numbers
+                                        const normalizedValue =
+                                            countryPath === 'brazil' ? normalizePixInput(update.value) : update.value
+                                        setDestinationAddress(normalizedValue)
+                                        setIsDestinationAddressValid(update.isValid)
+                                        setIsDestinationAddressChanging(update.isChanging)
+                                        if (update.isValid || update.value === '') {
+                                            setFieldError(null)
+                                            setErrorMessage(null)
+                                        }
+                                    }}
+                                    validate={validateDestinationAddress}
+                                />
+                            </FieldColumn>
                             {countryConfig?.needsAccountType && (
                                 <BaseSelect
                                     value={accountType ?? undefined}

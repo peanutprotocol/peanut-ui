@@ -1,5 +1,6 @@
 'use client'
 import { updateUserById } from '@/app/actions/users'
+import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { Button } from '@/components/0_Bruddle/Button'
 import NavHeader from '@/components/Global/NavHeader'
@@ -35,7 +36,10 @@ export const ProfileEditView = () => {
     const { isVerified: isKycApproved } = useIdentityVerification()
 
     const [isLoading, setIsLoading] = useState(false)
+    // backend/API failures — rendered in the Notification. client-side name
+    // validation renders as the name field's own error instead.
     const [errorMessage, setErrorMessage] = useState('')
+    const [nameError, setNameError] = useState('')
 
     // split the full name into name and surname
     const splitName = useCallback((fullName: string) => {
@@ -100,6 +104,8 @@ export const ProfileEditView = () => {
             ...prev,
             [field]: value,
         }))
+        // typing in the name field releases its validation error
+        if (field === 'name') setNameError('')
     }, [])
 
     // handle form submission
@@ -107,13 +113,14 @@ export const ProfileEditView = () => {
         try {
             setIsLoading(true)
             setErrorMessage('')
+            setNameError('')
 
             // only require the name when the field is editable — requiring it
             // while it's locked (verified user, provider owns the name) would
             // trap users whose fullName is empty at load (can't type, can't
             // save) when all they want is to set their email.
             if (canEditName && !formData.name?.trim()) {
-                setErrorMessage(t('errors.nameRequired'))
+                setNameError(t('errors.nameRequired'))
                 return
             }
 
@@ -179,12 +186,14 @@ export const ProfileEditView = () => {
                 rhythm reads 8 (label → field) < 16 (field → field) < 24. */}
             <div className="flex flex-col gap-6">
                 <div className="flex flex-col gap-4">
-                    <ProfileEditField
-                        label={t('fields.name')}
-                        value={formData.name}
-                        onChange={(value) => handleChange('name', value)}
-                        disabled={!canEditName}
-                    />
+                    <FieldColumn error={nameError}>
+                        <ProfileEditField
+                            label={t('fields.name')}
+                            value={formData.name}
+                            onChange={(value) => handleChange('name', value)}
+                            disabled={!canEditName}
+                        />
+                    </FieldColumn>
 
                     <ProfileEditField
                         label={t('fields.surname')}
