@@ -137,7 +137,8 @@ export const BottomNav = () => {
 
     const onPillPointerDown = (e: React.PointerEvent<HTMLSpanElement>) => {
         if (!activeBox || !pillRef.current) return
-        pillRef.current.setPointerCapture(e.pointerId)
+        // optional call: jsdom has no pointer capture
+        pillRef.current.setPointerCapture?.(e.pointerId)
         dragRef.current = { pointerId: e.pointerId, startClientX: e.clientX, baseX: restingX(activeBox), moved: false }
         // the finger owns the transform now — the transition would lag it
         pillRef.current.style.transitionProperty = 'none'
@@ -155,9 +156,14 @@ export const BottomNav = () => {
         const drag = dragRef.current
         if (!drag || !pillRef.current || e.pointerId !== drag.pointerId) return
         dragRef.current = null
-        // hand the transform back to the transition before the snap target lands
+        // hand the transform back to the transition — and RESTORE the resting
+        // position imperatively: clearing it left the pill at x=0 on a no-op
+        // release (tap, cancel, same-tab), because React saw no prop change
+        // and never rewrote the style (chip P22). Writing baseX is idempotent
+        // with what React renders for the unchanged tab; a navigating release
+        // overwrites it via setActiveTab's re-render right after.
         pillRef.current.style.transitionProperty = ''
-        pillRef.current.style.transform = ''
+        pillRef.current.style.transform = `translateX(${drag.baseX}px)`
         if (cancelled || !drag.moved) return
         // snap to the tab whose center is nearest the release point
         let nearest: TabId | null = null
@@ -179,6 +185,8 @@ export const BottomNav = () => {
             setIsSupportModalOpen(true)
             return
         }
+        const targetBox = boxes[nearest]
+        if (targetBox) pillRef.current.style.transform = `translateX(${restingX(targetBox)}px)`
         setActiveTab(nearest)
         router.push(nearest === 'home' ? '/home' : '/card')
     }
