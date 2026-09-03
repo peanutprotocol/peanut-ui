@@ -34,6 +34,20 @@ const config: CapacitorConfig = {
             // Sentry). initCapgoUpdater() does one guarded check per launch instead.
             autoUpdate: false,
             appReadyTimeout: 15000,
+            /*
+             * Stats OFF. From 8.46.0 the plugin injects a document-start script
+             * that forwards every window error, unhandled rejection, CSP
+             * violation and failed resource to this endpoint — message, stack,
+             * source and location.href — keyed to its persistent device id, and
+             * autoUpdate:false does not gate it. In a wallet those strings carry
+             * claim hashes, API paths and error bodies, and none of it would pass
+             * through the redaction sentry.utils.ts applies to our own events.
+             * An empty url makes sendStats return before it builds a payload
+             * (verified in both native implementations), so nothing leaves the
+             * device. Cost: Capgo's dashboard adoption counters go dark — point
+             * this at a first-party endpoint if we want them back.
+             */
+            statsUrl: '',
             responseTimeout: 30,
             autoDeleteFailed: true,
             autoDeletePrevious: true,
