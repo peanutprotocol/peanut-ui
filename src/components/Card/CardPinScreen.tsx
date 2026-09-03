@@ -133,8 +133,8 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
                      * across masked / loading / revealed — `****`, the
                      * skeleton, and the real digits all sit centered in the
                      * same row and the eye button never jumps. The type token
-                     * (heading-big-input, 52px font / 64px line) centers in
-                     * the slot, so its taller line box never moves the row. */}
+                     * (heading-xl, 42px font / 48px line) centers in the
+                     * slot, so the digits never move the row. */}
                     {/* ph-no-capture: PostHog skips this subtree in session
                      * replays so the revealed PIN digits never land in
                      * recordings. The skeleton + masked '****' state are
@@ -143,7 +143,7 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
                         {loading ? (
                             <div className="h-[52px] w-32 animate-pulse rounded bg-background-disabled" />
                         ) : (
-                            <span className="text-heading-big-input">{pin ?? '****'}</span>
+                            <span className="text-heading-xl">{pin ?? '****'}</span>
                         )}
                     </div>
                     <button
