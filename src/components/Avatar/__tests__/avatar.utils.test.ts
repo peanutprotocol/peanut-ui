@@ -7,6 +7,7 @@ import {
     avatarSrc,
     badgeAvatarKeys,
     basicAvatarKeys,
+    letterAvatarSrc,
     offerBasics,
 } from '../avatar.utils'
 
@@ -15,15 +16,32 @@ describe('avatar catalog', () => {
     // here, or the picker shows a broken image the day the API ships the badge
     it('resolves every avatar the manifest declares to a file under public/avatars', () => {
         const paths = [
-            ...badgeAssets.avatars.basics.map((slug) => `/avatars/basic/${slug}.svg`),
+            ...badgeAssets.avatars.basics.map((slug) => `/avatars/basic/${slug}.webp`),
             ...Object.entries(badgeAssets.avatars.badges).flatMap(([code, slugs]) =>
-                slugs.map((slug) => `/avatars/badge/${code}/${slug}.svg`)
+                slugs.map((slug) => `/avatars/badge/${code}/${slug}.webp`)
             ),
         ]
         expect(paths.length).toBeGreaterThanOrEqual(26)
         for (const path of paths) {
             expect({ path, exists: existsSync(join(process.cwd(), 'public', path)) }).toEqual({ path, exists: true })
         }
+    })
+
+    // the letter set is the day-0 fallback and has no manifest entry, so nothing
+    // else checks it: one missing file is a broken image for every user whose
+    // name starts with that letter
+    it('has sticker art for every letter a-z under public/avatars/letter', () => {
+        for (const letter of 'abcdefghijklmnopqrstuvwxyz') {
+            const path = letterAvatarSrc(`${letter}oe`)
+            expect(path).toBe(`/avatars/letter/${letter}.webp`)
+            expect({ path, exists: existsSync(join(process.cwd(), 'public', path!)) }).toEqual({ path, exists: true })
+        }
+        expect(letterAvatarSrc('  Satoshi ')).toBe('/avatars/letter/s.webp')
+        // a name the letter set cannot draw falls through to the initial avatar
+        expect(letterAvatarSrc('0xdead')).toBeNull()
+        expect(letterAvatarSrc('中本')).toBeNull()
+        expect(letterAvatarSrc('')).toBeNull()
+        expect(letterAvatarSrc(undefined)).toBeNull()
     })
 
     it('gives everyone the twenty basics and nothing from badges they do not hold', () => {
@@ -41,8 +59,8 @@ describe('avatar catalog', () => {
     })
 
     it('maps keys to their art and rejects anything the manifest does not know', () => {
-        expect(avatarSrc('basic.apple')).toBe('/avatars/basic/apple.svg')
-        expect(avatarSrc('badge.OFFRAMP_USER.wink')).toBe('/avatars/badge/OFFRAMP_USER/wink.svg')
+        expect(avatarSrc('basic.apple')).toBe('/avatars/basic/apple.webp')
+        expect(avatarSrc('badge.OFFRAMP_USER.wink')).toBe('/avatars/badge/OFFRAMP_USER/wink.webp')
         expect(avatarSrc('basic.peanut')).toBeNull()
         expect(avatarSrc('badge.BUG_WHISPERER.nope')).toBeNull()
         expect(avatarSrc('badge.FIRST_INVITE.beetle')).toBeNull()

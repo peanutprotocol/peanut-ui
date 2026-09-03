@@ -12,25 +12,32 @@ describe('UserAvatar', () => {
     it('renders the picked character on its palette', () => {
         const { container } = render(<UserAvatar name="satoshi" avatarKey="basic.frog" />)
 
-        expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/basic/frog.svg')
+        expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/basic/frog.webp')
         expect(screen.getByRole('img', { name: 'Avatar for satoshi' })).toBeInTheDocument()
         expect(container).not.toHaveTextContent('S')
     })
 
-    // no pick → the existing first-letter avatar, so the fallback lives in
-    // one place (AvatarWithBadge firstLetterOnly, #2924)
-    it('falls back to the first-letter avatar without a pick', () => {
+    // no pick → the initial as sticker art, not a letter in a circle
+    it('falls back to the letter sticker without a pick', () => {
         const { container } = render(<UserAvatar name="satoshi" avatarKey={null} />)
 
-        expect(container.querySelector('img')).toBeNull()
-        expect(container).toHaveTextContent(/^S$/)
+        expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/letter/s.webp')
+        expect(container).not.toHaveTextContent('S')
     })
 
     it('treats a key the manifest does not know as no pick', () => {
         const { container } = render(<UserAvatar name="hal" avatarKey="badge.NOPE.x" />)
 
+        expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/letter/h.webp')
+    })
+
+    // last resort: a name the letter set cannot draw keeps the first-letter
+    // avatar (AvatarWithBadge firstLetterOnly, #2924)
+    it('falls back to the first-letter avatar for a name outside a-z', () => {
+        const { container } = render(<UserAvatar name="0xf39Fd6" avatarKey={null} />)
+
         expect(container.querySelector('img')).toBeNull()
-        expect(container).toHaveTextContent(/^H$/)
+        expect(container).toHaveTextContent(/^0$/)
     })
 
     it('shows the generic user glyph with no name at all', () => {

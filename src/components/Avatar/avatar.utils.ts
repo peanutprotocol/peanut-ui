@@ -49,9 +49,9 @@ export function offerBasics(pick: string | null, n = 5, random: () => number = M
 export function avatarSrc(key: string | null | undefined): string | null {
     if (!key) return null
     const [kind, ...rest] = key.split('.')
-    if (kind === 'basic' && rest.length === 1 && BASICS.includes(rest[0])) return `/avatars/basic/${rest[0]}.svg`
+    if (kind === 'basic' && rest.length === 1 && BASICS.includes(rest[0])) return `/avatars/basic/${rest[0]}.webp`
     if (kind === 'badge' && rest.length === 2 && slugsOf(rest[0]).includes(rest[1])) {
-        return `/avatars/badge/${rest[0]}/${rest[1]}.svg`
+        return `/avatars/badge/${rest[0]}/${rest[1]}.webp`
     }
     return null
 }
@@ -73,4 +73,14 @@ export function avatarPaletteClass(key: string): string {
     let hash = 5381
     for (let i = 0; i < key.length; i++) hash = ((hash << 5) + hash + key.charCodeAt(i)) >>> 0
     return PALETTE_CLASSES[hash % PALETTE_CLASSES.length]
+}
+
+/**
+ * Sticker art for the first letter of a name, or null when the first character
+ * is not a-z. The letter set is art in `public/avatars/letter/`, not a manifest
+ * entry: it is never a pick, only the day-0 look of a user who has not picked.
+ */
+export function letterAvatarSrc(name: string | null | undefined): string | null {
+    const ch = name?.trim().charAt(0).toLowerCase()
+    return ch && ch >= 'a' && ch <= 'z' ? `/avatars/letter/${ch}.webp` : null
 }
