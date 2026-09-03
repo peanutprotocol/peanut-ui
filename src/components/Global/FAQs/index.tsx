@@ -22,7 +22,8 @@ export type FAQsProps = {
 
 // Matches the landing page's other "learn more" affordances: right-aligned,
 // underlined at rest, arrow trailing.
-const learnMoreClass = 'font-roboto-flex text-base text-foreground-primary underline hover:no-underline md:text-lg'
+const learnMoreClass =
+    'font-roboto-flex text-body-m text-foreground-primary underline hover:no-underline md:text-body-l'
 
 function linkifyText(text: string) {
     const markdownLinkRegex = /\[([^\]]+)\]\(([^\s)]+)\)/g
@@ -51,7 +52,8 @@ function linkifyText(text: string) {
 
 export function FAQsPanel({ heading, questions, learnMoreLabel = 'Learn more' }: FAQsProps) {
     return (
-        <section className="relative overflow-hidden bg-[#F9F4F0] px-4 py-24 text-foreground-primary md:py-32">
+        // drift fix: was near-miss hex — snapped to the page-background token
+        <section className="relative overflow-hidden bg-background-page px-4 py-24 text-foreground-primary md:py-32">
             <div className="mx-auto max-w-3xl">
                 <h2 className="font-roboto-flex-extrabold text-heading font-extraBlack uppercase md:text-headingMedium">
                     {heading}
@@ -62,13 +64,13 @@ export function FAQsPanel({ heading, questions, learnMoreLabel = 'Learn more' }:
                             key={faq.id}
                             className={`group py-4 ${idx > 0 ? 'border-t-2 border-border-default' : ''}`}
                         >
-                            <summary className="font-roboto-flex-extrabold flex cursor-pointer list-none items-center justify-between gap-4 text-lg font-extraBlack uppercase md:text-xl [&::-webkit-details-marker]:hidden">
+                            <summary className="font-roboto-flex-extrabold flex cursor-pointer list-none items-center justify-between gap-4 text-heading-card uppercase md:text-heading-xs [&::-webkit-details-marker]:hidden">
                                 <span>{faq.question}</span>
-                                <span className="shrink-0 text-3xl leading-none transition-transform duration-fast group-open:rotate-45">
+                                <span className="shrink-0 text-heading-m leading-none transition-transform duration-fast group-open:rotate-45">
                                     +
                                 </span>
                             </summary>
-                            <div className="mt-4 text-lg leading-6 font-semibold text-foreground-primary md:text-xl">
+                            <div className="mt-4 text-body-l text-foreground-primary">
                                 {faq.answerContent ?? <p className="whitespace-pre-line">{linkifyText(faq.answer)}</p>}
                                 {faq.calModal && (
                                     <a
