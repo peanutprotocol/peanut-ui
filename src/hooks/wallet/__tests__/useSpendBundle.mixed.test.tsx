@@ -46,11 +46,12 @@ jest.mock('@/constants/rain.consts', () => ({
     ],
 }))
 const mockSignTypedData = jest.fn()
+const mockGetPatchedSudoValidator = jest.fn(async () => ({ validator: 'patched' }))
 jest.mock('@/context/kernelClient.context', () => ({
     useKernelClient: () => ({
         getClientForChain: () => ({ account: { address: ACCOUNT, signTypedData: mockSignTypedData } }),
         rebuildClientForChain: jest.fn(),
-        getPatchedSudoValidator: jest.fn(async () => ({ validator: 'patched' })),
+        getPatchedSudoValidator: () => mockGetPatchedSudoValidator(),
     }),
 }))
 jest.mock('@/context/authContext', () => ({
@@ -137,6 +138,7 @@ beforeEach(() => {
     mockPrepareWithdrawal.mockResolvedValue(PREP)
     mockSignTypedData.mockResolvedValue('0xadminsig')
     mockSendUserOp.mockResolvedValue({ userOpHash: '0xpasskeyop', receipt: SETTLED_RECEIPT })
+    mockGetPatchedSudoValidator.mockResolvedValue({ validator: 'patched' })
 })
 
 describe('useSpendBundle — mixed, SESSION_KEY_SPEND one-tap branch', () => {
@@ -173,6 +175,7 @@ describe('useSpendBundle — mixed, SESSION_KEY_SPEND one-tap branch', () => {
             strategy: 'mixed',
             kind: 'P2P_SEND',
             engine: 'session-key',
+            receipt: 'settled',
         })
     })
 
@@ -204,6 +207,42 @@ describe('useSpendBundle — mixed, SESSION_KEY_SPEND one-tap branch', () => {
             ANALYTICS_EVENTS.CARD_WITHDRAW_SUCCEEDED,
             expect.objectContaining({ engine: 'session-key' })
         )
+    })
+
+    it('flag on, ephemeral op submitted but receipt unresolved: reported as submitted, NOT stamped with the userOp hash', async () => {
+        mockSessionKeySpendEnabled.mockReturnValue(true)
+        mockEphemeral.mockResolvedValue({ ok: true, userOpHash: '0xephemeralop', receipt: null })
+
+        const outcome = await spendMixed()
+
+        expect(outcome).toEqual({ strategy: 'mixed', userOpHash: '0xephemeralop', receipt: null, intentId: 'prep-1' })
+        expect(mockStampWithdrawal).not.toHaveBeenCalled()
+        expect(mockSendUserOp).not.toHaveBeenCalled()
+        expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_WITHDRAW_SUCCEEDED, {
+            strategy: 'mixed',
+            kind: 'P2P_SEND',
+            engine: 'session-key',
+            receipt: 'unresolved',
+        })
+    })
+
+    it('flag on, sudo validator cannot be resolved: falls back to the passkey path instead of failing the spend', async () => {
+        mockSessionKeySpendEnabled.mockReturnValue(true)
+        mockGetPatchedSudoValidator.mockRejectedValue(new Error('Cannot resolve sudo validator: not authenticated'))
+
+        const outcome = await spendMixed()
+
+        expect(mockEphemeral).not.toHaveBeenCalled()
+        expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(1)
+        expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SESSION_KEY_SPEND_FALLBACK, {
+            kind: 'P2P_SEND',
+            reason: 'Cannot resolve sudo validator: not authenticated',
+        })
+        expect(mockSignTypedData).toHaveBeenCalledTimes(1)
+        expect(mockSendUserOp).toHaveBeenCalledTimes(1)
+        const [calls] = mockSendUserOp.mock.calls[0] as [Array<{ to: string }>]
+        expect(calls[0].to).toBe(PREP.coordinatorAddress)
+        expect(outcome).toMatchObject({ strategy: 'mixed', userOpHash: '0xpasskeyop', intentId: 'prep-1' })
     })
 
     it('flag on, ephemeral preflight fails before broadcast: same fallback, same prep', async () => {
