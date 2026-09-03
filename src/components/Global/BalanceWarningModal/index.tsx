@@ -1,7 +1,8 @@
 'use client'
 
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
+import { Notification } from '@/components/0_Bruddle/Notification'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { useEffect, useMemo, useRef } from 'react'
 import { useTranslations } from 'next-intl'
@@ -98,26 +99,30 @@ export default function BalanceWarningModal({ visible, onCloseAction }: BalanceW
                     <IconBubble icon="alert" color="yellow" />
                     <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                         <DrawerTitle>{t('balanceWarningModal.title')}</DrawerTitle>
-                        <div className="space-y-3 text-body-s text-foreground-secondary">
-                            <p>{t('balanceWarningModal.congrats')}</p>
-                            <p>{t('balanceWarningModal.selfCustody')}</p>
-                            <p>{t('balanceWarningModal.passkey')}</p>
-
-                            {t.rich('balanceWarningModal.learnMore', {
-                                platform: platformName,
-                                link: (chunks) => (
-                                    <a
-                                        href={platformInfo.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-blue-600 underline"
-                                    >
-                                        {chunks}
-                                    </a>
-                                ),
-                            })}
-                        </div>
+                        <DrawerDescription>{t('balanceWarningModal.congrats')}</DrawerDescription>
                     </DrawerHeader>
+                    {/* the two self-custody facts read as a checklist, not flowing prose —
+                        same structure the passkey-help surface uses for its fixes */}
+                    <Notification
+                        priority="info"
+                        className="w-full text-left"
+                        items={[t('balanceWarningModal.selfCustody'), t('balanceWarningModal.passkey')]}
+                    />
+                    <p className="text-body-s text-foreground-secondary">
+                        {t.rich('balanceWarningModal.learnMore', {
+                            platform: platformName,
+                            link: (chunks) => (
+                                <a
+                                    href={platformInfo.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 underline"
+                                >
+                                    {chunks}
+                                </a>
+                            ),
+                        })}
+                    </p>
                     {/* data-vaul-no-drag: the horizontal slide gesture must not start a drawer drag */}
                     <div className="w-full" data-vaul-no-drag>
                         <SlideToConfirm

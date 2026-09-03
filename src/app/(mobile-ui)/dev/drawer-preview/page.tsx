@@ -74,7 +74,7 @@ export default function DrawerPreviewPage() {
             <div className="flex flex-col gap-6">
                 <Section
                     title="1. CancelSendLinkDrawer"
-                    note="was CancelSendLinkModal — already shipped as a nested-capable drawer before this task; single simple CTA, no competing button animations. confirm mock runs ~2s in-flight (drawer locks non-dismissible) then closes."
+                    note="was CancelSendLinkModal — now the composed destructive-confirm shape: red icon bubble, title + description header, single CTA. confirm mock runs ~2s in-flight (drawer locks non-dismissible) then closes."
                 >
                     <Button variant="stroke" onClick={() => setCancelLinkOpen(true)}>
                         open (idle → in-flight on confirm)
@@ -198,7 +198,7 @@ export default function DrawerPreviewPage() {
 
                 <Section
                     title="5. BalanceWarningModal"
-                    note="centered forced modal → non-dismissible drawer with the built-in scroll area. only the slide exits — swipe, overlay and hardware back are no-ops. platform link copy is auto-detected from the user agent, so there is one variant per device."
+                    note="centered forced modal → non-dismissible drawer, now composed: title + lead line, the two self-custody facts as an info checklist, learn-more footnote. only the slide exits — swipe, overlay and hardware back are no-ops. platform link copy is auto-detected from the user agent."
                 >
                     <Button variant="stroke" onClick={() => setBalanceOpen(true)}>
                         open (slide to exit)
