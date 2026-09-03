@@ -107,8 +107,14 @@ export default function AddMoneyPage() {
     // country list lives on the explicit ?method=bank.
     const isBareRoot = !method && !searchParams.get('country')
     useEffect(() => {
-        if (isBareRoot) router.replace('/home?drawer=add')
-    }, [isBareRoot, router])
+        if (!isBareRoot) return
+        // carry the caller's origin through the drawer hop — dropping it here
+        // strands the exchange-rate widget's tested back contract on /home
+        const params = new URLSearchParams({ drawer: 'add' })
+        const origin = searchParams.get(RETURN_TO_PARAM)
+        if (origin) params.set(RETURN_TO_PARAM, origin)
+        router.replace(`/home?${params.toString()}`)
+    }, [isBareRoot, router, searchParams])
 
     // native app: render sub-views based on query params
     const viewFromQuery = searchParams.get('view')
