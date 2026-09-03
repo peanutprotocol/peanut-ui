@@ -128,6 +128,8 @@ export interface Translations {
 
     // Landing page — zero-fees section
     landingZeroFees: string
+    landingReallyZero: string
+    landingNoHiddenFees: string
     landingSeeMarkupOn: string
 
     // Landing page — drop-a-link section
