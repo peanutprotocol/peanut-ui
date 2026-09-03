@@ -6,6 +6,7 @@ import { PEANUTMAN } from '@/assets/mascot'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
+import { Banner } from '@/components/Global/Banner'
 import HomeHistory from '@/components/Home/HomeHistory'
 import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { useTranslations } from 'next-intl'
@@ -158,9 +159,15 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
             {/* Logo - Only shown in guest view */}
             <div>
                 {!isLoggedIn ? (
-                    <div className="flex items-center gap-2 md:hidden">
-                        <Image src={PEANUTMAN} alt={t('peanutMascotAlt')} height={24} />
-                        <Image src={PEANUT_LOGO_BLACK} alt={t('peanutLogoTextAlt')} height={12} />
+                    <div>
+                        <div className="flex items-center gap-2 md:hidden">
+                            <Image src={PEANUTMAN} alt={t('peanutMascotAlt')} height={24} />
+                            <Image src={PEANUT_LOGO_BLACK} alt={t('peanutLogoTextAlt')} height={12} />
+                        </div>
+                        {/* guest view has no NavHeader (which carries the banner
+                            everywhere else), so mount the maintenance banner here —
+                            it is the one public no-header surface (Chip, PR #2946) */}
+                        <Banner className="mt-2" />
                     </div>
                 ) : (
                     <NavHeader onPrev={goBack} hideLabel />
