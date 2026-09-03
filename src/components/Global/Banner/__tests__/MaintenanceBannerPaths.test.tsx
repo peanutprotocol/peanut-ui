@@ -39,7 +39,7 @@ describe('Banner maintenance path targeting', () => {
     })
 
     it('shows on every page when no paths are configured', () => {
-        mockPathname.mockReturnValue('/home')
+        mockPathname.mockReturnValue('/history')
         renderBanner()
         expect(screen.getByText(en.global.maintenanceBanner)).toBeInTheDocument()
     })
@@ -53,7 +53,7 @@ describe('Banner maintenance path targeting', () => {
 
     it('hides on a page outside the targeted paths', () => {
         mockConfig.maintenanceBannerPaths = ['/add-money']
-        mockPathname.mockReturnValue('/home')
+        mockPathname.mockReturnValue('/history')
         const { container } = renderBanner()
         expect(container).toBeEmptyDOMElement()
     })
@@ -62,8 +62,24 @@ describe('Banner maintenance path targeting', () => {
         mockConfig.enableMaintenanceBanner = false
         mockConfig.enableFullMaintenance = true
         mockConfig.maintenanceBannerPaths = ['/add-money']
-        mockPathname.mockReturnValue('/home')
+        mockPathname.mockReturnValue('/history')
         renderBanner()
         expect(screen.getByText(en.global.maintenanceBanner)).toBeInTheDocument()
+    })
+
+    // designer ruling 2026-09-03: a maintenance warning on the money overview
+    // reads as "funds at risk" — home never shows it, whatever the config says
+    it('never shows on home, even when every page is targeted', () => {
+        mockPathname.mockReturnValue('/home')
+        const { container } = renderBanner()
+        expect(container).toBeEmptyDOMElement()
+    })
+
+    it('never shows on home, even under full maintenance', () => {
+        mockConfig.enableMaintenanceBanner = false
+        mockConfig.enableFullMaintenance = true
+        mockPathname.mockReturnValue('/home')
+        const { container } = renderBanner()
+        expect(container).toBeEmptyDOMElement()
     })
 })

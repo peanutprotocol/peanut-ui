@@ -6,7 +6,6 @@ import GuestLoginModal from '@/components/Global/GuestLoginModal'
 import QRScannerOverlay from '@/components/Global/QRScannerOverlay'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import { useUserStore } from '@/redux/hooks'
-import { Banner } from '@/components/Global/Banner'
 import { twMerge } from '@/utils/tw'
 
 export default function PaymentLayoutWrapper({ children }: { children: React.ReactNode }) {
@@ -16,7 +15,6 @@ export default function PaymentLayoutWrapper({ children }: { children: React.Rea
     return (
         <AppShell
             variant="app"
-            banner={<Banner />}
             nav={isUserLoggedIn && <BottomNav />}
             contentClassName={
                 isUserLoggedIn ? 'pb-[calc(6rem_+_var(--safe-bottom))]' : 'pb-[calc(1rem_+_var(--safe-bottom))]'

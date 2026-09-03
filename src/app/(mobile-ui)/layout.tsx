@@ -18,7 +18,6 @@ import SupportDeepLink from '@/components/Global/SupportDeepLink'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import JoinWaitlistPage from '@/components/Invites/JoinWaitlistPage'
 import { useRouter } from 'next/navigation'
-import { Banner } from '@/components/Global/Banner'
 import { useSetupStore } from '@/redux/hooks'
 import ForceIOSPWAInstall from '@/components/ForceIOSPWAInstall'
 import { isPublicRoute } from '@/constants/routes'
@@ -176,7 +175,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     return (
         <AppShell
             variant="app"
-            banner={!isDev && <Banner />}
             nav={!isDev && isUserLoggedIn && <BottomNav />}
             contentClassName={twMerge(
                 'pb-[calc(6rem_+_var(--safe-bottom))]',
