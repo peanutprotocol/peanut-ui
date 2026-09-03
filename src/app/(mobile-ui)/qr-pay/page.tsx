@@ -824,9 +824,16 @@ export default function QRPayPage() {
     const handleCurrencyAmountChange = useCallback(
         (value: string) => {
             setCurrencyAmount(value)
-            setErrorMessage(null)
+            /*
+             * Only the amount-shaped rejections. Clearing unconditionally
+             * un-blocked TERMINAL ones too — an unfinished KYC or a merchant
+             * refund block re-enabled Pay on any keystroke, letting the user
+             * re-POST a rejection no amount can change and minting another
+             * Manteca price lock on the refund path.
+             */
+            if (errorCode === 'amountRetryable') setErrorMessage(null)
         },
-        [setErrorMessage]
+        [errorCode, setErrorMessage]
     )
 
     const merchantName = useMemo(() => {

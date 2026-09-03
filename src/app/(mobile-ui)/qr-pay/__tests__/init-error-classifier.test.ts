@@ -45,7 +45,10 @@ describe('deterministicInitErrorMessage', () => {
     it.each([
         ['MANTECA_SOURCE_OVER_MONTHLY_CAP', true],
         ['PIX_MIN_AMOUNT', true],
-        ['MANTECA_MERCHANT_VOLUME_NEAR_CAP', false],
+        // Same copy, different retryability: the volume cap compares
+        // rolling30dTotal + attempted, so a smaller amount can fit; the refund
+        // block keys off refund age and count and ignores the amount.
+        ['MANTECA_MERCHANT_VOLUME_NEAR_CAP', true],
         ['MANTECA_MERCHANT_RECENT_REFUND', false],
         ['MANTECA_USER_NOT_PROVISIONED', false],
         ['User KYC not approved', false],

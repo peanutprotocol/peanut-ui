@@ -1637,6 +1637,47 @@ describe('GROUP 5: Error States', () => {
         })
     }, 20_000)
 
+    /*
+     * The other half of the amount-edit rule. A terminal rejection must STAY
+     * latched: an unfinished KYC or a merchant refund block is not something a
+     * different number fixes, and clearing on any keystroke re-enabled Pay so
+     * the user could re-POST it — minting another Manteca price lock on the
+     * refund path before the backend applies the block.
+     */
+    it.each([['MANTECA_MERCHANT_RECENT_REFUND'], ['MANTECA_USER_NOT_PROVISIONED']])(
+        '%s stays latched when the amount is edited',
+        async (code) => {
+            mockMantecaApi.initiateQrPayment
+                .mockResolvedValueOnce({ ...reconnectLock, code: '' })
+                .mockRejectedValue(new Error(code))
+
+            renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+            await waitFor(() => {
+                expect(screen.getByText(reconnectLock.paymentRecipientName)).toBeInTheDocument()
+            })
+            await act(async () => {
+                fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '5' } })
+            })
+            await act(async () => {
+                fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+            })
+
+            await waitFor(() => {
+                expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2)
+            })
+
+            await act(async () => {
+                fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '2' } })
+            })
+
+            expect(screen.getByRole('button', { name: 'Pay' })).toBeDisabled()
+            // and no further POST could have been sent
+            expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2)
+        },
+        20_000
+    )
+
     // No ETA promise: mono product/lessons-from-corrections.md records
     // "verification takes 2 minutes" as a correction — that is the happy path,
     // and MANTECA_USER_NOT_PROVISIONED reaches this copy for users who may

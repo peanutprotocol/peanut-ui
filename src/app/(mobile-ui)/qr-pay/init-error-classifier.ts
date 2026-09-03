@@ -43,7 +43,18 @@ export function deterministicInitErrorMessage(error: unknown, copy: QrInitCopy):
     if (message.includes('MANTECA_SOURCE_OVER_MONTHLY_CAP')) {
         return { message: copy.cap, amountRetryable: true }
     }
-    if (message.includes('MANTECA_MERCHANT_VOLUME_NEAR_CAP') || message.includes('MANTECA_MERCHANT_RECENT_REFUND')) {
+    /*
+     * The two merchant blocks share copy but not retryability. The volume cap
+     * compares `rolling30dTotal + attempted >= LIMIT` (peanut-api-ts
+     * cap-check.ts), so a smaller amount can still fit under the merchant's
+     * remaining headroom. The refund block keys off the age and count of the
+     * merchant's recent refunds and ignores the amount entirely — no number
+     * the user types clears it.
+     */
+    if (message.includes('MANTECA_MERCHANT_VOLUME_NEAR_CAP')) {
+        return { message: copy.merchant, amountRetryable: true }
+    }
+    if (message.includes('MANTECA_MERCHANT_RECENT_REFUND')) {
         return { message: copy.merchant, amountRetryable: false }
     }
     if (message.includes('MANTECA_USER_NOT_PROVISIONED') || message.includes('User KYC not approved')) {
