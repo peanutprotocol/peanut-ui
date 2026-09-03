@@ -1,4 +1,5 @@
 import { friendlyError, rainCollateralErrorMessage, type FriendlyErrorCode } from '../friendly-error.utils'
+import { ApiError } from '@/services/api-error'
 import en from '@/i18n/app/messages/en.json'
 
 describe('friendlyError', () => {
@@ -148,6 +149,8 @@ describe('friendly error copy catalog', () => {
         'rainInsufficientCollateral',
         'rainCooldownRetryShortly',
         'cardRateLimited',
+        'xchainWithdrawLimit',
+        'xchainPaymentLimit',
         'linkTransactionHashFetch',
     ]
 
@@ -397,5 +400,59 @@ describe('browser-native fetch rejection (TASK-21956)', () => {
             kind: 'code',
             code: 'genericSupport',
         })
+    })
+})
+
+describe('cross-chain withdraw cap (XCHAIN_WITHDRAW_LIMIT_REACHED)', () => {
+    const at = (retryAfterSec: number | undefined) =>
+        new ApiError('You reached the limit of 10 cross-chain withdrawals per hour.', {
+            status: 429,
+            code: 'XCHAIN_WITHDRAW_LIMIT_REACHED',
+            retryAfterSec,
+        })
+
+    it('renders the wait in the coarsest reached unit, rounded up so it never under-promises', () => {
+        expect(friendlyError(at(90))).toEqual({
+            kind: 'params',
+            code: 'xchainWithdrawLimitRetry',
+            values: { days: 0, hours: 0, minutes: 2 },
+        })
+        expect(friendlyError(at(3 * 3600))).toEqual({
+            kind: 'params',
+            code: 'xchainWithdrawLimitRetry',
+            values: { days: 0, hours: 3, minutes: 180 },
+        })
+        // 119 min is shown as 2 hours, not 1
+        expect(friendlyError(at(119 * 60))).toMatchObject({ values: { days: 0, hours: 2 } })
+        // 47 h is shown as 2 days, not 1
+        expect(friendlyError(at(47 * 3600))).toMatchObject({ values: { days: 2, hours: 47 } })
+        expect(friendlyError(at(2 * 86400 + 60))).toEqual({
+            kind: 'params',
+            code: 'xchainWithdrawLimitRetry',
+            values: { days: 3, hours: 49, minutes: 2881 },
+        })
+    })
+
+    it('falls back to the copy without a countdown when the wait is missing', () => {
+        expect(friendlyError(at(undefined))).toEqual({ kind: 'code', code: 'xchainWithdrawLimit' })
+    })
+
+    it('on the payment surface uses the payment copy (no Arbitrum advice — the request fixed the destination)', () => {
+        expect(friendlyError(at(90), { crossChainSurface: 'payment' })).toEqual({
+            kind: 'params',
+            code: 'xchainPaymentLimitRetry',
+            values: { days: 0, hours: 0, minutes: 2 },
+        })
+        expect(friendlyError(at(undefined), { crossChainSurface: 'payment' })).toEqual({
+            kind: 'code',
+            code: 'xchainPaymentLimit',
+        })
+        expect(en.errors.xchainPaymentLimitRetry).not.toContain('Arbitrum')
+    })
+
+    it('has ICU copy that resolves for every unit', () => {
+        const msg: string = en.errors.xchainWithdrawLimitRetry
+        for (const unit of ['minutes', 'hours', 'days']) expect(msg).toContain(`{${unit}, plural`)
+        expect(msg).toContain('Arbitrum')
     })
 })

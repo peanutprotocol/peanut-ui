@@ -27,6 +27,7 @@ import { encodeFunctionData, erc20Abi, parseUnits, type Address, type Hex } from
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { prepareRequestLinkFulfillmentTransaction } from '@/utils/peanut-claim.utils'
 import { estimateTransactionCostUsd } from '@/app/actions/tokens'
+import { useFriendlyError } from '@/hooks/useFriendlyError'
 import {
     provisionSdaTransfer,
     previewSdaTransfer,
@@ -170,6 +171,7 @@ function inferTokenSymbol(chainId: string, tokenAddress: string): RhinoSupported
 }
 
 export function useCrossChainTransfer(): UseCrossChainTransferReturn {
+    const toFriendlyError = useFriendlyError()
     const [transactions, setTransactions] = useState<PreparedTransaction[] | null>(null)
     const [sdaAddress, setSdaAddress] = useState<Address | null>(null)
     const [receiveAmount, setReceiveAmount] = useState<string | null>(null)
@@ -302,6 +304,8 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
                         sourceRhinoChain,
                         destRhinoChain,
                         tokenSymbol,
+                        context,
+                        contextId,
                         setTransactions,
                         setReceiveAmount,
                         setPayAmount,
@@ -356,15 +360,17 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
                 })
                 setPath('sda')
             } catch (err) {
-                const message = err instanceof Error ? err.message : 'failed to calculate cross-chain transfer'
-                setError(message)
+                // A payer cannot switch to Arbitrum — the request fixed the destination.
+                setError(
+                    toFriendlyError(err, { crossChainSurface: context === 'pay-request' ? 'payment' : 'withdraw' })
+                )
                 setIsFeeEstimationError(true)
                 captureException(err)
             } finally {
                 setIsCalculating(false)
             }
         },
-        []
+        [toFriendlyError]
     )
 
     return {
@@ -397,6 +403,8 @@ interface BridgePathParams {
     sourceRhinoChain: string
     destRhinoChain: string
     tokenSymbol: string
+    context: RhinoTransferContext
+    contextId: string
     setTransactions: (tx: PreparedTransaction[] | null) => void
     setReceiveAmount: (v: string | null) => void
     setPayAmount: (v: string | null) => void
@@ -418,6 +426,8 @@ async function runBridgePath({
     sourceRhinoChain,
     destRhinoChain,
     tokenSymbol,
+    context,
+    contextId,
     setTransactions,
     setReceiveAmount,
     setPayAmount,
@@ -453,9 +463,17 @@ async function runBridgePath({
         recipient: destination.recipientAddress,
         depositor: source.address,
         mode,
+        // Names the charge so the API counts this bridge against the caller's
+        // cross-chain cap, same as the SDA path. claim-xchain has no charge.
+        ...(context !== 'claim-xchain' ? { context, contextId } : {}),
     })
 
-    const commit: BridgeCommitResponse = await commitBridgeQuote(quote.quoteId, quote.isSwap, isSameChainSwap)
+    const commit: BridgeCommitResponse = await commitBridgeQuote(
+        quote.quoteId,
+        quote.isSwap,
+        isSameChainSwap,
+        context !== 'claim-xchain' ? { context, contextId } : undefined
+    )
 
     if (!commit.contractAddress) {
         throw new Error('Rhino did not return a bridge contract address — cannot construct tx')
