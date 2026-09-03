@@ -18,6 +18,14 @@ import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestr
 import { useRegionRestrictedCta } from '@/components/Kyc/KycRegionRestrictedContent'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 
+type InitiateKycVariant =
+    | 'default'
+    | 'provider_rejection'
+    | 'blocked'
+    | 'restart_identity'
+    | 'cross_region'
+    | 'region-unavailable'
+
 interface InitiateKycModalProps {
     visible: boolean
     onClose: () => void
@@ -27,7 +35,7 @@ interface InitiateKycModalProps {
     /** error message from a failed verify/resubmit attempt */
     error?: string | null
     /** when set, shows context-specific messaging instead of the generic "unlock" copy */
-    variant?: 'default' | 'provider_rejection' | 'blocked' | 'restart_identity' | 'cross_region' | 'region-unavailable'
+    variant?: InitiateKycVariant
     providerMessage?: string
     /** Stable `CapabilityReason.code` behind `providerMessage` — known codes
      *  render localized identity.reasons.* copy; unknown fall back to prose. */
@@ -104,11 +112,16 @@ export const InitiateKycModal = ({
     const reasonKey = reasonCodeKey(reasonCode)
     const resolvedProviderMessage = reasonKey ? tIdentity(reasonKey) : providerMessage
     const isRegionUnavailable = variant === 'region-unavailable'
-    const isBankUnavailable = isBankRestricted && !isRegionUnavailable
-    const isProviderRejection = !isBankUnavailable && variant === 'provider_rejection'
-    const isBlocked = !isBankUnavailable && variant === 'blocked'
-    const isRestartIdentity = !isBankUnavailable && variant === 'restart_identity'
-    const isCrossRegion = !isBankUnavailable && variant === 'cross_region'
+    // Resolved once so every branch below reads one variant rather than each
+    // re-checking the residence — the caller's variant is what the rail gate
+    // could see, this is what the user's residence makes of it.
+    const resolvedVariant: InitiateKycVariant | 'bank-unavailable' =
+        isBankRestricted && !isRegionUnavailable ? 'bank-unavailable' : variant
+    const isBankUnavailable = resolvedVariant === 'bank-unavailable'
+    const isProviderRejection = resolvedVariant === 'provider_rejection'
+    const isBlocked = resolvedVariant === 'blocked'
+    const isRestartIdentity = resolvedVariant === 'restart_identity'
+    const isCrossRegion = resolvedVariant === 'cross_region'
     const router = useRouter()
     const regionRestrictedCta = useRegionRestrictedCta(onClose)
 
@@ -245,7 +258,7 @@ export const InitiateKycModal = ({
     // the cross-region unlock) carry the prep checklist, so no path reaches the
     // vendor without it. Every other variant is an error/action state where the
     // list would be noise.
-    const showPrepChecklist = (variant === 'default' || variant === 'cross_region') && !error && !isBankUnavailable
+    const showPrepChecklist = (resolvedVariant === 'default' || resolvedVariant === 'cross_region') && !error
     // The checklist is left-aligned, so the paragraph introducing it is too:
     // centered prose stacked on a left-aligned list reads as two columns.
     const description = showPrepChecklist ? (
