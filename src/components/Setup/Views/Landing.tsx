@@ -68,7 +68,7 @@ const LandingStep = () => {
                         {/* heading only above the desktop QR — a lone store button
                             explains itself */}
                         {deviceType === DeviceType.WEB && (
-                            <p className="text-center text-body-s font-semibold text-foreground-primary">
+                            <p className="text-center text-label-l text-foreground-primary">
                                 {tMigration('banner.title')}
                             </p>
                         )}

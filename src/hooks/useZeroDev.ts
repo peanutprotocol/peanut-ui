@@ -1,6 +1,7 @@
 'use client'
 
 import { PASSKEY_SERVER_URL } from '@/constants/zerodev.consts'
+import { WEB_AUTHN_COOKIE_KEY } from '@/constants/auth.consts'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { useAuth } from '@/context/authContext'
 import { useKernelClient } from '@/context/kernelClient.context'
@@ -10,7 +11,7 @@ import { zerodevActions } from '@/redux/slices/zerodev-slice'
 import { getFromCookie, removeFromCookie, saveToCookie, saveToLocalStorage } from '@/utils/general.utils'
 import { clearAuthState } from '@/utils/auth.utils'
 import { isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
-import { capturePasskeySignFailure, classifyPasskeyError } from '@/utils/webauthn.utils'
+import { capturePasskeySignFailure, classifyPasskeyError, normalizePasskeyServerError } from '@/utils/webauthn.utils'
 import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
 import {
     captureCeremonyGuardError,
@@ -58,8 +59,6 @@ class PasskeyError extends Error {
         this.name = 'PasskeyError'
     }
 }
-
-const WEB_AUTHN_COOKIE_KEY = 'web-authn-key'
 
 export const useZeroDev = () => {
     const dispatch = useAppDispatch()
@@ -297,22 +296,17 @@ export const useZeroDev = () => {
             setWebAuthnKey(webAuthnKey)
             saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
         } catch (e) {
-            // zerodev's toWebAuthnKey login path reads loginVerifyResult.verification.verified
-            // with no HTTP-status check, so a non-2xx /login/verify (e.g. a 401 when this
-            // device's passkey doesn't verify) throws a raw TypeError. Normalize it to a
-            // clean auth error so it classifies and reports as a login failure instead of a
-            // confusing "undefined is not an object (…verification.verified)" crash (PEANUT-UI-R0V).
-            const err =
-                e instanceof TypeError && /verif(ication|ied)/i.test(e.message ?? '')
-                    ? new Error('Login not verified')
-                    : e
+            const err = normalizePasskeyServerError(e)
             const { code, message } = classifyPasskeyError(err)
             dispatch(zerodevActions.setIsLoggingIn(false))
-            // Ceremony guards: nothing was authenticated, so keep any existing
-            // state (no clearAuthState) and report with a discriminating tag —
-            // this is the telemetry that tells us WHERE native logins hang.
+            // Ceremony guards and server/network failures: nothing was
+            // authenticated, so keep any existing state (no clearAuthState) and
+            // report with a discriminating tag — this is the telemetry that
+            // tells us WHERE native logins hang.
             if (isCeremonyGuardError(err)) {
                 captureCeremonyGuardError(err, 'login', { elapsedMs: Date.now() - ceremonyStartedAt })
+            } else if (code === 'NETWORK') {
+                captureException(err, { tags: { error_type: 'passkey_server_failure' } })
             } else if (code !== 'LOGIN_CANCELED') {
                 console.error('Error logging in', err)
                 await clearAuthState(user?.user.userId)

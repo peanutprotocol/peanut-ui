@@ -14,6 +14,7 @@ import { loadingStateContext } from '@/context/loadingStates.context'
 import { getTokenSymbol, isTestnetChain } from '@/utils/general.utils'
 import { sendLinksApi, ESendLinkStatus } from '@/services/sendLinks'
 import { PEANUT_API_URL } from '@/constants/general.consts'
+import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 
 // ============================================================================
 // Constants
@@ -368,6 +369,9 @@ const useClaimLink = () => {
         ...sharedMutationConfig,
         onError: (error) => {
             console.error('Error claiming link:', error)
+            // an already-claimed link is the expected race the callers now
+            // handle, not a defect — it was the whole of PEANUT-UI-SWF
+            if (wireErrorCode(error) === API_ERROR_CODES.LINK_ALREADY_CLAIMED) return
             captureException(error, {
                 tags: { feature: 'claim-link' },
             })
@@ -409,6 +413,8 @@ const useClaimLink = () => {
         ...sharedMutationConfig,
         onError: (error) => {
             console.error('Error claiming link x-chain:', error)
+            // same /claim endpoint, same expected race — see claimLinkMutation
+            if (wireErrorCode(error) === API_ERROR_CODES.LINK_ALREADY_CLAIMED) return
             captureException(error, {
                 tags: { feature: 'claim-link-xchain' },
             })

@@ -1,7 +1,12 @@
 import { act, waitFor } from '@testing-library/react'
 import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
-import { initiateSumsubKyc, initiateSelfHealResubmission, startKycAction } from '@/app/actions/sumsub'
+import {
+    initiateSumsubKyc,
+    initiateSelfHealResubmission,
+    restartIdentityVerification,
+    startKycAction,
+} from '@/app/actions/sumsub'
 
 // useSumsubKycFlow wires a websocket, redux, the router and three server actions.
 // Stub everything except the one action the cross-region branch reads so the test
@@ -33,6 +38,7 @@ jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
 const mockInitiate = initiateSumsubKyc as jest.MockedFunction<typeof initiateSumsubKyc>
 const mockResubmit = initiateSelfHealResubmission as jest.MockedFunction<typeof initiateSelfHealResubmission>
 const mockStartAction = startKycAction as jest.MockedFunction<typeof startKycAction>
+const mockRestart = restartIdentityVerification as jest.MockedFunction<typeof restartIdentityVerification>
 
 describe('useSumsubKycFlow — cross-region routing', () => {
     beforeEach(() => {
@@ -376,6 +382,53 @@ describe('useSumsubKycFlow — multi-level workflows', () => {
         expect(result.current.isMultiLevel).toBe(true)
     })
 
+    // A residence change re-opens identity through restart-identity with the
+    // NEW residence's intent; the hook prop only catches up on the next render,
+    // so the intent travels with the call and the second level must still run.
+    it('a residence re-verification carries its intent into the restart and stays multi-level', async () => {
+        mockRestart.mockResolvedValue({ data: { token: 'tok_restart', applicantId: 'app_1', levelName: 'general' } })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleRestartIdentity('LATAM')
+        })
+
+        expect(mockRestart).toHaveBeenCalledWith('LATAM')
+        expect(result.current.showWrapper).toBe(true)
+        expect(result.current.isMultiLevel).toBe(true)
+    })
+
+    // The backend derives the intent from the declared residence when the caller
+    // names none (the Manteca CTAs), and can overrule one that contradicts it.
+    // `levelName` cannot stand in: EU and NA share `bridge-requirements`, LATAM
+    // and ROW share `general`, and only EU and LATAM run a second level.
+    it('takes the multi-level shape from the intent the backend resolved', async () => {
+        mockRestart.mockResolvedValue({
+            data: { token: 'tok_restart', applicantId: 'app_1', levelName: 'general', regionIntent: 'LATAM' },
+        })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleRestartIdentity()
+        })
+
+        expect(mockRestart).toHaveBeenCalledWith(undefined)
+        expect(result.current.isMultiLevel).toBe(true)
+    })
+
+    it('a resolved ROW intent stays single-level even though it shares a level with LATAM', async () => {
+        mockRestart.mockResolvedValue({
+            data: { token: 'tok_restart', applicantId: 'app_1', levelName: 'general', regionIntent: 'ROW' },
+        })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleRestartIdentity('LATAM')
+        })
+
+        expect(result.current.isMultiLevel).toBe(false)
+    })
+
     // An applicant action is a single level whatever the region — cross-region
     // LATAM mints a `manteca` action token, so it must still close on submit.
     // Every path that closes the SDK must clear the flag, or a later single-level
@@ -409,6 +462,37 @@ describe('useSumsubKycFlow — multi-level workflows', () => {
         })
 
         expect(result.current.isActionFlow).toBe(true)
+        expect(result.current.isMultiLevel).toBe(false)
+    })
+
+    // Cross-region EU uplift is NOT an applicant action: the backend moves the
+    // applicant to bridge-requirements, whose EEA branch is the
+    // bridge-eea-uplift questionnaire — the SDK must hold open through it.
+    it('cross-region EU uplift (bridge-uplift) stays multi-level', async () => {
+        mockInitiate.mockResolvedValue({
+            data: { token: 'tok_1', applicantId: 'app_1', status: 'APPROVED', actionType: 'bridge-uplift' },
+        })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleInitiateKyc('EU', undefined, true, 'DE')
+        })
+
+        expect(result.current.isActionFlow).toBe(false)
+        expect(result.current.isMultiLevel).toBe(true)
+    })
+
+    it('bridge-uplift toward NA keeps NA single-level', async () => {
+        mockInitiate.mockResolvedValue({
+            data: { token: 'tok_1', applicantId: 'app_1', status: 'APPROVED', actionType: 'bridge-uplift' },
+        })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleInitiateKyc('NA', undefined, true, 'US')
+        })
+
+        expect(result.current.isActionFlow).toBe(false)
         expect(result.current.isMultiLevel).toBe(false)
     })
 })
@@ -492,6 +576,28 @@ describe('useSumsubKycFlow — ACTION_REQUIRED during a multi-level session', ()
 
         expect(result.current.showWrapper).toBe(false)
         expect(result.current.isVerificationProgressModalOpen).toBe(true)
+    })
+
+    // The counterpart: a MANUAL close always replays. handleSdkComplete is the
+    // only close that can honestly claim a submission — the wrapper cannot tell
+    // "submitted the required follow-up" from "submitted level 1 and walked
+    // away" (a second onApplicantSubmitted is deduped as the idCheck twin, not
+    // read as a new level), so a close that consumed on its say-so would swallow
+    // a real ACTION_REQUIRED and leave the user on a stale progress modal.
+    it('a manual close replays the deferred transition', async () => {
+        const { result } = await openSdkOverProgressModal('EU')
+
+        await act(async () => {
+            mockWs.handler?.('ACTION_REQUIRED')
+        })
+        expect(result.current.isVerificationProgressModalOpen).toBe(true)
+
+        act(() => {
+            result.current.handleClose()
+        })
+
+        expect(result.current.showWrapper).toBe(false)
+        expect(result.current.isVerificationProgressModalOpen).toBe(false)
     })
 
     // Boundary: the suppression is scoped to an OPEN SDK. Once the user is out of

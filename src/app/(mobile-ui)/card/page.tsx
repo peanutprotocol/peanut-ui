@@ -27,6 +27,7 @@ import { rainApi, type ApplyForCardResponse } from '@/services/rain'
 import { cardConsentDocuments } from '@/services/consent'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { useHostedVerification } from '@/hooks/useHostedVerification'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useSumsubReloadResume } from '@/hooks/useSumsubReloadResume'
@@ -270,6 +271,17 @@ const CardPage: FC = () => {
         }
     }, [])
     const onUploadProofOfAddress = poaAction && !poaSubmitted ? () => void startPoaUpload() : undefined
+
+    // The rain rail's identity-document re-upload action, emitted when Rain
+    // rejected the card application on a proof-of-identity document. Rather than
+    // a Sumsub token we own, this hands off to Rain's card-member portal (which
+    // runs and re-adjudicates its own Sumsub flow) via the shared hosted-
+    // verification handoff — same gesture-bound tab reservation as bridge-hosted.
+    const identityAction = cardRail
+        ? nextActionsForRail(cardRail.id).find((action) => action.kind === 'rain-hosted')
+        : undefined
+    const { start: startIdentityUpload, error: identityUploadError } = useHostedVerification('rain-hosted')
+    const onUploadIdentity = identityAction ? () => void startIdentityUpload() : undefined
 
     // Once the backend's own state takes over (the rail's sumsub action gives
     // way to the review-wait state, an approval, or a different ask), drop the
@@ -737,7 +749,8 @@ const CardPage: FC = () => {
                         reasonCode={cardRailReasonCode}
                         onContactSupport={() => setIsSupportModalOpen(true)}
                         onUploadProofOfAddress={onUploadProofOfAddress}
-                        uploadError={poaError ?? undefined}
+                        onUploadIdentity={onUploadIdentity}
+                        uploadError={poaError ?? identityUploadError ?? undefined}
                         onPrev={onBack}
                     />
                 )

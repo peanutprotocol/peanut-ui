@@ -20,8 +20,10 @@ import { buildSplitBillRequestUrl } from './splitBill.utils'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { useActivationStatus } from '@/hooks/useActivationStatus'
 import { useUserStore } from '@/redux/hooks'
+import { openExternalUrl } from '@/utils/capacitor'
 import { generateInviteCodeLink } from '@/utils/general.utils'
 import { getReceiptUrl, isTestTransaction } from '@/utils/history.utils'
+import { resolveInAppNavigation } from '@/utils/native-routes'
 
 type CancelLinkState = 'idle' | 'cancelling' | 'cancelled'
 
@@ -110,17 +112,33 @@ export function ReceiptActions({
         if (ok) onClose()
     }
 
+    // The request link is an absolute peanut.me URL; assigning it to
+    // window.location is an off-origin navigation the native WebView hands to
+    // the OS, so it is resolved to an in-app route first.
+    const handlePay = () => {
+        const target = resolveInAppNavigation(transaction.extraDataForDrawer?.link ?? '')
+        if (!target) return
+        if (target.kind === 'push') router.push(target.path)
+        else openExternalUrl(target.url).catch((err) => console.warn('failed to open request link:', err))
+    }
+
     const handleCancelSendLink = async () => {
         if (!setIsLoading || !onClose) return
         setIsLoading(true)
         setCancelLinkState('cancelling')
-        const ok = await cancelSendLink()
+        const result = await cancelSendLink()
         setIsLoading(false)
-        if (!ok) {
+        if (result === 'failed') {
             setCancelLinkState('idle')
             return
         }
         setShowCancelLinkDrawer(false)
+        if (result === 'already-claimed') {
+            // nothing was cancelled — the refetched entry renders as claimed
+            setCancelLinkState('idle')
+            onClose()
+            return
+        }
         setCancelLinkState('cancelled')
         // Brief delay for toast visibility before the drawer closes.
         await new Promise((resolve) => setTimeout(resolve, 1500))
@@ -148,7 +166,7 @@ export function ReceiptActions({
                                 className="flex w-full items-center gap-1"
                                 shadowSize="4"
                             >
-                                <div className="flex items-center">{!isLoading && <Icon name="ban" size={18} />}</div>
+                                <div className="flex items-center">{!isLoading && <Icon name="ban" size={20} />}</div>
                                 <span>{t(CANCEL_LINK_KEYS[cancelLinkState])}</span>
                             </Button>
                         )}
@@ -156,7 +174,7 @@ export function ReceiptActions({
             )}
 
             {isPendingSentLink && !shouldShowQrShare && (
-                <div className="flex items-center justify-center gap-1.5 text-center text-label-m text-foreground-secondary">
+                <div className="flex items-center justify-center gap-1 text-center text-label-m text-foreground-secondary">
                     <Icon name="info" size={20} />
                     {t('pendingLinkDeviceNote')}
                 </div>
@@ -181,14 +199,8 @@ export function ReceiptActions({
 
             {isPendingRequestee && setIsLoading && onClose && (
                 <div className="flex flex-col gap-2 pr-1">
-                    <Button
-                        onClick={() => {
-                            window.location.href = transaction.extraDataForDrawer?.link ?? ''
-                        }}
-                        shadowSize="4"
-                        className="flex w-full items-center gap-1"
-                    >
-                        <Icon name="currency" size={18} />
+                    <Button onClick={handlePay} shadowSize="4" className="flex w-full items-center gap-1">
+                        <Icon name="currency" size={20} />
                         {t('actions.pay')}
                     </Button>
                     <Button

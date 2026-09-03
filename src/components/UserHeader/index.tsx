@@ -23,13 +23,13 @@ export const UserHeader = ({ username }: UserHeaderProps) => {
             <Button
                 variant="primary-soft"
                 className={twMerge(
-                    'flex h-8 w-auto cursor-pointer items-center justify-center gap-1.5 rounded-full px-1 md:h-9'
+                    'flex h-8 w-auto cursor-pointer items-center justify-center gap-1 rounded-full px-1 md:h-9'
                 )}
                 shadowSize="3"
                 size="small"
             >
                 <DotFaceAvatar username={username} className="h-[30px] w-[30px]" />
-                <span className="pr-1.5 text-body-xs font-semibold whitespace-nowrap md:text-body-s">{username}</span>
+                <span className="pr-1 text-body-xs font-semibold whitespace-nowrap md:text-body-s">{username}</span>
             </Button>
         </Link>
     )
@@ -94,7 +94,7 @@ export const VerifiedUserLabel = ({
     const isInviter = user?.invitedBy === username
 
     return (
-        <div className="flex min-w-0 items-center gap-1.5">
+        <div className="flex min-w-0 items-center gap-1">
             {/* The AddressLink lane only wins when the caller passed no worded
                 copy (name === username). A caller that DID word the name — the
                 receipt head's "Added from {ens}" — must not have its title

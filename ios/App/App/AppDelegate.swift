@@ -1,5 +1,6 @@
 import UIKit
 import Capacitor
+import Sentry
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -7,7 +8,30 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // Sentry native crash reporting — the iOS half of TASK-20964 (Android:
+        // AndroidManifest.xml). The JS SDK inside the WKWebView cannot see process
+        // crashes, app hangs, or Swift plugin exceptions; this SDK does. It also
+        // tracks native sessions, which makes crash-free-session % measurable per
+        // release. The DSN comes from Info.plist `SentryDSN` <- $(SENTRY_DSN), set in
+        // ios-release.yml. An empty DSN leaves the SDK off, so local builds stay
+        // silent. The release defaults to bundleId@version+build, the same shape
+        // Android reports (me.peanut.wallet@1.1.0+123).
+        if let dsn = Bundle.main.object(forInfoDictionaryKey: "SentryDSN") as? String, !dsn.isEmpty {
+            SentrySDK.start { options in
+                options.dsn = dsn
+                options.environment = "native"
+            }
+            // Reconciliation hook (mirror of MainActivity.maybeSentryTestCrash).
+            // Only a developer can pass launch arguments to an iOS app: an Xcode
+            // scheme, or
+            //   xcrun devicectl device process launch --device <udid> me.peanut.wallet -sentry_test_crash
+            // Users cannot reach it, so it needs no one-shot guard.
+            if ProcessInfo.processInfo.arguments.contains("-sentry_test_crash") {
+                SentrySDK.crash()
+            }
+        } else {
+            NSLog("SentryDSN not set — native crash reporting is DISABLED in this build. Fine locally; a release build without it ships blind.")
+        }
         return true
     }
 

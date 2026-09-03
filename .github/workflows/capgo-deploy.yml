@@ -189,6 +189,20 @@ jobs:
                   echo "name=$VERSION" >> "$GITHUB_OUTPUT"
                   echo "Uploading as bundle version $VERSION"
 
+            # The bundle is built from the current tree, so it targets the newest
+            # native shell. --auto-min-update-version only copies the previous
+            # bundle's floor forward, and this checkout has no native version
+            # stamped on disk (package.json says 1.0.53), so the floor never rose
+            # past the first upload. Resolve it from the release tags instead and
+            # fail closed when none is visible. Keep in lockstep with the release
+            # lanes, which pin the floor to the binary they ship.
+            - name: Resolve native floor
+              id: native_floor
+              run: |
+                  FLOOR="$(node scripts/release-version.mjs native-floor)"
+                  echo "name=$FLOOR" >> "$GITHUB_OUTPUT"
+                  echo "Bundle requires native $FLOOR or newer"
+
             - name: Upload bundle to Capgo
               # Commit message via env, never inline — a multi-line message (or one
               # with quotes) injected into the run script breaks --comment quoting.
@@ -201,16 +215,17 @@ jobs:
                   COMMIT_MSG: ${{ github.event.head_commit.message }}
                   CHANNEL: ${{ steps.channel.outputs.name }}
                   VERSION: ${{ steps.version.outputs.name }}
+                  NATIVE_FLOOR: ${{ steps.native_floor.outputs.name }}
               run: |
                   echo "Uploading bundle $VERSION to channel $CHANNEL"
                   COMMENT="${GITHUB_SHA:0:7} — $(printf '%s' "${COMMIT_MSG:-Manual deploy}" | head -n1)"
-                  npx @capgo/cli@latest bundle upload \
+                  npx @capgo/cli@8.42.4 bundle upload \
                     --channel "$CHANNEL" \
                     --apikey "$CAPGO_API_KEY" \
                     --key-data-v2 "$CAPGO_PRIVATE_KEY" \
                     --path ./out \
                     --bundle "$VERSION" \
-                    --auto-min-update-version \
+                    --min-update-version "$NATIVE_FLOOR" \
                     --version-exists-ok \
                     --comment "$COMMENT"
 
@@ -224,7 +239,7 @@ jobs:
                   CHANNEL: ${{ steps.channel.outputs.name }}
                   EXPECTED: ${{ steps.version.outputs.name }}
               run: |
-                  CURRENT="$(npx @capgo/cli@latest channel currentBundle "$CHANNEL" \
+                  CURRENT="$(npx @capgo/cli@8.42.4 channel currentBundle "$CHANNEL" \
                     --apikey "$CAPGO_API_KEY" --quiet | grep -oE '[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?' | tail -n1 || true)"
                   if [ "$CURRENT" != "$EXPECTED" ]; then
                     echo "ERROR: channel $CHANNEL serves '${CURRENT:-<none>}', expected $EXPECTED — nothing shipped" >&2

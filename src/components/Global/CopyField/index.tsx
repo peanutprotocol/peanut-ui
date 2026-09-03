@@ -1,7 +1,8 @@
 'use client'
 import { Button, type ButtonVariant } from '@/components/0_Bruddle/Button'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
-import { copyTextToClipboardWithFallback } from '@/utils/general.utils'
+import { useToast } from '@/components/0_Bruddle/Toast'
+import { copyTextToClipboard } from '@/utils/clipboard.utils'
 import { useTranslations } from 'next-intl'
 import { useCallback, useState } from 'react'
 import { twMerge } from '@/utils/tw'
@@ -18,18 +19,22 @@ const timeoutDuration = 3000
 
 const CopyField = ({ text, variant, shadowSize, disabled, onDisabledClick }: CopyFieldProps) => {
     const t = useTranslations('global')
+    const toast = useToast()
     const [isCopied, setIsCopied] = useState(false)
 
-    const handleClick = useCallback(() => {
+    const handleClick = useCallback(async () => {
         if (disabled && onDisabledClick) {
             onDisabledClick()
             return
         }
 
-        copyTextToClipboardWithFallback(text)
+        if (!(await copyTextToClipboard(text))) {
+            toast.error(t('copyToClipboard.copyFailed'))
+            return
+        }
         setIsCopied(true)
         setTimeout(() => setIsCopied(false), timeoutDuration)
-    }, [disabled, onDisabledClick, text])
+    }, [disabled, onDisabledClick, text, toast, t])
 
     return (
         <div className="flex w-full flex-row items-stretch justify-between gap-2">

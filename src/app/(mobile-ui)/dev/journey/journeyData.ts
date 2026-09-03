@@ -107,8 +107,9 @@ export const IN_APP_SURFACES: InAppSurface[] = [
         kind: 'step',
         name: 'Activation step: outbound (no card access)',
         copy: '"Make your first payment" — "Start paying to Pix and MercadoPago QR codes"',
-        cta: { label: 'Start Spending', dest: 'QR scanner overlay' },
-        condition: "step=outbound && !hasCardAccess — QR-only framing, never teases a card they can't get",
+        cta: { label: 'Start Spending', dest: 'QR scanner' },
+        condition:
+            "step=outbound && !hasCardAccess && a Manteca rail whose `pay` op is enabled (Pix is bank-channel, MercadoPago is qr-only — the gate is the provider and the op, not the channel) — the QR spend is this user's only activating spend, so the CTA opens the scanner rather than /send (a peer send is volume, never activation). Without the card OR that rail the step renders nothing: no spend would ever clear it. The Home checklist row is the surface that completes on a peer payment (product/activation-funnel.md, 2026-09-02).",
         sourceFile: 'src/components/Home/ActivationCTAs.tsx',
         states: ['kycd-no-card'],
     },
@@ -118,7 +119,8 @@ export const IN_APP_SURFACES: InAppSurface[] = [
         name: 'Activation step: outbound (card access)',
         copy: '"Spend with Peanut" — "Pay with your card or scan Pix and MercadoPago QR codes"',
         cta: { label: 'Start Spending', dest: 'spend chooser modal' },
-        condition: 'step=outbound && hasCardAccess — card spend counts as activation too (TASK-20471)',
+        condition:
+            'step=outbound && hasCardAccess — card spend counts as activation too (TASK-20471). Renders instead of the getting-started checklist once money is in: the checklist is the pre-funding empty state, this card carries the push from there to activation.',
         sourceFile: 'src/components/Home/ActivationCTAs.tsx',
         states: ['kycd-no-card', 'card-active-unfunded', 'funded-no-spend'],
         isNewInThisPr: true,

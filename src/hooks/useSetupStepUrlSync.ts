@@ -2,6 +2,7 @@ import { type ISetupStep, type ScreenId } from '@/components/Setup/Setup.types'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import posthog from 'posthog-js'
 import { useEffect, useLayoutEffect, useRef } from 'react'
+import { isNativeBridge } from '@/utils/capacitor'
 
 // Not `step`: at /setup entry, ?step=signup is an existing contract that skips
 // the invite gate (see determineInitialStep), so the mirror needs its own key.
@@ -82,7 +83,10 @@ export const useSetupStepUrlSync = ({
         const url = new URL(window.location.href)
         url.searchParams.set(SCREEN_PARAM, screenId)
         const state = { ...window.history.state, setupScreen: screenId }
-        if (previous === null) {
+        // Native owns back through the handler stack (useSetupBackHandler), so
+        // the mirror must not grow history there — pushed entries turned the
+        // hardware button into a bounce through already-completed steps.
+        if (previous === null || isNativeBridge()) {
             window.history.replaceState(state, '', url)
         } else {
             window.history.pushState(state, '', url)

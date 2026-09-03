@@ -1,6 +1,7 @@
 import { Dialog, DialogBackdrop, DialogPanel, Transition } from '@headlessui/react'
 import { Fragment, useRef } from 'react'
 import { twMerge } from '@/utils/tw'
+import { useBackHandler } from '@/hooks/useBackHandler'
 import { Icon } from '../Icons/Icon'
 
 type ModalProps = {
@@ -36,6 +37,11 @@ const Modal = ({
 }: ModalProps) => {
     let dialogRef = useRef(null)
 
+    useBackHandler(() => {
+        if (!preventClose) onClose()
+        return true
+    }, visible)
+
     return (
         <Transition show={visible} as={Fragment}>
             <Dialog
@@ -50,10 +56,10 @@ const Modal = ({
             >
                 <Transition.Child
                     as={Fragment}
-                    enter="ease-out duration-300"
+                    enter="ease-out duration-moderate"
                     enterFrom="opacity-0"
                     enterTo="opacity-100"
-                    leave="ease-in duration-200"
+                    leave="ease-in duration-fast"
                     leaveFrom="opacity-100"
                     leaveTo="opacity-0"
                 >
@@ -72,10 +78,10 @@ const Modal = ({
                 </Transition.Child>
                 <Transition.Child
                     as={Fragment}
-                    enter="ease-out duration-300"
+                    enter="ease-out duration-moderate"
                     enterFrom={`opacity-0 ${!video && 'scale-95'}`}
                     enterTo={`opacity-100 ${!video && 'scale-100'}`}
-                    leave="ease-in duration-200"
+                    leave="ease-in duration-fast"
                     leaveFrom={`opacity-100 ${!video && 'scale-100'}`}
                     leaveTo={`opacity-0 ${!video && 'scale-95'}`}
                 >

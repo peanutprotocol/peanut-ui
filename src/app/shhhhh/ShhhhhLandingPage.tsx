@@ -7,8 +7,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
-import NavHeader from '@/components/Global/NavHeader'
-import { useSafeBack } from '@/hooks/useSafeBack'
+import { HeroBackNav } from '@/components/Marketing/HeroBackNav'
 import { Marquee } from '@/components/LandingPage'
 import { ScarcityCounter } from '@/components/LandingPage/ScarcityCounter'
 import { useAuth } from '@/context/authContext'
@@ -143,11 +142,6 @@ export default function ShhhhhLandingPage() {
     const t = useTranslations('shhhhh')
     const { user, fetchUser } = useAuth()
     const router = useRouter()
-    // '/' not '/profile': this is a public, indexed marketing page. In-app
-    // visitors have history so they get router.back(); someone arriving cold
-    // from a shared link would otherwise be pushed into an authed route and
-    // bounced to setup.
-    const onBack = useSafeBack('/')
 
     // undefined = not joined; number|null = joined (null = joined but BE
     // returned no position). Drives the inline confirmation.
@@ -274,15 +268,9 @@ export default function ShhhhhLandingPage() {
         <>
             {/* §1 — Hero (pink) */}
             <section className="relative overflow-hidden bg-primary-1 px-4 py-20 text-n-1 md:py-24">
-                {/* the page is reachable from /profile ("Peanut card" for
-                    non-holders), and every other route out of it goes forward —
-                    without this the only way back was the browser button.
-                    It overlays the hero instead of sitting in a bar above it:
-                    a bar added a cream strip over the pink fold and pushed the
-                    wordmark down. Absolute, so it costs no vertical space. */}
-                <div className="absolute top-4 left-4 z-30">
-                    <NavHeader onPrev={onBack} hideLabel />
-                </div>
+                {/* reachable from /profile ("Peanut card" for non-holders) —
+                    without this the only way back was the browser button. */}
+                <HeroBackNav />
                 <motion.img
                     src={Star.src}
                     alt=""

@@ -36,7 +36,12 @@ import { useAdvisoryPreempt } from '@/hooks/useAdvisoryPreempt'
 import { useEeaUpliftFunnel } from '@/hooks/useEeaUpliftFunnel'
 import { upliftTriggerFromGate, upliftTriggerFromAdvisory } from '@/utils/eea-uplift.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { resolveKycModalVariant, getGateUserMessage, getGateReasonCode } from '@/utils/capability-gate'
+import {
+    resolveKycModalVariant,
+    getGateUserMessage,
+    getGateReasonCode,
+    isVerifiableGate,
+} from '@/utils/capability-gate'
 import { useModalsContext } from '@/context/ModalsContext'
 import ExchangeRate from '@/components/ExchangeRate'
 import countryCurrencyMappings, { isNonEuroSepaCountry } from '@/constants/countryCurrencyMapping'
@@ -235,7 +240,10 @@ export default function WithdrawBankPage() {
             // (e.g. right after an eea uplift) — show the pending modal instead of
             // a dead button, and re-arm the capability poller so we pick up
             // bridge's latest status live and the modal auto-dismisses on clear.
-            if (gate.kind === 'waiting-on-provider') {
+            // Same rule as the deposit page: every gate the user cannot act on
+            // waits here, or `pending` falls through to the identity screen and
+            // is offered a verification run only time can clear.
+            if (!isVerifiableGate(gate.kind) && gate.kind !== 'accept-tos') {
                 pendingModal.open()
                 return
             }
@@ -446,7 +454,7 @@ export default function WithdrawBankPage() {
             />
 
             {view === 'INITIAL' && (
-                <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center pb-5">
+                <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center pb-4">
                     <PeanutActionDetailsCard
                         countryCodeForFlag={countryCodeForFlag()}
                         avatarSize="small"

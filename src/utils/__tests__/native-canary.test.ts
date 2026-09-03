@@ -2,12 +2,13 @@ import * as Sentry from '@sentry/nextjs'
 import { runCanary, scheduleTransportCanary } from '../native-canary'
 
 jest.mock('@sentry/nextjs', () => ({ captureMessage: jest.fn() }))
-jest.mock('../capacitor', () => ({ isNativeBridge: jest.fn(() => true) }))
+jest.mock('../capacitor', () => ({ isNativeBridge: jest.fn(() => true), isCapacitor: jest.fn(() => true) }))
 jest.mock('../native-auth-capture', () => ({ getUnderlyingFetch: () => null }))
 jest.mock('../native-http', () => ({ nativeHttpRequest: jest.fn() }))
-jest.mock('@capacitor/app', () => ({ App: { getInfo: async () => ({ version: '1.0.57', build: '412' }) } }), {
-    virtual: true,
-})
+// Mocked at the consumer boundary rather than as a (virtual) @capacitor/app
+// module: another suite in the same worker mocking that package non-virtually
+// made this one resolve the real plugin and tag the event 'unknown'.
+jest.mock('../app-version', () => ({ getBinaryInfo: async () => ({ appVersion: '1.0.57', appBuild: '412' }) }))
 
 const { nativeHttpRequest } = jest.requireMock('../native-http') as { nativeHttpRequest: jest.Mock }
 const { isNativeBridge } = jest.requireMock('../capacitor') as { isNativeBridge: jest.Mock }

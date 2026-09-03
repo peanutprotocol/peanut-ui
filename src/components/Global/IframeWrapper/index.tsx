@@ -214,7 +214,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                         ref={iframeRef}
                         src={src}
                         allow="camera *; microphone *; fullscreen *"
-                        className="h-[85%] w-full rounded-md border-0"
+                        className="h-[85%] w-full rounded-sm border-0"
                         sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-top-navigation-by-user-activation allow-media-devices"
                     />
                     <div className="flex h-[15%] w-full flex-col items-center justify-center gap-2 px-4">

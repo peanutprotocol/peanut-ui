@@ -124,6 +124,14 @@ export interface RestartIdentityResponse {
     token: string
     levelName: string
     applicantId: string
+    /**
+     * The intent the SERVER resolved. Drive the SDK session from this, not from
+     * what was asked for: the declared residence can overrule the request, and
+     * `levelName` cannot stand in for it (EU and NA share `bridge-requirements`,
+     * LATAM and ROW share `general`, and only EU and LATAM are multi-level).
+     * Optional so a response from an older backend still parses.
+     */
+    regionIntent?: KYCRegionIntent
 }
 
 /**
@@ -131,13 +139,24 @@ export interface RestartIdentityResponse {
  * "Verify with a different document" CTA on a Manteca rail that's blocked
  * because the user verified with a non-AR/BR document.
  */
-export const restartIdentityVerification = async (): Promise<{
+// The intents the restart route accepts; a server action is a public endpoint,
+// so anything else is dropped here rather than forwarded.
+const RESTART_REGION_INTENTS: ReadonlySet<string> = new Set(['LATAM', 'ROW', 'EU', 'NA'])
+
+export const restartIdentityVerification = async (
+    regionIntent?: KYCRegionIntent
+): Promise<{
     data?: RestartIdentityResponse
     error?: string
     code?: SumsubActionErrorCode
 }> => {
     try {
-        const response = await serverFetch('/users/identity/restart', { method: 'POST' })
+        const intent = regionIntent && RESTART_REGION_INTENTS.has(regionIntent) ? regionIntent : undefined
+        const response = await serverFetch('/users/identity/restart', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(intent ? { regionIntent: intent } : {}),
+        })
         const responseJson = await response.json()
         if (!response.ok) {
             return backendOrFallback(responseJson, 'Failed to restart identity verification', 'restart_failed')
@@ -178,16 +197,19 @@ export const initiateSelfHealResubmission = async (
 }
 
 /**
- * Exchange the `bridge-hosted` capability action for Bridge's hosted
- * verification URL (same POST /users/kyc/start-action endpoint as
- * {@link startKycAction}, different response shape: that path mints Sumsub
- * tokens, this one returns a URL — hence its own guard).
+ * Exchange a hosted-verification capability action for its provider's hosted
+ * URL (same POST /users/kyc/start-action endpoint as {@link startKycAction},
+ * different response shape: that path mints Sumsub tokens, this one returns a
+ * URL — hence its own guard). Serves both `bridge-hosted` (Bridge/Persona) and
+ * `rain-hosted` (Rain's card-member portal); the key selects the provider.
  */
-export const startBridgeHostedVerification = async (): Promise<{ url?: string; error?: string }> => {
+export const startHostedVerification = async (
+    key: 'bridge-hosted' | 'rain-hosted' = 'bridge-hosted'
+): Promise<{ url?: string; error?: string }> => {
     try {
         const response = await serverFetch('/users/kyc/start-action', {
             method: 'POST',
-            body: JSON.stringify({ key: 'bridge-hosted' }),
+            body: JSON.stringify({ key }),
         })
         const responseJson = await response.json()
         if (!response.ok) {

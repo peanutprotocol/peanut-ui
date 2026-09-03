@@ -13,6 +13,8 @@
 import { startAuthentication } from '@simplewebauthn/browser'
 import { apiFetch } from '@/utils/api-fetch'
 import { getNativeRpId, isCapacitor } from '@/utils/capacitor'
+import { guardPasskeyCeremony, isCeremonyGuardError } from '@/utils/passkeyCeremony.utils'
+import { classifyPasskeyError } from '@/utils/webauthn.utils'
 
 export const STEP_UP_HEADER = 'x-step-up-token'
 
@@ -56,7 +58,17 @@ export async function getStepUpToken(): Promise<string> {
     }
     const options = await optionsResponse.json()
 
-    const cred = await startAuthentication(options)
+    // Same guard class as login (TASK-21782): a step-up racing the async shim
+    // install on native runs the webview's raw WebAuthn, which silently never
+    // settles. Gate on the shim and bound the ceremony; guard failures surface
+    // as StepUpError so callers render the curated copy, not a raw timeout.
+    let cred: Awaited<ReturnType<typeof startAuthentication>>
+    try {
+        cred = await guardPasskeyCeremony(() => startAuthentication(options))
+    } catch (error) {
+        if (isCeremonyGuardError(error)) throw new StepUpError(classifyPasskeyError(error).message)
+        throw error
+    }
 
     const verifyResponse = await apiFetch('/auth/step-up/verify', {
         method: 'POST',

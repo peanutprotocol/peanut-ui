@@ -5,12 +5,20 @@
 import { clearStepUpToken, getStepUpToken, STEP_UP_HEADER, withStepUpHeader } from '../step-up'
 import { apiFetch } from '@/utils/api-fetch'
 import { startAuthentication } from '@simplewebauthn/browser'
+import { CeremonyTimeoutError, guardPasskeyCeremony } from '@/utils/passkeyCeremony.utils'
 
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: jest.fn() }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false, getNativeRpId: () => 'peanut.me' }))
+// passthrough spy — the suite asserts the ceremony is routed through the guard
+// (shim gate + timeout, TASK-21782) without changing its behavior
+jest.mock('@/utils/passkeyCeremony.utils', () => {
+    const actual = jest.requireActual('@/utils/passkeyCeremony.utils')
+    return { ...actual, guardPasskeyCeremony: jest.fn(actual.guardPasskeyCeremony) }
+})
 
 const mockedFetch = apiFetch as jest.MockedFunction<typeof apiFetch>
 const mockedAuth = startAuthentication as jest.MockedFunction<typeof startAuthentication>
+const mockedGuard = guardPasskeyCeremony as jest.MockedFunction<typeof guardPasskeyCeremony>
 
 function jsonResponse(body: unknown, ok = true, status = 200) {
     return { ok, status, json: async () => body } as Response
@@ -83,6 +91,23 @@ describe('getStepUpToken', () => {
         mockedFetch.mockResolvedValueOnce(jsonResponse({ challenge: 'abc' }))
         mockedAuth.mockRejectedValueOnce(Object.assign(new Error('cancelled'), { name: 'NotAllowedError' }))
         await expect(getStepUpToken()).rejects.toThrow('cancelled')
+    })
+
+    it('runs the WebAuthn ceremony inside the passkey ceremony guard', async () => {
+        happyPath()
+        mockedGuard.mockClear()
+        await getStepUpToken()
+        expect(mockedGuard).toHaveBeenCalledTimes(1)
+    })
+
+    it('surfaces a ceremony guard failure as a StepUpError with curated copy', async () => {
+        mockedFetch.mockReset()
+        mockedFetch.mockResolvedValueOnce(jsonResponse({ challenge: 'abc' }))
+        mockedAuth.mockRejectedValueOnce(new CeremonyTimeoutError(60_000))
+
+        const failure = getStepUpToken()
+        await expect(failure).rejects.toThrow(/taking longer/i)
+        await expect(failure).rejects.toMatchObject({ name: 'StepUpError' })
     })
 })
 

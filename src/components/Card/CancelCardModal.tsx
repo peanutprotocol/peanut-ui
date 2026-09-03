@@ -143,8 +143,8 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
             onClose={handleClose}
             preventClose={phase === 'canceling' || phase === 'submitting-feedback'}
             hideModalCloseButton={phase === 'canceling' || phase === 'submitting-feedback'}
+            tone="warning"
             icon={isConfirm ? 'alert' : isFeedback ? 'alert-filled' : undefined}
-            iconContainerClassName="bg-background-icon-bubble-yellow"
             title={t(isConfirm ? 'cancel.title' : isFeedback ? 'cancel.canceledTitle' : 'cancel.thanksTitle')}
             description={t(isConfirm ? 'cancel.body' : isFeedback ? 'cancel.canceledBody' : 'cancel.thanksBody')}
             content={
@@ -159,7 +159,7 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                     </>
                 ) : isFeedback ? (
                     <div className="flex w-full flex-col gap-2 text-left">
-                        <label htmlFor="cancel-feedback" className="text-body-s font-bold">
+                        <label htmlFor="cancel-feedback" className="text-label-l">
                             {t('cancel.feedbackLabel')}
                         </label>
                         <textarea

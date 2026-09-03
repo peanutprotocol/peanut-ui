@@ -94,6 +94,7 @@ jest.mock('@/utils/walletCredential.utils', () => ({
 jest.mock('@/utils/webauthn.utils', () => ({
     capturePasskeySignFailure: jest.fn(),
     classifyPasskeyError: () => ({ code: 'UNKNOWN', message: 'unknown' }),
+    normalizePasskeyServerError: (e: unknown) => e,
 }))
 jest.mock('@sentry/nextjs', () => ({ captureException: (...args: unknown[]) => mockCaptureException(...args) }))
 jest.mock('posthog-js', () => ({ capture: (...args: unknown[]) => mockCapture(...args) }))

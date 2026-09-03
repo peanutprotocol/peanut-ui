@@ -351,33 +351,6 @@ export function formatTokenAmount(amount?: number | string, maxFractionDigits?: 
     return formattedAmount
 }
 
-export async function copyTextToClipboardWithFallback(text: string) {
-    if (navigator.clipboard && window.isSecureContext) {
-        try {
-            await navigator.clipboard.writeText(text)
-            return
-        } catch (err) {
-            Sentry.captureException(err)
-            console.error('Clipboard API failed, trying fallback method. Error:', err)
-        }
-    }
-
-    try {
-        const textarea = document.createElement('textarea')
-        textarea.value = text
-        textarea.setAttribute('readonly', '')
-        textarea.style.position = 'absolute'
-        textarea.style.left = '-9999px'
-        document.body.appendChild(textarea)
-        textarea.select()
-        document.execCommand('copy')
-        document.body.removeChild(textarea)
-    } catch (err) {
-        Sentry.captureException(err)
-        console.error('Fallback method failed. Error:', err)
-    }
-}
-
 export const isTestnetChain = (chainId: string) => {
     // viem's chains carry a `testnet: true` flag; fall through to default
     // false for unknown chains so prod paths fail closed (treat as mainnet).

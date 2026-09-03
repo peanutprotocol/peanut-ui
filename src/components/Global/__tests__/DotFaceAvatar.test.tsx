@@ -39,4 +39,26 @@ describe('DotFaceAvatar', () => {
         render(<DotFaceAvatar username="test022" size={40} />)
         expect(screen.getByRole('img', { name: 'Avatar for test022' })).toBeInTheDocument()
     })
+
+    it('never draws a frown: every curved mouth bulges downward (a smile)', () => {
+        // one username per mouth style, found by walking the hash
+        const byStyle = new Map<number, string>()
+        for (let i = 0; byStyle.size < 5 && i < 10_000; i++) {
+            const name = `user${i}`
+            const style = dotFaceTraits(name).mouthStyle
+            if (!byStyle.has(style)) byStyle.set(style, name)
+        }
+        expect(byStyle.size).toBe(5)
+        for (const name of byStyle.values()) {
+            const { container } = render(<DotFaceAvatar username={name} size={40} />)
+            const paths = container.querySelectorAll('[data-testid="dot-face-mouth"] path')
+            for (const path of paths) {
+                const d = path.getAttribute('d') ?? ''
+                // svg y grows downward, so the first control point of a
+                // quadratic below its endpoints is a smile; above is a frown
+                const control = /q[^0-9-]*(-?[\d.]+)\s+(-?[\d.]+)/.exec(d)
+                if (control) expect(Number(control[2])).toBeGreaterThan(0)
+            }
+        }
+    })
 })

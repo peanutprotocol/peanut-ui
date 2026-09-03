@@ -35,7 +35,7 @@ export function DownloadReceiptPdfLink({ entryId, kind }: { entryId: string; kin
                     void openExternalUrl(shareableUrl(pdfPath))
                 }
             }}
-            className="flex w-full items-center justify-center gap-2 text-body-s font-medium text-foreground-secondary underline transition-colors duration-fast hover:text-foreground-primary print:hidden"
+            className="flex w-full items-center justify-center gap-2 text-body-s text-foreground-secondary underline transition-colors duration-fast hover:text-foreground-primary print:hidden"
         >
             <Icon name="download" size={16} className="text-foreground-secondary" />
             {t('actions.downloadPdf')}

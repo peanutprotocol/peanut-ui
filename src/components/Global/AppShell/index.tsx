@@ -1,6 +1,8 @@
 'use client'
 
 import { twMerge } from '@/utils/tw'
+import { useBottomNavHidden } from '@/utils/bottom-nav-visibility'
+import { TabSlide } from './TabSlide'
 
 interface AppShellProps {
     /** app = authed chrome (scroll container + bottom nav); onboarding = setup chrome. */
@@ -35,6 +37,8 @@ export const AppShell = ({
     bottomInsetClassName,
     children,
 }: AppShellProps) => {
+    const navHidden = useBottomNavHidden()
+
     if (variant === 'onboarding') {
         return (
             <>
@@ -78,14 +82,25 @@ export const AppShell = ({
                     contentClassName
                 )}
             >
-                <div className={twMerge('mx-auto flex w-full max-w-md items-center justify-center', innerClassName)}>
+                {/* TabSlide IS the centering wrapper: it stays inside #scrollable-content
+                    (pull-to-refresh reads that element) and adds no extra layout node. */}
+                <TabSlide
+                    className={twMerge('mx-auto flex w-full max-w-md items-center justify-center', innerClassName)}
+                >
                     {children}
-                </div>
+                </TabSlide>
             </div>
             {/* transparent on purpose: the pill and qr button float over the
                 page content, no strip behind them (they carry their own fills) */}
             {nav && (
-                <div className="fixed inset-x-0 bottom-0 z-10 pb-safe-bottom">
+                <div
+                    data-testid="app-shell-nav"
+                    className={twMerge(
+                        'fixed inset-x-0 bottom-0 z-10 pb-safe-bottom transition-transform duration-200',
+                        navHidden && 'translate-y-full'
+                    )}
+                    {...(navHidden ? { inert: true } : {})}
+                >
                     <div className="mx-auto w-full max-w-md">{nav}</div>
                 </div>
             )}

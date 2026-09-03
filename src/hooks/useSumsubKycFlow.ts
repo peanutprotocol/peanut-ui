@@ -435,8 +435,20 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     // the WebSDK by platform, so every flow that mints a token —
                     // not just this one — reaches the right SDK.
                     setAccessToken(response.data.token)
-                    setIsActionFlow(!!response.data.actionType)
-                    setIsMultiLevel(!response.data.actionType && isMultiLevelIntent(effectiveIntent))
+                    const actionType = response.data.actionType
+                    /*
+                     * 'bridge-uplift' is not a single-level applicant action: the
+                     * backend moved the applicant to bridge-requirements, which for
+                     * an EU target branches into the bridge-eea-uplift questionnaire.
+                     * Treat it like a first-run flow for that intent, or the SDK
+                     * closes on the first submission before the questionnaire.
+                     * NA targets share the workflow but stay single-level (see
+                     * isMultiLevelIntent).
+                     */
+                    setIsActionFlow(!!actionType && actionType !== 'bridge-uplift')
+                    setIsMultiLevel(
+                        (!actionType || actionType === 'bridge-uplift') && isMultiLevelIntent(effectiveIntent)
+                    )
                     setShowWrapper(true)
                     return true
                 } else {
@@ -475,7 +487,11 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         setIsVerificationProgressModalOpen(true)
     }, [liveKycStatus])
 
-    // called when user manually closes the sdk modal
+    // Called when the user manually closes the SDK modal. Every manual close
+    // replays a deferred ACTION_REQUIRED: the wrapper cannot tell "submitted the
+    // required follow-up" from "submitted level 1 and walked away", so treating
+    // any close as a submission would swallow a real action-required state.
+    // handleSdkComplete is the one unambiguous submission, and it consumes.
     const handleClose = useCallback(() => {
         setShowWrapper(false)
         setIsActionFlow(false)
@@ -537,48 +553,61 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // user lands back on the document-upload screen so they can verify with a
     // different ID. Used as the CTA for the `restart-identity` gate state
     // (Manteca country-ineligibility — uploaded a non-AR/BR document).
-    const handleRestartIdentity = useCallback(async () => {
-        setIsLoading(true)
-        setError(null)
-        setIsTerminalError(false)
-        userInitiatedRef.current = true
-        // Clear any prior self-heal context so refreshToken (below) doesn't
-        // mistakenly hit the self-heal endpoint after a restart-identity flow
-        // (CodeRabbit caught: stale selfHealProviderRef would route the next
-        // refresh through initiateSelfHealResubmission instead of the regular path).
-        selfHealProviderRef.current = null
-        actionKeyRef.current = null
+    const handleRestartIdentity = useCallback(
+        async (overrideIntent?: KYCRegionIntent) => {
+            setIsLoading(true)
+            setError(null)
+            setIsTerminalError(false)
+            userInitiatedRef.current = true
+            // A residence change may target another provider's level; the caller
+            // passes the new intent synchronously because the hook prop only
+            // catches up on the next render.
+            if (overrideIntent) regionIntentRef.current = overrideIntent
+            // Clear any prior self-heal context so refreshToken (below) doesn't
+            // mistakenly hit the self-heal endpoint after a restart-identity flow
+            // (CodeRabbit caught: stale selfHealProviderRef would route the next
+            // refresh through initiateSelfHealResubmission instead of the regular path).
+            selfHealProviderRef.current = null
+            actionKeyRef.current = null
 
-        try {
-            const response = await restartIdentityVerification()
-            if (response.error) {
+            try {
+                const response = await restartIdentityVerification(regionIntentRef.current)
+                if (response.error) {
+                    userInitiatedRef.current = false
+                    setError(actionErrorMessage(response))
+                    return
+                }
+                if (response.data?.token) {
+                    setAccessToken(response.data.token)
+                    // The restart no longer reopens the applicant's existing level:
+                    // the backend targets the level the newly declared residence
+                    // needs, and can overrule the intent we sent. So the multi-level
+                    // flag comes from the intent the SERVER resolved, falling back to
+                    // ours only for a backend that predates the field. Left false, a
+                    // restarted LATAM `general` session closes on first submit —
+                    // before the manteca-requirements questionnaire.
+                    //
+                    // `levelName` cannot substitute: EU and NA both mint
+                    // `bridge-requirements`, LATAM and ROW both mint `general`, and
+                    // only EU and LATAM are multi-level.
+                    const resolvedIntent = response.data.regionIntent ?? regionIntentRef.current
+                    regionIntentRef.current = resolvedIntent
+                    setIsMultiLevel(isMultiLevelIntent(resolvedIntent))
+                    setShowWrapper(true)
+                } else {
+                    userInitiatedRef.current = false
+                    setError(t('errorRestartFailed'))
+                }
+            } catch (e: unknown) {
                 userInitiatedRef.current = false
-                setError(actionErrorMessage(response))
-                return
+                const message = e instanceof Error ? e.message : t('unexpectedError')
+                setError(message)
+            } finally {
+                setIsLoading(false)
             }
-            if (response.data?.token) {
-                setAccessToken(response.data.token)
-                // The restart reopens the SAME workflow the original initiate ran
-                // (the token targets the applicant's existing level), so re-derive
-                // the multi-level flag. Left false, a restarted LATAM `general`
-                // session would close on first submit — before the
-                // manteca-requirements questionnaire. Best-effort: the ref is
-                // undefined when this hook instance never initiated, which keeps
-                // today's single-level behavior.
-                setIsMultiLevel(isMultiLevelIntent(regionIntentRef.current))
-                setShowWrapper(true)
-            } else {
-                userInitiatedRef.current = false
-                setError(t('errorRestartFailed'))
-            }
-        } catch (e: unknown) {
-            userInitiatedRef.current = false
-            const message = e instanceof Error ? e.message : t('unexpectedError')
-            setError(message)
-        } finally {
-            setIsLoading(false)
-        }
-    }, [t, actionErrorMessage])
+        },
+        [t, actionErrorMessage]
+    )
 
     // initiate self-heal document resubmission: calls the resubmit API
     // and opens the sumsub SDK with the action token. `requirementKey` targets a

@@ -61,17 +61,25 @@ describe('ResidenceChangeModal', () => {
 
     it('offers re-verification only when the pick differs from the verified residence', () => {
         render()
-        expect(screen.getByText('Save & re-verify now')).toBeInTheDocument()
+        expect(screen.getByText('Submit documents')).toBeInTheDocument()
+    })
+
+    it('hands the newly declared residence to the re-verification after saving', async () => {
+        const { onClose, onReverify } = render()
+        fireEvent.click(screen.getByText('Submit documents'))
+        await waitFor(() => expect(onClose).toHaveBeenCalled())
+        expect(mockedUpdate).toHaveBeenCalledWith({ userId: 'u1', residenceCountry: 'ES' })
+        expect(onReverify).toHaveBeenCalledWith('ES')
     })
 
     it('hides re-verification when declared matches verified', () => {
         render({ declared: 'BR', verified: 'BR' })
-        expect(screen.queryByText('Save & re-verify now')).not.toBeInTheDocument()
+        expect(screen.queryByText('Submit documents')).not.toBeInTheDocument()
     })
 
     it('save-and-reverify saves first, then starts the restart flow', async () => {
         const { onReverify } = render()
-        fireEvent.click(screen.getByText('Save & re-verify now'))
+        fireEvent.click(screen.getByText('Submit documents'))
         await waitFor(() => expect(onReverify).toHaveBeenCalled())
         expect(mockedUpdate).toHaveBeenCalled()
     })

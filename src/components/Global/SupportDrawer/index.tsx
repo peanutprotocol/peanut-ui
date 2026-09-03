@@ -409,7 +409,7 @@ const SupportDrawer = () => {
                 the receipt underneath (a fall-through tap on "Cancel deposit"
                 cancelled a user's funded bank deposit). */}
             <div
-                className={`fixed inset-0 z-[999998] bg-black/80 transition-opacity duration-300 ${
+                className={`fixed inset-0 z-[999998] bg-black/80 transition-opacity duration-moderate ${
                     isSupportModalOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
                 }`}
                 onClick={() => setIsSupportModalOpen(false)}
@@ -436,11 +436,11 @@ const SupportDrawer = () => {
                     // leaves a backdrop target to tap-to-close; with no keyboard up it is
                     // slack and 85dvh wins, so the resting look is unchanged.
                     height: visibleHeight
-                        ? `min(85dvh, calc(${visibleHeight}px - env(safe-area-inset-top) - ${TOP_RESERVE}px))`
+                        ? `min(85dvh, calc(${visibleHeight}px - var(--safe-top) - ${TOP_RESERVE}px))`
                         : '85dvh',
                     // The keyboard already covers the home indicator; padding for it too
                     // would just wedge a dead strip between the composer and the keys.
-                    paddingBottom: keyboardInset ? 0 : 'env(safe-area-inset-bottom)',
+                    paddingBottom: keyboardInset ? 0 : 'var(--safe-bottom)',
                     transform: isSupportModalOpen ? `translateY(${dragOffset}px)` : 'translateY(100%)',
                     transition: isDragging ? 'none' : 'transform 300ms ease-out',
                 }}
@@ -465,7 +465,7 @@ const SupportDrawer = () => {
                         )}
                         {isCrispFailed && (
                             <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-background px-8 text-center">
-                                <p className="text-body-m font-bold text-foreground-primary">
+                                <p className="text-body-m-semibold text-foreground-primary">
                                     {t('supportDrawer.chatLoadFailed')}
                                 </p>
                                 <p className="text-body-s text-foreground-secondary">

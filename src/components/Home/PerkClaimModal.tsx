@@ -233,7 +233,7 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
                             </>
                         ) : inviteeName ? (
                             <p className="mt-1 flex items-center justify-center gap-1 text-body-s text-foreground-secondary">
-                                <Icon name="invite-heart" size={14} />
+                                <Icon name="invite-heart" size={16} />
                                 {t.rich('usedPeanut', {
                                     inviteeName,
                                     name: (chunks) => <span className="font-medium">{chunks}</span>,
@@ -345,7 +345,7 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
         <div className="flex flex-col items-center">
             {/* Title */}
             <p className="mb-6 text-center text-body-s text-foreground-secondary">
-                <Icon name="invite-heart" size={14} className="mr-1 inline" />
+                <Icon name="invite-heart" size={16} className="mr-1 inline" />
                 {t.rich('usedPeanut', {
                     inviteeName: inviteeName ?? '',
                     name: (chunks) => <span className="font-medium">{chunks}</span>,

@@ -228,7 +228,9 @@ describe('applyDeferredPayload', () => {
 
     it('normalizes and persists supported locales under the app-locale key', async () => {
         expect(applyDeferredPayload({ lang: 'pt-br' }).locale).toBe('pt-BR')
-        expect(applyDeferredPayload({ lang: 'es-ar' }).locale).toBe('es-419')
+        expect(applyDeferredPayload({ lang: 'es-ar' }).locale).toBe('es-AR')
+        expect(applyDeferredPayload({ lang: 'es-AR' }).locale).toBe('es-AR')
+        expect(applyDeferredPayload({ lang: 'es-MX' }).locale).toBe('es-419')
         expect(applyDeferredPayload({ lang: 'es-419' }).locale).toBe('es-419')
         expect(applyDeferredPayload({ lang: 'en' }).locale).toBe('en')
         expect(localStorage.getItem(APP_LOCALE_KEY)).toBe('en')
@@ -241,6 +243,8 @@ describe('applyDeferredPayload', () => {
     it('returns null locale for unsupported languages and does not persist', () => {
         expect(applyDeferredPayload({ lang: 'fr' }).locale).toBeNull()
         expect(applyDeferredPayload({ lang: 'xx-yy' }).locale).toBeNull()
+        expect(applyDeferredPayload({ lang: 'garbage' }).locale).toBeNull()
+        expect(applyDeferredPayload({ lang: '   ' }).locale).toBeNull()
         expect(applyDeferredPayload({}).locale).toBeNull()
         expect(localStorage.getItem(APP_LOCALE_KEY)).toBeNull()
     })

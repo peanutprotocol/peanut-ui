@@ -11,6 +11,7 @@ export const ANALYTICS_EVENTS = {
     SIGNUP_RESIDENCE_SELECTED: 'signup_residence_selected',
     SIGNUP_RESIDENCE_RESTRICTED_SHOWN: 'signup_residence_restricted_shown',
     SIGNUP_RESIDENCE_PARTIAL_SHOWN: 'signup_residence_partial_shown',
+    SIGNUP_RESIDENCE_CONGRATS_SHOWN: 'signup_residence_congrats_shown',
     SIGNUP_RESIDENCE_RESTRICTED_CONTINUED: 'signup_residence_restricted_continued',
     SIGNUP_RESIDENCE_NOTIFY_SUBMITTED: 'signup_residence_notify_submitted',
     RESIDENCE_CHANGED: 'residence_changed',
@@ -157,6 +158,7 @@ export const ANALYTICS_EVENTS = {
     QR_SCANNED: 'qr_scanned',
     QR_NOTIFY_ME_CLICKED: 'qr_notify_me_clicked',
     QR_DECODING_ERROR_SHOWN: 'qr_decoding_error_shown',
+    QR_MERCHANT_CHARGE_EXPIRED_SHOWN: 'qr_merchant_charge_expired_shown',
 
     // ── Home ──
     BALANCE_VISIBILITY_TOGGLED: 'balance_visibility_toggled',

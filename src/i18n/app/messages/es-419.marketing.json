@@ -1,5 +1,6 @@
 {
     "common": {
+        "fundsOnTheWay": "Fondos en camino",
         "cancel": "Cancelar",
         "continue": "Continuar",
         "back": "Atrás",
@@ -141,6 +142,27 @@
             "redirecting": "Te llevamos a la tienda…",
             "pickStore": "Elige tu tienda y descarga la app."
         }
+    },
+    "navigation": {
+        "home": "Inicio",
+        "send": "Enviar",
+        "request": "Recibir",
+        "add": "Agregar",
+        "withdraw": "Retirar",
+        "history": "Historial",
+        "docs": "Docs",
+        "support": "Soporte",
+        "logout": "Cerrar sesión",
+        "loggingOut": "Cerrando sesión...",
+        "dashboard": "Panel",
+        "pay": "Pagar",
+        "cashout": "Retiro",
+        "claim": "Reclamar",
+        "peanutLogoAlt": "Logo de Peanut",
+        "receipt": "Recibo",
+        "supportUnread": "Nueva respuesta de soporte",
+        "card": "Tarjeta",
+        "scanQr": "Escanear QR"
     },
     "shhhhh": {
         "hero": {

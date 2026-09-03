@@ -107,7 +107,7 @@ const CardLimitEditModal: FC<Props> = ({ cardId, frequency, label, initialAmount
             title={t('editTitle')}
             content={
                 <div className="flex w-full flex-col gap-2 text-left">
-                    <label htmlFor="card-limit-input" className="text-body-s font-bold">
+                    <label htmlFor="card-limit-input" className="text-label-l">
                         {label}
                     </label>
                     <div className="flex items-center gap-2 rounded-sm border border-border-default bg-background-default px-3 py-2">

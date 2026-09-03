@@ -1,5 +1,6 @@
 {
     "common": {
+        "fundsOnTheWay": "Funds on the way",
         "cancel": "Cancel",
         "continue": "Continue",
         "back": "Back",
@@ -141,6 +142,27 @@
             "redirecting": "Taking you to the store…",
             "pickStore": "Global cash, local feel. Pick your store to download."
         }
+    },
+    "navigation": {
+        "home": "Home",
+        "send": "Send",
+        "request": "Request",
+        "add": "Add",
+        "withdraw": "Withdraw",
+        "history": "History",
+        "docs": "Docs",
+        "support": "Support",
+        "logout": "Logout",
+        "loggingOut": "Logging out...",
+        "dashboard": "Dashboard",
+        "pay": "Pay",
+        "cashout": "Cashout",
+        "claim": "Claim",
+        "peanutLogoAlt": "Peanut Logo",
+        "receipt": "Receipt",
+        "supportUnread": "New support reply",
+        "card": "Card",
+        "scanQr": "Scan QR"
     },
     "shhhhh": {
         "hero": {

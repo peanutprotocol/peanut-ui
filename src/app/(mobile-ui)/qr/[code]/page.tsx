@@ -204,7 +204,7 @@ export default function RedirectQrClaimPage() {
                 <Card className="border-2 border-action-secondary bg-action-secondary/10 p-4">
                     <div className="flex gap-3">
                         <Icon name="info" size={20} className="flex-shrink-0 text-action-secondary" />
-                        <p className="text-body-s font-medium">
+                        <p className="text-body-s">
                             {t.rich('claim.permanentNote', { strong: (chunks) => <strong>{chunks}</strong> })}
                         </p>
                     </div>

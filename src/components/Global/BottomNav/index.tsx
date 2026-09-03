@@ -12,6 +12,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { TAB_ORDER, TAB_SPRING, type TabId } from './tab-order'
 
 /**
  * Bottom navigation from the figma navigation board (17802:61534, component
@@ -43,8 +44,9 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
  * Now every tab's left/width is measured up front (and again on resize), so
  * the destination x is a number known BEFORE the spring starts. Nothing is
  * re-measured mid-flight, so the pill travels once and stops on the target.
- * The spring is near-critically damped (bounce 0.05 over the 300ms moderate
- * token) — no overshoot to walk back from.
+ * The travel is over the 300ms moderate token; the pill's spring bounces (0.3,
+ * Kush's ruling) while the shared TAB_SPRING that drives the page slide stays
+ * near-critically damped.
  *
  * The pill is also draggable (drag="x", clamped to the measured tab range):
  * hold and drag it along the bar, release, and it snaps to the nearest tab
@@ -52,10 +54,6 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
  * swallowed by the bar's capture handler. Under prefers-reduced-motion the
  * drag is disabled (taps only) and the pill move is instant.
  */
-
-type TabId = 'home' | 'card' | 'support'
-
-const TAB_ORDER: TabId[] = ['home', 'card', 'support']
 
 // tab pressable: px-6 py-4 + 20px icon = the 68x52 area annotated on the board
 const tabClass =
@@ -65,9 +63,14 @@ const tabClass =
 // tab / draggable pill underneath
 const iconClass = 'pointer-events-none relative z-10'
 
-// near-critically damped: the pill lands on the measured target without an
-// overshoot to walk back from. 0.3s = the `duration-moderate` motion token.
-const PILL_SPRING = { type: 'spring', duration: 0.3, bounce: 0.05 } as const
+// The pill overshoots on purpose (Kush, 2026-09-02); TAB_SPRING stays
+// near-critically damped because it also drives the full-page tab slide, where
+// visible overshoot reads as a glitch rather than as bounce.
+const PILL_SPRING = { ...TAB_SPRING, bounce: 0.3 } as const
+
+// The pill gets a 1px drop at 55% so it reads as raised off the bar without a
+// second full-weight edge; the bar and QR circle carry the DS shadow-4 token.
+const PILL_SHADOW = 'shadow-[1px_1px_0_0_rgb(22_22_22/0.55)]'
 
 /** A tab's box inside the bar, in the bar's own coordinates. */
 type TabBox = { left: number; width: number }
@@ -217,10 +220,10 @@ export const BottomNav = () => {
                         e.stopPropagation()
                     }
                 }}
-                // solid bar + soft elevation shadow (final take, 2026-08-27 —
-                // replaces the gradient/blur/dissolve experiments). no DS token
-                // carries a soft .35-alpha shadow — arbitrary value on purpose.
-                className="relative flex flex-1 items-center justify-between rounded-round border border-border-default bg-background-page shadow-[0_10px_22px_-6px_rgb(0_0_0/0.35)]"
+                // Hard offset shadow (contrast study "Hard offset shadow"),
+                // carried by the bar AND the QR circle so the pair reads as one
+                // plane. shadow-4 is the DS token for it (Kush's ruling).
+                className="relative flex flex-1 items-center justify-between rounded-round border border-border-default bg-background-page shadow-4"
             >
                 <Link
                     href="/home"
@@ -297,7 +300,9 @@ export const BottomNav = () => {
                         initial={false}
                         animate={{ x: restingX(activeBox), width: activeBox.width + 2 }}
                         transition={reduceMotion ? { duration: 0 } : PILL_SPRING}
-                        className="absolute -top-0.5 -bottom-0.5 left-0 z-0 touch-none rounded-round border border-border-default bg-background-default"
+                        // -1px, not -2px: the bar's own border is 1px, so a 1px inset puts the
+                        // pill's outer edge exactly on the bar's — at 2px it stood proud of it.
+                        className={`absolute -top-px -bottom-px left-0 z-0 touch-none rounded-round border border-border-default bg-background-default ${PILL_SHADOW}`}
                     />
                 )}
             </div>
@@ -310,7 +315,7 @@ export const BottomNav = () => {
                     triggerHaptic()
                     setIsQRScannerOpen(true)
                 }}
-                className="flex size-13 shrink-0 items-center justify-center rounded-round border border-border-button bg-action-primary text-foreground-primary transition-transform duration-instant active:scale-95 disabled:opacity-40"
+                className="flex size-13 shrink-0 items-center justify-center rounded-round border border-border-button bg-action-primary text-foreground-primary shadow-4 transition-transform duration-instant active:scale-95 disabled:opacity-40"
             >
                 <Icon name="qr-code" size={24} />
             </button>

@@ -14,7 +14,9 @@
  *
  * Save button: captures the asset to PNG and triggers a download. Works
  * on every browser; useful even on mobile if the user wants the image
- * before composing the post.
+ * before composing the post. In the native app WKWebView silently cancels
+ * `<a download>`, so Save goes through the OS share sheet (which carries
+ * "Save Image") and is hidden when files can't be shared.
  */
 
 import { type FC, type RefObject, useState } from 'react'
@@ -27,6 +29,14 @@ import { shareCardOnTwitter } from './share.utils'
 import { pickWinCaption } from './winCaptions'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { isNativeBridge } from '@/utils/capacitor'
+
+type SaveMode = 'download' | 'native-share' | 'hidden'
+
+function resolveSaveMode(): SaveMode {
+    if (!isNativeBridge()) return 'download'
+    return canShareImageFiles() ? 'native-share' : 'hidden'
+}
 
 /**
  * Serialise whatever the share/save path threw into something Sentry +
@@ -91,6 +101,7 @@ export const ShareAssetActions: FC<Props> = ({
     const [isSharing, setIsSharing] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [saveMode] = useState(resolveSaveMode)
 
     // One random win caption per mount (rotation lives in winCaptions.ts), so
     // shared timelines don't fill with one identical line. Stable for this
@@ -158,9 +169,15 @@ export const ShareAssetActions: FC<Props> = ({
             const node = captureRef.current
             if (!node) throw new Error('share asset not yet rendered — try again in a moment')
             const blob = await captureShareAsset(node)
-            downloadBlob(blob, filename)
-            posthog.capture(ANALYTICS_EVENTS.CARD_SHARE_ASSET_SAVED, { source })
+            if (saveMode === 'native-share') {
+                await navigator.share({ files: [new File([blob], filename, { type: 'image/png' })] })
+            } else {
+                downloadBlob(blob, filename)
+            }
+            posthog.capture(ANALYTICS_EVENTS.CARD_SHARE_ASSET_SAVED, { source, method: saveMode })
         } catch (err) {
+            // AbortError = user dismissed the share sheet: neither saved nor failed.
+            if (err instanceof Error && err.name === 'AbortError') return
             const detail = describeShareError(err)
             console.error('[share-asset] save failed', detail)
             Sentry.captureException(err, {
@@ -187,20 +204,22 @@ export const ShareAssetActions: FC<Props> = ({
                 className="w-full"
                 loading={isSharing}
                 disabled={isSharing || isSaving || !ready}
-                icon={<Icon name="share" size={18} />}
+                icon={<Icon name="share" size={20} />}
             >
                 {t('share')}
             </Button>
-            <Button
-                onClick={handleSave}
-                variant="stroke"
-                className="w-full"
-                loading={isSaving}
-                disabled={isSharing || isSaving || !ready}
-                icon={<Icon name="download" size={18} />}
-            >
-                {t('saveImage')}
-            </Button>
+            {saveMode !== 'hidden' && (
+                <Button
+                    onClick={handleSave}
+                    variant="stroke"
+                    className="w-full"
+                    loading={isSaving}
+                    disabled={isSharing || isSaving || !ready}
+                    icon={<Icon name="download" size={20} />}
+                >
+                    {t('saveImage')}
+                </Button>
+            )}
             {error && (
                 <p className="text-center text-body-xs text-red" role="alert">
                     {error}

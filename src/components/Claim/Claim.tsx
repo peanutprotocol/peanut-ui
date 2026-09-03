@@ -179,7 +179,10 @@ export const Claim = ({}) => {
             initials: getInitialsFromName(recipientName),
             memo: claimLinkData.textContent,
             attachmentUrl: claimLinkData.fileUrl,
-            cancelledDate: status === 'cancelled' ? new Date(claimLinkData.events[0]?.timestamp) : undefined,
+            cancelledDate:
+                status === 'cancelled' && claimLinkData.events?.[0]
+                    ? new Date(claimLinkData.events[0].timestamp)
+                    : undefined,
             txHash: claimLinkData.claim?.txHash,
             extraDataForDrawer: {
                 isLinkTransaction: true,

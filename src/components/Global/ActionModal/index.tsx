@@ -1,5 +1,6 @@
 import { Button, type ButtonProps } from '@/components/0_Bruddle/Button'
-import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import Checkbox from '@/components/0_Bruddle/Checkbox'
+import { IconBubble, type IconBubbleColor } from '@/components/0_Bruddle/IconBubble'
 import { type IconProps as GlobalIconProps, Icon, type IconName } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'
 import BaseModal from '@/components/Global/Modal'
@@ -20,11 +21,24 @@ export interface ActionModalCheckboxProps {
     inputClassName?: string
 }
 
+export type ActionModalTone = 'error' | 'warning' | 'success' | 'info'
+
+// mirrors PRIORITY_STYLES in 0_Bruddle/Notification: yellow is for warnings
+// only, red for errors, green for success, blue for plain information
+const TONE_STYLES: Record<ActionModalTone, { icon: IconName; color: IconBubbleColor }> = {
+    error: { icon: 'ban', color: 'red' },
+    warning: { icon: 'alert', color: 'yellow' },
+    success: { icon: 'check', color: 'green' },
+    info: { icon: 'info', color: 'blue' },
+}
+
 export interface ActionModalProps {
     visible: boolean
     onClose: () => void
     title: string | React.ReactNode
     description?: string | React.ReactNode
+    /** Semantic bubble color + default icon. Explicit `icon` / `iconContainerClassName` still win. */
+    tone?: ActionModalTone
     icon?: IconName | React.ReactElement
     iconProps?: Partial<Omit<GlobalIconProps, 'name'>>
     iconContainerClassName?: string
@@ -52,7 +66,8 @@ const ActionModal: React.FC<ActionModalProps> = ({
     onClose,
     title,
     description,
-    icon,
+    tone,
+    icon: customIcon,
     iconProps,
     iconContainerClassName: customIconContainerClassName,
     isLoadingIcon = false,
@@ -76,6 +91,8 @@ const ActionModal: React.FC<ActionModalProps> = ({
     const defaultModalPanelClasses = 'max-w-[85%]'
     const defaultIconContainerClassName = 'bg-action-primary' // default pink background
     const defaultIconPropsClassName = 'text-black' // default black icon color
+    const toneStyle = tone ? TONE_STYLES[tone] : undefined
+    const icon = customIcon ?? toneStyle?.icon
 
     // board bubble is the 48px icon bubble with a 24px icon (17800:57255,
     // 17829:74078) — was a hand-rolled 32px circle with a 16px icon
@@ -88,8 +105,9 @@ const ActionModal: React.FC<ActionModalProps> = ({
                 <Icon
                     name={icon as IconName}
                     fill="currentColor"
+                    size={24}
                     {...iconProps}
-                    className={twMerge('size-6', defaultIconPropsClassName, iconProps?.className)}
+                    className={twMerge(defaultIconPropsClassName, iconProps?.className)}
                 />
             )
         }
@@ -132,7 +150,11 @@ const ActionModal: React.FC<ActionModalProps> = ({
                         <IconBubble
                             size="m"
                             icon={iconContent}
-                            className={customIconContainerClassName || defaultIconContainerClassName}
+                            color={toneStyle?.color}
+                            className={
+                                customIconContainerClassName || (toneStyle ? undefined : defaultIconContainerClassName)
+                            }
+                            data-testid="action-modal-icon"
                         />
                     )}
 
@@ -152,19 +174,13 @@ const ActionModal: React.FC<ActionModalProps> = ({
                 {(checkbox || (ctas && ctas.length > 0)) && (
                     <div className="space-y-4 w-full">
                         {checkbox && (
-                            <div className={twMerge('self-start text-left', checkbox.className)}>
-                                <label className="space-x-2 flex cursor-pointer items-center justify-center text-body-s dark:text-white">
-                                    <input
-                                        type="checkbox"
-                                        className={twMerge(
-                                            'h-4 w-4 rounded text-action-primary shadow-sm focus:border-purple-200 focus:ring focus:ring-action-focus/50 dark:bg-gray-900 dark:ring-offset-black dark:checked:bg-action-primary dark:focus:ring-action-primary/50',
-                                            checkbox.inputClassName
-                                        )}
-                                        checked={checkbox.checked}
-                                        onChange={(e) => checkbox.onChange(e.target.checked)}
-                                    />
-                                    <span>{checkbox.text}</span>
-                                </label>
+                            <div className={twMerge('flex justify-center', checkbox.className)}>
+                                <Checkbox
+                                    label={checkbox.text}
+                                    value={checkbox.checked}
+                                    onChange={(e) => checkbox.onChange(e.target.checked)}
+                                    className={checkbox.inputClassName}
+                                />
                             </div>
                         )}
 

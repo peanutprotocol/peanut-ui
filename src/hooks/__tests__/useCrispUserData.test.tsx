@@ -87,6 +87,20 @@ describe('useCrispUserData', () => {
         expect(result.current.balance).toBe('$100.00 spendable (wallet $100.00 · card $0.00)')
         expect(result.current.accountStats).toContain('1240 pts')
         expect(result.current.appContext).toContain('route:/withdraw/manteca')
+    })
+
+    it('exposes the raw Rain user id from the cached overview (no pre-built portal link)', () => {
+        client.setQueryData([RAIN_CARD_OVERVIEW_QUERY_KEY, 'user-1'], {
+            status: { hasApplication: true, applicationStatus: 'denied', rainUserId: 'rain-xyz' },
+            balance: null,
+            cards: [],
+        })
+        const { result } = renderHook(() => useCrispUserData(), { wrapper: wrapper(client) })
+
+        expect(result.current.rainUserId).toBe('rain-xyz')
+        // The unauthenticated portal URL is deliberately NOT surfaced — agents
+        // construct it from the id on demand (PR #2900 review).
+        expect((result.current as unknown as Record<string, unknown>).cardPortalLink).toBeUndefined()
         expect(
             client
                 .getQueryCache()

@@ -1,20 +1,19 @@
 'use client'
 
-import Card from '@/components/Global/Card'
-import { Icon } from '@/components/Global/Icons/Icon'
+import { ListGroup } from '@/components/0_Bruddle/ListGroup'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { Section } from '@/components/0_Bruddle/Section'
+import StatusPill from '@/components/Global/StatusPill'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useAuth } from '@/context/authContext'
-import { useModalsContext } from '@/context/ModalsContext'
 import { useCardInfo } from '@/hooks/useCardInfo'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
-import { isBridgeSupportedCountry } from '@/utils/regions.utils'
 import posthog from 'posthog-js'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef } from 'react'
 import { useTranslations } from 'next-intl'
-import { twMerge } from '@/utils/tw'
 
 type ChecklistItemId = 'create-account' | 'add-money' | 'get-card' | 'first-payment'
 
@@ -25,6 +24,12 @@ interface ChecklistItem {
     done: boolean
     onTap?: () => void
 }
+
+// The undone marker: same 20px circle StatusPill draws for "completed",
+// outlined and empty. No status token means "not yet", so it stays local.
+const PendingMarker = () => (
+    <span aria-hidden className="flex size-5 shrink-0 rounded-full border border-border-default" />
+)
 
 /**
  * The home getting-started checklist: exactly three items, mirroring the
@@ -44,28 +49,19 @@ const GettingStartedChecklist = () => {
     const t = useTranslations('home.gettingStarted')
     const router = useRouter()
     const { user } = useAuth()
-    const { setIsQRScannerOpen } = useModalsContext()
     const restrictions = useResidenceRestrictions()
     const { isEligible } = useCardInfo()
     const { overview } = useRainCardOverview()
 
     const milestone = user?.user?.activationMilestone ?? 'registered'
+    const hasSentPayment = !!user?.user?.firstPaymentAt
     const isVerified = milestone === 'verified' || milestone === 'funded' || milestone === 'activated'
     const isFunded = milestone === 'funded' || milestone === 'activated'
-    const residenceIso2 = user?.residence?.verified ?? user?.residence?.declared ?? null
     const hasActiveCard = !!findActiveCard(overview)
     // While eligibility is loading (undefined) the slot shows the first-payment
     // step — always a valid action — and upgrades to the card once the server
     // confirms. Never show a card step the user might not be allowed to take.
     const cardAvailable = !restrictions.card && isEligible === true
-
-    const addMoneyLabel = useMemo(() => {
-        if (residenceIso2 === 'BR') return t('addMoneyPix')
-        if (residenceIso2 === 'MX') return t('addMoneySpei')
-        if (residenceIso2 === 'US') return t('addMoneyBank')
-        if (residenceIso2 && isBridgeSupportedCountry(residenceIso2)) return t('addMoneySepa')
-        return t('addMoney')
-    }, [residenceIso2, t])
 
     const items: ChecklistItem[] = useMemo(() => {
         const tap = (id: ChecklistItemId, action: () => void) => () => {
@@ -76,6 +72,7 @@ const GettingStartedChecklist = () => {
             ? {
                   id: 'get-card',
                   label: t('getCard'),
+                  sub: t('getCardNote'),
                   done: hasActiveCard,
                   onTap: tap('get-card', () => router.push('/card')),
               }
@@ -83,21 +80,24 @@ const GettingStartedChecklist = () => {
                   id: 'first-payment',
                   label: t('firstPayment'),
                   sub: t('firstPaymentNote'),
-                  done: milestone === 'activated',
-                  onTap: tap('first-payment', () => setIsQRScannerOpen(true)),
+                  done: milestone === 'activated' || hasSentPayment,
+                  onTap: tap('first-payment', () => router.push('/send')),
               }
         return [
             { id: 'create-account', label: t('createAccount'), sub: t('createAccountDone'), done: true },
             {
                 id: 'add-money',
-                label: addMoneyLabel,
-                sub: !isVerified ? t('kycNote') : undefined,
+                // The row opens /add-money, which offers bank transfer AND
+                // crypto — naming one rail promised a route the chooser doesn't
+                // take you straight to.
+                label: t('addMoney'),
+                sub: isVerified ? t('addMoneyRoutes') : t('addMoneyRoutesKyc'),
                 done: isFunded,
                 onTap: tap('add-money', () => router.push('/add-money')),
             },
             thirdItem,
         ]
-    }, [addMoneyLabel, cardAvailable, hasActiveCard, isFunded, isVerified, milestone, router, setIsQRScannerOpen, t])
+    }, [cardAvailable, hasActiveCard, hasSentPayment, isFunded, isVerified, milestone, router, t])
 
     const allDone = items.every((item) => item.done)
 
@@ -114,49 +114,26 @@ const GettingStartedChecklist = () => {
     if (allDone) return null
 
     return (
-        <div>
-            <p className="mb-2 text-body-s font-bold">{t('title')}</p>
-            <Card position="single" className="overflow-hidden p-0">
+        <Section title={t('title')}>
+            <ListGroup>
                 {items.map((item) => {
                     const tappable = !item.done && !!item.onTap
+                    const showSub = (item.done && item.id === 'create-account') || (!item.done && !!item.sub)
                     return (
-                        <button
+                        <ListItem
                             key={item.id}
-                            type="button"
+                            data-testid={`checklist-${item.id}`}
+                            leading={item.done ? <StatusPill status="completed" /> : <PendingMarker />}
+                            title={item.label}
+                            body={showSub ? item.sub : undefined}
+                            chevron={tappable}
                             disabled={!tappable}
-                            onClick={item.onTap}
-                            className={twMerge(
-                                'flex w-full items-center gap-3 border-t border-border-default px-4 py-3 text-left first:border-t-0 dark:border-white',
-                                !tappable && 'cursor-default'
-                            )}
-                        >
-                            <span
-                                className={twMerge(
-                                    'flex size-5 shrink-0 items-center justify-center rounded-full border border-border-default',
-                                    item.done && 'bg-background-badge-success'
-                                )}
-                            >
-                                {item.done && <Icon name="check" className="size-3" />}
-                            </span>
-                            <span className="min-w-0">
-                                <span
-                                    className={twMerge(
-                                        'block text-body-s font-bold',
-                                        item.done && 'text-foreground-secondary'
-                                    )}
-                                >
-                                    {item.label}
-                                </span>
-                                {((item.done && item.id === 'create-account') || (!item.done && item.sub)) && (
-                                    <span className="block text-body-xs text-foreground-secondary">{item.sub}</span>
-                                )}
-                            </span>
-                            {tappable && <Icon name="chevron-down" className="ml-auto size-4 shrink-0 -rotate-90" />}
-                        </button>
+                            onClick={tappable ? item.onTap : undefined}
+                        />
                     )
                 })}
-            </Card>
-        </div>
+            </ListGroup>
+        </Section>
     )
 }
 

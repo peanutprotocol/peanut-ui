@@ -147,7 +147,7 @@ const DeleteAccountButton: FC = () => {
             <button
                 type="button"
                 onClick={open}
-                className="w-full text-center text-body-s font-semibold text-foreground-error underline underline-offset-2"
+                className="w-full text-center text-label-l text-foreground-error underline underline-offset-2"
             >
                 {t('button')}
             </button>

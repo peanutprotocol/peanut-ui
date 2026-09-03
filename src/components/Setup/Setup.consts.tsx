@@ -34,6 +34,7 @@ export const setupSteps: ISetupStep[] = [
         component: InstallPWA,
         showBackButton: false,
         showSkipButton: false,
+        showLoginButton: false,
         imageClassName: 'w-[50%] md:w-[30%] h-auto',
         titleClassName: 'text-heading-s',
         contentClassName: 'flex flex-col items-center justify-center gap-6',
@@ -45,6 +46,7 @@ export const setupSteps: ISetupStep[] = [
         component: InstallPWA,
         showBackButton: false,
         showSkipButton: true,
+        showLoginButton: false,
         imageClassName: 'w-[50%] md:w-[30%] h-auto mt-16 md:mt-0',
     },
     {
@@ -63,6 +65,7 @@ export const setupSteps: ISetupStep[] = [
         component: JoinWaitlist,
         showBackButton: true,
         showSkipButton: false,
+        showLoginButton: true,
         contentClassName: 'flex flex-col items-center justify-center gap-6',
     },
     {
@@ -72,6 +75,7 @@ export const setupSteps: ISetupStep[] = [
         component: SignupStep,
         showBackButton: true,
         showSkipButton: false,
+        showLoginButton: true,
         contentClassName: 'flex flex-col items-end pt-8 justify-center gap-6',
     },
     {
@@ -82,9 +86,10 @@ export const setupSteps: ISetupStep[] = [
         showBackButton: true,
         showSkipButton: false,
         // The heads-up sub-views replace the intro copy; the select view
-        // renders the description itself.
+        // renders the title and description itself.
         descriptionInView: true,
-        contentClassName: 'flex flex-col items-end pt-8 justify-center gap-5',
+        titleInView: true,
+        contentClassName: 'flex flex-col items-end pt-8 justify-center gap-6',
     },
     {
         screenId: 'passkey-permission',
@@ -105,6 +110,8 @@ export const setupSteps: ISetupStep[] = [
         // The view renders the description itself: the confirm prompt before
         // signing, the account-ready celebration after.
         descriptionInView: true,
-        contentClassName: 'flex flex-col items-center justify-center gap-6',
+        // items-end, like every other signup step — centering this one alone
+        // left its copy off the setup flow's left-aligned column.
+        contentClassName: 'flex flex-col items-end pt-8 justify-center gap-6',
     },
 ]

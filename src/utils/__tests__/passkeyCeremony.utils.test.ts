@@ -18,7 +18,7 @@ import { setAuthToken } from '@/utils/auth-token'
 
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: jest.fn(() => false) }))
 jest.mock('@/utils/auth-token', () => ({ setAuthToken: jest.fn() }))
-jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
+jest.mock('@/utils/sentry-lazy', () => ({ captureException: jest.fn() }))
 const mockIsCapacitor = isCapacitor as jest.Mock
 const mockSetAuthToken = setAuthToken as jest.Mock
 

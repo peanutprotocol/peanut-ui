@@ -13,6 +13,13 @@
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, relative, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import {
+    countOffScaleSpacing,
+    countWeightStacks,
+    countOffScaleRadius,
+    OFF_SCALE_ICON_RE,
+    RAW_DURATION_RE,
+} from './ds-lint-rules.cjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const SRC = join(ROOT, 'src')
@@ -44,6 +51,7 @@ const HEX_ALLOW = [
     'LandingPage/PioneerCard3D', // canvas 3d card
     'receipt/[entryId]/pdf/', // @react-pdf/renderer — its StyleSheet takes no tailwind tokens
     'app/layout.tsx', // next viewport themeColor — browser chrome, must be a literal
+    'Global/UnsupportedWebViewScreen/', // inline fallback shown when the stylesheet itself cannot parse
 ]
 
 // extra allowlist for inline-style only (F-12 taxonomy). canvas/D3/mermaid
@@ -252,6 +260,29 @@ counts.classNameSitesInPages = files
     .filter((f) => /^app\/\(mobile-ui\)\//.test(f.path) && /(^|\/)page\.tsx$/.test(f.path) && !f.path.includes('/dev/'))
     .reduce((sum, f) => sum + countMatches(f.text, /className=/g), 0)
 
+// composition-drift metrics (2026-09-01 sweep). design.md laws the token
+// metrics above cannot see: stacked weights mint off-ramp type styles, the
+// spacing/radius/motion scales ban off-scale values, icons have three sizes.
+// deliberate holds (geometry-driven indents like Notification's pl-7, boards
+// pending a ruling) live inside the baseline, not an allowlist — a ruling
+// drives the count down, new drift pushes it up and fails.
+counts.fontWeightOnTypeToken = files
+    .filter((f) => !allowed(f.path))
+    .reduce((sum, f) => sum + countWeightStacks(f.text), 0)
+// matchers live in ds-lint-rules.cjs (imported at the top) so the regression
+// tests in scripts/__tests__/ds-lint-rules.test.ts exercise the exact rules
+// this script counts with, without running the src/ scan. these five scan
+// .ts as well as .tsx — class constants exported from plain modules
+// (Marketing/mdx/constants.ts) carry the same drift.
+counts.offScaleSpacing = files.filter((f) => !allowed(f.path)).reduce((sum, f) => sum + countOffScaleSpacing(f.text), 0)
+counts.iconOffScale = files
+    .filter((f) => !allowed(f.path))
+    .reduce((sum, f) => sum + countMatches(f.text, OFF_SCALE_ICON_RE), 0)
+counts.offScaleRadius = files.filter((f) => !allowed(f.path)).reduce((sum, f) => sum + countOffScaleRadius(f.text), 0)
+counts.rawDuration = files
+    .filter((f) => !allowed(f.path))
+    .reduce((sum, f) => sum + countMatches(f.text, RAW_DURATION_RE), 0)
+
 // dsTextScale and nuqsFiles are adoption counts (should go UP) — everything
 // else is debt (must only go DOWN). the ratchet only enforces the debt keys.
 const DEBT_KEYS = [
@@ -266,6 +297,11 @@ const DEBT_KEYS = [
     'classNameSitesInPages',
     'deadLegacyTokens',
     'consumedUndefinedTokens',
+    'fontWeightOnTypeToken',
+    'offScaleSpacing',
+    'iconOffScale',
+    'offScaleRadius',
+    'rawDuration',
 ]
 
 const mode = process.argv[2] ?? ''
@@ -277,8 +313,13 @@ if (mode === '--json') {
     // ever runs --check, so the flag cannot be abused there.
     const allowIdx = process.argv.indexOf('--allow-increase')
     const allowReason = allowIdx !== -1 ? process.argv[allowIdx + 1] : null
+    // _meta is the durable audit trail: every allowed increase appends its
+    // reason into the baseline file itself, so a bump is visible in the diff
+    // reviewers read, not just in the terminal of whoever ran the command.
+    let meta = []
     try {
         const prev = JSON.parse(readFileSync(BASELINE_PATH, 'utf8'))
+        if (Array.isArray(prev._meta)) meta = prev._meta
         const raised = DEBT_KEYS.filter((k) => typeof prev[k] === 'number' && counts[k] > prev[k])
         if (raised.length && !allowReason) {
             console.error(
@@ -288,12 +329,19 @@ if (mode === '--json') {
             console.error('  --write-baseline --allow-increase "<why>"')
             process.exit(1)
         }
-        if (raised.length) console.log(`baseline increase allowed: ${allowReason}`)
+        if (raised.length) {
+            console.log(`baseline increase allowed: ${allowReason}`)
+            meta.push({
+                date: new Date().toISOString().slice(0, 10),
+                metrics: raised.map((k) => `${k} ${prev[k]} -> ${counts[k]}`),
+                reason: allowReason,
+            })
+        }
     } catch (e) {
         if (e.code !== 'ENOENT') throw e // no previous baseline: first write is free
     }
     // 4-space indent matches prettier (tabWidth 4) so a regen never fails the format gate
-    writeFileSync(BASELINE_PATH, JSON.stringify(counts, null, 4) + '\n')
+    writeFileSync(BASELINE_PATH, JSON.stringify(meta.length ? { ...counts, _meta: meta } : counts, null, 4) + '\n')
     console.log(`baseline written to ${relative(ROOT, BASELINE_PATH)}`)
     console.log(JSON.stringify(counts, null, 2))
 } else if (mode === '--check') {

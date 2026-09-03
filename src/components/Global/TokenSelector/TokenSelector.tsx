@@ -60,7 +60,7 @@ const Section: React.FC<SectionProps> = ({ title, icon, children, className, tit
     <div className={twMerge('space-y-2', className)}>
         <div className="flex items-center gap-2">
             {icon && <Icon name={icon} size={16} className="text-foreground-secondary" />}
-            <h2 className={twMerge('text-body-m font-bold text-foreground-primary', titleClassName)}>{title}</h2>
+            <h2 className={twMerge('text-body-m-semibold text-foreground-primary', titleClassName)}>{title}</h2>
         </div>
         {children}
     </div>
@@ -446,10 +446,10 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                             )}
                         </div>
                         <div className="flex flex-col items-start overflow-hidden">
-                            <span className="truncate text-body-m font-semibold text-foreground-primary">
+                            <span className="truncate text-body-m-semibold text-foreground-primary">
                                 {buttonSymbol || t('tokenSelector.selectAToken')}
                                 {buttonChainName && (
-                                    <span className="ml-1 text-body-s font-medium text-foreground-secondary">
+                                    <span className="ml-1 text-body-s text-foreground-secondary">
                                         {t.rich('tokenSelector.onChain', {
                                             chainName: buttonChainName,
                                             c: (chunks) => <span className="capitalize">{chunks}</span>,
@@ -461,7 +461,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                             {(viewType === 'withdraw' || viewType === 'claim') &&
                                 selectedTokenAddress?.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase() &&
                                 selectedChainID === PEANUT_WALLET_CHAIN.id.toString() && (
-                                    <span className="text-body-xs font-normal text-foreground-secondary">
+                                    <span className="text-body-xs text-foreground-secondary">
                                         {t('tokenSelector.noFeesWithToken')}
                                     </span>
                                 )}
@@ -539,7 +539,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                         />
                                         <div className="flex items-center justify-center gap-2">
                                             <Icon name="info" size={10} className="text-foreground-secondary" />
-                                            <span className="text-body-xs font-normal text-foreground-secondary">
+                                            <span className="text-body-xs text-foreground-secondary">
                                                 {t('tokenSelector.sponsoredHint')}
                                             </span>
                                         </div>
