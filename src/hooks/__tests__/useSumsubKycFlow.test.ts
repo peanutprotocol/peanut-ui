@@ -26,7 +26,7 @@ jest.mock('@/hooks/useWebSocket', () => ({
         mockWs.handler = opts.onSumsubKycStatusUpdate
     },
 }))
-jest.mock('@/redux/hooks', () => ({ useUserStore: () => ({ user: { user: { username: 'test' } } }) }))
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { username: 'test' } } }) }))
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn(), replace: jest.fn() }) }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
 

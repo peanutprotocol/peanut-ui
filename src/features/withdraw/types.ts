@@ -17,13 +17,6 @@ export interface WithdrawData {
     amount: string
 }
 
-/** Flow-level error banner state ({@link FlowErrorState.showError} + copy).
- * Field-level validation errors are `FieldError` under their input instead. */
-export interface FlowErrorState {
-    showError: boolean
-    errorMessage: string
-}
-
 /** Named screen ids for the root /withdraw page — these appear verbatim in the URL. */
 export const WITHDRAW_ROOT_STEPS = ['method', 'amount'] as const
 export type WithdrawRootStep = (typeof WITHDRAW_ROOT_STEPS)[number]

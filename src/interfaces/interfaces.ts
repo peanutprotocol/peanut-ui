@@ -359,3 +359,11 @@ export interface UserLimitsResponse {
     manteca: MantecaLimit[] | null
     bridge: BridgeLimits | null
 }
+
+/** Flow-level error banner state (`showError` + copy) — the one shared shape
+ * for flow contexts (withdraw, onramp; TASK-21462 dedup). Field-level
+ * validation errors are `FieldError` under their input instead. */
+export interface FlowErrorState {
+    showError: boolean
+    errorMessage: string
+}

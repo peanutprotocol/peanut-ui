@@ -104,8 +104,8 @@ const IBAN_ACCOUNT = {
     details: { countryName: 'germany' },
 } as unknown as Account
 
-jest.mock('@/redux/hooks', () => ({
-    useUserStore: () => ({
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({
         user: {
             accounts: [
                 { type: 'manteca', identifier: 'cbu-12345678901234567890', details: { countryName: 'argentina' } },

@@ -90,10 +90,6 @@ jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: { user: { userId: 'me', hasAppAccess: true } } }),
 }))
 
-jest.mock('@/redux/hooks', () => ({
-    useAppDispatch: () => jest.fn(),
-}))
-
 jest.mock('@/context/tokenSelector.context', () => ({
     tokenSelectorContext: React.createContext({
         setSelectedTokenAddress: jest.fn(),

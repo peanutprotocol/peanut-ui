@@ -5,8 +5,7 @@ import { WEB_AUTHN_COOKIE_KEY } from '@/constants/auth.consts'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { useAuth } from '@/context/authContext'
 import { useKernelClient } from '@/context/kernelClient.context'
-import { useAppDispatch, useZerodevStore } from '@/redux/hooks'
-import { zerodevActions } from '@/redux/slices/zerodev-slice'
+import { useZeroDevFlow, zeroDevFlowActions } from '@/hooks/useZeroDevFlow'
 import { getFromCookie, removeFromCookie, saveToCookie, saveToLocalStorage } from '@/utils/general.utils'
 import { clearAuthState } from '@/utils/auth.utils'
 import { isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
@@ -62,9 +61,8 @@ class PasskeyError extends Error {
 }
 
 export const useZeroDev = () => {
-    const dispatch = useAppDispatch()
     const { user, logoutUser } = useAuth()
-    const { isKernelClientReady, isRegistering, isLoggingIn, isSendingUserOp, address } = useZerodevStore()
+    const { isKernelClientReady, isRegistering, isLoggingIn, isSendingUserOp, address } = useZeroDevFlow()
     const { setWebAuthnKey, getClientForChain, ensureClientForChain } = useKernelClient()
     const { setLoadingState } = useContext(loadingStateContext)
     // invite hand-off lives in cookies (survives the PWA-install hop) — TASK-21460
@@ -81,9 +79,9 @@ export const useZeroDev = () => {
         // handles cases where: old cookies persist, session expired, user didn't logout properly
         console.log('[useZeroDev] starting new passkey registration, clearing any stale state')
         removeFromCookie(WEB_AUTHN_COOKIE_KEY) // clear old passkey cookie
-        dispatch(zerodevActions.resetZeroDevState()) // clear redux state (including old address)
+        zeroDevFlowActions.reset() // clear redux state (including old address)
 
-        dispatch(zerodevActions.setIsRegistering(true))
+        zeroDevFlowActions.setIsRegistering(true)
         try {
             const rpId = isCapacitor() ? getNativeRpId() : window.location.hostname.replace(/^www\./, '')
 
@@ -250,7 +248,7 @@ export const useZeroDev = () => {
         } catch (e) {
             if ((e as Error).message.includes('pending')) {
                 // the concurrent-request bail must still release the button
-                dispatch(zerodevActions.setIsRegistering(false))
+                zeroDevFlowActions.setIsRegistering(false)
                 return
             }
             const err = e as Error
@@ -260,14 +258,14 @@ export const useZeroDev = () => {
             if (isCeremonyGuardError(err)) {
                 captureCeremonyGuardError(err, 'register')
             }
-            dispatch(zerodevActions.setIsRegistering(false))
+            zeroDevFlowActions.setIsRegistering(false)
             throw e
         }
     }
 
     // login function
     const handleLogin = async () => {
-        dispatch(zerodevActions.setIsLoggingIn(true))
+        zeroDevFlowActions.setIsLoggingIn(true)
         const ceremonyStartedAt = Date.now()
         try {
             const passkeyServerHeaders: Record<string, string> = {}
@@ -301,7 +299,7 @@ export const useZeroDev = () => {
         } catch (e) {
             const err = normalizePasskeyServerError(e)
             const { code, message } = classifyPasskeyError(err)
-            dispatch(zerodevActions.setIsLoggingIn(false))
+            zeroDevFlowActions.setIsLoggingIn(false)
             // Ceremony guards and server/network failures: nothing was
             // authenticated, so keep any existing state (no clearAuthState) and
             // report with a discriminating tag — this is the telemetry that
@@ -342,7 +340,7 @@ export const useZeroDev = () => {
             // Non-Arb chains (recover-funds) aren't pre-built — wait for lazy build.
             await ensureClientForChain(chainId)
             const client = getClientForChain(chainId)
-            dispatch(zerodevActions.setIsSendingUserOp(true))
+            zeroDevFlowActions.setIsSendingUserOp(true)
 
             let userOpHash: Hash
             try {
@@ -371,12 +369,12 @@ export const useZeroDev = () => {
                             userId: user?.user.userId,
                         },
                     })
-                    dispatch(zerodevActions.setIsSendingUserOp(false))
+                    zeroDevFlowActions.setIsSendingUserOp(false)
                     logoutUser()
                     throw createStaleSessionError(error)
                 }
 
-                dispatch(zerodevActions.setIsSendingUserOp(false))
+                zeroDevFlowActions.setIsSendingUserOp(false)
                 throw error
             }
             setLoadingState('Executing transaction')
@@ -392,7 +390,7 @@ export const useZeroDev = () => {
                 // timeout; captures telemetry). See rescueUserOpReceipt.
                 const rescued = await rescueUserOpReceipt(client, userOpHash, error, 'zerodev-send')
                 setLoadingState('Idle')
-                dispatch(zerodevActions.setIsSendingUserOp(false))
+                zeroDevFlowActions.setIsSendingUserOp(false)
                 // A rescued-but-REVERTED op is a real revert, not a lost
                 // receipt: returning a success-shaped result would send flows
                 // down the userOpHash fallback and show a success screen for a
@@ -405,7 +403,7 @@ export const useZeroDev = () => {
             }
 
             setLoadingState('Idle')
-            dispatch(zerodevActions.setIsSendingUserOp(false))
+            zeroDevFlowActions.setIsSendingUserOp(false)
 
             // A mined-but-REVERTED userOp still carries a successful EntryPoint
             // bundle receipt — returning it here let downstream flows record a
@@ -429,13 +427,13 @@ export const useZeroDev = () => {
 
     return {
         isKernelClientReady,
-        setIsKernelClientReady: (value: boolean) => dispatch(zerodevActions.setIsKernelClientReady(value)),
+        setIsKernelClientReady: (value: boolean) => zeroDevFlowActions.setIsKernelClientReady(value),
         isRegistering,
-        setIsRegistering: (value: boolean) => dispatch(zerodevActions.setIsRegistering(value)),
+        setIsRegistering: (value: boolean) => zeroDevFlowActions.setIsRegistering(value),
         isLoggingIn,
-        setIsLoggingIn: (value: boolean) => dispatch(zerodevActions.setIsLoggingIn(value)),
+        setIsLoggingIn: (value: boolean) => zeroDevFlowActions.setIsLoggingIn(value),
         isSendingUserOp,
-        setIsSendingUserOp: (value: boolean) => dispatch(zerodevActions.setIsSendingUserOp(value)),
+        setIsSendingUserOp: (value: boolean) => zeroDevFlowActions.setIsSendingUserOp(value),
         handleRegister,
         handleLogin,
         handleSendUserOpEncoded,

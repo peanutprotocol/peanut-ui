@@ -27,7 +27,7 @@ import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { type RecipientType } from '@/lib/url-parser/types/payment'
-import { useUserStore } from '@/redux/hooks'
+import { useAuth } from '@/context/authContext'
 import type { TRequestChargeResponse, PaymentCreationResponse, ChargeEntry } from '@/services/services.types'
 import { formatAmount, getInitialsFromName } from '@/utils/general.utils'
 import { resolveRecipientDisplay } from '@/utils/recipient-display'
@@ -111,7 +111,7 @@ const PaymentSuccessView = ({
     const router = useRouter()
     const t = useTranslations('payment')
     const { isTransactionSelected, openTransactionDetails, closeTransactionDetails } = useTransactionDetailsDrawer()
-    const { user: authUser } = useUserStore()
+    const { user: authUser } = useAuth()
     const queryClient = useQueryClient()
     const { triggerHaptic } = useAppHaptic()
 

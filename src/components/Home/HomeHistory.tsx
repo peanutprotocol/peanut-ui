@@ -7,7 +7,6 @@ import { type HistoryEntry, useTransactionHistory } from '@/hooks/useTransaction
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import type { IntentKind } from '@/components/TransactionDetails/strategies/registry'
 import { useWebSocket } from '@/hooks/useWebSocket'
-import { useUserStore } from '@/redux/hooks'
 import * as Sentry from '@sentry/nextjs'
 import { useAuth } from '@/context/authContext'
 import { useQueryClient } from '@tanstack/react-query'
@@ -66,7 +65,7 @@ const HomeHistory = ({
     hideEmptyState?: boolean
 }) => {
     const t = useTranslations('home.history')
-    const { user } = useUserStore()
+    const { user } = useAuth()
     // one `?tx=` subscription for the whole widget — rows are memo'd and get
     // isSelected/open/close as props (see useTransactionDetailsDrawer)
     const { isTransactionSelected, openTransactionDetails, closeTransactionDetails } = useTransactionDetailsDrawer()

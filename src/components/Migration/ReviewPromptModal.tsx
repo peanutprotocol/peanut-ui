@@ -9,7 +9,7 @@ import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { useTransactionHistory } from '@/hooks/useTransactionHistory'
 import { useModalsContext } from '@/context/ModalsContext'
-import { useUserStore } from '@/redux/hooks'
+import { useAuth } from '@/context/authContext'
 import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 
@@ -29,7 +29,7 @@ export default function ReviewPromptModal() {
     const t = useTranslations('migration')
     const migrationOn = useMigrationFlag()
     const { deviceType } = useDeviceType()
-    const { user } = useUserStore()
+    const { user } = useAuth()
     const { openSupportWithMessage } = useModalsContext()
     const { data: latestHistory } = useTransactionHistory({ mode: 'latest', limit: 50 })
     const [visible, setVisible] = useState(false)

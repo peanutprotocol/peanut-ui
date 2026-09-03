@@ -15,11 +15,8 @@ let mockWagmiConnected = false
 jest.mock('@/hooks/wallet/useWallet', () => ({
     useWallet: () => ({ spendableBalance: 123n, isFetchingSpendableBalance: false }),
 }))
-jest.mock('@/redux/hooks', () => ({
-    useUserStore: () => ({ user: mockUser }),
-}))
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ isFetchingUser: mockIsFetchingUser, fetchUser: mockFetchUser }),
+    useAuth: () => ({ user: mockUser, isFetchingUser: mockIsFetchingUser, fetchUser: mockFetchUser }),
 }))
 jest.mock('@/hooks/useActivationStatus', () => ({
     useActivationStatus: () => ({ isActivated: true, activationStep: 'verify', dismissCardStep: jest.fn() }),

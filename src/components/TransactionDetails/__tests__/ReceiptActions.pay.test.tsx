@@ -24,7 +24,7 @@ jest.mock('@/utils/capacitor', () => ({
 import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
 const mockIsCapacitor = isCapacitor as jest.Mock
 const mockOpenExternalUrl = openExternalUrl as jest.Mock
-jest.mock('@/redux/hooks', () => ({ useUserStore: () => ({ user: { user: { username: 'payer' } } }) }))
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { username: 'payer' } } }) }))
 jest.mock('@/hooks/useActivationStatus', () => ({ useActivationStatus: () => ({ isActivated: false }) }))
 jest.mock('../useReceiptActions', () => ({
     useReceiptActions: () => ({ closeRequest: jest.fn(), rejectRequest: jest.fn(), cancelSendLink: jest.fn() }),

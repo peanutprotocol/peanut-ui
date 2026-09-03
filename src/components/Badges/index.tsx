@@ -11,7 +11,6 @@ import { Icon } from '../Global/Icons/Icon'
 import { BadgeDetailModal } from './BadgeDetailModal'
 import { useMemo, useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
-import { useUserStore } from '@/redux/hooks'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { useAuth } from '@/context/authContext'
 import { BadgeImage } from './BadgeImage'
@@ -22,8 +21,7 @@ export const Badges = () => {
     const t = useTranslations('badges')
     const badgeCopy = useBadgeCopy()
     const onBack = useSafeBack('/profile')
-    const { user: authUser } = useUserStore()
-    const { fetchUser } = useAuth()
+    const { user: authUser, fetchUser } = useAuth()
     const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false)
     const [selectedBadge, setSelectedBadge] = useState<BadgeView | null>(null)
 

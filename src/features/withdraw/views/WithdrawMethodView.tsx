@@ -10,7 +10,7 @@ import { CountryList } from '@/components/Common/CountryList'
 import SavedAccountsView from '@/components/Common/SavedAccountsView'
 import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
-import { useUserStore } from '@/redux/hooks'
+import { useAuth } from '@/context/authContext'
 import { AccountType, type Account } from '@/interfaces/interfaces'
 import { isMantecaCountry } from '@/constants/manteca.consts'
 import { getFromLocalStorage } from '@/utils/general.utils'
@@ -43,7 +43,7 @@ interface WithdrawMethodViewProps {
  */
 export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mainHeading, onExit, onMethodChosen }) => {
     const router = useRouter()
-    const { user } = useUserStore()
+    const { user } = useAuth()
     const t = useTranslations('withdraw')
     const { setSelectedBankAccount, setSelectedMethod } = useWithdrawFlow()
     const [, startTransition] = useTransition()

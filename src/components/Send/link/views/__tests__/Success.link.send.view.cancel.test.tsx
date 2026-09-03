@@ -31,8 +31,8 @@ jest.mock('@/context/LinkSendFlowContext', () => ({
     }),
 }))
 jest.mock('@/hooks/wallet/useWallet', () => ({ useWallet: () => ({ fetchBalance: jest.fn() }) }))
-jest.mock('@/redux/hooks', () => ({
-    useUserStore: () => ({
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({
         user: { user: { userId: 'u1' }, accounts: [{ type: 'peanut-wallet', identifier: '0xwallet' }] },
     }),
 }))

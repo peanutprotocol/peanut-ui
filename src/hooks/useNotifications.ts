@@ -5,7 +5,7 @@ import { addBreadcrumb, captureException, captureMessage } from '@sentry/nextjs'
 import { getOneSignalAdapter, type NotificationPermissionState } from '@/services/onesignal'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { isDemoMode } from '@/utils/demo'
-import { useUserStore } from '@/redux/hooks'
+import { useAuth } from '@/context/authContext'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 import { NOTIF_PROMPT_SNOOZE_DAYS } from '@/constants/migration.consts'
@@ -322,7 +322,7 @@ async function afterPermissionAttempt() {
 }
 
 export function useNotifications() {
-    const { user } = useUserStore()
+    const { user } = useAuth()
     const externalId = user?.user.userId
     const snapshot = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 

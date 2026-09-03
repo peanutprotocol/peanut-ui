@@ -9,7 +9,7 @@ import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { getLimitsWarningCardProps } from '@/features/limits/utils'
 import { type useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import { shouldShowAmountError } from '@/features/withdraw/amount-gating'
-import { type FlowErrorState } from '@/features/withdraw/types'
+import { type FlowErrorState } from '@/interfaces/interfaces'
 import { type FC } from 'react'
 import { useTranslations } from 'next-intl'
 

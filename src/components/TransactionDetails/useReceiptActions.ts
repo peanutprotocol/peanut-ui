@@ -9,7 +9,7 @@ import { type TransactionDetails } from '@/components/TransactionDetails/transac
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useUserStore } from '@/redux/hooks'
+import { useAuth } from '@/context/authContext'
 import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
@@ -24,7 +24,7 @@ export function useReceiptActions(transaction: TransactionDetails | null) {
     const queryClient = useQueryClient()
     const { fetchBalance } = useWallet()
     const { cancelLinkAndClaim, pollForClaimConfirmation } = useClaimLink()
-    const { user } = useUserStore()
+    const { user } = useAuth()
     const toast = useToast()
     const friendly = useFriendlyError()
     const t = useTranslations('transaction')

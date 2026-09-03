@@ -4,7 +4,8 @@ import { type Account } from '@/interfaces/interfaces'
 import { type TRequestChargeResponse, type PaymentCreationResponse } from '@/services/services.types'
 import type { RecipientState } from '@/components/Global/GeneralRecipientInput/types'
 import React, { createContext, type ReactNode, useContext, useMemo, useState, useCallback } from 'react'
-import type { FlowErrorState, WithdrawData, WithdrawMethod } from './types'
+import type { WithdrawData, WithdrawMethod } from './types'
+import type { FlowErrorState } from '@/interfaces/interfaces'
 
 /**
  * Withdraw flow memory that cannot live in the URL: the selected method and
