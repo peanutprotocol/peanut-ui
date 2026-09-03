@@ -1,6 +1,8 @@
 import { useMemo } from 'react'
 import { useTranslations } from 'next-intl'
-import ActionModal from '@/components/Global/ActionModal'
+import { Button } from '@/components/0_Bruddle/Button'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { KycFailedContent } from '../KycFailedContent'
 import { isTerminalRejection } from '@/constants/sumsub-reject-labels.consts'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -35,36 +37,46 @@ export const KycFailedModal = ({
     )
 
     return (
-        <ActionModal
-            visible={visible}
-            onClose={onClose}
-            icon={'alert'}
-            iconContainerClassName="bg-action-secondary"
-            title={isTerminal ? t('failedTitleTerminal') : t('failedTitleRetry')}
-            description={!isTerminal && t('failedDescriptionRetry')}
-            content={
-                <div className="w-full">
-                    <KycFailedContent rejectLabels={rejectLabels} isTerminal={isTerminal} />
+        <Drawer
+            open={visible}
+            onOpenChange={(isOpen) => {
+                if (!isOpen) onClose()
+            }}
+        >
+            <DrawerContent>
+                <div className="flex flex-col items-center gap-4 px-4 pt-1 pb-6 text-center">
+                    <IconBubble icon="alert" color="yellow" />
+                    <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
+                        <DrawerTitle>{isTerminal ? t('failedTitleTerminal') : t('failedTitleRetry')}</DrawerTitle>
+                        {!isTerminal && <DrawerDescription>{t('failedDescriptionRetry')}</DrawerDescription>}
+                    </DrawerHeader>
+                    <div className="w-full text-left">
+                        <KycFailedContent rejectLabels={rejectLabels} isTerminal={isTerminal} />
+                    </div>
+                    {isTerminal ? (
+                        <Button
+                            shadowSize="4"
+                            className="w-full justify-center"
+                            onClick={() => {
+                                onClose()
+                                setIsSupportModalOpen(true)
+                            }}
+                        >
+                            {tCommon('contactSupport')}
+                        </Button>
+                    ) : (
+                        <Button
+                            icon="retry"
+                            shadowSize="4"
+                            className="w-full justify-center"
+                            disabled={isLoading}
+                            onClick={onRetry}
+                        >
+                            {tCommon(isLoading ? 'loading' : 'tryAgain')}
+                        </Button>
+                    )}
                 </div>
-            }
-            ctas={[
-                isTerminal
-                    ? {
-                          text: tCommon('contactSupport'),
-                          onClick: () => {
-                              onClose()
-                              setIsSupportModalOpen(true)
-                          },
-                          shadowSize: '4',
-                      }
-                    : {
-                          text: tCommon(isLoading ? 'loading' : 'tryAgain'),
-                          icon: 'retry',
-                          onClick: onRetry,
-                          disabled: isLoading,
-                          shadowSize: '4',
-                      },
-            ]}
-        />
+            </DrawerContent>
+        </Drawer>
     )
 }
