@@ -346,6 +346,9 @@ export default function WithdrawCryptoPage() {
             if (routeError) {
                 // Retry after a failed route (cap 429, quote failure): recompute
                 // instead of failing on the transactions the failure never built.
+                // One recalculation at a time: a double-tap must not provision
+                // twice (each provision holds a cap slot) or race the route state.
+                if (isCalculating) return
                 clearErrors()
                 calculateCurrentRoute()
                 return
@@ -552,6 +555,7 @@ export default function WithdrawCryptoPage() {
         setPaymentDetails,
         clearErrors,
         routeError,
+        isCalculating,
         calculateCurrentRoute,
         setError,
         triggerHaptic,

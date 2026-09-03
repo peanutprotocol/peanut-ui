@@ -29,8 +29,8 @@ export const LEGAL_DOCUMENT_VERSIONS = {
         hash: '431def76a1838075b8110dff955da06a3d561d61229117c14127deef9f09e1ca',
     },
     privacy: {
-        version: '2026-08-27',
-        hash: 'da1d914e134c2ac6b75ca6d83211ae443880c709a288a1e285efead347f70181',
+        version: '2026-07-15',
+        hash: '921c1da00646a4ab8f6c9b663d9ba130acbc294f1645f3e3d05ad264744b66c8',
     },
     terms: {
         version: '2026-07-15',
