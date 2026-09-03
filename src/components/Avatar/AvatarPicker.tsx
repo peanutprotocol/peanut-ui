@@ -39,25 +39,40 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
     const unlocked = badgeAvatarKeys(held)
 
     // The tile moves on tap; the slot behind the drawer moves after fetchUser
-    // lands. `pending` overrides `saved` while writes are in flight. One
-    // refetch per burst, when the last request lands, and the server's
-    // answer wins: a failed older request cannot roll back a newer success,
-    // and a lone failure snaps back to what is saved.
+    // lands. `pending` overrides `saved` while a burst drains. Saves are
+    // SERIALIZED: one POST at a time, always the latest tap next, so the
+    // server can never commit an older key last. One refetch per burst, in
+    // a finally, so a thrown save cannot wedge the picker.
     const [pending, setPending] = useState<string | null | undefined>(undefined)
-    const inFlight = useRef(0)
+    const wanted = useRef<string | null | undefined>(undefined)
+    const draining = useRef(false)
     const pick = pending === undefined ? saved : pending
 
-    const save = async (key: string | null) => {
-        if (!userId) return
-        setPending(key)
-        inFlight.current += 1
-        const { error } = await updateUserById({ userId, avatarKey: key })
-        inFlight.current -= 1
-        if (error) toast({ type: 'error', message: t('saveFailed') })
-        if (inFlight.current === 0) {
+    const drain = async () => {
+        draining.current = true
+        try {
+            while (wanted.current !== undefined) {
+                const key = wanted.current
+                wanted.current = undefined
+                try {
+                    const { error } = await updateUserById({ userId, avatarKey: key })
+                    if (error) toast({ type: 'error', message: t('saveFailed') })
+                } catch {
+                    toast({ type: 'error', message: t('saveFailed') })
+                }
+            }
             await fetchUser()
+        } finally {
+            draining.current = false
             setPending(undefined)
         }
+    }
+
+    const save = (key: string | null) => {
+        if (!userId) return
+        setPending(key)
+        wanted.current = key
+        if (!draining.current) void drain()
     }
 
     // the offered row of five basics: dealt on open, redealt by the dice
@@ -94,7 +109,7 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                             aria-checked={checked}
                             aria-label={label(key)}
                             tabIndex={index === focusIndex ? 0 : -1}
-                            onClick={() => void save(key)}
+                            onClick={() => save(key)}
                             className={twMerge(
                                 'flex min-h-11 items-center justify-center rounded-sm border border-border-disabled bg-background-default p-1 focus-visible:outline-[3px] focus-visible:outline-action-focus',
                                 checked && 'border-2 border-border-default shadow-4'
@@ -140,7 +155,7 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                         <Button variant="purple" className="w-full" onClick={() => onOpenChange(false)}>
                             {tCommon('done')}
                         </Button>
-                        <Button variant="transparent" className="w-full" onClick={() => void save(null)}>
+                        <Button variant="transparent" className="w-full" onClick={() => save(null)}>
                             {t('useInitial')}
                         </Button>
                     </div>

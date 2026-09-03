@@ -12,7 +12,7 @@ jest.mock('next/image', () => ({
 
 describe('HomeTopNav', () => {
     it('shows the first letter as sticker art — not two-letter initials, not a generated face', () => {
-        const { container } = renderWithIntl(<HomeTopNav avatarName="testuser" showRewards={false} />)
+        const { container } = renderWithIntl(<HomeTopNav username="testuser" showRewards={false} />)
 
         expect(container.querySelector('a[href="/profile"] img')).toHaveAttribute('src', '/avatars/letter/t.webp')
         expect(screen.queryByText(/^TE$/i)).not.toBeInTheDocument()
@@ -21,7 +21,7 @@ describe('HomeTopNav', () => {
 
     it('wears the picked avatar inside the profile link (TASK-22142)', () => {
         const { container } = renderWithIntl(
-            <HomeTopNav avatarName="testuser" avatarKey="basic.frog" showRewards={false} />
+            <HomeTopNav username="testuser" avatarKey="basic.frog" showRewards={false} />
         )
 
         expect(container.querySelector('a[href="/profile"] img')).toHaveAttribute('src', '/avatars/basic/frog.webp')

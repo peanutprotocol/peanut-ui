@@ -33,6 +33,36 @@ let mockUser: {
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser, fetchUser: mockFetchUser }) }))
 
 const radio = (key: string) => screen.getByRole('radio', { name: key })
+const A = 'Bug Whisperer · beetle'
+const B = 'Bug Whisperer · shell'
+const KEY_A = 'badge.BUG_WHISPERER.beetle'
+const KEY_B = 'badge.BUG_WHISPERER.shell'
+
+// A server model: every POST is recorded in order and settled by hand, in any
+// order; the last write the server COMMITS is what the refetch hands back.
+type Settle = (result: { data?: object; error?: string }) => void
+function fakeServer() {
+    const posts: { key: string | null; resolve: Settle; reject: (e: Error) => void }[] = []
+    let committed: string | null = null
+    mockUpdateUserById.mockImplementation(
+        ({ avatarKey }: { avatarKey: string | null }) =>
+            new Promise((resolve, reject) => posts.push({ key: avatarKey, resolve, reject }))
+    )
+    mockFetchUser.mockImplementation(async () => {
+        mockUser.user.avatarKey = committed
+        return null
+    })
+    return {
+        posts,
+        committed: () => committed,
+        settle: (i: number, result: { data?: object; error?: string } = { data: {} }) =>
+            act(async () => {
+                if (!result.error) committed = posts[i].key
+                posts[i].resolve(result)
+            }),
+        reject: (i: number) => act(async () => posts[i].reject(new Error('network'))),
+    }
+}
 
 beforeEach(() => {
     jest.clearAllMocks()
@@ -54,7 +84,7 @@ describe('AvatarPicker', () => {
 
         expect(screen.getAllByRole('radio')).toHaveLength(8)
         // human labels, not keys: badge name + slug, or the slug alone
-        expect(radio('Bug Whisperer · beetle')).toBeInTheDocument()
+        expect(radio(A)).toBeInTheDocument()
         expect(screen.getByRole('radiogroup', { name: 'Basics' }).querySelectorAll('[role="radio"]')).toHaveLength(5)
         expect(screen.queryByRole('radio', { name: /Offramp/ })).not.toBeInTheDocument()
         expect(screen.getByRole('radiogroup', { name: 'From your badges' })).toBeInTheDocument()
@@ -71,77 +101,72 @@ describe('AvatarPicker', () => {
     it('saves a tap at once and refreshes the user', async () => {
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        fireEvent.click(radio('Bug Whisperer · peek'))
+        fireEvent.click(radio(B))
 
-        expect(radio('Bug Whisperer · peek')).toHaveAttribute('aria-checked', 'true')
-        expect(mockUpdateUserById).toHaveBeenCalledWith({ userId: 'u1', avatarKey: 'badge.BUG_WHISPERER.peek' })
-        await waitFor(() => expect(mockFetchUser).toHaveBeenCalled())
+        expect(radio(B)).toHaveAttribute('aria-checked', 'true')
+        expect(mockUpdateUserById).toHaveBeenCalledWith({ userId: 'u1', avatarKey: KEY_B })
+        await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
     })
 
     it('snaps back and says so when the save fails', async () => {
-        mockUser.user.avatarKey = 'basic.sun'
+        mockUser.user.avatarKey = KEY_A
         mockUpdateUserById.mockResolvedValue({ error: 'Avatar not unlocked' })
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        fireEvent.click(radio('Bug Whisperer · peek'))
+        fireEvent.click(radio(B))
 
-        await waitFor(() => expect(radio('sun')).toHaveAttribute('aria-checked', 'true'))
+        await waitFor(() => expect(radio(A)).toHaveAttribute('aria-checked', 'true'))
         expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }))
         // the server is the truth after a burst, failed or not
         expect(mockFetchUser).toHaveBeenCalledTimes(1)
     })
 
-    // Chip (#2929): two taps whose responses arrive out of order
-    const deferred = () => {
-        let resolve!: (value: { data?: object; error?: string }) => void
-        const promise = new Promise<{ data?: object; error?: string }>((r) => (resolve = r))
-        return { promise, resolve }
-    }
-    const A = 'Bug Whisperer · beetle'
-    const B = 'Bug Whisperer · shell'
-
-    it('the last tap wins when the first response arrives after the second', async () => {
-        const a = deferred()
-        const b = deferred()
-        mockUpdateUserById.mockReturnValueOnce(a.promise).mockReturnValueOnce(b.promise)
-        // the server holds the last write; the refetch reads it back
-        mockFetchUser.mockImplementation(async () => {
-            mockUser.user.avatarKey = 'badge.BUG_WHISPERER.shell'
-            return null
-        })
+    // Chip (#2929): saves are serialized, so the server can never commit an
+    // older key last, whatever order the responses come back in.
+    it('sends one save at a time, always the latest tap next, and the server ends on the last tap', async () => {
+        const server = fakeServer()
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
         fireEvent.click(radio(A))
         fireEvent.click(radio(B))
-        await act(async () => b.resolve({ data: {} }))
+
+        // (a) the second POST is not sent before the first settles
+        expect(server.posts.map((p) => p.key)).toEqual([KEY_A])
         expect(radio(B)).toHaveAttribute('aria-checked', 'true')
+
+        await server.settle(0)
+        expect(server.posts.map((p) => p.key)).toEqual([KEY_A, KEY_B])
         expect(mockFetchUser).not.toHaveBeenCalled()
 
-        await act(async () => a.resolve({ data: {} }))
+        await server.settle(1)
 
+        // (b) the server's last write is the last tap, refetched once
         await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
+        expect(server.committed()).toBe(KEY_B)
         expect(radio(B)).toHaveAttribute('aria-checked', 'true')
         expect(radio(A)).toHaveAttribute('aria-checked', 'false')
     })
 
-    it('a failed older request does not roll back a newer success', async () => {
-        const a = deferred()
-        const b = deferred()
-        mockUpdateUserById.mockReturnValueOnce(a.promise).mockReturnValueOnce(b.promise)
-        mockFetchUser.mockImplementation(async () => {
-            mockUser.user.avatarKey = 'badge.BUG_WHISPERER.shell'
-            return null
-        })
+    it('a rejected first save still lets the second go through and clears pending', async () => {
+        const server = fakeServer()
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
         fireEvent.click(radio(A))
         fireEvent.click(radio(B))
-        await act(async () => b.resolve({ data: {} }))
-        await act(async () => a.resolve({ error: 'Avatar not unlocked' }))
+        await server.reject(0)
+
+        expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }))
+        expect(server.posts.map((p) => p.key)).toEqual([KEY_A, KEY_B])
+
+        await server.settle(1)
 
         await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
-        expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }))
+        expect(server.committed()).toBe(KEY_B)
         expect(radio(B)).toHaveAttribute('aria-checked', 'true')
+        // pending is cleared: a later refetch that says otherwise wins
+        mockUser.user.avatarKey = KEY_A
+        fireEvent.click(screen.getByRole('button', { name: 'Roll the dice' }))
+        expect(radio(A)).toHaveAttribute('aria-checked', 'true')
     })
 
     it('the dice redeals the basics row and never changes the pick', () => {

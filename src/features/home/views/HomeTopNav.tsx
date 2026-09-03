@@ -8,7 +8,7 @@ import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import Link from 'next/link'
 
 interface HomeTopNavProps {
-    avatarName?: string
+    username?: string
     avatarKey?: string | null
     showRewards: boolean
 }
@@ -18,7 +18,7 @@ interface HomeTopNavProps {
  * top-left linking to /profile (Vlad follow-up: one size down from 48),
  * rewards link top-right. The link keeps a 44px hit area via after: inset.
  */
-export function HomeTopNav({ avatarName, avatarKey, showRewards }: HomeTopNavProps) {
+export function HomeTopNav({ username, avatarKey, showRewards }: HomeTopNavProps) {
     const t = useAppTranslations('home')
     const { triggerHaptic } = useAppHaptic()
 
@@ -32,10 +32,11 @@ export function HomeTopNav({ avatarName, avatarKey, showRewards }: HomeTopNavPro
                 aria-label={t('openProfile')}
             >
                 {/* Own identity: the picked avatar (TASK-22142), or the first
-                    letter of the name, here and on the profile header. A user
-                    with no name string at all still gets an avatar-toned circle
-                    (yellow — the palette's no-name default). */}
-                <UserAvatar name={avatarName} avatarKey={avatarKey} size="extra-small" />
+                    letter of the USERNAME — the same seed as the profile header,
+                    so the letter and its palette never follow the display name.
+                    No username yet still gets an avatar-toned circle (yellow —
+                    the palette's no-name default). */}
+                <UserAvatar name={username} avatarKey={avatarKey} size="extra-small" />
             </Link>
             {showRewards && (
                 <Link
