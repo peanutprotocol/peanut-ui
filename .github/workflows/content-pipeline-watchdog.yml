@@ -106,28 +106,44 @@ jobs:
                   # often a merge commit that only contains the content change —
                   # someone `git pull`ed without rebasing and pushed the merge. The
                   # published tree is still right, so compare by ancestry, not by
-                  # string: the mirror is current when the stamped commit is the
-                  # expected commit or a descendant of it. A string comparison read
-                  # that as "behind" and alerted every 15 minutes for 8 hours on
-                  # 2026-09-03 (expected 7cf077f, stamped merge 37adb24) on a pipeline
-                  # that was healthy end to end. The compare endpoint is contents:read,
-                  # which MONO_TOKEN has; only the four documented statuses count as an
-                  # answer, so an error body can never read as one.
-                  MIRROR_STATUS=""
+                  # string. A string comparison read that as "behind" and alerted
+                  # every 15 minutes for 8 hours on 2026-09-03 (expected 7cf077f,
+                  # stamped merge 37adb24) on a pipeline that was healthy end to end.
+                  #
+                  # Two questions, both through the compare endpoint (contents:read,
+                  # which MONO_TOKEN has):
+                  #   FRESH   — expected...stamped: is the stamp the expected commit
+                  #             or a descendant of it?
+                  #   ON_MAIN — stamped...main: is the stamp on mono main at all?
+                  #             The mirror has workflow_dispatch and checks out the
+                  #             triggering ref, so a manual run from a branch would
+                  #             publish content main never had. FRESH alone would
+                  #             call that "ahead" and stay green.
+                  # Only the four documented statuses count as an answer; a failed
+                  # call yields "" and lands in the DEGRADED branch below, with the
+                  # raw response in the log.
+                  compare_status() {
+                    local out st
+                    out=$(GH_TOKEN=$MONO_TOKEN gh api "repos/peanutprotocol/mono/compare/$1" --jq '.status' 2>&1)
+                    st=$(printf '%s' "$out" | grep -Eox 'identical|ahead|behind|diverged' || true)
+                    [ -z "$st" ] && echo "::warning::compare $1 gave no status: $(printf '%s' "$out" | head -c 300)" >&2
+                    printf '%s' "$st"
+                  }
+                  FRESH=""
+                  ON_MAIN=""
                   if [ -n "$EXPECTED" ] && [ -n "$MIRRORED" ]; then
-                    MIRROR_STATUS=$(GH_TOKEN=$MONO_TOKEN gh api \
-                        "repos/peanutprotocol/mono/compare/${EXPECTED}...${MIRRORED}" --jq '.status' 2>/dev/null \
-                      | grep -Eox 'identical|ahead|behind|diverged' || true)
+                    FRESH=$(compare_status "${EXPECTED}...${MIRRORED}")
+                    ON_MAIN=$(compare_status "${MIRRORED}...main")
                   fi
 
-                  echo "expected mono@${EXPECTED:0:7} | mirrored @${MIRRORED:-none} (${MIRROR_STATUS:-unknown}) | peanut-content ${TIP:0:7} | live ${LIVE:0:7}"
+                  echo "expected mono@${EXPECTED:0:7} | mirrored @${MIRRORED:-none} (fresh: ${FRESH:-?}, on main: ${ON_MAIN:-?}) | peanut-content ${TIP:0:7} | live ${LIVE:0:7}"
 
                   # Cannot evaluate == broken watchdog, which must NOT look like a
                   # broken pipeline. Label it distinctly so nobody debugs the wrong
                   # thing, but still be loud — a watchdog that can't watch is an
                   # outage of the thing that tells us about outages.
-                  if [ -z "$EXPECTED" ] || [ -z "$MIRRORED" ] || [ -z "$LIVE" ] || [ -z "$TIP" ]; then
-                    echo "::error::WATCHDOG DEGRADED — could not evaluate the pipeline (expected=${EXPECTED:0:7} mirrored=${MIRRORED:-none} live=${LIVE:0:7} tip=${TIP:0:7}). This is a watchdog fault, not necessarily a content fault."
+                  if [ -z "$EXPECTED" ] || [ -z "$MIRRORED" ] || [ -z "$LIVE" ] || [ -z "$TIP" ] || [ -z "$FRESH" ] || [ -z "$ON_MAIN" ]; then
+                    echo "::error::WATCHDOG DEGRADED — could not evaluate the pipeline (expected=${EXPECTED:0:7} mirrored=${MIRRORED:-none} fresh=${FRESH:-?} on_main=${ON_MAIN:-?} live=${LIVE:0:7} tip=${TIP:0:7}). This is a watchdog fault, not necessarily a content fault."
                     DEGRADED=true
                   else
                     DEGRADED=false
@@ -138,8 +154,11 @@ jobs:
                   if [ "$DEGRADED" = true ]; then
                     STALE="**the watchdog itself could not evaluate the pipeline** — check its permissions before assuming content is stuck"
                     MIRROR_BROKEN=true
-                  elif [ "$MIRROR_STATUS" != "identical" ] && [ "$MIRROR_STATUS" != "ahead" ]; then
-                    STALE="the mirror is behind mono (expected \`${EXPECTED:0:7}\`, published \`${MIRRORED:0:7}\`, compare: ${MIRROR_STATUS:-unknown})"
+                  elif [ "$ON_MAIN" != "identical" ] && [ "$ON_MAIN" != "ahead" ]; then
+                    STALE="the mirror published a commit that is not on mono main (published \`${MIRRORED:0:7}\`, compare to main: ${ON_MAIN})"
+                    MIRROR_BROKEN=true
+                  elif [ "$FRESH" != "identical" ] && [ "$FRESH" != "ahead" ]; then
+                    STALE="the mirror is behind mono (expected \`${EXPECTED:0:7}\`, published \`${MIRRORED:0:7}\`, compare: ${FRESH})"
                     MIRROR_BROKEN=true
                   elif [ "$LIVE" != "$TIP" ]; then
                     STALE="production is behind peanut-content (live \`${LIVE:0:7}\`, latest \`${TIP:0:7}\`)"
