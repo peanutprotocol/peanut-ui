@@ -29,13 +29,13 @@ function attachUnderlyingListeners() {
     })
 
     type PushSubscriptionChangeEvent = {
-        previous?: { optedIn?: boolean; token?: string | null } | null
+        previous?: { optedIn?: boolean } | null
         current?: { optedIn?: boolean } | null
     }
     OneSignal.User.PushSubscription.addEventListener('change', (event: PushSubscriptionChangeEvent) => {
         const change: PushSubscriptionChange = {
             optedIn: !!event.current?.optedIn,
-            previous: { optedIn: !!event.previous?.optedIn, token: event.previous?.token ?? null },
+            previousOptedIn: !!event.previous?.optedIn,
         }
         subscriptionListeners.forEach((cb) => cb(change))
     })

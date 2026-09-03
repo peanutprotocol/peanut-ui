@@ -1,12 +1,12 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 
-// TASK-22209: OneSignal fires the push-subscription `change` event twice for
-// one opt-in (token registered, then the server-assigned id) and again on a
-// token refresh after reload. The hook used to call login() and capture
-// `notification_subscribed` on every `optedIn: true`, and the login
-// re-registered the half-created subscription as a second record — which
-// OneSignal greets with a second welcome notification. Pin: only the event
-// where opt-in or a token first appears acts; a real re-subscribe acts again.
+// TASK-22209: OneSignal fires the push-subscription `change` event several
+// times for one opt-in (opt-in flips, token registers, server assigns the id)
+// and again on a token refresh after reload. The hook used to call login()
+// and capture `notification_subscribed` on every `optedIn: true`, and the
+// login re-registered the half-created subscription as a second record —
+// which OneSignal greets with a second welcome notification. Pin: only the
+// false → true opt-in transition acts; a real re-subscribe acts again.
 
 const mockAdapter = {
     init: jest.fn().mockResolvedValue(undefined),
@@ -44,15 +44,18 @@ import { useNotifications } from '../useNotifications'
 const subscribedCaptures = () =>
     mockCapture.mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.NOTIFICATION_SUBSCRIBED)
 
-// the SDK's `change` events for one opt-in, then a reload token refresh
-const tokenRegistered: PushSubscriptionChange = { optedIn: true, previous: { optedIn: false, token: null } }
-const idAssigned: PushSubscriptionChange = { optedIn: true, previous: { optedIn: true, token: 'tok-1' } }
-const tokenRefreshed: PushSubscriptionChange = { optedIn: true, previous: { optedIn: true, token: 'tok-1' } }
-const optedOut: PushSubscriptionChange = { optedIn: false, previous: { optedIn: true, token: 'tok-1' } }
-const optedBackIn: PushSubscriptionChange = { optedIn: true, previous: { optedIn: false, token: 'tok-1' } }
+// the SDK's `change` events for one opt-in: the opt-in flips first (no token
+// yet), then the token registers, then the server assigns the id — each with
+// optedIn already true; later a reload refreshes the token the same way
+const optedInFlipped: PushSubscriptionChange = { optedIn: true, previousOptedIn: false }
+const tokenRegistered: PushSubscriptionChange = { optedIn: true, previousOptedIn: true }
+const idAssigned: PushSubscriptionChange = { optedIn: true, previousOptedIn: true }
+const tokenRefreshed: PushSubscriptionChange = { optedIn: true, previousOptedIn: true }
+const optedOut: PushSubscriptionChange = { optedIn: false, previousOptedIn: true }
+const optedBackIn: PushSubscriptionChange = { optedIn: true, previousOptedIn: false }
 
 describe('useNotifications subscription change', () => {
-    it('acts once on one opt-in even though OneSignal reports it twice', async () => {
+    it('acts once on one opt-in however many change events OneSignal splits it into', async () => {
         const rendered = renderHook(() => useNotifications())
         await waitFor(() => expect(rendered.result.current.oneSignalInitialized).toBe(true))
         // init already linked the device to the user
@@ -60,6 +63,7 @@ describe('useNotifications subscription change', () => {
         const onSubscriptionChange = mockAdapter.onSubscriptionChange.mock.calls[0][0]
 
         await act(async () => {
+            onSubscriptionChange(optedInFlipped)
             onSubscriptionChange(tokenRegistered)
             onSubscriptionChange(idAssigned)
         })

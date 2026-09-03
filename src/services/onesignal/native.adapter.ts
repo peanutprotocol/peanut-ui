@@ -91,7 +91,7 @@ function attachUnderlyingListeners() {
     OneSignal.User.pushSubscription.addEventListener('change', (event: PushSubscriptionChangedState) => {
         const change: PushSubscriptionChange = {
             optedIn: !!event.current?.optedIn,
-            previous: { optedIn: !!event.previous?.optedIn, token: event.previous?.token ?? null },
+            previousOptedIn: !!event.previous?.optedIn,
         }
         captureSubscriptionSnapshot('subscription-change')
         subscriptionListeners.forEach((cb) => cb(change))

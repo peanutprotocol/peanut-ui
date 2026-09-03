@@ -7,14 +7,14 @@ export interface NotificationClickInfo {
 
 /**
  * One push-subscription `change` event, as both SDKs shape it. OneSignal
- * fires it for every field it settles on a new subscription (token, then the
- * server-assigned id) and again on token refresh, so `optedIn` alone cannot
- * tell a fresh opt-in from the same subscription reported twice — `previous`
- * can: a new opt-in is the first event where `optedIn` or a token appears.
+ * fires it for every field it settles on a new subscription (opt-in, token,
+ * then the server-assigned id) and again on token refresh, so `optedIn` alone
+ * cannot tell a fresh opt-in from the same subscription reported twice — the
+ * SDK's previous value can: a new opt-in is the one false → true transition.
  */
 export interface PushSubscriptionChange {
     optedIn: boolean
-    previous: { optedIn: boolean; token: string | null }
+    previousOptedIn: boolean
 }
 
 /**
