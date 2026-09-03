@@ -226,6 +226,17 @@ function MantecaBankWithdrawFlow() {
         [balance]
     )
 
+    // Blanket mount reset — registered BEFORE the ?amount= seed below, so a
+    // fresh mount clears leftover flow state FIRST and the seed then arms on
+    // clean state. Registered after, the reset ran after the seed's mount
+    // effects and clobbered the seeded amounts (the hand-off silently died —
+    // caught by manteca-withdraw-gates.test.tsx). resetState is defined below;
+    // the callback runs post-render, when it exists.
+    useEffect(() => {
+        resetState()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
     // ?amount= hand-off from the shared amount step: seed both denominations
     // and advance past this flow's amount screen ONLY once its balance/limits
     // gates pass for the seeded amount (Chip review round 3). A blocked amount
@@ -612,11 +623,6 @@ function MantecaBankWithdrawFlow() {
         setPriceLock(null)
         setIsLockingPrice(false)
     }
-
-    useEffect(() => {
-        resetState()
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
 
     useEffect(() => {
         // Skip balance check if transaction is being processed
