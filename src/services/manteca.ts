@@ -5,6 +5,7 @@ import {
     type CreateMantecaOnrampParams,
 } from '@/types/manteca.types'
 import { serverFetch } from '@/utils/api-fetch'
+import { ApiError } from '@/services/api-error'
 import { isNetworkLayerFailure } from '@/utils/network-triage'
 import { jsonStringify } from '@/utils/general.utils'
 import type { Address } from 'viem'
@@ -116,15 +117,26 @@ export type WithdrawPriceLock = {
 }
 
 export const mantecaApi = {
-    initiateQrPayment: async (data: QrPaymentRequest): Promise<QrPaymentLock> => {
+    initiateQrPayment: async (data: QrPaymentRequest, options?: { timeoutMs?: number }): Promise<QrPaymentLock> => {
         const response = await serverFetch('/manteca/qr-payment/init', {
             method: 'POST',
             body: jsonStringify(data),
+            ...(options?.timeoutMs !== undefined && { timeoutMs: options.timeoutMs }),
         })
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}))
-            throw new Error(errorData.error || errorData.message || `QR payment failed: ${response.statusText}`)
+            /*
+             * ApiError, not Error: the KYC rejection's discriminant is its
+             * `code` (MANTECA_KYC_REQUIRED) while its `error` is a plain English
+             * sentence, so a caller matching the prose breaks the moment the
+             * backend rewords it. Message order is unchanged, so every existing
+             * `error.message.includes(...)` matcher still sees what it did.
+             */
+            throw new ApiError(errorData.error || errorData.message || `QR payment failed: ${response.statusText}`, {
+                status: response.status,
+                code: errorData.code,
+            })
         }
 
         return response.json()
