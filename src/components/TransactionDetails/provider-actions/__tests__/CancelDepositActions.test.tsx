@@ -152,6 +152,43 @@ describe('CancelDepositActions confirmation gate', () => {
         expect(screen.queryByTestId('confirm-drawer')).not.toBeInTheDocument()
     })
 
+    it('releases the parent lock when a status update makes the tx non-cancellable', async () => {
+        const setIsModalOpen = jest.fn()
+        const { rerender } = render(
+            <CancelDepositActions
+                transaction={pendingBridgeOnramp}
+                isPendingBankRequest={false}
+                isLoading={false}
+                setIsLoading={jest.fn()}
+                onClose={jest.fn()}
+                setIsModalOpen={setIsModalOpen}
+            />
+        )
+
+        fireEvent.click(screen.getByText('Cancel deposit'))
+        expect(setIsModalOpen).toHaveBeenLastCalledWith(true)
+
+        // the websocket-driven history refresh completes the deposit while the
+        // confirm is open — the cancel branch disappears, and the parent
+        // drawer must be released or it rejects every close forever
+        const completed = {
+            ...pendingBridgeOnramp,
+            status: 'completed',
+        } as unknown as import('@/components/TransactionDetails/transactionTransformer').TransactionDetails
+        rerender(
+            <CancelDepositActions
+                transaction={completed}
+                isPendingBankRequest={false}
+                isLoading={false}
+                setIsLoading={jest.fn()}
+                onClose={jest.fn()}
+                setIsModalOpen={setIsModalOpen}
+            />
+        )
+        await waitFor(() => expect(setIsModalOpen).toHaveBeenLastCalledWith(false))
+        expect(screen.queryByTestId('confirm-drawer')).not.toBeInTheDocument()
+    })
+
     /*
      * The nesting contract with TransactionDetailsDrawer: the parent refuses
      * to close only while isModalOpen is true, so the confirm drawer's open

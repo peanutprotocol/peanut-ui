@@ -389,8 +389,10 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     {step.ctaLabel}
                 </Button>
                 {step.dismissable && onDismissCard && (
-                    // deliberate body-s size kept; states come from LinkButton
-                    <LinkButton onClick={onDismissCard} className="text-body-s text-foreground-primary">
+                    // deliberate body-s size kept; states come from LinkButton.
+                    // mt-1 tops the card's gap-3 up to 16px so LinkButton's
+                    // 14px upward hit-area slop cannot overlap the primary CTA
+                    <LinkButton onClick={onDismissCard} className="mt-1 text-body-s text-foreground-primary">
                         {tCommon('maybeLater')}
                     </LinkButton>
                 )}

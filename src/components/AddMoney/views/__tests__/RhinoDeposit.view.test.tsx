@@ -82,6 +82,16 @@ describe('RhinoDepositView sub-minimum gate', () => {
         expect(screen.queryByText(en.payment.minAmount.title)).not.toBeInTheDocument()
     })
 
+    it('never nests the copy glyph as a button inside the address button', () => {
+        renderView(5)
+
+        // the address row Button drives copy(); the inner glyph must be
+        // presentational — <button><button> is invalid DOM and browsers
+        // repair it into two overlapping controls
+        const nested = document.querySelectorAll('button button')
+        expect(nested).toHaveLength(0)
+    })
+
     it('leaves open-amount deposit flows (no amount prop) ungated', () => {
         renderView(undefined)
 

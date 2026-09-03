@@ -18,10 +18,26 @@ interface Props {
     type?: 'button' | 'icon'
     buttonSize?: ButtonSize
     onCopy?: () => void
+    /** icon mode only: render a plain glyph with no button semantics — for
+     *  hosts that are themselves the copy button (nesting <button> is invalid
+     *  DOM). The host drives copy() through the imperative ref. */
+    interactive?: boolean
 }
 
 const CopyToClipboard = forwardRef<CopyToClipboardRef, Props>(
-    ({ textToCopy, fill = 'black', className, iconSize = '6', type = 'icon', buttonSize, onCopy }, ref) => {
+    (
+        {
+            textToCopy,
+            fill = 'black',
+            className,
+            iconSize = '6',
+            type = 'icon',
+            buttonSize,
+            onCopy,
+            interactive = true,
+        },
+        ref
+    ) => {
         const t = useTranslations('global')
         const toast = useToast()
         const [copied, setCopied] = useState(false)
@@ -68,6 +84,14 @@ const CopyToClipboard = forwardRef<CopyToClipboardRef, Props>(
                 >
                     <p className="text-body-s">{t('copyToClipboard.copyCode')}</p>
                 </Button>
+            )
+        }
+
+        if (!interactive) {
+            return (
+                <span className={twMerge('inline-flex items-center justify-center', className)} aria-hidden>
+                    <Icon name={copied ? 'check' : 'copy'} size={iconSizePx} fill={fill ? fill : 'white'} />
+                </span>
             )
         }
 

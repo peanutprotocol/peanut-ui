@@ -59,10 +59,27 @@ export function CancelDepositActions({
     // fade-out lands both clicks before a re-render, so a state guard would
     // let the cancel fire twice. Refs are synchronous.
     const isCancelRunning = useRef(false)
+    // Eligibility, derived up front so the effects below can release the
+    // parent lock when a status update (websocket history refresh) makes the
+    // transaction non-cancellable while the confirm is open — otherwise the
+    // cancel branch stops rendering with confirmOpen stuck true and the
+    // details drawer refuses every close.
+    const isCancellable =
+        (transaction.direction === 'bank_deposit' &&
+            !isRequestEntry(transaction) &&
+            transaction.status === 'pending' &&
+            !!transaction.extraDataForDrawer?.depositInstructions) ||
+        (isMantecaOnrampEntry(transaction) && transaction.status === 'pending') ||
+        (isPendingBankRequest && transaction.extraDataForDrawer?.originalUserRole === EHistoryUserRole.SENDER)
+    useEffect(() => {
+        if (!isCancellable) setConfirmOpen(false)
+    }, [isCancellable])
     // sync the confirm drawer to the parent details drawer (same contract as
     // the cancel-link drawer in ReceiptActions) so it stays open underneath.
+    // The cleanup releases the lock on unmount for the same reason.
     useEffect(() => {
         setIsModalOpen?.(confirmOpen)
+        return () => setIsModalOpen?.(false)
     }, [confirmOpen, setIsModalOpen])
     if (!setIsLoading || !onClose) return null
 
@@ -143,6 +160,7 @@ export function CancelDepositActions({
 
     // 1. Bridge onramp pending — generic bank deposit cancel. Excludes REQUEST
     // rows (those take the dedicated request-cancel branch below).
+    // (conditions mirrored in isCancellable above — keep them in sync)
     const showBridgeOnrampCancel =
         transaction.direction === 'bank_deposit' &&
         !isRequestEntry(transaction) &&
