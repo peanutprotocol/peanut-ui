@@ -284,6 +284,9 @@ export const useSpendBundle = () => {
                     modals?.setIsSecurityVerificationOpen?.(true)
                     let attempt: Awaited<ReturnType<typeof tryMixedEphemeralSpend>>
                     try {
+                        // Resolving the sudo validator is outside the helper's own
+                        // catch: a rejection here must still take the passkey path,
+                        // not escape as a failed spend after /prepare already ran.
                         const patchedSudoValidator = await getPatchedSudoValidator(peanutPublicClient)
                         attempt = await tryMixedEphemeralSpend({
                             publicClient: peanutPublicClient,
@@ -295,14 +298,20 @@ export const useSpendBundle = () => {
                             requiredUsdcAmount,
                             subsequentCalls,
                         })
+                    } catch (e) {
+                        attempt = { ok: false, reason: e instanceof Error ? e.message : String(e) }
                     } finally {
                         modals?.setIsSecurityVerificationOpen?.(false)
                     }
                     if (attempt.ok) {
-                        const mixedTxHash = resolveSettledTxHash(
-                            { receipt: attempt.receipt, userOpHash: attempt.userOpHash },
-                            'spend-bundle-mixed-stamp'
-                        ).hash as Hex | undefined
+                        /*
+                         * Stamp only a real transaction hash. With the receipt
+                         * unresolved (bundler timeout, rescue miss) the op is still
+                         * in flight: report it as submitted like the passkey path
+                         * does, leave the intent PENDING for webhook reconciliation,
+                         * and never hand the userOp hash to /stamp as a tx hash.
+                         */
+                        const mixedTxHash = attempt.receipt?.transactionHash
                         if (mixedTxHash) {
                             rainApi
                                 .stampWithdrawal({ preparationId: prep.preparationId, txHash: mixedTxHash })
@@ -312,6 +321,7 @@ export const useSpendBundle = () => {
                             strategy,
                             kind,
                             engine: 'session-key',
+                            receipt: mixedTxHash ? 'settled' : 'unresolved',
                         })
                         return {
                             strategy,
