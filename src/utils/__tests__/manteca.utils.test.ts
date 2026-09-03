@@ -5,7 +5,7 @@
  * string, malformed value, absent field — falls back to the local constant
  * (with a Sentry report when a served value existed but failed validation).
  */
-import { pickMantecaDepositAddress } from '../manteca.utils'
+import { pickMantecaDepositAddress, requireMantecaDepositAddress, resolveOfframpSpendRecipient } from '../manteca.utils'
 
 const mockCapture = jest.fn()
 jest.mock('@sentry/nextjs', () => ({
@@ -44,5 +44,36 @@ describe('pickMantecaDepositAddress', () => {
         expect(pickMantecaDepositAddress('0x1234', FALLBACK)).toBe(FALLBACK)
         expect(pickMantecaDepositAddress(42 as unknown, FALLBACK)).toBe(FALLBACK)
         expect(mockCapture).toHaveBeenCalledTimes(3)
+    })
+})
+
+describe('requireMantecaDepositAddress (fail-closed paths)', () => {
+    test('a valid address passes', () => {
+        expect(requireMantecaDepositAddress(SERVED)).toBe(SERVED)
+        expect(mockCapture).not.toHaveBeenCalled()
+    })
+
+    test('missing, empty, malformed, and zero all return null AND report — never a fallback', () => {
+        for (const bad of [undefined, null, '', '0x1234', '0x0000000000000000000000000000000000000000']) {
+            expect(requireMantecaDepositAddress(bad)).toBeNull()
+        }
+        expect(mockCapture).toHaveBeenCalledTimes(5)
+    })
+})
+
+describe('resolveOfframpSpendRecipient (bank-withdraw priceLock → signSpend handoff)', () => {
+    test("the price lock's API-served entity address is the exact spend recipient", () => {
+        expect(resolveOfframpSpendRecipient({ depositAddress: SERVED })).toBe(SERVED)
+    })
+
+    test('an older API without the field falls back to the legacy constant', () => {
+        expect(resolveOfframpSpendRecipient({})).toBe('0x959e088a09f61aB01cb83b0eBCc74b2CF6d62053')
+        expect(resolveOfframpSpendRecipient(null)).toBe('0x959e088a09f61aB01cb83b0eBCc74b2CF6d62053')
+    })
+
+    test('a malformed served value never becomes the recipient', () => {
+        expect(resolveOfframpSpendRecipient({ depositAddress: '0x1234' })).toBe(
+            '0x959e088a09f61aB01cb83b0eBCc74b2CF6d62053'
+        )
     })
 })

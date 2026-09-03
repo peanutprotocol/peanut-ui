@@ -46,7 +46,6 @@ jest.mock('@/components/0_Bruddle/Toast', () => ({
 import MantecaReviewStep from '../MantecaReviewStep'
 
 const SERVED_ADDRESS = '0x49200bF84dC26349C86ce040019063FeCE88CB1c'
-const LEGACY_ADDRESS = '0x959e088a09f61aB01cb83b0eBCc74b2CF6d62053'
 
 function renderStep() {
     const setCurrentStep = jest.fn()
@@ -89,14 +88,28 @@ describe('MantecaReviewStep — pre-claim entity lookup', () => {
         await waitFor(() => expect(mockWithdraw).toHaveBeenCalledTimes(1))
     })
 
-    test('falls back to the constant when an older API returns no depositAddress', async () => {
+    test('FAILS CLOSED when the API returns no depositAddress — the one-shot link is never spent', async () => {
         mockInitiateWithdraw.mockResolvedValue({ data: { priceLockCode: 'pl-1' } })
 
         renderStep()
         clickConfirm()
 
-        await waitFor(() => expect(mockClaimLinkSecure).toHaveBeenCalledTimes(1))
-        expect(mockClaimLinkSecure).toHaveBeenCalledWith(expect.objectContaining({ address: LEGACY_ADDRESS }))
+        await waitFor(() => expect(mockInitiateWithdraw).toHaveBeenCalledTimes(1))
+        expect(mockClaimLinkSecure).not.toHaveBeenCalled()
+        expect(mockWithdraw).not.toHaveBeenCalled()
+    })
+
+    test('FAILS CLOSED on a malformed or zero served address', async () => {
+        for (const bad of ['', 'not-an-address', '0x0000000000000000000000000000000000000000']) {
+            jest.clearAllMocks()
+            mockInitiateWithdraw.mockResolvedValue({ data: { priceLockCode: 'pl-1', depositAddress: bad } })
+
+            renderStep()
+            clickConfirm()
+
+            await waitFor(() => expect(mockInitiateWithdraw).toHaveBeenCalledTimes(1))
+            expect(mockClaimLinkSecure).not.toHaveBeenCalled()
+        }
     })
 
     test('an init error aborts BEFORE the one-shot link is spent — no claim, no withdraw', async () => {
