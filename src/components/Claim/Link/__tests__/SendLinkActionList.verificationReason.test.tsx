@@ -113,7 +113,11 @@ beforeEach(() => {
     mockSenderCanReceiveBankOfframp = null
 })
 
-describe('guest-verification prompt reason', () => {
+// Skipped while the receive screen is Peanut-only: the alternate claim rails are
+// hidden behind SHOW_ALT_RAILS in SendLinkActionList, so the method cards these
+// cases tap no longer render. The gating code is kept — flip the flag and remove
+// .skip to bring these back.
+describe.skip('guest-verification prompt reason', () => {
     test('bank + a definite "sender cannot receive" blames the sender', () => {
         mockSenderCanReceiveBankOfframp = false
         renderList()
