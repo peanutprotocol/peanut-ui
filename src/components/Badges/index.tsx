@@ -49,7 +49,7 @@ export const Badges = () => {
 
     if (!badges.length) {
         return (
-            <div className="flex min-h-[inherit] flex-col items-center justify-center gap-8">
+            <div className="flex min-h-inherit flex-col items-center justify-center gap-8">
                 <NavHeader title={t('yourBadges')} onPrev={onBack} />
                 <div className="my-auto">
                     <EmptyState icon="achievements" title={t('emptyTitle')} description={t('emptyDescription')} />

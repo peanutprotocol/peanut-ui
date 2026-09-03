@@ -56,7 +56,8 @@
             "unknown": "Desconocido"
         },
         "exchangeRate": "Tipo de cambio",
-        "slideToProceed": "Desliza para continuar"
+        "slideToProceed": "Desliza para continuar",
+        "userAvatarAlt": "Avatar de {username}"
     },
     "navigation": {
         "home": "Inicio",
@@ -2503,7 +2504,9 @@
                 "name": "Pase directo",
                 "description": "Te saltaste la lista de espera. Un amigo te dio la llave y entraste directo."
             }
-        }
+        },
+        "toastAvatars": "{count, plural, one {# avatar nuevo desbloqueado} other {# avatares nuevos desbloqueados}}",
+        "toastChooseAvatar": "Elegir avatar"
     },
     "notifications": {
         "setupTitle": "¿Activar las notificaciones?",
@@ -3425,7 +3428,9 @@
             "whatChanged": "We've rewritten the documents below in plain language so they match what Peanut is today, including the Peanut Card and Rewards. There's no rush, read them whenever, and keep using Peanut as usual.",
             "title": "Una pequeña actualización de nuestros términos"
         },
-        "maintenanceBanner": "Modo mantenimiento: algunas funciones no estarán disponibles. Tus fondos están seguros.",
+        "maintenanceBanner": "Modo mantenimiento — algunas funciones no están disponibles temporalmente. Tus fondos están seguros.",
+        "maintenanceTitle": "En mantenimiento",
+        "maintenanceBody": "Esta función no está disponible temporalmente mientras trabajamos en ella. Tus fondos están seguros y todo lo demás funciona con normalidad.",
         "iosCopy": {
             "inviteFriendsModal": {
                 "description": "Comparte tu enlace. Cada vez que un amigo que trajiste haga un pago, ganas cashback."
@@ -3627,5 +3632,17 @@
             "android": "Actualizar Android System WebView"
         },
         "continueAnyway": "Continuar de todos modos"
+    },
+    "avatar": {
+        "title": "Tu avatar",
+        "description": "Elige uno o tira los dados para ver otros básicos.",
+        "fromBadges": "De tus insignias",
+        "basics": "Básicos",
+        "unlocked": "{count} desbloqueados",
+        "noBadgeAvatars": "Gana una insignia y sus avatares aparecen aquí.",
+        "rollDice": "Tirar los dados",
+        "useInitial": "Usar mi inicial",
+        "change": "Cambiar avatar",
+        "saveFailed": "No pudimos guardar tu avatar. Inténtalo de nuevo."
     }
 }

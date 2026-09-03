@@ -113,10 +113,28 @@ const countMatches = (text, re) => (text.match(re) ?? []).length
 const isTsx = (f) => f.path.endsWith('.tsx')
 const isView = (f) => /(^|\/)page\.tsx$/.test(f.path) || /\.view\.tsx$/.test(f.path) || /View\.tsx$/.test(f.path)
 
+// marketing surfaces + dev tooling are out of DS scope (DS 17 ruling,
+// approved by Kush 2026-09-03): marketing is declared out of scope on the
+// DS 17 Notion page, dev tooling is not product UI. the legacy-palette
+// metric already excluded this exact set; the four KR1 metrics (rawHex,
+// inlineStyle, stockTextSize, nonDsClassesInViews) now share it.
+const LEGACY_ALLOW = [
+    'components/LandingPage/',
+    'components/Marketing/',
+    'components/Jobs/',
+    'app/lp/',
+    'app/shhhhh/',
+    'app/careers/',
+    'app/jobs/',
+    'app/m/',
+    'app/[locale]/(marketing)/',
+    '/dev/', // all dev tooling, not just dev/ds
+]
+
 const counts = {}
 let rawHexFiles = 0
 counts.rawHex = files
-    .filter((f) => isTsx(f) && !allowed(f.path, HEX_ALLOW))
+    .filter((f) => isTsx(f) && !allowed(f.path, [...HEX_ALLOW, ...LEGACY_ALLOW]))
     .reduce((sum, f) => {
         const n = countMatches(f.text, HEX_RE)
         if (n > 0) rawHexFiles++
@@ -124,14 +142,14 @@ counts.rawHex = files
     }, 0)
 counts.rawHexFiles = rawHexFiles
 counts.inlineStyle = files
-    .filter((f) => isTsx(f) && !allowed(f.path, INLINE_STYLE_ALLOW))
+    .filter((f) => isTsx(f) && !allowed(f.path, [...INLINE_STYLE_ALLOW, ...LEGACY_ALLOW]))
     .reduce((sum, f) => sum + countMatches(f.text, INLINE_STYLE_RE), 0)
 counts.stockTextSize = files
-    .filter((f) => isTsx(f) && !allowed(f.path))
+    .filter((f) => isTsx(f) && !allowed(f.path, LEGACY_ALLOW))
     .reduce((sum, f) => sum + countMatches(f.text, STOCK_TEXT_RE), 0)
 counts.dsTextScale = files.filter((f) => isTsx(f)).reduce((sum, f) => sum + countMatches(f.text, DS_TEXT_RE), 0)
 counts.nonDsClassesInViews = files
-    .filter((f) => isView(f) && !allowed(f.path))
+    .filter((f) => isView(f) && !allowed(f.path, LEGACY_ALLOW))
     .reduce((sum, f) => sum + countMatches(f.text, STOCK_PALETTE_RE) + countMatches(f.text, ARBITRARY_RE), 0)
 counts.useSearchParamsFiles = files.filter((f) => /\buseSearchParams\b/.test(f.text)).length
 counts.nuqsFiles = files.filter((f) => /from ['"]nuqs['"]/.test(f.text)).length
@@ -146,18 +164,6 @@ counts.nuqsFiles = files.filter((f) => /from ['"]nuqs['"]/.test(f.text)).length
 // which is the design system, not debt.
 const LEGACY_PALETTE_RE =
     /\b(?:bg|text|border|ring|fill|stroke|divide|outline|decoration|from|to|via)-(?:n|grey|gray|primary|purple|yellow|green|secondary|teal|violet|cyan|orange|success|error|blue|pink|red)-(?:[1-9]|1[01])\b/g
-const LEGACY_ALLOW = [
-    'components/LandingPage/',
-    'components/Marketing/',
-    'components/Jobs/',
-    'app/lp/',
-    'app/shhhhh/',
-    'app/careers/',
-    'app/jobs/',
-    'app/m/',
-    'app/[locale]/(marketing)/',
-    '/dev/', // all dev tooling, not just dev/ds
-]
 counts.legacyColorClasses = files
     .filter((f) => isTsx(f) && !allowed(f.path, LEGACY_ALLOW))
     .reduce((sum, f) => sum + countMatches(f.text, LEGACY_PALETTE_RE), 0)

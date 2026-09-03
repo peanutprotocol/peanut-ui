@@ -5,10 +5,10 @@
  *
  * 1. enableFullMaintenance: redirects ALL pages to /maintenance page
  *    - landing page (/) and support page (/support) remain accessible
- *    - maintenance banner shows on all pages (including landing and support)
+ *    - maintenance banner shows on all pages EXCEPT /home (see note below)
  *    - use this when the entire app needs to be blocked
  *
- * 2. enableMaintenanceBanner: shows a banner on ALL pages (including landing and support)
+ * 2. enableMaintenanceBanner: shows a banner on ALL pages EXCEPT /home
  *    - pages remain functional, just shows a warning banner
  *    - use this when you want to warn users about ongoing maintenance
  *    - scope it with maintenanceBannerPaths: [] = every page; ['/withdraw', '/add-money']
@@ -60,7 +60,9 @@
  *    - /shhhhh and the rest of the card flow stay reachable — this only mutes the homepage pitch
  *    - use if the closed beta fills up or the card goes down
  *
- * note: if either mode is enabled, the maintenance banner will show everywhere
+ * note: if either mode is enabled, the maintenance banner shows everywhere EXCEPT
+ * /home — home never shows it, whatever these switches say (designer ruling
+ * 2026-09-03; see Global/Banner). It renders below each page's nav header.
  *
  * I HOPE WE NEVER NEED TO USE THIS...
  *

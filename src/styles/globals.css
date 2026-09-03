@@ -494,6 +494,13 @@
 /* font utilities whose v3 theme key matches the next/font css var name —
    defining them in @theme would shadow the next/font var on :root and
    self-reference (font falls back to system). plain utilities instead. */
+/* pages size themselves against the AppShell scroll area via min-height
+   inheritance (see the page-shell recipes) — a named utility instead of the
+   arbitrary min-h-[inherit] the DS lint counts as debt */
+@utility min-h-inherit {
+    min-height: inherit;
+}
+
 @utility font-roboto {
     font-family:
         var(--font-roboto), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',

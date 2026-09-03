@@ -23,7 +23,11 @@ const render = () =>
     )
 
 const mockPush = jest.fn()
-jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush, replace: jest.fn(), back: jest.fn() }) }))
+jest.mock('next/navigation', () => ({
+    useRouter: () => ({ push: mockPush, replace: jest.fn(), back: jest.fn() }),
+    // NavHeader mounts the maintenance Banner, which reads the pathname
+    usePathname: () => '/profile/unlock-payments',
+}))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
 
 let mockRails: unknown[] = []

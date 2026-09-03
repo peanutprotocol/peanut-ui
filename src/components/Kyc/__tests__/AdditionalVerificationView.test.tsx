@@ -56,6 +56,8 @@ jest.mock(
 const mockRouterReplace = jest.fn()
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: jest.fn(), replace: mockRouterReplace, back: jest.fn() }),
+    // NavHeader mounts the maintenance Banner, which reads the pathname
+    usePathname: () => '/kyc/additional-verification',
 }))
 let mockNextActions: NextAction[] = []
 let mockCapabilitiesLoading = false

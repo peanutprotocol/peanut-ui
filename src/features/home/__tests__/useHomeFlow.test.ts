@@ -83,20 +83,18 @@ describe('useHomeFlow', () => {
         expect(mockDisconnect).not.toHaveBeenCalled()
     })
 
-    it('seeds avatarName from the username even when the full name is shown', () => {
-        // Home and the profile header must show the same letter: username
-        // "kush" with full name "Alice" is K on both, never A on one of them.
-        mockUser = userWith({ showFullName: true, fullName: 'Alice Example' })
-        expect(renderHook(() => useHomeFlow()).result.current.avatarName).toBe('kush')
+    it('never derives an avatar name from the display name — the chip seeds from the username', () => {
+        mockUser = userWith({ showFullName: true, fullName: 'Kushagra S' })
+        const flow = renderHook(() => useHomeFlow()).result.current
+        expect(flow.username).toBe('kush')
+        expect(flow).not.toHaveProperty('avatarName')
+    })
 
-        mockUser = userWith({ showFullName: false, fullName: 'Alice Example' })
-        expect(renderHook(() => useHomeFlow()).result.current.avatarName).toBe('kush')
+    it('passes the picked avatar through, null when there is none', () => {
+        mockUser = userWith({ avatarKey: 'basic.frog' })
+        expect(renderHook(() => useHomeFlow()).result.current.avatarKey).toBe('basic.frog')
 
-        // usernameless: fall back to the full name so the circle carries a letter
-        mockUser = { user: { userId: 'u1', username: null, fullName: 'Kushagra S' } }
-        expect(renderHook(() => useHomeFlow()).result.current.avatarName).toBe('Kushagra S')
-
-        mockUser = { user: { userId: 'u1', username: null, fullName: null } }
-        expect(renderHook(() => useHomeFlow()).result.current.avatarName).toBeUndefined()
+        mockUser = userWith({})
+        expect(renderHook(() => useHomeFlow()).result.current.avatarKey).toBeNull()
     })
 })

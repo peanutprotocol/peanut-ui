@@ -56,7 +56,8 @@
             "unknown": "Unknown"
         },
         "exchangeRate": "Exchange rate",
-        "slideToProceed": "Slide to Proceed"
+        "slideToProceed": "Slide to Proceed",
+        "userAvatarAlt": "Avatar for {username}"
     },
     "navigation": {
         "home": "Home",
@@ -2503,7 +2504,9 @@
                 "name": "Skip Pass",
                 "description": "You skipped the waitlist. A friend handed you the key and you walked right in."
             }
-        }
+        },
+        "toastAvatars": "{count, plural, one {# new avatar unlocked} other {# new avatars unlocked}}",
+        "toastChooseAvatar": "Choose avatar"
     },
     "notifications": {
         "setupTitle": "Turn on notifications?",
@@ -3425,7 +3428,9 @@
             "whatChanged": "We've rewritten the documents below in plain language so they match what Peanut is today, including the Peanut Card and Rewards. There's no rush, read them whenever, and keep using Peanut as usual.",
             "title": "A small update to our terms"
         },
-        "maintenanceBanner": "Maintenance mode, some functionalities won't be available. Funds safe",
+        "maintenanceBanner": "Maintenance mode — some features are temporarily unavailable. Your funds are safe.",
+        "maintenanceTitle": "Under maintenance",
+        "maintenanceBody": "This feature is temporarily unavailable while we work on it. Your funds are safe and everything else works as usual.",
         "iosCopy": {
             "inviteFriendsModal": {
                 "description": "Share your link. Every time a friend you brought makes a payment, you earn cashback."
@@ -3627,5 +3632,17 @@
             "android": "Update Android System WebView"
         },
         "continueAnyway": "Continue anyway"
+    },
+    "avatar": {
+        "title": "Your avatar",
+        "description": "Pick one, or roll the dice for a fresh row of basics.",
+        "fromBadges": "From your badges",
+        "basics": "Basics",
+        "unlocked": "{count} unlocked",
+        "noBadgeAvatars": "Earn a badge and its avatars appear here.",
+        "rollDice": "Roll the dice",
+        "useInitial": "Use my initial instead",
+        "change": "Change avatar",
+        "saveFailed": "Could not save your avatar. Try again."
     }
 }

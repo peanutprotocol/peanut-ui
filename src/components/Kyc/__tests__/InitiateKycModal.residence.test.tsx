@@ -24,7 +24,11 @@ jest.mock('@/hooks/useIdentityVerification', () => ({
 jest.mock('@/hooks/useKycDegraded', () => ({ useKycDegraded: () => false }))
 
 const mockPush = jest.fn()
-jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
+jest.mock('next/navigation', () => ({
+    useRouter: () => ({ push: mockPush }),
+    // NavHeader mounts the maintenance Banner, which reads the pathname
+    usePathname: () => '/kyc',
+}))
 
 const onVerify = jest.fn()
 

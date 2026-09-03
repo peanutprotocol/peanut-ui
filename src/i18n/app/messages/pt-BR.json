@@ -56,7 +56,8 @@
             "unknown": "Desconhecido"
         },
         "exchangeRate": "Taxa de câmbio",
-        "slideToProceed": "Deslize para continuar"
+        "slideToProceed": "Deslize para continuar",
+        "userAvatarAlt": "Avatar de {username}"
     },
     "navigation": {
         "home": "Início",
@@ -2503,7 +2504,9 @@
                 "name": "Passe livre",
                 "description": "Você pulou a lista de espera. Um amigo te deu a chave e você entrou direto."
             }
-        }
+        },
+        "toastAvatars": "{count, plural, one {# avatar novo desbloqueado} other {# avatares novos desbloqueados}}",
+        "toastChooseAvatar": "Escolher avatar"
     },
     "notifications": {
         "setupTitle": "Ativar as notificações?",
@@ -3425,7 +3428,9 @@
             "whatChanged": "We've rewritten the documents below in plain language so they match what Peanut is today, including the Peanut Card and Rewards. There's no rush, read them whenever, and keep using Peanut as usual.",
             "title": "Uma pequena atualização dos nossos termos"
         },
-        "maintenanceBanner": "Modo manutenção: algumas funções ficarão indisponíveis. Seu dinheiro está seguro.",
+        "maintenanceBanner": "Modo manutenção — algumas funções estão temporariamente indisponíveis. Seu dinheiro está seguro.",
+        "maintenanceTitle": "Em manutenção",
+        "maintenanceBody": "Esta função está temporariamente indisponível enquanto trabalhamos nela. Seu dinheiro está seguro e todo o resto funciona normalmente.",
         "iosCopy": {
             "inviteFriendsModal": {
                 "description": "Compartilhe seu link. Toda vez que um amigo que você trouxe fizer um pagamento, você ganha cashback."
@@ -3627,5 +3632,17 @@
             "android": "Atualizar o Android System WebView"
         },
         "continueAnyway": "Continuar mesmo assim"
+    },
+    "avatar": {
+        "title": "Seu avatar",
+        "description": "Escolha um ou jogue os dados para ver outros básicos.",
+        "fromBadges": "Dos seus selos",
+        "basics": "Básicos",
+        "unlocked": "{count} desbloqueados",
+        "noBadgeAvatars": "Ganhe um selo e seus avatares aparecem aqui.",
+        "rollDice": "Jogar os dados",
+        "useInitial": "Usar minha inicial",
+        "change": "Trocar avatar",
+        "saveFailed": "Não foi possível salvar seu avatar. Tente de novo."
     }
 }

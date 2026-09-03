@@ -33,16 +33,16 @@ const InvitesPageLayout = ({ image, children, showRagdoll = false }: InvitesPage
     const t = useTranslations('invites')
 
     return (
-        <div className="flex min-h-[100dvh] flex-col">
+        <div className="flex min-h-dvh flex-col">
             <div className="mx-auto flex w-full flex-grow flex-col md:flex-row">
                 {/* illustration section */}
                 <div
                     className={twMerge(
                         // Definite height, not min-h-*: the ragdoll canvas resolves
                         // h-full against this pane and would collapse to 0.
-                        // md:h-[100dvh] below covers the desktop side.
+                        // md:h-dvh below covers the desktop side.
                         'h-[55dvh]',
-                        'relative flex w-full flex-row items-center justify-center overflow-hidden bg-blue-300/100 px-4 md:h-[100dvh] md:w-7/12 md:px-6'
+                        'relative flex w-full flex-row items-center justify-center overflow-hidden bg-blue-300/100 px-4 md:h-dvh md:w-7/12 md:px-6'
                     )}
                 >
                     {/* render animated star decorations */}

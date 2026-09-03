@@ -51,16 +51,14 @@ export function useHomeFlow() {
         }
     }, [isWagmiConnected, disconnectWagmi])
 
-    // The avatar is the first letter of the username, on Home and on the
-    // profile header alike, whatever the showFullName preference (that governs
-    // the displayed name, not the avatar). A usernameless user falls back to
-    // their full name so the circle still carries a letter.
-    const avatarName = username || user?.user.fullName || undefined
+    // the picked avatar (TASK-22142); null keeps the first-letter fallback,
+    // which the top nav seeds from the username, never the display name
+    const avatarKey = user?.user.avatarKey ?? null
 
     return {
         isPageLoading: isFetchingUser && !username,
         username,
-        avatarName,
+        avatarKey,
         isActivated,
         activationStep,
         dismissCardStep,

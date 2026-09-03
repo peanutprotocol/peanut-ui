@@ -592,7 +592,7 @@ const CardPage: FC = () => {
     if (state === 'loading') {
         return (
             <PageContainer>
-                <div className="flex min-h-[inherit] w-full items-center justify-center">
+                <div className="flex min-h-inherit w-full items-center justify-center">
                     <Loading />
                 </div>
             </PageContainer>
@@ -602,7 +602,7 @@ const CardPage: FC = () => {
     if (pioneerError || overviewError) {
         return (
             <PageContainer>
-                <div className="flex min-h-[inherit] w-full flex-col items-center justify-center gap-4 p-4">
+                <div className="flex min-h-inherit w-full flex-col items-center justify-center gap-4 p-4">
                     <p className="text-center text-foreground-primary">{t('page.loadFailed')}</p>
                     <Button onClick={() => refetchCardInfo()} variant="purple" shadowSize="4">
                         {tCommon('retry')}
@@ -734,7 +734,7 @@ const CardPage: FC = () => {
                 // capabilities so the screen never flashes without its reason.
                 if (capabilitiesLoading) {
                     return (
-                        <div className="flex min-h-[inherit] w-full items-center justify-center">
+                        <div className="flex min-h-inherit w-full items-center justify-center">
                             <Loading />
                         </div>
                     )

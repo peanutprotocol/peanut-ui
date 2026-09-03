@@ -87,7 +87,7 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
     // loading state
     if (isLoading) {
         return (
-            <div className="flex min-h-[inherit] w-full flex-col gap-4">
+            <div className="flex min-h-inherit w-full flex-col gap-4">
                 <NavHeader title={t('headers.pay')} onPrev={onBack} />
                 <div className="flex flex-grow flex-col items-center justify-center gap-4 py-8">
                     <Loading variant="mascot" />
@@ -99,7 +99,7 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
     // error state — centered card (ruled 2026-09-03: no more lone top banner)
     if (error || !parsedUrl) {
         return (
-            <div className="flex min-h-[inherit] w-full flex-col gap-4">
+            <div className="flex min-h-inherit w-full flex-col gap-4">
                 <NavHeader title={t('headers.pay')} onPrev={onBack} />
                 <div className="flex flex-grow flex-col justify-center py-8">
                     <EmptyState

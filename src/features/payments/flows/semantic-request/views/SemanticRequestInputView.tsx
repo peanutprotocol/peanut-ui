@@ -150,7 +150,7 @@ export function SemanticRequestInputView() {
     }, [isTokenDenominated, urlToken])
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+        <div className="flex min-h-inherit flex-col justify-between gap-8">
             <NavHeader onPrev={onBack} title={t('headers.pay')} />
 
             <PageStack.Center className="gap-4">
