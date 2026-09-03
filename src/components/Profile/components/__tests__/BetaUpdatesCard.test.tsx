@@ -1,10 +1,10 @@
 /**
  * The card is native-only. The tap gesture controls discoverability; the
- * `beta-ota-channel` cohort is what decides who may JOIN. It must never decide
- * who may leave, and it must never hide the card — a blocked device has to be
- * able to read why. Beyond that, every join outcome has to read honestly: a
- * tester told to restart when nothing was downloaded goes looking for a build
- * that isn't there.
+ * PEANUT_TEAM badge is what decides who may JOIN. It must never decide who may
+ * leave, and it must never hide the card — a blocked device has to be able to
+ * read why. Beyond that, every join outcome has to read honestly: a tester told
+ * to restart when nothing was downloaded goes looking for a build that isn't
+ * there.
  */
 import React from 'react'
 import { fireEvent, render as rtlRender, screen, waitFor } from '@testing-library/react'
@@ -20,8 +20,8 @@ jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => toast }))
 const channel = { current: {} as UseOtaChannel }
 jest.mock('@/hooks/useOtaChannel', () => ({ useOtaChannel: () => channel.current }))
 
-let inCohort = true
-jest.mock('@/hooks/useFeatureFlag', () => ({ useFeatureFlags: () => () => inCohort }))
+let badges: { code: string }[] = [{ code: 'PEANUT_TEAM' }]
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { badges } } }) }))
 
 const setup = (overrides: Partial<UseOtaChannel> = {}) => {
     channel.current = {
@@ -39,7 +39,7 @@ const switching = (result: OtaChannelSwitchResult) => ({ setBeta: jest.fn().mock
 
 beforeEach(() => {
     jest.clearAllMocks()
-    inCohort = true
+    badges = [{ code: 'PEANUT_TEAM' }]
 })
 
 it('renders nothing off native, where there is no OTA layer at all', () => {
@@ -47,24 +47,24 @@ it('renders nothing off native, where there is no OTA layer at all', () => {
     expect(screen.queryByRole('switch')).not.toBeInTheDocument()
 })
 
-describe('cohort gating', () => {
-    it('will not let an account outside the cohort join', () => {
-        inCohort = false
+describe('badge gating', () => {
+    it('will not let an account without the badge join', () => {
+        badges = []
         setup()
         expect(screen.getByRole('switch')).toBeDisabled()
     })
 
-    // The cohort going missing must never look like silence: that is how the
-    // previous gate hid the switch from its own testers for months.
+    // A missing badge must never look like silence: that is how the previous
+    // PostHog gate hid the switch from its own testers for months.
     it('tells a blocked account why, and what to ask for', () => {
-        inCohort = false
+        badges = []
         setup()
-        expect(screen.getByText(/internal testers/i)).toBeInTheDocument()
+        expect(screen.getByText(/not enabled for this account/i)).toBeInTheDocument()
     })
 
-    // Offboarding someone mid-beta must not strand them on beta code.
-    it('still lets a device already on beta leave once it is out of the cohort', async () => {
-        inCohort = false
+    // Revoking the badge mid-beta must not strand a device on beta code.
+    it('still lets a device already on beta leave once the badge is revoked', async () => {
+        badges = []
         setup({
             isBeta: true,
             status: { channel: 'staging', bundleVersion: '1.1.10846', deviceId: 'abc-123', onBuiltinBundle: false },
@@ -75,9 +75,9 @@ describe('cohort gating', () => {
         await waitFor(() => expect(channel.current.setBeta).toHaveBeenCalledWith(false))
     })
 
-    it('says nothing about eligibility to an account that can join', () => {
+    it('says nothing about eligibility to an account holding the badge', () => {
         setup()
-        expect(screen.queryByText(/internal testers/i)).not.toBeInTheDocument()
+        expect(screen.queryByText(/not enabled for this account/i)).not.toBeInTheDocument()
         expect(screen.getByRole('switch')).toBeEnabled()
     })
 })

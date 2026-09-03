@@ -4,8 +4,9 @@ import Card from '@/components/Global/Card'
 import { Toggle } from '@/components/0_Bruddle/Toggle'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import { useFeatureFlags } from '@/hooks/useFeatureFlag'
+import { useAuth } from '@/context/authContext'
 import { useOtaChannel } from '@/hooks/useOtaChannel'
+import { PEANUT_TEAM_BADGE } from '@/constants/badges.consts'
 import { BETA_OTA_CHANNEL } from '@/utils/capgo-updater'
 import { copyTextToClipboard } from '@/utils/clipboard.utils'
 import { useTranslations } from 'next-intl'
@@ -15,22 +16,19 @@ import { useTranslations } from 'next-intl'
  * points the device at the `staging` Capgo channel, which every merge to `dev`
  * publishes to; leaving drops it back to the store bundle.
  *
- * Joining is gated on the `beta-ota-channel` cohort. The tap gesture only
- * controls discoverability, and Capgo's self-assignment setting is global —
- * it cannot tell an internal tester from a customer — so without the cohort
- * the two together let anyone who finds the gesture onto the `dev` firehose
- * whenever self-assignment is open.
+ * Joining requires the PEANUT_TEAM badge, which the About screen awards on the
+ * fifth tap. The badge is a record of who opted in and a handle to revoke it,
+ * NOT an access boundary — anyone who performs the gesture can award it to
+ * themselves. Capgo's channel self-assignment setting is the real boundary.
  *
- * The cohort gates the JOIN, never the card. An earlier version gated the
- * whole reveal, so the flag going missing hid the switch from everyone and
- * looked exactly like being outside the cohort — invisible for months. A
- * blocked device now says so on screen and names the fix.
+ * The badge gates the JOIN, never the card. An earlier version gated the whole
+ * reveal on a PostHog cohort, so the flag never being created hid the switch
+ * from everyone and looked exactly like exclusion — invisible for months.
  *
  * The card therefore renders on every native build, and the off switch stays
- * live whatever the cohort says: it is the only way back to the store bundle,
- * and a device offboarded mid-beta would otherwise be stranded on beta code.
+ * live whether or not the badge is held: it is the only way back to the store
+ * bundle, and revoking someone mid-beta must not strand them on beta code.
  */
-export const BETA_OTA_FLAG = 'beta-ota-channel'
 
 /**
  * What the About screen's five-tap reveal can promise: the card only renders
@@ -41,11 +39,10 @@ export function useBetaUpdatesAccess(): { supported: boolean } {
     return { supported }
 }
 
-/** Outside the cohort, only a device already on beta may work the switch — off. */
+/** Without the badge, only a device already on beta may work the switch — off. */
 function useCanJoinBeta(): boolean {
-    // nonProdBypass: staging and preview builds are internal by construction,
-    // so the cohort only has to exist for the production store binary.
-    return useFeatureFlags()(BETA_OTA_FLAG, { nonProdBypass: true })
+    const { user } = useAuth()
+    return !!user?.user.badges?.some((badge) => badge.code === PEANUT_TEAM_BADGE)
 }
 
 export const BetaUpdatesCard = () => {

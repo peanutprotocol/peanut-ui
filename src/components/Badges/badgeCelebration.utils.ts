@@ -1,3 +1,5 @@
+import { PEANUT_TEAM_BADGE } from '@/constants/badges.consts'
+
 // Pure helpers for the badge-earn toast (TASK-19791).
 //
 // "Surface it once, while fresh, without interrupting." When a user lands on
@@ -28,9 +30,10 @@ export const FRESHNESS_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
 // Badges that should NOT trigger the toast:
 //  - WAITLIST_SKIP keeps its bespoke card-flow celebration (BadgeSkipCelebration).
 //  - BETA_TESTER is awarded to every signup — too universal to be worth surfacing.
+//  - PEANUT_TEAM is a permission record for the beta switch, never shown anywhere.
 // Other card-access "skip" badges (OG/Devconnect/Arbiverse) are historical, so
 // the freshness window already keeps them out.
-const EXCLUDED_CODES = new Set<string>(['WAITLIST_SKIP', 'BETA_TESTER'])
+const EXCLUDED_CODES = new Set<string>(['WAITLIST_SKIP', 'BETA_TESTER', PEANUT_TEAM_BADGE])
 
 const STORAGE_PREFIX = 'badge_earn_toast_seen'
 
