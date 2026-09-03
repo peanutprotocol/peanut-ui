@@ -736,6 +736,180 @@ const renderCurrent: RenderFn = (u) => (
 
 const [G_ERRORS, G_WRAPPERS, G_BANNERS, G_SPECIAL] = USAGE_GROUPS
 
+// ---------------------------------------------------------------------------
+// full-page banner frames — the notification in its real on-page position
+// ---------------------------------------------------------------------------
+
+/** ~375px static page frame: banner slot at the very top of the shell (the
+ *  production Banner renders above page content with mx-4 mt-2), content
+ *  below, optional bottom tab bar. Height-capped so five frames scan in a row. */
+const PageFrame = ({
+    banner,
+    tabBar = false,
+    children,
+}: {
+    banner?: React.ReactNode
+    tabBar?: boolean
+    children: React.ReactNode
+}) => (
+    <div className="flex h-[560px] w-full max-w-[375px] flex-col overflow-hidden rounded border border-border-default bg-background-default">
+        {banner}
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-4">{children}</div>
+        {tabBar && (
+            <div className="flex items-center justify-around border-t border-border-default py-2 text-foreground-secondary">
+                <Icon name="home" size={20} className="text-foreground-primary" />
+                <Icon name="plus" size={20} />
+                <Icon name="history" size={20} />
+                <Icon name="user" size={20} />
+            </div>
+        )}
+    </div>
+)
+
+/** home-ish scaffold shared by the two shell-banner frames */
+const HomeScaffold = () => (
+    <>
+        <div className="flex items-center justify-between">
+            <div className="size-8 rounded-round border border-border-default bg-background-badge-accent" />
+            <Icon name="gift" size={20} className="text-foreground-secondary" />
+        </div>
+        <div className="flex flex-col items-center gap-1 py-4">
+            <p className="text-body-xs text-foreground-secondary">Balance</p>
+            <p className="text-heading-m">$ 1,024.50</p>
+        </div>
+        <div className="flex justify-center gap-2">
+            {['Add', 'Send', 'Withdraw'].map((a) => (
+                <span key={a} className="rounded-round border border-border-default px-4 py-1.5 text-button-s">
+                    {a}
+                </span>
+            ))}
+        </div>
+        <div className="flex flex-col gap-2 pt-2">
+            <p className="text-label-m tracking-wide text-foreground-secondary uppercase">Recent</p>
+            {['Maria — $12.00', 'Coffee Shop — $4.80'].map((r) => (
+                <div key={r} className="flex items-center gap-3 rounded-sm border border-border-default p-3">
+                    <div className="size-8 rounded-round bg-background-badge-helper" />
+                    <span className="text-body-s">{r}</span>
+                </div>
+            ))}
+        </div>
+    </>
+)
+
+const BANNER_PAGES: { label: string; frame: React.ReactNode }[] = [
+    {
+        label: 'Global/Banner:43 — offline, top of the shell on home (also has a degraded-connectivity attention state)',
+        frame: (
+            <PageFrame
+                tabBar
+                banner={
+                    <Notification priority="error" className="mx-4 mt-2">
+                        No internet connection — some features won&apos;t work until you reconnect
+                    </Notification>
+                }
+            >
+                <HomeScaffold />
+            </PageFrame>
+        ),
+    },
+    {
+        label: 'Global/Banner:57 — maintenance, same shell position',
+        frame: (
+            <PageFrame
+                tabBar
+                banner={
+                    <Notification priority="error" className="mx-4 mt-2">
+                        Maintenance mode, some functionalities won&apos;t be available. Funds safe
+                    </Notification>
+                }
+            >
+                <HomeScaffold />
+            </PageFrame>
+        ),
+    },
+    {
+        label: 'add-money/[country]/bank:515 — EUR-only note under the amount input',
+        frame: (
+            <PageFrame>
+                <div className="flex items-center gap-2">
+                    <Icon name="chevron-right" size={20} className="rotate-180" />
+                    <p className="text-heading-xs">Add money</p>
+                </div>
+                <div className="flex flex-col items-center gap-1 py-4">
+                    <p className="text-heading-l">€ 50</p>
+                    <p className="text-body-xs text-foreground-secondary">from your bank account</p>
+                </div>
+                <Notification priority="info" title="EUR accounts only">
+                    Only EUR accounts with IBAN work for onramps. Your local currency account may not work.
+                </Notification>
+                <Button onClick={noop} className="mt-auto w-full justify-center">
+                    Continue
+                </Button>
+            </PageFrame>
+        ),
+    },
+    {
+        label: 'Kyc/states/KycActionRequired:42 — status banner on the verification page',
+        frame: (
+            <PageFrame>
+                <div className="flex items-center gap-2">
+                    <Icon name="chevron-right" size={20} className="rotate-180" />
+                    <p className="text-heading-xs">Verify your identity</p>
+                </div>
+                <div className="flex flex-col items-center gap-3 py-6">
+                    <IconBubble
+                        size="m"
+                        icon={<Icon name="alert" fill="currentColor" size={24} className="text-black" />}
+                        className="bg-action-secondary"
+                    />
+                    <p className="text-body-s text-foreground-secondary">Verification status: action required</p>
+                </div>
+                <Notification priority="info">
+                    We need a bit more to verify your identity. Tap below to continue.
+                </Notification>
+                <Button onClick={noop} className="mt-auto w-full justify-center">
+                    Continue verification
+                </Button>
+            </PageFrame>
+        ),
+    },
+    {
+        label: 'TransactionDetails/CardUsdAbroadNotice:50 — nudge inside the receipt',
+        frame: (
+            <PageFrame>
+                <div className="flex items-center gap-2">
+                    <Icon name="chevron-right" size={20} className="rotate-180" />
+                    <p className="text-heading-xs">Payment</p>
+                </div>
+                <div className="flex flex-col gap-2 rounded-sm border border-border-default p-4">
+                    <div className="flex items-center gap-3">
+                        <div className="size-8 rounded-round bg-background-badge-helper" />
+                        <div>
+                            <p className="text-body-s font-semibold">Ramen Bar Tokyo</p>
+                            <p className="text-body-xs text-foreground-secondary">Card payment</p>
+                        </div>
+                        <p className="ml-auto text-body-m-semibold">-$18.40</p>
+                    </div>
+                    <div className="border-t border-border-subtle pt-2 text-body-xs text-foreground-secondary">
+                        <div className="flex justify-between py-0.5">
+                            <span>Date</span>
+                            <span>Sep 2, 2026</span>
+                        </div>
+                        <div className="flex justify-between py-0.5">
+                            <span>Status</span>
+                            <span>Settled</span>
+                        </div>
+                    </div>
+                </div>
+                <Notification priority="info" title="Pay in local currency next time">
+                    You were charged in US dollars. When a terminal offers to bill in dollars, choose the local currency
+                    instead — Peanut&apos;s exchange rate is usually better.
+                </Notification>
+            </PageFrame>
+        ),
+    },
+]
+
 /** one usage group: label + note + grid of real-component renders */
 const GroupBlock = ({ group }: { group: UsageGroup }) => (
     <div className="flex flex-col gap-3">
@@ -781,6 +955,21 @@ export default function NotificationUsageInventoryPage() {
                 blurb="Exhaustive: every page-level banner — load errors, titled info/attention notices, transaction-detail nudges, the shell connectivity/maintenance banner. Note the stacking smell: AddMoneyBankDetails shows three attention boxes on one screen."
             >
                 <div className="flex flex-col gap-6">
+                    <div className="flex flex-col gap-3">
+                        <DevSectionLabel>in full-page context — 5 framed examples</DevSectionLabel>
+                        <p className="max-w-3xl text-body-xs text-foreground-secondary">
+                            Banner = page-level context; the second component probably isn&apos;t for these. Static
+                            frames, real copy, real component in its real position.
+                        </p>
+                        <div className="grid items-start gap-6 md:grid-cols-2 xl:grid-cols-3">
+                            {BANNER_PAGES.map((p) => (
+                                <div key={p.label} className="flex min-w-0 flex-col gap-1.5">
+                                    <p className="text-body-xs text-foreground-secondary">{p.label}</p>
+                                    {p.frame}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                     <GroupBlock group={G_WRAPPERS} />
                     <GroupBlock group={G_BANNERS} />
                 </div>
