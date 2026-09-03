@@ -181,7 +181,7 @@ const CardFace: FC<Props> = ({
                                                         'expiry'
                                                     )
                                                 }
-                                                className="p-1"
+className="relative p-1 transition-opacity duration-instant after:absolute after:-inset-3 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
                                             >
                                                 <Icon name={copiedField === 'expiry' ? 'check' : 'copy'} size={16} />
                                             </button>
