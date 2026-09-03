@@ -12,7 +12,7 @@
  * Tested here rather than through the page because the assertion that matters
  * is the mapping itself, and one function now serves both call sites.
  */
-import { deterministicInitErrorMessage, type QrInitCopy } from '../page'
+import { deterministicInitErrorMessage, type QrInitCopy } from '../init-error-classifier'
 
 const copy: QrInitCopy = {
     cap: 'CAP_COPY',
@@ -33,13 +33,30 @@ describe('deterministicInitErrorMessage', () => {
         ['User KYC not approved', 'KYC_COPY'],
         ['PIX_MIN_AMOUNT', 'PIX_MIN_COPY'],
     ])('maps %s to its own copy', (message, expected) => {
-        expect(deterministicInitErrorMessage(new Error(message), copy)).toBe(expected)
+        expect(deterministicInitErrorMessage(new Error(message), copy)?.message).toBe(expected)
+    })
+
+    /*
+     * Only the amount-shaped rejections invite another try. Getting this wrong
+     * either dead-ends a capped user (the copy says "try a smaller amount"
+     * while Pay stays disabled) or leaves Pay live for a KYC block no amount
+     * can clear.
+     */
+    it.each([
+        ['MANTECA_SOURCE_OVER_MONTHLY_CAP', true],
+        ['PIX_MIN_AMOUNT', true],
+        ['MANTECA_MERCHANT_VOLUME_NEAR_CAP', false],
+        ['MANTECA_MERCHANT_RECENT_REFUND', false],
+        ['MANTECA_USER_NOT_PROVISIONED', false],
+        ['User KYC not approved', false],
+    ])('marks %s amountRetryable=%s', (message, retryable) => {
+        expect(deterministicInitErrorMessage(new Error(message), copy)?.amountRetryable).toBe(retryable)
     })
 
     // The KYC rejection's stable discriminant is its code; the prose is a
     // sentence the backend can reword at any time.
     it('reads the KYC wire code even when the prose has changed', () => {
-        expect(deterministicInitErrorMessage(apiError('totally reworded', 'MANTECA_KYC_REQUIRED'), copy)).toBe(
+        expect(deterministicInitErrorMessage(apiError('totally reworded', 'MANTECA_KYC_REQUIRED'), copy)?.message).toBe(
             'KYC_COPY'
         )
     })

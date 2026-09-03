@@ -1613,6 +1613,28 @@ describe('GROUP 5: Error States', () => {
         expect(screen.queryByText(/unexpected error/i)).not.toBeInTheDocument()
         // Deterministic rejection, not a transport surprise — no Sentry event.
         expect(mockCaptureNetworkTriagedFailure).not.toHaveBeenCalled()
+
+        /*
+         * And the advice has to be followable. The copy says to try a smaller
+         * amount; without the retryable code the error kept `isBlockingError`
+         * true and Pay stayed disabled for the rest of the scan, so the only
+         * way out was abandoning the QR at the till.
+         */
+        mockMantecaApi.initiateQrPayment.mockResolvedValue({ ...reconnectLock, code: 'LOCK-SMALLER' })
+        await act(async () => {
+            fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '2' } })
+        })
+
+        expect(screen.queryByText(/remaining monthly limit/i)).not.toBeInTheDocument()
+        const payAgain = screen.getByRole('button', { name: 'Pay' })
+        expect(payAgain).not.toBeDisabled()
+
+        await act(async () => {
+            fireEvent.click(payAgain)
+        })
+        await waitFor(() => {
+            expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(3)
+        })
     }, 20_000)
 
     // No ETA promise: mono product/lessons-from-corrections.md records

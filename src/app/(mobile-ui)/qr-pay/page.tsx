@@ -52,6 +52,7 @@ import { getCurrencyPrice } from '@/app/actions/currency'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { captureNetworkTriagedFailure, isNetworkLayerFailure } from '@/utils/network-triage'
 import { criticalFlowTags } from '@/utils/sentry-critical-flow'
+import { deterministicInitErrorMessage, type QrInitCopy } from '@/app/(mobile-ui)/qr-pay/init-error-classifier'
 import { wireErrorCode } from '@/services/api-error'
 import { API_ERROR_CODES } from '@/services/api-error'
 import posthog from 'posthog-js'
@@ -122,34 +123,6 @@ const NON_RETRYABLE_QR_PAY_ERRORS = [
  * arrive with either — an older API build sends only the sentence.
  */
 const NON_RETRYABLE_QR_PAY_CODES: string[] = [API_ERROR_CODES.MANTECA_KYC_REQUIRED]
-
-export type QrInitCopy = { cap: string; merchant: string; kyc: string; pixMinAmount: string }
-
-/**
- * Deterministic `/manteca/qr-payment/init` rejections → copy that names the
- * real cause. Shared by the scan-time query and the post-amount re-init
- * because they hit the same backend checks: an open-amount QR only learns its
- * cap verdict once the user types a number, and that second path used to
- * collapse every one of these into "unexpected error" — the framing
- * product/providers/fiat/README.md records as having blocked a capped user for
- * three days.
- *
- * Returns null when the failure is not one of these; the generic and retry
- * handling differ between the two paths, so each caller keeps its own.
- */
-export function deterministicInitErrorMessage(error: unknown, copy: QrInitCopy): string | null {
-    const message = error instanceof Error ? error.message : ''
-    // Wire code first: the KYC rejection's prose is a plain sentence the
-    // backend can reword, its `code` is stable.
-    if (wireErrorCode(error) === API_ERROR_CODES.MANTECA_KYC_REQUIRED) return copy.kyc
-    if (message.includes('MANTECA_SOURCE_OVER_MONTHLY_CAP')) return copy.cap
-    if (message.includes('MANTECA_MERCHANT_VOLUME_NEAR_CAP') || message.includes('MANTECA_MERCHANT_RECENT_REFUND')) {
-        return copy.merchant
-    }
-    if (message.includes('MANTECA_USER_NOT_PROVISIONED') || message.includes('User KYC not approved')) return copy.kyc
-    if (message.includes('PIX_MIN_AMOUNT')) return copy.pixMinAmount
-    return null
-}
 
 type PaymentProcessor = 'MANTECA'
 
@@ -544,7 +517,13 @@ export default function QRPayPage() {
     const isBlockingError = useMemo(() => {
         // The settling failure says "try again in a few seconds" — keep the Pay
         // button enabled so the user can retry, don't dead-end it like a hard error.
-        return !!errorMessage && errorCode !== 'confirmTransaction' && errorCode !== 'balanceSettling'
+        return (
+            !!errorMessage &&
+            errorCode !== 'confirmTransaction' &&
+            errorCode !== 'balanceSettling' &&
+            // A rejection the user can clear by typing a different amount.
+            errorCode !== 'amountRetryable'
+        )
     }, [errorMessage, errorCode])
 
     const usdAmount = useMemo(() => {
@@ -790,7 +769,7 @@ export default function QRPayPage() {
                 // Cap, merchant-limit and KYC rejections, shared with the
                 // post-amount re-init so both paths name the same real cause.
                 setWaitingForMerchantAmount(false)
-                setErrorInitiatingPayment(deterministicMessage)
+                setErrorInitiatingPayment(deterministicMessage.message)
             } else if (paymentLockFetchStatus === 'paused') {
                 /*
                  * Paused is a positive signal that the DEVICE lost connectivity
@@ -836,6 +815,20 @@ export default function QRPayPage() {
         qrInitCopy,
     ])
 
+    /*
+     * Editing the amount clears the last init error. A cap or Pix-minimum
+     * rejection is about the amount, so leaving its message on screen next to a
+     * new number states something no longer known to be true — and the stale
+     * `amountRetryable` code would outlive the error it was set for.
+     */
+    const handleCurrencyAmountChange = useCallback(
+        (value: string) => {
+            setCurrencyAmount(value)
+            setErrorMessage(null)
+        },
+        [setErrorMessage]
+    )
+
     const merchantName = useMemo(() => {
         if (!paymentLock) return null
         return paymentLock.paymentRecipientName
@@ -866,7 +859,15 @@ export default function QRPayPage() {
                 if (deterministic) {
                     // Deterministic rejection — actionable copy, not a
                     // Sentry-worthy surprise.
-                    setErrorMessage(deterministic)
+                    /*
+                     * A cap or Pix-minimum rejection names the AMOUNT as the
+                     * problem and the copy tells the user to try another one.
+                     * Without the code `isBlockingError` stays true and Pay is
+                     * disabled for the rest of the scan, so the advice could not
+                     * be followed — the same dead end `balanceSettling` exists
+                     * to avoid.
+                     */
+                    setErrorMessage(deterministic.message, deterministic.amountRetryable ? 'amountRetryable' : null)
                 } else {
                     void captureNetworkTriagedFailure(error, {
                         tags: { ...criticalFlowTags('qr-pay'), qr_pay_step: 'initiate' },
@@ -1785,7 +1786,7 @@ export default function QRPayPage() {
                     {currency && (
                         <AmountInput
                             initialAmount={currencyAmount}
-                            setPrimaryAmount={setCurrencyAmount}
+                            setPrimaryAmount={handleCurrencyAmountChange}
                             primaryDenomination={{
                                 symbol: currency.symbol,
                                 price: currency.price,
