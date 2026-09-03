@@ -104,10 +104,19 @@ const IGNORED_ERRORS = {
  * (~95/day on native). The user never sees them: the updater just retries on
  * the next launch. Suppress those, but keep the failures that mean OTA is
  * genuinely broken rather than merely flaky — a bundle that semver-sorts below
- * the installed binary, or one that arrived corrupt.
+ * the installed binary, one that arrived corrupt, or one the plugin rolled back
+ * because notifyAppReady never landed. That last class is the reason this list
+ * is not just the two it started with: an update that silently un-happens
+ * leaves no other trace, and suppressing it made the whole population read as
+ * one event in 90 days (PEANUT-UI-SVT).
  */
 const CAPGO_LOG_PREFIXES = ['[CapgoUpdater]', 'CapgoUpdater :', '[capgo]']
-const CAPGO_ACTIONABLE = ['disable_auto_update_under_native', 'Checksum mismatch']
+const CAPGO_ACTIONABLE = [
+    'disable_auto_update_under_native',
+    'Checksum mismatch',
+    'notifyAppReady was not called',
+    'Update to bundle:',
+]
 
 const isFromCapgo = (searchTexts: string[]): boolean =>
     searchTexts.some((text) => CAPGO_LOG_PREFIXES.some((prefix) => text.includes(prefix)))

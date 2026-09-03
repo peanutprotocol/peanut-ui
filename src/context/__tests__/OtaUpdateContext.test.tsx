@@ -22,9 +22,13 @@ const mockUpdater = {
     current: jest.fn().mockResolvedValue({ bundle: { id: 'builtin' } }),
     getNextBundle: jest.fn(),
     getPluginVersion: jest.fn(),
+    getFailedUpdate: jest.fn().mockResolvedValue(null),
 }
 const mockExitApp = jest.fn().mockResolvedValue(undefined)
-const platform = { android: true, capacitor: true }
+// splashVisible false by default: these cases are about a bundle staged while
+// the user is already in the app, where the launch apply deliberately stands
+// down. The behind-the-splash window has its own describe block.
+const platform = { android: true, capacitor: true, splashVisible: false }
 
 jest.mock('@capgo/capacitor-updater', () => ({ CapacitorUpdater: mockUpdater }))
 jest.mock('@capacitor/app', () => ({ App: { exitApp: () => mockExitApp() } }))
@@ -33,6 +37,7 @@ jest.mock('@/utils/capacitor', () => ({
     isCapacitor: () => platform.capacitor,
     isAndroidNativeBridge: () => platform.android,
 }))
+jest.mock('@/hooks/useSplashGate', () => ({ isSplashVisible: () => platform.splashVisible }))
 
 import { OtaUpdateProvider, useOtaUpdate } from '../OtaUpdateContext'
 
@@ -49,6 +54,8 @@ beforeEach(() => {
     window.localStorage.clear()
     platform.android = true
     platform.capacitor = true
+    platform.splashVisible = false
+    mockUpdater.getFailedUpdate.mockReset().mockResolvedValue(null)
     mockExitApp.mockClear()
     mockUpdater.set.mockReset().mockReturnValue(new Promise(() => {}))
     mockUpdater.reload.mockClear()
@@ -491,5 +498,87 @@ describe('an apply that never reaches the plugin', () => {
         })
         await waitFor(() => expect(mockUpdater.set).toHaveBeenCalledWith({ id: 'b-2' }))
         expect(result.current.applyState).toBe('applying')
+    })
+})
+
+describe('a bundle staged by an earlier launch, found while the splash is still up', () => {
+    /*
+     * next() is only ever consumed by installNext(), which runs from
+     * appMovedToBackground() — so the reload lands in a process the OS is about
+     * to freeze, and on resume every overdue chunk-load timer rejects at once
+     * (PEANUT-UI-SVT). Applying it here instead reloads an app that is on
+     * screen, running at full speed, and still behind its own splash.
+     */
+    beforeEach(() => {
+        platform.splashVisible = true
+    })
+
+    it('applies it immediately rather than leaving it to the background apply', async () => {
+        mockUpdater.getNextBundle.mockResolvedValue(STAGED)
+        setup()
+        await waitFor(() => expect(mockUpdater.set).toHaveBeenCalledWith({ id: 'b-2' }))
+        expect(window.localStorage.getItem('capgoPendingApply')).toBe('b-2')
+    })
+
+    it('still surfaces the bundle, so a rejected apply leaves a restart to offer', async () => {
+        mockUpdater.set.mockReset().mockRejectedValue(new Error('no index.html'))
+        mockUpdater.getNextBundle.mockResolvedValue(STAGED)
+        const { result } = setup()
+        await waitFor(() => expect(result.current.pendingBundle).toEqual(STAGED))
+        // The apply never reached the plugin, so the next launch must not report
+        // it as one that did.
+        expect(window.localStorage.getItem('capgoPendingApply')).toBeNull()
+    })
+
+    it('tries a given bundle once, so a set() that never lands cannot reload every launch', async () => {
+        mockUpdater.getNextBundle.mockResolvedValue(STAGED)
+        setup()
+        await waitFor(() => expect(mockUpdater.set).toHaveBeenCalledTimes(1))
+        mockUpdater.set.mockClear()
+        setup()
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(5_000)
+        })
+        expect(mockUpdater.set).not.toHaveBeenCalled()
+    })
+
+    it('stands down on binaries that would deadlock, leaving the background apply to it', async () => {
+        mockUpdater.getPluginVersion.mockResolvedValue({ version: '8.45.9' })
+        mockUpdater.getNextBundle.mockResolvedValue(STAGED)
+        const { result } = setup()
+        await waitFor(() => expect(result.current.pendingBundle).toEqual(STAGED))
+        expect(mockUpdater.set).not.toHaveBeenCalled()
+        expect(mockExitApp).not.toHaveBeenCalled()
+    })
+
+    it('does nothing when the staged bundle is already the running one', async () => {
+        mockUpdater.getNextBundle.mockResolvedValue(STAGED)
+        mockUpdater.current.mockResolvedValue({ bundle: { id: STAGED.id } })
+        setup()
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(5_000)
+        })
+        expect(mockUpdater.set).not.toHaveBeenCalled()
+    })
+})
+
+describe('rollbacks the plugin performed while no page could report them', () => {
+    it('reports the plugin-recorded failure at launch, under a prefix Sentry keeps', async () => {
+        mockUpdater.getFailedUpdate.mockResolvedValue({ bundle: { id: 'b-9', version: '1.0.56' } })
+        setup()
+        await waitFor(() =>
+            expect(error).toHaveBeenCalledWith(
+                expect.stringContaining('[capgo-apply] plugin rolled back bundle 1.0.56')
+            )
+        )
+    })
+
+    it('stays quiet on binaries whose plugin has no such record', async () => {
+        mockUpdater.getFailedUpdate.mockRejectedValue(new Error('not implemented'))
+        setup()
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(5_000)
+        })
+        expect(error).not.toHaveBeenCalledWith(expect.stringContaining('[capgo-apply]'))
     })
 })
