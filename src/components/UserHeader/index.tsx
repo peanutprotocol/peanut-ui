@@ -44,7 +44,7 @@ export const UserHeader = ({ username }: UserHeaderProps) => {
  * profile name measured 24px at weight 600 for exactly that reason — right
  * size off the caller's token, wrong weight off this component's default.
  * `text-body-m-semibold` is 16/600/20, which is what the old
- * `font-semibold md:text-base` pair already computed to.
+ * semibold + stock-base pair already computed to.
  */
 const LABEL_TYPE = 'text-body-m-semibold'
 

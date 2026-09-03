@@ -176,7 +176,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
 
     if (isRecipientUserLoading || authUser === undefined) {
         return (
-            <div className="flex min-h-[inherit] w-full items-center justify-center">
+            <div className="flex min-h-inherit w-full items-center justify-center">
                 <Loading variant="mascot" />
             </div>
         )
@@ -196,7 +196,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     if (view === 'success') {
         if (!recipientUser) return null
         return (
-            <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+            <div className="flex min-h-inherit flex-col justify-between gap-8">
                 {!!authUser?.user.userId ? (
                     <NavHeader onPrev={() => resetRequestState()} title={tNav('request')} />
                 ) : (
@@ -217,7 +217,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+        <div className="flex min-h-inherit flex-col justify-between gap-8">
             {!!authUser?.user.userId ? (
                 <NavHeader onPrev={onBack} title={tNav('request')} />
             ) : (

@@ -105,7 +105,7 @@ const QRBottomDrawer = ({ url, title, text, buttonText, className }: QRBottomDra
                     reaches the cap through a CSS variable because Tailwind only emits an
                     arbitrary value it can read literally in the source. */}
                 <DrawerContent
-                    className={`mt-0 h-screen touch-none p-4 supports-[height:100dvh]:h-[100dvh] ${className || ''}`}
+                    className={`mt-0 h-screen touch-none p-4 supports-[height:100dvh]:h-dvh ${className || ''}`}
                     style={{ '--qr-drawer-expanded': `${QR_DRAWER_EXPANDED_PX}px` } as CSSProperties}
                     scrollAreaRef={scrollAreaRef}
                     scrollAreaClassName={`overscroll-contain max-h-[calc(var(--qr-drawer-expanded)-3.3125rem)] ${activeSnapPoint === snapPoints[0] || !scrollable ? 'touch-none' : ''}`}

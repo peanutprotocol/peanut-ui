@@ -31,7 +31,7 @@ const ActiveCardGate = ({ noCardMessageKey = 'noActiveCard', children }: ActiveC
     if (isLoading) {
         return (
             <PageContainer>
-                <div className="flex min-h-[inherit] w-full items-center justify-center">
+                <div className="flex min-h-inherit w-full items-center justify-center">
                     <Loading />
                 </div>
             </PageContainer>
@@ -41,7 +41,7 @@ const ActiveCardGate = ({ noCardMessageKey = 'noActiveCard', children }: ActiveC
     if (!card) {
         return (
             <PageContainer>
-                <div className="flex min-h-[inherit] w-full flex-col items-center justify-center gap-4 p-4 text-center">
+                <div className="flex min-h-inherit w-full flex-col items-center justify-center gap-4 p-4 text-center">
                     <p className="text-foreground-primary">{t(noCardMessageKey)}</p>
                     <Button variant="purple" shadowSize="4" onClick={onBack}>
                         {t('backToCard')}

@@ -38,7 +38,7 @@ const ForceIOSPWAInstall = () => {
     const videoSource = getVideoSource()
 
     return (
-        <main className="flex h-[100dvh] w-full flex-col">
+        <main className="flex h-dvh w-full flex-col">
             {/* Hero takes the leftover height and the preview scales into it —
                 a fixed half-and-half split cropped the phone on short screens. */}
             <section className="relative flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden bg-blue-300 px-6 py-6 pt-[calc(1.5rem_+_var(--safe-top))]">

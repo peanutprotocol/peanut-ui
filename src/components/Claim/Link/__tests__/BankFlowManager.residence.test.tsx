@@ -77,6 +77,8 @@ jest.mock('@/redux/hooks', () => ({ useAppDispatch: () => jest.fn() }))
 jest.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(),
     useRouter: () => ({ push: jest.fn() }),
+    // NavHeader mounts the maintenance Banner, which reads the pathname
+    usePathname: () => '/claim',
 }))
 
 const claimLinkData = {

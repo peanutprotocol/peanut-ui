@@ -607,7 +607,7 @@ function MantecaBankWithdrawFlow() {
 
     if (step === 'success') {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-8">
+            <div className="flex min-h-inherit flex-col gap-8">
                 <SoundPlayer sound="success" />
                 <NavHeader title={tNav('withdraw')} />
                 <div className="my-auto space-y-4 flex h-full flex-col justify-center">
@@ -654,7 +654,7 @@ function MantecaBankWithdrawFlow() {
 
     if (step === 'failure') {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-8">
+            <div className="flex min-h-inherit flex-col gap-8">
                 <NavHeader title={tNav('withdraw')} />
                 <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     <Card className="shadow-4">
@@ -676,7 +676,7 @@ function MantecaBankWithdrawFlow() {
         )
     }
     return (
-        <div className="flex min-h-[inherit] flex-col gap-8">
+        <div className="flex min-h-inherit flex-col gap-8">
             <InitiateKycModal
                 prepPath="extended"
                 visible={showKycModal}

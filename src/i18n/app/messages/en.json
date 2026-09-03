@@ -3423,7 +3423,9 @@
             "whatChanged": "We've rewritten the documents below in plain language so they match what Peanut is today, including the Peanut Card and Rewards. There's no rush, read them whenever, and keep using Peanut as usual.",
             "title": "A small update to our terms"
         },
-        "maintenanceBanner": "Maintenance mode, some functionalities won't be available. Funds safe",
+        "maintenanceBanner": "Maintenance mode — some features are temporarily unavailable. Your funds are safe.",
+        "maintenanceTitle": "Under maintenance",
+        "maintenanceBody": "This feature is temporarily unavailable while we work on it. Your funds are safe and everything else works as usual.",
         "iosCopy": {
             "inviteFriendsModal": {
                 "description": "Share your link. Every time a friend you brought makes a payment, you earn cashback."

@@ -66,7 +66,7 @@ export const AppShell = ({
     }
 
     return (
-        <div className="flex min-h-[100dvh] w-full flex-col bg-background-page pt-safe-top">
+        <div className="flex min-h-dvh w-full flex-col bg-background-page pt-safe-top">
             {/* Status-bar safe zone. Paints the inset strip in the app background so
                 the top matches the page even where fixed children would otherwise draw
                 under the status bar. Height is the natively measured inset on Android

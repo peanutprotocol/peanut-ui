@@ -85,7 +85,7 @@ export default function BackendErrorScreen() {
     }
 
     return (
-        <div className="flex h-[100dvh] w-full flex-col items-center justify-center gap-6 bg-background p-6">
+        <div className="flex h-dvh w-full flex-col items-center justify-center gap-6 bg-background p-6">
             <div className="h-32 w-32 opacity-50 grayscale">
                 <PeanutIcon className="h-full w-full" label={tNav('peanutLogoAlt')} />
             </div>

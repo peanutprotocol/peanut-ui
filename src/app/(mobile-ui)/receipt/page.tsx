@@ -47,7 +47,7 @@ export default function NativeReceiptPage() {
     const unavailable = !entryId || !kind ? 'gone' : isError && !entry ? 'loadFailed' : undefined
 
     return (
-        <PageContainer className="receipt-page flex min-h-[100dvh] flex-col items-center justify-center p-6">
+        <PageContainer className="receipt-page flex min-h-dvh flex-col items-center justify-center p-6">
             {/* app chrome: mobile only, and never on the printed/PDF receipt */}
             <div className="md:hidden print:hidden">
                 <NavHeader titleKey="receipt" />

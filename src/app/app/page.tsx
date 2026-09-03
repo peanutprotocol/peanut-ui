@@ -96,7 +96,7 @@ export default function SmartStoreRedirect() {
         : ['ios', 'android']
 
     return (
-        <div className="flex min-h-[100dvh] w-full flex-col bg-white md:flex-row">
+        <div className="flex min-h-dvh w-full flex-col bg-white md:flex-row">
             <MigrationHero className="h-[50dvh] md:h-auto md:w-1/2" />
             <section className="flex flex-1 flex-col justify-between p-6 pb-[calc(1.5rem_+_var(--safe-bottom))] md:w-1/2 md:justify-center md:gap-10">
                 <div className="mx-auto flex w-full max-w-md flex-col gap-3 md:text-center">

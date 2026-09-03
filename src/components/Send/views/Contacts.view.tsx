@@ -78,7 +78,7 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
     // handle error state before checking for empty contacts
     if (!!isError) {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-8">
+            <div className="flex min-h-inherit flex-col gap-8">
                 <NavHeader title={tNav('send')} onPrev={onPrev} />
                 <div className="flex flex-1 items-center justify-center">
                     <EmptyState
@@ -108,7 +108,7 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
     const hasNoSearchResults = isSearching && contacts.length === 0
 
     return (
-        <div className="flex min-h-[inherit] flex-col gap-8">
+        <div className="flex min-h-inherit flex-col gap-8">
             <NavHeader title={tNav('send')} onPrev={onPrev} />
 
             {hasContacts ? (
