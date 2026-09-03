@@ -140,6 +140,58 @@ jobs:
             - name: Typecheck
               run: pnpm typecheck
 
+    # The only pre-merge coverage for the Capacitor static export. Nothing else
+    # in this workflow touches it: native-build.js renames the dynamic routes
+    # out of src/app and swaps in next.config.native.js, so that lane can break
+    # while every other job stays green — which is exactly what a Next 16.3
+    # type-check scope change did. The release lanes (capgo-deploy,
+    # ios-release, android-release) only reach it after merge, on a push to
+    # dev, so without this the first red build is a release.
+    native-export:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  submodules: true
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
+
+            - uses: pnpm/action-setup@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'pnpm'
+
+            - run: pnpm install --frozen-lockfile
+
+            # Deliberately NOT the release lanes' env block. This job proves the
+            # export compiles and never uploads a bundle, so it must not pull
+            # the production NEXT_PUBLIC_* secrets into a job that also runs
+            # PR-authored code. The public literals are real; every secret is a
+            # placeholder. Values only have to be non-empty and inlined:
+            # native-build.js fails closed in CI on a missing
+            # .env.production.local, then verifies each one reached out/.
+            - name: Write placeholder NEXT_PUBLIC_* for the compile check
+              run: |
+                  cat > .env.production.local <<'ENVEOF'
+                  NEXT_PUBLIC_NATIVE_RP_ID=peanut.me
+                  NEXT_PUBLIC_BASE_URL=https://peanut.me
+                  NEXT_PUBLIC_PEANUT_API_URL=https://api.peanut.me
+                  NEXT_PUBLIC_SENTRY_DSN=https://ci0placeholder@o0.ingest.sentry.invalid/0
+                  NEXT_PUBLIC_POSTHOG_KEY=phc_ci0placeholder0000000000000000000000
+                  NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL=https://bundler.ci-placeholder.invalid
+                  NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL=https://paymaster.ci-placeholder.invalid
+                  NEXT_PUBLIC_ONESIGNAL_APP_ID=00000000-0000-4000-8000-000000000000
+                  ENVEOF
+
+            - name: Build the static export
+              run: node scripts/native-build.js
+
+            - name: Verify export output
+              run: |
+                  test -f out/index.html || { echo "::error::out/index.html missing"; exit 1; }
+                  echo "Export ready. File count: $(find out -type f | wc -l)"
+
     # Isolated on purpose. The BE's living fixture lives in peanut-api-ts, so
     # fetching it needs a cross-repo secret — and a secret must never share a
     # job with PR-authored code, which can plant a GITHUB_PATH wrapper during
@@ -907,7 +959,7 @@ jobs:
     ci-success:
         name: ci-success
         if: always()
-        needs: [format, ds-lint, eslint, typecheck, unit, report, human-authors]
+        needs: [format, ds-lint, eslint, typecheck, native-export, unit, report, human-authors]
         runs-on: ubuntu-latest
         steps:
             - name: Verify all required jobs passed
@@ -919,6 +971,7 @@ jobs:
                       echo "  ds-lint:   ${{ needs['ds-lint'].result }}"
                       echo "  eslint:    ${{ needs.eslint.result }}"
                       echo "  typecheck: ${{ needs.typecheck.result }}"
+                      echo "  native-export: ${{ needs['native-export'].result }}"
                       echo "  unit:      ${{ needs.unit.result }}"
                       echo "  report:    ${{ needs.report.result }}"
                       echo "  human-authors: ${{ needs['human-authors'].result }}"
