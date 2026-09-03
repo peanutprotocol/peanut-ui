@@ -300,8 +300,6 @@ let nextConfig = {
             '@radix-ui/react-accordion',
             '@radix-ui/react-select',
             '@radix-ui/react-slider',
-            '@reduxjs/toolkit',
-            'react-redux',
             'lodash',
             'date-fns',
             'react-hook-form',
