@@ -78,8 +78,9 @@ jest.mock('@/utils/cross-chain-fee.utils', () => ({
     isWithdrawFeeDisproportionate: () => false,
 }))
 
+const mockIsAmountWithinBalance = jest.fn((..._args: unknown[]) => true)
 jest.mock('@/utils/balance.utils', () => ({
-    isAmountWithinBalance: () => true,
+    isAmountWithinBalance: (...args: unknown[]) => mockIsAmountWithinBalance(...args),
 }))
 
 jest.mock('@/utils/withdraw.utils', () => ({
@@ -89,6 +90,7 @@ jest.mock('@/utils/withdraw.utils', () => ({
 jest.mock('@/utils/general.utils', () => ({
     isTxReverted: (receipt: { status?: string } | null) => receipt?.status === 'reverted',
     printableAddress: (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`,
+    validateEnsName: () => false,
 }))
 
 jest.mock('@/utils/url.utils', () => ({
@@ -126,9 +128,28 @@ jest.mock('@/features/withdraw/views/ConfirmWithdrawView', () => ({
     ),
 }))
 
+// exposes onReview so the setup (request/charge creation) path is testable
 jest.mock('@/features/withdraw/views/InitialWithdrawView', () => ({
     __esModule: true,
-    default: () => <div data-testid="initial-view" />,
+    default: (props: { onReview: (data: unknown) => void }) => (
+        <button
+            data-testid="review-cta"
+            onClick={() =>
+                props.onReview({
+                    address: '0x1111111111111111111111111111111111111111',
+                    token: {
+                        address: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+                        symbol: 'USDC',
+                        decimals: 6,
+                        price: 1,
+                    },
+                    chain: { chainId: 42161, networkName: 'Arbitrum' },
+                })
+            }
+        >
+            Review
+        </button>
+    ),
 }))
 
 jest.mock('@/features/payments/shared/components/PaymentSuccessView', () => ({
@@ -183,8 +204,10 @@ jest.mock('@/hooks/useFlowStepper', () => ({
         return mockStepper
     },
 }))
+// mutable so tests can hand the page a tampered ?amount= (Chip round 4)
+let mockUrlAmount = '50'
 jest.mock('@/features/withdraw/useWithdrawAmount', () => ({
-    useWithdrawAmount: () => ['50', jest.fn()],
+    useWithdrawAmount: () => [mockUrlAmount, jest.fn()],
 }))
 const mockSetPaymentDetails = jest.fn()
 const mockSetTransactionHash = jest.fn()
@@ -212,6 +235,7 @@ const mockSetRecipient = jest.fn()
 const mockSetIsValidRecipient = jest.fn()
 const mockWithdrawFlow = {
     withdrawData,
+    recipient: { address: RECIPIENT, name: '' },
     transactionHash: null as string | null,
     setRecipient: mockSetRecipient,
     setIsValidRecipient: mockSetIsValidRecipient,
@@ -293,6 +317,10 @@ beforeEach(() => {
     jest.clearAllMocks()
     mockRecordPayment.mockResolvedValue(PAYMENT_RESULT)
     Object.assign(mockCrossChainTransfer, { isXChain: false, isDiffToken: false })
+    mockUrlAmount = '50'
+    mockStepper.step = 'review'
+    mockIsAmountWithinBalance.mockReset()
+    mockIsAmountWithinBalance.mockImplementation(() => true)
 })
 
 // ---------- tests ----------
@@ -548,5 +576,100 @@ describe('crypto withdraw — unmount keeps the flow selection (Chip review PR #
         expect(mockSetPaymentDetails).toHaveBeenCalledWith(null)
         expect(mockSetRecipient).toHaveBeenCalledWith({ address: '', name: '' })
         expect(mockSetIsValidRecipient).toHaveBeenCalledWith(false)
+    })
+})
+
+describe('crypto withdraw — URL amount validation (Chip review round 4)', () => {
+    // the setup path: recipient screen → Review click → request/charge creation
+    const clickReview = () => {
+        mockStepper.step = 'recipient'
+        const view = render(<WithdrawCryptoPage />)
+        fireEvent.click(screen.getByTestId('review-cta'))
+        return view
+    }
+
+    const { requestsApi } = jest.requireMock('@/services/requests') as {
+        requestsApi: { create: jest.Mock }
+    }
+    const { chargesApi } = jest.requireMock('@/services/charges') as {
+        chargesApi: { create: jest.Mock; get: jest.Mock }
+    }
+
+    const armHappyPersistence = () => {
+        requestsApi.create.mockResolvedValue({ uuid: 'req-1' })
+        chargesApi.create.mockResolvedValue({ data: { id: CHARGE_UUID } })
+        chargesApi.get.mockResolvedValue(chargeDetails)
+    }
+
+    test.each([['0'], ['abc'], ['-5']])('?amount=%s persists no request and no charge', async (tampered) => {
+        mockUrlAmount = tampered
+        clickReview()
+
+        // error surfaced, nothing persisted
+        await waitFor(() => expect(mockSetPaymentError).toHaveBeenCalled())
+        expect(requestsApi.create).not.toHaveBeenCalled()
+        expect(chargesApi.create).not.toHaveBeenCalled()
+    })
+
+    test('an over-balance ?amount= persists no request and no charge', async () => {
+        mockUrlAmount = '150'
+        mockIsAmountWithinBalance.mockImplementation(() => false)
+        clickReview()
+
+        await waitFor(() => expect(mockSetPaymentError).toHaveBeenCalled())
+        expect(requestsApi.create).not.toHaveBeenCalled()
+        expect(chargesApi.create).not.toHaveBeenCalled()
+    })
+
+    test('a valid amount persists the request/charge with the normalized value', async () => {
+        armHappyPersistence()
+        clickReview()
+
+        await waitFor(() => expect(chargesApi.get).toHaveBeenCalledWith(CHARGE_UUID))
+        expect(requestsApi.create).toHaveBeenCalledWith(expect.objectContaining({ tokenAmount: '50.000000' }))
+        expect(chargesApi.create).toHaveBeenCalledWith(
+            expect.objectContaining({ local_price: { amount: '50', currency: 'USD' } })
+        )
+    })
+
+    test('a post-review ?amount= edit does not change the broadcast — the charge-pinned amount moves', async () => {
+        armHappyPersistence()
+        mockSendMoney.mockResolvedValue({
+            txHash: '0xbetx',
+            userOpHash: undefined,
+            receipt: null,
+            strategy: 'collateral-only',
+        })
+
+        const view = clickReview()
+        await waitFor(() => expect(chargesApi.get).toHaveBeenCalled())
+
+        // tamper the URL after the records exist, then confirm
+        mockUrlAmount = '999999'
+        mockStepper.step = 'review'
+        view.rerender(<WithdrawCryptoPage />)
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+
+        await waitFor(() => expect(mockSendMoney).toHaveBeenCalled())
+        expect(mockSendMoney).toHaveBeenCalledWith(RECIPIENT, '50', expect.anything())
+    })
+
+    test('a tampered over-balance amount at confirm never reaches sendMoney', async () => {
+        // no setup ran in this mount (no pin) — the URL amount is all there is
+        mockUrlAmount = '150'
+        mockIsAmountWithinBalance.mockImplementation(() => false)
+        await confirm()
+
+        await waitFor(() => expect(mockSetPaymentError).toHaveBeenCalled())
+        expect(mockSendMoney).not.toHaveBeenCalled()
+        expect(mockSendTransactions).not.toHaveBeenCalled()
+    })
+
+    test('a malformed amount at confirm never reaches sendMoney', async () => {
+        mockUrlAmount = 'abc'
+        await confirm()
+
+        await waitFor(() => expect(mockSetPaymentError).toHaveBeenCalled())
+        expect(mockSendMoney).not.toHaveBeenCalled()
     })
 })

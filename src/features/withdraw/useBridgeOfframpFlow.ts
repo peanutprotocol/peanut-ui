@@ -5,7 +5,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import { isTxReverted } from '@/utils/general.utils'
 import { useParams, useRouter } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
@@ -379,12 +379,17 @@ export function useBridgeOfframpFlow() {
     // proceedWithOfframp runs straight away (it handles the not-ready cases).
     // upcoming (future-dated) eea uplift opens the advisory modal here — fire the
     // funnel event as it opens.
-    const handleCreateAndInitiateOfframp = useCallback(() => {
+    // A fresh closure every render, on purpose (Chip review round 4): a
+    // useCallback here froze the FIRST render's proceedWithOfframp — its
+    // captured `gate`/`balance` never updated (the deps are all stable for
+    // the page's lifetime), so a click after capabilities resolved ran the
+    // stale `gate.kind === 'loading'` no-op forever. Nothing needs a stable
+    // identity: this is a button onClick, not an effect dep.
+    const handleCreateAndInitiateOfframp = () => {
         const advisoryTrigger = upliftTriggerFromAdvisory(advisory)
         if (advisoryTrigger) trackUpliftStarted(advisoryTrigger)
         advisoryIntercept(() => void proceedWithOfframp())
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [advisory, advisoryIntercept, trackUpliftStarted])
+    }
 
     useEffect(() => {
         fetchUser()

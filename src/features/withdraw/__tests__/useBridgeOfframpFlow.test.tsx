@@ -1,0 +1,276 @@
+/**
+ * Bank offramp submit path — the money leg of the withdraw rebuild
+ * (createOfframp → sendMoney → confirmOfframp), exercised through the REAL
+ * useBridgeOfframpFlow hook under the nuqs testing adapter (Chip review
+ * round 4).
+ *
+ * The headline regression: the submit handler must be a fresh closure every
+ * render. A useCallback with lifetime-stable deps froze the FIRST render's
+ * gate/balance, so a click after capabilities resolved ran the stale
+ * `gate.kind === 'loading'` no-op forever (dead button until remount).
+ */
+import React from 'react'
+import { renderHook, act } from '@testing-library/react'
+import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
+
+// ---------- module-level mocks ----------
+
+jest.mock('next/navigation', () => ({
+    useParams: () => ({ country: 'us' }),
+    useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn(), prefetch: jest.fn() }),
+}))
+
+jest.mock('@tanstack/react-query', () => ({
+    useQueryClient: () => ({ invalidateQueries: jest.fn() }),
+}))
+
+// namespaced key-echo so error copy is assertable per namespace
+jest.mock('next-intl', () => ({
+    useTranslations: (ns: string) => (key: string) => `${ns}.${key}`,
+}))
+
+jest.mock('posthog-js', () => ({
+    __esModule: true,
+    default: { capture: jest.fn(), init: jest.fn() },
+}))
+
+jest.mock('@/constants/analytics.consts', () => ({
+    ANALYTICS_EVENTS: {
+        WITHDRAW_CONFIRMED: 'withdraw_confirmed',
+        WITHDRAW_COMPLETED: 'withdraw_completed',
+        WITHDRAW_FAILED: 'withdraw_failed',
+    },
+}))
+
+jest.mock('@/constants/zerodev.consts', () => ({
+    PEANUT_WALLET_CHAIN: { id: 42161 },
+    PEANUT_WALLET_TOKEN_SYMBOL: 'USDC',
+}))
+
+jest.mock('@/hooks/useFriendlyError', () => ({
+    useFriendlyError: () => (err: unknown) => (err instanceof Error ? err.message : String(err)),
+}))
+
+jest.mock('@/utils/general.utils', () => ({
+    isTxReverted: () => false,
+}))
+
+jest.mock('@/utils/bridge-accounts.utils', () => ({
+    getBridgeChainName: () => 'arbitrum',
+}))
+
+jest.mock('@/utils/bridge.utils', () => ({
+    getOfframpConfigFromAccount: () => ({ currency: 'usd', paymentRail: 'ach' }),
+    getCountryFromPath: () => ({ id: 'US', name: 'United States' }),
+    railJurisdictionForBank: () => 'US',
+}))
+
+jest.mock('@/utils/regions.utils', () => ({
+    isBridgeSupportedCountry: () => true,
+}))
+
+jest.mock('@/utils/capability-gate', () => ({
+    isVerifiableGate: () => true,
+}))
+
+jest.mock('@/utils/eea-uplift.utils', () => ({
+    upliftTriggerFromGate: () => null,
+    upliftTriggerFromAdvisory: () => null,
+}))
+
+jest.mock('@/utils/native-routes', () => ({
+    withdrawCountryUrl: (country: string, marker: string) => `/withdraw/${country}${marker}`,
+}))
+
+jest.mock('@/utils/settled-tx-hash.utils', () => ({
+    resolveSettledTxHash: ({ txHash }: { txHash?: string }) => ({ hash: txHash ?? null }),
+}))
+
+jest.mock('@/hooks/useSafeBack', () => ({
+    useSafeBack: () => jest.fn(),
+}))
+
+jest.mock('@/hooks/useSendFlowOrigin', () => ({
+    useSendFlowOrigin: () => ({ isBankFromSend: false }),
+}))
+
+jest.mock('@/hooks/usePointsCalculation', () => ({
+    usePointsCalculation: () => ({ pointsData: null }),
+}))
+
+jest.mock('@/hooks/wallet/usePendingTransactions', () => ({
+    usePendingTransactions: () => ({ hasPendingTransactions: false }),
+}))
+
+jest.mock('@/hooks/useTosGuard', () => ({
+    useTosGuard: () => ({ guardWithTos: jest.fn(), showBridgeTos: false, hideTos: jest.fn() }),
+}))
+
+jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
+    useMultiPhaseKycFlow: () => ({ isLoading: false, showWrapper: false, handleSelfHealResubmit: jest.fn() }),
+}))
+
+jest.mock('@/hooks/useWaitingOnProviderModal', () => ({
+    useWaitingOnProviderModal: () => ({ open: jest.fn(), isOpen: false }),
+}))
+
+// the advisory pre-empt is pass-through here — its own behavior has its own
+// tests. IMPORTANT: render-stable singletons, like the real hooks (their
+// returns are useCallback-stable) — unstable mocks would recompute the old
+// memoized submit handler and hide the frozen-closure regression.
+const stableAdvisoryPreempt = { intercept: (fn: () => void) => fn(), modalProps: {} }
+jest.mock('@/hooks/useAdvisoryPreempt', () => ({
+    useAdvisoryPreempt: () => stableAdvisoryPreempt,
+}))
+
+const stableUpliftFunnel = { trackStarted: jest.fn(), trackCompleted: jest.fn(), reset: jest.fn() }
+jest.mock('@/hooks/useEeaUpliftFunnel', () => ({
+    useEeaUpliftFunnel: () => stableUpliftFunnel,
+}))
+
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ user: { user: { bridgeCustomerId: 'cust-1' } }, fetchUser: jest.fn() }),
+}))
+
+const mockCreateOfframp = jest.fn()
+const mockConfirmOfframp = jest.fn()
+jest.mock('@/app/actions/offramp', () => ({
+    createOfframp: (...args: unknown[]) => mockCreateOfframp(...args),
+    confirmOfframp: (...args: unknown[]) => mockConfirmOfframp(...args),
+}))
+
+// mutable gate + balance: the stale-closure regression flips these mid-test.
+// gateFor is a fresh function each render, so the hook's gate memo recomputes.
+let mockGateKind: string = 'ready'
+jest.mock('@/hooks/useCapabilities', () => ({
+    useCapabilities: () => ({ gateFor: () => ({ kind: mockGateKind, advisory: undefined }) }),
+}))
+
+const mockSendMoney = jest.fn()
+let mockBalance: bigint | undefined = 100n * 10n ** 6n // 100 USDC
+jest.mock('@/hooks/wallet/useWallet', () => ({
+    useWallet: () => ({ address: '0xuser', sendMoney: mockSendMoney, spendableBalance: mockBalance }),
+}))
+
+const mockSetError = jest.fn()
+const bankAccount = { id: 'acct-1', bridgeAccountId: 'ext-1' }
+jest.mock('@/features/withdraw/WithdrawFlowContext', () => ({
+    useWithdrawFlow: () => ({
+        selectedBankAccount: bankAccount,
+        error: { showError: false, errorMessage: '' },
+        setError: mockSetError,
+    }),
+}))
+
+import { useBridgeOfframpFlow } from '../useBridgeOfframpFlow'
+
+// ---------- helpers ----------
+
+const renderFlow = (searchParams: Record<string, string>) =>
+    renderHook(() => useBridgeOfframpFlow(), {
+        wrapper: ({ children }: { children: React.ReactNode }) => (
+            <NuqsTestingAdapter searchParams={searchParams}>{children}</NuqsTestingAdapter>
+        ),
+    })
+
+const armHappyOfframp = () => {
+    mockCreateOfframp.mockResolvedValue({
+        data: { depositInstructions: { toAddress: '0xdead' }, transferId: 'tr-1' },
+    })
+    mockSendMoney.mockResolvedValue({ receipt: null, userOpHash: undefined, txHash: '0xtx' })
+    mockConfirmOfframp.mockResolvedValue({})
+}
+
+beforeEach(() => {
+    jest.clearAllMocks()
+    mockGateKind = 'ready'
+    mockBalance = 100n * 10n ** 6n
+})
+
+// ---------- tests ----------
+
+describe('useBridgeOfframpFlow — submit path (Chip review round 4)', () => {
+    it('runs create → send → confirm with the normalized URL amount', async () => {
+        armHappyOfframp()
+        const view = renderFlow({ amount: '50', step: 'review' })
+
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+
+        expect(mockCreateOfframp).toHaveBeenCalledWith(expect.objectContaining({ amount: '50' }))
+        expect(mockSendMoney).toHaveBeenCalledWith('0xdead', '50', { kind: 'FIAT_OFFRAMP' })
+        expect(mockConfirmOfframp).toHaveBeenCalledWith('tr-1', '0xtx')
+    })
+
+    it('a click after the gate and balance resolve runs the offramp (regression: memoized handler froze the loading gate)', async () => {
+        armHappyOfframp()
+        mockGateKind = 'loading'
+        mockBalance = undefined
+        const view = renderFlow({ amount: '50', step: 'review' })
+
+        // first render: capabilities + balance still loading — the click no-ops
+        expect(view.result.current.isBalanceReady).toBe(false)
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+        expect(mockCreateOfframp).not.toHaveBeenCalled()
+
+        // capabilities + balance land; the SAME mounted hook must now proceed
+        mockGateKind = 'ready'
+        mockBalance = 100n * 10n ** 6n
+        view.rerender()
+        expect(view.result.current.isBalanceReady).toBe(true)
+
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+        expect(mockCreateOfframp).toHaveBeenCalledWith(expect.objectContaining({ amount: '50' }))
+        expect(mockConfirmOfframp).toHaveBeenCalledWith('tr-1', '0xtx')
+    })
+
+    it('a tampered over-balance ?amount= never reaches createOfframp or sendMoney', async () => {
+        const view = renderFlow({ amount: '150', step: 'review' })
+
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+
+        expect(mockCreateOfframp).not.toHaveBeenCalled()
+        expect(mockSendMoney).not.toHaveBeenCalled()
+        expect(mockSetError).toHaveBeenCalledWith({
+            showError: true,
+            errorMessage: 'errors.notEnoughBalanceAddFunds',
+        })
+    })
+
+    it('a below-minimum ?amount= never reaches createOfframp', async () => {
+        const view = renderFlow({ amount: '0.5', step: 'review' })
+
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+
+        expect(mockCreateOfframp).not.toHaveBeenCalled()
+        expect(mockSendMoney).not.toHaveBeenCalled()
+        expect(mockSetError).toHaveBeenCalledWith({
+            showError: true,
+            errorMessage: 'withdraw.errors.minimumWithdrawal',
+        })
+    })
+
+    it('a malformed ?amount= never reaches createOfframp', async () => {
+        const view = renderFlow({ amount: 'abc', step: 'review' })
+
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+
+        expect(mockCreateOfframp).not.toHaveBeenCalled()
+        expect(mockSendMoney).not.toHaveBeenCalled()
+        expect(mockSetError).toHaveBeenCalledWith({
+            showError: true,
+            errorMessage: 'withdraw.errors.invalidAmount',
+        })
+    })
+})
