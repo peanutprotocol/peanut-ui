@@ -21,6 +21,7 @@ import CreateAccountButton from '@/components/Global/CreateAccountButton'
 import { PeanutCheering } from '@/assets/mascot'
 import Image from 'next/image'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
+import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
 import { useTranslations } from 'next-intl'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import Loading from '@/components/Global/Loading'
@@ -180,6 +181,9 @@ export const SuccessClaimLinkView = ({
         if (!isClaimed) return
         triggerHaptic()
     }, [isClaimed, triggerHaptic])
+
+    // same gate as the haptic: a confirmed claim, never the optimistic mount
+    useAppReviewNudge(authUser?.user.userId, 'money_received', isClaimed && !claimFailure)
 
     // The optimistic 202 lands here with no outcome yet. Hold the processing
     // state until the claim is confirmed — rendering success before that would

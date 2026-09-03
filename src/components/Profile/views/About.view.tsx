@@ -10,6 +10,9 @@ import { LEGAL_POLICIES } from '@/constants/legal-policies'
 import { useAuth } from '@/context/authContext'
 import { claimPeanutTeamBadge } from '@/services/peanut-team-badge'
 import { useAppVersion } from '@/hooks/useAppVersion'
+import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
+import { openStoreReviewPage } from '@/utils/app-review'
+import { isCapacitor } from '@/utils/capacitor'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useTranslations } from 'next-intl'
 import { useEffect, useRef, useState } from 'react'
@@ -32,6 +35,12 @@ export const AboutView = ({ appVersion }: { appVersion: string }) => {
     const betaAccess = useBetaUpdatesAccess()
     const betaCardRef = useRef<HTMLDivElement>(null)
     const { fetchUser } = useAuth()
+    const { deviceType } = useDeviceType()
+    const store = deviceType === DeviceType.ANDROID ? 'android' : 'ios'
+    // false through SSR and the first client render — a render-time isCapacitor()
+    // disagrees with the prerendered html and hard-fails hydration in the WebView
+    const [isNative, setIsNative] = useState(false)
+    useEffect(() => setIsNative(isCapacitor()), [])
 
     useEffect(() => {
         if (betaRevealed) betaCardRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' })
@@ -87,6 +96,25 @@ export const AboutView = ({ appVersion }: { appVersion: string }) => {
                     </Card>
                 ))}
             </div>
+
+            {/* Native only: the web has no store listing to review against.
+                A row the user taps themselves, never a prompt — see
+                utils/app-review.ts for why that distinction is the whole rule. */}
+            {isNative && (
+                <div>
+                    <h1 className="mb-2 font-bold text-black">{t('rateHeading')}</h1>
+                    <Card position="first">
+                        <button
+                            type="button"
+                            onClick={() => void openStoreReviewPage(store)}
+                            className="flex w-full cursor-pointer justify-between py-1"
+                        >
+                            <span className="text-body-s text-black">{t('rate')}</span>
+                            <NavigationArrow size={24} className="fill-black" />
+                        </button>
+                    </Card>
+                </div>
+            )}
 
             {betaRevealed && (
                 <div ref={betaCardRef}>

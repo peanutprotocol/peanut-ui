@@ -149,6 +149,13 @@ export const ANALYTICS_EVENTS = {
     NOTIFICATION_CLICKED: 'notification_clicked',
     NOTIFICATION_SUBSCRIPTION_SNAPSHOT: 'notification_subscription_snapshot',
 
+    // ── App store review ──
+    // The OS sheet was requested. There is deliberately no "shown" or "rated"
+    // counterpart: neither SKStoreReviewController nor Play In-App Review tells
+    // us whether the sheet appeared or what the user did. Measure the outcome
+    // against App Store Connect / Play Console rating counts, not against this.
+    REVIEW_REQUESTED: 'review_requested',
+
     // ── Modal Fatigue ──
     MODAL_SHOWN: 'modal_shown',
     MODAL_DISMISSED: 'modal_dismissed',
