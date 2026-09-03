@@ -24,10 +24,10 @@ jest.mock('@/config/underMaintenance.config', () => ({
     },
 }))
 
-const renderBanner = () =>
+const renderBanner = (props?: { variant?: 'feature' | 'global' }) =>
     render(
         <NextIntlClientProvider locale="en" messages={en}>
-            <Banner />
+            <Banner {...props} />
         </NextIntlClientProvider>
     )
 
@@ -56,6 +56,17 @@ describe('Banner maintenance path targeting', () => {
         mockPathname.mockReturnValue('/history')
         const { container } = renderBanner()
         expect(container).toBeEmptyDOMElement()
+    })
+
+    // full maintenance is a global outage — the feature copy's "everything
+    // else works as usual" would be a lie, so the global one-liner wins
+    it('full maintenance forces the global copy even on a feature mount', () => {
+        mockConfig.enableMaintenanceBanner = false
+        mockConfig.enableFullMaintenance = true
+        mockPathname.mockReturnValue('/card')
+        renderBanner({ variant: 'feature' })
+        expect(screen.getByText(en.global.maintenanceBanner)).toBeInTheDocument()
+        expect(screen.queryByText(en.global.maintenanceBody)).not.toBeInTheDocument()
     })
 
     it('full maintenance ignores path targeting', () => {

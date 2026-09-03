@@ -61,7 +61,10 @@ export function Banner({ className = 'mx-4 mt-2', variant = 'global' }: BannerPr
         maintenanceConfig.maintenanceBannerPaths.some((p) => pathname === p || pathname.startsWith(`${p}/`))
 
     if (maintenanceConfig.enableFullMaintenance || (maintenanceConfig.enableMaintenanceBanner && onTargetedPath)) {
-        if (variant === 'feature') {
+        // full maintenance is a global outage — "everything else works as
+        // usual" would be a lie, so the feature copy only applies to the
+        // scoped banner mode
+        if (variant === 'feature' && !maintenanceConfig.enableFullMaintenance) {
             return (
                 <Notification priority="error" title={t('maintenanceTitle')} className={className}>
                     {t('maintenanceBody')}

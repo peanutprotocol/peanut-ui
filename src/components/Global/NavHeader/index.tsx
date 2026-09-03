@@ -1,4 +1,5 @@
 'use client'
+import { useRef } from 'react'
 import { useTranslations } from 'next-intl'
 // type-only: erased at build, so the catalog is not bundled here
 import type enMessages from '@/i18n/app/messages/en.json'
@@ -29,6 +30,11 @@ interface NavHeaderProps {
     /** render no back button at all (board navigation.top.trailing.*) —
      *  ex-FlowHeader flows that hid the button on step 1 */
     hideBackBtn?: boolean
+    /** opt out of the maintenance banner mount — for overlay/marketing navs
+     *  (HeroBackNav floats this header over a hero; a banner inside that
+     *  absolute container covers the page, and marketing/shhhhh must show no
+     *  maintenance notice at all — ruled 2026-09-03). */
+    hideMaintenanceBanner?: boolean
 }
 
 // board 17802:61534 top-nav circle button: 40px visual, no shadow, pseudo-element
@@ -48,6 +54,7 @@ const NavHeader = ({
     titleClassName,
     rightElement,
     hideBackBtn = false,
+    hideMaintenanceBanner = false,
 }: NavHeaderProps) => {
     // marketing routes mount NavHeader without the app provider tree, where
     // useAuth throws by design. Auth only feeds the logout button, so "no
@@ -65,12 +72,13 @@ const NavHeader = ({
     const tCommon = useTranslations('common')
     const label = title ?? (titleKey ? tNav(titleKey) : undefined)
 
-    // tell the shell a header is on screen, so its headerless-state
+    // tell the shell a VISIBLE header is on screen, so its headerless-state
     // maintenance-banner fallback stays quiet (this header carries the banner)
-    useRegisterNavHeader()
+    const rootRef = useRef<HTMLDivElement>(null)
+    useRegisterNavHeader(rootRef, hideMaintenanceBanner)
 
     return (
-        <div className="w-full">
+        <div className="w-full" ref={rootRef}>
             <div className="relative flex w-full flex-row items-center justify-between">
                 {hideBackBtn ? (
                     <div />
@@ -139,7 +147,7 @@ const NavHeader = ({
                 own px-4 already insets it. Gap: section gap XL/24 (`mt-6`,
                 spacing board 17291:2772) — the banner is a block in the page
                 stack, same rhythm as PageStack's gap-6. */}
-            <Banner variant="feature" className="mt-6" />
+            {!hideMaintenanceBanner && <Banner variant="feature" className="mt-6" />}
         </div>
     )
 }

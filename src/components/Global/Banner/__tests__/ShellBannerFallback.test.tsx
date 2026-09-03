@@ -59,6 +59,29 @@ describe('ShellBannerFallback', () => {
         expect(backButton.compareDocumentPosition(banner) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
 
+    // a header inside a responsive-hidden wrapper (md:hidden receipt chrome)
+    // is display:none at that breakpoint — its banner is hidden with it, so
+    // the shell fallback must stay on duty (checkVisibility-driven)
+    it('keeps the fallback when the header is CSS-hidden', () => {
+        // jsdom has no checkVisibility — install one reporting hidden
+        const proto = HTMLElement.prototype as unknown as { checkVisibility?: () => boolean }
+        proto.checkVisibility = () => false
+        try {
+            renderShell(<NavHeader title="Receipt" />)
+            expect(screen.getByText(en.global.maintenanceBanner)).toBeInTheDocument()
+        } finally {
+            delete proto.checkVisibility
+        }
+    })
+
+    // marketing/overlay navs opt out of the banner entirely — they must not
+    // suppress the fallback either (they carry no banner of their own)
+    it('stays on duty when the only header opted out of the banner', () => {
+        renderShell(<NavHeader title="Hero" hideMaintenanceBanner />)
+        expect(screen.queryByText(en.global.maintenanceBody)).not.toBeInTheDocument()
+        expect(screen.getByText(en.global.maintenanceBanner)).toBeInTheDocument()
+    })
+
     it('shows nothing outside maintenance mode', () => {
         mockConfig.enableMaintenanceBanner = false
         renderShell()

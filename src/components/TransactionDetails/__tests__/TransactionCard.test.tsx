@@ -317,4 +317,11 @@ describe('TransactionCard — open-request pending exemption', () => {
         expect(pendingPill(container)).not.toBeNull()
         expect(screen.getByText('-$10')).not.toHaveClass('opacity-40')
     })
+
+    // a pending refund CREDIT has not settled — full-strength would overpromise
+    it('keeps a pending card refund greyed', () => {
+        const tx = { ...cardSpendTx({ isRefund: true }), status: 'pending', direction: 'receive' } as TransactionDetails
+        renderPending(tx, 'receive')
+        expect(screen.getByText('+$10')).toHaveClass('opacity-40')
+    })
 })
