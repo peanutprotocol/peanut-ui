@@ -1001,7 +1001,7 @@ export default function NotificationUsageInventoryPage() {
             <PageSection
                 id="toasts"
                 title="Toasts"
-                blurb="Every useToast caller renders the same component floating bottom-right (ToastStack). Four generic types plus two custom-content pills; the cooldown pill still shows the double-icon bug (content brings its own icon, hideIcon not passed)."
+                blurb="Every useToast caller renders the same component floating bottom-right (ToastStack). Four generic types plus two custom-content pills. Custom content suppresses the stock priority icon by construction in ToastStack (bea446822), so exactly one icon renders — mirrored here with hideIcon since these are direct Notification renders."
             >
                 <div className="flex max-w-xl flex-col items-end gap-2 rounded-sm border border-border-subtle bg-background-page p-4">
                     <div className="max-w-md">
@@ -1026,12 +1026,19 @@ export default function NotificationUsageInventoryPage() {
                         </Notification>
                     </div>
                     <div className="max-w-md">
-                        {/* RainCooldownContext:109 — renders like this today: priority icon
-                            AND the content's clock icon (the double-icon bug) */}
-                        <Notification priority="info" onDismiss={noop}>
+                        {/* RainCooldownContext:111 — custom content pill. In production it goes
+                            through ToastStack, which forces hideIcon whenever content is set
+                            (bea446822), so only the content's clock renders. hideIcon here
+                            mirrors that, since this is a direct Notification render. */}
+                        <Notification
+                            priority="info"
+                            hideIcon
+                            onDismiss={noop}
+                            className="border border-action-secondary"
+                        >
                             <span className="flex items-center gap-2">
                                 <Icon name="clock" size={16} className="shrink-0" />
-                                Card locked for 4:32
+                                Card cool-down · 4:32
                             </span>
                         </Notification>
                     </div>
@@ -1052,9 +1059,9 @@ export default function NotificationUsageInventoryPage() {
             <DevNoteCard title="Inventory notes">
                 Hand-transcribed from grep + i18n (2026-09-02, re-checked 2026-09-03) — re-grep before trusting counts
                 after big merges. 96 inline call sites + the toast surface; flow errors sampled, everything else
-                exhaustive. Runtime-only copy is marked &quot;representative&quot;. Known bug for the toast rows:
-                RainCooldownContext passes content with its own clock icon and no hideIcon, so the pill renders two
-                icons.
+                exhaustive. Runtime-only copy is marked &quot;representative&quot;. The old double-icon toast bug is
+                gone: ToastStack suppresses the stock icon whenever custom content is set (bea446822), pinned by
+                ToastStack.test.tsx.
             </DevNoteCard>
         </DevPageShell>
     )
