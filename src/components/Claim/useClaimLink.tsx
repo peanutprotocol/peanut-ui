@@ -213,6 +213,10 @@ export async function executeClaimXChain({
     // token, recipient — so that re-claims to the same destination reuse
     // the SDA (idempotent, doesn't hit Rhino's rate limit) but a re-claim
     // to a different chain/token/address gets a fresh SDA.
+    // The backend reads the claim amount from chain (via this deposit identity)
+    // and rejects a sub-minimum bridge before returning the SDA — Rhino parks
+    // such a deposit with no auto-refund. Passing the identity, not an amount,
+    // keeps the guard server-authoritative.
     const sda = await provisionSdaTransfer({
         context: 'claim-xchain',
         contextId: `${params.chainId}:${params.depositIdx}:${destinationChainId}:${tokenSymbol}:${recipientAddress.toLowerCase()}`,
@@ -220,14 +224,15 @@ export async function executeClaimXChain({
         destinationChain: destRhinoChain,
         destinationAddress: recipientAddress as `0x${string}`,
         tokenOut: tokenSymbol,
-        payAmountUsd: amountUsd,
+        depositChainId: params.chainId,
+        depositIdx: Number(params.depositIdx),
+        depositContractVersion: params.contractVersion,
     })
 
-    // Rhino parks (never auto-refunds) a deposit below the route minimum, so
-    // block the claim before signing — no funds have moved yet at this point
-    // (provisioning an SDA is a lookup, not a transfer). The FE pre-flight guard
-    // uses a static per-chain floor; this uses Rhino's live route minimum as an
-    // exact backstop for routes where the real minimum exceeds that floor.
+    // Fail-open backstop: if the backend could not derive the amount (RPC/price
+    // hiccup) it returns the SDA anyway, so re-check here against Rhino's live
+    // minimum before signing — no funds have moved yet (provisioning is a lookup,
+    // not a transfer). The pre-flight guard's static floor is the first line.
     if (
         typeof amountUsd === 'number' &&
         Number.isFinite(amountUsd) &&

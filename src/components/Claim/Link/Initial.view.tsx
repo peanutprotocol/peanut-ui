@@ -385,13 +385,18 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     // below the route minimum — the funds strand at the SDA and the
                     // recipient is never credited. Block a sub-minimum claim before
                     // any SDA is provisioned, mirroring the crypto-withdraw guard.
-                    // tokenPrice gates the check: without a price we can't size the
-                    // claim in USD, so we defer to the backend's own floor.
+                    // Scope this to EXTERNAL-wallet claims only: a claim into the
+                    // user's own Peanut balance (or another username) is also forced
+                    // down the isXChain branch, but it settles to Arbitrum USDC and
+                    // product treats peanut-account claims as having no minimum, so
+                    // blocking it here would dead-end the very "claim to your Peanut
+                    // balance" fallback the error copy points at. tokenPrice gates the
+                    // check: without a price we can't size the claim in USD.
                     const claimUsdAmount =
                         Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * tokenPrice
                     const hasUsdAmount = tokenPrice > 0 && Number.isFinite(claimUsdAmount)
                     const minUsd = getMinWithdrawUsdForChain(selectedTokenData.chainId)
-                    if (hasUsdAmount && claimUsdAmount < minUsd) {
+                    if (claimToExternalWallet && hasUsdAmount && claimUsdAmount < minUsd) {
                         setErrorState({
                             showError: true,
                             errorMessage: t('errors.belowNetworkMinimum', {
@@ -409,7 +414,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         destinationChainId: selectedTokenData.chainId,
                         destinationToken: selectedTokenData.address,
                         campaignTag: campaignTag ?? undefined,
-                        amountUsd: hasUsdAmount ? claimUsdAmount : undefined,
+                        amountUsd: claimToExternalWallet && hasUsdAmount ? claimUsdAmount : undefined,
                     })
                     setClaimType('claimxchain')
                 } else {
@@ -496,6 +501,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             claimLinkData.senderAddress,
             tokenPrice,
             format,
+            claimToExternalWallet,
             isPeanutWallet,
             fetchBalance,
             recipient.address,

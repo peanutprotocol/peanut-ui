@@ -338,10 +338,6 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
                     feeUsd: preview.feeUsd,
                     payAmount: preview.payAmount,
                     receiveAmount: preview.receiveAmount,
-                    // The USD the SDA will receive. The backend rejects it when it's
-                    // below Rhino's route minimum (parked, no auto-refund) — the guard
-                    // that withdraw enforces client-side, applied here to pay-request too.
-                    payAmountUsd: preview.payAmountUsd,
                 })
 
                 applyRhinoResult({

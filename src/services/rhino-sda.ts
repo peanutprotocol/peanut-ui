@@ -43,11 +43,14 @@ export interface SdaTransferRequest {
     payAmount?: string
     receiveAmount?: string
     /**
-     * USD value of the funds being moved, used server-side to reject a transfer
-     * below the Rhino route minimum (which Rhino parks without auto-refund).
-     * Sent by claim-xchain, which has no charge to carry payAmount.
+     * Deposit identity for claim-xchain, so the backend can read the claim
+     * amount from chain (authoritative, immutable) and reject a sub-minimum
+     * bridge that Rhino would park without auto-refund. Omitted for
+     * withdraw/pay-request, whose amount the backend derives from the charge.
      */
-    payAmountUsd?: number
+    depositChainId?: string
+    depositIdx?: number
+    depositContractVersion?: string
 }
 
 export interface SdaTransferResult {
