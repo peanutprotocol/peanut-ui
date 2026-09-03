@@ -5,29 +5,33 @@
  * (SESSION_KEY_SPEND — see src/constants/session-key-spend.consts.ts).
  *
  * The build gate must be on (NEXT_PUBLIC_SESSION_KEY_SPEND=true) or the spend
- * path contains no ephemeral-key code at all; this page then flips the
- * per-device runtime gate. Verify by making a mixed spend (amount above the
- * smart-account balance, covered by card collateral): one passkey tap, and
- * PostHog shows session_key_spend_attempted without a _fallback.
+ * path contains no ephemeral-key code at all. At runtime the path is on when
+ * the PostHog flag targets this user OR this device is opted in here. Verify
+ * by making a mixed spend (amount above the smart-account balance, covered by
+ * card collateral): one passkey tap, and PostHog shows
+ * session_key_spend_attempted without a _fallback.
  */
 
 import { useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
-import { SESSION_KEY_SPEND_BUILD_ENABLED, sessionKeySpendEnabled } from '@/constants/session-key-spend.consts'
+import {
+    SESSION_KEY_SPEND_BUILD_ENABLED,
+    SESSION_KEY_SPEND_FLAG,
+    sessionKeySpendDeviceOptIn,
+    sessionKeySpendEnabled,
+    setSessionKeySpendDeviceOptIn,
+} from '@/constants/session-key-spend.consts'
+import { isFeatureFlagEnabled } from '@/utils/featureFlag.utils'
 import DevPageShell from '../_components/DevPageShell'
-
-const RUNTIME_KEY = '__session_key_spend'
 
 export default function SessionKeySpendPage() {
     const [, setTick] = useState(0)
-    const runtimeOn = sessionKeySpendEnabled()
+    const deviceOn = sessionKeySpendDeviceOptIn()
+    const flagOn = isFeatureFlagEnabled(SESSION_KEY_SPEND_FLAG)
+    const effective = sessionKeySpendEnabled()
 
     const toggle = () => {
-        if (window.localStorage.getItem(RUNTIME_KEY) === 'true') {
-            window.localStorage.removeItem(RUNTIME_KEY)
-        } else {
-            window.localStorage.setItem(RUNTIME_KEY, 'true')
-        }
+        setSessionKeySpendDeviceOptIn(!deviceOn)
         setTick((t) => t + 1)
     }
 
@@ -43,13 +47,21 @@ export default function SessionKeySpendPage() {
                     {SESSION_KEY_SPEND_BUILD_ENABLED ? '✅ on' : '❌ off — this page can only toggle a dead switch'}
                 </div>
                 <div>
-                    <span className="font-bold">Runtime gate (this device): </span>
-                    {runtimeOn ? '✅ on' : '❌ off'}
+                    <span className="font-bold">PostHog flag ({SESSION_KEY_SPEND_FLAG}) for this user: </span>
+                    {flagOn ? '✅ on' : '❌ off'}
+                </div>
+                <div>
+                    <span className="font-bold">Device opt-in: </span>
+                    {deviceOn ? '✅ on' : '❌ off'}
+                </div>
+                <div>
+                    <span className="font-bold">Effective: </span>
+                    {effective ? '✅ one-tap path active' : '❌ two-tap passkey path'}
                 </div>
             </div>
 
             <Button onClick={toggle} disabled={!SESSION_KEY_SPEND_BUILD_ENABLED}>
-                {runtimeOn ? 'Disable on this device' : 'Enable on this device'}
+                {deviceOn ? 'Disable on this device' : 'Enable on this device'}
             </Button>
         </DevPageShell>
     )
