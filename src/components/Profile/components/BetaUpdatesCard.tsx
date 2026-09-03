@@ -27,6 +27,17 @@ import { useTranslations } from 'next-intl'
  */
 export const BETA_OTA_FLAG = 'beta-ota-channel'
 
+/**
+ * What the About screen's five-tap reveal can promise: the card only renders
+ * on a native build, and outside the cohort only for a device already on beta.
+ */
+export function useBetaUpdatesAccess(): { supported: boolean; visible: boolean } {
+    const isEnabled = useFeatureFlags()
+    const { supported, isBeta } = useOtaChannel()
+    const mayJoin = isEnabled(BETA_OTA_FLAG, { nonProdBypass: true })
+    return { supported, visible: supported && (mayJoin || isBeta) }
+}
+
 export const BetaUpdatesCard = () => {
     const t = useTranslations('profile.about.beta')
     const toast = useToast()

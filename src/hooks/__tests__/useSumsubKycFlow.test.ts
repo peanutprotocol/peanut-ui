@@ -1,7 +1,12 @@
 import { act, waitFor } from '@testing-library/react'
 import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
-import { initiateSumsubKyc, initiateSelfHealResubmission, startKycAction } from '@/app/actions/sumsub'
+import {
+    initiateSumsubKyc,
+    initiateSelfHealResubmission,
+    restartIdentityVerification,
+    startKycAction,
+} from '@/app/actions/sumsub'
 
 // useSumsubKycFlow wires a websocket, redux, the router and three server actions.
 // Stub everything except the one action the cross-region branch reads so the test
@@ -33,6 +38,7 @@ jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
 const mockInitiate = initiateSumsubKyc as jest.MockedFunction<typeof initiateSumsubKyc>
 const mockResubmit = initiateSelfHealResubmission as jest.MockedFunction<typeof initiateSelfHealResubmission>
 const mockStartAction = startKycAction as jest.MockedFunction<typeof startKycAction>
+const mockRestart = restartIdentityVerification as jest.MockedFunction<typeof restartIdentityVerification>
 
 describe('useSumsubKycFlow — cross-region routing', () => {
     beforeEach(() => {
@@ -374,6 +380,53 @@ describe('useSumsubKycFlow — multi-level workflows', () => {
         })
 
         expect(result.current.isMultiLevel).toBe(true)
+    })
+
+    // A residence change re-opens identity through restart-identity with the
+    // NEW residence's intent; the hook prop only catches up on the next render,
+    // so the intent travels with the call and the second level must still run.
+    it('a residence re-verification carries its intent into the restart and stays multi-level', async () => {
+        mockRestart.mockResolvedValue({ data: { token: 'tok_restart', applicantId: 'app_1', levelName: 'general' } })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleRestartIdentity('LATAM')
+        })
+
+        expect(mockRestart).toHaveBeenCalledWith('LATAM')
+        expect(result.current.showWrapper).toBe(true)
+        expect(result.current.isMultiLevel).toBe(true)
+    })
+
+    // The backend derives the intent from the declared residence when the caller
+    // names none (the Manteca CTAs), and can overrule one that contradicts it.
+    // `levelName` cannot stand in: EU and NA share `bridge-requirements`, LATAM
+    // and ROW share `general`, and only EU and LATAM run a second level.
+    it('takes the multi-level shape from the intent the backend resolved', async () => {
+        mockRestart.mockResolvedValue({
+            data: { token: 'tok_restart', applicantId: 'app_1', levelName: 'general', regionIntent: 'LATAM' },
+        })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleRestartIdentity()
+        })
+
+        expect(mockRestart).toHaveBeenCalledWith(undefined)
+        expect(result.current.isMultiLevel).toBe(true)
+    })
+
+    it('a resolved ROW intent stays single-level even though it shares a level with LATAM', async () => {
+        mockRestart.mockResolvedValue({
+            data: { token: 'tok_restart', applicantId: 'app_1', levelName: 'general', regionIntent: 'ROW' },
+        })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleRestartIdentity('LATAM')
+        })
+
+        expect(result.current.isMultiLevel).toBe(false)
     })
 
     // An applicant action is a single level whatever the region — cross-region

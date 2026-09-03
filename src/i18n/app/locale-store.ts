@@ -151,17 +151,33 @@ async function resolveStartupLocale(): Promise<AppLocale> {
  */
 export function localeReady(): Promise<AppLocale> {
     if (!resolution)
-        resolution = resolveStartupLocale().catch((err) => {
-            // the unhandled rejection was the only signal that startup locale
-            // resolution had failed (PEANUT-UI-STC); neither caller handles it,
-            // so warn to keep captureConsoleIntegration reporting the next one
-            console.warn('Startup locale resolution failed; falling back to the browser language', err)
-            return navigatorLocale()
-        })
+        resolution = resolveStartupLocale()
+            .then((resolved) => {
+                // A locale derived from the browser language was never stored, so a
+                // full document load (a PWA relaunch at start_url) re-derived it and
+                // the proxy saw no cookie. An explicit choice made meanwhile wins.
+                if (!explicitlyChosen) writeLocale(resolved)
+                return resolved
+            })
+            .catch((err) => {
+                // the unhandled rejection was the only signal that startup locale
+                // resolution had failed (PEANUT-UI-STC); neither caller handles it,
+                // so warn to keep captureConsoleIntegration reporting the next one
+                console.warn('Startup locale resolution failed; falling back to the browser language', err)
+                return navigatorLocale()
+            })
     return resolution
 }
 
+let explicitlyChosen = false
+
+/** An explicit choice (switcher, suggestion banner): outranks the startup write. */
 export function persistLocale(locale: AppLocale): void {
+    explicitlyChosen = true
+    writeLocale(locale)
+}
+
+function writeLocale(locale: AppLocale): void {
     if (isCapacitor()) {
         import('@capacitor/preferences')
             .then(({ Preferences }) => Preferences.set({ key: LOCALE_KEY, value: locale }))

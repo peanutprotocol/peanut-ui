@@ -1,5 +1,6 @@
 {
     "common": {
+        "fundsOnTheWay": "Fondos en camino",
         "genericError": "Algo salió mal. Intentá de nuevo o contactá soporte.",
         "tryDifferentCountry": "Probá con otro país.",
         "slideToProceed": "Deslizá para continuar"

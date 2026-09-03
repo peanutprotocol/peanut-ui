@@ -1,6 +1,6 @@
 'use client'
 
-import BaseSelect from '@/components/0_Bruddle/BaseSelect'
+import { CountryCombobox } from '@/components/Common/CountryCombobox'
 import ActionModal from '@/components/Global/ActionModal'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
@@ -27,7 +27,8 @@ interface ResidenceChangeModalProps {
     /** refetch the user so the new declared residence lands everywhere */
     onSaved: () => Promise<unknown> | void
     /** start identity re-verification at the current level (existing restart primitive) */
-    onReverify: () => void
+    /** called with the newly declared residence when the user asked to submit documents */
+    onReverify: (iso2: string) => void
 }
 
 /**
@@ -128,7 +129,7 @@ const ResidenceChangeModal = ({
                 console.error('failed to refetch user after residence change:', e)
             }
             onClose()
-            if (reverifyAfter) onReverify()
+            if (reverifyAfter) onReverify(selected)
             return true
         } finally {
             setIsSaving(false)
@@ -143,7 +144,7 @@ const ResidenceChangeModal = ({
             description={
                 <div className="flex flex-col gap-3 text-left">
                     <p>{t('description')}</p>
-                    <BaseSelect
+                    <CountryCombobox
                         options={countryOptions}
                         placeholder={t('countryPlaceholder')}
                         value={selected || undefined}

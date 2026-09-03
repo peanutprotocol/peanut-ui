@@ -1,5 +1,6 @@
 {
     "common": {
+        "fundsOnTheWay": "Funds on the way",
         "cancel": "Cancel",
         "continue": "Continue",
         "back": "Back",
@@ -136,7 +137,7 @@
             "getCard": "Get your Peanut card",
             "addMoney": "Add money",
             "firstPayment": "Make your first payment",
-            "firstPaymentNote": "Send a few dollars to any @username. It lands in seconds.",
+            "firstPaymentNote": "Send a few dollars to a Peanut user, ENS name or wallet address. It lands in seconds.",
             "addMoneyRoutes": "Bank transfer or crypto",
             "addMoneyRoutesKyc": "Bank transfer or crypto · bank needs a one-time ID check",
             "getCardNote": "Your dollars, in pink, wherever Visa is accepted."
@@ -166,7 +167,7 @@
             "emptyDescription": "Start by sending or requesting money"
         },
         "welcomeUnlock": {
-            "title": "🎉 You're unlocked",
+            "title": "You're unlocked",
             "cta": "Start sending money",
             "youCanNow": "You can now:",
             "yourCountry": "your country",
@@ -294,7 +295,8 @@
             "exchangeRatesAndFees": "Exchange rates and fees",
             "starAlt": "star",
             "help": "Help Center",
-            "about": "About Peanut"
+            "about": "About Peanut",
+            "updateAvailable": "Update available"
         },
         "logOut": "Log out",
         "edit": {
@@ -392,7 +394,7 @@
                 "cardRestrictionNote": "Heads up: the card isn't available for residents of this country.",
                 "bankingRestrictionNote": "Heads up: bank transfers aren't available for residents of this country.",
                 "save": "Save",
-                "saveAndReverify": "Save & re-verify now",
+                "saveAndReverify": "Submit documents",
                 "cooldownNote": "You changed your residence recently. You can change it again after {until}."
             },
             "degraded": {
@@ -408,8 +410,6 @@
                 "messageUs": "Message us and we'll chase it"
             },
             "limits": {
-                "viewAll": "Payment limits",
-                "details": "View",
                 "monthlyLeft": "{remaining} of {limit} left this month",
                 "perTransfer": "Up to {amount} per transfer",
                 "p2pNoLimit": "No limits on Peanut-to-Peanut payments"
@@ -515,10 +515,28 @@
                 "points": "Cashback"
             }
         },
+        "update": {
+            "title": "Update ready",
+            "description": "Restart Peanut to finish installing version {version}.",
+            "restartNow": "Restart now",
+            "notNow": "Not now",
+            "manualRestart": "Close Peanut from the app switcher and open it again to finish the update.",
+            "applyFailed": "The update couldn't be applied. Check your connection and try again — Peanut is still running the version you started with."
+        },
         "about": {
             "title": "About Peanut",
             "intro": "Peanut makes dollars easy: hold your balance, send to any @username, and move money on local rails after one ID check. Built by Squirrel Labs.",
             "policiesHeading": "Policies",
+            "policies": {
+                "terms": "Terms of Service",
+                "privacy": "Privacy Policy",
+                "cardTermsUs": "Card Terms (U.S.)",
+                "cardTermsInternational": "Card Terms (International)",
+                "cardEsign": "E-Sign Consent",
+                "cardPrivacy": "Account Opening Privacy Notice",
+                "cardProhibitedActivities": "Prohibited Activities Policy",
+                "securityDisclosure": "Security Disclosure"
+            },
             "version": "Version {version}",
             "beta": {
                 "heading": "Beta updates",
@@ -537,7 +555,10 @@
                 "leftOverride": "This device was put on beta from the Capgo dashboard, so the app cannot take it off. Ask an admin to remove the device's channel override.",
                 "leftUnconfirmed": "Could not reach Capgo to confirm the switch, so this device is still on the beta build. Try again when you are back online.",
                 "closed": "The {channel} channel does not accept testers yet. Ask an admin to allow self-assignment in Capgo.",
-                "failed": "Could not change the update channel."
+                "failed": "Could not change the update channel.",
+                "revealed": "Beta updates switch revealed below.",
+                "notEnabled": "Beta updates aren't enabled for this device.",
+                "appOnly": "Beta updates are only available in the Peanut app."
             }
         }
     },
@@ -769,8 +790,9 @@
                     "pix": "PIX transfers",
                     "arQr": "QR payments and transfers",
                     "spei": "SPEI transfers",
-                    "achWire": "ACH and wire transfers",
-                    "sepa": "SEPA bank transfers"
+                    "usdAch": "USD transfers (ACH and wire)",
+                    "eurSepa": "SEPA bank transfers",
+                    "gbpFps": "GBP bank transfers (Faster Payments)"
                 },
                 "continue": "Continue"
             },
@@ -787,12 +809,13 @@
             "compare": {
                 "cardTitle": "Available with {country}",
                 "items": {
-                    "p2p": "Payments to any @username",
-                    "pix": "PIX",
+                    "p2p": "Peanut-to-Peanut payments",
+                    "pix": "PIX payments & transfers",
                     "arQr": "QR payments & transfers",
-                    "spei": "SPEI bank transfers",
-                    "achWire": "ACH & Wire transfers",
-                    "sepa": "SEPA transfers",
+                    "spei": "SPEI transfers (MXN)",
+                    "usdAch": "USD transfers (ACH & Wire)",
+                    "eurSepa": "SEPA transfers (EUR)",
+                    "gbpFps": "GBP transfers (Faster Payments)",
                     "bank": "Bank transfers where supported",
                     "card": "Peanut card"
                 },
@@ -800,6 +823,7 @@
                     "banking": "Bank transfers",
                     "card": "Peanut card"
                 },
+                "multiCurrencyNote": "Transfers in another currency need a bank account in that currency.",
                 "guideTitle": "Which country goes first?",
                 "guideDeclaration": "Both entries must be countries where you genuinely hold legal residence. This is a declaration, and providers verify it during the ID check, including proof of address.",
                 "guideOrder": "If both countries are truly home, either order is honest. The order only changes what the app shows you first, never what you are eligible for. Eligibility is decided by the verification itself.",
@@ -903,6 +927,7 @@
         "switchingNetwork": "Switching network",
         "fetchingRoute": "Fetching route",
         "fetchingDetails": "Fetching details",
+        "stillFetchingDetails": "Still fetching details",
         "awaitingRouteFulfillment": "Awaiting route fulfillment",
         "assertingValues": "Asserting values",
         "generatingDetails": "Generating details",
@@ -1029,7 +1054,7 @@
         "validation": {
             "talkToSupport": "Talk to support",
             "learnHow": "Learn how to receive money through Peanut",
-            "sadPeanutAlt": "Sad peanut 😢"
+            "sadPeanutAlt": "Sad peanut"
         },
         "errorPage": {
             "title": "Something went wrong!",
@@ -1120,7 +1145,7 @@
             "stillTrying": "We're still trying... (attempt {attempt}/{total})"
         },
         "errors": {
-            "sadPeanutAlt": "Sad peanut 😢",
+            "sadPeanutAlt": "Sad peanut",
             "talkToSupport": "Talk to support",
             "goBackToHome": "Go back to home",
             "supportPrefill": "I clicked on this link but got an error: {url}",
@@ -1271,6 +1296,10 @@
             "pixDecode": "We could not decode this Pix QR code. Please ask the merchant to generate a new one.",
             "genericDecode": "We could not decode this particular QR code. Please ask the Merchant if they can generate a Mercado Pago QR",
             "providerIssues": "We are currently experiencing issues with {method} payments. We are working to fix it as soon as possible",
+            "connectionLost": "Your device seems to be offline. Check your connection and scan again — nothing has been charged.",
+            "monthlyCapReached": "This payment is over your remaining monthly limit, which is shared across deposits, withdrawals and QR payments. Try a smaller amount, or contact support to raise your limit.",
+            "merchantNotAvailable": "We can't complete QR payments to this merchant right now. Try another payment method, or a different merchant.",
+            "kycRequired": "Finish verifying your identity to pay with QR.",
             "merchantChargeExpired": "The cashier's charge has timed out. Ask them to enter the amount again, then scan once more.",
             "initiateUnexpected": "Could not initiate payment due to unexpected error. Please contact support",
             "fetchDetails": "Could not fetch qr payment details",
@@ -1357,7 +1386,7 @@
             "androidStep4": "Follow onscreen steps"
         },
         "status": {
-            "mascotAlt": "Peanutman crying 😭",
+            "mascotAlt": "Peanutman crying",
             "pendingTitle": "Setting up your card…",
             "pendingBody": "Hang tight while we finish setting up your card. This usually takes a few seconds.",
             "manualReviewTitle": "Manual review needed",
@@ -2265,7 +2294,7 @@
         "shareAchievement": "Share Achievement",
         "shareText": "I earned {badge} badge on Peanut!\n\nJoin Peanut now and start earning points, unlocking achievements and moving money worldwide\n\n{link}",
         "toastSingle": "Badge unlocked: {name}",
-        "toastMultiple": "You unlocked {count, plural, one {# badge} other {# badges}} 🎉",
+        "toastMultiple": "You unlocked {count, plural, one {# badge} other {# badges}}",
         "toastTapToView": "— tap to view",
         "catalog": {
             "FIRST_INVITE": {
@@ -2962,6 +2991,7 @@
             "card_rejected": "Your card application couldn't be approved. Message support if you think this is a mistake.",
             "manteca_us_nationality": "Payments from this country are not available for US citizens at this time.",
             "country_not_supported": "This rail needs a document from a supported country. You can verify with a different ID.",
+            "tax_id_unresolved": "Local deposits and withdrawals need a local tax ID, and we couldn't read one from your documents. You can verify again with an ID that carries one. QR payments aren't affected.",
             "uk_resident_blocked": "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe — you can withdraw them as crypto anytime.",
             "identity_region_restricted": "Our verification partner doesn't accept documents issued in your country. Re-uploading won't change the result."
         }
@@ -3072,7 +3102,7 @@
             "titlePixRecurring": "PIX Automático not supported",
             "titleNotSupported": "{qrName} not supported yet.",
             "titleWillBeNotified": "You're on the list!",
-            "titleDirectSend": "ℹ️ Payment Confirmation",
+            "titleDirectSend": "Payment Confirmation",
             "titleExternalUrl": "This is an external link!",
             "eip681ParseError": "Error parsing EIP-681 URL",
             "notPeanutUrl": "QR not recognized as Peanut URL",
@@ -3384,6 +3414,10 @@
             "inviteFriendsModal": {
                 "description": "Share your link. Every time a friend you brought makes a payment, you earn cashback."
             }
+        },
+        "countryCombobox": {
+            "noResults": "No countries match",
+            "clear": "Clear search"
         }
     },
     "errors": {

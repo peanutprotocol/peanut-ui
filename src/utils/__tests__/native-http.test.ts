@@ -93,6 +93,38 @@ describe('nativeHttpRequest', () => {
         expect(await res.text()).toBe('')
     })
 
+    /*
+     * `connectTimeout`/`readTimeout` are PHASE limits, and Android's read limit
+     * resets on every chunk — so the two options the test above forwards bound a
+     * slow request at 2x and a slow drip not at all. The wall-clock race is what
+     * makes the shared budget in fetchWithSentry true on the mobile app, where
+     * the bounded call is the POST that creates a real Manteca price lock. It is
+     * mocked out of sentry-prefer-native.test.ts, so without these two cases it
+     * could be deleted with every other test in the repo still green.
+     */
+    it('rejects at the budget when the plugin never settles', async () => {
+        mockRequest.mockReturnValue(new Promise(() => {}))
+
+        const started = Date.now()
+        await expect(
+            nativeHttpRequest('https://api.test.com/manteca/qr-payment/init', { method: 'POST' }, 50)
+        ).rejects.toMatchObject({
+            // fetchWithSentry classifies on the name: anything else is reported
+            // as an opaque transport failure rather than the timeout it is.
+            name: 'AbortError',
+        })
+        expect(Date.now() - started).toBeLessThan(1_000)
+    })
+
+    it('resolves normally when the plugin answers inside the budget', async () => {
+        mockRequest.mockResolvedValue({ status: 200, data: '{"ok":true}', headers: {} })
+
+        const res = await nativeHttpRequest('https://api.test.com/healthz', { method: 'GET' }, 5_000)
+
+        expect(res.status).toBe(200)
+        await expect(res.json()).resolves.toEqual({ ok: true })
+    })
+
     it('throws when the plugin reports no status', async () => {
         mockRequest.mockResolvedValue({ status: 0, data: '', headers: {} })
         await expect(nativeHttpRequest('https://api.test.com/healthz', {}, 5000)).rejects.toThrow(TypeError)

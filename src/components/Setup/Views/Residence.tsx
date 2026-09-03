@@ -1,7 +1,8 @@
+import { Notification } from '@/components/0_Bruddle/Notification'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
-import BaseSelect from '@/components/0_Bruddle/BaseSelect'
 import { Button } from '@/components/0_Bruddle/Button'
+import { CountryCombobox } from '@/components/Common/CountryCombobox'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
@@ -19,6 +20,12 @@ import { useLocale, useTranslations } from 'next-intl'
 
 type ResidenceView = 'select' | 'restricted' | 'notify' | 'notify-done' | 'partial' | 'congrats'
 type PartialRestriction = 'card' | 'banking'
+
+// An underlined text link is ~20px tall; the `after:` pseudo-element grows the
+// tap target to the 44px minimum without moving the text (design.md touch law).
+const UNDERLINED_LINK =
+    'relative text-body-s underline underline-offset-2 after:absolute after:inset-x-0 after:-inset-y-3.5 focus-visible:outline-[3px] focus-visible:outline-action-focus'
+const CHANGE_COUNTRY_LINK = `mt-1 self-center text-center disabled:opacity-50 ${UNDERLINED_LINK}`
 
 const ResidenceStep = () => {
     const t = useTranslations('setup')
@@ -196,10 +203,12 @@ const ResidenceStep = () => {
             (item) => item !== 'p2p' && item !== 'card' && item !== 'bank'
         )
         return (
-            <div className="flex h-full w-full flex-col justify-between gap-4">
+            <div className="flex h-full w-full flex-col justify-between gap-6">
                 <div className="flex flex-col gap-2">
-                    <h1 className="text-heading-xs">{t('residenceStep.congrats.title')}</h1>
-                    <p className="text-body-s text-foreground-secondary">
+                    <h1 className="w-full text-left text-heading-xs leading-tight">
+                        {t('residenceStep.congrats.title')}
+                    </h1>
+                    <p className="text-body-m text-foreground-secondary">
                         {railItem
                             ? t('residenceStep.congrats.description', {
                                   rail: t(`residenceStep.congrats.rails.${railItem}`),
@@ -207,13 +216,13 @@ const ResidenceStep = () => {
                             : t('residenceStep.congrats.descriptionNoRail')}
                     </p>
                 </div>
-                <div className="flex w-full flex-col gap-2">
+                <div className="flex w-full flex-col gap-4">
                     <Button shadowSize="4" onClick={() => void handleNext()} loading={isLoading} disabled={isLoading}>
                         {t('residenceStep.congrats.continue')}
                     </Button>
                     <button
                         type="button"
-                        className="mt-1 text-center text-body-s underline underline-offset-2 disabled:opacity-50"
+                        className={CHANGE_COUNTRY_LINK}
                         onClick={() => setView('select')}
                         disabled={isLoading}
                     >
@@ -226,22 +235,24 @@ const ResidenceStep = () => {
 
     if (view === 'partial') {
         return (
-            <div className="flex h-full w-full flex-col justify-between gap-4">
+            <div className="flex h-full w-full flex-col justify-between gap-6">
                 <div className="flex flex-col gap-2">
-                    <h1 className="text-heading-xs">{t('residenceStep.partial.title')}</h1>
-                    <p className="text-body-s text-foreground-secondary">
+                    <h1 className="w-full text-left text-heading-xs leading-tight">
+                        {t('residenceStep.partial.title')}
+                    </h1>
+                    <p className="text-body-m text-foreground-secondary">
                         {partialRestriction === 'card'
                             ? t('residenceStep.partial.cardDescription')
                             : t('residenceStep.partial.bankingDescription')}
                     </p>
                 </div>
-                <div className="flex w-full flex-col gap-2">
+                <div className="flex w-full flex-col gap-4">
                     <Button shadowSize="4" onClick={() => void handleNext()} loading={isLoading} disabled={isLoading}>
                         {t('residenceStep.partial.continue')}
                     </Button>
                     <button
                         type="button"
-                        className="mt-1 text-center text-body-s underline underline-offset-2 disabled:opacity-50"
+                        className={CHANGE_COUNTRY_LINK}
                         onClick={() => setView('select')}
                         disabled={isLoading}
                     >
@@ -254,10 +265,12 @@ const ResidenceStep = () => {
 
     if (view === 'restricted' || view === 'notify' || view === 'notify-done') {
         return (
-            <div className="flex h-full w-full flex-col justify-between gap-4">
+            <div className="flex h-full w-full flex-col justify-between gap-6">
                 <div className="flex flex-col gap-2">
-                    <h1 className="text-heading-xs">{t('residenceStep.restricted.title')}</h1>
-                    <p className="text-body-s text-foreground-secondary">{t('residenceStep.restricted.description')}</p>
+                    <h1 className="w-full text-left text-heading-xs leading-tight">
+                        {t('residenceStep.restricted.title')}
+                    </h1>
+                    <p className="text-body-m text-foreground-secondary">{t('residenceStep.restricted.description')}</p>
                     {view === 'notify' && (
                         <div className="mt-2 flex flex-col gap-2">
                             <BaseInput
@@ -275,7 +288,7 @@ const ResidenceStep = () => {
                         <p className="text-label-l">{t('residenceStep.restricted.notifyDone')}</p>
                     )}
                 </div>
-                <div className="flex w-full flex-col gap-2">
+                <div className="flex w-full flex-col gap-4">
                     {view === 'notify' ? (
                         <Button shadowSize="4" onClick={onNotifySubmit}>
                             {t('residenceStep.restricted.notifySubmit')}
@@ -292,7 +305,7 @@ const ResidenceStep = () => {
                     )}
                     <button
                         type="button"
-                        className="mt-1 text-center text-body-s underline underline-offset-2 disabled:opacity-50"
+                        className={CHANGE_COUNTRY_LINK}
                         onClick={() => setView('select')}
                         disabled={isLoading}
                     >
@@ -304,14 +317,14 @@ const ResidenceStep = () => {
     }
 
     return (
-        <div className="flex h-full w-full flex-col justify-between gap-4">
+        <div className="flex h-full w-full flex-col justify-between gap-6">
             <div className="flex w-full flex-col gap-2">
                 {/* Rendered here, not by the step chrome, so the heads-up
                     sub-views can replace them with their own single heading
                     (titleInView/descriptionInView on the step). */}
                 <h1 className="w-full text-left text-heading-xs leading-tight">{t('steps.residence.title')}</h1>
                 <p className="mb-1 text-body-s text-foreground-secondary">{t('steps.residence.description')}</p>
-                <BaseSelect
+                <CountryCombobox
                     options={countryOptions}
                     placeholder={t('residenceStep.countryPlaceholder')}
                     // Falls back to the suggestion for the one frame between
@@ -322,7 +335,7 @@ const ResidenceStep = () => {
                 />
                 <button
                     type="button"
-                    className="self-start text-left text-body-s underline underline-offset-2"
+                    className={`self-start text-left ${UNDERLINED_LINK}`}
                     aria-expanded={showSecondCountry}
                     onClick={() => {
                         // Collapsing must also clear the stored pick — an
@@ -338,7 +351,7 @@ const ResidenceStep = () => {
                     {t('residenceStep.multiDocLink')}
                 </button>
                 {showSecondCountry && (
-                    <BaseSelect
+                    <CountryCombobox
                         options={countryOptions}
                         placeholder={t('residenceStep.secondCountryPlaceholder')}
                         value={secondResidenceCountry || undefined}
@@ -368,7 +381,7 @@ const ResidenceStep = () => {
                                             <p className="mb-1 text-label-m">
                                                 {t('residenceStep.compare.cardTitle', { country: label })}
                                             </p>
-                                            <ul className="space-y-0.5 text-body-xs text-foreground-secondary">
+                                            <ul className="space-y-2 text-body-xs text-foreground-secondary">
                                                 {summary.available.map((item) => (
                                                     <li key={item}>{t(`residenceStep.compare.items.${item}`)}</li>
                                                 ))}
@@ -378,18 +391,24 @@ const ResidenceStep = () => {
                                                     </li>
                                                 ))}
                                             </ul>
+                                            {/* One verification enrols every rail in the region's
+                                                set, but a rail in another currency only pays out
+                                                into an account on that network — so it is stated
+                                                as a condition, not as a benefit of living here. */}
+                                            {summary.multiCurrency && (
+                                                <p className="mt-2 text-body-xs text-foreground-secondary">
+                                                    {t('residenceStep.compare.multiCurrencyNote')}
+                                                </p>
+                                            )}
                                         </div>
                                     )
                                 })}
                             </div>
-                            <div className="rounded-sm border border-border-default bg-background-default p-3 text-body-xs text-foreground-secondary">
-                                <p className="mb-1 font-bold text-foreground-primary">
-                                    {t('residenceStep.compare.guideTitle')}
-                                </p>
+                            <Notification priority="info" hideIcon title={t('residenceStep.compare.guideTitle')}>
                                 <p>{t('residenceStep.compare.guideDeclaration')}</p>
                                 <p className="mt-1">{t('residenceStep.compare.guideOrder')}</p>
                                 <p className="mt-1">{t('residenceStep.compare.guideSecond')}</p>
-                            </div>
+                            </Notification>
                         </div>
                     )}
             </div>

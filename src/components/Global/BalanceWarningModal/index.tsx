@@ -95,7 +95,7 @@ export default function BalanceWarningModal({ visible, onCloseAction }: BalanceW
         <Drawer open={visible} dismissible={false}>
             <DrawerContent>
                 <div className="flex flex-col items-center gap-4 px-4 pt-1 pb-6 text-center">
-                    <IconBubble icon="alert" className="bg-action-secondary" />
+                    <IconBubble icon="alert" color="yellow" />
                     <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                         <DrawerTitle>{t('balanceWarningModal.title')}</DrawerTitle>
                         <div className="space-y-3 text-body-s text-foreground-secondary">

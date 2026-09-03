@@ -22,12 +22,13 @@ jest.mock('posthog-js', () => ({
 
 // module-level so it applies to every isolateModules registry freshStore builds
 const mockCookiesGet = jest.fn()
+const mockCookiesSet = jest.fn()
 
 jest.mock('js-cookie', () => ({
     __esModule: true,
     default: {
         get: (...args: unknown[]) => mockCookiesGet(...args),
-        set: jest.fn(),
+        set: (...args: unknown[]) => mockCookiesSet(...args),
     },
 }))
 
@@ -289,5 +290,26 @@ describe('localeReady', () => {
         const first = store.localeReady()
         expect(store.localeReady()).toBe(first)
         await expect(first).resolves.toBe('es-419')
+    })
+
+    // A locale derived from the browser language used to live only in memory:
+    // a full document load (a PWA relaunching at start_url after a new-tab
+    // detour) re-derived it and the proxy never saw an app-locale cookie.
+    it('persists the startup locale so a full document load finds the cookie', async () => {
+        setNavigatorLanguage('pt-BR')
+        const store = freshStore()
+        await store.localeReady()
+        expect(mockCookiesSet).toHaveBeenCalledWith('app-locale', 'pt-BR', expect.objectContaining({ path: '/' }))
+        expect(window.localStorage.getItem('app-locale')).toBe('pt-BR')
+    })
+
+    it('never overwrites a manual switch that landed before resolution finished', async () => {
+        setNavigatorLanguage('pt-BR')
+        const store = freshStore()
+        const pending = store.localeReady()
+        store.persistLocale('es-419')
+        await pending
+        expect(mockCookiesSet).not.toHaveBeenCalledWith('app-locale', 'pt-BR', expect.anything())
+        expect(window.localStorage.getItem('app-locale')).toBe('es-419')
     })
 })

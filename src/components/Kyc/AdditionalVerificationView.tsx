@@ -77,7 +77,7 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
                 left-aligned, and a centered paragraph above it reads as a
                 second column. */}
             <div className="flex flex-col gap-3">
-                <IconBubble icon="user-id" size="l" color="yellow" className="self-center" />
+                <IconBubble icon="user-id" size="l" color="blue" className="self-center" />
                 <p className="text-body-s text-foreground-secondary">
                     {isAdvisory ? t('descriptionAdvisory') : t('description')}
                 </p>

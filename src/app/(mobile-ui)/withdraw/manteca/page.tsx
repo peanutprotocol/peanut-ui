@@ -825,7 +825,7 @@ function MantecaBankWithdrawFlow() {
                                 <IconBubble
                                     icon="bank"
                                     size="xs"
-                                    color="yellow"
+                                    color="blue"
                                     className="absolute -right-1 -bottom-1"
                                 />
                             </div>
@@ -936,7 +936,7 @@ function MantecaBankWithdrawFlow() {
                                 <IconBubble
                                     icon="bank"
                                     size="xs"
-                                    color="yellow"
+                                    color="blue"
                                     className="absolute -right-1 -bottom-1"
                                 />
                             </div>

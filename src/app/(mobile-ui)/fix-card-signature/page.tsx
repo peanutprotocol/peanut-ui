@@ -15,6 +15,8 @@ import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
@@ -80,9 +82,18 @@ export default function FixCardSignaturePage() {
                     <Card className="flex flex-col gap-3 p-4">
                         <div className="flex items-center justify-between">
                             <span className="font-bold">{t('fixSignature.step1')}</span>
-                            <span className="text-body-s">
-                                {needsRepair ? (isRepairing ? '⏳' : `⚠️ ${t('fixSignature.needed')}`) : '✅'}
-                            </span>
+                            {needsRepair ? (
+                                isRepairing ? (
+                                    <Loading />
+                                ) : (
+                                    <span className="flex items-center gap-2 text-body-s">
+                                        <IconBubble icon="alert" size="xs" color="yellow" />
+                                        {t('fixSignature.needed')}
+                                    </span>
+                                )
+                            ) : (
+                                <IconBubble icon="check" size="xs" color="green" />
+                            )}
                         </div>
                         {needsRepair && (
                             <>
@@ -109,7 +120,11 @@ export default function FixCardSignaturePage() {
                     <Card className="flex flex-col gap-3 p-4">
                         <div className="flex items-center justify-between">
                             <span className="font-bold">{t('fixSignature.step2')}</span>
-                            <span className="text-body-s">{grantDone ? '✅' : isGranting ? '⏳' : ''}</span>
+                            {grantDone ? (
+                                <IconBubble icon="check" size="xs" color="green" />
+                            ) : isGranting ? (
+                                <Loading />
+                            ) : null}
                         </div>
                         {grantDone ? (
                             <p className="text-body-s text-foreground-secondary">{t('fixSignature.allSet')}</p>
