@@ -41,3 +41,16 @@ export function sessionKeySpendEnabled(): boolean {
     if (!SESSION_KEY_SPEND_BUILD_ENABLED) return false
     return sessionKeySpendDeviceOptIn() || isFeatureFlagEnabled(SESSION_KEY_SPEND_FLAG)
 }
+
+export const SESSION_KEY_SIGN_FLAG = 'session_key_spend_sign'
+
+/*
+ * Sign-only engine (QR pay, Manteca withdraw, card lock/cancel): the backend
+ * broadcasts, so a permission that fails on-chain cannot fall back on the
+ * client. Own flag, flipped only after the broadcasting engine has proven
+ * the ERC-1271 ordering on production contracts.
+ */
+export function sessionKeySignEnabled(): boolean {
+    if (!SESSION_KEY_SPEND_BUILD_ENABLED) return false
+    return isFeatureFlagEnabled(SESSION_KEY_SIGN_FLAG)
+}

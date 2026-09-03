@@ -18,6 +18,8 @@ import posthog from 'posthog-js'
 import { useSignSpendBundle } from '../useSignSpendBundle'
 import { InsufficientSpendableError, resolveSpendStrategy, runCollateralSpendPreflight } from '../spendPreflight'
 import { rainApi } from '@/services/rain'
+import { signMixedEphemeralSpend } from '../mixedEphemeralSign'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const ACCOUNT = '0xc97fffbf8768ca90cd62fae2e313b084fe13e553'
 const RECIPIENT = '0x4e5b89fd498f333ed7f2a59c5f23d5b5dc41b3de'
@@ -30,7 +32,25 @@ jest.mock('@/constants/zerodev.consts', () => ({
 }))
 jest.mock('@/constants/rain.consts', () => ({
     rainCoordinatorAbi: [
-        { type: 'function', name: 'withdrawAsset', inputs: [], outputs: [], stateMutability: 'nonpayable' },
+        {
+            type: 'function',
+            name: 'withdrawAsset',
+            // the mixed two-tap path encodes the real 10-arg call
+            inputs: [
+                { name: 'proxy', type: 'address' },
+                { name: 'token', type: 'address' },
+                { name: 'amount', type: 'uint256' },
+                { name: 'recipient', type: 'address' },
+                { name: 'expiresAt', type: 'uint256' },
+                { name: 'executorSalt', type: 'bytes32' },
+                { name: 'executorSignature', type: 'bytes' },
+                { name: 'adminSalts', type: 'bytes32[]' },
+                { name: 'adminSignatures', type: 'bytes[]' },
+                { name: 'directTransfer', type: 'bool' },
+            ],
+            outputs: [],
+            stateMutability: 'nonpayable',
+        },
     ],
 }))
 const mockSignTypedData = jest.fn()
@@ -38,8 +58,15 @@ jest.mock('@/context/kernelClient.context', () => ({
     useKernelClient: () => ({
         getClientForChain: () => ({ account: { address: ACCOUNT, signTypedData: mockSignTypedData } }),
         rebuildClientForChain: jest.fn(),
+        getPatchedSudoValidator: jest.fn(async () => ({ validator: 'patched' })),
     }),
 }))
+jest.mock('@/app/actions/clients', () => ({ peanutPublicClient: { tag: 'public' } }))
+const mockSessionKeySignEnabled = jest.fn(() => false)
+jest.mock('@/constants/session-key-spend.consts', () => ({
+    sessionKeySignEnabled: () => mockSessionKeySignEnabled(),
+}))
+jest.mock('../mixedEphemeralSign', () => ({ signMixedEphemeralSpend: jest.fn() }))
 jest.mock('@/hooks/useZeroDev', () => ({ useZeroDev: () => ({ handleSendUserOpEncoded: jest.fn() }) }))
 jest.mock('@/context/ModalsContext', () => ({ useModalsContextOptional: () => undefined }))
 jest.mock('@/hooks/useRainCardOverview', () => ({
@@ -73,10 +100,10 @@ const PREP = {
     amount: '150000000',
     recipientAddress: RECIPIENT,
     directTransfer: true,
-    adminSalt: '0xsalt',
+    adminSalt: '0x3333333333333333333333333333333333333333333333333333333333333333',
     adminNonce: '1',
-    executorSignature: '0xexecsig',
-    executorSalt: '0xexecsalt',
+    executorSignature: '0x44',
+    executorSalt: '0x5555555555555555555555555555555555555555555555555555555555555555',
     expiresAt: 1234567890,
 }
 
@@ -146,5 +173,63 @@ describe('useSignSpendBundle — forceStrategy: collateral-only', () => {
         expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['rain-card-overview'] })
         expect(mockResolveSpendStrategy).not.toHaveBeenCalled()
         expect(mockPrepareWithdrawal).not.toHaveBeenCalled()
+    })
+})
+
+describe('useSignSpendBundle — mixed, SESSION_KEY_SIGN one-tap path', () => {
+    const mockSignEphemeral = signMixedEphemeralSpend as jest.Mock
+    const SIGNED = { signedUserOp: { sender: ACCOUNT }, chainId: '42161', entryPointAddress: '0xentry' }
+
+    beforeEach(() => {
+        mockResolveSpendStrategy.mockResolvedValue({ strategy: 'mixed', smartBalance: 50_000_000n })
+    })
+
+    async function signMixed() {
+        const { result } = renderHook(() => useSignSpendBundle(), { wrapper })
+        let artifact: Awaited<ReturnType<typeof result.current.signSpend>> | undefined
+        await act(async () => {
+            artifact = await result.current.signSpend({
+                requiredUsdcAmount: 150_000_000n,
+                recipient: RECIPIENT,
+                rainSpendingPower: 200_000_000n,
+                kind: 'QR_PAY',
+            })
+        })
+        return artifact
+    }
+
+    it('flag off: the two-tap passkey path signs the admin EIP-712 itself', async () => {
+        mockSessionKeySignEnabled.mockReturnValue(false)
+        await signMixed()
+        expect(mockSignEphemeral).not.toHaveBeenCalled()
+        expect(mockSignTypedData).toHaveBeenCalledTimes(1)
+    })
+
+    it('flag on: returns the ephemeral-signed artifact for the same prep, no passkey admin signature', async () => {
+        mockSessionKeySignEnabled.mockReturnValue(true)
+        mockSignEphemeral.mockResolvedValue({ ok: true, signedUserOp: SIGNED })
+        const artifact = await signMixed()
+        expect(artifact).toEqual({ strategy: 'mixed', signedUserOp: SIGNED, rainPreparationId: 'prep-1' })
+        expect(mockSignEphemeral).toHaveBeenCalledWith(
+            expect.objectContaining({ prep: PREP, recipient: RECIPIENT, requiredUsdcAmount: 150_000_000n })
+        )
+        expect(mockSignTypedData).not.toHaveBeenCalled()
+        expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SESSION_KEY_SPEND_ATTEMPTED, {
+            kind: 'QR_PAY',
+            flow: 'sign-only',
+        })
+    })
+
+    it('flag on, ephemeral signing fails: falls back to the two-tap path with the SAME prep and reports why', async () => {
+        mockSessionKeySignEnabled.mockReturnValue(true)
+        mockSignEphemeral.mockResolvedValue({ ok: false, reason: 'ephemeral key: session setup failed' })
+        await signMixed()
+        expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(1)
+        expect(mockSignTypedData).toHaveBeenCalledTimes(1)
+        expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SESSION_KEY_SPEND_FALLBACK, {
+            kind: 'QR_PAY',
+            flow: 'sign-only',
+            reason: 'ephemeral key: session setup failed',
+        })
     })
 })

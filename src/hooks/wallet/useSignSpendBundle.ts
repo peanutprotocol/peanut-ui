@@ -8,6 +8,9 @@ import { encodeFunctionData, erc20Abi } from 'viem'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useKernelClient } from '@/context/kernelClient.context'
+import { peanutPublicClient } from '@/app/actions/clients'
+import { sessionKeySignEnabled } from '@/constants/session-key-spend.consts'
+import { signMixedEphemeralSpend, type MixedEphemeralSignResult } from './mixedEphemeralSign'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { rainCoordinatorAbi } from '@/constants/rain.consts'
 import { buildRainWithdrawTypedData } from '@/utils/rainWithdraw.utils'
@@ -103,7 +106,7 @@ export interface SignSpendBundleInput {
  */
 
 export const useSignSpendBundle = () => {
-    const { getClientForChain, rebuildClientForChain } = useKernelClient()
+    const { getClientForChain, rebuildClientForChain, getPatchedSudoValidator } = useKernelClient()
     const { handleSendUserOpEncoded } = useZeroDev()
     const modals = useModalsContextOptional()
     const { signCallsUserOp } = useSignUserOp()
@@ -267,6 +270,39 @@ export const useSignSpendBundle = () => {
                     totalAmountCents: usdcUnitsToRainCents(requiredUsdcAmount).toString(),
                 })
 
+                /*
+                 * SESSION_KEY_SIGN: one tap instead of two — see mixedEphemeralSign.ts.
+                 * Falls through to the two-tap path on any failure; nothing has
+                 * been broadcast, so the same prep is reused with nothing at stake.
+                 */
+                if (sessionKeySignEnabled()) {
+                    posthog.capture(ANALYTICS_EVENTS.SESSION_KEY_SPEND_ATTEMPTED, { kind, flow: 'sign-only' })
+                    modals?.setIsSecurityVerificationOpen?.(true)
+                    let attempt: MixedEphemeralSignResult
+                    try {
+                        const patchedSudoValidator = await getPatchedSudoValidator(peanutPublicClient)
+                        attempt = await signMixedEphemeralSpend({
+                            publicClient: peanutPublicClient,
+                            chain: PEANUT_WALLET_CHAIN,
+                            patchedSudoValidator,
+                            accountAddress: activeAccount.address as Hex,
+                            prep,
+                            recipient: recipient as Hex,
+                            requiredUsdcAmount,
+                        })
+                    } finally {
+                        modals?.setIsSecurityVerificationOpen?.(false)
+                    }
+                    if (attempt.ok) {
+                        return { strategy, signedUserOp: attempt.signedUserOp, rainPreparationId: prep.preparationId }
+                    }
+                    posthog.capture(ANALYTICS_EVENTS.SESSION_KEY_SPEND_FALLBACK, {
+                        kind,
+                        flow: 'sign-only',
+                        reason: attempt.reason.slice(0, 200),
+                    })
+                }
+
                 const adminSignature = (await withCeremonyPurpose('admin_eip712', () =>
                     activeAccount.signTypedData(buildRainWithdrawTypedData(prep, chainIdNum))
                 )) as Hex
@@ -318,6 +354,7 @@ export const useSignSpendBundle = () => {
         [
             getClientForChain,
             rebuildClientForChain,
+            getPatchedSudoValidator,
             handleSendUserOpEncoded,
             modals,
             signCallsUserOp,
