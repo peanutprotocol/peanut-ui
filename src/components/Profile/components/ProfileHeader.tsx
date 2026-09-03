@@ -65,18 +65,25 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     generated dot-face experiment is reverted. */}
                 <AvatarWithBadge name={name || username} />
 
-                {/* Name */}
-                <div className="flex items-center gap-1">
-                    <VerifiedUserLabel
-                        name={name}
-                        username={username}
-                        isVerified={isVerified}
-                        className="text-heading-s text-foreground-primary"
-                        iconSize={20}
-                        haveSentMoneyToUser={haveSentMoneyToUser}
-                        isAuthenticatedUserVerified={isAuthenticatedUserVerified && isSelfProfile} // can be true only for self profile
-                    />
-                </div>
+                {/* Name — dropped entirely when the caller has no name to show.
+                    On the self profile that is the no-full-name case, where the
+                    row used to fall back to the username and just repeat the
+                    handle the share pill already spells out. Callers without a
+                    pill (public profile, profile edit) always pass a name, so
+                    they keep the row. */}
+                {!!name && (
+                    <div className="flex items-center gap-1">
+                        <VerifiedUserLabel
+                            name={name}
+                            username={username}
+                            isVerified={isVerified}
+                            className="text-heading-s text-foreground-primary"
+                            iconSize={20}
+                            haveSentMoneyToUser={haveSentMoneyToUser}
+                            isAuthenticatedUserVerified={isAuthenticatedUserVerified && isSelfProfile} // can be true only for self profile
+                        />
+                    </div>
+                )}
                 {/* `isSelfProfile` guards wrong attribution: `showShareButton`
                     defaults to true, so a caller on someone else's profile would
                     share that other handle. */}
