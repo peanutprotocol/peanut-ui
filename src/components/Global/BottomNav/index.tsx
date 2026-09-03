@@ -116,7 +116,11 @@ export const BottomNav = () => {
     // links, hardware back, programmatic pushes.
     const [activeTab, setActiveTab] = useState<TabId | null>(routeTab)
     useEffect(() => {
-        if (routeTab !== null && routeTab !== activeTab) setActiveTab(routeTab)
+        // null included: leaving the tab routes (/profile, /history) must
+        // clear the pill (chip P15-minor). Optimistic taps survive because
+        // this only runs when routeTab CHANGES — i.e. when the pathname
+        // actually moved — never on the optimistic render itself.
+        if (routeTab !== activeTab) setActiveTab(routeTab)
         // activeTab is deliberately read-only here: including it would undo an
         // optimistic tap on the render before the route commits
         // eslint-disable-next-line react-hooks/exhaustive-deps

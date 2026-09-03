@@ -67,7 +67,7 @@ export function HomeActionDrawers() {
     const router = useRouter()
     // the bare /add-money redirect carries the caller's returnTo here — read
     // it via nuqs (URL as state) so it can ride onto the chosen destination
-    const [returnTo] = useQueryState(RETURN_TO_PARAM, parseAsString)
+    const [returnTo, setReturnTo] = useQueryState(RETURN_TO_PARAM, parseAsString)
     // keep the last open drawer rendered through vaul's exit animation so the
     // sheet doesn't empty mid-slide when the url param clears
     const lastDrawerRef = useRef<HomeDrawer | null>(null)
@@ -78,12 +78,14 @@ export function HomeActionDrawers() {
         // clear the drawer param first so browser-back from the destination
         // lands on a closed home; nuqs queues url updates, so await the reset
         // before routing or the ?drawer entry can survive in history
-        await setDrawer(null)
         // a caller's returnTo (carried here by the bare /add-money redirect)
-        // rides along to the chosen destination; consumers sanitize it via
-        // readReturnTo before using it
-        const target = returnTo
-            ? `${href}${href.includes('?') ? '&' : '?'}${RETURN_TO_PARAM}=${encodeURIComponent(returnTo)}`
+        // rides to the chosen destination — and is CLEARED from home's own
+        // history entry, or reopening Add later would forward a stale origin
+        // into an unrelated flow (chip P15-minor)
+        const origin = returnTo
+        await Promise.all([setDrawer(null), setReturnTo(null)])
+        const target = origin
+            ? `${href}${href.includes('?') ? '&' : '?'}${RETURN_TO_PARAM}=${encodeURIComponent(origin)}`
             : href
         router.push(target)
     }

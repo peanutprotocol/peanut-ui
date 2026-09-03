@@ -988,6 +988,15 @@ describe('GROUP 1: Landing', () => {
         )
     })
 
+    test('bare /add-money drops an off-origin returnTo from the redirect', () => {
+        // forwarding the raw param verbatim would make a trusted deep link an
+        // open redirect the moment any consumer honors it
+        mockSearchParams.set('returnTo', 'https://evil.example/phish')
+        renderWithProviders(<AddMoneyPage />)
+
+        expect(mockRouterReplace).toHaveBeenCalledWith('/home?drawer=add')
+    })
+
     test('?method=bank shows the country list', () => {
         resetQueryState({ method: 'bank' })
         renderWithProviders(<AddMoneyPage />)

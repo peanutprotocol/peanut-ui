@@ -46,7 +46,8 @@ export default function AddMoneyPage() {
         // on /home instead of the caller (the bug returnTo exists to fix).
         if (countryFromQuery) {
             const params = new URLSearchParams()
-            const origin = searchParams.get(RETURN_TO_PARAM)
+            // sanitized for the same open-redirect reason as the bare-root hop
+            const origin = readReturnTo(searchParams, '/add-money')
             if (origin) params.set(RETURN_TO_PARAM, origin)
             params.set('method', 'bank')
             router.push(`/add-money?${params.toString()}`)
@@ -109,9 +110,11 @@ export default function AddMoneyPage() {
     useEffect(() => {
         if (!isBareRoot) return
         // carry the caller's origin through the drawer hop — dropping it here
-        // strands the exchange-rate widget's tested back contract on /home
+        // strands the exchange-rate widget's tested back contract on /home.
+        // readReturnTo, not the raw param: forwarding an unvalidated value
+        // from a trusted deep link is an open redirect (chip P16)
         const params = new URLSearchParams({ drawer: 'add' })
-        const origin = searchParams.get(RETURN_TO_PARAM)
+        const origin = readReturnTo(searchParams, '/add-money')
         if (origin) params.set(RETURN_TO_PARAM, origin)
         router.replace(`/home?${params.toString()}`)
     }, [isBareRoot, router, searchParams])

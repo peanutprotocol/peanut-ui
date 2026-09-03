@@ -507,11 +507,23 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 const cashoutUSDAmount =
                     Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * tokenPrice
                 const usd = (amount: number) => format.number(amount, { style: 'currency', currency: 'USD' })
+                // flow channel, NOT fieldError: this refusal comes from the
+                // submit handler on the claim-to-bank path, where the external-
+                // wallet input (fieldError's only render site) is not mounted —
+                // on fieldError the message could never be shown (chip P17)
                 if (cashoutUSDAmount < MIN_CASHOUT_LIMIT) {
-                    setFieldError(t('errors.belowMinimum', { amount: usd(MIN_CASHOUT_LIMIT) }))
+                    setErrorState({
+                        showError: true,
+                        errorMessage: t('errors.belowMinimum', { amount: usd(MIN_CASHOUT_LIMIT) }),
+                    })
+                    setLoadingState('Idle')
                     return
                 } else if (cashoutUSDAmount > MAX_CASHOUT_LIMIT) {
-                    setFieldError(t('errors.aboveMaximum', { amount: usd(MAX_CASHOUT_LIMIT) }))
+                    setErrorState({
+                        showError: true,
+                        errorMessage: t('errors.aboveMaximum', { amount: usd(MAX_CASHOUT_LIMIT) }),
+                    })
+                    setLoadingState('Idle')
                     return
                 }
             }
