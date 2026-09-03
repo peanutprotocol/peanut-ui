@@ -130,7 +130,7 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
                 <p className="text-body-s text-foreground-secondary">{t('hiddenNote')}</p>
                 <div className="flex items-center gap-3">
                     {/* Fixed-height slot keeps the row geometry constant across
-                     * masked / loading / revealed. text-6xl in this repo's
+                     * masked / loading / revealed. the 6xl stock size in this repo's
                      * Tailwind config is font-size 3rem / line-height 3.25rem
                      * (52px), so the wrapper locks to that — `****`, the
                      * skeleton, and the real digits all sit centered in the

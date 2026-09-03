@@ -53,7 +53,7 @@ export default function CardLaunchCTABanner({ onTryDoor, onDismiss }: CardLaunch
             </button>
 
             <div className="relative z-[1] flex flex-col gap-3 pr-6">
-                <h3 className="font-roboto-flex-extrabold text-4xl leading-[1.02] font-extraBlack text-foreground-primary">
+                <h3 className="font-roboto-flex-extrabold text-h2 leading-[1.02] font-extraBlack text-foreground-primary">
                     {t('title')}
                 </h3>
                 <p className="text-label-l leading-snug text-foreground-primary">{t('subtitle')}</p>
