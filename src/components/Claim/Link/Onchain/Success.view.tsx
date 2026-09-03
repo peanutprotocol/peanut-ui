@@ -43,6 +43,9 @@ export const SuccessClaimLinkView = ({
     // The optimistic claim path lands here before the broadcast is known to
     // have succeeded, so a failure can only arrive through the poll below.
     const [claimFailure, setClaimFailure] = useState<{ code: string | null } | null>(null)
+    // CLAIMED can settle before the on-chain txHash has projected, so success is
+    // its own flag rather than "we have a hash".
+    const [claimConfirmed, setClaimConfirmed] = useState(false)
     const { user: authUser } = useUserStore()
     const { fetchUser } = useAuth()
     const router = useRouter()
@@ -64,8 +67,11 @@ export const SuccessClaimLinkView = ({
     }, [queryClient])
 
     const handleClaimConfirmed = useCallback(
-        (txHash: string) => {
-            setTransactionHash(txHash)
+        (txHash: string | null) => {
+            setClaimConfirmed(true)
+            // The hash may still be projecting when CLAIMED settles; set it once
+            // it is there so any hash-dependent path downstream still gets it.
+            if (txHash) setTransactionHash(txHash)
 
             // Force immediate refetch of balance and transactions,
             // bypassing staleTime; only currently mounted queries.
@@ -93,9 +99,13 @@ export const SuccessClaimLinkView = ({
         captureMessage('Claim confirmation polling gave up without a terminal status', 'warning')
     }, [])
 
+    // Success once the claim is confirmed (CLAIMED status or a projected hash),
+    // matching the point the backend notifies — not "we have observed a hash".
+    const isClaimed = claimConfirmed || !!transactionHash
+
     useClaimSuccessPolling(
         claimLinkData.link,
-        !transactionHash && !claimFailure,
+        !isClaimed && !claimFailure,
         handleClaimConfirmed,
         handleClaimFailed,
         handleClaimUnconfirmed
@@ -167,14 +177,14 @@ export const SuccessClaimLinkView = ({
     useEffect(() => {
         // success feedback belongs to a confirmed claim, not to arriving here —
         // the optimistic path mounts this view before the broadcast is known
-        if (!transactionHash) return
+        if (!isClaimed) return
         triggerHaptic()
-    }, [transactionHash, triggerHaptic])
+    }, [isClaimed, triggerHaptic])
 
-    // The optimistic 202 lands here with no hash and no outcome yet. Rendering
-    // the success card now would claim money that has not moved — and would
-    // keep claiming it for as long as the poll is slow or failing.
-    if (!transactionHash && !claimFailure) {
+    // The optimistic 202 lands here with no outcome yet. Hold the processing
+    // state until the claim is confirmed — rendering success before that would
+    // claim money that has not moved.
+    if (!isClaimed && !claimFailure) {
         return (
             <div className="flex min-h-inherit flex-col justify-between gap-8">
                 <div className="md:hidden">
