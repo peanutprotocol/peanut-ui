@@ -709,6 +709,7 @@
             "confirmTransaction": "Confirmá la transacción.",
             "accountStateChanged": "La transacción falló por un cambio de estado de la cuenta. Intentalo de nuevo. Si el problema persiste, contactá a soporte.",
             "sessionExpired": "La sesión de pago expiró. Escaneá el código QR de nuevo.",
+            "restartScan": "No pudimos iniciar este pago. Escaneá el código QR de nuevo.",
             "merchantNotSupported": "Este código QR o comercio no es compatible. Intentalo de nuevo con otro código QR.",
             "completeFailed": "No se pudo completar el pago. Escaneá el código QR de nuevo. Si el problema persiste, contactá a soporte"
         },

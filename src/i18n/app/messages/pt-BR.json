@@ -1311,6 +1311,7 @@
             "signFailed": "Não foi possível assinar a transação.",
             "accountStateChanged": "A transação falhou por uma mudança no estado da conta. Tente de novo. Se o problema continuar, fale com o suporte.",
             "sessionExpired": "A sessão de pagamento expirou. Escaneie o código QR de novo.",
+            "restartScan": "Não conseguimos iniciar este pagamento. Escaneie o código QR novamente.",
             "merchantNotSupported": "Este código QR ou lojista não é aceito. Tente de novo com outro código QR.",
             "completeFailed": "Não foi possível concluir o pagamento. Escaneie o código QR de novo. Se o problema continuar, fale com o suporte",
             "minMantecaAmount": "O valor do pagamento deve ser de pelo menos ${amount}",

@@ -1311,6 +1311,7 @@
             "signFailed": "Could not sign the transaction.",
             "accountStateChanged": "Transaction failed due to account state change. Please try again. If the problem persists, contact support.",
             "sessionExpired": "Payment session expired. Please scan the QR code again.",
+            "restartScan": "We couldn't start this payment. Please scan the QR code again.",
             "merchantNotSupported": "This specific QR code or merchant is not supported. Please try again with a different QR code.",
             "completeFailed": "Could not complete payment. Please scan the QR code again. If problem persists contact support",
             "minMantecaAmount": "Payment amount must be at least ${amount}",
