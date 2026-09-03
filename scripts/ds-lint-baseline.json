@@ -1,10 +1,10 @@
 {
-    "rawHex": 61,
-    "rawHexFiles": 37,
-    "inlineStyle": 51,
-    "stockTextSize": 275,
+    "rawHex": 27,
+    "rawHexFiles": 20,
+    "inlineStyle": 20,
+    "stockTextSize": 11,
     "dsTextScale": 10,
-    "nonDsClassesInViews": 121,
+    "nonDsClassesInViews": 64,
     "useSearchParamsFiles": 44,
     "nuqsFiles": 20,
     "legacyColorClasses": 0,
@@ -20,7 +20,7 @@
     "retypedCardLiteral": 17,
     "hoverNoActiveFiles": 44,
     "arbitraryFontSize": 111,
-    "rawErrorText": 26,
+    "rawErrorText": 25,
     "handRolledCloseGlyphFiles": 9,
     "_meta": [
         {
