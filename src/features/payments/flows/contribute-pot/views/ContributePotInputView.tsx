@@ -14,6 +14,7 @@
 
 import NavHeader from '@/components/Global/NavHeader'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
+import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import AmountInput from '@/components/Global/AmountInput'
 import UserCard from '@/components/User/UserCard'
@@ -97,25 +98,25 @@ export function ContributePotInputView() {
                     />
                 )}
 
-                {/* amount input with slider */}
-                <AmountInput
-                    initialAmount={amount}
-                    setPrimaryAmount={setAmount}
-                    onSubmit={handlePayWithPeanut}
-                    walletBalance={isLoggedIn ? formattedBalance : undefined}
-                    hideBalance={!isLoggedIn}
-                    hideCurrencyToggle={true}
-                    showSlider={totalAmount > 0}
-                    maxAmount={totalAmount}
-                    amountCollected={totalCollected}
-                    defaultSliderValue={sliderDefaults.percentage}
-                    defaultSliderSuggestedAmount={sliderDefaults.suggestedAmount}
-                />
+                {/* amount input with slider + its field error form one column, 4px apart */}
+                <div className="flex flex-col gap-1">
+                    <AmountInput
+                        initialAmount={amount}
+                        setPrimaryAmount={setAmount}
+                        onSubmit={handlePayWithPeanut}
+                        walletBalance={isLoggedIn ? formattedBalance : undefined}
+                        hideBalance={!isLoggedIn}
+                        hideCurrencyToggle={true}
+                        showSlider={totalAmount > 0}
+                        maxAmount={totalAmount}
+                        amountCollected={totalCollected}
+                        defaultSliderValue={sliderDefaults.percentage}
+                        defaultSliderSuggestedAmount={sliderDefaults.suggestedAmount}
+                    />
+                    {isInsufficientBalance && <FieldError>{t('errors.insufficientRequest')}</FieldError>}
+                </div>
 
                 {/* error display */}
-                {isInsufficientBalance && (
-                    <Notification priority="error">{t('errors.insufficientRequest')}</Notification>
-                )}
                 {error.showError && <Notification priority="error">{error.errorMessage}</Notification>}
 
                 {/* payment options */}

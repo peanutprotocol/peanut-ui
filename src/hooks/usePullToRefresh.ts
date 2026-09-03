@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { isCapacitor } from '@/utils/capacitor'
 import { impactHaptic, notifyHaptic } from '@/utils/haptics'
@@ -37,6 +37,23 @@ interface UsePullToRefreshOptions {
     enabled?: boolean
     // element that gets the "content settled" fade once the refetch lands
     refreshTargetSelector?: string
+}
+
+/**
+ * The layouts' pull guard: a pull only starts when both the window and the
+ * app scroll container (`#scrollable-content`) sit at the top. The element is
+ * looked up lazily and cached — DOM queries per touch would be waste.
+ */
+export function useShouldPullToRefresh(): () => boolean {
+    const scrollableContentRef = useRef<Element | null>(null)
+    return useCallback(() => {
+        if (window.scrollY > 0) return false
+        if (!scrollableContentRef.current) {
+            scrollableContentRef.current = document.querySelector(DEFAULT_REFRESH_TARGET)
+        }
+        const scrollableContent = scrollableContentRef.current
+        return !scrollableContent || scrollableContent.scrollTop === 0
+    }, [])
 }
 
 /**

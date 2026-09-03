@@ -151,9 +151,14 @@ const ActionModal: React.FC<ActionModalProps> = ({
                             size="m"
                             icon={iconContent}
                             color={toneStyle?.color}
-                            className={
-                                customIconContainerClassName || (toneStyle ? undefined : defaultIconContainerClassName)
-                            }
+                            // custom classes AUGMENT the default (or the tone), never
+                            // bare-|| replace it — the IconBubble board forbids
+                            // resizing the bubble, and the ! overrides existed only
+                            // because of the old replace
+                            className={twMerge(
+                                toneStyle ? undefined : defaultIconContainerClassName,
+                                customIconContainerClassName
+                            )}
                             data-testid="action-modal-icon"
                         />
                     )}

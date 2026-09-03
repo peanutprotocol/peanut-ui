@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
-import ActionModal from '@/components/Global/ActionModal'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { useKycDegraded } from '@/hooks/useKycDegraded'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import posthog from 'posthog-js'
@@ -172,28 +172,39 @@ export const InitiateKycModal = ({
     // below — six gates share this modal, so the invariant lives here once.
     if (isKycDegraded) {
         return (
-            <ActionModal
-                visible={visible}
-                onClose={onClose}
-                title={t('degraded.title')}
-                description={t('degraded.description')}
-                tone="warning"
-                ctas={[
-                    {
-                        text: t('degraded.notifyMe'),
-                        variant: 'purple',
-                        shadowSize: '4',
-                        onClick: () => {
-                            posthog.capture(ANALYTICS_EVENTS.KYC_DEGRADED_NOTIFY_REQUESTED)
-                            // cohort tag: ops pushes to exactly these users when
-                            // the flag flips back off
-                            posthog.setPersonProperties({ kyc_down_notify_requested: true })
-                            onClose()
-                        },
-                    },
-                    { text: tCommon('gotIt'), variant: 'stroke', onClick: onClose },
-                ]}
-            />
+            <Drawer
+                open={visible}
+                onOpenChange={(isOpen) => {
+                    if (!isOpen) onClose()
+                }}
+            >
+                <DrawerContent>
+                    <div className="flex flex-col items-center gap-4 px-4 pt-1 pb-6 text-center">
+                        <IconBubble icon="alert" color="yellow" />
+                        <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
+                            <DrawerTitle>{t('degraded.title')}</DrawerTitle>
+                            <DrawerDescription>{t('degraded.description')}</DrawerDescription>
+                        </DrawerHeader>
+                        <Button
+                            variant="purple"
+                            shadowSize="4"
+                            className="w-full justify-center"
+                            onClick={() => {
+                                posthog.capture(ANALYTICS_EVENTS.KYC_DEGRADED_NOTIFY_REQUESTED)
+                                // cohort tag: ops pushes to exactly these users when
+                                // the flag flips back off
+                                posthog.setPersonProperties({ kyc_down_notify_requested: true })
+                                onClose()
+                            }}
+                        >
+                            {t('degraded.notifyMe')}
+                        </Button>
+                        <Button variant="stroke" className="w-full justify-center" onClick={onClose}>
+                            {tCommon('gotIt')}
+                        </Button>
+                    </div>
+                </DrawerContent>
+            </Drawer>
         )
     }
 
@@ -223,7 +234,6 @@ export const InitiateKycModal = ({
     // unavailable region), blue for the plain "start verification" offer — never
     // green, which the app reserves for a finished state.
     const isErrorState = !!error || isBlocked || isRestartIdentity || isProviderRejection || isRegionUnavailable
-    const tone = isErrorState ? 'error' : 'info'
     const iconName = (isErrorState ? 'alert' : 'badge') as IconName
     const footer =
         isProviderRejection || isBlocked || isRestartIdentity || isRegionUnavailable ? undefined : (
@@ -267,29 +277,38 @@ export const InitiateKycModal = ({
         )
     }
 
+    // The modal was preventClose + a visible X: no accidental overlay dismissal,
+    // one deliberate way out. The drawer keeps that contract — swipe / hardware
+    // back / overlay all route through the same onClose the X called; there is
+    // no stray-click path because vaul only dismisses on a deliberate gesture.
     return (
-        <ActionModal
-            visible={visible}
-            onClose={onClose}
-            title={getTitle()}
-            description={description}
-            preventClose
-            tone={tone}
-            icon={iconName}
-            modalPanelClassName="max-w-full m-2"
-            ctaClassName="grid grid-cols-1 gap-3"
-            ctas={[
-                {
-                    text: cta.text,
-                    onClick: cta.onClick,
-                    variant: 'purple',
-                    disabled: isLoading && !isBlocked,
-                    shadowSize: '4',
-                    ...(cta.icon ? { icon: cta.icon } : {}),
-                    className: 'h-11',
-                },
-            ]}
-            footer={footer}
-        />
+        <Drawer
+            open={visible}
+            onOpenChange={(isOpen) => {
+                if (!isOpen) onClose()
+            }}
+        >
+            <DrawerContent>
+                <div className="flex flex-col items-center gap-4 px-4 pt-1 pb-6 text-center">
+                    <IconBubble icon={iconName} color={isErrorState ? 'red' : 'blue'} />
+                    <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
+                        <DrawerTitle>{getTitle()}</DrawerTitle>
+                    </DrawerHeader>
+                    {/* body div, not DrawerDescription: the prep-checklist form nests block elements */}
+                    <div className="w-full text-body-s text-foreground-secondary">{description}</div>
+                    <Button
+                        variant="purple"
+                        shadowSize="4"
+                        className="w-full justify-center"
+                        disabled={isLoading && !isBlocked}
+                        onClick={cta.onClick}
+                        {...(cta.icon ? { icon: cta.icon } : {})}
+                    >
+                        {cta.text}
+                    </Button>
+                    {footer}
+                </div>
+            </DrawerContent>
+        </Drawer>
     )
 }

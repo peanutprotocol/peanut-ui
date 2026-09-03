@@ -5,21 +5,12 @@ import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import ActionModal from '../ActionModal'
 import DocsLink from '@/components/Global/DocsLink'
+import { legalPolicyForSlug } from '@/constants/legal-policies'
 import { useAuth } from '@/context/authContext'
 import { acceptedLegalDocument, consentApi, type ConsentStatusDocument } from '@/services/consent'
 import { LEGAL_DOCUMENT_VERSIONS, type LegalDocumentSlug } from '@/constants/legal-versions.generated'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 import { isReConsentSnoozed, snoozeReConsent } from './utils'
-
-const DOC_LABELS: Record<string, { name: string; href: string }> = {
-    terms: { name: 'Terms of Service', href: '/terms' },
-    privacy: { name: 'Privacy Policy', href: '/privacy' },
-    'card-terms-us': { name: 'Card Terms (U.S.)', href: '/card-terms-us' },
-    'card-terms-international': { name: 'Card Terms (International)', href: '/card-terms-international' },
-    'card-esign': { name: 'E-Sign Consent', href: '/card-esign' },
-    'card-privacy': { name: 'Account Opening Privacy Notice', href: '/card-privacy' },
-    'card-prohibited-activities': { name: 'Prohibited Activities Policy', href: '/card-prohibited-activities' },
-}
 
 /** Keep "Not now" stacked BELOW the primary CTA at every width — side-by-side
  *  would read as two equally-weighted choices. */
@@ -39,6 +30,7 @@ const STACKED_CTAS = 'flex-col sm:flex-col'
  */
 const ReConsentModal = () => {
     const t = useTranslations('global')
+    const tPolicies = useTranslations('profile.about.policies')
     const { user } = useAuth()
     const [outdatedDocs, setOutdatedDocs] = useState<ConsentStatusDocument[]>([])
     const [checked, setChecked] = useState(false)
@@ -138,7 +130,8 @@ const ReConsentModal = () => {
             icon="info"
             title={t('reConsent.title')}
             content={
-                <div className="space-y-3 w-full text-left">
+                // no text-left: modal body is centered per the modal board
+                <div className="space-y-3 w-full">
                     {/* The first sentence answers the question this modal actually raises
                      * ("is something being taken from me?") before anything else. The
                      * what-changed line describes the 2026-07-15 tos-v1 rewrite — revisit
@@ -149,17 +142,20 @@ const ReConsentModal = () => {
                     <p className="text-body-s text-foreground-secondary">{t('reConsent.whatChanged')}</p>
                     <ul className="space-y-1 text-body-s">
                         {outdatedDocs.map((doc) => {
-                            const label = DOC_LABELS[doc.slug] ?? { name: doc.slug, href: `/${doc.slug}` }
+                            const policy = legalPolicyForSlug(doc.slug)
                             return (
                                 <li key={doc.slug}>
-                                    <DocsLink href={label.href} className="text-black underline dark:text-white">
-                                        {label.name}
+                                    <DocsLink
+                                        href={policy?.href ?? `/${doc.slug}`}
+                                        className="text-foreground-primary underline"
+                                    >
+                                        {policy ? tPolicies(policy.key) : doc.slug}
                                     </DocsLink>
                                 </li>
                             )
                         })}
                     </ul>
-                    {error && <p className="text-body-s text-error">{error}</p>}
+                    {error && <p className="text-body-s text-foreground-error">{error}</p>}
                 </div>
             }
             checkbox={{
@@ -180,11 +176,10 @@ const ReConsentModal = () => {
                 },
                 {
                     text: 'Not now',
-                    variant: 'transparent',
+                    variant: 'stroke',
                     disabled: submitting,
                     onClick: handlePostpone,
-                    // secondary de-emphasis: .btn is font-bold by default
-                    className: 'sm:flex-none font-normal text-foreground-secondary',
+                    className: 'sm:flex-none',
                 },
             ]}
             ctaClassName={STACKED_CTAS}

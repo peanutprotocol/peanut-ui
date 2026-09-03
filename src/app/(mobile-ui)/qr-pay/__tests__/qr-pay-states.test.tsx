@@ -12,7 +12,7 @@ import posthog from 'posthog-js'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query'
 import { parseUnits } from 'viem'
 import type { RailCapability } from '@/types/capabilities'
 
@@ -297,6 +297,9 @@ jest.mock('@/utils/perk.utils', () => ({
 }))
 
 jest.mock('@/utils/qr-payment.utils', () => ({
+    // Real `qrInitIdempotencyKey`: it is pure, and stubbing it would hide the
+    // one property the retry-safety guard depends on — a stable key per scan.
+    ...jest.requireActual('@/utils/qr-payment.utils'),
     calculateSavingsInCents: jest.fn(() => 0),
     hasCardMarkupComparison: jest.fn(() => false),
     isArgentinaMantecaQrPayment: jest.fn(() => false),
@@ -315,6 +318,12 @@ jest.mock('@/context/ModalsContext', () => ({
 }))
 
 // Mock complex UI components that are hard to render in jsdom
+const mockCaptureNetworkTriagedFailure = jest.fn()
+jest.mock('@/utils/network-triage', () => ({
+    ...jest.requireActual('@/utils/network-triage'),
+    captureNetworkTriagedFailure: (...args: unknown[]) => mockCaptureNetworkTriagedFailure(...args),
+}))
+
 jest.mock('@/components/Global/AmountInput', () => ({
     __esModule: true,
     default: (props: any) => (
@@ -1432,7 +1441,29 @@ describe('GROUP 4: Success States', () => {
 // ============================================================
 // GROUP 5: Error States
 // ============================================================
+const reconnectLock = {
+    code: 'LOCK-RECONNECT',
+    type: 'MERCADO_PAGO',
+    companyId: 'c1',
+    userId: 'u1',
+    userNumberId: 'un1',
+    userExternalId: 'ue1',
+    paymentRecipientName: 'Reconnected Merchant',
+    paymentRecipientLegalId: 'legal1',
+    paymentAssetAmount: '1000',
+    paymentAsset: 'ARS',
+    paymentPrice: '1000',
+    paymentAgainstAmount: '1',
+    paymentAgainst: 'USD',
+    expireAt: '2026-04-16T23:59:59Z',
+    creationTime: '2026-04-16T00:00:00Z',
+}
+
 describe('GROUP 5: Error States', () => {
+    // The offline test below flips global online state; a failure mid-test
+    // would otherwise leave every later suite running as if disconnected.
+    afterEach(() => onlineManager.setOnline(true))
+
     test('QR decode failure shows specific error message', async () => {
         mockMantecaApi.initiateQrPayment.mockRejectedValue(new Error('PAYMENT_DESTINATION_DECODING_ERROR'))
 
@@ -1467,15 +1498,478 @@ describe('GROUP 5: Error States', () => {
         })
     })
 
-    test('Manteca API error shows generic error', async () => {
+    /*
+     * A retryable failure is not an outcome yet — React Query has three attempts
+     * left. The terminal copy used to land on the FIRST one, so a scan that
+     * recovered on attempt 2 had already told the user the rail was down.
+     */
+    /*
+     * Deterministic backend rejections must reach their terminal state on the
+     * FIRST response. Each retry re-runs createQrPaymentLock against Manteca,
+     * so a capped user was spending four round trips and four abandoned price
+     * locks — behind the retry caption — for an answer attempt one already had.
+     */
+    test.each([
+        ['MANTECA_SOURCE_OVER_MONTHLY_CAP', /remaining monthly limit/i],
+        ['MANTECA_MERCHANT_VOLUME_NEAR_CAP', /can't complete QR payments to this merchant/i],
+        ['MANTECA_MERCHANT_RECENT_REFUND', /can't complete QR payments to this merchant/i],
+        ['MANTECA_USER_NOT_PROVISIONED', /verifying your identity/i],
+        ['User KYC not approved', /verifying your identity/i],
+    ])(
+        '%s fails fast with copy that names the real cause',
+        async (code, copy) => {
+            mockMantecaApi.initiateQrPayment.mockRejectedValue(new Error(code))
+
+            renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+            await waitFor(() => {
+                expect(screen.getByText(copy)).toBeInTheDocument()
+            })
+
+            /*
+             * Past the 3s backoff, not just to the copy. The copy comes from the
+             * classifier's code table while the retry gate is a separate call, so
+             * asserting the call count inside waitFor's 1s cap proved nothing: only
+             * one call had been made at that instant whether or not the code was
+             * treated as deterministic. Drop a code from the table and this now
+             * fails — with three extra POSTs and three orphaned Manteca locks.
+             */
+            await new Promise((resolve) => setTimeout(resolve, 4_000))
+            expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
+            expect(screen.queryByText(/still fetching details/i)).not.toBeInTheDocument()
+            /*
+             * None of these is an outage. A capped user told "MercadoPago is having
+             * issues" has nothing to act on — product/providers/fiat/README.md
+             * records one sitting blocked for three days behind exactly that.
+             */
+            expect(screen.queryByText(/currently experiencing issues/i)).not.toBeInTheDocument()
+        },
+        20_000
+    )
+
+    /*
+     * The cap block fires when THIS payment exceeds the remaining headroom
+     * (`attempted <= available` in peanut-api-ts cap-check.ts), not when the
+     * headroom is gone — so the smaller-amount route is usually still open, and
+     * copy that only offers "wait until next month" sends a user who could pay
+     * ARS 5,000 away from the counter. The pool is also shared with deposits
+     * and withdrawals (mono product/kyc.md), so it must not be named a QR limit.
+     */
+    it('cap copy at scan time offers no amount the user cannot change', async () => {
+        mockMantecaApi.initiateQrPayment.mockRejectedValue(new Error('MANTECA_SOURCE_OVER_MONTHLY_CAP'))
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+        const message = await screen.findByText(/remaining monthly limit/i)
+        expect(message).toHaveTextContent(/deposits, withdrawals and QR/i)
+        expect(message).not.toHaveTextContent(/monthly QR payment limit/i)
+        /*
+         * A cap refused at SCAN time carries the merchant's own encoded amount —
+         * an open-amount QR returns a lock with an empty code and only reaches
+         * the cap check once a number is submitted. This screen renders a bare
+         * string and a "go back" button, so "try a smaller amount" would be
+         * advice with no field to follow it in. Name the charge instead, which
+         * the cashier can actually ring again.
+         */
+        expect(message).toHaveTextContent(/smaller charge/i)
+        expect(message).not.toHaveTextContent(/try a smaller amount/i)
+        /*
+         * And no self-service promise. Raising a limit in-app is gated on
+         * isBrUserEligibleForLimitIncrease (BRL/BRA at or under 1000 USDT), so
+         * every AR QR user reaching this copy gets a support chat instead —
+         * which is the path mono product/kyc.md documents.
+         */
+        expect(message).toHaveTextContent(/contact support/i)
+        expect(message).not.toHaveTextContent(/in the app/i)
+    })
+
+    /*
+     * Both merchant codes are reached only for pool payments, so the volume cap
+     * counts every Peanut user's spend at that merchant and the refund block may
+     * be another user's refund. The merchant is fine; our pooled source account
+     * is what cannot pay. Claiming otherwise sends the user — and support —
+     * after the wrong party, which product/feedback/problems/
+     * limits-invisible-blocking.md records as a harm class.
+     */
+    it.each([['MANTECA_MERCHANT_VOLUME_NEAR_CAP'], ['MANTECA_MERCHANT_RECENT_REFUND']])(
+        '%s blames us, not the merchant',
+        async (code) => {
+            mockMantecaApi.initiateQrPayment.mockRejectedValue(new Error(code))
+
+            renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+            const message = await screen.findByText(/can't complete QR payments to this merchant/i)
+            expect(message).not.toHaveTextContent(/merchant (can't|cannot|is unable)/i)
+        }
+    )
+
+    /*
+     * The post-amount re-init, at the call site rather than through the
+     * classifier. An open-amount QR gets a lock with an EMPTY code from the
+     * scan, so its cap verdict only exists once the typed amount is
+     * re-submitted — and that POST creates a real Manteca price lock. Restoring
+     * the old `PIX_MIN_AMOUNT`-only check would put a capped user back on
+     * "unexpected error" with every other test in the suite still green.
+     */
+    it('open-amount cap rejection names the cap at the re-init call site', async () => {
+        mockMantecaApi.initiateQrPayment
+            .mockResolvedValueOnce({ ...reconnectLock, code: '' })
+            .mockRejectedValue(new Error('MANTECA_SOURCE_OVER_MONTHLY_CAP'))
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+        await waitFor(() => {
+            expect(screen.getByText(reconnectLock.paymentRecipientName)).toBeInTheDocument()
+        })
+
+        // The mocked AmountInput drives the USD leg with the same string, so
+        // this is $5 — inside the $100 test balance, which the Pay button gates on.
+        await act(async () => {
+            fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '5' } })
+        })
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+
+        await waitFor(() => {
+            expect(screen.getByText(/remaining monthly limit/i)).toBeInTheDocument()
+        })
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2)
+        expect(screen.queryByText(/unexpected error/i)).not.toBeInTheDocument()
+        // Deterministic rejection, not a transport surprise — no Sentry event.
+        expect(mockCaptureNetworkTriagedFailure).not.toHaveBeenCalled()
+
+        /*
+         * And the advice has to be followable. The copy says to try a smaller
+         * amount; without the retryable code the error kept `isBlockingError`
+         * true and Pay stayed disabled for the rest of the scan, so the only
+         * way out was abandoning the QR at the till.
+         */
+        mockMantecaApi.initiateQrPayment.mockResolvedValue({ ...reconnectLock, code: 'LOCK-SMALLER' })
+        await act(async () => {
+            fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '2' } })
+        })
+
+        expect(screen.queryByText(/remaining monthly limit/i)).not.toBeInTheDocument()
+        const payAgain = screen.getByRole('button', { name: 'Pay' })
+        expect(payAgain).not.toBeDisabled()
+
+        await act(async () => {
+            fireEvent.click(payAgain)
+        })
+        await waitFor(() => {
+            expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(3)
+        })
+    }, 20_000)
+
+    /*
+     * The re-init POST mints a REAL Manteca price lock, so it must carry its own
+     * idempotency key. Reusing the scan's key would have the backend replay the
+     * scan's empty-code lock; `finalPaymentLock.code === ''` then falls to
+     * `errors.fetchDetails` and every open-amount QR becomes unpayable — with
+     * typecheck and the rest of this suite green.
+     */
+    it('open-amount re-init sends its own idempotency key, keyed to the amount', async () => {
+        // Cap rejection keeps us on the form (it is amount-retryable), so the
+        // second submit can be compared against the first.
+        mockMantecaApi.initiateQrPayment
+            .mockResolvedValueOnce({ ...reconnectLock, code: '' })
+            .mockRejectedValue(new Error('MANTECA_SOURCE_OVER_MONTHLY_CAP'))
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+        await waitFor(() => {
+            expect(screen.getByText(reconnectLock.paymentRecipientName)).toBeInTheDocument()
+        })
+
+        await act(async () => {
+            fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '5' } })
+        })
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+        await waitFor(() => {
+            expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2)
+        })
+
+        const scanKey = mockMantecaApi.initiateQrPayment.mock.calls[0][0].idempotencyKey
+        const reInitKey = mockMantecaApi.initiateQrPayment.mock.calls[1][0].idempotencyKey
+        expect(scanKey).toBeTruthy()
+        expect(reInitKey).toBeTruthy()
+        // Reusing the scan's key would have the backend replay the empty-code
+        // lock, and every open-amount QR would land on `errors.fetchDetails`.
+        expect(reInitKey).not.toBe(scanKey)
+
+        // A different amount is a genuinely different lock.
+        await act(async () => {
+            fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '2' } })
+        })
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+        await waitFor(() => {
+            expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(3)
+        })
+        expect(mockMantecaApi.initiateQrPayment.mock.calls[2][0].idempotencyKey).not.toBe(reInitKey)
+    }, 20_000)
+
+    /*
+     * The merchant volume cap compares `rolling30dTotal + attempted >= LIMIT`
+     * (peanut-api-ts cap-check.ts), so after amount entry a smaller number can
+     * still fit — and the copy has to say so. The scan-time string does not,
+     * because there the amount is the merchant's.
+     */
+    it('merchant volume cap offers a smaller amount only at the amount-entry call site', async () => {
+        mockMantecaApi.initiateQrPayment
+            .mockResolvedValueOnce({ ...reconnectLock, code: '' })
+            .mockRejectedValue(new Error('MANTECA_MERCHANT_VOLUME_NEAR_CAP'))
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+        await waitFor(() => {
+            expect(screen.getByText(reconnectLock.paymentRecipientName)).toBeInTheDocument()
+        })
+        await act(async () => {
+            fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '5' } })
+        })
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+
+        const message = await screen.findByText(/can't complete QR payments of this size/i)
+        expect(message).toHaveTextContent(/smaller amount/i)
+    }, 20_000)
+
+    /*
+     * A refused idempotency key is our bug, not the user's — but their way out
+     * is a fresh scan (which mints a new key), not a support ticket. The generic
+     * "contact support" copy would strand someone at a till with an action that
+     * cannot help them.
+     */
+    it('a refused idempotency key tells the user to scan again, not to contact support', async () => {
+        mockMantecaApi.initiateQrPayment.mockRejectedValue(
+            Object.assign(new Error('key reused'), { name: 'ApiError', status: 409, code: 'QR_INIT_KEY_MISMATCH' })
+        )
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+        const message = await screen.findByText(/scan the QR code again/i)
+        expect(message).toBeInTheDocument()
+        expect(screen.queryByText(/contact support/i)).not.toBeInTheDocument()
+
+        // Deterministic: one POST, not four.
+        await new Promise((resolve) => setTimeout(resolve, 4_000))
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
+    }, 20_000)
+
+    /*
+     * The other half of the amount-edit rule. A terminal rejection must STAY
+     * latched: an unfinished KYC or a merchant refund block is not something a
+     * different number fixes, and clearing on any keystroke re-enabled Pay so
+     * the user could re-POST it — minting another Manteca price lock on the
+     * refund path before the backend applies the block.
+     */
+    it.each([['MANTECA_MERCHANT_RECENT_REFUND'], ['MANTECA_USER_NOT_PROVISIONED']])(
+        '%s stays latched when the amount is edited',
+        async (code) => {
+            mockMantecaApi.initiateQrPayment
+                .mockResolvedValueOnce({ ...reconnectLock, code: '' })
+                .mockRejectedValue(new Error(code))
+
+            renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+            await waitFor(() => {
+                expect(screen.getByText(reconnectLock.paymentRecipientName)).toBeInTheDocument()
+            })
+            await act(async () => {
+                fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '5' } })
+            })
+            await act(async () => {
+                fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+            })
+
+            await waitFor(() => {
+                expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2)
+            })
+
+            await act(async () => {
+                fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '2' } })
+            })
+
+            expect(screen.getByRole('button', { name: 'Pay' })).toBeDisabled()
+            // and no further POST could have been sent
+            expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2)
+        },
+        20_000
+    )
+
+    // No ETA promise: mono product/lessons-from-corrections.md records
+    // "verification takes 2 minutes" as a correction — that is the happy path,
+    // and MANTECA_USER_NOT_PROVISIONED reaches this copy for users who may
+    // already be sitting in manual review (1-3 business days).
+    it('KYC copy promises no completion time', async () => {
+        mockMantecaApi.initiateQrPayment.mockRejectedValue(new Error('MANTECA_USER_NOT_PROVISIONED'))
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+        const message = await screen.findByText(/verifying your identity/i)
+        expect(message).not.toHaveTextContent(/few minutes|couple of minutes|takes? \d/i)
+    })
+
+    // The KYC rejection's stable discriminant is its `code`; its `error` is a
+    // plain sentence the backend can reword at any time.
+    it('routes the KYC rejection on its wire code, and does not retry it', async () => {
+        mockMantecaApi.initiateQrPayment.mockRejectedValue(
+            Object.assign(new Error('some reworded backend sentence'), {
+                name: 'ApiError',
+                status: 400,
+                code: 'MANTECA_KYC_REQUIRED',
+            })
+        )
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+        await waitFor(() => {
+            expect(screen.getByText(/verifying your identity/i)).toBeInTheDocument()
+        })
+
+        /*
+         * Past the 3s backoff, not just to the copy. The result effect reads the
+         * wire code, so the KYC message appeared on attempt one either way — an
+         * assertion made before the first retry could fire passed while three
+         * more POSTs were still scheduled against a deterministic rejection.
+         */
+        await new Promise((resolve) => setTimeout(resolve, 4_000))
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
+    }, 20_000)
+
+    /*
+     * Offline is not an outcome. Under react-query's default networkMode a
+     * device that drops mid-retry PAUSES the query — resumable, no fetch in
+     * flight, so no AbortController ever fires and the terminal error never
+     * arrives. Treating paused as pending pinned the scan on a spinner
+     * forever; treating it as terminal latched an outage message the recovered
+     * scan could never clear, because `errorInitiatingPayment` gates the whole
+     * render. The lock has to win when it finally lands.
+     */
+    test('Going offline blames the connection, and reconnecting clears it for the recovered scan', async () => {
+        mockMantecaApi.initiateQrPayment
+            .mockRejectedValueOnce(new Error('Network timeout'))
+            .mockResolvedValue(reconnectLock)
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+        await waitFor(() => {
+            expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
+        })
+
+        // Drop the connection inside the retry backoff, so the retry parks.
+        await act(async () => {
+            onlineManager.setOnline(false)
+        })
+
+        /*
+         * A paused query is a positive signal that the DEVICE lost
+         * connectivity — nothing else parks it. Blaming MercadoPago here is
+         * the misdiagnosis the rest of this screen's copy exists to remove,
+         * and it sends a user with no signal to support about the rail.
+         */
+        await waitFor(
+            () => {
+                expect(screen.getByText(/device seems to be offline/i)).toBeInTheDocument()
+            },
+            { timeout: 12_000 }
+        )
+        expect(screen.queryByText(/currently experiencing issues/i)).not.toBeInTheDocument()
+
+        await act(async () => {
+            onlineManager.setOnline(true)
+        })
+
+        await waitFor(
+            () => {
+                expect(screen.getByText(reconnectLock.paymentRecipientName)).toBeInTheDocument()
+            },
+            { timeout: 12_000 }
+        )
+        expect(screen.queryByText(/device seems to be offline/i)).not.toBeInTheDocument()
+    }, 30_000)
+
+    // Real timers, and the budget to sit through them: the page's retry policy
+    // is the thing under test, and driving react-query's backoff with fake ones
+    // left the page wedged on its mount-time loading gate.
+    test('Network failure keeps loading while retries remain, then shows the generic error', async () => {
         mockMantecaApi.initiateQrPayment.mockRejectedValue(new Error('Network timeout'))
 
         renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
 
         await waitFor(() => {
-            expect(screen.getByText(/currently experiencing issues/i)).toBeInTheDocument()
+            expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
         })
-    })
+        expect(screen.queryByText(/currently experiencing issues/i)).not.toBeInTheDocument()
+        // The caption has to REACH the screen: setting the context state alone
+        // left the user on the same unlabeled spinner it was added to replace.
+        await waitFor(() => {
+            expect(screen.getByText(/still fetching details/i)).toBeInTheDocument()
+        })
+
+        await waitFor(
+            () => {
+                expect(screen.getByText(/currently experiencing issues/i)).toBeInTheDocument()
+            },
+            { timeout: 12_000 }
+        )
+        // Four, not the three the retry policy's comment used to claim:
+        // `failureCount` is 0-based at the point react-query consults it, so
+        // `failureCount < 3` allows three RETRIES on top of the first attempt.
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(4)
+    }, 20_000)
+
+    /*
+     * The case the retry branch exists FOR, and the one the test above cannot
+     * reach: a scan that stalls once and then succeeds. It also pins an
+     * invariant the effect leans on without asserting — query-core clearing
+     * `failureReason` on success. If that ever stops holding, the success
+     * branch sets the lock and 'Idle', the error block immediately overwrites
+     * it with 'Still fetching details', and the next pass skips the success
+     * branch because `paymentLock` is now set: a valid, expiring price lock
+     * stranded behind a permanent spinner, with every other test still green.
+     */
+    test('Scan that recovers on the retry lands on the payment screen, not an error', async () => {
+        const recoveredLock = {
+            code: 'LOCK-RECOVERED',
+            type: 'MERCADO_PAGO',
+            companyId: 'c1',
+            userId: 'u1',
+            userNumberId: 'un1',
+            userExternalId: 'ue1',
+            paymentRecipientName: 'Recovered Merchant',
+            paymentRecipientLegalId: 'legal1',
+            paymentAssetAmount: '1000',
+            paymentAsset: 'ARS',
+            paymentPrice: '1000',
+            paymentAgainstAmount: '1',
+            paymentAgainst: 'USD',
+            expireAt: '2026-04-16T23:59:59Z',
+            creationTime: '2026-04-16T00:00:00Z',
+        }
+        mockMantecaApi.initiateQrPayment
+            .mockRejectedValueOnce(new Error('Network timeout'))
+            .mockResolvedValue(recoveredLock)
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+
+        await waitFor(
+            () => {
+                expect(screen.getByText(recoveredLock.paymentRecipientName)).toBeInTheDocument()
+            },
+            { timeout: 12_000 }
+        )
+
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2)
+        expect(screen.queryByText(/currently experiencing issues/i)).not.toBeInTheDocument()
+        expect(screen.queryByTestId('peanut-loading')).not.toBeInTheDocument()
+    }, 20_000)
 })
 
 // ============================================================

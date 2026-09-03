@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { FieldError } from '@/components/0_Bruddle/FieldError'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
@@ -193,25 +193,29 @@ export default function InitialWithdrawView({
 
                 <TokenSelector viewType="withdraw" />
 
-                <GeneralRecipientInput
-                    placeholder={
-                        addressFamily === 'evm' ? t('initial.placeholderEns') : t('initial.placeholderAddress')
-                    }
-                    addressFamily={addressFamily}
-                    chainId={selectedChainID}
-                    recipient={recipient}
-                    onUpdate={(update: GeneralRecipientUpdate) => {
-                        setRecipient(update.recipient)
-                        setIsValidRecipient(update.isValid)
-                        setError({
-                            showError: !update.isValid,
-                            errorMessage: update.errorMessage,
-                        })
-                        setInputChanging(update.isChanging)
-                    }}
-                    showInfoText={false}
-                    isWithdrawal
-                />
+                {/* input + its field error form one column, 4px apart (form-field board 17788:19179) */}
+                <div className="flex flex-col gap-1">
+                    <GeneralRecipientInput
+                        placeholder={
+                            addressFamily === 'evm' ? t('initial.placeholderEns') : t('initial.placeholderAddress')
+                        }
+                        addressFamily={addressFamily}
+                        chainId={selectedChainID}
+                        recipient={recipient}
+                        onUpdate={(update: GeneralRecipientUpdate) => {
+                            setRecipient(update.recipient)
+                            setIsValidRecipient(update.isValid)
+                            setError({
+                                showError: !update.isValid,
+                                errorMessage: update.errorMessage,
+                            })
+                            setInputChanging(update.isChanging)
+                        }}
+                        showInfoText={false}
+                        isWithdrawal
+                    />
+                    {error.showError && !!error.errorMessage && <FieldError>{error.errorMessage}</FieldError>}
+                </div>
 
                 {/* Surface the resolved address as soon as an ENS name validates —
                     the user must see where funds will actually go before any
@@ -241,10 +245,6 @@ export default function InitialWithdrawView({
                 >
                     {t('review')}
                 </Button>
-
-                {error.showError && !!error.errorMessage && (
-                    <Notification priority="error">{error.errorMessage}</Notification>
-                )}
             </div>
         </PageStack>
     )

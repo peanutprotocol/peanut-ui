@@ -71,13 +71,14 @@ export const Profile = () => {
         <div className="h-full w-full bg-background">
             <NavHeader hideLabel showLogoutBtn onPrev={onBack} />
             <div className="space-y-8">
-                {/* the copy-username icon next to the name is enough here; the
-                    share pill is the public-profile affordance */}
+                {/* the share pill is the profile's one share affordance — the
+                    copy-username icon it used to lean on was removed
+                    (TASK-22121 #24), so suppressing the pill here left the
+                    page with no way to share at all */}
                 <ProfileHeader
                     name={displayName}
                     username={username}
                     isVerified={isUserSumsubKycApproved}
-                    showShareButton={false}
                     onChangeAvatar={() => setAvatarPickerOpen(true)}
                 />
                 <AvatarPicker open={avatarPickerOpen} onOpenChange={setAvatarPickerOpen} />

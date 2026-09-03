@@ -14,6 +14,7 @@
 
 import NavHeader from '@/components/Global/NavHeader'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
+import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import AmountInput from '@/components/Global/AmountInput'
 import UserCard from '@/components/User/UserCard'
@@ -74,15 +75,18 @@ export function SendInputView() {
                     />
                 )}
 
-                {/* amount input */}
-                <AmountInput
-                    initialAmount={amount}
-                    setPrimaryAmount={setAmount}
-                    onSubmit={handleSubmit}
-                    walletBalance={isLoggedIn ? formattedBalance : undefined}
-                    hideBalance={!isLoggedIn}
-                    hideCurrencyToggle={true}
-                />
+                {/* amount input + its field error form one column, 4px apart */}
+                <div className="flex flex-col gap-1">
+                    <AmountInput
+                        initialAmount={amount}
+                        setPrimaryAmount={setAmount}
+                        onSubmit={handleSubmit}
+                        walletBalance={isLoggedIn ? formattedBalance : undefined}
+                        hideBalance={!isLoggedIn}
+                        hideCurrencyToggle={true}
+                    />
+                    {isInsufficientBalance && <FieldError>{t('errors.insufficientPayment')}</FieldError>}
+                </div>
 
                 {/* message input */}
                 <FileUploadInput
@@ -110,9 +114,6 @@ export function SendInputView() {
                         loading={isLoading}
                         insufficientBalance={isInsufficientBalance}
                     />
-                    {isInsufficientBalance && (
-                        <Notification priority="error">{t('errors.insufficientPayment')}</Notification>
-                    )}
                     {error.showError && <Notification priority="error">{error.errorMessage}</Notification>}
                 </div>
 

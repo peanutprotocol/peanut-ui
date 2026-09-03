@@ -73,8 +73,11 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
                     className={twMerge(
                         'notranslate flex h-12 w-full items-center justify-between rounded-sm border border-border-default bg-white px-4 text-label-l text-foreground-primary transition-colors outline-none placeholder:text-foreground-secondary',
                         'disabled:cursor-not-allowed disabled:opacity-50',
-                        // DS input focus pattern (blue ring), not the old pink border
-                        'focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid',
+                        // DS input state pattern: pointer press = 2px black (1px
+                        // border + 1px outline), keyboard focus = 3px blue ring.
+                        // base outline colors are set per state so transition-colors
+                        // cannot animate a ring in from the wrong color (flash bug)
+                        'outline-border-default focus:outline-1 focus:outline-solid focus-visible:border-transparent focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid',
                         error && 'border-border-error',
                         className
                     )}
@@ -95,13 +98,16 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
                             // Radix measured (which honours collisionPadding below),
                             // so a long list shrinks and scrolls instead of running
                             // under the nav.
-                            'relative z-50 max-h-[min(20rem,var(--radix-select-content-available-height))] overflow-hidden rounded-sm border border-border-default bg-white shadow-lg'
+                            'relative z-50 max-h-[min(20rem,var(--radix-select-content-available-height))] overflow-hidden rounded-sm border border-border-default bg-background-default shadow-lg'
                         )}
                         position="popper"
                         sideOffset={4}
                         align="start"
                         collisionPadding={{ top: 8, right: 8, bottom: BOTTOM_NAV_CLEARANCE_PX, left: 8 }}
                         style={{ width: 'var(--radix-select-trigger-width)' }}
+                        // usePullToRefresh listens on `document` and only bails on window.scrollY > 0,
+                        // so scrolling a long list at page top reads as a pull. Same guard as Global/Drawer.
+                        onTouchMove={(e) => e.stopPropagation()}
                     >
                         <Viewport className="notranslate w-full p-1">
                             {options.map((option) => (
@@ -112,7 +118,7 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
                                         'relative flex w-full cursor-pointer items-center rounded-sm px-3 py-2 text-label-l outline-none select-none',
                                         'transition-colors',
                                         'hover:bg-gray-200 focus:bg-gray-200',
-                                        'data-[state=checked]:bg-action-primary data-[state=checked]:text-white'
+                                        'data-[state=checked]:bg-action-primary data-[state=checked]:text-foreground-inverse'
                                     )}
                                 >
                                     <ItemText className="text-label-l">{option.label}</ItemText>

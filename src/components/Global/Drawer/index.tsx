@@ -92,10 +92,12 @@ type DrawerContentProps = React.ComponentPropsWithoutRef<typeof DrawerPrimitive.
     accessibleTitle?: string
     /** Merged onto the inner scroll wrapper — the element that owns panning when content overflows. */
     scrollAreaClassName?: string
+    /** Ref to the inner scroll wrapper, for callers that need to measure it. */
+    scrollAreaRef?: React.Ref<HTMLDivElement>
 }
 
 const DrawerContent = React.forwardRef<React.ElementRef<typeof DrawerPrimitive.Content>, DrawerContentProps>(
-    ({ className, children, accessibleTitle, scrollAreaClassName, ...props }, ref) => (
+    ({ className, children, accessibleTitle, scrollAreaClassName, scrollAreaRef, ...props }, ref) => (
         <DrawerPortal>
             <DrawerOverlay />
             <DrawerPrimitive.Content
@@ -115,6 +117,7 @@ const DrawerContent = React.forwardRef<React.ElementRef<typeof DrawerPrimitive.C
                 <div className="mx-auto mt-2 mb-6 h-[5px] w-8 rounded-round bg-foreground-secondary" />
                 <div className="flex w-full justify-center">
                     <div
+                        ref={scrollAreaRef}
                         className={twMerge(
                             'max-h-[80vh] w-full overflow-auto pb-safe-bottom md:max-w-xl',
                             scrollAreaClassName

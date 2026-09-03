@@ -530,24 +530,6 @@ jest.mock('@/components/Profile/AvatarWithBadge', () => ({
     default: (props: any) => <div data-testid="avatar-badge" />,
 }))
 
-jest.mock('@/components/AddMoney/components/ChooseNetworkDrawer', () => ({
-    __esModule: true,
-    default: (props: any) =>
-        props.open ? (
-            <div data-testid="choose-network-drawer">
-                <button data-testid="select-evm" onClick={() => props.onSelect('EVM')}>
-                    EVM
-                </button>
-                <button data-testid="select-sol" onClick={() => props.onSelect('SOL')}>
-                    Solana
-                </button>
-                <button data-testid="select-tron" onClick={() => props.onSelect('TRON')}>
-                    Tron
-                </button>
-            </div>
-        ) : null,
-}))
-
 jest.mock('@/components/AddMoney/components/ChainChip', () => ({
     __esModule: true,
     default: (props: any) => <span data-testid="chain-chip">{props.chainName}</span>,
@@ -984,46 +966,38 @@ beforeEach(() => {
 })
 
 // ============================================================
-// GROUP 1: Landing / Method Selection
+// GROUP 1: Landing (root = bank country list; the old method-selection
+// screen is gone — crypto is linked directly from the home Add drawer)
 // ============================================================
-describe('GROUP 1: Landing / Method Selection', () => {
-    test('default view shows Crypto and Bank Transfer options', () => {
+describe('GROUP 1: Landing', () => {
+    test('bare /add-money redirects to the home add drawer (nuqs url state)', () => {
         renderWithProviders(<AddMoneyPage />)
 
-        expect(screen.getByText('Crypto')).toBeInTheDocument()
-        expect(screen.getByText('Bank transfer')).toBeInTheDocument()
-        expect(screen.getByText('Add Money')).toBeInTheDocument()
+        // the drawer offers crypto AND bank, so generic entries lose nothing
+        expect(mockRouterReplace).toHaveBeenCalledWith('/home?drawer=add')
+        expect(screen.queryByTestId('country-list')).not.toBeInTheDocument()
     })
 
-    test('clicking Crypto opens the network drawer', () => {
+    test('bare /add-money carries returnTo through the drawer redirect', () => {
+        mockSearchParams.set('returnTo', '/profile/exchange-rate?from=USD&to=EUR')
         renderWithProviders(<AddMoneyPage />)
 
-        const cryptoCard = screen.getByTestId('action-card-crypto')
-        fireEvent.click(cryptoCard)
-
-        expect(screen.getByTestId('choose-network-drawer')).toBeInTheDocument()
+        // dropping it would strand the exchange-rate widget's back contract
+        expect(mockRouterReplace).toHaveBeenCalledWith(
+            `/home?drawer=add&returnTo=${encodeURIComponent('/profile/exchange-rate?from=USD&to=EUR')}`
+        )
     })
 
-    test('selecting EVM network navigates to crypto page', () => {
+    test('bare /add-money drops an off-origin returnTo from the redirect', () => {
+        // forwarding the raw param verbatim would make a trusted deep link an
+        // open redirect the moment any consumer honors it
+        mockSearchParams.set('returnTo', 'https://evil.example/phish')
         renderWithProviders(<AddMoneyPage />)
 
-        fireEvent.click(screen.getByTestId('action-card-crypto'))
-        fireEvent.click(screen.getByTestId('select-evm'))
-
-        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/crypto?network=EVM')
+        expect(mockRouterReplace).toHaveBeenCalledWith('/home?drawer=add')
     })
 
-    test('clicking Bank Transfer switches to country list', () => {
-        renderWithProviders(<AddMoneyPage />)
-
-        fireEvent.click(screen.getByTestId('action-card-bank-transfer'))
-
-        // The mock for nuqs useQueryState will be called via setMethod('bank')
-        // and then the component should render the country list
-        expect(mockSetQueryState).toHaveBeenCalled()
-    })
-
-    test('method=bank shows country list', () => {
+    test('?method=bank shows the country list', () => {
         resetQueryState({ method: 'bank' })
         renderWithProviders(<AddMoneyPage />)
 
@@ -1058,7 +1032,8 @@ describe('GROUP 1: Landing / Method Selection', () => {
         expect(mockRouterPush).toHaveBeenCalledWith('/add-money/chad')
     })
 
-    test('back from method selection navigates to /home', () => {
+    test('back from the country list navigates to /home', () => {
+        resetQueryState({ method: 'bank' })
         renderWithProviders(<AddMoneyPage />)
 
         fireEvent.click(screen.getByTestId('nav-header'))
@@ -1069,6 +1044,7 @@ describe('GROUP 1: Landing / Method Selection', () => {
     // strand the user: back reset to /home instead of the screen they came from.
     test('back honours ?returnTo when the flow was entered from another screen', () => {
         mockSearchParams.set('returnTo', '/profile/exchange-rate?from=USD&to=EUR')
+        resetQueryState({ method: 'bank' })
         renderWithProviders(<AddMoneyPage />)
 
         fireEvent.click(screen.getByTestId('nav-header'))
@@ -1078,20 +1054,11 @@ describe('GROUP 1: Landing / Method Selection', () => {
 
     test('back ignores an off-origin ?returnTo and still resets to /home', () => {
         mockSearchParams.set('returnTo', 'https://evil.example/phish')
-        renderWithProviders(<AddMoneyPage />)
-
-        fireEvent.click(screen.getByTestId('nav-header'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/home')
-    })
-
-    test('back on the country list still collapses to method selection first', () => {
-        mockSearchParams.set('returnTo', '/profile/exchange-rate')
         resetQueryState({ method: 'bank' })
         renderWithProviders(<AddMoneyPage />)
 
         fireEvent.click(screen.getByTestId('nav-header'))
-        expect(mockSetQueryState).toHaveBeenCalledWith({ method: null })
-        expect(mockRouterPush).not.toHaveBeenCalled()
+        expect(mockRouterPush).toHaveBeenCalledWith('/home')
     })
 })
 
@@ -1804,6 +1771,53 @@ describe('GROUP 8: InputAmountStep Component', () => {
 
         expect(screen.getByTestId('error-alert')).toBeInTheDocument()
         expect(screen.getByText('Deposit amount must be at least $1')).toBeInTheDocument()
+    })
+
+    // TASK-22121 #26: client-side validation renders as the field's own error
+    // under the amount input, not in the flow-level Notification
+    test('validationError renders as a field error and disables Continue', () => {
+        renderWithProviders(
+            <InputAmountStep
+                tokenAmount="0.01"
+                setTokenAmount={jest.fn()}
+                onSubmit={jest.fn()}
+                isLoading={false}
+                error={null}
+                validationError="Deposit amount must be at least $1"
+                setCurrencyAmount={jest.fn()}
+                limitsValidation={{ isBlocking: false, isWarning: false, currency: 'USD' }}
+                limitsCurrency="USD"
+                onBack={jest.fn()}
+            />
+        )
+
+        expect(screen.getByTestId('error-alert')).toHaveTextContent('Deposit amount must be at least $1')
+        expect(screen.getByText('Continue')).toBeDisabled()
+    })
+
+    test('validationError hidden when limits blocking (warnings can coexist, blocks cannot)', () => {
+        const { getLimitsWarningCardProps } = require('@/features/limits/utils')
+        getLimitsWarningCardProps.mockReturnValue({
+            variant: 'error',
+            message: 'Limit exceeded',
+        })
+
+        renderWithProviders(
+            <InputAmountStep
+                tokenAmount="0.01"
+                setTokenAmount={jest.fn()}
+                onSubmit={jest.fn()}
+                isLoading={false}
+                error={null}
+                validationError="Deposit amount must be at least $1"
+                setCurrencyAmount={jest.fn()}
+                limitsValidation={{ isBlocking: true, isWarning: false, currency: 'USD' }}
+                limitsCurrency="USD"
+                onBack={jest.fn()}
+            />
+        )
+
+        expect(screen.queryByTestId('error-alert')).not.toBeInTheDocument()
     })
 
     test('error hidden when limits blocking (even if error prop set)', () => {

@@ -13,6 +13,7 @@ const STEP_KEYS = ['step1', 'step2', 'step3', 'step4'] as const
 
 const HowToDepositModal = ({ visible, onClose }: HowToDepositModalProps) => {
     const t = useTranslations('addMoney.howToDeposit')
+    const tCommon = useTranslations('common')
     const steps = STEP_KEYS.map((key, index) => ({
         step: t('step', { number: index + 1 }),
         text: t(`default.${key}`),
@@ -22,6 +23,13 @@ const HowToDepositModal = ({ visible, onClose }: HowToDepositModalProps) => {
             visible={visible}
             onClose={onClose}
             title={t('title')}
+            ctas={[
+                {
+                    text: tCommon('close'),
+                    shadowSize: '4',
+                    onClick: onClose,
+                },
+            ]}
             content={
                 <div className="flex w-full flex-col gap-4 text-left">
                     <div className="flex flex-col overflow-hidden rounded-sm border border-border-default bg-background-default">

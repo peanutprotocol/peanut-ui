@@ -180,6 +180,9 @@ export interface User {
     isActivated?: boolean
     activatedAt?: string | null
     activationMilestone?: 'registered' | 'verified' | 'funded' | 'activated'
+    // First outgoing peer payment (send, link, request fulfil); separate from
+    // activation, which stays card/QR spend only.
+    firstPaymentAt?: string | null
     showFullName: boolean
     // Null until the user dismisses the "You're unlocked" celebration. The modal
     // shows once, when KYC-approved (a rail is enabled) AND this is still null.

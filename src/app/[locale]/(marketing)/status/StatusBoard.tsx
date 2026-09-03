@@ -182,7 +182,7 @@ function IncidentList({
                     <div className="flex flex-wrap items-center gap-2">
                         <span
                             className={`rounded px-1.5 py-0.5 font-bold tracking-wide uppercase ${
-                                incident.resolvedAt ? 'bg-grey-4 text-grey-1' : 'bg-error-1 text-error'
+                                incident.resolvedAt ? 'bg-grey-4 text-grey-1' : 'bg-error-1 text-foreground-error'
                             }`}
                         >
                             {incident.resolvedAt ? i18n.statusIncidentResolved : i18n.statusIncidentOngoing}

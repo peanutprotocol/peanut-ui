@@ -13,7 +13,7 @@
  */
 
 import { SemanticRequestPage } from './SemanticRequestPage'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { parsePaymentURL, type ParseUrlError } from '@/lib/url-parser/parser'
 import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
@@ -96,12 +96,18 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
         )
     }
 
-    // error state
+    // error state — centered card (ruled 2026-09-03: no more lone top banner)
     if (error || !parsedUrl) {
         return (
-            <div className="flex w-full flex-col gap-4">
+            <div className="flex min-h-[inherit] w-full flex-col gap-4">
                 <NavHeader title={t('headers.pay')} onPrev={onBack} />
-                <Notification priority="error">{error?.message || t('errors.invalidPaymentUrl')}</Notification>
+                <div className="flex flex-grow flex-col justify-center py-8">
+                    <EmptyState
+                        icon="link"
+                        title={t('errors.invalidPaymentUrlTitle')}
+                        description={error?.message || t('errors.invalidPaymentUrlDescription')}
+                    />
+                </div>
             </div>
         )
     }

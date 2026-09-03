@@ -5,9 +5,11 @@ import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { useHomeDrawer, type HomeDrawer } from '../useHomeDrawer'
+import { parseAsString, useQueryState } from 'nuqs'
 import { useRouter } from 'next/navigation'
 import { useRef } from 'react'
 import { useTranslations } from 'next-intl'
+import { RETURN_TO_PARAM } from '@/utils/return-to.utils'
 
 type HomeDrawerKey = 'sendToFriends' | 'withdrawToOwnAccounts'
 type HomeDrawerBodyKey = 'sendToFriendsDescription' | 'withdrawToOwnAccountsDescription'
@@ -46,8 +48,9 @@ const DRAWER_OPTIONS: Record<HomeDrawer, DrawerOption[]> = {
         },
     ],
     add: [
-        { key: 'bank', titleKey: ['methods', 'bankTransfer'], icon: 'bank', href: '/add-money?method=bank' },
+        // crypto first: the KYC-free path leads per product/activation-funnel.md
         { key: 'crypto', titleKey: ['methods', 'crypto'], icon: 'credit-card', href: '/add-money/crypto' },
+        { key: 'bank', titleKey: ['methods', 'bankTransfer'], icon: 'bank', href: '/add-money?method=bank' },
     ],
 }
 
@@ -62,6 +65,9 @@ export function HomeActionDrawers() {
     const tMethods = useTranslations('addMoney.methods')
     const tNav = useTranslations('navigation')
     const router = useRouter()
+    // the bare /add-money redirect carries the caller's returnTo here — read
+    // it via nuqs (URL as state) so it can ride onto the chosen destination
+    const [returnTo, setReturnTo] = useQueryState(RETURN_TO_PARAM, parseAsString)
     // keep the last open drawer rendered through vaul's exit animation so the
     // sheet doesn't empty mid-slide when the url param clears
     const lastDrawerRef = useRef<HomeDrawer | null>(null)
@@ -72,8 +78,16 @@ export function HomeActionDrawers() {
         // clear the drawer param first so browser-back from the destination
         // lands on a closed home; nuqs queues url updates, so await the reset
         // before routing or the ?drawer entry can survive in history
-        await setDrawer(null)
-        router.push(href)
+        // a caller's returnTo (carried here by the bare /add-money redirect)
+        // rides to the chosen destination — and is CLEARED from home's own
+        // history entry, or reopening Add later would forward a stale origin
+        // into an unrelated flow (chip P15-minor)
+        const origin = returnTo
+        await Promise.all([setDrawer(null), setReturnTo(null)])
+        const target = origin
+            ? `${href}${href.includes('?') ? '&' : '?'}${RETURN_TO_PARAM}=${encodeURIComponent(origin)}`
+            : href
+        router.push(target)
     }
 
     return (

@@ -1,8 +1,8 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
-import { Icon } from '@/components/Global/Icons/Icon'
 import { useTranslations } from 'next-intl'
 
 interface CancelSendLinkDrawerProps {
@@ -40,22 +40,19 @@ const CancelSendLinkDrawer = ({
         >
             <DrawerContent>
                 <div className="flex flex-col items-center gap-4 px-4 pt-1 pb-6 text-center">
-                    <div className="flex size-8 items-center justify-center rounded-full bg-action-primary">
-                        <Icon name="link-slash" fill="currentColor" className="size-4 text-black" />
-                    </div>
+                    {/* destructive-confirm anatomy: red icon bubble (design.md nested-drawer recipe) */}
+                    <IconBubble icon="link-slash" color="red" />
 
                     <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
-                        <DrawerTitle className="text-body-m-semibold text-black">
-                            {t('cancelSendLinkModal.title')}
-                        </DrawerTitle>
-                        <DrawerDescription className="text-body-s text-foreground-secondary">
-                            {t.rich('cancelSendLinkModal.amountReturned', {
-                                amount,
-                                strong: (chunks) => <strong>{chunks}</strong>,
-                            })}
-                            <br />
-                            <br />
-                            {t('cancelSendLinkModal.noLongerClaimable')}
+                        <DrawerTitle>{t('cancelSendLinkModal.title')}</DrawerTitle>
+                        <DrawerDescription className="space-y-2">
+                            <span className="block">
+                                {t.rich('cancelSendLinkModal.amountReturned', {
+                                    amount,
+                                    strong: (chunks) => <strong>{chunks}</strong>,
+                                })}
+                            </span>
+                            <span className="block">{t('cancelSendLinkModal.noLongerClaimable')}</span>
                         </DrawerDescription>
                     </DrawerHeader>
 

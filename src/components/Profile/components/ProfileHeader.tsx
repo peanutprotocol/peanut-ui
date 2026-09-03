@@ -11,7 +11,6 @@ import { useTranslations } from 'next-intl'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
-import CopyToClipboard from '@/components/Global/CopyToClipboard'
 
 const REFERRAL_PILL_PROPS = { source: REFERRAL_SOURCES.PROFILE_HEADER, link_type: 'profile' } as const
 
@@ -100,7 +99,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                         haveSentMoneyToUser={haveSentMoneyToUser}
                         isAuthenticatedUserVerified={isAuthenticatedUserVerified && isSelfProfile} // can be true only for self profile
                     />
-                    <CopyToClipboard textToCopy={username} fill="black" iconSize="5" />
                 </div>
                 {/* `isSelfProfile` guards wrong attribution: `showShareButton`
                     defaults to true, so a caller on someone else's profile would

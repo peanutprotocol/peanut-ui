@@ -6,6 +6,7 @@
 import React from 'react'
 import { fireEvent, render as rtlRender, screen } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
+import en from '@/i18n/app/messages/en.json'
 import { AboutView } from '../About.view'
 
 const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
@@ -34,6 +35,17 @@ const tapVersion = (times: number) => {
 }
 
 describe('AboutView', () => {
+    it('lists every policy under its catalog name', () => {
+        render(<AboutView appVersion="1.2.3" />)
+        const names = Object.values(en.profile.about.policies)
+        expect(names).toHaveLength(8)
+        for (const name of names) expect(screen.getByRole('link', { name })).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: 'Security Disclosure' })).toHaveAttribute(
+            'href',
+            '/en/help/security-disclosure'
+        )
+    })
+
     it('keeps the beta switch hidden until the fifth tap', () => {
         render(<AboutView appVersion="1.2.3" />)
         tapVersion(4)

@@ -1,6 +1,5 @@
 'use client'
 
-import AddMoneyMethodSelection from '@/components/AddMoney/views/AddMoneyMethodSelection.view'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import AddWithdrawCountriesList from '@/components/AddWithdraw/AddWithdrawCountriesList'
 import dynamic from 'next/dynamic'
@@ -29,7 +28,7 @@ export default function AddMoneyPage() {
     const searchParams = useSearchParams()
     const t = useTranslations('addMoney')
     const { resetOnrampFlow } = useOnrampFlow()
-    const [method, setMethod] = useQueryState('method', parseAsStringEnum(['bank']))
+    const [method] = useQueryState('method', parseAsStringEnum(['bank']))
 
     // native app passes country as query param instead of path segment
     const countryFromQuery = searchParams.get('country')
@@ -46,16 +45,12 @@ export default function AddMoneyPage() {
         // returnTo origin alive: dropping it here would strand the later backs
         // on /home instead of the caller (the bug returnTo exists to fix).
         if (countryFromQuery) {
-            const params = new URLSearchParams({ method: 'bank' })
-            const origin = searchParams.get(RETURN_TO_PARAM)
+            const params = new URLSearchParams()
+            // sanitized for the same open-redirect reason as the bare-root hop
+            const origin = readReturnTo(searchParams, '/add-money')
             if (origin) params.set(RETURN_TO_PARAM, origin)
+            params.set('method', 'bank')
             router.push(`/add-money?${params.toString()}`)
-            return
-        }
-
-        // if on country list view, go back to method selection
-        if (method === 'bank') {
-            setMethod(null)
             return
         }
 
@@ -106,6 +101,24 @@ export default function AddMoneyPage() {
         }
     }
 
+    // Bare /add-money (no method, no country) is not a screen of its own any
+    // more: it opens the home page's Add drawer through its nuqs url state
+    // (?drawer=add), so direct links and generic entries (checklists, CTAs,
+    // lifecycle emails) land on a surface that offers crypto AND bank. The
+    // country list lives on the explicit ?method=bank.
+    const isBareRoot = !method && !searchParams.get('country')
+    useEffect(() => {
+        if (!isBareRoot) return
+        // carry the caller's origin through the drawer hop — dropping it here
+        // strands the exchange-rate widget's tested back contract on /home.
+        // readReturnTo, not the raw param: forwarding an unvalidated value
+        // from a trusted deep link is an open redirect (chip P16)
+        const params = new URLSearchParams({ drawer: 'add' })
+        const origin = readReturnTo(searchParams, '/add-money')
+        if (origin) params.set(RETURN_TO_PARAM, origin)
+        router.replace(`/home?${params.toString()}`)
+    }, [isBareRoot, router, searchParams])
+
     // native app: render sub-views based on query params
     const viewFromQuery = searchParams.get('view')
     if (countryFromQuery && viewFromQuery === 'bank') {
@@ -119,21 +132,19 @@ export default function AddMoneyPage() {
         return <AddWithdrawCountriesList flow="add" />
     }
 
+    // redirecting — render nothing for the one frame before replace() lands
+    if (isBareRoot) return null
+
+    // ?method=bank: the bank country list (board Page/Add/Bank 17830:77534)
     return (
         <PageStack>
-            {/* board Page/Add/Bank (17830:77534): country list titles "Bank transfer" */}
-            <NavHeader title={method === 'bank' ? t('methods.bankTransfer') : t('title')} onPrev={handleBack} />
-
-            {method === 'bank' ? (
-                <CountryList
-                    inputTitle={t('selectYourCountry')}
-                    viewMode="add-withdraw"
-                    flow="add"
-                    onCountryClick={handleCountryClick}
-                />
-            ) : (
-                <AddMoneyMethodSelection onBankTransferClick={() => setMethod('bank')} />
-            )}
+            <NavHeader title={t('methods.bankTransfer')} onPrev={handleBack} />
+            <CountryList
+                inputTitle={t('selectYourCountry')}
+                viewMode="add-withdraw"
+                flow="add"
+                onCountryClick={handleCountryClick}
+            />
         </PageStack>
     )
 }

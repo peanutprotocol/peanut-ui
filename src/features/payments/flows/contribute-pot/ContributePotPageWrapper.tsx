@@ -10,7 +10,7 @@
  */
 
 import { ContributePotPage } from './ContributePotPage'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { requestsApi } from '@/services/requests'
 import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
@@ -67,12 +67,18 @@ export function ContributePotPageWrapper({ requestId }: ContributePotPageWrapper
         )
     }
 
-    // error state
+    // error state — centered card (ruled 2026-09-03: no more lone top banner)
     if (error || !request) {
         return (
-            <div className="flex w-full flex-col gap-4">
+            <div className="flex min-h-[inherit] w-full flex-col gap-4">
                 <NavHeader title={t('headers.pay')} onPrev={onBack} />
-                <Notification priority="error">{error || t('errors.requestNotFound')}</Notification>
+                <div className="flex flex-grow flex-col justify-center py-8">
+                    <EmptyState
+                        icon="search"
+                        title={t('errors.requestNotFoundTitle')}
+                        description={error || t('errors.requestNotFoundDescription')}
+                    />
+                </div>
             </div>
         )
     }

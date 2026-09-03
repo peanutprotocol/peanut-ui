@@ -1,22 +1,27 @@
 {
-    "rawHex": 65,
-    "rawHexFiles": 41,
-    "inlineStyle": 50,
-    "stockTextSize": 361,
+    "rawHex": 61,
+    "rawHexFiles": 37,
+    "inlineStyle": 51,
+    "stockTextSize": 275,
     "dsTextScale": 10,
-    "nonDsClassesInViews": 138,
-    "useSearchParamsFiles": 47,
-    "nuqsFiles": 19,
+    "nonDsClassesInViews": 121,
+    "useSearchParamsFiles": 44,
+    "nuqsFiles": 20,
     "legacyColorClasses": 0,
     "offRampPalette": 0,
     "deadLegacyTokens": 0,
     "consumedUndefinedTokens": 0,
-    "classNameSitesInPages": 314,
+    "classNameSitesInPages": 312,
     "fontWeightOnTypeToken": 47,
-    "offScaleSpacing": 204,
-    "iconOffScale": 81,
+    "offScaleSpacing": 190,
+    "iconOffScale": 71,
     "offScaleRadius": 37,
-    "rawDuration": 9,
+    "rawDuration": 6,
+    "retypedCardLiteral": 17,
+    "hoverNoActiveFiles": 44,
+    "arbitraryFontSize": 111,
+    "rawErrorText": 26,
+    "handRolledCloseGlyphFiles": 9,
     "_meta": [
         {
             "date": "2026-09-01",
@@ -27,6 +32,16 @@
             "date": "2026-09-01",
             "metrics": ["iconOffScale 64 -> 81"],
             "reason": "chip round 9 on #2905: icon metric now counts non-literal size expressions conservatively — the +17 are dynamic size maps (Button/IconBubble resolve to board steps) and variable-sized call sites held for static resolution"
+        },
+        {
+            "date": "2026-09-03",
+            "metrics": ["inlineStyle 50 -> 51"],
+            "reason": "nav pill positions via style transform/width — interpolated transform tailwind cannot JIT; compositor pill ruling 2026-09-03"
+        },
+        {
+            "date": "2026-09-03",
+            "metrics": ["offScaleSpacing 188 -> 190", "arbitraryFontSize 110 -> 111"],
+            "reason": "dev-side debt: PRs merged to dev (es419 landing, kyc restart) pre-date this branch's new ratchet metrics; counted in on merge, not authored here"
         }
     ]
 }
