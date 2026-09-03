@@ -756,6 +756,11 @@ export default function QRPayPage() {
                  * remaining headroom (`attempted <= available` in cap-check.ts),
                  * not when the headroom is gone, and names the shared pool
                  * because the cap spans deposits and withdrawals too (kyc.md).
+                 * It points at support, not "in the app": self-service raising
+                 * is gated on isBrUserEligibleForLimitIncrease (BRL/BRA at or
+                 * under 1000 USDT), so every AR QR user — this branch's whole
+                 * population — gets a support chat, which is what kyc.md
+                 * documents as the path.
                  */
                 setWaitingForMerchantAmount(false)
                 setErrorInitiatingPayment(t('errors.monthlyCapReached'))

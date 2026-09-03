@@ -20,6 +20,17 @@ const okResponse = (body: unknown) => ({ ok: true, status: 200, json: async () =
 describe('mantecaApi.initiateQrPayment — scan timeout forwarding', () => {
     beforeEach(() => jest.clearAllMocks())
 
+    /*
+     * The literal value, not just that it is forwarded. The tests below would
+     * pass just as well against the 20s default, so nothing pinned the number
+     * the constant's own comment argues for from measured latency (p99 6.59s,
+     * 0.073% of requests over 10s). Raising it is a deliberate policy change
+     * and should have to edit this line.
+     */
+    it('is the measured 10s scan budget', () => {
+        expect(MANTECA_QR_INIT_SCAN_TIMEOUT_MS).toBe(10_000)
+    })
+
     it('forwards the scan budget, the path and the body to serverFetch', async () => {
         mockServerFetch.mockResolvedValue(okResponse({ code: 'LOCK1' }))
 

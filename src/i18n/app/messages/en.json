@@ -1273,7 +1273,7 @@
             "pixDecode": "We could not decode this Pix QR code. Please ask the merchant to generate a new one.",
             "genericDecode": "We could not decode this particular QR code. Please ask the Merchant if they can generate a Mercado Pago QR",
             "providerIssues": "We are currently experiencing issues with {method} payments. We are working to fix it as soon as possible",
-            "monthlyCapReached": "This payment is over your remaining monthly limit, which is shared across deposits, withdrawals and QR payments. Try a smaller amount, or raise your limit in the app.",
+            "monthlyCapReached": "This payment is over your remaining monthly limit, which is shared across deposits, withdrawals and QR payments. Try a smaller amount, or contact support to raise your limit.",
             "merchantNotAvailable": "We can't complete QR payments to this merchant right now. Try another payment method, or a different merchant.",
             "kycRequired": "Finish verifying your identity to pay with QR.",
             "merchantChargeExpired": "The cashier's charge has timed out. Ask them to enter the amount again, then scan once more.",

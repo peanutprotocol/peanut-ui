@@ -1542,6 +1542,14 @@ describe('GROUP 5: Error States', () => {
         expect(message).toHaveTextContent(/smaller amount/i)
         expect(message).toHaveTextContent(/deposits, withdrawals and QR/i)
         expect(message).not.toHaveTextContent(/monthly QR payment limit/i)
+        /*
+         * And no self-service promise. Raising a limit in-app is gated on
+         * isBrUserEligibleForLimitIncrease (BRL/BRA at or under 1000 USDT), so
+         * every AR QR user reaching this copy gets a support chat instead —
+         * which is the path mono product/kyc.md documents.
+         */
+        expect(message).toHaveTextContent(/contact support/i)
+        expect(message).not.toHaveTextContent(/in the app/i)
     })
 
     /*
