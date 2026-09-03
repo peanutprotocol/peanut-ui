@@ -6,6 +6,7 @@ import Script from 'next/script'
 import '../styles/globals.css'
 import { PEANUT_API_URL, BASE_URL } from '@/constants/general.consts'
 import { CHUNK_ERROR_RECOVERY_SCRIPT } from '@/utils/chunk-error-recovery'
+import { NATIVE_APP_READY_SCRIPT } from '@/utils/native-app-ready'
 import { isProductionDomain } from '@/constants/seo-route-policy'
 import { type Metadata } from 'next'
 
@@ -174,6 +175,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 {/* DNS prefetch for API */}
                 <link rel="dns-prefetch" href={apiHostname} />
                 <link rel="preconnect" href={apiHostname} crossOrigin="anonymous" />
+
+                {/* OTA app-ready: MUST be a raw inline script and MUST come first — a bundle
+                    applied while the app is backgrounded reloads into a process the OS then
+                    freezes, and on resume every overdue chunk-load timer rejects at once, so
+                    anything behind an import() never runs (see src/utils/native-app-ready.ts).
+                    No-op off native: the bridge stub it calls only exists in the WebView. */}
+                <script id="native-app-ready" dangerouslySetInnerHTML={{ __html: NATIVE_APP_READY_SCRIPT }} />
 
                 {/* Chunk-load failure recovery: MUST be a raw inline script — error boundaries
                     are lazy chunks themselves and fail to load in the exact conditions that need
