@@ -10,7 +10,7 @@ import { friendlyError } from '@/utils/friendly-error.utils'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { rainCentsToUsdcUnits, isAmountWithinBalance } from '@/utils/balance.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
-import { useState, useMemo, useContext, useEffect, useCallback, useId, useRef } from 'react'
+import { useState, useMemo, useContext, useEffect, useCallback, useId } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -73,6 +73,7 @@ import { isVerifiedForCountry } from '@/utils/regions.utils'
 import PixKeySendView from '@/features/withdraw/views/PixKeySendView'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useWithdrawAmount } from '@/features/withdraw/useWithdrawAmount'
+import { useMantecaAmountSeed } from '@/features/withdraw/useMantecaAmountSeed'
 import { WITHDRAW_MANTECA_STEPS } from '@/features/withdraw/types'
 import { mantecaStepGuards, type MantecaOutcome } from '@/features/withdraw/step-guards'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
@@ -119,9 +120,6 @@ function MantecaBankWithdrawFlow() {
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
     // USD amount handed over by the shared /withdraw amount step (TASK-21664)
     const [urlAmount] = useWithdrawAmount()
-    // true once this mount consumed ?amount= — back from bank-details then
-    // returns to the root amount step instead of a second amount entry
-    const seededFromUrlRef = useRef(false)
     const searchParams = useSearchParams()
     const paramAddress = searchParams.get('destination')
     const isSavedAccount = searchParams.get('isSavedAccount') === 'true'
@@ -211,6 +209,37 @@ function MantecaBankWithdrawFlow() {
         flowType: 'offramp',
         amount: usdAmount,
         currency: selectedCountry?.currency,
+    })
+
+    // Synchronous twin of the balanceErrorMessage effect below (same
+    // minimum/ceiling predicates, live balance). The seed must not advance on
+    // an effect-lagged verdict, so it asks this instead of the message state.
+    const isSeededAmountAllowed = useCallback(
+        (usd: string) => {
+            if (balance === undefined) return false
+            const paymentAmount = parseUnits(usd, PEANUT_WALLET_TOKEN_DECIMALS)
+            if (paymentAmount < parseUnits(MIN_MANTECA_WITHDRAW_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
+                return false
+            }
+            return isAmountWithinBalance(usd, balance)
+        },
+        [balance]
+    )
+
+    // ?amount= hand-off from the shared amount step: seed both denominations
+    // and advance past this flow's amount screen ONLY once its balance/limits
+    // gates pass for the seeded amount (Chip review round 3). A blocked amount
+    // stays on the amount screen, which renders the reason.
+    const { seededFromUrl, resetSeed } = useMantecaAmountSeed({
+        urlAmount,
+        currencyPriceSell: currencyPrice?.sell,
+        step,
+        isAmountAllowed: isSeededAmountAllowed,
+        limitsLoading: limitsValidation.isLoading,
+        limitsBlocking: limitsValidation.isBlocking,
+        setUsdAmount,
+        setCurrencyAmount,
+        goToBankDetails: () => void stepper.goTo('bank-details'),
     })
 
     // BR self-service limit increase flow
@@ -330,6 +359,15 @@ function MantecaBankWithdrawFlow() {
             return
         }
 
+        // The amount may have arrived via the user-editable ?amount= and the
+        // async balance/limits gates live on the amount screen — re-check them
+        // before locking a price. A failure returns to the amount screen,
+        // which renders the reason (Chip review round 3).
+        if (balance === undefined || balanceErrorMessage || limitsValidation.isLoading || limitsValidation.isBlocking) {
+            void stepper.goTo('amount')
+            return
+        }
+
         // lock the price before showing review screen
         // this ensures user sees the exact amount they'll receive
         if (!usdAmount || !currencyCode) return
@@ -375,12 +413,26 @@ function MantecaBankWithdrawFlow() {
         isUserMantecaKycApprovedForCountry,
         isLockingPrice,
         handleOnboardingError,
+        balance,
+        balanceErrorMessage,
+        limitsValidation.isLoading,
+        limitsValidation.isBlocking,
+        stepper,
         t,
         setErrorMessage,
     ])
 
     const handleWithdraw = async () => {
         if (!destinationAddress || !usdAmount || !currencyCode || !priceLock) return
+
+        // last line of defense before the money operation: the balance and the
+        // async LATAM limits must hold for this amount RIGHT NOW — a seeded or
+        // stale amount that outran the gates goes back to the amount screen,
+        // which renders the reason (Chip review round 3)
+        if (balance === undefined || balanceErrorMessage || limitsValidation.isLoading || limitsValidation.isBlocking) {
+            void stepper.goTo('amount')
+            return
+        }
 
         posthog.capture(ANALYTICS_EVENTS.WITHDRAW_CONFIRMED, {
             amount_usd: usdAmount,
@@ -545,7 +597,7 @@ function MantecaBankWithdrawFlow() {
     // clears the flow's local fields; the step itself lives in the URL —
     // "Try again" pairs this with stepper.reset()
     const resetState = () => {
-        seededFromUrlRef.current = false
+        resetSeed()
         setOutcome(null)
         setCurrencyAmount(undefined)
         setUsdAmount(undefined)
@@ -565,22 +617,6 @@ function MantecaBankWithdrawFlow() {
         resetState()
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
-
-    // TASK-21664: the shared /withdraw amount step already collected the USD
-    // amount (?amount=) — honor it: seed both denominations and skip this
-    // flow's own amount entry. Re-seeds after resetState (Try again).
-    useEffect(() => {
-        if (seededFromUrlRef.current) return
-        if (!urlAmount || !currencyPrice?.sell) return
-        if (step !== 'amount') return
-        const usd = parseFloat(urlAmount)
-        if (!Number.isFinite(usd) || usd <= 0) return
-        seededFromUrlRef.current = true
-        setUsdAmount(usd.toFixed(2))
-        // currencyPrice.sell = local currency per 1 USD (see the review row copy)
-        setCurrencyAmount((usd * currencyPrice.sell).toFixed(2))
-        void stepper.goTo('bank-details')
-    }, [urlAmount, currencyPrice, step, stepper])
 
     useEffect(() => {
         // Skip balance check if transaction is being processed
@@ -789,7 +825,7 @@ function MantecaBankWithdrawFlow() {
                         // an amount seeded from ?amount= was entered on the root
                         // amount step — back returns there, not to a second
                         // amount entry (TASK-21664)
-                        if (seededFromUrlRef.current) {
+                        if (seededFromUrl) {
                             onBack()
                             return
                         }

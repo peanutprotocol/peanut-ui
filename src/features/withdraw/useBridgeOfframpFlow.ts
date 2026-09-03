@@ -5,7 +5,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import { isTxReverted } from '@/utils/general.utils'
 import { useParams, useRouter } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
@@ -231,6 +231,9 @@ export function useBridgeOfframpFlow() {
         // normalized string is what goes on the wire.
         const amountCheck = validateBankOfframpAmount(amountToWithdraw, balance)
         if (!amountCheck.ok) {
+            // the submit button is disabled until the balance loads — reaching
+            // here with balanceLoading is a race, not a user error: no-op.
+            if (amountCheck.reason === 'balanceLoading') return
             const errorMessage =
                 amountCheck.reason === 'insufficientBalance'
                     ? tErrors('notEnoughBalanceAddFunds')
@@ -376,12 +379,17 @@ export function useBridgeOfframpFlow() {
     // proceedWithOfframp runs straight away (it handles the not-ready cases).
     // upcoming (future-dated) eea uplift opens the advisory modal here — fire the
     // funnel event as it opens.
-    const handleCreateAndInitiateOfframp = useCallback(() => {
+    // A fresh closure every render, on purpose (Chip review round 4): a
+    // useCallback here froze the FIRST render's proceedWithOfframp — its
+    // captured `gate`/`balance` never updated (the deps are all stable for
+    // the page's lifetime), so a click after capabilities resolved ran the
+    // stale `gate.kind === 'loading'` no-op forever. Nothing needs a stable
+    // identity: this is a button onClick, not an effect dep.
+    const handleCreateAndInitiateOfframp = () => {
         const advisoryTrigger = upliftTriggerFromAdvisory(advisory)
         if (advisoryTrigger) trackUpliftStarted(advisoryTrigger)
         advisoryIntercept(() => void proceedWithOfframp())
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [advisory, advisoryIntercept, trackUpliftStarted])
+    }
 
     useEffect(() => {
         fetchUser()
@@ -411,6 +419,9 @@ export function useBridgeOfframpFlow() {
     return {
         step,
         stepper,
+        // submit stays disabled until the spendable balance has loaded — an
+        // unloaded balance must not be treated as headroom (Chip round 3)
+        isBalanceReady: balance !== undefined,
         amountToWithdraw,
         bankAccount,
         country,
