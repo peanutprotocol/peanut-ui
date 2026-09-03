@@ -13,14 +13,24 @@ export type WithdrawAmountCheck =
     | { ok: true; normalized: string }
     | { ok: false; reason: 'invalid' | 'belowMinimum' | 'insufficientBalance' | 'balanceLoading' }
 
-function checkWithdrawUsdAmount(amount: string, balance: bigint | undefined, minUsd: number): WithdrawAmountCheck {
+/**
+ * Fail-closed parse of a user-supplied USD amount string: a finite positive
+ * number that round-trips to a plain decimal, or null. Exponential and
+ * oversized forms (`1e21`) are refused — downstream `parseUnits` calls throw
+ * on scientific notation, so they must never survive parsing (Chip round 7).
+ */
+export function parseUsdAmount(amount: string): string | null {
     const value = Number(amount)
-    if (!Number.isFinite(value) || value <= 0) return { ok: false, reason: 'invalid' }
-    if (value < minUsd) return { ok: false, reason: 'belowMinimum' }
+    if (!Number.isFinite(value) || value <= 0) return null
     const normalized = value.toString()
-    // exponent forms survive Number→toString for extreme magnitudes — refuse
-    // anything that does not round-trip to a plain decimal
-    if (!/^\d+(\.\d+)?$/.test(normalized)) return { ok: false, reason: 'invalid' }
+    if (!/^\d+(\.\d+)?$/.test(normalized)) return null
+    return normalized
+}
+
+function checkWithdrawUsdAmount(amount: string, balance: bigint | undefined, minUsd: number): WithdrawAmountCheck {
+    const normalized = parseUsdAmount(amount)
+    if (normalized === null) return { ok: false, reason: 'invalid' }
+    if (Number(normalized) < minUsd) return { ok: false, reason: 'belowMinimum' }
     // an unloaded balance is NOT a pass: without the ceiling an edited
     // ?amount= above the user's funds could reach the provider before the
     // wallet send rejects it (Chip review round 3) — the submit stays

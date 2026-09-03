@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { parseUsdAmount } from './amount-validation'
 
 interface MantecaAmountSeedInput {
     /** the user-editable ?amount= (USD) handed over by the shared amount step */
@@ -52,13 +53,17 @@ export function useMantecaAmountSeed({
     // these effects, and a ref flip re-runs nothing.
     const [seedState, setSeedState] = useState<'idle' | 'seeded' | 'advanced'>('idle')
 
-    // seed the denominations once per arm
+    // seed the denominations once per arm. parseUsdAmount is fail-closed: a
+    // finite positive PLAIN decimal or nothing — an exponential `?amount=1e21`
+    // used to survive a bare parseFloat check, normalize to '1e+21', and crash
+    // the live-balance validator's parseUnits call (Chip round 7).
     useEffect(() => {
         if (seedState !== 'idle') return
         if (!urlAmount || !currencyPriceSell) return
         if (step !== 'amount') return
-        const usd = parseFloat(urlAmount)
-        if (!Number.isFinite(usd) || usd <= 0) return
+        const normalized = parseUsdAmount(urlAmount)
+        if (normalized === null) return
+        const usd = Number(normalized)
         setSeedState('seeded')
         setUsdAmount(usd.toFixed(2))
         // currencyPriceSell = local currency per 1 USD (the review row renders
@@ -76,9 +81,9 @@ export function useMantecaAmountSeed({
         if (seedState !== 'seeded') return
         if (step !== 'amount') return
         if (limitsLoading || limitsBlocking) return
-        const usd = parseFloat(urlAmount)
-        if (!Number.isFinite(usd) || usd <= 0) return
-        if (!isAmountAllowed(usd.toFixed(2))) return
+        const normalized = parseUsdAmount(urlAmount)
+        if (normalized === null) return
+        if (!isAmountAllowed(Number(normalized).toFixed(2))) return
         setSeedState('advanced')
         goToBankDetails()
     }, [seedState, step, urlAmount, isAmountAllowed, limitsLoading, limitsBlocking, goToBankDetails])

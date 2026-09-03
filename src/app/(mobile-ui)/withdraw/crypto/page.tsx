@@ -148,6 +148,11 @@ export default function WithdrawCryptoPage() {
 
     // local state for transaction execution
     const [isSendingTx, setIsSendingTx] = useState(false)
+    // The USD amount the executed withdrawal actually moved (the charge-pinned
+    // broadcast amount). The success screen and the completion analytics read
+    // THIS — `?amount=` stays user-editable after execution, and rendering it
+    // would let a URL edit forge the receipt (Chip round 7).
+    const [executedAmountUsd, setExecutedAmountUsd] = useState<string | null>(null)
 
     // combined processing state
     const isProcessing = useMemo(() => isSendingTx || isRecording, [isSendingTx, isRecording])
@@ -276,6 +281,11 @@ export default function WithdrawCryptoPage() {
 
             clearErrors()
             setChargeDetails(null)
+            // a NEW attempt invalidates the previous one's execution proof —
+            // without this, ?step=success re-renders the old success screen
+            // while the new attempt is mid-flight (Chip round 7)
+            setTransactionHash(null)
+            setExecutedAmountUsd(null)
             setIsPreparingReview(true)
 
             try {
@@ -360,6 +370,7 @@ export default function WithdrawCryptoPage() {
             spendableBalance,
             clearErrors,
             setChargeDetails,
+            setTransactionHash,
             setIsPreparingReview,
             setWithdrawData,
             setShowCompatibilityModal,
@@ -576,11 +587,13 @@ export default function WithdrawCryptoPage() {
 
             executedSpendRef.current = null
             setTransactionHash(finalTxHash)
+            setExecutedAmountUsd(broadcastAmount)
             setPaymentDetails(payment)
             triggerHaptic()
             void stepper.goTo('success')
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_COMPLETED, {
-                amount_usd: usdAmount,
+                // the amount that moved, not the still-editable URL param
+                amount_usd: broadcastAmount,
                 method_type: 'crypto',
             })
         } catch (err) {
@@ -774,7 +787,7 @@ export default function WithdrawCryptoPage() {
                         headerTitle={isFromSendFlow ? tNav('send') : tNav('withdraw')}
                         recipientType="ADDRESS"
                         type="SEND"
-                        amount={usdAmount}
+                        amount={executedAmountUsd ?? usdAmount}
                         // Stays true even from the send flow: it also suppresses the
                         // recipient render (no recipientName is passed here) and picks
                         // the "to" prefix, both correct for a send to an address.
@@ -784,7 +797,7 @@ export default function WithdrawCryptoPage() {
                         redirectTo="/home"
                         chargeDetails={chargeDetails}
                         paymentDetails={paymentDetails}
-                        usdAmount={usdAmount}
+                        usdAmount={executedAmountUsd ?? usdAmount}
                         message={
                             <AddressLink
                                 className="text-body-s font-normal text-foreground-secondary no-underline"
