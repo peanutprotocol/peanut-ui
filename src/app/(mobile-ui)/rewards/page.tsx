@@ -272,7 +272,7 @@ const PointsPage = () => {
                                     minimal
                                     data={myGraphResult.data}
                                     height={250}
-                                    backgroundColor="#ffffff"
+                                    backgroundColor="var(--color-background-default)"
                                     showUsernames
                                 />
                             </Card>

@@ -214,7 +214,7 @@ const CryptoDepositView = ({
                                         <Button
                                             shadowSize="4"
                                             size="small"
-                                            className="ml-auto h-6 w-6 flex-shrink-0 rounded-full p-0 shadow-[0.12rem_0.12rem_0_#000000]"
+                                            className="ml-auto h-6 w-6 flex-shrink-0 rounded-full p-0 shadow-[0.12rem_0.12rem_0_var(--color-shadow-primary)]"
                                         >
                                             <div className="flex size-7 items-center justify-center">
                                                 <Icon name="chevron-up" size={16} className="rotate-90" />
