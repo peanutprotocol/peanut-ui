@@ -280,6 +280,8 @@ export const useSignSpendBundle = () => {
                     modals?.setIsSecurityVerificationOpen?.(true)
                     let attempt: MixedEphemeralSignResult
                     try {
+                        // Resolving the sudo validator is outside the helper's own
+                        // catch: a rejection here must still take the passkey path.
                         const patchedSudoValidator = await getPatchedSudoValidator(peanutPublicClient)
                         attempt = await signMixedEphemeralSpend({
                             publicClient: peanutPublicClient,
@@ -290,6 +292,8 @@ export const useSignSpendBundle = () => {
                             recipient: recipient as Hex,
                             requiredUsdcAmount,
                         })
+                    } catch (e) {
+                        attempt = { ok: false, reason: e instanceof Error ? e.message : String(e) }
                     } finally {
                         modals?.setIsSecurityVerificationOpen?.(false)
                     }

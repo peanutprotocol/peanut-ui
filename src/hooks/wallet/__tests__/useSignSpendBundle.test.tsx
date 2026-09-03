@@ -54,11 +54,12 @@ jest.mock('@/constants/rain.consts', () => ({
     ],
 }))
 const mockSignTypedData = jest.fn()
+const mockGetPatchedSudoValidator = jest.fn(async () => ({ validator: 'patched' }))
 jest.mock('@/context/kernelClient.context', () => ({
     useKernelClient: () => ({
         getClientForChain: () => ({ account: { address: ACCOUNT, signTypedData: mockSignTypedData } }),
         rebuildClientForChain: jest.fn(),
-        getPatchedSudoValidator: jest.fn(async () => ({ validator: 'patched' })),
+        getPatchedSudoValidator: () => mockGetPatchedSudoValidator(),
     }),
 }))
 jest.mock('@/app/actions/clients', () => ({ peanutPublicClient: { tag: 'public' } }))
@@ -182,6 +183,7 @@ describe('useSignSpendBundle — mixed, SESSION_KEY_SIGN one-tap path', () => {
 
     beforeEach(() => {
         mockResolveSpendStrategy.mockResolvedValue({ strategy: 'mixed', smartBalance: 50_000_000n })
+        mockGetPatchedSudoValidator.mockResolvedValue({ validator: 'patched' })
     })
 
     async function signMixed() {
@@ -230,6 +232,20 @@ describe('useSignSpendBundle — mixed, SESSION_KEY_SIGN one-tap path', () => {
             kind: 'QR_PAY',
             flow: 'sign-only',
             reason: 'ephemeral key: session setup failed',
+        })
+    })
+
+    it('flag on, sudo validator cannot be resolved: falls back to the two-tap path with the SAME prep', async () => {
+        mockSessionKeySignEnabled.mockReturnValue(true)
+        mockGetPatchedSudoValidator.mockRejectedValue(new Error('Cannot resolve sudo validator: not authenticated'))
+        await signMixed()
+        expect(mockSignEphemeral).not.toHaveBeenCalled()
+        expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(1)
+        expect(mockSignTypedData).toHaveBeenCalledTimes(1)
+        expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SESSION_KEY_SPEND_FALLBACK, {
+            kind: 'QR_PAY',
+            flow: 'sign-only',
+            reason: 'Cannot resolve sudo validator: not authenticated',
         })
     })
 })
