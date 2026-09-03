@@ -64,8 +64,12 @@ export const Profile = () => {
     }
 
     const username = user?.user.username || 'anonymous'
-    // respect user's showFullName preference: use fullName only if showFullName is true, otherwise use username
-    const displayName = user?.user.showFullName && user?.user.fullName ? user.user.fullName : username
+    // Full name or nothing: the share pill below already spells out
+    // peanut.me/<username>, so falling back to the username here only printed
+    // the handle twice. Empty name → ProfileHeader drops the row entirely.
+    // Still respects the showFullName preference — opting out means there is
+    // no name to show.
+    const displayName = user?.user.showFullName && user?.user.fullName ? user.user.fullName : ''
 
     return (
         <div className="h-full w-full bg-background">

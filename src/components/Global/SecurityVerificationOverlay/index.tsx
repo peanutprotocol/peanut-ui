@@ -18,7 +18,7 @@ import { useModalsContext } from '@/context/ModalsContext'
  */
 export default function SecurityVerificationOverlay() {
     const t = useTranslations('global')
-    const { isSecurityVerificationOpen } = useModalsContext()
+    const { isSecurityVerificationOpen, securityVerificationVariant } = useModalsContext()
     if (!isSecurityVerificationOpen) return null
     return (
         <div
@@ -27,7 +27,14 @@ export default function SecurityVerificationOverlay() {
             // role="status" live region — nesting two would announce twice.
             className="fixed inset-x-0 top-safe-top bottom-0 z-50 flex items-center justify-center bg-background"
         >
-            <Loading variant="mascot" message={t('securityVerificationOverlay.message')} />
+            <Loading
+                variant="mascot"
+                message={t(
+                    securityVerificationVariant === 'next-passkey'
+                        ? 'securityVerificationOverlay.nextPasskeyMessage'
+                        : 'securityVerificationOverlay.message'
+                )}
+            />
         </div>
     )
 }

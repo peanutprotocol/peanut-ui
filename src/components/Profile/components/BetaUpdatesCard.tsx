@@ -4,8 +4,9 @@ import Card from '@/components/Global/Card'
 import { Toggle } from '@/components/0_Bruddle/Toggle'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import { useFeatureFlags } from '@/hooks/useFeatureFlag'
+import { useAuth } from '@/context/authContext'
 import { useOtaChannel } from '@/hooks/useOtaChannel'
+import { PEANUT_TEAM_BADGE } from '@/constants/badges.consts'
 import { BETA_OTA_CHANNEL } from '@/utils/capgo-updater'
 import { copyTextToClipboard } from '@/utils/clipboard.utils'
 import { useTranslations } from 'next-intl'
@@ -15,39 +16,44 @@ import { useTranslations } from 'next-intl'
  * points the device at the `staging` Capgo channel, which every merge to `dev`
  * publishes to; leaving drops it back to the store bundle.
  *
- * The tap gesture hides the control; the PostHog cohort keeps customers from
- * joining once self-assignment is open on the channel. Neither is a security
- * boundary — `setChannel` talks to Capgo directly — they keep `staging` off the
- * devices of people who did not mean to be there.
+ * Joining requires the PEANUT_TEAM badge, which the About screen awards on the
+ * fifth tap. The badge is a record of who opted in and a handle to revoke it,
+ * NOT an access boundary — anyone who performs the gesture can award it to
+ * themselves. Capgo's channel self-assignment setting is the real boundary.
  *
- * A device already ON the channel keeps the card whatever the cohort says: the
- * off switch is the only way back to the store bundle, and hiding it when
- * someone is offboarded (or the flag fails to load) would strand them on beta
- * code forever.
+ * The badge gates the JOIN, never the card. An earlier version gated the whole
+ * reveal on a PostHog cohort, so the flag never being created hid the switch
+ * from everyone and looked exactly like exclusion — invisible for months.
+ *
+ * The card therefore renders on every native build, and the off switch stays
+ * live whether or not the badge is held: it is the only way back to the store
+ * bundle, and revoking someone mid-beta must not strand them on beta code.
  */
-export const BETA_OTA_FLAG = 'beta-ota-channel'
 
 /**
  * What the About screen's five-tap reveal can promise: the card only renders
- * on a native build, and outside the cohort only for a device already on beta.
+ * on a native build.
  */
-export function useBetaUpdatesAccess(): { supported: boolean; visible: boolean } {
-    const isEnabled = useFeatureFlags()
-    const { supported, isBeta } = useOtaChannel()
-    const mayJoin = isEnabled(BETA_OTA_FLAG, { nonProdBypass: true })
-    return { supported, visible: supported && (mayJoin || isBeta) }
+export function useBetaUpdatesAccess(): { supported: boolean } {
+    const { supported } = useOtaChannel()
+    return { supported }
+}
+
+/** Without the badge, only a device already on beta may work the switch — off. */
+function useCanJoinBeta(): boolean {
+    const { user } = useAuth()
+    return !!user?.user.badges?.some((badge) => badge.code === PEANUT_TEAM_BADGE)
 }
 
 export const BetaUpdatesCard = () => {
     const t = useTranslations('profile.about.beta')
     const toast = useToast()
-    const isEnabled = useFeatureFlags()
     const { supported, status, isBeta, busy, setBeta } = useOtaChannel()
+    const canJoin = useCanJoinBeta()
 
-    // nonProdBypass: previews and local builds are already non-production by
-    // definition, and QA needs the switch there without a cohort edit.
-    const mayJoin = isEnabled(BETA_OTA_FLAG, { nonProdBypass: true })
-    if (!supported || (!mayJoin && !isBeta)) return null
+    if (!supported) return null
+
+    const blockedFromJoining = !canJoin && !isBeta
 
     const copyDeviceId = async (deviceId: string) => {
         if (await copyTextToClipboard(deviceId)) toast.info(t('deviceCopied'))
@@ -106,11 +112,13 @@ export const BetaUpdatesCard = () => {
                 </div>
                 <Toggle
                     checked={isBeta}
-                    disabled={busy || (!mayJoin && !isBeta)}
+                    disabled={busy || blockedFromJoining}
                     onChange={onToggle}
                     aria-label={t('heading')}
                 />
             </div>
+
+            {blockedFromJoining && <p className="text-body-xs text-foreground-secondary">{t('notEligible')}</p>}
 
             <dl className="space-y-1 text-body-xs text-foreground-secondary">
                 <div className="flex justify-between gap-4">

@@ -109,7 +109,10 @@ describe('SetupWrapper navigation', () => {
         renderWrapper({ showLoginButton: true })
         fireEvent.click(screen.getByRole('button', { name: 'Log In' }))
         await waitFor(() => expect(mockToastError).toHaveBeenCalledWith('No passkey found'))
-        expect(mockedCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_LOGIN_ERROR, { error_code: 'NO_PASSKEY' })
+        expect(mockedCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_LOGIN_ERROR, {
+            error_code: 'NO_PASSKEY',
+            native: false,
+        })
     })
 
     it('shows the catalog copy for a mapped passkey error code, not the curated English message', async () => {
