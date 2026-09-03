@@ -27,8 +27,6 @@ const model: ReceiptPdfModel = {
     ],
     referenceLabel: 'Receipt reference',
     reference: 'A3F5C250-1234-4ABC-8DEF-9012AA34BB56',
-    issuedOnLabel: 'Issued on',
-    issuedOn: 'August 20, 2026 - 15:22 UTC',
     fileName: 'peanut-receipt-a3f5c250.pdf',
 }
 

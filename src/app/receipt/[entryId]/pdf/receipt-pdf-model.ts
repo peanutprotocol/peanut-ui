@@ -31,8 +31,6 @@ export interface ReceiptPdfModel {
     rows: ReceiptPdfRow[]
     referenceLabel: string
     reference: string
-    issuedOnLabel: string
-    issuedOn: string
     fileName: string
 }
 
@@ -215,9 +213,6 @@ export function buildReceiptPdfModel(
     const numericAmount = Number(transaction.amount)
     const safeAmount = isNaN(numericAmount) ? 0 : Math.abs(numericAmount)
 
-    // Same issue-date preference as the receipt footer: settlement, else creation.
-    const issuedAtSource = transaction.completedAt ?? transaction.claimedAt ?? transaction.createdAt ?? transaction.date
-
     return {
         title: t('transaction.officialReceipt.pdf.title'),
         issuedBy: t('transaction.officialReceipt.issuedBy'),
@@ -228,8 +223,6 @@ export function buildReceiptPdfModel(
         rows,
         referenceLabel: t('transaction.officialReceipt.reference'),
         reference: transaction.id,
-        issuedOnLabel: t('transaction.officialReceipt.issuedOn'),
-        issuedOn: formatDate(issuedAtSource, locale),
         fileName: `peanut-receipt-${safeFileNamePart(transaction.id)}.pdf`,
     }
 }
