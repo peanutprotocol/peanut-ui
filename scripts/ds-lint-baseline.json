@@ -13,13 +13,13 @@
     "consumedUndefinedTokens": 0,
     "classNameSitesInPages": 312,
     "fontWeightOnTypeToken": 47,
-    "offScaleSpacing": 188,
+    "offScaleSpacing": 190,
     "iconOffScale": 71,
     "offScaleRadius": 37,
     "rawDuration": 6,
     "retypedCardLiteral": 17,
     "hoverNoActiveFiles": 44,
-    "arbitraryFontSize": 110,
+    "arbitraryFontSize": 111,
     "rawErrorText": 26,
     "handRolledCloseGlyphFiles": 9,
     "_meta": [
@@ -37,6 +37,11 @@
             "date": "2026-09-03",
             "metrics": ["inlineStyle 50 -> 51"],
             "reason": "nav pill positions via style transform/width — interpolated transform tailwind cannot JIT; compositor pill ruling 2026-09-03"
+        },
+        {
+            "date": "2026-09-03",
+            "metrics": ["offScaleSpacing 188 -> 190", "arbitraryFontSize 110 -> 111"],
+            "reason": "dev-side debt: PRs merged to dev (es419 landing, kyc restart) pre-date this branch's new ratchet metrics; counted in on merge, not authored here"
         }
     ]
 }
