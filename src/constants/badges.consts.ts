@@ -10,3 +10,21 @@
  * colours in a payments app.
  */
 export const PEANUT_TEAM_BADGE = 'PEANUT_TEAM'
+
+/**
+ * Badges that are permission records rather than collectibles, and are never
+ * shown to anyone — including their owner.
+ */
+const NEVER_DISPLAYED = new Set<string>([PEANUT_TEAM_BADGE])
+
+/**
+ * Drops the records from a badge list before it is rendered.
+ *
+ * The public profile response already omits them (the query filters on
+ * `isVisible`), but `/users/me` deliberately does not — that is how the beta
+ * switch reads its own permission. So every surface that renders the CALLER's
+ * badges has to filter here, or the badge shows up on their own profile.
+ */
+export function displayableBadges<T extends { code: string }>(badges: readonly T[]): T[] {
+    return badges.filter((badge) => !NEVER_DISPLAYED.has(badge.code))
+}

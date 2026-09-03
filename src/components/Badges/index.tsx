@@ -15,6 +15,7 @@ import { useUserStore } from '@/redux/hooks'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { useAuth } from '@/context/authContext'
 import { BadgeImage } from './BadgeImage'
+import { displayableBadges } from '@/constants/badges.consts'
 
 type BadgeView = { code: string; title: string; description: string; logo: string | StaticImageData }
 
@@ -35,7 +36,7 @@ export const Badges = () => {
     // map api badges to view badges
     const badges: BadgeView[] = useMemo(() => {
         // get badges from user object and map to card fields
-        const raw = authUser?.user?.badges || []
+        const raw = displayableBadges(authUser?.user?.badges || [])
         return raw.map((b) => {
             const copy = badgeCopy(b.code, b.name, b.description)
             return {

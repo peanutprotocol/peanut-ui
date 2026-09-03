@@ -40,7 +40,7 @@ import { formatUnits } from 'viem'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { Icon } from '../Global/Icons/Icon'
-import { PEANUT_TEAM_BADGE } from '@/constants/badges.consts'
+import { displayableBadges } from '@/constants/badges.consts'
 
 /** Kinds that affect the user's wallet balance. Hoisted to module scope to avoid re-allocation. */
 const BALANCE_AFFECTING_KINDS: ReadonlySet<IntentKind> = new Set<IntentKind>([
@@ -202,11 +202,8 @@ const HomeHistory = ({
 
                 // inject badge entries using user's badges (newest first) and earnedAt chronology
                 // filter out beta tester badge — it creates confusing first impressions for new users
-                // filter out PEANUT_TEAM — a permission record for the beta switch, never displayed
                 if (isViewingOwnHistory) {
-                    const badges = (user?.user?.badges ?? []).filter(
-                        (b) => b.code !== 'BETA_TESTER' && b.code !== PEANUT_TEAM_BADGE
-                    )
+                    const badges = displayableBadges(user?.user?.badges ?? []).filter((b) => b.code !== 'BETA_TESTER')
                     badges.forEach((b) => {
                         if (!b.earnedAt) return
                         entries.push({
