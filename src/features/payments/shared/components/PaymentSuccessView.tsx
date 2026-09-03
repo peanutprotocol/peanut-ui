@@ -39,6 +39,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { type ReactNode, useEffect, useMemo, useRef } from 'react'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
+import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
 import { PeanutCheering } from '@/assets/mascot'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import posthog from 'posthog-js'
@@ -286,6 +287,9 @@ const PaymentSuccessView = ({
         // trigger haptic on mount
         triggerHaptic()
     }, [triggerHaptic])
+
+    // type REQUEST is the "request created" screen — a link made, not money moved
+    useAppReviewNudge(authUser?.user.userId, 'payment_completed', type !== 'REQUEST')
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">

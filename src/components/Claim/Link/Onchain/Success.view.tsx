@@ -21,6 +21,7 @@ import CreateAccountButton from '@/components/Global/CreateAccountButton'
 import { PeanutCheering } from '@/assets/mascot'
 import Image from 'next/image'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
+import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
 import { useTranslations } from 'next-intl'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import Loading from '@/components/Global/Loading'
@@ -170,6 +171,9 @@ export const SuccessClaimLinkView = ({
         if (!transactionHash) return
         triggerHaptic()
     }, [transactionHash, triggerHaptic])
+
+    // same gate as the haptic: a confirmed claim, never the optimistic mount
+    useAppReviewNudge(authUser?.user.userId, 'money_received', !!transactionHash && !claimFailure)
 
     // The optimistic 202 lands here with no hash and no outcome yet. Rendering
     // the success card now would claim money that has not moved — and would

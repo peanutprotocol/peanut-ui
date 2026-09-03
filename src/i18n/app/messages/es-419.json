@@ -537,6 +537,8 @@
                 "cardProhibitedActivities": "Política de actividades prohibidas",
                 "securityDisclosure": "Divulgación de seguridad"
             },
+            "rateHeading": "Calificar la app",
+            "rate": "Dejar una reseña",
             "version": "Versión {version}",
             "beta": {
                 "heading": "Actualizaciones beta",

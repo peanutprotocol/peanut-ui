@@ -5,6 +5,9 @@ project(':capacitor-android').projectDir = new File('../node_modules/.pnpm/@capa
 include ':capacitor-app'
 project(':capacitor-app').projectDir = new File('../node_modules/.pnpm/@capacitor+app@8.1.0_@capacitor+core@8.2.0/node_modules/@capacitor/app/android')
 
+include ':capacitor-app-launcher'
+project(':capacitor-app-launcher').projectDir = new File('../node_modules/.pnpm/@capacitor+app-launcher@8.0.1_@capacitor+core@8.2.0/node_modules/@capacitor/app-launcher/android')
+
 include ':capacitor-browser'
 project(':capacitor-browser').projectDir = new File('../node_modules/.pnpm/@capacitor+browser@8.0.3_@capacitor+core@8.2.0/node_modules/@capacitor/browser/android')
 
@@ -34,6 +37,9 @@ project(':capacitor-status-bar').projectDir = new File('../node_modules/.pnpm/@c
 
 include ':capgo-capacitor-crisp'
 project(':capgo-capacitor-crisp').projectDir = new File('../node_modules/.pnpm/@capgo+capacitor-crisp@8.0.27_@capacitor+core@8.2.0/node_modules/@capgo/capacitor-crisp/android')
+
+include ':capgo-capacitor-in-app-review'
+project(':capgo-capacitor-in-app-review').projectDir = new File('../node_modules/.pnpm/@capgo+capacitor-in-app-review@8.2.3_@capacitor+core@8.2.0/node_modules/@capgo/capacitor-in-app-review/android')
 
 include ':capgo-capacitor-native-biometric'
 project(':capgo-capacitor-native-biometric').projectDir = new File('../node_modules/.pnpm/@capgo+capacitor-native-biometric@8.6.0_@capacitor+core@8.2.0/node_modules/@capgo/capacitor-native-biometric/android')
