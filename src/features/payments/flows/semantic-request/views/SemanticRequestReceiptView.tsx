@@ -98,7 +98,7 @@ export function SemanticRequestReceiptView() {
     // show loading if fetching charge
     if (isFetchingCharge || !charge) {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-4">
+            <div className="flex min-h-inherit flex-col gap-4">
                 <NavHeader title={t('headers.receipt')} onPrev={onBack} />
                 <div className="flex flex-grow flex-col items-center justify-center gap-4 py-8">
                     <Loading variant="mascot" />
@@ -110,7 +110,7 @@ export function SemanticRequestReceiptView() {
     // show receipt if we have transaction details
     if (!transactionForReceipt) {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-4">
+            <div className="flex min-h-inherit flex-col gap-4">
                 <NavHeader title={t('headers.receipt')} onPrev={onBack} />
                 <div className="flex flex-grow flex-col items-center justify-center gap-4 py-8">
                     <p className="text-body-s text-foreground-secondary">{t('receipt.unableToLoad')}</p>
@@ -120,7 +120,7 @@ export function SemanticRequestReceiptView() {
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col gap-4">
+        <div className="flex min-h-inherit flex-col gap-4">
             <NavHeader title={t('headers.receipt')} onPrev={onBack} />
             <div className="flex w-full flex-grow flex-col justify-center gap-4">
                 <TransactionDetailsReceipt

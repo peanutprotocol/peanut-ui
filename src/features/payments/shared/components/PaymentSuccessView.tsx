@@ -288,7 +288,7 @@ const PaymentSuccessView = ({
     }, [triggerHaptic])
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+        <div className="flex min-h-inherit flex-col justify-between gap-8">
             <SoundPlayer sound="success" />
             {(type === 'SEND' || type === 'DEPOSIT') && (
                 <div className="md:hidden">

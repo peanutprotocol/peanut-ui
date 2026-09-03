@@ -298,7 +298,7 @@ const JoinWaitlistPage = () => {
         <InvitesPageLayout image={stepImage} showRagdoll={step === 'jail'}>
             <div
                 className={twMerge(
-                    'flex flex-grow flex-col justify-between overflow-hidden bg-background-default px-6 pt-6 pb-8 md:space-y-4 md:h-[100dvh] md:justify-center',
+                    'flex flex-grow flex-col justify-between overflow-hidden bg-background-default px-6 pt-6 pb-8 md:space-y-4 md:h-dvh md:justify-center',
                     'flex flex-col items-end justify-center gap-6 pt-8'
                 )}
             >

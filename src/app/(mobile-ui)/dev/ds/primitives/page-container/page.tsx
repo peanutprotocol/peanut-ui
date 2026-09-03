@@ -37,7 +37,7 @@ export default function PageContainerPage() {
                     <CodeBlock
                         label="Usage"
                         code={`<PageContainer>
-  <div className="flex min-h-[inherit] flex-col gap-8">
+  <div className="flex min-h-inherit flex-col gap-8">
     <NavHeader title="Title" />
     <div className="my-auto flex flex-col gap-6">
       {/* content */}

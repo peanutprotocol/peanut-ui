@@ -140,7 +140,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     if (isPublicPath) {
         if (!isReady) {
             return (
-                <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
+                <div className="flex h-dvh w-full flex-col items-center justify-center">
                     <Loading variant="mascot" />
                 </div>
             )
@@ -149,7 +149,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         // for protected paths, wait for auth to settle before rendering
         if (!isReady || isFetchingUser || !user || isCheckingAccount || needsRedirect) {
             return (
-                <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
+                <div className="flex h-dvh w-full flex-col items-center justify-center">
                     <Loading variant="mascot" />
                 </div>
             )
@@ -194,7 +194,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     isUserLoggedIn
                         ? 'min-h-[calc(100dvh_-_160px_-_var(--safe-top)_-_var(--safe-bottom))]'
                         : 'min-h-[calc(100dvh_-_64px_-_var(--safe-top)_-_var(--safe-bottom))]',
-                    isDev && 'max-w-full min-h-[100dvh] items-start justify-start'
+                    isDev && 'max-w-full min-h-dvh items-start justify-start'
                 )}
                 modals={
                     <>

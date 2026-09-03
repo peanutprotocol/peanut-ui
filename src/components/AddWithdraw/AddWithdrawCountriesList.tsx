@@ -417,7 +417,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
     if (view === 'form') {
         return (
-            <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
+            <div className="flex min-h-inherit flex-col justify-normal gap-8">
                 <NavHeader
                     title={
                         flow === 'withdraw' ? (isBankFromSend ? tNav('send') : tNav('withdraw')) : tAddMoney('title')

@@ -176,7 +176,7 @@ export const SuccessClaimLinkView = ({
     // keep claiming it for as long as the poll is slow or failing.
     if (!transactionHash && !claimFailure) {
         return (
-            <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+            <div className="flex min-h-inherit flex-col justify-between gap-8">
                 <div className="md:hidden">
                     <NavHeader icon="cancel" title={navHeaderTitle} onPrev={goBack} />
                 </div>
@@ -190,7 +190,7 @@ export const SuccessClaimLinkView = ({
     if (claimFailure) {
         const isRetryable = claimFailure.code === API_ERROR_CODES.CHAIN_INFRA_UNAVAILABLE
         return (
-            <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+            <div className="flex min-h-inherit flex-col justify-between gap-8">
                 <div className="md:hidden">
                     <NavHeader icon="cancel" title={navHeaderTitle} onPrev={goBack} />
                 </div>
@@ -221,7 +221,7 @@ export const SuccessClaimLinkView = ({
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+        <div className="flex min-h-inherit flex-col justify-between gap-8">
             <SoundPlayer sound="success" />
             <NavHeader
                 icon="cancel"

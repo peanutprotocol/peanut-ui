@@ -15,7 +15,7 @@ describe('PageStack', () => {
             </PageStack>
         )
         const stack = screen.getByTestId('stack')
-        expect(stack).toHaveClass('gap-8', 'flex-col', 'min-h-[inherit]')
+        expect(stack).toHaveClass('gap-8', 'flex-col', 'min-h-inherit')
         // dom order is the layout contract: header, centered content, footer
         expect(Array.from(container.querySelectorAll('header, p, button').values()).map((n) => n.tagName)).toEqual([
             'HEADER',

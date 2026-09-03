@@ -1253,7 +1253,7 @@ export default function QRPayPage() {
         const isFixable = kycGateState === QrKycState.PROVIDER_REJECTION_FIXABLE
         const isRestartIdentity = kycGateState === QrKycState.PROVIDER_RESTART_IDENTITY
         return (
-            <div className="flex min-h-[inherit] flex-col gap-8">
+            <div className="flex min-h-inherit flex-col gap-8">
                 <NavHeader title={tNav('pay')} />
                 <ActionModal
                     visible
@@ -1317,7 +1317,7 @@ export default function QRPayPage() {
     // (any enabled rail ⇒ identity verified at least once) is the closest faithful proxy.
     if (needsKycVerification) {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-8">
+            <div className="flex min-h-inherit flex-col gap-8">
                 <NavHeader title={tNav('pay')} />
                 <ActionModal
                     visible={kycGateState === QrKycState.REQUIRES_IDENTITY_VERIFICATION}
@@ -1501,7 +1501,7 @@ export default function QRPayPage() {
         const rewardClaimable = !!qrPayment?.perk?.eligible && !perkClaimed && !qrPayment.perk.claimed
 
         return (
-            <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
+            <div className={`flex min-h-inherit flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
                 <SoundPlayer sound="success" />
                 <NavHeader title={tNav('pay')} />
                 <div className="my-auto space-y-4 flex h-full flex-col justify-center">
@@ -1727,7 +1727,7 @@ export default function QRPayPage() {
                 onRefreshToken={qrLimitIncreaseFlow.refreshToken}
                 isMultiLevel
             />
-            <div className={`flex min-h-[inherit] flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
+            <div className={`flex min-h-inherit flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
                 <NavHeader title={tNav('pay')} />
 
                 {/* Payment Content */}

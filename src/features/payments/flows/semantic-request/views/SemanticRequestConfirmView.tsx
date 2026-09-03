@@ -176,14 +176,14 @@ export function SemanticRequestConfirmView() {
     // show loading if we don't have charge details yet or fetching
     if (!charge || isFetchingCharge) {
         return (
-            <div className="flex min-h-[inherit] flex-col items-center justify-center">
+            <div className="flex min-h-inherit flex-col items-center justify-center">
                 <Loading variant="mascot" />
             </div>
         )
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+        <div className="flex min-h-inherit flex-col justify-between gap-8">
             <NavHeader onPrev={handleBack} title={t('headers.confirmPayment')} />
 
             <div className="my-auto space-y-4 flex h-full flex-col justify-center pb-4">

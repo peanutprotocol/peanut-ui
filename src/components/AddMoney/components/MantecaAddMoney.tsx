@@ -259,7 +259,7 @@ const MantecaAddMoney: FC = () => {
     // show the branded processing screen — same as when a PIX payment is processing.
     if (isCreatingDeposit && selectedCountry.currency === 'BRL') {
         return (
-            <div className="my-auto flex min-h-[inherit] flex-col justify-center">
+            <div className="my-auto flex min-h-inherit flex-col justify-center">
                 <CyclingLoading />
             </div>
         )

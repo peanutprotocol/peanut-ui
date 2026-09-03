@@ -436,7 +436,7 @@ export default function WithdrawBankPage() {
     }
 
     return (
-        <div className="flex min-h-[inherit] w-full flex-col justify-start gap-8 self-start">
+        <div className="flex min-h-inherit w-full flex-col justify-start gap-8 self-start">
             <NavHeader
                 title={fromSendFlow ? tNav('send') : tNav('withdraw')}
                 icon={view === 'SUCCESS' ? 'cancel' : undefined}

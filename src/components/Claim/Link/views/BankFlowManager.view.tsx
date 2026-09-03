@@ -542,7 +542,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             return <CountryListRouter claimLinkData={claimLinkData} inputTitle={t('bank.selectCountry')} />
         case ClaimBankFlowStep.BankDetailsForm:
             return (
-                <div className="flex min-h-[inherit] flex-col justify-between gap-8 md:min-h-fit">
+                <div className="flex min-h-inherit flex-col justify-between gap-8 md:min-h-fit">
                     <div>
                         <NavHeader
                             title={t('receive')}

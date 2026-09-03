@@ -56,7 +56,7 @@ export default function SavedAccountsView({
     const tWithdraw = useTranslations('withdraw')
     const plusTrailing = <Icon name="plus" size={20} className="text-foreground-primary" />
     return (
-        <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
+        <div className="flex min-h-inherit flex-col justify-normal gap-8">
             <NavHeader title={pageTitle} onPrev={onPrev} />
             <div className="space-y-6">
                 <Section title={t('savedAccounts.title')} className="h-full justify-center">

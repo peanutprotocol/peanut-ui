@@ -20,7 +20,7 @@ interface RateGateScreenProps {
  * counts it; one shared screen keeps pages composing recipes.
  */
 const RateGateScreen = ({ title, onBack, isLoading, onRetry }: RateGateScreenProps) => (
-    <div className="flex min-h-[inherit] flex-col gap-8">
+    <div className="flex min-h-inherit flex-col gap-8">
         <NavHeader title={title} onPrev={onBack} />
         <div className="my-auto flex flex-col justify-center">
             {isLoading ? <Loading variant="mascot" /> : <RateUnavailable onRetry={onRetry} />}

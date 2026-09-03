@@ -78,7 +78,7 @@ export function ContributePotInputView() {
     const isAmountEntered = !!amount && parseFloat(amount) > 0
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+        <div className="flex min-h-inherit flex-col justify-between gap-8">
             <NavHeader onPrev={onBack} title={t('headers.pay')} />
 
             <PageStack.Center className="gap-4">

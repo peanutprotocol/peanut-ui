@@ -24,7 +24,7 @@ export default function NotFound() {
 
     return (
         <>
-            <div className="flex min-h-[100dvh] flex-col md:h-[100dvh] md:flex-row">
+            <div className="flex min-h-dvh flex-col md:h-dvh md:flex-row">
                 <div
                     aria-hidden="true"
                     className="relative h-[55dvh] w-full overflow-hidden bg-action-primary md:h-full md:w-7/12"
