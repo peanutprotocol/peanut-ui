@@ -138,7 +138,11 @@ beforeEach(() => {
     jest.clearAllMocks()
 })
 
-describe('SendLinkActionList — guest claim-to-bank maintenance', () => {
+// Skipped while the receive screen is Peanut-only: the alternate claim rails are
+// hidden behind SHOW_ALT_RAILS in SendLinkActionList, so the bank method these
+// cases assert on no longer renders. The gating code is kept — flip the flag and
+// remove .skip to bring these back.
+describe.skip('SendLinkActionList — guest claim-to-bank maintenance', () => {
     test('GuestBankClaim: bank option is greyed + "Soon!" and non-interactive', () => {
         mockClaimType = 'guest-bank-claim'
         renderList()

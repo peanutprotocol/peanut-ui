@@ -52,6 +52,12 @@ import { useTranslations } from 'next-intl'
 
 const SHOW_INVITE_MODAL_FOR_DEVCONNECT = false
 
+// Receive screen is Peanut-only: the alternate claim rails (bank, mercadopago,
+// pix, exchange/wallet) are hidden so the only option is "Receive on Peanut".
+// The rail code below is kept intact behind this flag — flip to true to bring
+// the rails back.
+const SHOW_ALT_RAILS = false
+
 interface ISendLinkActionListProps {
     claimLinkData: ClaimLinkData
     isLoggedIn: boolean
@@ -213,7 +219,7 @@ export default function SendLinkActionList({
     const userHasAppAccess = user?.user?.hasAppAccess ?? false
     const devconnectMethod = DEVCONNECT_CLAIM_METHODS.find((m) => m.id === 'devconnect')!
 
-    if (isGeoLoading) {
+    if (SHOW_ALT_RAILS && isGeoLoading) {
         return (
             <div className="flex w-full items-center justify-center py-8">
                 <Loading />
@@ -272,33 +278,37 @@ export default function SendLinkActionList({
                 </div>
             )}
 
-            <Divider text={tCommon('or')} />
+            {SHOW_ALT_RAILS && (
+                <>
+                    <Divider text={tCommon('or')} />
 
-            <div className="space-y-2">
-                {sortedActionMethods.map((method) => {
-                    let methodRequiresVerification = method.id === 'bank' && requiresVerification
-                    if (!isMantecaPayEnabled && ['mercadopago', 'pix'].includes(method.id)) {
-                        methodRequiresVerification = true
-                    }
+                    <div className="space-y-2">
+                        {sortedActionMethods.map((method) => {
+                            let methodRequiresVerification = method.id === 'bank' && requiresVerification
+                            if (!isMantecaPayEnabled && ['mercadopago', 'pix'].includes(method.id)) {
+                                methodRequiresVerification = true
+                            }
 
-                    return (
-                        <MethodCard
-                            onClick={() => {
-                                if (isInviteLink && !userHasAppAccess && method.id !== 'devconnect') {
-                                    setSelectedMethod(method)
-                                    setShowInviteModal(true)
-                                } else {
-                                    handleMethodClick(method)
-                                }
-                            }}
-                            key={method.id}
-                            method={method}
-                            requiresVerification={methodRequiresVerification}
-                            soon={method.id === 'bank' && isGuestBankClaim}
-                        />
-                    )
-                })}
-            </div>
+                            return (
+                                <MethodCard
+                                    onClick={() => {
+                                        if (isInviteLink && !userHasAppAccess && method.id !== 'devconnect') {
+                                            setSelectedMethod(method)
+                                            setShowInviteModal(true)
+                                        } else {
+                                            handleMethodClick(method)
+                                        }
+                                    }}
+                                    key={method.id}
+                                    method={method}
+                                    requiresVerification={methodRequiresVerification}
+                                    soon={method.id === 'bank' && isGuestBankClaim}
+                                />
+                            )
+                        })}
+                    </div>
+                </>
+            )}
 
             {!isLoggedIn && <SupportCTA />}
 
