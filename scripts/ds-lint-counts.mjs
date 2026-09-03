@@ -44,7 +44,6 @@ const GLOBAL_ALLOW = [
     'dev/components/',
     'dev/devices/',
     'dev/fixtures/', // fixture tooling incl. the on-camera banner — dev-only, DEV_TOOLS_ENABLED-gated
-    'dev/notification-proposals/', // design-proposal showcase — raw values are the exhibits, not debt
     'features/payment-network-explorer/', // team-gated /dev/payment-graph tool (same class as InvitesGraph) — not product UI
 ]
 
