@@ -224,8 +224,9 @@ jobs:
                   SENTRY_DSN_ANDROID: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
                   # MeaWallet MPP SDK — gradle gates both the dependency and the
                   # plugin source on these; absent secrets build without the SDK.
-                  MEAWALLET_NEXUS_USER: ${{ secrets.MEAWALLET_NEXUS_USER }}
-                  MEAWALLET_NEXUS_PASSWORD: ${{ secrets.MEAWALLET_NEXUS_PASSWORD }}
+                  # Android-specific names: see the note in ios-release.yml.
+                  MEAWALLET_NEXUS_USER: ${{ secrets.MEAWALLET_NEXUS_USER_ANDROID }}
+                  MEAWALLET_NEXUS_PASSWORD: ${{ secrets.MEAWALLET_NEXUS_PASSWORD_ANDROID }}
                   ANDROID_VERSION_NAME: ${{ steps.version.outputs.name }}
               run: |
                   # Monotonic (run_number always increases). +10000 clears legacy

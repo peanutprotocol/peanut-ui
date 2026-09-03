@@ -200,8 +200,12 @@ jobs:
                   # MeaWallet MPP SDK (Apple Pay push provisioning): postsync
                   # vendors the xcframework only when these are set, so the
                   # build stays green until the secrets are provisioned.
-                  MEAWALLET_NEXUS_USER: ${{ secrets.MEAWALLET_NEXUS_USER }}
-                  MEAWALLET_NEXUS_PASSWORD: ${{ secrets.MEAWALLET_NEXUS_PASSWORD }}
+                  # MeaWallet issues separate iOS and Android Nexus credentials,
+                  # and an Environment secret holds one value per name — sharing
+                  # a name would send whichever pair was configured last to both
+                  # platforms and fail the other one's SDK download.
+                  MEAWALLET_NEXUS_USER: ${{ secrets.MEAWALLET_NEXUS_USER_IOS }}
+                  MEAWALLET_NEXUS_PASSWORD: ${{ secrets.MEAWALLET_NEXUS_PASSWORD_IOS }}
                   # postsync stamps project.pbxproj; without this it would stamp
                   # package.json's version, which no longer tracks releases.
                   IOS_MARKETING_VERSION: ${{ steps.version.outputs.name }}
