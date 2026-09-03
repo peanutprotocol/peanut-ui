@@ -21,7 +21,11 @@ import {
  */
 export function usePushProvisioning(card: { id: string; last4: string }) {
     const isFlagEnabled = useFeatureFlags()
-    const flagOn = isFlagEnabled(PUSH_PROVISIONING_FLAG, { nonProdBypass: true })
+    // No nonProdBypass: the backend route (peanut-api-ts#1425) is not deployed
+    // anywhere yet, so bypassing on staging/preview/local would send every
+    // native build's tap through step-up into a 404 and the failure toast.
+    // Add the bypass back once the route is live.
+    const flagOn = isFlagEnabled(PUSH_PROVISIONING_FLAG)
     const [nativeAvailable, setNativeAvailable] = useState(false)
     const [isAdding, setIsAdding] = useState(false)
 

@@ -114,6 +114,10 @@ public class PushProvisioningPlugin extends Plugin {
 
     /**
      * Only a token Google has finished provisioning counts as "already added".
+     * Takes an int because this reads Google's TokenInfo.getTokenState(), which
+     * is an @TapAndPay.TokenState int — not MeaWallet's GooglePayTokenInfo
+     * .getTokenState(), which returns the GooglePayTokenState enum addCard
+     * switches on. Two same-named methods on two classes in one file.
      * checkWalletForCardSuffix also returns tokens in the yellow path
      * (TOKEN_STATE_NEEDS_IDENTITY_VERIFICATION) and ones still pending: those
      * are registered to the wallet but unusable, and addCard resumes them via
