@@ -37,3 +37,34 @@ export function isArgentinaMantecaQrPayment(qrType: string | null, paymentProces
     if (paymentProcessor !== 'MANTECA') return false
     return qrType === EQrType.MERCADO_PAGO || qrType === EQrType.ARGENTINA_QR3
 }
+
+/**
+ * Stable per-scan idempotency key for `/manteca/qr-payment/init`.
+ *
+ * The init POST creates a real Manteca price lock, and the client retries it on
+ * timeout — the one case where the server may well have succeeded. This key is
+ * what lets the backend replay that lock instead of minting a second one, so it
+ * MUST be identical across every retry of one scan and different across scans.
+ *
+ * Derived rather than random so it also survives a remount, and hashed rather
+ * than sent raw because a payment destination can encode a Pix key (CPF, email,
+ * phone) that has no business becoming a durable cache key. `amount` is part of
+ * the identity: an open-amount QR re-inits with the user's number, and a
+ * different amount is a genuinely different lock.
+ */
+export function qrInitIdempotencyKey(input: { qrCode: string; timestamp: string | null; amount?: string }): string {
+    const scan = `${input.timestamp ?? ''}:${fnv1a64(input.qrCode)}:${input.qrCode.length}`
+    return input.amount ? `${scan}:${input.amount}` : scan
+}
+
+/** FNV-1a over 64 bits, as two 32-bit halves with different offsets. */
+function fnv1a64(value: string): string {
+    let h1 = 0x811c9dc5
+    let h2 = 0x01000193
+    for (let i = 0; i < value.length; i++) {
+        const c = value.charCodeAt(i)
+        h1 = Math.imul(h1 ^ c, 0x01000193) >>> 0
+        h2 = Math.imul(h2 ^ c, 0x811c9dc5) >>> 0
+    }
+    return h1.toString(16).padStart(8, '0') + h2.toString(16).padStart(8, '0')
+}

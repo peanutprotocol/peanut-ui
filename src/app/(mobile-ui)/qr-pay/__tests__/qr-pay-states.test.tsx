@@ -297,6 +297,9 @@ jest.mock('@/utils/perk.utils', () => ({
 }))
 
 jest.mock('@/utils/qr-payment.utils', () => ({
+    // Real `qrInitIdempotencyKey`: it is pure, and stubbing it would hide the
+    // one property the retry-safety guard depends on — a stable key per scan.
+    ...jest.requireActual('@/utils/qr-payment.utils'),
     calculateSavingsInCents: jest.fn(() => 0),
     hasCardMarkupComparison: jest.fn(() => false),
     isArgentinaMantecaQrPayment: jest.fn(() => false),
@@ -1512,24 +1515,37 @@ describe('GROUP 5: Error States', () => {
         ['MANTECA_MERCHANT_RECENT_REFUND', /can't complete QR payments to this merchant/i],
         ['MANTECA_USER_NOT_PROVISIONED', /verifying your identity/i],
         ['User KYC not approved', /verifying your identity/i],
-    ])('%s fails fast with copy that names the real cause', async (code, copy) => {
-        mockMantecaApi.initiateQrPayment.mockRejectedValue(new Error(code))
+    ])(
+        '%s fails fast with copy that names the real cause',
+        async (code, copy) => {
+            mockMantecaApi.initiateQrPayment.mockRejectedValue(new Error(code))
 
-        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+            renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
 
-        await waitFor(() => {
-            expect(screen.getByText(copy)).toBeInTheDocument()
-        })
+            await waitFor(() => {
+                expect(screen.getByText(copy)).toBeInTheDocument()
+            })
 
-        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
-        expect(screen.queryByText(/still fetching details/i)).not.toBeInTheDocument()
-        /*
-         * None of these is an outage. A capped user told "MercadoPago is having
-         * issues" has nothing to act on — product/providers/fiat/README.md
-         * records one sitting blocked for three days behind exactly that.
-         */
-        expect(screen.queryByText(/currently experiencing issues/i)).not.toBeInTheDocument()
-    })
+            /*
+             * Past the 3s backoff, not just to the copy. The copy comes from the
+             * classifier's code table while the retry gate is a separate call, so
+             * asserting the call count inside waitFor's 1s cap proved nothing: only
+             * one call had been made at that instant whether or not the code was
+             * treated as deterministic. Drop a code from the table and this now
+             * fails — with three extra POSTs and three orphaned Manteca locks.
+             */
+            await new Promise((resolve) => setTimeout(resolve, 4_000))
+            expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
+            expect(screen.queryByText(/still fetching details/i)).not.toBeInTheDocument()
+            /*
+             * None of these is an outage. A capped user told "MercadoPago is having
+             * issues" has nothing to act on — product/providers/fiat/README.md
+             * records one sitting blocked for three days behind exactly that.
+             */
+            expect(screen.queryByText(/currently experiencing issues/i)).not.toBeInTheDocument()
+        },
+        20_000
+    )
 
     /*
      * The cap block fires when THIS payment exceeds the remaining headroom
@@ -1539,15 +1555,24 @@ describe('GROUP 5: Error States', () => {
      * ARS 5,000 away from the counter. The pool is also shared with deposits
      * and withdrawals (mono product/kyc.md), so it must not be named a QR limit.
      */
-    it('cap copy offers a smaller amount and does not call the limit QR-only', async () => {
+    it('cap copy at scan time offers no amount the user cannot change', async () => {
         mockMantecaApi.initiateQrPayment.mockRejectedValue(new Error('MANTECA_SOURCE_OVER_MONTHLY_CAP'))
 
         renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
 
         const message = await screen.findByText(/remaining monthly limit/i)
-        expect(message).toHaveTextContent(/smaller amount/i)
         expect(message).toHaveTextContent(/deposits, withdrawals and QR/i)
         expect(message).not.toHaveTextContent(/monthly QR payment limit/i)
+        /*
+         * A cap refused at SCAN time carries the merchant's own encoded amount —
+         * an open-amount QR returns a lock with an empty code and only reaches
+         * the cap check once a number is submitted. This screen renders a bare
+         * string and a "go back" button, so "try a smaller amount" would be
+         * advice with no field to follow it in. Name the charge instead, which
+         * the cashier can actually ring again.
+         */
+        expect(message).toHaveTextContent(/smaller charge/i)
+        expect(message).not.toHaveTextContent(/try a smaller amount/i)
         /*
          * And no self-service promise. Raising a limit in-app is gated on
          * isBrUserEligibleForLimitIncrease (BRL/BRA at or under 1000 USDT), so
