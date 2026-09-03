@@ -17,9 +17,10 @@ import { useTranslations } from 'next-intl'
  * publishes to; leaving drops it back to the store bundle.
  *
  * Joining requires the PEANUT_TEAM badge, which the About screen awards on the
- * fifth tap. The badge is a record of who opted in and a handle to revoke it,
- * NOT an access boundary — anyone who performs the gesture can award it to
- * themselves. Capgo's channel self-assignment setting is the real boundary.
+ * fifth tap. The badge is a record of who opted in, NOT an access boundary —
+ * anyone who performs the gesture can award it to themselves, and deleting the
+ * row only holds until they tap again. Capgo's channel self-assignment setting
+ * is the real boundary.
  *
  * The badge gates the JOIN, never the card. An earlier version gated the whole
  * reveal on a PostHog cohort, so the flag never being created hid the switch
