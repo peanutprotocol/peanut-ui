@@ -161,7 +161,20 @@ export const restartIdentityVerification = async (
         if (!response.ok) {
             return backendOrFallback(responseJson, 'Failed to restart identity verification', 'restart_failed')
         }
-        return { data: responseJson }
+        // Sanitize on the way OUT as well as in. `responseJson` is unvalidated,
+        // and the caller stores `regionIntent` in the ref that `refreshToken`
+        // later replays to `initiateSumsubKyc` — so an unrecognised value would
+        // not merely read as single-level here, it would be sent back to the
+        // API on the next refresh. Dropping it lets the caller's `??` fall back
+        // to the intent it already had.
+        const resolved = responseJson?.regionIntent
+        return {
+            data: {
+                ...responseJson,
+                regionIntent:
+                    typeof resolved === 'string' && RESTART_REGION_INTENTS.has(resolved) ? resolved : undefined,
+            },
+        }
     } catch (e: unknown) {
         return caughtError(e)
     }

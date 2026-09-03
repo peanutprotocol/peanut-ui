@@ -1,7 +1,12 @@
 import { act, waitFor } from '@testing-library/react'
 import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
-import { initiateSumsubKyc, initiateSelfHealResubmission, startKycAction } from '@/app/actions/sumsub'
+import {
+    initiateSumsubKyc,
+    initiateSelfHealResubmission,
+    restartIdentityVerification,
+    startKycAction,
+} from '@/app/actions/sumsub'
 
 // useSumsubKycFlow wires a websocket, redux, the router and three server actions.
 // Stub everything except the one action the cross-region branch reads so the test
@@ -33,6 +38,7 @@ jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
 const mockInitiate = initiateSumsubKyc as jest.MockedFunction<typeof initiateSumsubKyc>
 const mockResubmit = initiateSelfHealResubmission as jest.MockedFunction<typeof initiateSelfHealResubmission>
 const mockStartAction = startKycAction as jest.MockedFunction<typeof startKycAction>
+const mockRestart = restartIdentityVerification as jest.MockedFunction<typeof restartIdentityVerification>
 
 describe('useSumsubKycFlow — cross-region routing', () => {
     beforeEach(() => {
@@ -813,5 +819,75 @@ describe('useSumsubKycFlow — handleFixableRejection routing', () => {
 
         expect(mockResubmit).toHaveBeenLastCalledWith('BRIDGE')
         expect(mockStartAction).toHaveBeenCalledTimes(1)
+    })
+})
+
+/**
+ * The restart CTA drives its SDK session from the intent the SERVER resolved.
+ *
+ * This app sends the restart BODYLESS, so for a residence change the backend
+ * derives the level from the newly declared country and can overrule anything
+ * local. `levelName` cannot stand in for the intent — EU and NA both mint
+ * `bridge-requirements`, LATAM and ROW both mint `general`, and only EU and
+ * LATAM are multi-level — so a hook that fell back to its own ref would open a
+ * LATAM `general` session as single-level and close it after IDENTITY, before
+ * the manteca-requirements questionnaire.
+ */
+describe('useSumsubKycFlow — restart uses the server-resolved intent', () => {
+    beforeEach(() => {
+        mockInitiate.mockReset()
+        mockRestart.mockReset()
+        mockWs.handler = undefined
+    })
+
+    it('a resolved LATAM response opens a MULTI-level session even with no local intent', async () => {
+        mockRestart.mockResolvedValue({
+            data: { token: 'tok_1', levelName: 'general', applicantId: 'app_1', regionIntent: 'LATAM' },
+        })
+
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+        await act(async () => {
+            await result.current.handleRestartIdentity()
+        })
+
+        await waitFor(() => expect(result.current.isMultiLevel).toBe(true))
+    })
+
+    // The override has to work in BOTH directions, or a stale local LATAM would
+    // hold a ROW session open waiting for a questionnaire that never comes.
+    it('a resolved ROW response overrides a local LATAM intent to single-level', async () => {
+        mockInitiate.mockResolvedValue({
+            data: { token: 'tok_0', applicantId: 'app_1', status: 'PENDING' },
+        })
+        mockRestart.mockResolvedValue({
+            data: { token: 'tok_1', levelName: 'general', applicantId: 'app_1', regionIntent: 'ROW' },
+        })
+
+        const { result } = renderHook(() => useSumsubKycFlow({ regionIntent: 'LATAM' }))
+        await waitFor(() => expect(mockInitiate).toHaveBeenCalled())
+        await act(async () => {
+            await result.current.handleRestartIdentity()
+        })
+
+        await waitFor(() => expect(result.current.isMultiLevel).toBe(false))
+    })
+
+    // Back-compat: a backend that predates the field must not silently downgrade
+    // a known-LATAM session to single-level.
+    it('a response with no regionIntent falls back to the local intent', async () => {
+        mockInitiate.mockResolvedValue({
+            data: { token: 'tok_0', applicantId: 'app_1', status: 'PENDING' },
+        })
+        mockRestart.mockResolvedValue({
+            data: { token: 'tok_1', levelName: 'general', applicantId: 'app_1' },
+        })
+
+        const { result } = renderHook(() => useSumsubKycFlow({ regionIntent: 'LATAM' }))
+        await waitFor(() => expect(mockInitiate).toHaveBeenCalled())
+        await act(async () => {
+            await result.current.handleRestartIdentity()
+        })
+
+        await waitFor(() => expect(result.current.isMultiLevel).toBe(true))
     })
 })

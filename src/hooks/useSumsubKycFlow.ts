@@ -558,6 +558,11 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             }
             if (response.data?.token) {
                 setAccessToken(response.data.token)
+                // The restart targets a level the backend chose, which need not be
+                // the one this hook last initiated. `refreshToken` replays this ref
+                // to `initiateSumsubKyc`, so leaving it stale would refresh an
+                // expired restart token against the OLD level.
+                levelNameRef.current = response.data.levelName
                 // The restart no longer reopens the applicant's existing level:
                 // the backend targets the level the DECLARED residence needs, and
                 // can overrule the intent we sent. So the multi-level flag comes
