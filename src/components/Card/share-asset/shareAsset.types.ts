@@ -15,6 +15,9 @@ export interface ShareAssetBadge {
     /** Backend-owned presentation URL. Legacy responses may omit it. */
     iconUrl?: string | null
     earnedAt?: string | Date
+    /** Server's own answer on whether this badge is displayable at all.
+     *  Carried so placeStamps can refuse permission records. */
+    isVisible?: boolean
     /** Display label override. Unused by the share asset (we don't render
      *  text per stamp anymore) but kept for API compatibility. */
     name?: string

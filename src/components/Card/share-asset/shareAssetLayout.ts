@@ -13,6 +13,7 @@
 import { SeededRandom } from './seededRandom'
 import { getBadgeIcon } from '@/components/Badges/badge.utils'
 import type { ShareAssetBadge, ShareAssetStats } from './shareAsset.types'
+import { displayableBadges } from '@/constants/badges.consts'
 
 // ─── Canvas + element constants ─────────────────────────────────────────
 // 4:3 — postage-stamp-ish proportions. Was 16:9 (Twitter summary_large_image)
@@ -158,7 +159,13 @@ export function placeStamps(
     extraKeepouts: readonly KeepoutEllipse[] = [],
     pill: { x0: number; y0: number } = DEFAULT_PILL_KEEPOUT
 ): StampPlacement[] {
-    const sorted = [...badges].sort((a, b) => {
+    /*
+     * The choke point for every sticker on the asset. Permission records — a
+     * PEANUT_TEAM held by anyone who found the five-tap beta switch — must
+     * never reach an image that leaves the app, and filtering at each call
+     * site has already been missed twice: this is the boundary that cannot be.
+     */
+    const sorted = displayableBadges(badges).sort((a, b) => {
         const aT = a.earnedAt ? new Date(a.earnedAt).getTime() : 0
         const bT = b.earnedAt ? new Date(b.earnedAt).getTime() : 0
         return bT - aT

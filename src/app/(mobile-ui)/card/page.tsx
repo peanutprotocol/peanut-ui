@@ -708,6 +708,7 @@ const CardPage: FC = () => {
                         code: b.code,
                         iconUrl: b.iconUrl,
                         earnedAt: b.earnedAt,
+                        isVisible: b.isVisible,
                     })) ?? cardInfo!.skipBadges.map((code) => ({ code }))
                 return (
                     <BadgeSkipCelebration
