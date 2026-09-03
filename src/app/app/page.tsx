@@ -16,7 +16,7 @@
 //
 // hydration: SSR and the first client render show the same neutral loading
 // state (mounted guard) — deriving the redirect state from useDeviceType at
-// first render tripped React #418 on phones (device is WEB on the server).
+// first render tripped React error 418 on phones (device is WEB on the server).
 
 import { useEffect, useState } from 'react'
 import { notFound, useRouter } from 'next/navigation'

@@ -361,7 +361,7 @@ export default function QRPayPage() {
     // server-side while a flow is mid-air. Two known sources:
     //   1. The `/users/identity` LATAM re-entry path now calls
     //      `enableQrPoolRails()` BEFORE returning the Manteca action token
-    //      (peanut-api-ts #920) — so the BE can hand back a Sumsub token AND
+    //      (peanut-api-ts PR 920) — so the BE can hand back a Sumsub token AND
     //      have just unlocked QR access in the same request. Without this,
     //      the SDK pops on top of an already-unlocked user.
     //   2. Out-of-band capability updates (sibling-tab refresh, manual
