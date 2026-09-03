@@ -127,4 +127,36 @@ describe('restartIdentityVerification — wire shape', () => {
         const result = await restartIdentityVerification()
         expect(result.data?.regionIntent).toBe('LATAM')
     })
+
+    // The response is unvalidated JSON and the caller stores this in the ref
+    // `refreshToken` replays to `initiateSumsubKyc` — so an unrecognised value
+    // would not merely read as single-level, it would be sent BACK to the API on
+    // the next refresh. Dropping it lets the caller keep the intent it had.
+    it('drops an unrecognised resolved intent rather than storing it', async () => {
+        mockFetch.mockResolvedValue({
+            ok: true,
+            json: async () => ({ token: 'tok', levelName: 'general', applicantId: 'app-1', regionIntent: 'ATLANTIS' }),
+        } as unknown as Response)
+        const result = await restartIdentityVerification()
+        expect(result.data?.regionIntent).toBeUndefined()
+        expect(result.data?.token).toBe('tok')
+    })
+
+    it('a backend that predates the field yields no intent, not a crash', async () => {
+        mockFetch.mockResolvedValue(okResponse())
+        const result = await restartIdentityVerification()
+        expect(result.data?.regionIntent).toBeUndefined()
+        expect(result.data?.levelName).toBe('general')
+    })
+
+    it('a refusal is still surfaced as an error', async () => {
+        mockFetch.mockResolvedValue({
+            ok: false,
+            status: 403,
+            json: async () => ({ error: 'restart_failed', userMessage: 'Cannot restart right now' }),
+        } as unknown as Response)
+        const result = await restartIdentityVerification()
+        expect(result.data).toBeUndefined()
+        expect(result.error).toBeTruthy()
+    })
 })
