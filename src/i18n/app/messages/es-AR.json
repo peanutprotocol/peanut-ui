@@ -897,7 +897,8 @@
             "onrampDetails": "No pudimos obtener los datos para agregar dinero. Intentalo de nuevo.",
             "bankAccountFailed": "No se pudo procesar la cuenta bancaria. Intentalo de nuevo o contactá a soporte.",
             "bankAccountSettingUp": "Tu cuenta bancaria aún se está configurando. Intentalo de nuevo en un momento."
-        }
+        },
+        "bankNotAvailableNote": "Las transferencias bancarias no están disponibles en tu país. Todavía podés ingresar y retirar cripto."
     },
     "withdraw": {
         "howWouldYouLikeToWithdraw": "¿Cómo querés retirar?",
@@ -1062,6 +1063,7 @@
             "descriptionRestartIdentity": "Este método necesita un documento de un país compatible. Podés verificarte con otro documento.",
             "descriptionProviderRejection": "Subí una foto más nítida de tu documento para continuar.",
             "descriptionRegionUnavailable": "Por regulaciones del Reino Unido, las transferencias bancarias no están disponibles para residentes del Reino Unido. Tus fondos están seguros: podés retirarlos como cripto en cualquier momento.",
+            "descriptionBankUnavailable": "Las transferencias bancarias no están disponibles en tu país, así que verificar tu identidad no las desbloquearía. Tus fondos están seguros y podés seguir enviando y recibiendo dinero con otras personas.",
             "descriptionDefault": "Confirmá tu identidad para desbloquear los pagos. Toma alrededor de un minuto."
         },
         "regionRestricted": {

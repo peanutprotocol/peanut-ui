@@ -118,7 +118,11 @@ jest.mock('@/hooks/useGetDeviceType', () => ({
     DeviceType: { IOS: 'IOS', ANDROID: 'ANDROID', WEB: 'WEB' },
     useDeviceType: () => ({ deviceType: 'WEB' }),
 }))
-jest.mock('@/redux/hooks', () => ({ useAppDispatch: () => jest.fn() }))
+jest.mock('@/redux/hooks', () => ({ useAppDispatch: () => jest.fn(), useSetupStore: () => ({ residenceCountry: '' }) }))
+// the bank intent hook reads residence restrictions; default to unrestricted
+jest.mock('@/hooks/useResidenceRestrictions', () => ({
+    useResidenceRestrictions: () => ({ banking: false, card: false }),
+}))
 jest.mock('@/redux/slices/bank-form-slice', () => ({ bankFormActions: { clearFormData: () => ({ type: 'noop' }) } }))
 jest.mock('@/app/actions/users', () => ({ addBankAccount: jest.fn() }))
 jest.mock('@/utils/native-routes', () => ({

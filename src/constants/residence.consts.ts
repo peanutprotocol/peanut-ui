@@ -25,10 +25,15 @@ export const RESTRICTED_RESIDENCE_ISO2 = new Set(['CN', 'IR', 'RU', 'BY', 'GB', 
 export const CARD_RESTRICTED_RESIDENCE_ISO2 = new Set(['IN', 'TR', 'UA', 'VE', 'VN', 'IL', 'IQ', 'NP', 'NI'])
 
 /**
- * Banking-only restriction: Bridge does not onboard residents of these
- * countries. The card and everything else still work.
+ * Banking-only restriction: Bridge onboards these residents but no rail is
+ * ever `Yes`, so the account is unusable. The card and everything else still
+ * work.
+ *
+ * GW is in Bridge's table and absent from Bridge's prose note on the same
+ * page; this list mirrored the prose and lost it. The table is the authority
+ * (product/providers/fiat/eligibility.md).
  */
-export const BANKING_RESTRICTED_RESIDENCE_ISO2 = new Set(['DZ', 'BI', 'JP', 'TN'])
+export const BANKING_RESTRICTED_RESIDENCE_ISO2 = new Set(['DZ', 'BI', 'GW', 'JP', 'TN'])
 
 /**
  * countryData is the add-money DESTINATION list and deliberately omits

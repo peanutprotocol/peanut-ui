@@ -28,6 +28,8 @@ import TokenAndNetworkConfirmationModal from '../Global/TokenAndNetworkConfirmat
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useTranslations } from 'next-intl'
+import { Notification } from '@/components/0_Bruddle/Notification'
+import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 
 interface AddWithdrawRouterViewProps {
     flow: 'add' | 'withdraw'
@@ -82,6 +84,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     const t = useTranslations('withdraw')
     const tAddMoney = useTranslations('addMoney')
     const tCommon = useTranslations('common')
+    const { banking: isBankRestricted } = useResidenceRestrictions()
     const { setSelectedBankAccount, showAllWithdrawMethods, setShowAllWithdrawMethods, setSelectedMethod } =
         useWithdrawFlow()
     const onrampFlowContext = useOnrampFlow()
@@ -355,6 +358,8 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                     }
                 }}
             />
+
+            {isBankRestricted && <Notification priority="helper">{tAddMoney('bankNotAvailableNote')}</Notification>}
 
             <CountryList
                 inputTitle={mainHeading}
