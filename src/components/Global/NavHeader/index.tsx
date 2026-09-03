@@ -136,8 +136,10 @@ const NavHeader = ({
             </div>
             {/* maintenance announcement renders below the nav header (designer
                 ruling 2026-09-03) — null outside maintenance mode. The page's
-                own px-4 already insets it, so only a top margin here. */}
-            <Banner className="mt-2" />
+                own px-4 already insets it. Gap: section gap XL/24 (`mt-6`,
+                spacing board 17291:2772) — the banner is a block in the page
+                stack, same rhythm as PageStack's gap-6. */}
+            <Banner variant="feature" className="mt-6" />
         </div>
     )
 }

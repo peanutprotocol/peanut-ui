@@ -50,10 +50,12 @@ describe('ShellBannerFallback', () => {
 
     it('yields to the NavHeader-mounted banner when a header is on screen', () => {
         renderShell(<NavHeader title="Your card" />)
-        // exactly one banner: the NavHeader one; the shell fallback stays quiet
-        expect(screen.getAllByText(en.global.maintenanceBanner)).toHaveLength(1)
+        // exactly one banner: the NavHeader one (feature copy, below the
+        // header); the shell fallback (global one-liner) stays quiet
+        expect(screen.queryByText(en.global.maintenanceBanner)).not.toBeInTheDocument()
+        expect(screen.getAllByText(en.global.maintenanceBody)).toHaveLength(1)
         const backButton = screen.getByTestId('nav-back')
-        const banner = screen.getByText(en.global.maintenanceBanner)
+        const banner = screen.getByText(en.global.maintenanceBody)
         expect(backButton.compareDocumentPosition(banner) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
 

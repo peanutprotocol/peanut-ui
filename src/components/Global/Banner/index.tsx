@@ -25,7 +25,17 @@ import { isDemoMode } from '@/utils/demo'
  * on /home: a warning on the money overview reads as "funds at risk" and
  * reduces trust, so home is unconditionally excluded.
  */
-export function Banner({ className = 'mx-4 mt-2' }: { className?: string }) {
+interface BannerProps {
+    className?: string
+    /**
+     * feature — title + body copy, for the banner NavHeader mounts below a
+     * page's header. global — the short one-liner, for top-of-shell mounts
+     * (headerless fallback, setup ribbon, landing).
+     */
+    variant?: 'feature' | 'global'
+}
+
+export function Banner({ className = 'mx-4 mt-2', variant = 'global' }: BannerProps) {
     const pathname = usePathname()
     const t = useTranslations('global')
 
@@ -51,6 +61,13 @@ export function Banner({ className = 'mx-4 mt-2' }: { className?: string }) {
         maintenanceConfig.maintenanceBannerPaths.some((p) => pathname === p || pathname.startsWith(`${p}/`))
 
     if (maintenanceConfig.enableFullMaintenance || (maintenanceConfig.enableMaintenanceBanner && onTargetedPath)) {
+        if (variant === 'feature') {
+            return (
+                <Notification priority="error" title={t('maintenanceTitle')} className={className}>
+                    {t('maintenanceBody')}
+                </Notification>
+            )
+        }
         return (
             <Notification priority="error" className={className}>
                 {t('maintenanceBanner')}

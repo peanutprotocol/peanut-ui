@@ -44,14 +44,15 @@ describe('NavHeader maintenance banner placement', () => {
 
     it('renders no banner outside maintenance mode', () => {
         renderNavHeader()
-        expect(screen.queryByText(en.global.maintenanceBanner)).not.toBeInTheDocument()
+        expect(screen.queryByText(en.global.maintenanceBody)).not.toBeInTheDocument()
     })
 
-    it('renders the maintenance banner after the header row', () => {
+    it('renders the feature maintenance banner (title + body) after the header row', () => {
         mockConfig.enableMaintenanceBanner = true
         renderNavHeader()
+        expect(screen.getByText(en.global.maintenanceTitle)).toBeInTheDocument()
         const backButton = screen.getByTestId('nav-back')
-        const banner = screen.getByText(en.global.maintenanceBanner)
+        const banner = screen.getByText(en.global.maintenanceBody)
         // DOCUMENT_POSITION_FOLLOWING: the banner comes after the header row
         expect(backButton.compareDocumentPosition(banner) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
