@@ -39,6 +39,24 @@ const CORNER_POSITIONS = [
     { position: '-bottom-1 -right-1', rotation: '-rotate-180' },
 ] as const
 
+// The same 730px threshold the icon grid uses. Tracked in JS (not CSS
+// dual-render): rendering PasteActions twice put duplicate interactive
+// controls in the DOM and the a11y tree order could not be trusted.
+const SHORT_VIEWPORT_QUERY = '(max-height: 729px)'
+
+function useIsShortViewport(): boolean {
+    const [isShort, setIsShort] = useState(false)
+    useEffect(() => {
+        if (typeof window.matchMedia !== 'function') return
+        const mq = window.matchMedia(SHORT_VIEWPORT_QUERY)
+        const update = () => setIsShort(mq.matches)
+        update()
+        mq.addEventListener('change', update)
+        return () => mq.removeEventListener('change', update)
+    }, [])
+    return isShort
+}
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -161,6 +179,7 @@ function ScanRegionOverlay({
     onUsePasteChip: () => void
 }) {
     const t = useTranslations('global')
+    const isShortViewport = useIsShortViewport()
     return (
         <>
             <div className="fixed left-1/2 flex h-64 w-64 -translate-x-1/2 translate-y-1/2 justify-center">
@@ -180,47 +199,50 @@ function ScanRegionOverlay({
                     square's transform makes it the containing block for
                     position:fixed — a bottom offset here would resolve against
                     the 256px square, not the viewport. */}
-                <div className="pointer-events-auto absolute inset-x-0 top-full z-50 mt-6 hidden flex-col items-center [@media(min-height:730px)]:flex">
-                    <div className="grid grid-cols-2 gap-2">
-                        {PAYMENT_METHODS.map((method) => (
-                            <PaymentMethodBadge
-                                key={method.name ?? 'evm'}
-                                src={method.src}
-                                alt={method.alt ?? t('qrScanner.paymentMethods.evmAlt')}
-                                name={method.name ?? t('qrScanner.paymentMethods.evmName')}
-                            />
-                        ))}
+                {!isShortViewport && (
+                    <div className="pointer-events-auto absolute inset-x-0 top-full z-50 mt-6 flex flex-col items-center">
+                        <div className="grid grid-cols-2 gap-2">
+                            {PAYMENT_METHODS.map((method) => (
+                                <PaymentMethodBadge
+                                    key={method.name ?? 'evm'}
+                                    src={method.src}
+                                    alt={method.alt ?? t('qrScanner.paymentMethods.evmAlt')}
+                                    name={method.name ?? t('qrScanner.paymentMethods.evmName')}
+                                />
+                            ))}
+                        </div>
+                        <PasteActions
+                            onPaste={onPaste}
+                            detectedAddress={detectedAddress}
+                            onUseDetected={onUseDetected}
+                            showPasteChip={showPasteChip}
+                            onUsePasteChip={onUsePasteChip}
+                        />
                     </div>
-                    <PasteActions
-                        onPaste={onPaste}
-                        detectedAddress={detectedAddress}
-                        onUseDetected={onUseDetected}
-                        showPasteChip={showPasteChip}
-                        onUsePasteChip={onUsePasteChip}
-                    />
-                </div>
+                )}
             </div>
 
             {/* Short-viewport fallback: a viewport-fixed sibling OUTSIDE the
                 transformed square, anchored a gap above the drawer peek (the
-                pre-#20 geometry). Only one copy is displayed at a time — the
-                media queries are complementary, and display:none removes the
-                hidden copy from the a11y tree and tab order. The offset is a
-                CSS var because Tailwind cannot JIT an interpolated value. */}
-            <div
-                className="pointer-events-none fixed inset-x-0 z-50 hidden flex-col items-center [@media(max-height:729px)]:flex"
-                style={{ bottom: QR_DRAWER_PEEK_PX + QR_DRAWER_PASTE_GAP_PX }}
-            >
-                <div className="pointer-events-auto flex flex-col items-center">
-                    <PasteActions
-                        onPaste={onPaste}
-                        detectedAddress={detectedAddress}
-                        onUseDetected={onUseDetected}
-                        showPasteChip={showPasteChip}
-                        onUsePasteChip={onUsePasteChip}
-                    />
+                pre-#20 geometry) — inside the square's subtree the transform
+                would hijack the containing block for position:fixed. Exactly
+                one PasteActions copy renders (useIsShortViewport), never two. */}
+            {isShortViewport && (
+                <div
+                    className="pointer-events-none fixed inset-x-0 z-50 flex flex-col items-center"
+                    style={{ bottom: QR_DRAWER_PEEK_PX + QR_DRAWER_PASTE_GAP_PX }}
+                >
+                    <div className="pointer-events-auto flex flex-col items-center">
+                        <PasteActions
+                            onPaste={onPaste}
+                            detectedAddress={detectedAddress}
+                            onUseDetected={onUseDetected}
+                            showPasteChip={showPasteChip}
+                            onUsePasteChip={onUsePasteChip}
+                        />
+                    </div>
                 </div>
-            </div>
+            )}
         </>
     )
 }
