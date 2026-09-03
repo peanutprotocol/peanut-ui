@@ -87,6 +87,9 @@ jest.mock('@/context/tokenSelector.context', () => ({
 
 const bankMethod = { id: 'bank', title: 'Bank', description: 'EUR, USD & more', icons: [], soon: false }
 const mercadoPagoMethod = { id: 'mercadopago', title: 'Mercado Pago', description: 'ARS', icons: [], soon: false }
+// An unrecognised recipient — the only case where the rails render at all.
+jest.mock('@/hooks/useKnownPeanutDevice', () => ({ useKnownPeanutDevice: () => false }))
+
 jest.mock('@/hooks/useGeoFilteredPaymentOptions', () => ({
     useGeoFilteredPaymentOptions: () => ({ filteredMethods: [bankMethod, mercadoPagoMethod], isLoading: false }),
 }))
@@ -113,11 +116,7 @@ beforeEach(() => {
     mockSenderCanReceiveBankOfframp = null
 })
 
-// Skipped while the receive screen is Peanut-only: the alternate claim rails are
-// hidden behind SHOW_ALT_RAILS in SendLinkActionList, so the method cards these
-// cases tap no longer render. The gating code is kept — flip the flag and remove
-// .skip to bring these back.
-describe.skip('guest-verification prompt reason', () => {
+describe('guest-verification prompt reason', () => {
     test('bank + a definite "sender cannot receive" blames the sender', () => {
         mockSenderCanReceiveBankOfframp = false
         renderList()
