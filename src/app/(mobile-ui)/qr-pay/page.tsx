@@ -27,6 +27,7 @@ import { SessionKeyGrantRequiredError } from '@/hooks/wallet/spendPreflight'
 import { friendlyError } from '@/utils/friendly-error.utils'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
+import { pickMantecaDepositAddress } from '@/utils/manteca.utils'
 import { rainCentsToUsdcUnits, isAmountWithinBalance } from '@/utils/balance.utils'
 import { formatNumberForDisplay } from '@/utils/general.utils'
 import { getShakeClass, type ShakeIntensity } from '@/utils/perk.utils'
@@ -758,9 +759,10 @@ export default function QRPayPage() {
                 // from the QR and the paying Manteca account. The per-rail
                 // constants remain only as a fallback for an older API that
                 // does not return the field yet.
-                recipient:
-                    (finalPaymentLock.depositAddress as `0x${string}` | undefined) ??
-                    (qrType === EQrType.PIX ? MANTECA_QR_DEPOSIT_ADDRESS_NON_AR : MANTECA_QR_DEPOSIT_ADDRESS_AR),
+                recipient: pickMantecaDepositAddress(
+                    finalPaymentLock.depositAddress,
+                    qrType === EQrType.PIX ? MANTECA_QR_DEPOSIT_ADDRESS_NON_AR : MANTECA_QR_DEPOSIT_ADDRESS_AR
+                ),
                 rainSpendingPower: rainCentsToUsdcUnits(rainCardOverview?.balance?.spendingPower),
                 kind: 'QR_PAY',
             })

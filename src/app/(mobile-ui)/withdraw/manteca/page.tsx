@@ -8,6 +8,7 @@ import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
 import { SessionKeyGrantRequiredError } from '@/hooks/wallet/spendPreflight'
 import { friendlyError } from '@/utils/friendly-error.utils'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
+import { pickMantecaDepositAddress } from '@/utils/manteca.utils'
 import { rainCentsToUsdcUnits, isAmountWithinBalance } from '@/utils/balance.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useState, useMemo, useContext, useEffect, useCallback, useId } from 'react'
@@ -386,7 +387,7 @@ function MantecaBankWithdrawFlow() {
                     // Entity-aware deposit address served by /withdraw/init
                     // (per-entity balances from 2026-09-14); the constant is
                     // only the fallback for an older API without the field.
-                    recipient: (priceLock.depositAddress as `0x${string}` | undefined) ?? MANTECA_DEPOSIT_ADDRESS,
+                    recipient: pickMantecaDepositAddress(priceLock.depositAddress, MANTECA_DEPOSIT_ADDRESS),
                     rainSpendingPower: rainCentsToUsdcUnits(rainCardOverview?.balance?.spendingPower),
                     kind: 'FIAT_OFFRAMP',
                 })

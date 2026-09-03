@@ -12,6 +12,7 @@ import { type Dispatch, type FC, type SetStateAction, useState } from 'react'
 import useClaimLink from '@/components/Claim/useClaimLink'
 import * as Sentry from '@sentry/nextjs'
 import { MANTECA_DEPOSIT_ADDRESS } from '@/constants/manteca.consts'
+import { pickMantecaDepositAddress } from '@/utils/manteca.utils'
 import { useTranslations } from 'next-intl'
 
 interface MantecaReviewStepProps {
@@ -70,15 +71,12 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
                 // then failing would strand the link's funds at the wrong
                 // entity. The constant remains only for an older API that
                 // does not return the field yet.
-                let depositAddress: string = MANTECA_DEPOSIT_ADDRESS
                 const { data: initData, error: initError } = await mantecaApi.initiateWithdraw({ amount, currency })
                 if (initError) {
                     setError(t('manteca.errors.generic'))
                     return
                 }
-                if (initData?.depositAddress) {
-                    depositAddress = initData.depositAddress
-                }
+                const depositAddress = pickMantecaDepositAddress(initData?.depositAddress, MANTECA_DEPOSIT_ADDRESS)
 
                 // Use secure SDK claim (password stays client-side, only signature sent to backend)
                 const txHash = await claimLinkSecure({
