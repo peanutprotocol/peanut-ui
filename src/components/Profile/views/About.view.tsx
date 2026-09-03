@@ -34,15 +34,14 @@ export const AboutView = ({ appVersion }: { appVersion: string }) => {
         if (betaRevealed) betaCardRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' })
     }, [betaRevealed])
 
-    // The fifth tap always answers: the card renders nothing on the web and
-    // outside the cohort, and a silent gesture reads as a broken one.
+    // The fifth tap always answers: the card renders nothing on the web, and a
+    // silent gesture reads as a broken one.
     const onVersionTap = () => {
         clearTimeout(tapWindow.current)
         taps.current += 1
         if (taps.current >= TAPS_TO_REVEAL_BETA) {
             taps.current = 0
             if (!betaAccess.supported) toast.info(t('beta.appOnly'))
-            else if (!betaAccess.visible) toast.warning(t('beta.notEnabled'))
             else {
                 setBetaRevealed(true)
                 toast.info(t('beta.revealed'))
