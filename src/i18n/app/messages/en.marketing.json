@@ -129,13 +129,6 @@
             "title": "The Peanut app is here!",
             "description": "Faster, smoother, and it pings you when money lands."
         },
-        "review": {
-            "title": "Loving Peanut so far?",
-            "description": "A quick rating helps other people find us.",
-            "loveIt": "Love it",
-            "meh": "Could be better",
-            "supportPrefill": "I have some feedback about the app, here's what could be better: "
-        },
         "downloadNow": "Download now",
         "smartLink": {
             "redirecting": "Taking you to the store…",

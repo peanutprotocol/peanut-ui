@@ -376,7 +376,6 @@ export const MODAL_TYPES = {
     KYC_COMPLETED: 'kyc_completed',
     INVITE: 'invite',
     MIGRATION_DOWNLOAD: 'migration_download',
-    APP_REVIEW: 'app_review',
     RE_CONSENT: 're_consent',
 } as const
 

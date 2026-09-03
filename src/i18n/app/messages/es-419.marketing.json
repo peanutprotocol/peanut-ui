@@ -129,13 +129,6 @@
             "title": "¡La app de Peanut ya está aquí!",
             "description": "Más rápida, más fluida y te avisa cuando llega tu dinero."
         },
-        "review": {
-            "title": "¿Te está gustando Peanut?",
-            "description": "Una calificación rápida ayuda a que otros nos encuentren.",
-            "loveIt": "Me encanta",
-            "meh": "Podría mejorar",
-            "supportPrefill": "Tengo comentarios sobre la app, esto es lo que podría mejorar: "
-        },
         "downloadNow": "Descargar ahora",
         "smartLink": {
             "redirecting": "Te llevamos a la tienda…",

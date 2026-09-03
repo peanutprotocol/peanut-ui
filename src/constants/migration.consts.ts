@@ -25,13 +25,6 @@ export const MIGRATION_URGENCY_THRESHOLD_DAYS = 14
 // (only during the migration window; flag off keeps closed-forever)
 export const NOTIF_PROMPT_SNOOZE_DAYS = 14
 
-// store review deep links ("Love it" on the review prompt); the ios id is the
-// App Store Connect app id (6786373552).
-export const REVIEW_URL = {
-    ios: 'https://apps.apple.com/us/app/id6786373552?action=write-review',
-    android: 'https://play.google.com/store/apps/details?id=me.peanut.wallet',
-} as const
-
 // support escape hatch for users who can't install the app: support DMs
 // `/home?keep-web=<token>`; visiting it stores a 90-day cookie that bypasses
 // the sunset block.

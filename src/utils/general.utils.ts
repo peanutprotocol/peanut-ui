@@ -419,8 +419,6 @@ export type UserPreferences = {
      *  legacy permanent `notifModalClosed` so we can re-ask after a cooldown
      *  during the migration window. */
     notifModalClosedAt?: string
-    /** ISO timestamp the app-review prompt was shown (asked once, ever). */
-    reviewPromptShownAt?: string
     /** Dismissal fingerprints (`bridgeTaskDismissalKey`: key|requirement|due)
      *  of the pending Bridge verification tasks the user individually
      *  dismissed on /home. A task that turns blocking or changes substance
