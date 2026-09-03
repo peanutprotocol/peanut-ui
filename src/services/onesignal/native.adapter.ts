@@ -2,7 +2,12 @@ import OneSignal, { LogLevel } from '@onesignal/capacitor-plugin'
 import { captureMessage } from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import type { NotificationClickEvent, PushSubscriptionChangedState } from '@onesignal/capacitor-plugin'
-import type { NotificationClickInfo, NotificationPermissionState, OneSignalAdapter } from './types'
+import type {
+    NotificationClickInfo,
+    NotificationPermissionState,
+    OneSignalAdapter,
+    PushSubscriptionChange,
+} from './types'
 import { isOneSignalDebug } from './debug'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
@@ -16,7 +21,7 @@ async function nativePermission(): Promise<NotificationPermissionState> {
 let initPromise: Promise<void> | null = null
 
 const permissionListeners = new Set<(state: NotificationPermissionState) => void>()
-const subscriptionListeners = new Set<(optedIn: boolean) => void>()
+const subscriptionListeners = new Set<(change: PushSubscriptionChange) => void>()
 const clickListeners = new Set<(info: NotificationClickInfo) => void>()
 /**
  * Cold-start tap buffer. Capacitor retains the click event only until the first
@@ -84,9 +89,12 @@ function attachUnderlyingListeners() {
     })
 
     OneSignal.User.pushSubscription.addEventListener('change', (event: PushSubscriptionChangedState) => {
-        const optedIn = !!event.current?.optedIn
+        const change: PushSubscriptionChange = {
+            optedIn: !!event.current?.optedIn,
+            previous: { optedIn: !!event.previous?.optedIn, token: event.previous?.token ?? null },
+        }
         captureSubscriptionSnapshot('subscription-change')
-        subscriptionListeners.forEach((cb) => cb(optedIn))
+        subscriptionListeners.forEach((cb) => cb(change))
     })
 
     OneSignal.Notifications.addEventListener('click', (event: NotificationClickEvent) => {

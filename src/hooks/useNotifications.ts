@@ -68,9 +68,6 @@ let lastLinkedExternalId: string | null = null
 let disableExternalIdLogin = false
 let hasTrackedModalShown = false
 let initStarted = false
-// last optedIn value the subscription `change` listener saw — the transition
-// detector for a genuinely new opt-in (see onSubscriptionChange below)
-let lastSubscriptionOptedIn = false
 
 function handleLoginError(err: unknown) {
     const msg = err instanceof Error ? err.message : String(err ?? '')
@@ -210,7 +207,7 @@ async function ensureInitialized() {
             }
         })
 
-        adapter.onSubscriptionChange((optedIn) => {
+        adapter.onSubscriptionChange(({ optedIn, previous }) => {
             addBreadcrumb({ category: 'onesignal', message: 'subscription change', data: { optedIn } })
             // mirror OneSignal subscription state so consumers that gate on
             // `isPushOptedIn` (e.g. the home carousel CTA) react without
@@ -218,11 +215,11 @@ async function ensureInitialized() {
             setState({ isPushOptedIn: optedIn })
 
             // OneSignal fires `change` for every field it settles on a new
-            // subscription — the push token, then the server-assigned id — so
-            // one opt-in lands here twice. Only the first `true` is a new
-            // subscription; the second is the same one, not a re-subscribe.
-            const isNewOptIn = optedIn && !lastSubscriptionOptedIn
-            lastSubscriptionOptedIn = optedIn
+            // subscription — the push token, then the server-assigned id — and
+            // again when a token refreshes on reload. Only the event where
+            // `optedIn` or a token first appears is a new opt-in; the rest
+            // report the same subscription.
+            const isNewOptIn = optedIn && (!previous.optedIn || !previous.token)
             if (!isNewOptIn) return
 
             // The user is already linked from init / setExternalId, so this is
