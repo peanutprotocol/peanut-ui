@@ -828,7 +828,64 @@ const BANNER_PAGES: { label: string; frame: React.ReactNode }[] = [
         ),
     },
     {
-        label: 'add-money/[country]/bank:515 — EUR-only note under the amount input',
+        label: 'DirectSendPageWrapper:68 — load error IS the page (first element under the header)',
+        frame: (
+            <PageFrame>
+                <div className="flex items-center gap-2">
+                    <Icon name="chevron-right" size={20} className="rotate-180" />
+                    <p className="text-heading-xs">Send</p>
+                </div>
+                <Notification priority="error">user @satoshi not found or has no peanut wallet</Notification>
+            </PageFrame>
+        ),
+    },
+    {
+        label: 'SemanticRequestPageWrapper:104 — load error IS the page (first element under the header)',
+        frame: (
+            <PageFrame>
+                <div className="flex items-center gap-2">
+                    <Icon name="chevron-right" size={20} className="rotate-180" />
+                    <p className="text-heading-xs">Pay</p>
+                </div>
+                <Notification priority="error">invalid payment url</Notification>
+            </PageFrame>
+        ),
+    },
+    {
+        label: 'ContributePotPageWrapper:75 — load error IS the page (first element under the header)',
+        frame: (
+            <PageFrame>
+                <div className="flex items-center gap-2">
+                    <Icon name="chevron-right" size={20} className="rotate-180" />
+                    <p className="text-heading-xs">Pay</p>
+                </div>
+                <Notification priority="error">request not found</Notification>
+            </PageFrame>
+        ),
+    },
+    {
+        label: 'LimitsPageView:85 — info description leads the live page (first element under the header)',
+        frame: (
+            <PageFrame>
+                <div className="flex items-center gap-2">
+                    <Icon name="chevron-right" size={20} className="rotate-180" />
+                    <p className="text-heading-xs">Limits</p>
+                </div>
+                <Notification priority="info">
+                    Payment limits control how much you can send and receive. Limits vary by region and reset monthly or
+                    yearly.
+                </Notification>
+                {['Europe — unlocked', 'Latin America — unlocked'].map((r) => (
+                    <div key={r} className="flex items-center gap-3 rounded-sm border border-border-default p-3">
+                        <div className="size-8 rounded-round bg-background-badge-success" />
+                        <span className="text-body-s">{r}</span>
+                    </div>
+                ))}
+            </PageFrame>
+        ),
+    },
+    {
+        label: 'below-the-fold contrast — add-money/[country]/bank:515 — EUR-only note under the amount input',
         frame: (
             <PageFrame>
                 <div className="flex items-center gap-2">
@@ -849,7 +906,7 @@ const BANNER_PAGES: { label: string; frame: React.ReactNode }[] = [
         ),
     },
     {
-        label: 'Kyc/states/KycActionRequired:42 — status banner on the verification page',
+        label: 'below-the-fold contrast — Kyc/states/KycActionRequired:42 — status banner on the verification page',
         frame: (
             <PageFrame>
                 <div className="flex items-center gap-2">
@@ -874,7 +931,7 @@ const BANNER_PAGES: { label: string; frame: React.ReactNode }[] = [
         ),
     },
     {
-        label: 'TransactionDetails/CardUsdAbroadNotice:50 — nudge inside the receipt',
+        label: 'below-the-fold contrast — TransactionDetails/CardUsdAbroadNotice:50 — nudge inside the receipt',
         frame: (
             <PageFrame>
                 <div className="flex items-center gap-2">
@@ -956,10 +1013,15 @@ export default function NotificationUsageInventoryPage() {
             >
                 <div className="flex flex-col gap-6">
                     <div className="flex flex-col gap-3">
-                        <DevSectionLabel>in full-page context — 5 framed examples</DevSectionLabel>
+                        <DevSectionLabel>in full-page context — every top-of-page banner, framed</DevSectionLabel>
                         <p className="max-w-3xl text-body-xs text-foreground-secondary">
-                            Banner = page-level context; the second component probably isn&apos;t for these. Static
-                            frames, real copy, real component in its real position.
+                            6 call sites render as a top-of-page banner. Exact top of the shell, above everything
+                            including the page header: 2 — Global/Banner&apos;s connectivity and maintenance states.
+                            First element of the route&apos;s content, directly under the page header: 4 — the three
+                            payment-wrapper load errors (the error is the whole page) and the limits page description.
+                            Every other catalog site is mid-page, below content, or in a modal/drawer. The add-money,
+                            KYC and receipt frames below are kept as below-the-fold contrast examples. Banner =
+                            page-level context; the second component probably isn&apos;t for these.
                         </p>
                         <div className="grid items-start gap-6 md:grid-cols-2 xl:grid-cols-3">
                             {BANNER_PAGES.map((p) => (
