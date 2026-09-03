@@ -155,17 +155,15 @@ describe('usePushProvisioning', () => {
         })
     })
 
-    it('reports the android wallet on android binaries', async () => {
+    // Google requires its own supplied Add to Google Wallet asset on any control
+    // that starts provisioning, and it ships with issuer onboarding. Until then
+    // Android keeps the manual carousel.
+    it('keeps the manual carousel on android binaries', async () => {
         mockedIsIOS.mockReturnValue(false)
         mockedIsAndroid.mockReturnValue(true)
-        mockedAddCard.mockResolvedValue({ added: true })
         const { result } = renderHook(() => usePushProvisioning(card))
-        await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
 
-        await act(async () => {
-            await result.current.addToWallet()
-        })
-
-        expect(mockedGetProvisioningData).toHaveBeenCalledWith('card-1', 'google')
+        await waitFor(() => expect(result.current.nativeAvailable).toBe(false))
+        expect(mockedAvailability).not.toHaveBeenCalled()
     })
 })

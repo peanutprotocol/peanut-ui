@@ -4,7 +4,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useFeatureFlags } from '@/hooks/useFeatureFlag'
 import { rainApi } from '@/services/rain'
-import { isAndroidNative, isIOSNative } from '@/utils/capacitor'
+import { isIOSNative } from '@/utils/capacitor'
 import {
     addCardToWallet,
     getPushProvisioningAvailability,
@@ -31,7 +31,13 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
 
     useEffect(() => {
         let cancelled = false
-        if (!flagOn || (!isIOSNative() && !isAndroidNative())) {
+        // iOS only for now. Google requires its own supplied, localized "Add to
+        // Google Wallet" button on any control that starts push provisioning, and
+        // that asset ships with issuer onboarding — which is also the gate this
+        // path waits on. Until then Android keeps the manual carousel rather than
+        // starting the flow from a button Google has not sanctioned. The native
+        // Android path underneath is complete; re-enable it with the asset.
+        if (!flagOn || !isIOSNative()) {
             setNativeAvailable(false)
             return
         }
