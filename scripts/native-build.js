@@ -710,6 +710,9 @@ function pruneExportedAssets() {
     for (const entry of fs.readdirSync(outDir)) {
         if (entry.endsWith('.mov')) targets.push(path.join(outDir, entry))
     }
+    // public/ is copied wholesale, so the press kit rides along (~14 MB of team
+    // photos, brand PDF and EPS) even though /[locale]/press is disabled here.
+    targets.push(path.join(outDir, 'press'))
 
     for (const target of targets) {
         if (fs.existsSync(target)) {
