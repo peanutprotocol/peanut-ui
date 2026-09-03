@@ -12,7 +12,7 @@ import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { formatTokenAmount, isStableCoin, getChainName } from '@/utils/general.utils'
-import { getMinWithdrawUsdForChain } from '@/utils/cross-chain-fee.utils'
+import { belowClaimBridgeMinimum } from '@/utils/claim-min-guard'
 import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import * as Sentry from '@sentry/nextjs'
@@ -115,16 +115,21 @@ export const ConfirmClaimLinkView = ({
 
                 // Rhino parks (and does NOT auto-refund) a cross-chain deposit
                 // below the route minimum — block a sub-minimum claim before the
-                // SDA is provisioned. Mirrors the guard in Initial.view; without a
-                // token price we can't size the claim in USD, so defer to the backend.
+                // SDA is provisioned. This view only handles external-wallet claims,
+                // so the network-picker copy always applies. Without a token price we
+                // can't size the claim in USD, so defer to the backend guard.
                 const claimUsdAmount = Number(formattedAmount) * tokenPrice
                 const hasUsdAmount = tokenPrice > 0 && Number.isFinite(claimUsdAmount)
-                const minUsd = getMinWithdrawUsdForChain(selectedChainID)
-                if (hasUsdAmount && claimUsdAmount < minUsd) {
+                const belowMin = belowClaimBridgeMinimum({
+                    isXChain: true,
+                    destinationChainId: selectedChainID,
+                    amountUsd: hasUsdAmount ? claimUsdAmount : null,
+                })
+                if (belowMin) {
                     setErrorState({
                         showError: true,
                         errorMessage: t('errors.belowNetworkMinimum', {
-                            amount: format.number(minUsd, { style: 'currency', currency: 'USD' }),
+                            amount: format.number(belowMin.minUsd, { style: 'currency', currency: 'USD' }),
                             network: getChainName(selectedChainID) ?? selectedChainID,
                         }),
                     })

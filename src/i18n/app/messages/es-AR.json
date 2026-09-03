@@ -639,7 +639,8 @@
             "brokenLinkMessage": "¿Seguro que hiciste clic en el enlace correcto? ¿El enlace se acaba de crear? Intentalo de nuevo en unos segundos.",
             "missingInviter": "No se pudo aceptar la invitación: falta quien te invitó. Contactá a soporte.",
             "bankClaimUnavailable": "No podés reclamar este enlace a tu cuenta bancaria.",
-            "belowNetworkMinimum": "Reclamar a {network} requiere al menos {amount}. Elegí otra red o reclamá a tu saldo de Peanut."
+            "belowNetworkMinimum": "Reclamar a {network} requiere al menos {amount}. Probá con otra red.",
+            "belowMinimumCrossChain": "Este enlace está por debajo del mínimo de {amount} para moverse entre redes. Pedile a quien lo envió que lo reclame."
         },
         "claimed": {
             "createWalletHint": "Creá una billetera para recibir enlaces en el futuro."
