@@ -515,4 +515,36 @@ describe('crypto withdraw retry — after a route error (cross-chain cap 429, TA
             m.error = prev.error
         }
     })
+
+    it('Retry does nothing while a recalculation is already in flight (a double tap must not provision twice)', async () => {
+        const m = mockCrossChainTransfer as unknown as {
+            transactions: unknown
+            error: unknown
+            isCalculating: boolean
+            calculate: jest.Mock
+        }
+        const prev = { transactions: m.transactions, error: m.error, isCalculating: m.isCalculating }
+        m.transactions = null
+        m.error = 'You reached the limit for withdrawals to other networks. Try again in about 50 minutes.'
+        m.isCalculating = true
+        try {
+            render(<WithdrawCryptoPage />)
+            await waitFor(() => expect(m.calculate).toHaveBeenCalled())
+            const calculateCalls = m.calculate.mock.calls.length
+            const errorCalls = mockSetPaymentError.mock.calls.length
+
+            fireEvent.click(screen.getByTestId('confirm-withdraw'))
+            fireEvent.click(screen.getByTestId('confirm-withdraw'))
+            await new Promise((r) => setTimeout(r, 50))
+
+            expect(m.calculate.mock.calls.length).toBe(calculateCalls)
+            expect(mockSendMoney).not.toHaveBeenCalled()
+            const afterClick = mockSetPaymentError.mock.calls.slice(errorCalls).map((c) => c[0])
+            expect(afterClick.every((v) => v === null)).toBe(true)
+        } finally {
+            m.transactions = prev.transactions
+            m.error = prev.error
+            m.isCalculating = prev.isCalculating
+        }
+    })
 })
