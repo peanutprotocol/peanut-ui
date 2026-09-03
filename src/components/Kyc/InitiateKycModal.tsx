@@ -15,6 +15,8 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
+import { useRegionRestrictedCta } from '@/components/Kyc/KycRegionRestrictedContent'
+import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 
 interface InitiateKycModalProps {
     visible: boolean
@@ -55,6 +57,9 @@ interface InitiateKycModalProps {
 // blocked            → "We couldn't unlock this — contact support"
 // restart_identity   → "Verify with a different document" (self-fix for country mismatch)
 // cross_region       → "Unlock {region}"
+// Three states are decided HERE and outrank whatever variant the caller asked
+// for: the verification outage, a region-restricted rejection, and a residence
+// no bank provider onboards.
 export const InitiateKycModal = ({
     visible,
     onClose,
@@ -85,18 +90,32 @@ export const InitiateKycModal = ({
     // site to miss.
     const { isRegionRestricted } = useIdentityVerification()
     const isKycDegraded = useKycDegraded()
+    // Every gate that opens this modal unlocks a BANK rail (the two bank pages,
+    // the shared country list, both Manteca flow managers, the Manteca
+    // withdraw), so a residence no bank provider onboards has nothing behind
+    // the offer. The gates cannot see this themselves: pre-KYC there is no rail
+    // to carry `uk_resident_blocked` and no rejection to set `isRegionRestricted`,
+    // so a restricted resident reads as plain `needs-identity` and would be sold
+    // an ID check that unlocks nothing. Ranked BELOW the region screen (a
+    // document-jurisdiction block is the more specific ending) and below the
+    // outage, and it yields to `region-unavailable`, whose UK copy is more
+    // specific than this country-neutral one.
+    const { banking: isBankRestricted } = useResidenceRestrictions()
     const reasonKey = reasonCodeKey(reasonCode)
     const resolvedProviderMessage = reasonKey ? tIdentity(reasonKey) : providerMessage
-    const isProviderRejection = variant === 'provider_rejection'
-    const isBlocked = variant === 'blocked'
-    const isRestartIdentity = variant === 'restart_identity'
-    const isCrossRegion = variant === 'cross_region'
     const isRegionUnavailable = variant === 'region-unavailable'
+    const isBankUnavailable = isBankRestricted && !isRegionUnavailable
+    const isProviderRejection = !isBankUnavailable && variant === 'provider_rejection'
+    const isBlocked = !isBankUnavailable && variant === 'blocked'
+    const isRestartIdentity = !isBankUnavailable && variant === 'restart_identity'
+    const isCrossRegion = !isBankUnavailable && variant === 'cross_region'
     const router = useRouter()
+    const regionRestrictedCta = useRegionRestrictedCta(onClose)
 
     const getTitle = () => {
         if (error) return tCommon('somethingWentWrong')
         if (isRegionUnavailable) return t('initiate.titleRegionUnavailable')
+        if (isBankUnavailable) return t('initiate.titleBankUnavailable')
         if (isBlocked) return t('initiate.titleBlocked')
         if (isRestartIdentity) return t('initiate.titleRestartIdentity')
         if (isProviderRejection) return t('initiate.titleProviderRejection')
@@ -110,6 +129,7 @@ export const InitiateKycModal = ({
     const getDescription = () => {
         if (error) return t('initiate.descriptionError', { error })
         if (isRegionUnavailable) return t('initiate.descriptionRegionUnavailable')
+        if (isBankUnavailable) return t('initiate.descriptionBankUnavailable')
         if (isBlocked) return resolvedProviderMessage || t('initiate.descriptionBlocked')
         if (isRestartIdentity) return resolvedProviderMessage || t('initiate.descriptionRestartIdentity')
         if (isProviderRejection) return resolvedProviderMessage || t('initiate.descriptionProviderRejection')
@@ -122,6 +142,12 @@ export const InitiateKycModal = ({
     }
 
     const getCta = (): { text: string; onClick: () => void; icon?: IconName } => {
+        // No retry and no contact-support: nobody can lift a residence block, so
+        // the only useful CTA is the part of the app that still works. Same three
+        // rules as KycRegionRestrictedContent, whose CTA this reuses.
+        if (isBankUnavailable) {
+            return { text: regionRestrictedCta.label, onClick: regionRestrictedCta.onClick }
+        }
         if (error || isBlocked) {
             return {
                 text: tCommon('contactSupport'),
@@ -219,7 +245,7 @@ export const InitiateKycModal = ({
     // the cross-region unlock) carry the prep checklist, so no path reaches the
     // vendor without it. Every other variant is an error/action state where the
     // list would be noise.
-    const showPrepChecklist = (variant === 'default' || variant === 'cross_region') && !error
+    const showPrepChecklist = (variant === 'default' || variant === 'cross_region') && !error && !isBankUnavailable
     // The checklist is left-aligned, so the paragraph introducing it is too:
     // centered prose stacked on a left-aligned list reads as two columns.
     const description = showPrepChecklist ? (
@@ -233,10 +259,15 @@ export const InitiateKycModal = ({
     // Red for anything the user has to recover from (a rejection, a block, an
     // unavailable region), blue for the plain "start verification" offer — never
     // green, which the app reserves for a finished state.
-    const isErrorState = !!error || isBlocked || isRestartIdentity || isProviderRejection || isRegionUnavailable
+    const isErrorState =
+        !!error || isBlocked || isRestartIdentity || isProviderRejection || isRegionUnavailable || isBankUnavailable
     const iconName = (isErrorState ? 'alert' : 'badge') as IconName
     const footer =
-        isProviderRejection || isBlocked || isRestartIdentity || isRegionUnavailable ? undefined : (
+        isProviderRejection ||
+        isBlocked ||
+        isRestartIdentity ||
+        isRegionUnavailable ||
+        isBankUnavailable ? undefined : (
             <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />
         )
 

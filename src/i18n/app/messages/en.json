@@ -140,6 +140,7 @@
             "firstPaymentNote": "Send a few dollars to a Peanut user, ENS name or wallet address. It lands in seconds.",
             "addMoneyRoutes": "Bank transfer or crypto",
             "addMoneyRoutesKyc": "Bank transfer or crypto · bank needs a one-time ID check",
+            "addMoneyRoutesNoBank": "Crypto from any wallet or exchange",
             "getCardNote": "Your dollars, in pink, wherever Visa is accepted."
         },
         "autoBalance": {
@@ -2566,6 +2567,8 @@
             "descriptionCrossRegion": "Your identity is already verified. To turn on payments in {region}, we just need to confirm a few more details — about a minute.",
             "descriptionCrossRegionGeneric": "Your identity is already verified. To turn on payments here, we just need to confirm a few more details — about a minute.",
             "descriptionRegionUnavailable": "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe — you can withdraw them as crypto anytime.",
+            "titleBankUnavailable": "Not available in your country",
+            "descriptionBankUnavailable": "Bank transfers aren't available in your country, so an ID check wouldn't unlock them. Your funds are safe, and you can still send and receive money with other people.",
             "descriptionDefault": "Confirm your ID to unlock payments. Takes about a minute.",
             "ctaUploadDocument": "Upload document",
             "ctaUnlockNow": "Unlock now",
