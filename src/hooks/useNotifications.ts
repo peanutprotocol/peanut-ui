@@ -68,6 +68,9 @@ let lastLinkedExternalId: string | null = null
 let disableExternalIdLogin = false
 let hasTrackedModalShown = false
 let initStarted = false
+// last optedIn value the subscription `change` listener saw — the transition
+// detector for a genuinely new opt-in (see onSubscriptionChange below)
+let lastSubscriptionOptedIn = false
 
 function handleLoginError(err: unknown) {
     const msg = err instanceof Error ? err.message : String(err ?? '')
@@ -207,27 +210,30 @@ async function ensureInitialized() {
             }
         })
 
-        adapter.onSubscriptionChange(async (optedIn) => {
+        adapter.onSubscriptionChange((optedIn) => {
             addBreadcrumb({ category: 'onesignal', message: 'subscription change', data: { optedIn } })
-            // link subscription to logged-in user if available
-            if (currentExternalId && !disableExternalIdLogin) {
-                try {
-                    await adapter.login(currentExternalId)
-                } catch (err: unknown) {
-                    handleLoginError(err)
-                }
-            }
-
             // mirror OneSignal subscription state so consumers that gate on
             // `isPushOptedIn` (e.g. the home carousel CTA) react without
             // waiting for the next permissionChange event.
             setState({ isPushOptedIn: optedIn })
 
-            // hide modal when user opts in
-            if (optedIn) {
-                posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_SUBSCRIBED)
-                setState({ showPermissionModal: false })
-            }
+            // OneSignal fires `change` for every field it settles on a new
+            // subscription — the push token, then the server-assigned id — so
+            // one opt-in lands here twice. Only the first `true` is a new
+            // subscription; the second is the same one, not a re-subscribe.
+            const isNewOptIn = optedIn && !lastSubscriptionOptedIn
+            lastSubscriptionOptedIn = optedIn
+            if (!isNewOptIn) return
+
+            // The user is already linked from init / setExternalId, so this is
+            // only a retry for a login that failed there. An unconditional
+            // login() on every change raced OneSignal's own subscription
+            // create and re-registered the half-created subscription under
+            // the user as a second record — and OneSignal sends its welcome
+            // notification once per record (TASK-22209).
+            void syncExternalIdLink()
+            posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_SUBSCRIBED)
+            setState({ showPermissionModal: false })
         })
 
         // Notification tap → PostHog. OneSignal delivers push clicks to its own
