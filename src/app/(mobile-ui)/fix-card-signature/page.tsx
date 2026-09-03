@@ -11,9 +11,12 @@
  */
 
 import { useEffect, useState } from 'react'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
@@ -60,13 +63,13 @@ export default function FixCardSignaturePage() {
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col gap-8">
+        <PageStack>
             <NavHeader title={t('fixSignature.navTitle')} />
-            <div className="my-auto flex flex-col gap-6">
-                <p className="text-sm text-grey-1">{t('fixSignature.intro')}</p>
+            <PageStack.Center>
+                <p className="text-body-s text-foreground-secondary">{t('fixSignature.intro')}</p>
 
                 {(isDiagnosing || (!address && !diagnosis)) && (
-                    <p className="text-sm">{t('fixSignature.checkingWallet')}</p>
+                    <p className="text-body-s">{t('fixSignature.checkingWallet')}</p>
                 )}
 
                 {!isDiagnosing && !diagnosis && error && (
@@ -79,13 +82,22 @@ export default function FixCardSignaturePage() {
                     <Card className="flex flex-col gap-3 p-4">
                         <div className="flex items-center justify-between">
                             <span className="font-bold">{t('fixSignature.step1')}</span>
-                            <span className="text-sm">
-                                {needsRepair ? (isRepairing ? '⏳' : `⚠️ ${t('fixSignature.needed')}`) : '✅'}
-                            </span>
+                            {needsRepair ? (
+                                isRepairing ? (
+                                    <Loading />
+                                ) : (
+                                    <span className="flex items-center gap-2 text-body-s">
+                                        <IconBubble icon="alert" size="xs" color="yellow" />
+                                        {t('fixSignature.needed')}
+                                    </span>
+                                )
+                            ) : (
+                                <IconBubble icon="check" size="xs" color="green" />
+                            )}
                         </div>
                         {needsRepair && (
                             <>
-                                <p className="text-sm text-grey-1">
+                                <p className="text-body-s text-foreground-secondary">
                                     {diagnosis.state === 'nonce-bricked'
                                         ? t('fixSignature.nonceBricked')
                                         : t('fixSignature.undeployed')}
@@ -108,13 +120,19 @@ export default function FixCardSignaturePage() {
                     <Card className="flex flex-col gap-3 p-4">
                         <div className="flex items-center justify-between">
                             <span className="font-bold">{t('fixSignature.step2')}</span>
-                            <span className="text-sm">{grantDone ? '✅' : isGranting ? '⏳' : ''}</span>
+                            {grantDone ? (
+                                <IconBubble icon="check" size="xs" color="green" />
+                            ) : isGranting ? (
+                                <Loading />
+                            ) : null}
                         </div>
                         {grantDone ? (
-                            <p className="text-sm text-grey-1">{t('fixSignature.allSet')}</p>
+                            <p className="text-body-s text-foreground-secondary">{t('fixSignature.allSet')}</p>
                         ) : (
                             <>
-                                <p className="text-sm text-grey-1">{t('fixSignature.oneMoreConfirmation')}</p>
+                                <p className="text-body-s text-foreground-secondary">
+                                    {t('fixSignature.oneMoreConfirmation')}
+                                </p>
                                 <Button
                                     variant="purple"
                                     shadowSize="4"
@@ -129,24 +147,28 @@ export default function FixCardSignaturePage() {
                                           : t('fixSignature.reEnableFunding')}
                                 </Button>
                                 {!isOverviewLoading && !card && (
-                                    <p className="text-sm text-grey-1">{t('fixSignature.noActiveCard')}</p>
+                                    <p className="text-body-s text-foreground-secondary">
+                                        {t('fixSignature.noActiveCard')}
+                                    </p>
                                 )}
                             </>
                         )}
                     </Card>
                 )}
 
-                {(error || grantErrorMessage) && <p className="text-sm text-error">{error ?? grantErrorMessage}</p>}
+                {(error || grantErrorMessage) && (
+                    <p className="text-body-s text-foreground-error">{error ?? grantErrorMessage}</p>
+                )}
 
                 {diagnosis && diagnosis.state !== 'undeployed' && (
-                    <p className="text-xs text-grey-1">
+                    <p className="text-body-xs text-foreground-secondary">
                         {t('fixSignature.diagnostics', {
                             nonce: diagnosis.currentNonce,
                             floor: diagnosis.validNonceFrom,
                         })}
                     </p>
                 )}
-            </div>
-        </div>
+            </PageStack.Center>
+        </PageStack>
     )
 }

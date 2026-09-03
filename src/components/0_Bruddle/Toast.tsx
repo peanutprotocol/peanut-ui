@@ -1,12 +1,12 @@
 'use client'
 
-import { AnimatePresence, motion } from 'framer-motion'
+import dynamic from 'next/dynamic'
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
-import { twMerge } from 'tailwind-merge'
 
 type ToastType = 'success' | 'error' | 'info' | 'warning'
-type ToastPosition = 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'
 type ToastId = string | number
+
+const ToastStack = dynamic(() => import('./ToastStack'), { ssr: false })
 
 interface ToastOptions {
     /** Plain-string message — wrapped in a styled <p>. Ignored when `content` is provided. */
@@ -17,17 +17,19 @@ interface ToastOptions {
     type?: ToastType
     /** Number = ms until auto-dismiss. `'persistent'` = stays until `dismiss(id)` is called. */
     duration?: number | 'persistent'
-    position?: ToastPosition
     /** Caller-supplied id. Lets the same toast be `dismiss(id)`-able and prevents
      *  duplicate stacking — if a toast with this id is already on screen, the
      *  duplicate call is a no-op (no re-animation). Auto-generated when omitted. */
     id?: ToastId
     /** Extra classes merged into the toast container — for one-off accents like
-     *  `border-yellow-1` that don't fit the standard success/error/info/warning. */
+     *  `border-action-secondary` that don't fit the standard success/error/info/warning. */
     className?: string
+    /** Self-designed toast content (badge celebrations): suppress the priority icon
+     *  so Notification chrome doesn't stack onto the content's own artwork. */
+    hideIcon?: boolean
 }
 
-interface ToastMessage extends Omit<ToastOptions, 'id'> {
+export interface ToastMessage extends Omit<ToastOptions, 'id'> {
     id: ToastId
 }
 
@@ -42,32 +44,6 @@ interface ToastContextType {
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined)
-
-const Toast: React.FC<ToastMessage> = ({ type = 'info', message, content, className }) => {
-    const colors = {
-        success: 'border-green-500 ',
-        error: 'border-red-500 ',
-        info: 'border-blue-500 ',
-        warning: 'border-yellow-500 ',
-    }
-
-    return (
-        <motion.div
-            initial={{ opacity: 0, scale: 0.8, y: 80 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: 80 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-            className={twMerge(
-                'border-2 px-6 py-1',
-                'card shadow-4 max-w-[calc(100vw_-_2rem)] md:max-w-md',
-                colors[type],
-                className
-            )}
-        >
-            {content ?? <p className="break-words text-center text-sm font-bold">{message}</p>}
-        </motion.div>
-    )
-}
 
 export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
     const [toasts, setToasts] = useState<ToastMessage[]>([])
@@ -88,7 +64,6 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
         const defaults: Partial<ToastOptions> = {
             type: 'info',
             duration: 3000,
-            position: 'bottom-right',
         }
 
         const toastOptions = typeof options === 'string' ? { message: options } : options
@@ -135,12 +110,8 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
     return (
         <>
             <ToastContext.Provider value={contextValue}>
-                <div className="fixed bottom-[100px] right-4 z-[99999] flex flex-col items-end gap-2">
-                    <AnimatePresence mode="sync">
-                        {toasts.map((toast) => (
-                            <Toast key={toast.id} {...toast} />
-                        ))}
-                    </AnimatePresence>
+                <div className="fixed right-4 bottom-[100px] z-[99999] flex flex-col items-end gap-2">
+                    {toasts.length > 0 && <ToastStack toasts={toasts} dismiss={dismiss} />}
                 </div>
                 {children}
             </ToastContext.Provider>

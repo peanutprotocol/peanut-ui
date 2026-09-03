@@ -4,17 +4,20 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import maintenanceConfig from '@/config/underMaintenance.config'
-import { LOCALE_COOKIE, toAppLocale, toMarketingLocale } from '@/i18n/localeBridge'
+import { shouldBlockDevRoute } from '@/constants/dev-tools.consts'
+import { LOCALE_COOKIE, toAppLocale, toMarketingLocale, withCountry } from '@/i18n/localeBridge'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 
 export function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl
 
-    // /dev/ routes are now accessible in production for testing
-    // Uncomment below to block /dev/ routes in production if needed
-    // if (process.env.NODE_ENV === 'production' && pathname.startsWith('/dev/')) {
-    //     return new NextResponse(null, { status: 404 })
-    // }
+    // Internal dev tooling must not answer on peanut.me. The client gate in
+    // (mobile-ui)/dev/layout.tsx renders the not-found UI but still returns 200,
+    // so the real 404 has to come from here. This also covers the pages under
+    // `src/app/dev/*`, which have no layout gate at all.
+    if (shouldBlockDevRoute(pathname)) {
+        return new NextResponse(null, { status: 404 })
+    }
 
     // check if full maintenance mode is enabled
     if (maintenanceConfig.enableFullMaintenance) {
@@ -60,7 +63,10 @@ export function proxy(request: NextRequest) {
 
     // Send a visitor to the landing page in their language. The cookie (an
     // explicit choice) wins; a first-time visitor falls back to
-    // Accept-Language, with crawlers exempt: Google's localized-versions
+    // Accept-Language, with the CDN's country header breaking ties inside
+    // Spanish (see withCountry — es-419 is an exact match for the Chrome build
+    // shipped across Latin America, so nothing else distinguishes an Argentine
+    // visitor). Crawlers are exempt: Google's localized-versions
     // guidance warns against language-sniffing redirects because crawlers
     // arrive from US IPs sending `en` and would never reach the localized
     // pages — so bots always get the English `/` and hreflang keeps routing
@@ -70,14 +76,19 @@ export function proxy(request: NextRequest) {
         const fromCookie = stored ? toMarketingLocale(stored) : null
         const locale =
             fromCookie ??
-            (isCrawler(request) ? DEFAULT_LOCALE : preferredLocale(request.headers.get('accept-language')))
+            (isCrawler(request)
+                ? DEFAULT_LOCALE
+                : withCountry(
+                      preferredLocale(request.headers.get('accept-language')),
+                      request.headers.get(COUNTRY_HEADER)
+                  ))
         if (locale !== DEFAULT_LOCALE) {
             // 307, not 308: `/` stays the canonical English URL.
             const target = new URL(`/${locale}`, request.url)
             // Keep the query string: campaign/UTM params must survive the hop.
             target.search = request.nextUrl.search
             const localized = NextResponse.redirect(target, 307)
-            localized.headers.set('Vary', 'Cookie, Accept-Language')
+            localized.headers.set('Vary', `Cookie, Accept-Language, ${COUNTRY_HEADER}`)
             // Pre-set the shared cookie so the app and later visits agree with
             // the browser language without re-sniffing. Only when no explicit
             // choice exists yet — the switcher's cookie is never overwritten.
@@ -109,6 +120,10 @@ export function proxy(request: NextRequest) {
 
     return response
 }
+
+// Vercel's edge geolocation header. Absent locally and in tests, which simply
+// means no tiebreaker — the language-only resolution stands.
+const COUNTRY_HEADER = 'x-vercel-ip-country'
 
 const CRAWLER_UA =
     /bot|crawler|spider|crawling|slurp|bingpreview|facebookexternalhit|whatsapp|telegram|linkedinbot|embedly|quora link preview|pinterest|vkshare|redditbot|applebot|semrush|ahrefs|screaming frog/i

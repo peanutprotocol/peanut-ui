@@ -5,6 +5,8 @@ import {
     type CreateMantecaOnrampParams,
 } from '@/types/manteca.types'
 import { serverFetch } from '@/utils/api-fetch'
+import { ApiError } from '@/services/api-error'
+import { isNetworkLayerFailure } from '@/utils/network-triage'
 import { jsonStringify } from '@/utils/general.utils'
 import type { Address } from 'viem'
 import type { SignUserOperationReturnType } from '@zerodev/sdk/actions'
@@ -13,6 +15,13 @@ export interface QrPaymentRequest {
     qrCode: string
     amount?: string
     qrType?: string
+    /**
+     * Stable per-scan key. The backend replays the price lock it already
+     * created for this key instead of minting a second one at Manteca, which is
+     * what makes retrying this POST after a timeout safe. Optional so an API
+     * build without the guard still accepts the request.
+     */
+    idempotencyKey?: string
 }
 
 export type QrPayment = {
@@ -115,15 +124,26 @@ export type WithdrawPriceLock = {
 }
 
 export const mantecaApi = {
-    initiateQrPayment: async (data: QrPaymentRequest): Promise<QrPaymentLock> => {
+    initiateQrPayment: async (data: QrPaymentRequest, options?: { timeoutMs?: number }): Promise<QrPaymentLock> => {
         const response = await serverFetch('/manteca/qr-payment/init', {
             method: 'POST',
             body: jsonStringify(data),
+            ...(options?.timeoutMs !== undefined && { timeoutMs: options.timeoutMs }),
         })
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}))
-            throw new Error(errorData.error || errorData.message || `QR payment failed: ${response.statusText}`)
+            /*
+             * ApiError, not Error: the KYC rejection's discriminant is its
+             * `code` (MANTECA_KYC_REQUIRED) while its `error` is a plain English
+             * sentence, so a caller matching the prose breaks the moment the
+             * backend rewords it. Message order is unchanged, so every existing
+             * `error.message.includes(...)` matcher still sees what it did.
+             */
+            throw new ApiError(errorData.error || errorData.message || `QR payment failed: ${response.statusText}`, {
+                status: response.status,
+                code: errorData.code,
+            })
         }
 
         return response.json()
@@ -219,24 +239,6 @@ export const mantecaApi = {
 
         return response.json()
     },
-    initiateOnboarding: async (params: {
-        returnUrl: string
-        failureUrl?: string
-        exchange?: string
-    }): Promise<{ url: string }> => {
-        const response = await serverFetch('/manteca/initiate-onboarding', {
-            method: 'POST',
-            body: jsonStringify(params),
-        })
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}))
-            throw new Error(errorData.message || `Failed to get onboarding URL`)
-        }
-
-        return response.json()
-    },
-
     deposit: async (
         params: CreateMantecaOnrampParams
     ): Promise<{ data?: MantecaDepositResponseData; error?: string }> => {
@@ -358,6 +360,9 @@ export const mantecaApi = {
             return { data: result }
         } catch (error) {
             console.error('Error calling manteca withdraw init API:', error)
+            // See withdrawWithSignedTx: a flattened transport error skips the
+            // page's withdraw_step:lock-rate triage capture entirely.
+            if (isNetworkLayerFailure(error)) throw error
             if (error instanceof Error) {
                 return { error: error.message }
             }
@@ -458,6 +463,10 @@ export const mantecaApi = {
             return { data: result }
         } catch (error) {
             console.error('Error calling manteca withdraw complete-with-signed-tx API:', error)
+            // Transport failures must reach the caller's catch: flattening them
+            // into { error } sends the page down its result.error branch, which
+            // returns before the network-triage capture ever runs (TASK-21956).
+            if (isNetworkLayerFailure(error)) throw error
             if (error instanceof Error) {
                 return { error: error.message }
             }

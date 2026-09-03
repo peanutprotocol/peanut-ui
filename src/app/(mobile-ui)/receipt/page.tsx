@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import NavHeader from '@/components/Global/NavHeader'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsReceipt'
+import { ReceiptUnavailable } from '@/components/TransactionDetails/ReceiptUnavailable'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import { resolveReceiptKind } from '@/components/TransactionDetails/strategies/registry'
 import { TRANSACTIONS } from '@/constants/query.consts'
@@ -18,7 +18,6 @@ import { completeHistoryEntry, isFinalState, type HistoryEntry } from '@/utils/h
 // deep link — the most common push destination — had nothing to render natively.
 // deepLinkToNativePath maps /receipt/<id>?kind=X onto this route's query params.
 export default function NativeReceiptPage() {
-    const router = useRouter()
     const searchParams = useSearchParams()
     const entryId = searchParams.get('id')
     const kind = resolveReceiptKind(searchParams.get('kind') ?? undefined, searchParams.get('t') ?? undefined)
@@ -27,6 +26,7 @@ export default function NativeReceiptPage() {
         data: entry,
         isLoading,
         isError,
+        refetch,
     } = useQuery({
         queryKey: [TRANSACTIONS, 'entry', entryId, kind],
         enabled: Boolean(entryId && kind),
@@ -41,23 +41,25 @@ export default function NativeReceiptPage() {
 
     // `isError` also trips on a failed background poll, so gate the bail-out on
     // having no data at all — a flaky refetch must not yank the user off a
-    // receipt they're watching settle.
-    const isUnrecoverable = !entryId || !kind || (isError && !entry)
-
-    useEffect(() => {
-        if (isUnrecoverable) router.replace('/home')
-    }, [isUnrecoverable, router])
-
-    if (isUnrecoverable) return null
+    // receipt they're watching settle. An unresolvable link (or a fetch that
+    // never produced data) shows the branded unavailable state instead of a
+    // silent bounce to /home.
+    const unavailable = !entryId || !kind ? 'gone' : isError && !entry ? 'loadFailed' : undefined
 
     return (
-        <PageContainer className="flex min-h-[100dvh] flex-col items-center justify-center p-6">
-            <div className="md:hidden">
+        <PageContainer className="receipt-page flex min-h-dvh flex-col items-center justify-center p-6">
+            {/* app chrome: mobile only, and never on the printed/PDF receipt */}
+            <div className="md:hidden print:hidden">
                 <NavHeader titleKey="receipt" />
             </div>
             <div className="flex flex-1 flex-col items-center justify-center">
-                {isLoading || !entry ? (
-                    <PeanutLoading />
+                {unavailable ? (
+                    <ReceiptUnavailable
+                        variant={unavailable}
+                        onRetry={unavailable === 'loadFailed' ? () => void refetch() : undefined}
+                    />
+                ) : isLoading || !entry ? (
+                    <Loading variant="mascot" />
                 ) : (
                     <TransactionDetailsReceipt
                         className="w-full"

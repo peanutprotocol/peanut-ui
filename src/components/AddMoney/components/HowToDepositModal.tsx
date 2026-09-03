@@ -1,52 +1,53 @@
 'use client'
 
-import Modal from '@/components/Global/Modal'
-import InfoCard from '@/components/Global/InfoCard'
+import ActionModal from '@/components/Global/ActionModal'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { useTranslations } from 'next-intl'
 
 interface HowToDepositModalProps {
     visible: boolean
     onClose: () => void
-    // offramp migration variant: walks the user through offramp.xyz's withdraw
-    // flow instead of the generic wallet/exchange steps (which mention multiple
-    // supported networks — contradicting the Arbitrum-only migration screen).
-    variant?: 'default' | 'offramp'
 }
 
 const STEP_KEYS = ['step1', 'step2', 'step3', 'step4'] as const
 
-const HowToDepositModal = ({ visible, onClose, variant = 'default' }: HowToDepositModalProps) => {
+const HowToDepositModal = ({ visible, onClose }: HowToDepositModalProps) => {
     const t = useTranslations('addMoney.howToDeposit')
-    const isOfframp = variant === 'offramp'
+    const tCommon = useTranslations('common')
     const steps = STEP_KEYS.map((key, index) => ({
         step: t('step', { number: index + 1 }),
-        text: isOfframp ? t(`offramp.${key}`) : t(`default.${key}`),
+        text: t(`default.${key}`),
     }))
     return (
-        <Modal
+        <ActionModal
             visible={visible}
             onClose={onClose}
-            classWrap="sm:m-auto sm:self-center self-center m-4 bg-background rounded-sm"
-        >
-            <div className="flex flex-col gap-5 p-5">
-                <h3 className={'text-start text-h6 font-bold text-black'}>
-                    {isOfframp ? t('titleOfframp') : t('title')}
-                </h3>
-                <div className="flex flex-col overflow-hidden rounded-sm border border-black bg-white">
-                    {steps.map((item, index) => (
-                        <div
-                            key={index}
-                            className={`px-4 py-3 ${index !== steps.length - 1 ? 'border-b border-black' : ''}`}
-                        >
-                            <p className="text-sm font-bold">{item.step}</p>
-                            <p className="text-sm text-grey-1">{item.text}</p>
-                        </div>
-                    ))}
-                </div>
+            title={t('title')}
+            ctas={[
+                {
+                    text: tCommon('close'),
+                    shadowSize: '4',
+                    onClick: onClose,
+                },
+            ]}
+            content={
+                <div className="flex w-full flex-col gap-4 text-left">
+                    <div className="flex flex-col overflow-hidden rounded-sm border border-border-default bg-background-default">
+                        {steps.map((item, index) => (
+                            <div
+                                key={index}
+                                className={`px-4 py-3 ${index !== steps.length - 1 ? 'border-b border-border-default' : ''}`}
+                            >
+                                <p className="text-label-l">{item.step}</p>
+                                <p className="text-body-s text-foreground-secondary">{item.text}</p>
+                            </div>
+                        ))}
+                    </div>
 
-                <InfoCard variant="warning" icon="alert" title={isOfframp ? t('warningOfframp') : t('warning')} />
-            </div>
-        </Modal>
+                    <Notification priority="attention">{t('warning')}</Notification>
+                </div>
+            }
+        />
     )
 }
 

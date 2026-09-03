@@ -1,7 +1,7 @@
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useTranslations } from 'next-intl'
 import React, { useCallback, useRef, useState } from 'react'
-import { Drawer, DrawerContent, DrawerTitle } from '../Global/Drawer'
+import { Drawer, DrawerContent } from '../Global/Drawer'
 import { TransactionDetailsReceipt } from './TransactionDetailsReceipt'
 
 interface TransactionDetailsDrawerProps {
@@ -47,8 +47,16 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                 }
             }}
         >
-            <DrawerContent className={`py-5 ${isModalOpen ? '!z-[10]' : ''}`}>
-                <DrawerTitle className="sr-only">{t('drawerTitle')}</DrawerTitle>
+            {/* The bottom padding sits on the receipt, INSIDE the scroll box, not on the
+                sheet: the footer link's 44px hit area bleeds 14px past its text row, and
+                outside the scroll box that bleed alone made the drawer scrollable by 14px
+                with nothing to scroll — enough for a flick to slide the avatar under the
+                handle band and slice it in half. The drawer chrome owns the space above
+                (handle 8px top / 24px below, per board).
+                No z-index shuffle for the cancel confirmation any more: it is a vaul
+                NestedRoot now, so vaul stacks it above this drawer and scales this one
+                back on its own. */}
+            <DrawerContent accessibleTitle={t('drawerTitle')}>
                 <TransactionDetailsReceipt
                     isLoading={isLoading}
                     transaction={transaction}
@@ -59,7 +67,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                     isModalOpen={isModalOpen}
                     setIsModalOpen={setIsModalOpen}
                     avatarUrl={avatarUrl}
-                    className="px-5"
+                    className="px-4 pb-4"
                 />
             </DrawerContent>
         </Drawer>

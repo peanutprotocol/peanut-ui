@@ -12,17 +12,21 @@ import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import posthog from 'posthog-js'
 import ProfileHeader from './ProfileHeader'
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { invitesApi } from '@/services/invites'
 import { usersApi } from '@/services/users'
 import { useRouter } from 'next/navigation'
+import { isCapacitor } from '@/utils/capacitor'
 import { requestUrl } from '@/utils/native-routes'
 import Card from '@/components/Global/Card'
-import { checkIfInternalNavigation, saveToCookie, toInviteCode } from '@/utils/general.utils'
+import { saveToCookie, toInviteCode } from '@/utils/general.utils'
 import { useAuth } from '@/context/authContext'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
+import { useSafeBack } from '@/hooks/useSafeBack'
+import { useUserInteractions } from '@/hooks/useUserInteractions'
 import ShareButton from '@/components/Global/ShareButton'
-import ActionModal from '@/components/Global/ActionModal'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import BadgesRow from '@/components/Badges/BadgesRow'
 
 interface PublicProfileProps {
@@ -34,11 +38,12 @@ interface PublicProfileProps {
 const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = false, onSendClick }) => {
     const t = useTranslations('profile.publicProfile')
     const tNav = useTranslations('navigation')
-    const [totalSentByLoggedInUser, setTotalSentByLoggedInUser] = useState<string>('0')
+    const [profileUserId, setProfileUserId] = useState<string | null>(null)
     const [fullName, setFullName] = useState<string>(username)
     const [showFullName, setShowFullName] = useState<boolean>(false)
     const [isKycVerified, setIsKycVerified] = useState<boolean>(false)
     const router = useRouter()
+    const goBack = useSafeBack('/home')
     const { user, isFetchingUser } = useAuth()
     const isSelfProfile = user?.user.username?.toLowerCase() === username.toLowerCase()
     const [showInviteModal, setShowInviteModal] = useState(false)
@@ -110,8 +115,12 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                 link_type: resolvedToOwner ? 'invite_code' : 'none',
             })
             if (intercepted) return
-            // Unresolvable and mismatched codes still navigate — /invite owns the messaging.
-            router.push(`/invite?code=${code}`)
+            // Unresolvable and mismatched codes still navigate — /invite owns the
+            // messaging. Native strips /invite; /setup?step=signup is its stand-in
+            // (the cookie above already carries the code, and ONLY when it resolved
+            // to the owner — don't route through inviteFlowUrl, which writes it
+            // unconditionally and would revert the resolvedToOwner guard).
+            router.push(isCapacitor() ? '/setup?step=signup' : `/invite?code=${code}`)
         } finally {
             setIsJoining(false)
         }
@@ -130,23 +139,22 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
             // get the profile owner's showFullName preference
             setShowFullName(apiUser?.showFullName ?? false)
             setIsKycVerified(apiUser?.isVerified ?? false)
-            // to check if the logged in user has sent money to the profile user,
-            // we check the amount that the profile user has received from the logged in user.
-            if (apiUser?.totalUsdReceivedFromCurrentUser) {
-                setTotalSentByLoggedInUser(apiUser.totalUsdReceivedFromCurrentUser)
-            }
+            setProfileUserId(apiUser?.userId ?? null)
             setProfileBadges(apiUser?.badges ?? [])
         })
     }, [username])
 
-    // this flag is true if the current user has sent money to the profile user before.
-    const haveSentMoneyToUser = useMemo(() => Number(totalSentByLoggedInUser) > 0, [totalSentByLoggedInUser])
+    // interaction-status is the complete "sent money before" source (covers send-link
+    // claims etc., unlike the profile payload's narrow received-from-you sum); stays
+    // false (neutral) until the query resolves.
+    const { interactions } = useUserInteractions(isLoggedIn && profileUserId ? [profileUserId] : [])
+    const haveSentMoneyToUser = !!profileUserId && (interactions[profileUserId] ?? false)
 
     // respect profile owner's showFullName preference: use fullName only if showFullName is true, otherwise use username
     const displayName = showFullName && fullName ? fullName : username
 
     return (
-        <div className="flex h-full w-full flex-col space-y-4 bg-background">
+        <div className="space-y-4 flex h-full w-full flex-col bg-background">
             {/* Logo - Only shown in guest view */}
             <div>
                 {!isLoggedIn ? (
@@ -155,19 +163,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                         <Image src={PEANUT_LOGO_BLACK} alt={t('peanutLogoTextAlt')} height={12} />
                     </div>
                 ) : (
-                    <NavHeader
-                        onPrev={() => {
-                            // Check if the referrer is from the same domain (internal navigation)
-                            const isInternalReferrer = checkIfInternalNavigation()
-
-                            if (isInternalReferrer && window.history.length > 1) {
-                                router.back()
-                            } else {
-                                router.push('/home')
-                            }
-                        }}
-                        hideLabel
-                    />
+                    <NavHeader onPrev={goBack} hideLabel />
                 )}
             </div>
 
@@ -191,7 +187,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                             shadowSize="4"
                             className="flex w-1/2 items-center justify-center gap-2 rounded-full py-3"
                         >
-                            <Icon name="arrow-up-right" size={18} fill="black" />
+                            <Icon name="arrow-up-right" size={20} fill="black" />
                             <span className="font-bold">{tNav('send')}</span>
                         </Button>
 
@@ -207,7 +203,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                             shadowSize="4"
                             className="flex w-1/2 items-center justify-center gap-2 rounded-full py-3"
                         >
-                            <Icon name="arrow-down-left" size={18} fill="black" />
+                            <Icon name="arrow-down-left" size={20} fill="black" />
                             <span className="font-bold">{tNav('request')}</span>
                         </Button>
                     </div>
@@ -222,8 +218,8 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                         <Card position="single" className="space-y-2 p-4 text-center">
                             {isLoggedIn ? (
                                 <>
-                                    <h2 className="text-lg font-extrabold">{t('allSetTitle')}</h2>
-                                    <p className="mx-auto max-w-[55%] text-sm">{t('allSetDescription')}</p>
+                                    <h2 className="text-heading-card text-foreground-primary">{t('allSetTitle')}</h2>
+                                    <p className="mx-auto max-w-[55%] text-body-s">{t('allSetDescription')}</p>
                                 </>
                             ) : (
                                 <div className="space-y-4">
@@ -235,7 +231,9 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                                                 width={20}
                                                 height={20}
                                             />
-                                            <h2 className="text-lg font-extrabold">{t('joinPeanut')}</h2>
+                                            <h2 className="text-heading-card text-foreground-primary">
+                                                {t('joinPeanut')}
+                                            </h2>
                                             <Image
                                                 src={HandThumbsUpV2.src}
                                                 className="scale-x-[-1] transform"
@@ -251,8 +249,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                             )}
                         </Card>
                         {/* <div
-                            className="absolute left-0 top-0 flex w-full justify-center"
-                            style={{ transform: 'translateY(-15%)' }}
+                            className="absolute top-0 left-0 flex w-full -translate-y-[15%] justify-center"
                         >
                             <div className="relative h-42 w-[65%] md:h-44 md:w-[45%]">
                                 <Image
@@ -272,9 +269,11 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                     <div>
                         <HomeHistory username={username} />
                         {isSelfProfile && (
-                            <div className="mb-1 mt-3 flex w-full items-center justify-center gap-2 rounded-md bg-grey-4/25 px-3 py-2">
-                                <Icon name="info" size={16} className="text-grey-1" />
-                                <p className="text-center text-sm text-grey-1">{t('activityPrivateNote')}</p>
+                            <div className="mt-3 mb-1 flex w-full items-center justify-center gap-2 rounded-sm bg-background-disabled/25 px-3 py-2">
+                                <Icon name="info" size={16} className="text-foreground-secondary" />
+                                <p className="text-center text-body-s text-foreground-secondary">
+                                    {t('activityPrivateNote')}
+                                </p>
                             </div>
                         )}
                     </div>
@@ -285,29 +284,36 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                 {/* A logged-out guest gets the crediting door; the beg flow stays for
                     the logged-in-without-access case, where the owner's code can no
                     longer credit them through signup. */}
-                <ActionModal
-                    icon="user"
-                    title={t('noInviteTitle')}
-                    description={
-                        isLoggedIn ? `${t('inviteOnlyLine1')}\n${t('inviteOnlyLine2')}` : t('invitedLine', { username })
-                    }
-                    visible={showInviteModal}
-                    onClose={() => {
-                        setShowInviteModal(false)
+                <Drawer
+                    open={showInviteModal}
+                    onOpenChange={(isOpen) => {
+                        if (!isOpen) setShowInviteModal(false)
                     }}
-                    content={
-                        isLoggedIn ? (
-                            <ShareButton
-                                generateText={() => Promise.resolve(t('begShareText'))}
-                                title={t('begForInvite')}
-                            >
-                                {t('begForInvite')}
-                            </ShareButton>
-                        ) : (
-                            joinCtaButton
-                        )
-                    }
-                />
+                >
+                    <DrawerContent>
+                        <div className="flex flex-col items-center gap-4 px-4 pt-1 pb-6 text-center">
+                            <IconBubble icon="user" className="bg-action-primary" />
+                            <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
+                                <DrawerTitle>{t('noInviteTitle')}</DrawerTitle>
+                                <DrawerDescription>
+                                    {isLoggedIn
+                                        ? `${t('inviteOnlyLine1')}\n${t('inviteOnlyLine2')}`
+                                        : t('invitedLine', { username })}
+                                </DrawerDescription>
+                            </DrawerHeader>
+                            {isLoggedIn ? (
+                                <ShareButton
+                                    generateText={() => Promise.resolve(t('begShareText'))}
+                                    title={t('begForInvite')}
+                                >
+                                    {t('begForInvite')}
+                                </ShareButton>
+                            ) : (
+                                joinCtaButton
+                            )}
+                        </div>
+                    </DrawerContent>
+                </Drawer>
             </div>
         </div>
     )

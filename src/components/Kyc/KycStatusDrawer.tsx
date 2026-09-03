@@ -1,13 +1,15 @@
 import { KycActionRequired } from './states/KycActionRequired'
 import { KycCompleted } from './states/KycCompleted'
 import { KycFailed } from './states/KycFailed'
+import { KycRegionRestricted } from './states/KycRegionRestricted'
 import { KycProcessing } from './states/KycProcessing'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
-import { Drawer, DrawerContent, DrawerTitle } from '../Global/Drawer'
+import { Drawer, DrawerContent } from '../Global/Drawer'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useCallback } from 'react'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useTranslations } from 'next-intl'
+import { useModalsContext } from '@/context/ModalsContext'
 
 interface KycStatusDrawerProps {
     isOpen: boolean
@@ -21,8 +23,9 @@ interface KycStatusDrawerProps {
 // provider names, no rail reads. Resuming/retrying launches Sumsub via the kept
 // useMultiPhaseKycFlow plumbing.
 export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDrawerProps) => {
-    const { identity, status } = useIdentityVerification()
+    const { identity, status, isRegionRestricted, isTerminalFailure } = useIdentityVerification()
     const t = useTranslations('kyc')
+    const { setIsSupportModalOpen } = useModalsContext()
 
     // close drawer and release the keep-mounted hold
     const handleFlowDone = useCallback(() => {
@@ -63,6 +66,11 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
                     />
                 )
             case 'failed':
+                // Region-restricted rejections are terminal in a way KycFailed's
+                // "Retry verification" button contradicts — branch before it.
+                if (isRegionRestricted) {
+                    return <KycRegionRestricted reviewedAt={identity.reviewedAt} onNavigate={onClose} />
+                }
                 return (
                     <KycFailed
                         actionMessage={identity.actionMessage}
@@ -70,6 +78,8 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
                         reviewedAt={identity.reviewedAt}
                         onRetry={resumeKyc}
                         isLoading={sumsubFlow.isLoading}
+                        isTerminal={isTerminalFailure}
+                        onContactSupport={() => setIsSupportModalOpen(true)}
                     />
                 )
             default:
@@ -85,10 +95,11 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
     return (
         <>
             <Drawer open={isOpen} onOpenChange={onClose}>
-                <DrawerContent className="p-5 pb-12">
-                    <DrawerTitle className="sr-only">{t('statusDrawerTitle')}</DrawerTitle>
+                <DrawerContent accessibleTitle={t('statusDrawerTitle')} className="p-4 pb-12">
                     {renderContent()}
-                    {sumsubFlow.error && <p className="text-red-500 mt-3 text-center text-sm">{sumsubFlow.error}</p>}
+                    {sumsubFlow.error && (
+                        <p className="mt-3 text-center text-body-s text-foreground-error">{sumsubFlow.error}</p>
+                    )}
                 </DrawerContent>
             </Drawer>
             <SumsubKycModals flow={sumsubFlow} />

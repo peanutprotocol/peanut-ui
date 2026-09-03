@@ -1,7 +1,8 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import ErrorAlert from '@/components/Global/ErrorAlert'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
+import { FieldError } from '@/components/0_Bruddle/FieldError'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
@@ -176,7 +177,7 @@ export default function InitialWithdrawView({
     return (
         // flex/gap shell per the page-layout rules — space-y on the outer div
         // conflicts with centering and clipped the CTA on short viewports
-        <div className="flex min-h-[inherit] flex-col gap-8">
+        <PageStack>
             <NavHeader title={isFromSendFlow ? tNav('send') : tNav('withdraw')} onPrev={onBack || defaultOnBack} />
 
             <div className="space-y-4">
@@ -192,31 +193,35 @@ export default function InitialWithdrawView({
 
                 <TokenSelector viewType="withdraw" />
 
-                <GeneralRecipientInput
-                    placeholder={
-                        addressFamily === 'evm' ? t('initial.placeholderEns') : t('initial.placeholderAddress')
-                    }
-                    addressFamily={addressFamily}
-                    chainId={selectedChainID}
-                    recipient={recipient}
-                    onUpdate={(update: GeneralRecipientUpdate) => {
-                        setRecipient(update.recipient)
-                        setIsValidRecipient(update.isValid)
-                        setError({
-                            showError: !update.isValid,
-                            errorMessage: update.errorMessage,
-                        })
-                        setInputChanging(update.isChanging)
-                    }}
-                    showInfoText={false}
-                    isWithdrawal
-                />
+                {/* input + its field error form one column, 4px apart (form-field board 17788:19179) */}
+                <div className="flex flex-col gap-1">
+                    <GeneralRecipientInput
+                        placeholder={
+                            addressFamily === 'evm' ? t('initial.placeholderEns') : t('initial.placeholderAddress')
+                        }
+                        addressFamily={addressFamily}
+                        chainId={selectedChainID}
+                        recipient={recipient}
+                        onUpdate={(update: GeneralRecipientUpdate) => {
+                            setRecipient(update.recipient)
+                            setIsValidRecipient(update.isValid)
+                            setError({
+                                showError: !update.isValid,
+                                errorMessage: update.errorMessage,
+                            })
+                            setInputChanging(update.isChanging)
+                        }}
+                        showInfoText={false}
+                        isWithdrawal
+                    />
+                    {error.showError && !!error.errorMessage && <FieldError>{error.errorMessage}</FieldError>}
+                </div>
 
                 {/* Surface the resolved address as soon as an ENS name validates —
                     the user must see where funds will actually go before any
                     review/warning step (external tester feedback). */}
                 {!!recipient.name && !!recipient.address && isValidRecipient && !inputChanging && (
-                    <p className="text-left text-xs text-grey-1">
+                    <p className="text-left text-body-xs text-foreground-secondary">
                         {recipient.name} {t('resolvesTo')}{' '}
                         <span className="font-mono">{printableAddress(recipient.address)}</span>
                     </p>
@@ -240,9 +245,7 @@ export default function InitialWithdrawView({
                 >
                     {t('review')}
                 </Button>
-
-                {error.showError && !!error.errorMessage && <ErrorAlert description={error.errorMessage} />}
             </div>
-        </div>
+        </PageStack>
     )
 }

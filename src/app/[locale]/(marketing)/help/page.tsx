@@ -3,7 +3,7 @@ import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { SUPPORTED_LOCALES, isValidLocale, getAlternates } from '@/i18n/config'
 import { getTranslations } from '@/i18n'
-import { readPageContentLocalized, listContentSlugs } from '@/lib/content'
+import { readPageContentLocalizedResolved, listContentSlugs } from '@/lib/content'
 import { notFound } from 'next/navigation'
 import { ContentPage } from '@/components/Marketing/ContentPage'
 import { Hero } from '@/components/Marketing/mdx/Hero'
@@ -59,7 +59,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 /** Lightweight skeleton shown while HelpLanding JS hydrates */
 function HelpLandingSkeleton() {
     return (
-        <div className="mx-auto mb-8 mt-10 max-w-[640px] px-6 md:mt-12 md:px-4">
+        <div className="mx-auto mt-10 mb-8 max-w-[640px] px-6 md:mt-12 md:px-4">
             {/* Search bar placeholder */}
             <div className="h-12 w-full animate-pulse rounded-sm border border-n-1 bg-gray-200" />
 
@@ -91,16 +91,19 @@ export default async function HelpPage({ params }: PageProps) {
     const slugs = listContentSlugs('help')
     const articles = slugs
         .map((slug) => {
-            const content = readPageContentLocalized<HelpFrontmatter>('help', slug, locale)
-            if (!content || content.frontmatter.published === false) return null
+            const resolved = readPageContentLocalizedResolved<HelpFrontmatter>('help', slug, locale)
+            if (!resolved || resolved.content.frontmatter.published === false) return null
+            const { content, lang } = resolved
             return {
                 slug,
+                // The serving locale owns the prose, so link it directly.
+                href: `/${lang}/help/${encodeURIComponent(slug)}`,
                 title: content.frontmatter.title.replace(/\s*\|\s*Peanut Help$/, ''),
                 description: content.frontmatter.description,
                 category: content.frontmatter.category ?? 'General',
             }
         })
-        .filter(Boolean) as Array<{ slug: string; title: string; description: string; category: string }>
+        .filter(Boolean) as Array<{ slug: string; href: string; title: string; description: string; category: string }>
 
     // Translate category names
     const translatedArticles = articles.map((a) => ({
@@ -122,7 +125,6 @@ export default async function HelpPage({ params }: PageProps) {
                 <HelpLanding
                     articles={translatedArticles}
                     categories={categories}
-                    locale={locale}
                     strings={{
                         searchPlaceholder: i18n.searchHelpArticles,
                         cantFind: i18n.cantFindAnswer,

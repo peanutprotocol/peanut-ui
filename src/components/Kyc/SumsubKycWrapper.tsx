@@ -31,6 +31,14 @@ const SUMSUB_SDK_URL = 'https://static.sumsub.com/idensic/static/sns-websdk-buil
 const SDK_LAUNCH_TIMEOUT_MS = 20_000
 
 /**
+ * Some SDK versions replay a resubmission as both `onApplicantResubmitted` and
+ * its `idCheck.`-prefixed twin. They arrive in the same tick; a real retry takes
+ * a user seconds at minimum, so this window separates the two without needing a
+ * per-event identity the SDK does not give us.
+ */
+const RESUBMIT_TWIN_WINDOW_MS = 1000
+
+/**
  * Every KYC entry point funnels through here, so this is the one place that
  * knows which Sumsub SDK to drive. Native gets the Cordova SDK: the WebSDK does
  * run inside the Capacitor WebView, but a Sumsub-side init failure there paints
@@ -47,6 +55,7 @@ const SumsubWebSdkModal = ({
     accessToken,
     onClose,
     onComplete,
+    onSubmitted,
     onError,
     onRefreshToken,
     isMultiLevel,
@@ -71,6 +80,7 @@ const SumsubWebSdkModal = ({
 
     // callback refs to avoid stale closures in sdk init effect
     const onCompleteRef = useRef(onComplete)
+    const onSubmittedRef = useRef(onSubmitted)
     const onErrorRef = useRef(onError)
     const onRefreshTokenRef = useRef(onRefreshToken)
     const isMultiLevelRef = useRef(isMultiLevel)
@@ -78,15 +88,17 @@ const SumsubWebSdkModal = ({
     // Drives the close-confirmation short-circuit: if the user has already
     // submitted, tapping X closes the modal without asking "stop verification?"
     const hasSubmittedRef = useRef(false)
+    const lastResubmitSignalRef = useRef(0)
     // Watchdog bookkeeping: did sdk.launch() ever run for this open?
     const hasLaunchedRef = useRef(false)
 
     useEffect(() => {
         onCompleteRef.current = onComplete
+        onSubmittedRef.current = onSubmitted
         onErrorRef.current = onError
         onRefreshTokenRef.current = onRefreshToken
         isMultiLevelRef.current = isMultiLevel
-    }, [onComplete, onError, onRefreshToken, isMultiLevel])
+    }, [onComplete, onSubmitted, onError, onRefreshToken, isMultiLevel])
 
     useEffect(() => {
         sumsubLocaleRef.current = toSumsubLocale(locale)
@@ -94,6 +106,7 @@ const SumsubWebSdkModal = ({
 
     // stable wrappers that read from refs
     const stableOnComplete = useCallback(() => onCompleteRef.current(), [])
+    const stableOnSubmitted = useCallback(() => onSubmittedRef.current?.(), [])
     const stableOnError = useCallback((error: unknown) => onErrorRef.current?.(error), [])
     const stableOnRefreshToken = useCallback(() => onRefreshTokenRef.current(), [])
 
@@ -106,7 +119,7 @@ const SumsubWebSdkModal = ({
 
         const handleLoaded = () => setSdkLoaded(true)
         const handleError = () => {
-            console.error('[sumsub] failed to load websdk script')
+            console.error(new Error('[sumsub] failed to load websdk script'))
             setSdkLoadError(true)
         }
 
@@ -159,17 +172,40 @@ const SumsubWebSdkModal = ({
 
             const handleSubmitted = () => {
                 console.log('[sumsub] onApplicantSubmitted fired')
+                const isFirstSubmit = !hasSubmittedRef.current
                 hasSubmittedRef.current = true
-                // for multi-level workflows (LATAM), the SDK transitions to Level 2
-                // internally. don't close the modal on Level 1 submission.
-                if (isMultiLevelRef.current) return
+                // for multi-level workflows (LATAM/EU), the SDK transitions to
+                // Level 2 internally. don't close the modal on Level 1 submission —
+                // but do report it, or the session never emits a submit signal
+                // (onComplete only fires when a close is wanted, and the APPROVED
+                // close skips it).
+                if (isMultiLevelRef.current) {
+                    if (isFirstSubmit) stableOnSubmitted()
+                    return
+                }
                 stableOnComplete()
             }
             // resubmission = user retried after rejection (ACTION_REQUIRED).
-            // always close SDK regardless of multi-level — the retry is a fresh submission.
+            // Multi-level keeps the SDK open: a retry on Level 1 still owes the
+            // follow-up questionnaire, so closing here stranded the applicant
+            // looking submitted with a level outstanding.
+            //
+            // EVERY logical retry reports, unlike handleSubmitted's first-only
+            // gate. Downstream this is the attempt boundary that lets a repeated
+            // rejection be reported again, so suppressing it after the first
+            // submission swallowed the retry's own REJECTED. Only the SDK's
+            // duplicate twin event is collapsed.
             const handleResubmitted = () => {
                 console.log('[sumsub] onApplicantResubmitted fired')
                 hasSubmittedRef.current = true
+                if (isMultiLevelRef.current) {
+                    const now = Date.now()
+                    if (now - lastResubmitSignalRef.current >= RESUBMIT_TWIN_WINDOW_MS) {
+                        lastResubmitSignalRef.current = now
+                        stableOnSubmitted()
+                    }
+                    return
+                }
                 stableOnComplete()
             }
             // Applicant Actions (like rain-card-application) emit this instead
@@ -178,8 +214,12 @@ const SumsubWebSdkModal = ({
             // abandonment after a successful action submission.
             const handleActionSubmitted = () => {
                 console.log('[sumsub] action submitted fired')
+                const isFirstSubmit = !hasSubmittedRef.current
                 hasSubmittedRef.current = true
-                if (isMultiLevelRef.current) return
+                if (isMultiLevelRef.current) {
+                    if (isFirstSubmit) stableOnSubmitted()
+                    return
+                }
                 stableOnComplete()
             }
             // RED stays open so the user can resubmit; the resubmission path
@@ -271,7 +311,16 @@ const SumsubWebSdkModal = ({
                 sdkInstanceRef.current = null
             }
         }
-    }, [visible, accessToken, sdkLoaded, sdkContainer, stableOnComplete, stableOnError, stableOnRefreshToken])
+    }, [
+        visible,
+        accessToken,
+        sdkLoaded,
+        sdkContainer,
+        stableOnComplete,
+        stableOnSubmitted,
+        stableOnError,
+        stableOnRefreshToken,
+    ])
 
     // reset state when modal closes (the init effect's cleanup already
     // destroys the SDK instance — visible is one of its deps)
@@ -329,7 +378,7 @@ const SumsubWebSdkModal = ({
                 title: t('wrapper.troubleTitle'),
                 description: t('wrapper.troubleDescription'),
                 icon: 'question-mark' as IconName,
-                iconContainerClassName: 'bg-primary-1',
+                iconContainerClassName: 'bg-action-primary',
                 ctas: [
                     {
                         text: t('wrapper.chatWithSupport'),
@@ -340,8 +389,8 @@ const SumsubWebSdkModal = ({
                     {
                         text: tCommon('cancel'),
                         onClick: () => setIsHelpModalOpen(false),
-                        variant: 'transparent' as ButtonVariant,
-                        className: 'underline text-sm font-medium w-full h-fit mt-3',
+                        variant: 'stroke' as ButtonVariant,
+                        className: 'w-full',
                     },
                 ],
             }
@@ -351,7 +400,7 @@ const SumsubWebSdkModal = ({
             title: t('wrapper.exitForNowTitle'),
             description: t('wrapper.exitForNowDescription'),
             icon: 'alert' as IconName,
-            iconContainerClassName: 'bg-secondary-1',
+            iconContainerClassName: 'bg-action-secondary',
             ctas: [
                 {
                     text: t('wrapper.exit'),
@@ -365,8 +414,8 @@ const SumsubWebSdkModal = ({
                 {
                     text: tCommon('continue'),
                     onClick: () => setIsHelpModalOpen(false),
-                    variant: 'transparent' as ButtonVariant,
-                    className: 'underline text-sm font-medium w-full h-fit mt-3',
+                    variant: 'stroke' as ButtonVariant,
+                    className: 'w-full',
                 },
             ],
         }
@@ -378,7 +427,7 @@ const SumsubWebSdkModal = ({
                 visible={visible}
                 onClose={onClose}
                 classWrap="h-full w-full !max-w-none sm:!max-w-[600px] border-none sm:m-auto m-0"
-                classOverlay={`bg-black bg-opacity-50 ${isHelpModalOpen ? 'pointer-events-none' : ''}`}
+                classOverlay={`bg-black/50 ${isHelpModalOpen ? 'pointer-events-none' : ''}`}
                 video={false}
                 className={`z-[100] !p-0 md:!p-6 ${isHelpModalOpen ? 'pointer-events-none' : ''}`}
                 classButtonClose="hidden"
@@ -391,15 +440,22 @@ const SumsubWebSdkModal = ({
                     <div className="flex h-full flex-col">
                         <div className="flex items-center justify-between px-4 py-2">
                             <button
+                                type="button"
+                                aria-label={tCommon('contactSupport')}
                                 onClick={() => {
                                     setModalVariant('trouble')
                                     setIsHelpModalOpen(true)
                                 }}
-                                className="flex items-center gap-1 p-1"
+                                className="relative flex items-center gap-1 p-1 transition-opacity duration-instant after:absolute after:-inset-2 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
                             >
-                                <Icon name="peanut-support" size={20} className="text-grey-1" />
+                                <Icon name="peanut-support" size={20} className="text-foreground-secondary" />
                             </button>
-                            <button onClick={handleCloseButton} className="p-1">
+                            <button
+                                type="button"
+                                aria-label={tCommon('close')}
+                                onClick={handleCloseButton}
+                                className="relative p-1 transition-opacity duration-instant after:absolute after:-inset-2 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
+                            >
                                 <Icon name="cancel" size={24} />
                             </button>
                         </div>

@@ -22,7 +22,13 @@ let mockRails: Array<{
     provider?: string
     channel: string
     status: string
+    operations?: Record<string, string>
     reason?: { userMessage: string }
+    resolved?: {
+        status: 'fixable'
+        blocking: { code: string; userMessage: string; selfHealable: true; selfHealKind: 'document-resubmit' }
+        nextAction: { key: string; kind: 'sumsub'; purpose: string; levelKey: string }
+    }
 }> = []
 let mockUser: { user?: { isActivated?: boolean; userId?: string } } | null = null
 let mockHasCardAccess: boolean | undefined = false
@@ -34,6 +40,17 @@ jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({
         rails: mockRails,
         channelOf: (rail: { channel: string }) => rail.channel,
+        operationStatus: (railId: string, op: string) => {
+            const rail = mockRails.find((r) => r.id === railId)
+            return rail?.operations?.[op] ?? rail?.status
+        },
+        // Mirrors the real hook: per-op refinement falling back to rail status.
+        canDo: (op: string, opts?: { provider?: string }) =>
+            mockRails.some(
+                (rail) =>
+                    (opts?.provider === undefined || rail.provider === opts.provider) &&
+                    (rail.operations?.[op] ?? rail.status) === 'enabled'
+            ),
         nextActionsForRail: () => [],
         nextActions: [],
     }),
@@ -41,8 +58,23 @@ jest.mock('@/hooks/useCapabilities', () => ({
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: mockUser }),
 }))
+let mockRegionRestricted = false
 jest.mock('@/hooks/useIdentityVerification', () => ({
-    useIdentityVerification: () => ({ isProcessing: false, needsAction: false }),
+    useIdentityVerification: () => ({
+        isProcessing: false,
+        needsAction: false,
+        isRegionRestricted: mockRegionRestricted,
+    }),
+}))
+let mockResidenceRestrictions = { banking: false, card: false }
+jest.mock('@/hooks/useResidenceRestrictions', () => ({
+    useResidenceRestrictions: () => mockResidenceRestrictions,
+}))
+// Happy-path funnel steps render the checklist; these suites test the
+// interrupt cards, so the checklist itself is a marker (own suite covers it).
+jest.mock('@/components/Home/GettingStartedChecklist', () => ({
+    __esModule: true,
+    default: () => <div>getting-started-checklist</div>,
 }))
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({ setIsQRScannerOpen: mockSetIsQRScannerOpen, openSupportWithMessage: jest.fn() }),
@@ -75,14 +107,13 @@ jest.mock('@/components/Home/CardLaunchCTA/CardLaunchCTABanner', () => ({
 }))
 
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
-    useMultiPhaseKycFlow: () => ({ handleSelfHealResubmit: mockHeal }),
+    useMultiPhaseKycFlow: () => ({ handleFixableRejection: mockHeal }),
 }))
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({
     SumsubKycModals: () => null,
 }))
 
 import ActivationCTAs from '../ActivationCTAs'
-import posthog from 'posthog-js'
 
 const bankRejected = {
     id: 'bridge.sepa_eu',
@@ -92,12 +123,85 @@ const bankRejected = {
     reason: { userMessage: 'We need a valid proof of address document.' },
 }
 const enabledCardRail = { id: 'rain.card_rain', channel: 'card', status: 'enabled' }
+// Manteca Pix / Mercado Pago: the only spend that activates a user without a
+// card. Real backend shapes — Pix is BANK-channel with a `pay` op, MercadoPago
+// is the only method the resolver ever puts in `qr-only`.
+const enabledQrRail = {
+    id: 'manteca.pix_br',
+    provider: 'manteca',
+    channel: 'bank',
+    status: 'enabled',
+    operations: { pay: 'enabled', deposit: 'requires-info' },
+}
+const enabledMercadoPagoRail = {
+    id: 'manteca.mercadopago_qr_ar',
+    provider: 'manteca',
+    channel: 'qr-only',
+    status: 'enabled',
+    operations: { pay: 'enabled' },
+}
+// BANK_TRANSFER_AR supports deposit + withdraw only — no merchant QR, so its
+// operations map carries no `pay` key at all.
+const enabledMantecaBankRail = {
+    id: 'manteca.bank_transfer_ar',
+    provider: 'manteca',
+    channel: 'bank',
+    status: 'enabled',
+    operations: { deposit: 'enabled', withdraw: 'enabled' },
+}
 
 beforeEach(() => {
     jest.clearAllMocks()
     mockRails = []
     mockUser = { user: { isActivated: false, userId: 'u1' } }
     mockHasCardAccess = false
+    mockResidenceRestrictions = { banking: false, card: false }
+    mockRegionRestricted = false
+})
+
+describe('ActivationCTAs — residence restrictions', () => {
+    it('a fully restricted residence hides the verify CTA entirely', () => {
+        mockResidenceRestrictions = { banking: true, card: true }
+        const { container } = render(<ActivationCTAs activationStep="verify" />)
+        expect(container.firstChild).toBeNull()
+    })
+
+    it('a partial restriction keeps the verify step, rendered as the checklist', () => {
+        mockResidenceRestrictions = { banking: false, card: true }
+        render(<ActivationCTAs activationStep="verify" />)
+        expect(screen.getByText('getting-started-checklist')).toBeInTheDocument()
+    })
+})
+
+describe('ActivationCTAs — region-restricted outranks every funnel step', () => {
+    it('replaces the verify nag, which this user can never satisfy', () => {
+        mockRegionRestricted = true
+        render(<ActivationCTAs activationStep="verify" />)
+
+        expect(screen.getByText("We can't verify IDs from your country")).toBeInTheDocument()
+        expect(screen.queryByText('Verification issue')).not.toBeInTheDocument()
+    })
+
+    it('outranks the getting-started checklist — every listed step is a closed door', () => {
+        mockRegionRestricted = true
+        mockHasCardAccess = true
+        render(<ActivationCTAs activationStep="card" />)
+
+        expect(screen.getByText("We can't verify IDs from your country")).toBeInTheDocument()
+        expect(screen.queryByText('getting-started-checklist')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByText('Send or request money'))
+        expect(mockPush).toHaveBeenCalledWith('/send')
+        expect(mockPush).not.toHaveBeenCalledWith('/shhhhh')
+    })
+
+    it('never opens support — support cannot lift a jurisdictional block', () => {
+        mockRegionRestricted = true
+        mockRails = [bankRejected]
+        render(<ActivationCTAs activationStep="deposit" />)
+
+        fireEvent.click(screen.getByText('Send or request money'))
+        expect(mockPush).toHaveBeenCalledWith('/send')
+    })
 })
 
 describe('ActivationCTAs — rejection override respects existing transacting ability', () => {
@@ -105,8 +209,8 @@ describe('ActivationCTAs — rejection override respects existing transacting ab
         mockRails = [enabledCardRail, bankRejected]
         render(<ActivationCTAs activationStep="deposit" />)
         expect(screen.queryByText('Complete your setup')).not.toBeInTheDocument()
-        // Falls through to the normal funnel step instead of the rejection card.
-        expect(screen.getByText('Deposit')).toBeInTheDocument()
+        // Falls through to the checklist instead of the rejection card.
+        expect(screen.getByText('getting-started-checklist')).toBeInTheDocument()
     })
 
     it('a BE-activated user with a rejected bank rail does NOT see the nag', () => {
@@ -123,76 +227,155 @@ describe('ActivationCTAs — rejection override respects existing transacting ab
         expect(screen.getByText('We need a valid proof of address document.')).toBeInTheDocument()
     })
 
-    it('fixable rejection: Upload document heals inline (handleSelfHealResubmit), does not navigate away', () => {
+    it('a card-ELIGIBLE user (access, no card) with a rejected bank rail sees the checklist, not the nag', () => {
+        // The 2026-08-20 deposit-first gate moved this cohort off the card
+        // step; without this shield they would trade the card banner for a
+        // "Contact support" dead end over a rail the old region-picker detour
+        // auto-enrolled. Crypto deposit → card is their working path.
+        mockRails = [bankRejected]
+        mockHasCardAccess = true
+        render(<ActivationCTAs activationStep="deposit" />)
+        expect(screen.queryByText('Complete your setup')).not.toBeInTheDocument()
+        expect(screen.getByText('getting-started-checklist')).toBeInTheDocument()
+    })
+
+    it('fixable rejection: Upload document heals inline (handleFixableRejection), does not navigate away', () => {
         mockRails = [bankRejected]
         render(<ActivationCTAs activationStep="deposit" />)
         fireEvent.click(screen.getByText('Upload document'))
-        expect(mockHeal).toHaveBeenCalledWith('BRIDGE')
+        expect(mockHeal).toHaveBeenCalledWith({ provider: 'BRIDGE', actionKey: null })
         expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    it('Manteca RFI (sumsub nextAction on the verdict) hands the action key to the heal, not the generic resubmit', () => {
+        mockRails = [
+            {
+                id: 'manteca.pix_br',
+                provider: 'manteca',
+                channel: 'bank',
+                status: 'requires-info',
+                reason: { userMessage: 'We need information about your source of funds.' },
+                resolved: {
+                    status: 'fixable',
+                    blocking: {
+                        code: 'source_of_funds',
+                        userMessage: 'We need information about your source of funds.',
+                        selfHealable: true,
+                        selfHealKind: 'document-resubmit',
+                    },
+                    nextAction: {
+                        key: 'sumsub:source_of_funds',
+                        kind: 'sumsub',
+                        purpose: 'unlock-manteca',
+                        levelKey: 'source_of_funds',
+                    },
+                },
+            },
+        ]
+        render(<ActivationCTAs activationStep="deposit" />)
+        fireEvent.click(screen.getByText('Upload document'))
+        expect(mockHeal).toHaveBeenCalledWith({ provider: 'MANTECA', actionKey: 'sumsub:source_of_funds' })
     })
 })
 
-/**
- * The outbound step was QR-only ("Make your first payment" → scanner) while
- * card spend counts as activation too. Card-access users now get card-inclusive
- * "Spend with Peanut" copy and a card/QR chooser; users without card access
- * keep the exact old behavior so a gated card is never teased.
- */
-describe('ActivationCTAs — outbound step spend chooser (card + QR)', () => {
-    it('without card access: QR-only copy unchanged, CTA goes straight to the scanner, no chooser', () => {
+describe('ActivationCTAs — happy path renders the checklist', () => {
+    it.each(['verify', 'deposit'] as const)('%s step renders the checklist', (step) => {
+        render(<ActivationCTAs activationStep={step} />)
+        expect(screen.getByText('getting-started-checklist')).toBeInTheDocument()
+    })
+
+    // Funded but not activated: the checklist stands down for the activity
+    // list, but the remaining step must still offer a way to reach the spend.
+    it('outbound step drops the checklist for the single remaining step card', () => {
+        mockRails = [enabledQrRail]
         render(<ActivationCTAs activationStep="outbound" />)
+        expect(screen.queryByText('getting-started-checklist')).not.toBeInTheDocument()
         expect(screen.getByText('Make your first payment')).toBeInTheDocument()
-        expect(screen.getByText('Start paying to Pix and MercadoPago QR codes')).toBeInTheDocument()
-        fireEvent.click(screen.getByText('Start Spending'))
-        expect(mockSetIsQRScannerOpen).toHaveBeenCalledWith(true)
-        expect(screen.queryByTestId('spend-chooser')).not.toBeInTheDocument()
     })
 
-    it('while card access is still loading (undefined): treated as no access — scanner, no chooser', () => {
-        mockHasCardAccess = undefined
-        render(<ActivationCTAs activationStep="outbound" />)
-        expect(screen.getByText('Make your first payment')).toBeInTheDocument()
-        fireEvent.click(screen.getByText('Start Spending'))
-        expect(mockSetIsQRScannerOpen).toHaveBeenCalledWith(true)
-        expect(screen.queryByTestId('spend-chooser')).not.toBeInTheDocument()
-    })
-
-    it('with card access: card-inclusive copy, CTA opens the chooser (not the scanner) and tracks it', () => {
+    it('card step drops the checklist for the single remaining step card', () => {
         mockHasCardAccess = true
-        render(<ActivationCTAs activationStep="outbound" />)
-        expect(screen.getByText('Spend with Peanut')).toBeInTheDocument()
-        fireEvent.click(screen.getByText('Start Spending'))
-        expect(screen.getByTestId('spend-chooser')).toBeInTheDocument()
-        expect(mockSetIsQRScannerOpen).not.toHaveBeenCalled()
-        expect(posthog.capture).toHaveBeenCalledWith('activation_spend_chooser_shown')
+        render(<ActivationCTAs activationStep="card" />)
+        expect(screen.queryByText('getting-started-checklist')).not.toBeInTheDocument()
+        expect(screen.getByText('Spend anywhere Visa is accepted')).toBeInTheDocument()
     })
 
-    it('chooser → card navigates to /card and tracks the choice', () => {
-        mockHasCardAccess = true
+    // Only a card spend or a Manteca QR pay activates an account, so the CTA
+    // has to land on one of those — a /send would leave the step standing.
+    it('outbound without card access opens the QR scanner, not /send', () => {
+        mockHasCardAccess = false
+        mockRails = [enabledQrRail]
         render(<ActivationCTAs activationStep="outbound" />)
         fireEvent.click(screen.getByText('Start Spending'))
-        fireEvent.click(screen.getByText('Pay with your card'))
-        expect(mockPush).toHaveBeenCalledWith('/card')
-        expect(posthog.capture).toHaveBeenCalledWith('activation_spend_chooser_selected', { choice: 'card' })
-    })
-
-    it('chooser → QR opens the existing scanner and tracks the choice', () => {
-        mockHasCardAccess = true
-        render(<ActivationCTAs activationStep="outbound" />)
-        fireEvent.click(screen.getByText('Start Spending'))
-        fireEvent.click(screen.getByText('Scan a QR code'))
         expect(mockSetIsQRScannerOpen).toHaveBeenCalledWith(true)
         expect(mockPush).not.toHaveBeenCalled()
-        expect(posthog.capture).toHaveBeenCalledWith('activation_spend_chooser_selected', { choice: 'qr' })
     })
 
-    it('card access revoked while the chooser is open: chooser closes (no stale card option)', () => {
+    // The QR pool enables its rails one at a time (`enableQrPoolRails` skips any
+    // rail already in a non-PENDING state), so a Brazilian can hold a paying Pix
+    // rail while the MercadoPago row stands rejected. Pix is bank-channel, so a
+    // `qr-only` gate would strand exactly that user with no activation CTA.
+    it('outbound keeps the step for a paying Pix rail when the MercadoPago rail is rejected', () => {
+        mockHasCardAccess = false
+        mockRails = [enabledQrRail, { ...enabledMercadoPagoRail, status: 'rejected' }]
+        render(<ActivationCTAs activationStep="outbound" />)
+        expect(screen.getByText('Make your first payment')).toBeInTheDocument()
+        fireEvent.click(screen.getByText('Start Spending'))
+        expect(mockSetIsQRScannerOpen).toHaveBeenCalledWith(true)
+    })
+
+    it('outbound keeps the step for an enabled MercadoPago qr-only rail', () => {
+        mockHasCardAccess = false
+        mockRails = [enabledMercadoPagoRail]
+        render(<ActivationCTAs activationStep="outbound" />)
+        fireEvent.click(screen.getByText('Start Spending'))
+        expect(mockSetIsQRScannerOpen).toHaveBeenCalledWith(true)
+    })
+
+    // An operations map lists every op the method supports, so a missing `pay`
+    // means no merchant QR. Falling back to the rail's enabled status here would
+    // open the scanner for a user who has no way to pay a QR at all.
+    it('a bank-only Manteca rail is not a QR spend, even though the rail is enabled', () => {
+        mockHasCardAccess = false
+        mockRails = [enabledMantecaBankRail]
+        const { container } = render(<ActivationCTAs activationStep="outbound" />)
+        expect(container.firstChild).toBeNull()
+    })
+
+    it('a bank-only Manteca rail alongside a paying Pix rail still keeps the step', () => {
+        mockHasCardAccess = false
+        mockRails = [enabledMantecaBankRail, enabledQrRail]
+        render(<ActivationCTAs activationStep="outbound" />)
+        expect(screen.getByText('Make your first payment')).toBeInTheDocument()
+    })
+
+    it('outbound with card access offers the card/QR chooser', () => {
         mockHasCardAccess = true
-        const { rerender } = render(<ActivationCTAs activationStep="outbound" />)
+        mockRails = [enabledQrRail]
+        render(<ActivationCTAs activationStep="outbound" />)
         fireEvent.click(screen.getByText('Start Spending'))
         expect(screen.getByTestId('spend-chooser')).toBeInTheDocument()
+    })
+
+    it('outbound with neither a card nor a QR rail renders nothing — no spend would clear it', () => {
         mockHasCardAccess = false
-        rerender(<ActivationCTAs activationStep="outbound" />)
-        expect(screen.queryByTestId('spend-chooser')).not.toBeInTheDocument()
+        mockRails = [{ id: 'bridge.sepa_eu', provider: 'bridge', channel: 'bank', status: 'enabled' }]
+        const { container } = render(<ActivationCTAs activationStep="outbound" />)
+        expect(container.firstChild).toBeNull()
+        expect(screen.queryByText('getting-started-checklist')).not.toBeInTheDocument()
+    })
+
+    // Manteca's pool tier reads `enabled` at the rail level while an individual
+    // operation still needs an upgrade — the per-op refinement is what decides.
+    it('a QR rail whose pay operation is not enabled does not keep the step alive', () => {
+        mockHasCardAccess = false
+        mockRails = [{ ...enabledQrRail, operations: { pay: 'requires-info' } }]
+        const { container } = render(<ActivationCTAs activationStep="outbound" />)
+        expect(container.firstChild).toBeNull()
+    })
+
+    it('completed without rejection renders nothing', () => {
+        const { container } = render(<ActivationCTAs activationStep="completed" />)
+        expect(container.firstChild).toBeNull()
     })
 })

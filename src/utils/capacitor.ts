@@ -75,10 +75,69 @@ export function isAndroidNative(): boolean {
 }
 
 /**
+ * true only when the native bridge is live AND the platform is android.
+ *
+ * Unlike {@link isAndroidNative} this is false on capacitor-flavoured WEB
+ * builds (vercel previews opened in android chrome), where native-only
+ * signals such as the in-app browser's `browserFinished` never arrive.
+ */
+export function isAndroidNativeBridge(): boolean {
+    return isNativeBridge() && window.Capacitor?.getPlatform?.() === 'android'
+}
+
+/**
  * returns true when running on ios inside capacitor
  */
 export function isIOSNative(): boolean {
     return getPlatform() === 'ios-native'
+}
+
+/**
+ * The export's stylesheet needs `@layer` (Safari 15.4), `color-mix(in oklab)`
+ * (16.2) and `@property` (16.4); a WebView missing any of them paints the app
+ * unstyled, so ClientProviders swaps in UnsupportedWebViewScreen instead.
+ */
+export function isWebViewCssSupported(): boolean {
+    if (typeof window === 'undefined') return true
+    return (
+        'CSSLayerBlockRule' in window &&
+        typeof CSS !== 'undefined' &&
+        CSS.supports('color', 'color-mix(in oklab, red, red)') &&
+        'CSSPropertyRule' in window
+    )
+}
+
+const ANDROID_MAJOR_TO_SDK: Record<number, number> = { 9: 28, 10: 29, 11: 30, 12: 31, 13: 33, 14: 34, 15: 35, 16: 36 }
+
+/** SDK level from the `Android N` UA token; null when absent or unmapped. */
+export function androidSdkFromUserAgent(ua: string): number | null {
+    const major = Number(/Android (\d+)/.exec(ua)?.[1])
+    return ANDROID_MAJOR_TO_SDK[major] ?? null
+}
+
+const SAFE_AREA_EDGES = ['top', 'right', 'bottom', 'left'] as const
+
+function setInlineSafeAreaInsets(value: '0px' | null): void {
+    for (const edge of SAFE_AREA_EDGES) {
+        const property = `--safe-area-inset-${edge}`
+        if (value === null) document.documentElement.style.removeProperty(property)
+        else document.documentElement.style.setProperty(property, value)
+    }
+}
+
+/**
+ * Synchronous first pass of {@link zeroLegacyAndroidSafeAreaInsets} from the
+ * user agent so the first paint never shows the phantom band; the Device.getInfo
+ * pass stays authoritative and un-zeroes if the UA lied.
+ */
+let zeroedFromUserAgent = false
+
+export function applyLegacyAndroidSafeAreaZeroFromUserAgent(): void {
+    if (!isAndroidNative()) return
+    const sdk = androidSdkFromUserAgent(navigator.userAgent)
+    if (sdk === null || sdk >= 35) return
+    setInlineSafeAreaInsets('0px')
+    zeroedFromUserAgent = true
 }
 
 /**
@@ -89,16 +148,23 @@ export function isIOSNative(): boolean {
  * the real status bar. Capacitor's native inset injection is 15+ only, so on
  * older Android we occupy the same slot ourselves: the inline style on <html>
  * that outranks the env() seed in globals.css (see the :root contract there).
- * No-op on web, iOS and Android 15+.
+ * No-op on web and iOS; on Android 15+ it only clears a zeroing the UA pass got wrong.
  */
 export async function zeroLegacyAndroidSafeAreaInsets(): Promise<void> {
     if (!isAndroidNative()) return
     try {
         const { Device } = await import('@capacitor/device')
         const { androidSDKVersion } = await Device.getInfo()
-        if (!androidSDKVersion || androidSDKVersion >= 35) return
-        for (const edge of ['top', 'right', 'bottom', 'left']) {
-            document.documentElement.style.setProperty(`--safe-area-inset-${edge}`, '0px')
+        if (!androidSDKVersion) return
+        if (androidSDKVersion < 35) {
+            setInlineSafeAreaInsets('0px')
+            return
+        }
+        // On 15+ the inline values are Capacitor's natively measured insets;
+        // only undo a zeroing this module wrote itself.
+        if (zeroedFromUserAgent) {
+            setInlineSafeAreaInsets(null)
+            zeroedFromUserAgent = false
         }
     } catch {
         // older binary running OTA'd JS without @capacitor/device — keep the env() seed
@@ -130,11 +196,56 @@ export function getNativeRpId(): string {
  * - on web: window.open with _blank
  * - in capacitor: uses @capacitor/browser plugin
  */
+/*
+ * Whether OUR in-app browser sheet is (probably) up — set on every
+ * openExternalUrl, cleared by browserFinished (wired in useNativeAppLinks) and
+ * by closeInAppBrowser. Lets a deep link that arrives while the sheet is open
+ * (the Persona/Bridge KYC return leg) close it before navigating, instead of
+ * routing underneath a full-screen browser.
+ */
+let inAppBrowserOpen = false
+
+export function markInAppBrowserClosed(): void {
+    inAppBrowserOpen = false
+}
+
+/**
+ * Dispatched on `document` once closeInAppBrowser has settled. The iOS plugin's
+ * close() dismisses the sheet without emitting `browserFinished`, so anything
+ * waiting on the sheet (hosted verification) must listen to both.
+ */
+export const IN_APP_BROWSER_CLOSED_EVENT = 'peanut:in-app-browser-closed'
+
+export async function closeInAppBrowser(): Promise<void> {
+    if (!inAppBrowserOpen || !isCapacitor()) return
+    inAppBrowserOpen = false
+    try {
+        const { Browser } = await import('@capacitor/browser')
+        await Browser.close()
+    } catch {
+        // Browser.close rejects when the sheet is already gone — fine.
+    } finally {
+        document.dispatchEvent(new CustomEvent(IN_APP_BROWSER_CLOSED_EVENT))
+    }
+}
+
 export async function openExternalUrl(url: string): Promise<void> {
     if (isCapacitor()) {
         const { Browser } = await import('@capacitor/browser')
+        inAppBrowserOpen = true
         await Browser.open({ url })
-    } else {
-        window.open(url, '_blank')
+    } else if (!window.open(url, '_blank')) {
+        // WhatsApp/Instagram in-app browsers block window.open — the guest
+        // store bounce was a silent dead tap there. Navigate in place instead.
+        window.location.assign(url)
     }
+}
+
+// Android convention for back with nothing to go back to; iOS has no minimize.
+export async function minimizeNativeApp(): Promise<void> {
+    if (!isNativeBridge()) return
+    try {
+        const { App } = await import('@capacitor/app')
+        await App.minimizeApp()
+    } catch {}
 }

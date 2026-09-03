@@ -28,12 +28,22 @@ let nextConfig = {
     // Trailing slashes help with static file serving
     trailingSlash: true,
 
+    // This build renames dynamic routes out of the tree, so the tests that
+    // import them stop resolving. Next 16.3 type-checks them where 16.2 did
+    // not; `pnpm typecheck` still covers them against the intact tree.
+    typescript: {
+        tsconfigPath: 'tsconfig.native.json',
+    },
+
     env: {
         NEXT_PUBLIC_GIT_COMMIT_HASH: gitCommitHash,
         // Flag to detect native context in code
         NEXT_PUBLIC_IS_NATIVE_BUILD: 'true',
         // required for isCapacitor() detection — ensures all API calls use direct backend URLs
         NEXT_PUBLIC_CAPACITOR_BUILD: 'true',
+        // native builds never run on Vercel; define the literal so the /dev
+        // build-time gates fold to false and dev-only data is tree-shaken out
+        NEXT_PUBLIC_VERCEL_ENV: '',
     },
 
     // Transpile packages for better compatibility

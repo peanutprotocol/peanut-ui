@@ -1,9 +1,9 @@
 'use client'
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
-import PeanutLoading from '../Global/PeanutLoading'
+import Loading from '../Global/Loading'
 import ValidationErrorView from '../Payment/Views/Error.validation.view'
 import InvitesPageLayout from './InvitesPageLayout'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Button } from '@/components/0_Bruddle/Button'
 import { PeanutWavingHello } from '@/assets/mascot'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -16,6 +16,7 @@ import { EInviteType } from '@/services/services.types'
 import { getValidRedirectUrl, saveRedirectUrl, saveToCookie } from '@/utils/general.utils'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { useLogin } from '@/hooks/useLogin'
+import { useToast } from '@/components/0_Bruddle/Toast'
 import UnsupportedBrowserModal from '../Global/UnsupportedBrowserModal'
 import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
@@ -29,15 +30,15 @@ import {
 } from './badge-campaign-context'
 import {
     claimAndSettlePendingBadgeCampaigns,
-    destinationForConfirmedBadgeCampaignAcquisition,
     isConfirmedBadgeCampaignClaim,
     isUnavailableBadgeCampaignClaim,
 } from '@/services/badge-campaigns'
-import { destinationForInviteAcquisition } from '@/services/invite-acquisition'
+import { getPasskeyErrorSetupKey } from '@/utils/webauthn.utils'
 
 function InvitePageContent() {
     const t = useTranslations('invites')
     const tSetup = useTranslations('setup')
+    const toast = useToast()
     const searchParams = useSearchParams()
     // trim trailing '?' from invite code to handle qr codes with ? at the end
     const inviteCode = searchParams.get('code')?.toLowerCase().replace(/\?+$/, '')
@@ -187,24 +188,12 @@ function InvitePageContent() {
                     }
 
                     // A validated caller continuation (notably a pending financial
-                    // claim) outranks acquisition navigation. The small backend-owned
-                    // destination enum is honored only after its matching claim is
-                    // confirmed; all other outcomes fall through to the normal app.
-                    const badgeCampaignDestination = destinationForConfirmedBadgeCampaignAcquisition(batch.claims)
-                    const legacyDestination = legacyAcquisition
-                        ? destinationForInviteAcquisition(legacyAcquisition, batch.claims)
-                        : '/home'
+                    // claim) outranks everything. Bespoke campaign destinations
+                    // retired with TASK-21226 — a campaign acquisition lands on
+                    // /home, a plain valid invite on the inviter's profile.
                     const destination =
                         safeRedirectUri ||
-                        (legacyDestination !== '/home'
-                            ? legacyDestination
-                            : badgeCampaignDestination !== '/home'
-                              ? badgeCampaignDestination
-                              : legacyAcquisition
-                                ? '/home'
-                                : hasValidInvite
-                                  ? profileUrl(inviteCodeData!.username!)
-                                  : '/home')
+                        (legacyAcquisition ? '/home' : hasValidInvite ? profileUrl(inviteCodeData!.username!) : '/home')
                     router.push(destination)
                 })
                 .catch((error) => {
@@ -292,7 +281,14 @@ function InvitePageContent() {
             // normal-app fallback.
             saveRedirectUrl()
         }
-        void handleLoginClick()
+        // PasskeyError carries curated copy; without this catch a cancelled
+        // passkey prompt becomes an unhandled rejection and a Sentry event.
+        // Known codes render the translated catalog copy instead of the
+        // error's hardcoded English message.
+        handleLoginClick().catch((error: unknown) => {
+            const i18nKey = getPasskeyErrorSetupKey(error)
+            toast.error(i18nKey ? tSetup(i18nKey) : (error instanceof Error && error.message) || tSetup('loginFailed'))
+        })
     }
 
     useEffect(() => {
@@ -300,12 +296,12 @@ function InvitePageContent() {
     }, [isDeadBareLink, router])
 
     if (isClaimingBadgeCampaigns || !shouldShowContent || isDeadBareLink) {
-        return <PeanutLoading coverFullScreen />
+        return <Loading variant="mascot" coverFullScreen />
     }
 
     if (showsInvalidInvite) {
         return (
-            <div className="my-auto flex h-[100dvh] w-screen flex-col items-center justify-center space-y-4 px-6">
+            <div className="my-auto space-y-4 flex h-dvh w-screen flex-col items-center justify-center px-6">
                 <ValidationErrorView
                     title={t('invalidCodeTitle')}
                     message={t('invalidCodeMessage')}
@@ -331,14 +327,14 @@ function InvitePageContent() {
         <InvitesPageLayout image={PeanutWavingHello.src}>
             <div
                 className={twMerge(
-                    'flex flex-grow flex-col justify-between overflow-hidden bg-white px-6 pb-8 pt-6 md:h-[100dvh] md:justify-center md:space-y-4',
-                    'flex flex-col items-end justify-center gap-5 pt-8 '
+                    'flex flex-grow flex-col justify-between overflow-hidden bg-background-default px-6 pt-6 pb-8 md:space-y-4 md:h-dvh md:justify-center',
+                    'flex flex-col items-end justify-center gap-6 pt-8'
                 )}
             >
                 <div className="mx-auto w-full md:max-w-xs">
-                    <div className="flex h-full flex-col justify-between gap-4 md:gap-6 md:pt-5">
-                        <h1 className="text-xl font-extrabold">{title}</h1>
-                        <p className="text-base font-medium">{description}</p>
+                    <div className="flex h-full flex-col justify-between gap-4 md:gap-6 md:pt-6">
+                        <h1 className="text-heading-xs text-foreground-primary">{title}</h1>
+                        <p className="text-body-m">{description}</p>
                         <Button onClick={handleClaim} shadowSize="4">
                             {ctaLabel}
                         </Button>
@@ -365,7 +361,7 @@ function InvitePageContent() {
 
 export default function InvitesPage() {
     return (
-        <Suspense fallback={<PeanutLoading coverFullScreen />}>
+        <Suspense fallback={<Loading variant="mascot" coverFullScreen />}>
             <InvitePageContent />
         </Suspense>
     )

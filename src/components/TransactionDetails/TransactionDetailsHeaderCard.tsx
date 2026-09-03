@@ -1,24 +1,25 @@
 'use client'
 
 import StatusBadge, { type StatusType } from '@/components/Global/Badges/StatusBadge'
-import { isTestTransaction } from '@/utils/history.utils'
+import { isOpenRequestDisplay, isTestTransaction, PENDING_AMOUNT_STATUSES } from '@/utils/history.utils'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { type TransactionDirection, type TransactionType } from '@/components/TransactionDetails/transaction-types'
 import {
+    SELF_DESCRIBING_NAME_KEYS,
     TRANSACTION_NAME_KEYS,
     translateTransactionName,
     type TransactionNameKey,
 } from '@/components/TransactionDetails/transaction-name-keys'
 import { printableUserHandle } from '@/utils/general.utils'
+import { normalizeEnsName } from '@/utils/ens-name.utils'
+import { usePrimaryNameServer } from '@/hooks/usePrimaryNameServer'
+import { isAddress } from 'viem'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import React from 'react'
-import Card from '../Global/Card'
-import { Icon, type IconName } from '../Global/Icons/Icon'
 import { VerifiedUserLabel } from '../UserHeader'
-import ProgressBar from '../Global/ProgressBar'
 import { useRouter } from 'next/navigation'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { PEANUTMAN } from '@/assets/mascot'
 import { profileUrl } from '@/utils/native-routes'
 
@@ -30,6 +31,10 @@ interface TransactionDetailsHeaderCardProps {
     nameKey?: TransactionNameKey
     nameParams?: Record<string, string>
     amountDisplay: string
+    /** '-' for outgoing money; '' otherwise. Incoming never shows '+' — the
+     *  states board (17966:12128) treats incoming-successful as the base
+     *  state with no indicators. */
+    sign?: '-' | '+' | ''
     initials: string
     status?: StatusType
     isVerified?: boolean
@@ -39,12 +44,7 @@ interface TransactionDetailsHeaderCardProps {
     haveSentMoneyToUser?: boolean
     isNameClickable?: boolean
     isAvatarClickable?: boolean
-    showProgessBar?: boolean
-    progress?: number
-    goal?: number
     isRequestPotTransaction?: boolean
-    isTransactionClosed: boolean
-    convertedAmount?: string
     showFullName?: boolean
     fullName?: string
     countryCode?: string | null
@@ -61,6 +61,14 @@ const getTitle = (
     nameKey?: TransactionNameKey
 ): React.ReactNode => {
     let titleText = userName
+
+    // Self-describing labels (reaper fail copy, refunds, the failed-QR label,
+    // unresolved open requests) are complete on their own — interpolating
+    // them into direction wording produced compounds like "Sending to Send
+    // didn't complete" and "Received from Refund from Starbucks".
+    if (nameKey && SELF_DESCRIBING_NAME_KEYS.has(nameKey)) {
+        return userName
+    }
 
     // Link transactions short-circuit; userName is already a self-describing
     // label so the "Sent to ${displayName}" prefix doesn't apply.
@@ -85,18 +93,18 @@ const getTitle = (
 
         switch (direction) {
             case 'send':
-                if (status === 'pending' || status === 'cancelled') {
-                    titleText = displayName
+                // Locale-safe discriminant (#2554): key off nameKey, never
+                // the (now localized) display string.
+                if (nameKey === TRANSACTION_NAME_KEYS.sentViaLink) {
+                    titleText = t('title.sentViaLink')
                 } else {
-                    // Locale-safe discriminant (#2554): key off nameKey, never
-                    // the (now localized) display string.
-                    if (nameKey === TRANSACTION_NAME_KEYS.sentViaLink) {
-                        titleText = t('title.sentViaLink')
-                    } else {
-                        titleText = t(status === 'completed' ? 'title.sentTo' : 'title.sendingTo', {
-                            name: displayName,
-                        })
-                    }
+                    // Direction stays in words for every status (PR #2813
+                    // review): a bare counterparty name can't tell inflow
+                    // from outflow. Non-completed (pending / cancelled /
+                    // failed) reads "Sending to".
+                    titleText = t(status === 'completed' ? 'title.sentTo' : 'title.sendingTo', {
+                        name: displayName,
+                    })
                 }
                 break
             case 'request_received':
@@ -143,16 +151,27 @@ const getTitle = (
                 }
                 break
             case 'qr_payment':
-                if (status === 'completed') {
-                    titleText = t('title.paidTo', { name: displayName })
-                } else if (status === 'failed') {
-                    // Failed QR-pays carry a self-contained label from the
-                    // transformer ("Failed QR payment attempt") — no "Payment to"
-                    // prefix, which would read "Payment to Failed QR payment attempt".
-                    titleText = displayName
+                if (status === 'failed') {
+                    // Failed card spends carry a merchant name, so they keep the
+                    // direction words: "Payment to {merchant}" (board 17490:115877).
+                    // The self-contained "Failed QR payment attempt" label is
+                    // handled by the self-describing escape at the top.
+                    titleText = t('title.paymentTo', { name: displayName })
                 } else {
-                    titleText = t('title.payingTo', { name: displayName })
+                    // Board 17490:115877 (Activity/CardPayment pending drawer):
+                    // the title keeps the type wording "Paid to {name}" in every
+                    // non-failed state — the status badge, not the verb tense,
+                    // carries pending/cancelled. ("Paying to" retired with it.)
+                    titleText = t('title.paidTo', { name: displayName })
                 }
+                break
+            case 'bank_request_fulfillment':
+                // Payer side of a request fulfilled via bank rails — outgoing
+                // money, worded like a send (PR #2813 review: direction must
+                // be readable from the receipt words, not the sign alone).
+                titleText = t(status === 'completed' ? 'title.sentTo' : 'title.sendingTo', {
+                    name: displayName,
+                })
                 break
             default:
                 titleText = displayName
@@ -163,42 +182,28 @@ const getTitle = (
     return titleText
 }
 
-const getIcon = (
-    direction: TransactionDirection,
-    isLinkTransaction?: boolean,
-    isTestTransaction?: boolean
-): IconName | undefined => {
-    if (isLinkTransaction || isTestTransaction) {
-        return undefined
-    }
-
-    switch (direction) {
-        case 'send':
-        case 'bank_request_fulfillment':
-        case 'qr_payment':
-            return 'arrow-up-right'
-        case 'request_sent':
-        case 'receive':
-        case 'request_received':
-            return 'arrow-down-left'
-        case 'withdraw':
-        case 'bank_claim':
-        case 'claim_external':
-            return 'arrow-up'
-        case 'add':
-        case 'bank_deposit':
-            return 'arrow-down'
-        default:
-            return undefined
-    }
+/** Amount treatment per the states board (17966:12128): pending = greyed,
+ *  cancelled/refunded/failed = strikethrough, everything else = base.
+ *  Open requests skip the pending grey-out — see isOpenRequestDisplay. */
+const amountStateClasses = (status?: StatusType, isOpenRequest?: boolean) => {
+    if ((status === 'pending' || status === 'processing') && !isOpenRequest) return 'text-foreground-secondary'
+    if (status === 'cancelled' || status === 'refunded' || status === 'failed') return 'line-through'
+    return ''
 }
 
+/**
+ * Receipt head (DS 09, TX Details board 17490:115877): centered composition —
+ * IconBubble/avatar on top, transaction-type line, big amount, status badge.
+ * Completed transactions show NO badge (base state per the states board);
+ * pending/failed/cancelled do.
+ */
 export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCardProps> = ({
     direction,
     userName,
     nameKey,
     nameParams,
     amountDisplay,
+    sign = '',
     initials,
     status,
     isVerified = false,
@@ -208,12 +213,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     haveSentMoneyToUser = false,
     isNameClickable = false,
     isAvatarClickable = false,
-    showProgessBar = false,
-    progress,
-    goal,
     isRequestPotTransaction,
-    isTransactionClosed,
-    convertedAmount,
     showFullName,
     fullName,
     countryCode,
@@ -224,6 +224,11 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     // surface below; raw `userName` stays for data uses (test-tx marker,
     // profile URL, verification lookups).
     const localizedUserName = nameKey ? translateTransactionName(t, nameKey, nameParams) : userName
+    // Reverse-resolve raw-address counterparties (same pattern as the feed
+    // row in TransactionCard) so the worded title reads "Added from {ens}"
+    // instead of a shortened 0x. No ENS → getTitle shortens the raw address.
+    const { primaryName } = usePrimaryNameServer(isAddress(userName) ? userName : undefined)
+    const resolvedUserName = normalizeEnsName(primaryName) ?? localizedUserName
     const typeForAvatar =
         transactionType ?? (direction === 'add' ? 'add' : direction === 'withdraw' ? 'withdraw' : 'send')
 
@@ -232,103 +237,113 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
 
     // check if this is a test transaction (setup confirmation)
     const isTest = isTestTransaction(userName)
-    const icon = getIcon(direction, isLinkTransaction, isTest)
 
     const handleUserProfileClick = () => {
         router.push(profileUrl(userName))
     }
 
-    const isNoGoalSet = isRequestPotTransaction && goal === 0
+    // Open requests (unfulfilled request links + pots) skip the pending
+    // treatment entirely — no pending badge, no greyed amount (PR #2813
+    // review; states board shows requests in the base state).
+    const isOpenRequest = isOpenRequestDisplay({ direction, isRequestPotLink: isRequestPotTransaction })
+    const isPendingFamily = !!status && status !== 'custom' && PENDING_AMOUNT_STATUSES.has(status)
+    const showBadge = !!status && status !== 'completed' && !(isOpenRequest && isPendingFamily)
 
     return (
-        <Card className="relative p-4 md:p-6" position="single">
+        <div className="flex flex-col items-center gap-4 text-center">
             {isTest ? (
-                <div className="flex items-center gap-3">
-                    <div>
-                        <Image src={PEANUTMAN} alt="Peanut Logo" width={64} height={64} className="size-8" />
-                    </div>
-                    <div>
-                        <h2 className="text-xl font-extrabold">{t('enjoyPeanut')}</h2>
-                    </div>
-                </div>
+                <Image src={PEANUTMAN} alt="Peanut Logo" width={64} height={64} className="size-12" />
             ) : (
-                <div className="flex items-center gap-3">
-                    <div
-                        className={twMerge(isAvatarClickable && 'cursor-pointer')}
-                        onClick={isAvatarClickable ? handleUserProfileClick : undefined}
-                    >
-                        {avatarUrl ? (
-                            <div className="flex h-16 w-16 items-center justify-center rounded-full">
-                                <Image
-                                    src={avatarUrl}
-                                    alt="Icon"
-                                    className="size-full rounded-full object-cover"
-                                    width={160}
-                                    height={160}
-                                />
-                            </div>
-                        ) : (
-                            <TransactionAvatarBadge
-                                initials={initials}
-                                userName={nameForAvatar}
-                                isLinkTransaction={isLinkTransaction}
-                                transactionType={typeForAvatar}
-                                context="header"
-                                size="small"
-                                countryCode={countryCode}
+                <div
+                    className={twMerge(
+                        isAvatarClickable &&
+                            'cursor-pointer rounded-full focus-visible:outline-[3px] focus-visible:outline-action-focus'
+                    )}
+                    onClick={isAvatarClickable ? handleUserProfileClick : undefined}
+                    role={isAvatarClickable ? 'button' : undefined}
+                    tabIndex={isAvatarClickable ? 0 : undefined}
+                    aria-label={isAvatarClickable ? nameForAvatar : undefined}
+                    onKeyDown={
+                        isAvatarClickable
+                            ? (event) => {
+                                  if (event.key === 'Enter' || event.key === ' ') {
+                                      event.preventDefault()
+                                      handleUserProfileClick()
+                                  }
+                              }
+                            : undefined
+                    }
+                >
+                    {avatarUrl ? (
+                        <div className="flex size-12 items-center justify-center rounded-full">
+                            <Image
+                                src={avatarUrl}
+                                alt="Icon"
+                                className="size-full rounded-full object-cover"
+                                width={160}
+                                height={160}
                             />
-                        )}
-                    </div>
-                    <div className="w-full space-y-1">
-                        <h2 className="flex items-center gap-2 text-sm font-medium text-grey-1">
-                            {icon && <Icon name={icon} size={10} />}
+                        </div>
+                    ) : (
+                        <TransactionAvatarBadge
+                            initials={initials}
+                            userName={nameForAvatar}
+                            isLinkTransaction={isLinkTransaction}
+                            transactionType={typeForAvatar}
+                            context="header"
+                            size="small"
+                            countryCode={countryCode}
+                        />
+                    )}
+                </div>
+            )}
+            <div className="flex w-full flex-col items-center gap-2">
+                <div className="flex w-full flex-col items-center gap-1">
+                    <h2 className="flex items-center justify-center text-body-s text-foreground-secondary">
+                        {isTest ? (
+                            t('enjoyPeanut')
+                        ) : (
                             <VerifiedUserLabel
                                 username={userName}
                                 name={
                                     isRequestPotTransaction
-                                        ? localizedUserName
+                                        ? // The pot rollup row only ever renders for the request's
+                                          // owner — the generic "Request" label reads as their own
+                                          // ask: "You requested". Named pots keep their name.
+                                          nameKey === TRANSACTION_NAME_KEYS.request
+                                            ? t('title.youRequested')
+                                            : localizedUserName
                                         : (getTitle(
                                               t,
                                               direction,
-                                              localizedUserName,
+                                              resolvedUserName,
                                               isLinkTransaction,
                                               status,
                                               nameKey
                                           ) as string)
                                 }
                                 isVerified={isVerified}
-                                className="flex items-center gap-1"
+                                className="flex items-center justify-center gap-1"
                                 haveSentMoneyToUser={haveSentMoneyToUser}
                                 iconSize={18}
                                 onNameClick={isNameClickable ? handleUserProfileClick : undefined}
                             />
-
-                            <div className="ml-auto">
-                                {status && <StatusBadge status={status} size="small" className="py-0" />}
-                            </div>
-                        </h2>
+                        )}
+                    </h2>
+                    {!isTest && (
                         <h1
                             className={twMerge(
-                                'text-3xl font-extrabold md:text-4xl',
-                                ['cancelled', 'refunded'].includes(status ?? '') && 'text-grey-1 line-through',
-                                isNoGoalSet && 'text-xl text-black md:text-3xl'
+                                'text-heading-l text-foreground-primary',
+                                amountStateClasses(status, isOpenRequest)
                             )}
                         >
+                            {sign}
                             {amountDisplay}
                         </h1>
-
-                        {convertedAmount && <h2 className="font-bold">≈ {convertedAmount}</h2>}
-
-                        {isNoGoalSet && <h4 className="text-sm font-medium text-black">{t('noGoalSet')}</h4>}
-                    </div>
+                    )}
                 </div>
-            )}
-
-            {!isNoGoalSet && showProgessBar && goal !== undefined && progress !== undefined && (
-                <div className="mt-4">
-                    <ProgressBar goal={goal} progress={progress} isClosed={isTransactionClosed} />
-                </div>
-            )}
-        </Card>
+                {showBadge && <StatusBadge status={status!} size="medium" />}
+            </div>
+        </div>
     )
 }

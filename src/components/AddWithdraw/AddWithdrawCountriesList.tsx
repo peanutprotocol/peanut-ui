@@ -1,6 +1,8 @@
 'use client'
 
 import { COUNTRY_SPECIFIC_METHODS, countryData, type SpecificPaymentMethod } from '@/components/AddMoney/consts'
+import { getCardPosition } from '@/components/Global/Card/card.utils'
+import { Section } from '@/components/0_Bruddle/Section'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
@@ -24,7 +26,7 @@ import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useAppDispatch } from '@/redux/hooks'
 import { bankFormActions } from '@/redux/slices/bank-form-slice'
-import { ActionListCard } from '@/components/ActionListCard'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import TokenAndNetworkConfirmationModal from '../Global/TokenAndNetworkConfirmationModal'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
@@ -32,7 +34,7 @@ import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { resolveKycModalVariant, getGateUserMessage, getGateReasonCode } from '@/utils/capability-gate'
 import { railJurisdictionForBank } from '@/utils/bridge.utils'
-import { getRegionIntent } from '@/utils/regions.utils'
+import { useBankRegionIntent } from '@/hooks/useBankRegionIntent'
 import { useTosGuard } from '@/hooks/useTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
@@ -134,6 +136,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     // them. The prior unscoped `isBankRailUnderReview` check did exactly that
     // and dead-ended ready users behind a "You're all set / Go back" modal.
     const { isKycApproved, gateFor } = useCapabilities()
+    const bankRegionIntent = useBankRegionIntent()
     const isUserKycApproved = isKycApproved
     const bankCountry = useMemo(() => railJurisdictionForBank(currentCountry?.id), [currentCountry?.id])
     const gate = useMemo(() => gateFor('deposit', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
@@ -259,7 +262,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         // name and email are now collected by sumsub sdk — no need to save them beforehand
         if (!isUserKycApproved) {
             await sumsubFlow.handleInitiateKyc(
-                getRegionIntent(currentCountry?.region ?? 'rest-of-the-world'),
+                bankRegionIntent(currentCountry?.region ?? 'rest-of-the-world'),
                 undefined,
                 undefined,
                 currentCountry?.id
@@ -374,7 +377,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                         await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                     } else {
                         await sumsubFlow.handleInitiateKyc(
-                            getRegionIntent(currentCountry?.region ?? 'rest-of-the-world'),
+                            bankRegionIntent(currentCountry?.region ?? 'rest-of-the-world'),
                             undefined,
                             gate.kind === 'needs-enrollment' || undefined,
                             currentCountry?.id
@@ -415,7 +418,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
     if (view === 'form') {
         return (
-            <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
+            <div className="flex min-h-inherit flex-col justify-normal gap-8">
                 <NavHeader
                     title={
                         flow === 'withdraw' ? (isBankFromSend ? tNav('send') : tNav('withdraw')) : tAddMoney('title')
@@ -464,8 +467,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         }
 
         return (
-            <div className="space-y-2">
-                <h2 className="text-base font-bold">{title}</h2>
+            <Section title={title}>
                 <div className="flex flex-col">
                     {paymentMethods.map((method, index) => {
                         // BRL-via-PIX onramp is warn-only under maintenance: tag the Pix option but
@@ -475,13 +477,12 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                             method.id === 'pix-add' &&
                             underMaintenanceConfig.pixBrazilOnrampMaintenance
                         return (
-                            <ActionListCard
+                            <ListItem
                                 key={method.id}
-                                isDisabled={method.isSoon}
+                                disabled={method.isSoon}
                                 title={method.title}
-                                description={method.description}
-                                descriptionClassName={'text-xs'}
-                                leftIcon={
+                                body={<div className="text-body-xs">{method.description}</div>}
+                                leading={
                                     typeof method.icon === 'string' || method.icon === undefined ? (
                                         <AvatarWithBadge
                                             icon={method.icon as IconName}
@@ -507,7 +508,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                         />
                                     )
                                 }
-                                rightContent={
+                                trailing={
                                     method.isSoon ? (
                                         <StatusBadge status="soon" size="small" />
                                     ) : isPixOnrampUnderMaintenance ? (
@@ -518,6 +519,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                         />
                                     ) : null
                                 }
+                                chevron={!method.isSoon && !isPixOnrampUnderMaintenance}
                                 onClick={() => {
                                     if (flow === 'withdraw') {
                                         handleWithdrawMethodClick(method)
@@ -525,25 +527,17 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                         handleAddMethodClick(method)
                                     }
                                 }}
-                                position={
-                                    paymentMethods.length === 1
-                                        ? 'single'
-                                        : index === 0
-                                          ? 'first'
-                                          : index === paymentMethods.length - 1
-                                            ? 'last'
-                                            : 'middle'
-                                }
+                                position={getCardPosition(index, paymentMethods.length)}
                             />
                         )
                     })}
                 </div>
-            </div>
+            </Section>
         )
     }
 
     return (
-        <div className="w-full space-y-8 self-start">
+        <div className="space-y-8 w-full self-start">
             <NavHeader
                 title={localizedCountryTitle(locale, currentCountry)}
                 onPrev={() => {

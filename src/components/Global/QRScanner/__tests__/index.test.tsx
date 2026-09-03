@@ -14,12 +14,14 @@ import { IntlWrapper } from '@/test-utils/intl'
 import { Clipboard } from '@capacitor/clipboard'
 import { clipboardHasStrings } from '@/utils/clipboard-detect'
 import { isAndroidNative } from '@/utils/capacitor'
+import { captureException } from '@sentry/nextjs'
 
 const mockToastError = jest.fn()
 
 jest.mock('@capacitor/clipboard', () => ({ Clipboard: { read: jest.fn() } }))
 jest.mock('@/utils/clipboard-detect', () => ({ clipboardHasStrings: jest.fn() }))
 jest.mock('@/utils/capacitor', () => ({ isAndroidNative: jest.fn() }))
+jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 // general.utils transitively imports env-requiring constants; passthrough keeps
 // the chip text assertable as the full address.
 jest.mock('@/utils/general.utils', () => ({ printableAddress: (a: string) => a }))
@@ -34,8 +36,15 @@ jest.mock('next/image', () => ({
 // the denied state, so paste is only reachable if it is rendered inside it.
 jest.mock('../CameraPermissionModal', () => ({
     __esModule: true,
-    default: ({ onPaste }: { onPaste?: () => void }) =>
-        onPaste ? <button onClick={onPaste}>{'Click to paste'}</button> : null,
+    // mirrors the real contract: Try again + Dismiss, and a paste button ONLY
+    // if a caller were to pass onPaste (it must not — the assertion relies on it)
+    default: ({ onRetry, onClose, onPaste }: { onRetry: () => void; onClose: () => void; onPaste?: () => void }) => (
+        <div>
+            <button onClick={onRetry}>{'Try again'}</button>
+            <button onClick={onClose}>{'Dismiss'}</button>
+            {onPaste && <button onClick={onPaste}>{'Click to paste'}</button>}
+        </div>
+    ),
 }))
 const cameraState = { error: null as string | null, isPermissionDenied: false }
 jest.mock('../useQRScanner', () => ({
@@ -58,6 +67,7 @@ const render = (ui: React.ReactElement, options?: Omit<Parameters<typeof rtlRend
 const mockRead = Clipboard.read as jest.MockedFunction<typeof Clipboard.read>
 const mockHasStrings = clipboardHasStrings as jest.MockedFunction<typeof clipboardHasStrings>
 const mockIsAndroidNative = isAndroidNative as jest.MockedFunction<typeof isAndroidNative>
+const mockCaptureException = captureException as jest.MockedFunction<typeof captureException>
 
 // all-lowercase: viem isAddress enforces checksum on mixed-case forms
 const ADDRESS = '0xab5801a7d398351b8be11c439e05c5b3259aec9b'
@@ -65,6 +75,7 @@ const CHIP_LABEL = 'Use copied code'
 // a Pix "copia e cola" payload — the pasted-payment shape the chip used to refuse
 const PIX_CODE =
     '00020126580014BR.GOV.BCB.PIX0136123e4567-e12b-3456-7890-123456789abc5204000053039865802BR5913Fulano de Tal6008BRASILIA62070503***63041D3D'
+const PIX_PAYLOAD = '00020101021226' + '0014br.gov.bcb.pix' + 'x'.repeat(68)
 
 const renderScanner = (onScan = jest.fn().mockResolvedValue({ success: true })) => {
     render(<QRScanner onScan={onScan} />)
@@ -77,15 +88,14 @@ beforeEach(() => {
     cameraState.isPermissionDenied = false
 })
 
-// Pasting a Pix code needs no camera, but the paste UI used to live only inside
-// the live viewfinder — so on native, where the OS camera grant is a sticky
-// per-install decision, declining it removed the app's only paste entry point.
-describe.each([
-    ['camera permission denied', { isPermissionDenied: true, error: null as string | null }],
-    ['camera unavailable', { isPermissionDenied: false, error: 'Camera unavailable' }],
-])('%s: paste stays reachable', (_label, state) => {
+// The camera-unavailable ERROR view keeps a paste path (pasting a Pix code
+// needs no camera). The permission-denied MODAL deliberately does not any
+// more: two secondary CTAs broke the modal recipe (ruled 2026-09-03, kush) —
+// it offers Try again + Dismiss only. The accepted trade-off: a native user
+// with a sticky camera denial pastes via the error view, not this modal.
+describe('camera unavailable: paste stays reachable', () => {
     it('pastes a Pix code without a working camera', async () => {
-        Object.assign(cameraState, state)
+        Object.assign(cameraState, { isPermissionDenied: false, error: 'Camera unavailable' })
         mockIsAndroidNative.mockReturnValue(false)
         mockHasStrings.mockResolvedValue(false)
         mockRead.mockResolvedValue({ value: PIX_CODE, type: 'text/plain' })
@@ -96,6 +106,20 @@ describe.each([
             fireEvent.click(await screen.findByText('Click to paste'))
         })
         expect(onScan).toHaveBeenCalledWith(PIX_CODE)
+    })
+})
+
+describe('camera permission denied: the modal keeps one primary + Dismiss', () => {
+    it('offers Try again and Dismiss, and no paste CTA', async () => {
+        Object.assign(cameraState, { isPermissionDenied: true, error: null })
+        mockIsAndroidNative.mockReturnValue(false)
+        mockHasStrings.mockResolvedValue(false)
+
+        renderScanner()
+
+        expect(await screen.findByText('Try again')).toBeInTheDocument()
+        expect(screen.getByText('Dismiss')).toBeInTheDocument()
+        expect(screen.queryByText('Click to paste')).toBeNull()
     })
 })
 
@@ -173,7 +197,8 @@ it('chip tap: onScan failure is not misreported as a clipboard error', async () 
     mockHasStrings.mockResolvedValue(true)
     mockRead.mockResolvedValue({ value: ADDRESS, type: 'text/plain' })
 
-    const onScan = jest.fn().mockRejectedValue(new Error('routing exploded'))
+    const error = new Error('routing exploded')
+    const onScan = jest.fn().mockRejectedValue(error)
     renderScanner(onScan)
 
     const chip = await screen.findByText(CHIP_LABEL)
@@ -182,12 +207,21 @@ it('chip tap: onScan failure is not misreported as a clipboard error', async () 
     })
     expect(mockToastError).toHaveBeenCalledWith('Error processing QR code')
     expect(mockToastError).not.toHaveBeenCalledWith('Could not access clipboard')
+    // the failure is reported to Sentry under its own tag, with the full
+    // pasted value (accepted trade-off, PR #2757)
+    expect(mockCaptureException).toHaveBeenCalledWith(
+        error,
+        expect.objectContaining({
+            tags: { error_type: 'qr_scan_processing' },
+            extra: { qrLength: ADDRESS.length, qrKind: 'other', qrPayload: ADDRESS },
+        })
+    )
 })
 
 it('"Click to paste": onScan failure is not misreported as a clipboard error', async () => {
     mockIsAndroidNative.mockReturnValue(false)
     mockHasStrings.mockResolvedValue(false)
-    mockRead.mockResolvedValue({ value: 'some text', type: 'text/plain' })
+    mockRead.mockResolvedValue({ value: PIX_PAYLOAD, type: 'text/plain' })
 
     const onScan = jest.fn().mockRejectedValue(new Error('routing exploded'))
     renderScanner(onScan)
@@ -196,9 +230,16 @@ it('"Click to paste": onScan failure is not misreported as a clipboard error', a
     await act(async () => {
         fireEvent.click(paste)
     })
-    expect(onScan).toHaveBeenCalledWith('some text')
+    expect(onScan).toHaveBeenCalledWith(PIX_PAYLOAD)
     expect(mockToastError).toHaveBeenCalledWith('Error processing QR code')
     expect(mockToastError).not.toHaveBeenCalledWith('Could not access clipboard')
+    // a Pix payload is classified and sent in full
+    expect(mockCaptureException).toHaveBeenCalledWith(
+        expect.any(Error),
+        expect.objectContaining({
+            extra: { qrLength: 100, qrKind: 'pix', qrPayload: PIX_PAYLOAD },
+        })
+    )
 })
 
 it('Android chip: onScan failure surfaces a processing error instead of rejecting unhandled', async () => {
@@ -229,4 +270,24 @@ it('chip tap: empty clipboard maps to the same copy as "Click to paste"', async 
     })
     expect(mockToastError).toHaveBeenCalledWith('Clipboard is empty')
     await waitFor(() => expect(screen.queryByText(CHIP_LABEL)).toBeNull())
+})
+
+/*
+ * Ruled 2026-09-02 (TASK-22121 #20): the paste link hangs off the scan square
+ * (top-full + mt-6), no longer off the drawer peek. jsdom has no layout, so
+ * what is pinned here is the anchoring: the link lives inside the square's
+ * container and is positioned from its bottom edge.
+ */
+it('paste actions hang below the scan square', async () => {
+    mockIsAndroidNative.mockReturnValue(false)
+    mockHasStrings.mockResolvedValue(false)
+
+    renderScanner()
+
+    const link = await screen.findByText('Click to paste')
+    const anchored = link.closest('.top-full') as HTMLElement | null
+    expect(anchored).not.toBeNull()
+    // one XL section gap below the square, positioned off the square not the viewport
+    expect(anchored!.className).toContain('mt-6')
+    expect(anchored!.className).toContain('absolute')
 })

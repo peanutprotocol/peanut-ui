@@ -7,7 +7,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import * as Sentry from '@sentry/nextjs'
 import { useTranslations } from 'next-intl'
 import { type ChangeEvent, useEffect, useRef, useState } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Icon } from '../Icons/Icon'
 import Loading from '../Loading'
 
@@ -173,17 +173,19 @@ const ValidatedInput = ({
         <div className="w-full">
             <div
                 className={twMerge(
-                    'relative w-full rounded-sm border border-n-1 bg-white focus:border-primary-1 dark:border-white',
-                    value && !isValidating && !isValid && debouncedValue === value
-                        ? ' border-error dark:border-error'
-                        : '',
+                    // the composed box IS the input chrome: DS states only, callers
+                    // pass layout classes at most (input board has no valid state).
+                    // same state model as .input: 3px blue ring replaces the border
+                    // on focus; base outline-color stops the black->blue flash
+                    'relative w-full rounded-sm border border-border-default bg-background-default outline-action-focus focus-within:border-transparent focus-within:outline-[3px] focus-within:outline-action-focus focus-within:outline-solid',
+                    value && !isValidating && !isValid && debouncedValue === value ? 'border-border-error' : '',
                     className
                 )}
                 translate="no"
             >
-                <div className="absolute left-1 top-1/2 z-10 flex -translate-y-1/2 items-center gap-1">
+                <div className="absolute top-1/2 left-1 z-10 flex -translate-y-1/2 items-center gap-1">
                     {infoText && (
-                        <div className="notranslate flex h-6 w-6 items-center justify-center bg-white">
+                        <div className="notranslate flex h-6 w-6 items-center justify-center bg-background-default">
                             <MoreInfo text={infoText} />
                         </div>
                     )}
@@ -205,9 +207,7 @@ const ValidatedInput = ({
                                 : undefined
                         }
                         className={twMerge(
-                            `notranslate h-12 w-full border-0 bg-white 
-                        pr-1 text-sm font-medium outline-none focus:outline-none
-                        active:bg-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75`,
+                            `notranslate w-full border-0 bg-background-default pr-1 text-body-s outline-none focus:outline-none focus-visible:outline-none active:bg-background-default`,
                             !!infoText ? 'pl-0' : 'pl-4'
                         )}
                         placeholder={placeholder}
@@ -227,30 +227,32 @@ const ValidatedInput = ({
                             className={`h-full ${
                                 isValidating
                                     ? 'opacity-100'
-                                    : 'bg-white opacity-100 transition-opacity hover:opacity-100 md:opacity-0'
+                                    : 'bg-background-default opacity-100 transition-opacity hover:opacity-100 md:opacity-0'
                             }`}
                         >
                             {isValidating ? (
-                                <div className="flex h-full w-12 items-center justify-center dark:bg-n-1">
+                                <div className="flex h-full w-12 items-center justify-center">
                                     <Loading />
                                 </div>
                             ) : !!isSetupFlow && !isValid && !isInputChanging ? (
                                 <div className="mr-2 flex h-full items-center justify-center rounded-full">
-                                    <Icon size={20} className="text-secondary-2" name="error" />
+                                    <Icon size={20} className="text-foreground-error" name="error" />
                                 </div>
                             ) : !!isSetupFlow && !!isValid && !isInputChanging ? (
-                                <div className="mr-2 flex size-5 items-center justify-center rounded-full bg-secondary-8">
-                                    <Icon size={12} className=" rounded-full p-0 text-white" name="check" />
+                                <div className="mr-2 flex size-5 items-center justify-center rounded-full bg-background-icon-bubble-green">
+                                    <Icon size={12} className="rounded-full p-0 text-white" name="check" />
                                 </div>
                             ) : (
                                 <button
+                                    type="button"
+                                    aria-label={t('invitesGraph.clear')}
                                     onClick={(e) => {
                                         e.preventDefault()
                                         onUpdate({ value: '', isValid: false, isChanging: false })
                                     }}
-                                    className="flex h-full w-6 items-center justify-center pr-2 dark:bg-n-1 md:w-8 md:pr-0"
+                                    className="relative flex h-full w-6 items-center justify-center pr-2 transition-opacity duration-instant after:absolute after:-inset-x-3 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60 md:w-8 md:pr-0"
                                 >
-                                    <Icon className="h-6 w-6 dark:fill-white" name="cancel" />
+                                    <Icon className="h-6 w-6" name="cancel" />
                                 </button>
                             )}
                         </div>
@@ -272,7 +274,7 @@ const ValidatedInput = ({
                                 dismissSuggestion()
                                 onUpdate({ value: suggestion, isValid: false, isChanging: true })
                             }}
-                            className="flex w-full items-start gap-1.5 rounded-sm border border-n-1 bg-white px-3 py-2 text-left text-xs font-medium text-n-1 transition-colors hover:bg-n-3 dark:border-white dark:bg-n-1 dark:text-white dark:hover:bg-n-2"
+                            className="flex w-full items-start gap-1 rounded-sm border border-border-default bg-background-default px-3 py-2 text-left text-body-xs font-medium text-foreground-primary transition-colors hover:bg-background-disabled"
                         >
                             <Icon name="paste" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                             <span className="break-all">

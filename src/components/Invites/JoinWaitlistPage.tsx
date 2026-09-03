@@ -1,17 +1,19 @@
 'use client'
 
 import { useAuth } from '@/context/authContext'
+import { FieldError } from '@/components/0_Bruddle/FieldError'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { invitesApi } from '@/services/invites'
 import { useEffect, useRef, useState } from 'react'
 import InvitesPageLayout from './InvitesPageLayout'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import ValidatedInput from '../Global/ValidatedInput'
 import { Button } from '@/components/0_Bruddle/Button'
-import ErrorAlert from '../Global/ErrorAlert'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { PeanutWavingHello, PeanutPointing } from '@/assets/mascot'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
-import PeanutLoading from '../Global/PeanutLoading'
+import Loading from '../Global/Loading'
 import { useSetupStore } from '@/redux/hooks'
 import { useNotifications } from '@/hooks/useNotifications'
 import { updateUserById } from '@/app/actions/users'
@@ -290,40 +292,42 @@ const JoinWaitlistPage = () => {
 
     const stepImage = step === 'jail' ? PeanutPointing.src : PeanutWavingHello.src
 
-    if (isAutoAccepting) return <PeanutLoading coverFullScreen />
+    if (isAutoAccepting) return <Loading variant="mascot" coverFullScreen />
 
     return (
-        <InvitesPageLayout image={stepImage}>
+        <InvitesPageLayout image={stepImage} showRagdoll={step === 'jail'}>
             <div
                 className={twMerge(
-                    'flex flex-grow flex-col justify-between overflow-hidden bg-white px-6 pb-8 pt-6 md:h-[100dvh] md:justify-center md:space-y-4',
-                    'flex flex-col items-end justify-center gap-5 pt-8'
+                    'flex flex-grow flex-col justify-between overflow-hidden bg-background-default px-6 pt-6 pb-8 md:space-y-4 md:h-dvh md:justify-center',
+                    'flex flex-col items-end justify-center gap-6 pt-8'
                 )}
             >
                 <div className="mx-auto w-full md:max-w-xs">
                     {/* Step 1: Email Collection */}
                     {step === 'email' && (
-                        <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-5">
-                            <h1 className="text-xl font-extrabold">{t('emailTitle')}</h1>
-                            <p className="text-base font-medium">{t('emailDescription')}</p>
+                        <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-6">
+                            <h1 className="text-heading-xs text-foreground-primary">{t('emailTitle')}</h1>
+                            <p className="text-body-m">{t('emailDescription')}</p>
 
-                            <BaseInput
-                                type="email"
-                                variant="sm"
-                                aria-label={t('emailLabel')}
-                                placeholder={t('emailPlaceholder')}
-                                value={emailValue}
-                                onChange={(e) => {
-                                    setEmailValue(e.target.value)
-                                    setEmailError('')
-                                }}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && isValidEmail(emailValue)) handleEmailSubmit()
-                                }}
-                                className="h-12"
-                            />
-
-                            {emailError && <ErrorAlert description={emailError} />}
+                            {/* input + its field error form one column, 4px apart (form-field board 17788:19179) */}
+                            <div className="flex flex-col gap-1">
+                                <BaseInput
+                                    type="email"
+                                    variant="sm"
+                                    aria-label={t('emailLabel')}
+                                    placeholder={t('emailPlaceholder')}
+                                    value={emailValue}
+                                    onChange={(e) => {
+                                        setEmailValue(e.target.value)
+                                        setEmailError('')
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && isValidEmail(emailValue)) handleEmailSubmit()
+                                    }}
+                                    className="h-12"
+                                />
+                                {emailError && <FieldError>{emailError}</FieldError>}
+                            </div>
 
                             <Button
                                 shadowSize="4"
@@ -335,84 +339,80 @@ const JoinWaitlistPage = () => {
                             </Button>
 
                             {emailError && (
-                                <button onClick={handleSkipEmail} className="text-sm underline">
+                                <LinkButton onClick={handleSkipEmail} className="self-center">
                                     {tCommon('skipForNow')}
-                                </button>
+                                </LinkButton>
                             )}
                         </div>
                     )}
 
                     {/* Step 2: Enable Notifications (skippable) */}
                     {step === 'notifications' && (
-                        <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-5">
-                            <h1 className="text-xl font-extrabold">{t('notificationsTitle')}</h1>
-                            <p className="text-base font-medium">{t('notificationsDescription')}</p>
+                        <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-6">
+                            <h1 className="text-heading-xs text-foreground-primary">{t('notificationsTitle')}</h1>
+                            <p className="text-body-m">{t('notificationsDescription')}</p>
 
                             <Button shadowSize="4" onClick={handleEnableNotifications}>
                                 {tNotifications('enable')}
                             </Button>
 
-                            <button onClick={() => setStep('jail')} className="text-sm underline">
+                            <LinkButton onClick={() => setStep('jail')} className="self-center">
                                 {tNotifications('notNow')}
-                            </button>
+                            </LinkButton>
                         </div>
                     )}
 
                     {/* Step 3: Jail Screen */}
-                    {step === 'jail' && isLoadingWaitlistPosition && <PeanutLoading coverFullScreen />}
+                    {step === 'jail' && isLoadingWaitlistPosition && <Loading variant="mascot" coverFullScreen />}
                     {step === 'jail' && !isLoadingWaitlistPosition && (
-                        <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-5">
-                            <h1 className="text-xl font-extrabold">{t('inviteOnlyTitle')}</h1>
+                        <div className="flex h-full flex-col justify-between gap-4 md:gap-10 md:pt-6">
+                            <h1 className="text-heading-xs text-foreground-primary">{t('inviteOnlyTitle')}</h1>
 
-                            <h2 className="text-xl font-bold">
+                            <h2 className="text-heading-xs text-foreground-primary">
                                 {data?.position ? t('inLineWithPosition', { position: data.position }) : t('inLine')}
                             </h2>
-                            <p className="text-base font-medium">{t('skipTheLine')}</p>
+                            <p className="text-body-m">{t('skipTheLine')}</p>
 
-                            <div className="flex items-center gap-2">
-                                <ValidatedInput
-                                    placeholder={tSetup('waitlist.inviterUsernamePlaceholder')}
-                                    value={inviteCode}
-                                    debounceTime={750}
-                                    validate={validateInviteCode}
-                                    shouldValidate={(v) => toInviteCode(v).length >= USERNAME_MIN_LENGTH}
-                                    onUpdate={({ value, isValid, isChanging }) => {
-                                        setIsValid(isValid)
-                                        setIsChanging(isChanging)
-                                        setInviteCode(value)
-                                    }}
-                                    isSetupFlow
-                                    isInputChanging={isChanging}
-                                    className={twMerge(
-                                        !isValid && !isChanging && !!inviteCode && 'border-error dark:border-error',
-                                        isValid &&
-                                            !isChanging &&
-                                            !!inviteCode &&
-                                            'border-secondary-8 dark:border-secondary-8',
-                                        'rounded-sm'
-                                    )}
-                                />
+                            {/* input + its field error form one column, 4px apart (form-field board 17788:19179) */}
+                            <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-2">
+                                    <ValidatedInput
+                                        placeholder={tSetup('waitlist.inviterUsernamePlaceholder')}
+                                        value={inviteCode}
+                                        debounceTime={750}
+                                        validate={validateInviteCode}
+                                        shouldValidate={(v) => toInviteCode(v).length >= USERNAME_MIN_LENGTH}
+                                        onUpdate={({ value, isValid, isChanging }) => {
+                                            setIsValid(isValid)
+                                            setIsChanging(isChanging)
+                                            setInviteCode(value)
+                                        }}
+                                        isSetupFlow
+                                        isInputChanging={isChanging}
+                                        className="rounded-sm"
+                                    />
 
-                                <Button
-                                    className="h-12 w-4/12"
-                                    loading={isAccepting}
-                                    shadowSize="4"
-                                    onClick={handleAcceptInvite}
-                                    disabled={!isValid || isChanging || isValidating || isAccepting}
-                                >
-                                    {tCommon('next')}
-                                </Button>
+                                    <Button
+                                        className="h-12 w-4/12"
+                                        loading={isAccepting}
+                                        shadowSize="4"
+                                        onClick={handleAcceptInvite}
+                                        disabled={!isValid || isChanging || isValidating || isAccepting}
+                                    >
+                                        {tCommon('next')}
+                                    </Button>
+                                </div>
+
+                                {!isValid && !isChanging && !!inviteCode && (
+                                    <FieldError>{tSetup('waitlist.inviterNotFound')}</FieldError>
+                                )}
                             </div>
 
-                            {!isValid && !isChanging && !!inviteCode && (
-                                <ErrorAlert description={tSetup('waitlist.inviterNotFound')} />
-                            )}
+                            {error && <Notification priority="error">{error}</Notification>}
 
-                            {error && <ErrorAlert description={error} />}
-
-                            <button onClick={handleLogout} className="text-sm underline">
+                            <LinkButton onClick={handleLogout} className="self-center">
                                 {isLoggingOut ? t('pleaseWait') : t('logInDifferentAccount')}
-                            </button>
+                            </LinkButton>
                         </div>
                     )}
                 </div>

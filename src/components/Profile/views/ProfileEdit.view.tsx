@@ -1,20 +1,30 @@
 'use client'
 import { updateUserById } from '@/app/actions/users'
+import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { Button } from '@/components/0_Bruddle/Button'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import { useAuth } from '@/context/authContext'
 import * as Sentry from '@sentry/nextjs'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { Icon } from '@/components/Global/Icons/Icon'
+import DeleteAccountButton from '@/components/Settings/DeleteAccountButton'
+import ShowNameToggle from '../components/ShowNameToggle'
 import ProfileEditField from '../components/ProfileEditField'
 import ProfileHeader from '../components/ProfileHeader'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
 
+// Bio / phone / website have no backend yet. Kept as dead code behind a switch
+// (same pattern as OPEN_GATED) so the fields come back with the feature.
+const SHOW_COMING_SOON_FIELDS = false
+
 export const ProfileEditView = () => {
     const t = useTranslations('profile.edit')
+    const tMenu = useTranslations('profile.menu')
     const tCommon = useTranslations('common')
     const router = useRouter()
     const onBack = useSafeBack('/profile')
@@ -26,7 +36,10 @@ export const ProfileEditView = () => {
     const { isVerified: isKycApproved } = useIdentityVerification()
 
     const [isLoading, setIsLoading] = useState(false)
+    // backend/API failures — rendered in the Notification. client-side name
+    // validation renders as the name field's own error instead.
     const [errorMessage, setErrorMessage] = useState('')
+    const [nameError, setNameError] = useState('')
 
     // split the full name into name and surname
     const splitName = useCallback((fullName: string) => {
@@ -54,18 +67,36 @@ export const ProfileEditView = () => {
     // fields are locked and never sent. one source of truth for that invariant.
     const canEditName = !isKycApproved
 
-    // populate name and surname from fullName
-    useEffect(() => {
-        if (user?.user.fullName) {
-            const { name, surname } = splitName(user.user.fullName)
-            setFormData((prev) => ({
-                ...prev,
-                name,
-                surname,
-                email: user.user.email || '',
-            }))
-        }
+    // the saved values, and the only fields the user can actually change
+    const initial = useMemo(() => {
+        const { name, surname } = splitName(user?.user.fullName || '')
+        return { name, surname, email: user?.user.email || '' }
     }, [user?.user.fullName, user?.user.email, splitName])
+
+    // What was in the fields when the form loaded. The dirty check compares
+    // against THIS, not against `initial`: `initial` re-derives on every auth
+    // refresh, so if the saved name changed elsewhere while this screen was
+    // open, an untouched form went dirty and Save wrote the stale values back
+    // over the newer ones. The baseline and the fields have to move together.
+    const [baseline, setBaseline] = useState(() => ({ name: '', surname: '', email: user?.user.email || '' }))
+
+    // Hydrate once, when the saved values first arrive. Re-applying `initial`
+    // on a later refresh would wipe whatever the user had already typed, since
+    // this screen is reachable before auth resolves.
+    const hydrated = useRef(false)
+    useEffect(() => {
+        if (hydrated.current || !user) return
+        hydrated.current = true
+        setFormData((prev) => ({ ...prev, ...initial }))
+        setBaseline(initial)
+    }, [user, initial])
+
+    // Save stays disabled until something the user may edit actually changed.
+    // bio / phone / website are "Soon!" placeholders — always disabled, never
+    // sent, so they can never make the form dirty.
+    const isDirty =
+        (canEditName && (formData.name !== baseline.name || formData.surname !== baseline.surname)) ||
+        (!isEmailSet && formData.email !== baseline.email)
 
     // handle input field changes
     const handleChange = useCallback((field: string, value: string) => {
@@ -73,6 +104,8 @@ export const ProfileEditView = () => {
             ...prev,
             [field]: value,
         }))
+        // typing in the name field releases its validation error
+        if (field === 'name') setNameError('')
     }, [])
 
     // handle form submission
@@ -80,13 +113,14 @@ export const ProfileEditView = () => {
         try {
             setIsLoading(true)
             setErrorMessage('')
+            setNameError('')
 
             // only require the name when the field is editable — requiring it
             // while it's locked (verified user, provider owns the name) would
             // trap users whose fullName is empty at load (can't type, can't
             // save) when all they want is to set their email.
             if (canEditName && !formData.name?.trim()) {
-                setErrorMessage(t('errors.nameRequired'))
+                setNameError(t('errors.nameRequired'))
                 return
             }
 
@@ -142,79 +176,105 @@ export const ProfileEditView = () => {
     const username = user?.user.username || ''
 
     return (
-        <div className="space-y-8">
+        <div className="flex flex-col gap-8">
             <NavHeader title={t('title')} onPrev={onBack} />
 
-            <ProfileHeader name={fullName} username={username} isVerified={isKycApproved} />
+            <ProfileHeader name={fullName} username={username} isVerified={isKycApproved} showShareButton={false} />
 
-            <div className="space-y-4">
-                <ProfileEditField
-                    label={t('fields.name')}
-                    value={formData.name}
-                    onChange={(value) => handleChange('name', value)}
-                    placeholder={t('placeholders.name')}
-                    disabled={!canEditName}
-                />
+            {/* two groups — who you are, then how we reach you. gap-6 (XL,
+                the section step) against gap-4 (L) inside a group, so the
+                rhythm reads 8 (label → field) < 16 (field → field) < 24. */}
+            <div className="flex flex-col gap-6">
+                <div className="flex flex-col gap-4">
+                    <FieldColumn error={nameError}>
+                        <ProfileEditField
+                            label={t('fields.name')}
+                            value={formData.name}
+                            onChange={(value) => handleChange('name', value)}
+                            disabled={!canEditName}
+                        />
+                    </FieldColumn>
 
-                <ProfileEditField
-                    label={t('fields.surname')}
-                    value={formData.surname}
-                    onChange={(value) => handleChange('surname', value)}
-                    placeholder={t('placeholders.surname')}
-                    disabled={!canEditName}
-                />
+                    <ProfileEditField
+                        label={t('fields.surname')}
+                        value={formData.surname}
+                        onChange={(value) => handleChange('surname', value)}
+                        disabled={!canEditName}
+                    />
 
-                <ProfileEditField
-                    label={t('fields.bio')}
-                    value={formData.bio}
-                    onChange={(value) => handleChange('bio', value)}
-                    placeholder={t('placeholders.bio')}
-                    badge={t('soonBadge')}
-                    disabled
-                />
-
-                <ProfileEditField
-                    label={t('fields.email')}
-                    value={formData.email}
-                    onChange={(value) => handleChange('email', value)}
-                    placeholder={t('placeholders.email')}
-                    type="email"
-                    disabled={isEmailSet}
-                />
-
-                <ProfileEditField
-                    label={t('fields.phoneNumber')}
-                    value={formData.phone}
-                    onChange={(value) => handleChange('phone', value)}
-                    placeholder={t('placeholders.phone')}
-                    type="tel"
-                    badge={t('soonBadge')}
-                    disabled
-                />
-
-                <ProfileEditField
-                    label={t('fields.website')}
-                    value={formData.website}
-                    onChange={(value) => handleChange('website', value)}
-                    placeholder={t('placeholders.website')}
-                    type="url"
-                    badge={t('soonBadge')}
-                    disabled
-                />
-
-                <div className="space-y-5 pb-10">
-                    <Button
-                        disabled={isLoading}
-                        onClick={handleSave}
-                        className="w-full"
-                        shadowSize="4"
-                        loading={isLoading}
-                    >
-                        {t('saveChanges')}
-                    </Button>
-
-                    {errorMessage && <ErrorAlert description={errorMessage} />}
+                    {SHOW_COMING_SOON_FIELDS && (
+                        <ProfileEditField
+                            label={t('fields.bio')}
+                            value={formData.bio}
+                            onChange={(value) => handleChange('bio', value)}
+                            badge={t('soonBadge')}
+                            disabled
+                        />
+                    )}
                 </div>
+
+                <div className="flex flex-col gap-4">
+                    <ProfileEditField
+                        label={t('fields.email')}
+                        value={formData.email}
+                        onChange={(value) => handleChange('email', value)}
+                        type="email"
+                        disabled={isEmailSet}
+                    />
+
+                    {SHOW_COMING_SOON_FIELDS && (
+                        <>
+                            <ProfileEditField
+                                label={t('fields.phoneNumber')}
+                                value={formData.phone}
+                                onChange={(value) => handleChange('phone', value)}
+                                type="tel"
+                                badge={t('soonBadge')}
+                                disabled
+                            />
+
+                            <ProfileEditField
+                                label={t('fields.website')}
+                                value={formData.website}
+                                onChange={(value) => handleChange('website', value)}
+                                type="url"
+                                badge={t('soonBadge')}
+                                disabled
+                            />
+                        </>
+                    )}
+                </div>
+
+                {/* Name visibility belongs with the name itself; only shown
+                    once there is a name to show or hide. */}
+                {!!user?.user.fullName?.trim() && (
+                    <ListItem
+                        position="single"
+                        leading={<Icon name="eye" size={24} />}
+                        title={tMenu('showMyFullName')}
+                        trailing={<ShowNameToggle />}
+                    />
+                )}
+            </div>
+
+            {/* Save renders inline at the end of the form and scrolls with it.
+                A sticky footer here covered the Website field, which is the
+                last row — the field was unreachable behind the button. Save
+                stays gated on `isDirty`, so an untouched form cannot submit. */}
+            <div className="flex flex-col gap-4">
+                {errorMessage && <Notification priority="error">{errorMessage}</Notification>}
+
+                <Button
+                    disabled={isLoading || !isDirty}
+                    onClick={handleSave}
+                    className="w-full"
+                    shadowSize="4"
+                    loading={isLoading}
+                >
+                    {t('saveChanges')}
+                </Button>
+
+                <DeleteAccountButton />
             </div>
         </div>
     )

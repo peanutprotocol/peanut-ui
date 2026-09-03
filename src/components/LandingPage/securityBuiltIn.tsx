@@ -9,6 +9,8 @@ import selfCustodialDesign from '@/assets/illustrations/self-custodial-design.sv
 import kycOnlyWhenRequired from '@/assets/illustrations/kyc-only-when-required.svg'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale, type Translations } from '@/i18n/types'
+import type { LandingContentHrefs } from './landingContentHrefs'
+import { contentHrefsFor } from './landingContentHrefs.server'
 
 interface Feature {
     id: number
@@ -20,7 +22,7 @@ interface Feature {
     learnMoreHref?: string
 }
 
-function buildFeatures(i18n: Translations, locale: Locale): Feature[] {
+function buildFeatures(i18n: Translations, contentHrefs: LandingContentHrefs): Feature[] {
     return [
         {
             id: 1,
@@ -29,7 +31,7 @@ function buildFeatures(i18n: Translations, locale: Locale): Feature[] {
             description: i18n.landingSecurityTotalDesc,
             iconSrc: handThumbsUp,
             iconAlt: 'Thumbs up',
-            learnMoreHref: `/${locale}/help/passkeys`,
+            learnMoreHref: contentHrefs.passkeys,
         },
         {
             id: 2,
@@ -38,7 +40,7 @@ function buildFeatures(i18n: Translations, locale: Locale): Feature[] {
             description: i18n.landingSecurityControlDesc,
             iconSrc: handWaving,
             iconAlt: 'Hand waving',
-            learnMoreHref: `/${locale}/help/verification`,
+            learnMoreHref: contentHrefs.verification,
         },
         {
             id: 3,
@@ -53,15 +55,18 @@ function buildFeatures(i18n: Translations, locale: Locale): Feature[] {
 
 export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }) {
     const i18n = getTranslations(locale)
-    const features = buildFeatures(i18n, locale)
+    const features = buildFeatures(i18n, contentHrefsFor(locale))
 
     return (
         <section id="security" className="bg-primary-1 px-4 py-16 text-n-1 md:py-40">
             <div className="mx-auto max-w-7xl">
                 <div className="mb-12 text-center md:mb-16 md:text-left">
-                    <h1 className="font-roboto-flex-extrabold text-left text-heading font-extraBlack md:text-6xl lg:text-heading">
+                    {/* h2, not h1: this h1 sat directly above the h3 feature
+                        titles, and that h1 → h3 skip failed Lighthouse's
+                        heading-order audit. */}
+                    <h2 className="font-roboto-flex-extrabold text-left text-heading font-extraBlack md:text-6xl lg:text-heading">
                         {i18n.landingSecurityHeading}
-                    </h1>
+                    </h2>
                 </div>
                 <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
                     {features.map((feature) => (
@@ -85,22 +90,26 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                                     <h3 className="font-roboto-flex-extrabold text-2xl lg:text-3xl">{feature.title}</h3>
                                 </div>
                                 <p
-                                    className="font-roboto-flex w-full max-w-[360px] text-left text-lg font-normal leading-relaxed md:text-xl"
+                                    className="font-roboto-flex w-full max-w-[360px] text-left text-lg leading-relaxed font-normal md:text-xl"
                                     style={{ letterSpacing: '-0.5px' }}
                                 >
                                     {feature.description}
                                 </p>
                                 {feature.learnMoreHref && (
-                                    <a
-                                        href={feature.learnMoreHref}
-                                        className="font-roboto-flex mt-4 inline-block text-base text-n-1 underline hover:no-underline md:text-lg"
-                                    >
-                                        {i18n.landingLearnMore} →
-                                    </a>
+                                    // max-w matches the paragraph above, so the link
+                                    // lands on that right edge instead of the wider cell
+                                    <p className="mt-4 w-full max-w-[360px] text-right">
+                                        <a
+                                            href={feature.learnMoreHref}
+                                            className="font-roboto-flex text-base text-n-1 underline hover:no-underline md:text-lg"
+                                        >
+                                            {i18n.landingLearnMore} →
+                                        </a>
+                                    </p>
                                 )}
                                 {feature.id === 3 && (
                                     <div className="mt-6">
-                                        <Link href="/support">
+                                        <Link prefetch={false} href="/support">
                                             <Button
                                                 shadowSize="4"
                                                 className="bg-white px-6 py-3 text-base font-extrabold text-n-1 hover:bg-white/90"

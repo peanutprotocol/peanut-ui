@@ -16,6 +16,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 // next/navigation
 const mockRouterPush = jest.fn()
+const mockRouterBack = jest.fn()
+const mockRouterReplace = jest.fn()
 const mockSearchParams = new Map<string, string>()
 
 jest.mock('next/navigation', () => ({
@@ -24,9 +26,9 @@ jest.mock('next/navigation', () => ({
     }),
     useRouter: () => ({
         push: mockRouterPush,
-        replace: jest.fn(),
+        replace: mockRouterReplace,
         prefetch: jest.fn(),
-        back: jest.fn(),
+        back: mockRouterBack,
     }),
     usePathname: () => '/send',
 }))
@@ -77,6 +79,9 @@ jest.mock('@/utils/general.utils', () => ({
 jest.mock('@/constants/actionlist.consts', () => ({
     ACTION_METHODS: [
         { id: 'bank', title: 'Bank', description: 'EUR, USD, MXN, ARS & more', icons: [], soon: false },
+        // present in the catalog but must NOT surface in the send list —
+        // withdraw-to-own-account rail (see the exclusion test below)
+        { id: 'mercadopago', title: 'Mercado Pago', description: 'Instant transfers', icons: [], soon: false },
         {
             id: 'exchange-or-wallet',
             title: 'Exchange or Wallet',
@@ -128,23 +133,13 @@ jest.mock('@/components/0_Bruddle/Divider', () => ({
     default: (_props: any) => <hr data-testid="divider" />,
 }))
 
-jest.mock('@/components/ActionListCard', () => ({
-    ActionListCard: (props: any) => (
+jest.mock('@/components/0_Bruddle/ListItem', () => ({
+    ListItem: (props: any) => (
         <div data-testid={`action-card-${props.title}`} onClick={props.onClick}>
             <span>{typeof props.title === 'string' ? props.title : 'complex-title'}</span>
-            <span>{props.description}</span>
+            <span>{props.body}</span>
         </div>
     ),
-}))
-
-jest.mock('@/components/Global/IconStack', () => ({
-    __esModule: true,
-    default: () => <div data-testid="icon-stack" />,
-}))
-
-jest.mock('@/components/Global/Badges/StatusBadge', () => ({
-    __esModule: true,
-    default: (props: any) => <span data-testid="status-badge">{props.customText}</span>,
 }))
 
 jest.mock('@/components/Profile/AvatarWithBadge', () => ({
@@ -167,7 +162,14 @@ jest.mock('../link/LinkSendFlowManager', () => ({
 
 jest.mock('../views/Contacts.view', () => ({
     __esModule: true,
-    default: () => <div data-testid="contacts-view">Contacts View</div>,
+    default: (props: any) => (
+        <div data-testid="contacts-view">
+            <button data-testid="contacts-back" onClick={props.onPrev}>
+                Back
+            </button>
+            Contacts View
+        </div>
+    ),
 }))
 
 // withdraw-flow context — SendRouterView resets it when a click enters the withdraw flow
@@ -178,6 +180,7 @@ jest.mock('@/context/WithdrawFlowContext', () => ({
 
 // ---------- import component under test AFTER all mocks ----------
 import { SendRouterView } from '../views/SendRouter.view'
+import { __testing as safeBackTesting } from '@/hooks/useSafeBack'
 
 // ---------- helpers ----------
 
@@ -240,6 +243,7 @@ function applyDefaults() {
 beforeEach(() => {
     jest.clearAllMocks()
     mockSearchParams.clear()
+    safeBackTesting.reset()
     applyDefaults()
 })
 
@@ -268,6 +272,16 @@ describe('GROUP 1: Initial State', () => {
 
         expect(screen.getByTestId('action-card-Bank')).toBeInTheDocument()
         expect(screen.getByTestId('action-card-Exchange or Wallet')).toBeInTheDocument()
+    })
+
+    test('Excludes Mercado Pago from the send list (withdraw-to-own-account rail — PR #2813 review)', () => {
+        renderSend()
+
+        // the mocked catalog above contains mercadopago; SendRouterView must
+        // drop it before geo-filtering, so the hook never sees it
+        const methodsPassedToGeoFilter = mockUseGeoFilteredPaymentOptions.mock.calls[0][0].methods
+        expect(methodsPassedToGeoFilter.map((m: { id: string }) => m.id)).not.toContain('mercadopago')
+        expect(screen.queryByTestId('action-card-Mercado Pago')).not.toBeInTheDocument()
     })
 
     test('No contacts shows fallback avatar initials', () => {
@@ -301,11 +315,25 @@ describe('GROUP 2: Send by Link', () => {
         expect(screen.getByTestId('link-send-flow-manager')).toBeInTheDocument()
     })
 
-    test('Back from link view navigates to /send', () => {
+    test('Back from a cold deep-link into link view replaces to /send without minting history', () => {
         renderSend({ view: 'link' })
 
         fireEvent.click(screen.getByTestId('link-back'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/send')
+        // replace, not push — a pushed entry would let the base view's safe-back
+        // walk right back into the subview
+        expect(mockRouterReplace).toHaveBeenCalledWith('/send')
+        expect(mockRouterPush).not.toHaveBeenCalled()
+        expect(mockRouterBack).not.toHaveBeenCalled()
+    })
+
+    test('Back from an in-app-entered link view pops history instead of pushing', () => {
+        window.history.pushState({}, '', '/send?view=link')
+        renderSend({ view: 'link' })
+
+        fireEvent.click(screen.getByTestId('link-back'))
+        expect(mockRouterBack).toHaveBeenCalledTimes(1)
+        expect(mockRouterPush).not.toHaveBeenCalled()
+        expect(mockRouterReplace).not.toHaveBeenCalled()
     })
 })
 
@@ -318,6 +346,39 @@ describe('GROUP 3: Contacts View', () => {
 
         expect(screen.getByTestId('contacts-view')).toBeInTheDocument()
         expect(screen.queryByText('Send money with a link')).not.toBeInTheDocument()
+    })
+
+    test('Back from a cold deep-link into contacts replaces to /send without minting history', () => {
+        renderSend({ view: 'contacts' })
+
+        fireEvent.click(screen.getByTestId('contacts-back'))
+        expect(mockRouterReplace).toHaveBeenCalledWith('/send')
+        expect(mockRouterPush).not.toHaveBeenCalled()
+        expect(mockRouterBack).not.toHaveBeenCalled()
+    })
+
+    // Regression: the subview branch used to router.push('/send'), minting a
+    // history entry that made the base view's safe-back re-open the subview —
+    // Back looped between Contacts and base Send forever.
+    test('cold /send → open contacts → back → back leaves Send, not re-enters contacts', () => {
+        // cold /send: user opens contacts (real in-app push, as the contacts card does)
+        window.history.pushState({}, '', '/send?view=contacts')
+        const contactsView = renderSend({ view: 'contacts' })
+
+        // Back from contacts pops the pushed entry instead of pushing a new one
+        fireEvent.click(screen.getByTestId('contacts-back'))
+        expect(mockRouterBack).toHaveBeenCalledTimes(1)
+        expect(mockRouterPush).not.toHaveBeenCalled()
+
+        // the browser pops the subview entry in response to router.back()
+        window.dispatchEvent(new PopStateEvent('popstate'))
+        contactsView.unmount()
+
+        // back at base /send: Back must fall back to /home, never into contacts
+        renderSend()
+        fireEvent.click(screen.getByTestId('nav-back'))
+        expect(mockRouterPush).toHaveBeenCalledWith('/home')
+        expect(mockRouterBack).toHaveBeenCalledTimes(1)
     })
 })
 
@@ -352,27 +413,17 @@ describe('GROUP 4: Method Selection', () => {
         )
     })
 
-    test('Mercado Pago and Pix also reset the withdraw flow before navigating', () => {
+    test('Pix also resets the withdraw flow before navigating', () => {
         mockUseGeoFilteredPaymentOptions.mockReturnValue({
-            filteredMethods: [
-                { id: 'mercadopago', title: 'Mercado Pago', description: '', icons: [], soon: false },
-                { id: 'pix', title: 'Pix', description: '', icons: [], soon: false },
-            ],
+            filteredMethods: [{ id: 'pix', title: 'Pix', description: '', icons: [], soon: false }],
         })
         renderSend()
 
-        fireEvent.click(screen.getByTestId('action-card-Mercado Pago'))
+        fireEvent.click(screen.getByTestId('action-card-Pix'))
         expect(mockResetWithdrawFlow).toHaveBeenCalledTimes(1)
-        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/manteca?method=mercado-pago&country=argentina')
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
         expect(mockResetWithdrawFlow.mock.invocationCallOrder[0]).toBeLessThan(
             mockRouterPush.mock.invocationCallOrder[0]
-        )
-
-        fireEvent.click(screen.getByTestId('action-card-Pix'))
-        expect(mockResetWithdrawFlow).toHaveBeenCalledTimes(2)
-        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
-        expect(mockResetWithdrawFlow.mock.invocationCallOrder[1]).toBeLessThan(
-            mockRouterPush.mock.invocationCallOrder[1]
         )
     })
 
@@ -385,10 +436,21 @@ describe('GROUP 4: Method Selection', () => {
         expect(mockResetWithdrawFlow).not.toHaveBeenCalled()
     })
 
-    test('Back from main send navigates to /home', () => {
+    test('Back from main send falls back to /home on a cold deep-link', () => {
         renderSend()
 
         fireEvent.click(screen.getByTestId('nav-back'))
         expect(mockRouterPush).toHaveBeenCalledWith('/home')
+        expect(mockRouterBack).not.toHaveBeenCalled()
+    })
+
+    test('Back from main send returns through in-app history when it exists', () => {
+        // e.g. Rewards pushed this screen — back must land there, not /home
+        window.history.pushState({}, '', '/send')
+        renderSend()
+
+        fireEvent.click(screen.getByTestId('nav-back'))
+        expect(mockRouterBack).toHaveBeenCalledTimes(1)
+        expect(mockRouterPush).not.toHaveBeenCalledWith('/home')
     })
 })

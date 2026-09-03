@@ -1,5 +1,5 @@
-import en from '@/i18n/en.json'
 import { type Translations } from '@/i18n/types'
+import type { LandingProblemStrings, LandingSupportedRailsStrings } from './landing.types'
 
 // Narrowed copy bag handed from the server landing page down through
 // LandingPageClient. Keeps the client bundle from importing all locale
@@ -12,7 +12,10 @@ export interface LandingStrings {
     heroTapScan: string
     heroNoLocalId: string
     zeroFees: string
+    reallyZero: string
+    noHiddenFees: string
     seeMarkupOn: string
+    learnMore: string
     dropLinkHeading: string
     dropLinkBody: string
     currencyPlaceholder: string
@@ -25,6 +28,9 @@ export interface LandingStrings {
     cardCta: string
     wallOfLove: string
     wallOfLoveBody: string
+    problem: LandingProblemStrings
+    /** Headings for the rich supported-rails FAQ body (SupportedRailsFaqAnswer). */
+    supportedRails: LandingSupportedRailsStrings
     /** Passed straight through to ExchangeRateWidget's `labels`. */
     exchange: {
         youSend: string
@@ -48,7 +54,10 @@ export function landingStrings(i18n: Translations): LandingStrings {
         heroTapScan: i18n.landingHeroTapScan,
         heroNoLocalId: i18n.landingHeroNoLocalId,
         zeroFees: i18n.landingZeroFees,
+        reallyZero: i18n.landingReallyZero,
+        noHiddenFees: i18n.landingNoHiddenFees,
         seeMarkupOn: i18n.landingSeeMarkupOn,
+        learnMore: i18n.landingLearnMore,
         dropLinkHeading: i18n.landingDropLinkHeading,
         dropLinkBody: i18n.landingDropLinkBody,
         currencyPlaceholder: i18n.landingCurrencyPlaceholder,
@@ -61,6 +70,23 @@ export function landingStrings(i18n: Translations): LandingStrings {
         cardCta: i18n.landingCardCta,
         wallOfLove: i18n.landingWallOfLove,
         wallOfLoveBody: i18n.landingWallOfLoveBody,
+        problem: {
+            heading: i18n.landingProblemHeading,
+            crossBorderTitle: i18n.landingProblemCrossBorderTitle,
+            crossBorderBody: i18n.landingProblemCrossBorderBody,
+            sendHomeTitle: i18n.landingProblemSendHomeTitle,
+            sendHomeBody: i18n.landingProblemSendHomeBody,
+            paidAbroadTitle: i18n.landingProblemPaidAbroadTitle,
+            paidAbroadBody: i18n.landingProblemPaidAbroadBody,
+        },
+        supportedRails: {
+            crypto: i18n.landingSupportedRailsCrypto,
+            tokens: i18n.landingSupportedRailsTokens,
+            tokenNote: i18n.landingSupportedRailsTokenNote,
+            banks: i18n.landingSupportedRailsBanks,
+            free: i18n.landingSupportedRailsFree,
+            joinAnd: i18n.listJoinAnd,
+        },
         exchange: {
             youSend: i18n.exchangeYouSend,
             recipientGets: i18n.exchangeRecipientGets,
@@ -74,7 +100,3 @@ export function landingStrings(i18n: Translations): LandingStrings {
         },
     }
 }
-
-// For the English-only pages that reuse landing sections (/exchange, /quests).
-// Imports just en.json so those client bundles don't pull every locale catalog.
-export const EN_LANDING_STRINGS = landingStrings(en as Translations)

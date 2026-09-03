@@ -1,12 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
+import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { useRouter } from 'next/navigation'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { Button } from '@/components/0_Bruddle/Button'
 import NavHeader from '@/components/Global/NavHeader'
 import ValidatedInput from '@/components/Global/ValidatedInput'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { isPixEmvcoQr, normalizePixInput, validatePixKey } from '@/utils/withdraw.utils'
 import { pixKeyToQrPayUrl } from '@/utils/pix.utils'
@@ -50,27 +51,31 @@ export default function PixKeySendView({ destinationParam }: { destinationParam?
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col gap-8">
+        <PageStack>
             <NavHeader title={t('pixKey.title')} onPrev={onBack} />
-            <div className="my-auto flex flex-col gap-6">
+            <PageStack.Center>
                 <div className="space-y-4">
-                    <h2 className="text-lg font-bold">{t('pixKey.heading')}</h2>
+                    <h2 className="text-heading-card text-foreground-primary">{t('pixKey.heading')}</h2>
                     <div className="space-y-2">
-                        <ValidatedInput
-                            value={pixKey}
-                            placeholder={t('pixKey.placeholder')}
-                            onUpdate={(update) => {
-                                setPixKey(normalizePixInput(update.value))
-                                setIsValid(update.isValid)
-                                setIsChanging(update.isChanging)
-                                if (update.isValid || update.value === '') {
-                                    setErrorMessage(null)
-                                }
-                            }}
-                            validate={validatePixDestination}
-                            smartPasteKind="pixKey"
-                        />
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                        {/* input + its field error form one column, 4px apart (form-field board 17788:19179) */}
+                        <div className="flex flex-col gap-1">
+                            <ValidatedInput
+                                value={pixKey}
+                                placeholder={t('pixKey.placeholder')}
+                                onUpdate={(update) => {
+                                    setPixKey(normalizePixInput(update.value))
+                                    setIsValid(update.isValid)
+                                    setIsChanging(update.isChanging)
+                                    if (update.isValid || update.value === '') {
+                                        setErrorMessage(null)
+                                    }
+                                }}
+                                validate={validatePixDestination}
+                                smartPasteKind="pixKey"
+                            />
+                            {errorMessage && <FieldError>{errorMessage}</FieldError>}
+                        </div>
+                        <div className="flex items-center gap-2 text-body-s text-foreground-secondary">
                             <Icon name="info" size={16} />
                             <span>{t('pixKey.info')}</span>
                         </div>
@@ -85,10 +90,8 @@ export default function PixKeySendView({ destinationParam }: { destinationParam?
                     >
                         {tCommon('continue')}
                     </Button>
-
-                    {errorMessage && <ErrorAlert description={errorMessage} />}
                 </div>
-            </div>
-        </div>
+            </PageStack.Center>
+        </PageStack>
     )
 }

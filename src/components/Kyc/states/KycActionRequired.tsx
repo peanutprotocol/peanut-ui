@@ -1,7 +1,7 @@
 import { useTranslations } from 'next-intl'
 import { KYCStatusDrawerItem } from '../KYCStatusDrawerItem'
 import { RejectLabelsList } from '../RejectLabelsList'
-import InfoCard from '@/components/Global/InfoCard'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { Button } from '@/components/0_Bruddle/Button'
 import type { IconName } from '@/components/Global/Icons/Icon'
 
@@ -28,12 +28,18 @@ export const KycActionRequired = ({
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
 
+    // The generic card asks the user to continue — the required action can be a
+    // follow-up questionnaire, not a re-upload. Reject labels are the real
+    // re-submission case, so they keep the re-submit label. Matches the sibling
+    // KycActionRequiredModal, which pairs tCommon('continue') with the retry icon.
+    const isGenericAction = !rejectLabels?.length && !!actionMessage
+
     return (
         <div className="space-y-4 p-1">
             <KYCStatusDrawerItem status="pending" customText={t('actionNeeded')} />
 
-            {!rejectLabels?.length && actionMessage ? (
-                <InfoCard variant="info" icon="alert" description={t('actionMessageActionRequired')} />
+            {isGenericAction ? (
+                <Notification priority="info">{t('actionMessageActionRequired')}</Notification>
             ) : (
                 <RejectLabelsList rejectLabels={rejectLabels} />
             )}
@@ -45,7 +51,7 @@ export const KycActionRequired = ({
                 onClick={() => onResume()}
                 disabled={isLoading}
             >
-                {isLoading ? tCommon('loading') : t('resubmitVerification')}
+                {isLoading ? tCommon('loading') : isGenericAction ? tCommon('continue') : t('resubmitVerification')}
             </Button>
         </div>
     )

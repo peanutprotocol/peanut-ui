@@ -1,9 +1,9 @@
 import { PEANUTMAN_PFP } from '@/assets/mascot'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import Image from 'next/image'
 import { useState, useEffect } from 'react'
 import QRCode from 'react-qr-code'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 interface QRCodeWrapperProps {
     url: string
@@ -56,13 +56,13 @@ const QRCodeWrapper = ({
                         <QRCode
                             value={url}
                             size={256}
-                            style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
+                            className="h-auto w-full max-w-full"
                             viewBox={`0 0 256 256`}
                             level="H" // Highest error correction level to allow for logo
                         />
 
                         {/* Centered Logo */}
-                        <div className="absolute left-1/2 top-1/2 flex h-1/5 w-1/5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white p-0.5">
+                        <div className="absolute top-1/2 left-1/2 flex h-1/5 w-1/5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white p-0.5">
                             <Image
                                 src={centerImage ?? PEANUTMAN_PFP}
                                 alt="qr center logo"
@@ -78,7 +78,7 @@ const QRCodeWrapper = ({
             {/* Loading overlay */}
             {showLoading && (
                 <div className="absolute inset-0 flex items-center justify-center">
-                    <PeanutLoading />
+                    <Loading variant="mascot" />
                 </div>
             )}
         </div>

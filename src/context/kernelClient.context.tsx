@@ -1,6 +1,8 @@
 'use client'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import {
+    assertZeroDevBundlerUrl,
+    assertZeroDevRpcUrls,
     PEANUT_WALLET_CHAIN,
     USER_OP_ENTRY_POINT,
     ZERODEV_KERNEL_VERSION,
@@ -26,8 +28,10 @@ import type { Address, Hash } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { isDemoMode } from '@/utils/demo'
 import { DEMO_ADDRESS } from '@/constants/demo-data'
+import { ensureActiveFixture } from '@/dev/fixtures/active'
 import { captureException, captureMessage } from '@sentry/nextjs'
 import { retryAsync } from '@/utils/retry.utils'
+import { onReconnect } from '@/utils/reconnect.utils'
 import { isStaleClientForUser, isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
 import { isAndroidNative, getNativeRpId } from '@/utils/capacitor'
 import { createNativeSignMessageCallback } from '@/utils/native-webauthn'
@@ -124,6 +128,10 @@ export const createHarnessEcdsaKernelClient = async <C extends Chain>(
     privateKey: `0x${string}`,
     { bundlerUrl, paymasterUrl }: { bundlerUrl: string; paymasterUrl: string }
 ): Promise<GenericSmartAccountClient<C>> => {
+    // Bundler on BOTH paths: http(undefined) silently falls back to the chain's
+    // public RPC, which has no ERC-4337 methods, so an unsponsored run would
+    // report ready and then fail every userOp.
+    assertZeroDevBundlerUrl(bundlerUrl)
     const signer = privateKeyToAccount(privateKey)
     const validator = await signerToEcdsaValidator(publicClient, {
         signer,
@@ -147,6 +155,10 @@ export const createHarnessEcdsaKernelClient = async <C extends Chain>(
     }
 
     if (sponsored) {
+        // Only the sponsored branch reads paymasterUrl, so validating it up
+        // front rejected a deliberately unsponsored harness run that never
+        // needed one.
+        assertZeroDevRpcUrls(bundlerUrl, paymasterUrl)
         clientConfig.paymaster = {
             getPaymasterData: async (userOperation) => {
                 const zerodevPaymaster = createZeroDevPaymasterClient({
@@ -201,6 +213,7 @@ export const createKernelClientForChain = async <C extends Chain>(
     console.log(`Creating new kernel client for chain ${chain.name}...`)
 
     const { bundlerUrl, paymasterUrl } = options
+    assertZeroDevRpcUrls(bundlerUrl, paymasterUrl)
 
     let kernelAccount: Awaited<ReturnType<typeof createKernelAccount>>
     // The v0.0.3 PATCHED validator this account migrates *to* — the same
@@ -300,6 +313,7 @@ const ZERODEV_MIGRATION_DATE = new Date('2025-09-18T12:00:00.000Z')
 export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
     const [clientsByChain, setClientsByChain] = useState<Record<string, GenericSmartAccountClient>>({})
     const [webAuthnKey, setWebAuthnKey] = useState<WebAuthnKey | undefined>(undefined)
+    const [initAttempt, setInitAttempt] = useState(0)
     const dispatch = useAppDispatch()
     const { fetchUser, logoutUser, user } = useAuth()
     // In-flight kernel-client builds keyed by chainId. Lets concurrent
@@ -318,6 +332,15 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
         clientsRef.current = { ...clientsRef.current, [chainId]: client }
         setClientsByChain((prev) => ({ ...prev, [chainId]: client }))
     }, [])
+
+    // Drops the stored passkey ahead of a forced logout. User preferences live
+    // in localStorage keyed by userId and survive the logout, so a credential
+    // the chain has already rejected — wrong owner, or stale on-chain — has to
+    // be purged with the session; otherwise the next restore on this device
+    // pairs the account with the same dead key and bounces the user again.
+    const purgeStoredCredential = useCallback(() => {
+        if (user?.user.userId) updateUserPreferences(user.user.userId, { webAuthnKey: undefined })
+    }, [user?.user.userId])
 
     // Monotonic build sequence per chain. A build may only store its result if
     // it is still the LATEST build for that chain — otherwise a slow, stale
@@ -358,8 +381,10 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             return
         }
 
-        // Demo mode: no passkey/kernel client — synthesize the address and report ready.
-        if (isDemoMode()) {
+        // Demo mode, and dev fixtures: no passkey/kernel client — synthesize the
+        // address and report ready. Without this a fixture screen waits forever
+        // on a kernel address it can never get.
+        if (isDemoMode() || ensureActiveFixture()) {
             dispatch(zerodevActions.setAddress(DEMO_ADDRESS))
             dispatch(zerodevActions.setIsKernelClientReady(true))
             return
@@ -535,7 +560,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                     derivedAddress,
                     expectedAddress,
                 })
-                if (user?.user.userId) updateUserPreferences(user.user.userId, { webAuthnKey: undefined })
+                purgeStoredCredential()
                 logoutUser()
                 return
             }
@@ -551,17 +576,33 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             }
         }
 
-        retryAsync(initializeClients, { maxRetries: 2, baseDelay: 1000, maxDelay: 5000 }).catch(() => {
-            if (isMounted) {
-                console.error('[KernelClient] Primary chain client failed after retries — forcing logout')
-                dispatch(zerodevActions.setIsRegistering(false))
-                dispatch(zerodevActions.setIsLoggingIn(false))
+        let stopWaitingForReconnect: (() => void) | undefined
+        retryAsync(initializeClients, { maxRetries: 4, baseDelay: 1000, maxDelay: 15000 }).catch((error: unknown) => {
+            if (!isMounted) return
+            dispatch(zerodevActions.setIsRegistering(false))
+            dispatch(zerodevActions.setIsLoggingIn(false))
+            if (isStaleKeyError(error)) {
+                console.error('[KernelClient] Primary chain client rejected the stored key — forcing logout')
+                // The rejected credential must not outlive the session: user
+                // preferences are localStorage keyed by userId, so leaving it
+                // there lets the next restore pair the account with the same
+                // dead key and log the user straight back out.
+                purgeStoredCredential()
                 logoutUser()
+                return
             }
+            // A transient RPC/bundler outage must not cost the user their session
+            // (it logged out 8 production users in Aug 2026). Keep the API session,
+            // mark the wallet unavailable and rebuild once the device reconnects.
+            console.warn('[KernelClient] Primary chain client failed after retries — keeping session', error)
+            captureException(error, { tags: { error_type: 'kernel_client_init_failed' } })
+            dispatch(zerodevActions.setIsKernelClientReady(false))
+            stopWaitingForReconnect = onReconnect(() => setInitAttempt((attempt) => attempt + 1))
         })
 
         return () => {
             isMounted = false
+            stopWaitingForReconnect?.()
         }
         // Intentionally excluding `user` from deps: `useUserQuery` refetches on
         // window focus / mount and produces new refs on any content change
@@ -572,7 +613,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
         // is stable for an authenticated user, and isAfterZeroDevMigration
         // captures any user.createdAt change.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [webAuthnKey, isAfterZeroDevMigration])
+    }, [webAuthnKey, isAfterZeroDevMigration, initAttempt])
 
     useEffect(() => {
         const peanutClient = clientsByChain[PEANUT_WALLET_CHAIN.id]
@@ -601,13 +642,13 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                     derivedAddress,
                     expectedAddress,
                 })
-                if (user?.user.userId) updateUserPreferences(user.user.userId, { webAuthnKey: undefined })
+                purgeStoredCredential()
                 logoutUser()
                 throw createStaleSessionError()
             }
             return client
         },
-        [user, logoutUser]
+        [user, logoutUser, purgeStoredCredential]
     )
 
     const getPatchedSudoValidator = useCallback(
@@ -681,6 +722,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                 .catch((error) => {
                     console.error(`Error lazy-building kernel client for chain ${chainId}:`, error)
                     if (isStaleKeyError(error)) {
+                        purgeStoredCredential()
                         logoutUser()
                     } else {
                         captureException(error)
@@ -699,7 +741,15 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             inFlightRef.current.set(chainId, promise)
             return promise
         },
-        [webAuthnKey, isAfterZeroDevMigration, user, assertClientOwnedByUser, logoutUser, storeClient]
+        [
+            webAuthnKey,
+            isAfterZeroDevMigration,
+            user,
+            assertClientOwnedByUser,
+            logoutUser,
+            purgeStoredCredential,
+            storeClient,
+        ]
     )
 
     const ensureClientForChain = useCallback(

@@ -5,7 +5,7 @@ import { getTranslations } from '@/i18n'
 import { notFound } from 'next/navigation'
 import { ContentPage } from '@/components/Marketing/ContentPage'
 import { Hero } from '@/components/Marketing/mdx/Hero'
-import { readPageContentLocalized, listPublishedSlugs, type ContentFrontmatter } from '@/lib/content'
+import { readPageContentLocalizedResolved, listPublishedSlugs, type ContentFrontmatter } from '@/lib/content'
 import Link from 'next/link'
 
 interface PageProps {
@@ -44,15 +44,18 @@ export default async function StoriesIndexPage({ params }: PageProps) {
 
     const stories = slugs
         .map((slug) => {
-            const content = readPageContentLocalized<ContentFrontmatter>('stories', slug, locale)
-            if (!content || content.frontmatter.published === false) return null
+            if (slug === 'index') return null // legacy stories/index/ directory
+            const resolved = readPageContentLocalizedResolved<ContentFrontmatter>('stories', slug, locale)
+            if (!resolved || resolved.content.frontmatter.published === false) return null
             return {
                 slug,
-                title: content.frontmatter.title,
-                description: content.frontmatter.description,
+                // The serving locale owns the prose, so link it directly.
+                href: `/${resolved.lang}/stories/${encodeURIComponent(slug)}`,
+                title: resolved.content.frontmatter.title,
+                description: resolved.content.frontmatter.description,
             }
         })
-        .filter(Boolean) as Array<{ slug: string; title: string; description: string }>
+        .filter(Boolean) as Array<{ slug: string; href: string; title: string; description: string }>
 
     return (
         <ContentPage
@@ -63,7 +66,7 @@ export default async function StoriesIndexPage({ params }: PageProps) {
             ]}
         >
             <Hero title={i18n.storiesTitle} subtitle={i18n.storiesSubtitle} />
-            <div className="mx-auto mb-8 mt-10 max-w-[640px] px-6 md:mt-12 md:px-4">
+            <div className="mx-auto mt-10 mb-8 max-w-[640px] px-6 md:mt-12 md:px-4">
                 {stories.length === 0 ? (
                     <p className="text-center text-grey-1">{i18n.noStoriesPublished}</p>
                 ) : (
@@ -71,8 +74,8 @@ export default async function StoriesIndexPage({ params }: PageProps) {
                         {stories.map((story) => (
                             <Link
                                 key={story.slug}
-                                href={`/${locale}/stories/${encodeURIComponent(story.slug)}`}
-                                className="flex flex-col gap-1.5 bg-white px-5 py-4 transition-colors hover:bg-gray-50"
+                                href={story.href}
+                                className="flex flex-col gap-1.5 bg-white px-5 py-4 transition-colors hover:bg-gray-100"
                             >
                                 <span className="text-sm font-medium text-n-1">{story.title}</span>
                                 <span className="line-clamp-2 text-xs text-grey-1">{story.description}</span>

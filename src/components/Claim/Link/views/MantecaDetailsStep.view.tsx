@@ -1,12 +1,12 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { MercadoPagoStep } from '@/types/manteca.types'
 import { type Dispatch, type FC, type SetStateAction, useState } from 'react'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { validateCbuCvuAlias } from '@/utils/withdraw.utils'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import { MANTECA_COUNTRIES_CONFIG } from '@/constants/manteca.consts'
 import { useTranslations } from 'next-intl'
 
@@ -47,25 +47,28 @@ const MantecaDetailsStep: FC<MantecaDetailsStepProps> = ({
         <>
             <p className="font-bold">{t('manteca.enterAccountDetails')}</p>
 
-            <ValidatedInput
-                value={destinationAddress}
-                onUpdate={(update) => {
-                    setDestinationAddress(update.value)
-                    setIsDestinationAddressValid(update.isValid)
-                    setIsDestinationAddressChanging(update.isChanging)
-                    if (update.isValid || update.value === '') {
-                        setErrorMessage(null)
-                    }
-                }}
-                placeholder={countryConfig.accountNumberLabel}
-                validate={validateDestinationAddress}
-                smartPasteKind="cbuCvuAlias"
-            />
-            <div className="flex items-center gap-2 text-xs text-grey-1">
+            {/* input + its field error form one column, 4px apart (form-field board 17788:19179) */}
+            <div className="flex flex-col gap-1">
+                <ValidatedInput
+                    value={destinationAddress}
+                    onUpdate={(update) => {
+                        setDestinationAddress(update.value)
+                        setIsDestinationAddressValid(update.isValid)
+                        setIsDestinationAddressChanging(update.isChanging)
+                        if (update.isValid || update.value === '') {
+                            setErrorMessage(null)
+                        }
+                    }}
+                    placeholder={countryConfig.accountNumberLabel}
+                    validate={validateDestinationAddress}
+                    smartPasteKind="cbuCvuAlias"
+                />
+                {errorMessage && <FieldError>{errorMessage}</FieldError>}
+            </div>
+            <div className="flex items-center gap-2 text-body-xs text-foreground-secondary">
                 <Icon name="info" width={16} height={16} />
                 <span>{t('manteca.ownAccountOnly')}</span>
             </div>
-            {errorMessage && <ErrorAlert description={errorMessage} />}
             <Button
                 disabled={
                     !destinationAddress || !isDestinationAddressValid || !!errorMessage || isDestinationAddressChanging

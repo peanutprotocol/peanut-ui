@@ -1,20 +1,26 @@
 import starImage from '@/assets/icons/star.png'
 import { Button } from '@/components/0_Bruddle/Button'
 import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
+import { useToast } from '@/components/0_Bruddle/Toast'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { type BeforeInstallPromptEvent, type LayoutType, type ScreenId } from '@/components/Setup/Setup.types'
 import InstallPWA from '@/components/Setup/Views/InstallPWA'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useBravePWAInstallState } from '@/hooks/useBravePWAInstallState'
 import { DeviceType } from '@/hooks/useGetDeviceType'
 import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
+import { useLogin } from '@/hooks/useLogin'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { isCapacitor } from '@/utils/capacitor'
+import { getPasskeyErrorSetupKey, isAlreadyReported } from '@/utils/webauthn.utils'
+import * as Sentry from '@sentry/nextjs'
 import classNames from 'classnames'
 import { motion, useReducedMotion } from 'framer-motion'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
+import posthog from 'posthog-js'
 import { Children, type ReactNode, cloneElement, memo, type ReactElement, useState } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 /**
  * props interface for the SetupWrapper component
@@ -33,6 +39,7 @@ interface SetupWrapperProps {
     showBackButton?: boolean
     showSkipButton?: boolean
     showLogoutButton?: boolean
+    showLoginButton?: boolean
     onBack?: () => void
     onSkip?: () => void
     onLogout?: () => void
@@ -63,38 +70,94 @@ const STAR_POSITIONS = [
 ] as const
 
 /**
- * navigation component for back, skip, and logout buttons
+ * Log In for the pre-auth steps (install walls, waitlist, signup): a returning
+ * user whose entry link carried an invite code or ?step=signup used to have no
+ * way back to the passkey ceremony. Same click path as the landing step.
+ */
+function LoginButton() {
+    const t = useTranslations('setup')
+    const { handleLoginClick, isLoggingIn } = useLogin()
+    const toast = useToast()
+
+    const onLoginClick = async () => {
+        try {
+            await handleLoginClick()
+        } catch (error) {
+            const errorCode = error instanceof Error && 'code' in error ? String(error.code) : undefined
+            // PasskeyError carries a curated English message; known codes have
+            // translated catalog copy, so prefer that.
+            const i18nKey = getPasskeyErrorSetupKey(error)
+            toast.error(i18nKey ? t(i18nKey) : (error instanceof Error && error.message) || t('loginFailed'))
+            if (!isAlreadyReported(error)) {
+                Sentry.captureException(error, { extra: { errorCode } })
+            }
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_LOGIN_ERROR, { error_code: errorCode, native: isCapacitor() })
+        }
+    }
+
+    return (
+        <Button
+            onClick={onLoginClick}
+            variant="transparent-dark"
+            size="small"
+            className="h-auto w-fit p-0"
+            loading={isLoggingIn}
+            disabled={isLoggingIn}
+        >
+            <span className="text-foreground-over-color-secondary">{t('logIn')}</span>
+        </Button>
+    )
+}
+
+/**
+ * navigation component for back, skip, login and logout buttons
  * rendered at the top of the layout when any button is enabled
  */
 const Navigation = memo(function Navigation({
     showBackButton,
     showSkipButton,
     showLogoutButton,
+    showLoginButton,
     onBack,
     onSkip,
     onLogout,
     isLoggingOut,
 }: Pick<
     SetupWrapperProps,
-    'showBackButton' | 'showSkipButton' | 'showLogoutButton' | 'onBack' | 'onSkip' | 'onLogout' | 'isLoggingOut'
+    | 'showBackButton'
+    | 'showSkipButton'
+    | 'showLogoutButton'
+    | 'showLoginButton'
+    | 'onBack'
+    | 'onSkip'
+    | 'onLogout'
+    | 'isLoggingOut'
 >) {
     const t = useTranslations('setup.navigation')
 
-    if (!showBackButton && !showSkipButton && !showLogoutButton) return null
+    if (!showBackButton && !showSkipButton && !showLogoutButton && !showLoginButton) return null
 
+    // Icons inherit currentColor: the stroke button inverts on hover/active, and
+    // a hard-coded fill vanished into the black background.
     return (
         <div className="absolute top-8 z-20 flex w-full items-center justify-between px-6">
             <div>
                 {showBackButton && (
-                    <Button variant="stroke" onClick={onBack} className="h-8 w-8 p-0" aria-label={t('goBack')}>
-                        <Icon name="chevron-up" fill="black" size={20} className="-rotate-90" />
+                    <Button
+                        variant="stroke"
+                        onClick={onBack}
+                        className="relative size-10 p-0 shadow-none after:absolute after:-inset-0.5"
+                        aria-label={t('goBack')}
+                    >
+                        <Icon name="chevron-up" size={20} className="-rotate-90" />
                     </Button>
                 )}
             </div>
             <div className="flex items-center gap-3">
+                {showLoginButton && <LoginButton />}
                 {showSkipButton && (
                     <Button onClick={onSkip} variant="transparent-dark" className="h-auto w-fit p-0">
-                        <span className="text-grey-1">{t('skip')}</span>
+                        <span className="text-foreground-over-color-secondary">{t('skip')}</span>
                     </Button>
                 )}
                 {showLogoutButton && (
@@ -102,11 +165,11 @@ const Navigation = memo(function Navigation({
                         onClick={onLogout}
                         loading={isLoggingOut}
                         variant="stroke"
-                        className={twMerge('h-7 w-7 p-0', isLoggingOut && 'pl-3')}
+                        className="relative size-10 p-0 shadow-none after:absolute after:-inset-0.5"
                         aria-label={t('logout')}
                         disabled={isLoggingOut}
                     >
-                        <Icon name="logout" fill="black" size={24} />
+                        {!isLoggingOut && <Icon name="logout" size={20} />}
                     </Button>
                 )}
             </div>
@@ -140,7 +203,7 @@ const ImageSection = ({
             <div
                 className={twMerge(
                     containerClass,
-                    'relative flex w-full flex-row items-center justify-center overflow-hidden bg-secondary-3/100 px-4 md:h-[100dvh] md:w-7/12 md:px-6'
+                    'relative flex w-full flex-row items-center justify-center overflow-hidden bg-blue-300/100 px-4 md:h-dvh md:w-7/12 md:px-6'
                 )}
             >
                 {/* render animated star decorations */}
@@ -175,8 +238,8 @@ const ImageSection = ({
         <div
             className={classNames(
                 containerClass,
-                'flex w-full flex-row items-center justify-center bg-secondary-3/100 md:h-[100dvh] md:w-7/12',
-                screenId === 'success' && 'bg-secondary-1/15'
+                'flex w-full flex-row items-center justify-center bg-blue-300/100 md:h-dvh md:w-7/12',
+                screenId === 'success' && 'bg-action-secondary/15'
             )}
         >
             <Image
@@ -206,6 +269,7 @@ export const SetupWrapper = memo(function SetupWrapper({
     showBackButton,
     showSkipButton,
     showLogoutButton,
+    showLoginButton,
     onBack,
     onSkip,
     onLogout,
@@ -250,6 +314,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                     showSkipButton || (screenId === 'pwa-install' && (!canInstall || deviceType === DeviceType.WEB))
                 }
                 showLogoutButton={showLogoutButton}
+                showLoginButton={showLoginButton}
                 onBack={onBack}
                 onSkip={onSkip}
                 onLogout={onLogout}
@@ -272,43 +337,49 @@ export const SetupWrapper = memo(function SetupWrapper({
                     animate={animatePanelIn ? { y: 0 } : undefined}
                     transition={{ type: 'spring', stiffness: 260, damping: 30 }}
                     className={twMerge(
-                        'flex flex-col justify-between overflow-hidden bg-white px-6 pb-8 pt-6 md:h-[100dvh] md:justify-center md:space-y-4',
+                        'flex flex-col justify-between overflow-hidden bg-white px-6 pt-6 pb-8 md:space-y-4 md:h-dvh md:justify-center',
                         // signup: panel hugs its content so the hero absorbs the slack
                         // (paired with the grow classes in IMAGE_CONTAINER_CLASSES)
                         layoutType === 'signup' ? 'grow-0 md:grow' : 'flex-grow',
                         contentClassName
                     )}
                 >
-                    {/* title and description container */}
-                    <div
-                        className={twMerge(
-                            'mx-auto h-full w-full space-y-4 md:max-h-48 md:max-w-xs',
-                            (screenId === 'signup' || screenId == 'join-beta') && 'md:max-h-12',
-                            sunsetLanding && 'md:h-auto md:max-h-none'
-                        )}
-                    >
-                        {headingTitle && (
-                            <h1
-                                className={twMerge(
-                                    'w-full text-left text-xl font-extrabold leading-tight',
-                                    sunsetLanding && 'md:text-center',
-                                    titleClassName
-                                )}
-                            >
-                                {headingTitle}
-                            </h1>
-                        )}
-                        {headingDescription && (
-                            <p
-                                className={twMerge(
-                                    'text-base font-medium text-black',
-                                    sunsetLanding && 'md:text-center'
-                                )}
-                            >
-                                {headingDescription}
-                            </p>
-                        )}
-                    </div>
+                    {/* title and description container. Skipped entirely when
+                        the step renders its own heading (titleInView +
+                        descriptionInView): the wrapper is height-capped on
+                        desktop, so an empty slot would push the content down
+                        by up to 12rem. */}
+                    {(headingTitle || headingDescription) && (
+                        <div
+                            className={twMerge(
+                                'mx-auto space-y-4 h-full w-full md:max-h-48 md:max-w-xs',
+                                (screenId === 'signup' || screenId == 'join-beta') && 'md:max-h-12',
+                                sunsetLanding && 'md:h-auto md:max-h-none'
+                            )}
+                        >
+                            {headingTitle && (
+                                <h1
+                                    className={twMerge(
+                                        'w-full text-left text-heading-xs leading-tight',
+                                        sunsetLanding && 'md:text-center',
+                                        titleClassName
+                                    )}
+                                >
+                                    {headingTitle}
+                                </h1>
+                            )}
+                            {headingDescription && (
+                                <p
+                                    className={twMerge(
+                                        'text-body-m text-foreground-primary',
+                                        sunsetLanding && 'md:text-center'
+                                    )}
+                                >
+                                    {headingDescription}
+                                </p>
+                            )}
+                        </div>
+                    )}
                     {/* main content area */}
                     <div className="mx-auto w-full md:max-w-xs">
                         {Children.map(children, (child) => {

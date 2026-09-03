@@ -4,10 +4,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import Modal from '@/components/Global/Modal'
-import { Button } from '@/components/0_Bruddle/Button'
-import { Icon } from '@/components/Global/Icons/Icon'
-import SlideToAction from '@/components/Card/SlideToAction'
+import ActionModal from '@/components/Global/ActionModal'
+import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { rainApi } from '@/services/rain'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
@@ -136,72 +134,71 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
         }
     }
 
+    const isConfirm = phase === 'confirm' || phase === 'canceling'
+    const isFeedback = phase === 'feedback' || phase === 'submitting-feedback'
+
     return (
-        <Modal
+        <ActionModal
             visible={isOpen}
             onClose={handleClose}
-            classWrap="sm:m-auto sm:self-center self-center m-4"
             preventClose={phase === 'canceling' || phase === 'submitting-feedback'}
-        >
-            <div className="p-6">
-                {phase === 'confirm' || phase === 'canceling' ? (
-                    <div className="flex flex-col items-center gap-4 text-center">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-1">
-                            <Icon name="alert" size={20} />
-                        </div>
-                        <div className="text-xl font-extrabold">{t('cancel.title')}</div>
-                        <p className="text-sm text-grey-1">{t('cancel.body')}</p>
-                        {error && <p className="text-sm text-red">{error}</p>}
-                        <SlideToAction
+            hideModalCloseButton={phase === 'canceling' || phase === 'submitting-feedback'}
+            tone="warning"
+            icon={isConfirm ? 'alert' : isFeedback ? 'alert-filled' : undefined}
+            title={t(isConfirm ? 'cancel.title' : isFeedback ? 'cancel.canceledTitle' : 'cancel.thanksTitle')}
+            description={t(isConfirm ? 'cancel.body' : isFeedback ? 'cancel.canceledBody' : 'cancel.thanksBody')}
+            content={
+                isConfirm ? (
+                    <>
+                        {error && <p className="text-body-s text-foreground-error">{error}</p>}
+                        <SlideToConfirm
                             label={phase === 'canceling' ? t('cancel.canceling') : t('cancel.slideToCancel')}
-                            onComplete={runCancel}
+                            onConfirm={runCancel}
                             disabled={phase === 'canceling'}
                         />
-                    </div>
-                ) : phase === 'feedback' || phase === 'submitting-feedback' ? (
-                    <div className="flex flex-col items-center gap-4 text-center">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-1">
-                            <Icon name="alert-filled" size={20} />
-                        </div>
-                        <div className="text-xl font-extrabold">{t('cancel.canceledTitle')}</div>
-                        <p className="text-sm text-grey-1">{t('cancel.canceledBody')}</p>
-                        <div className="flex w-full flex-col gap-2 text-left">
-                            <label htmlFor="cancel-feedback" className="text-sm font-bold">
-                                {t('cancel.feedbackLabel')}
-                            </label>
-                            <textarea
-                                id="cancel-feedback"
-                                value={feedback}
-                                onChange={(e) => setFeedback(e.target.value)}
-                                placeholder={t('cancel.feedbackPlaceholder')}
-                                rows={4}
-                                maxLength={2000}
-                                className="w-full resize-none rounded-sm border border-n-1 bg-white p-3 text-sm focus:outline-none"
-                                disabled={phase === 'submitting-feedback'}
-                            />
-                        </div>
-                        <Button
-                            variant="purple"
-                            shadowSize="4"
-                            className="w-full"
-                            onClick={submitFeedback}
-                            loading={phase === 'submitting-feedback'}
+                    </>
+                ) : isFeedback ? (
+                    <div className="flex w-full flex-col gap-2 text-left">
+                        <label htmlFor="cancel-feedback" className="text-label-l">
+                            {t('cancel.feedbackLabel')}
+                        </label>
+                        <textarea
+                            id="cancel-feedback"
+                            value={feedback}
+                            onChange={(e) => setFeedback(e.target.value)}
+                            placeholder={t('cancel.feedbackPlaceholder')}
+                            rows={4}
+                            maxLength={2000}
+                            className="w-full resize-none rounded-sm border border-border-default bg-background-default p-3 text-body-s focus:outline-none"
                             disabled={phase === 'submitting-feedback'}
-                        >
-                            {t('cancel.submit')}
-                        </Button>
+                        />
                     </div>
-                ) : (
-                    <div className="flex flex-col items-center gap-4 text-center">
-                        <div className="text-xl font-extrabold">{t('cancel.thanksTitle')}</div>
-                        <p className="text-sm text-grey-1">{t('cancel.thanksBody')}</p>
-                        <Button variant="purple" shadowSize="4" className="w-full" onClick={handleClose}>
-                            {tCommon('close')}
-                        </Button>
-                    </div>
-                )}
-            </div>
-        </Modal>
+                ) : undefined
+            }
+            ctas={
+                isFeedback
+                    ? [
+                          {
+                              text: t('cancel.submit'),
+                              variant: 'purple',
+                              shadowSize: '4',
+                              onClick: submitFeedback,
+                              loading: phase === 'submitting-feedback',
+                              disabled: phase === 'submitting-feedback',
+                          },
+                      ]
+                    : phase === 'thanks'
+                      ? [
+                            {
+                                text: tCommon('close'),
+                                variant: 'purple',
+                                shadowSize: '4',
+                                onClick: handleClose,
+                            },
+                        ]
+                      : undefined
+            }
+        />
     )
 }
 

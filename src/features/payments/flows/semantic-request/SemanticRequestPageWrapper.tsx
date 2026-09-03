@@ -13,9 +13,9 @@
  */
 
 import { SemanticRequestPage } from './SemanticRequestPage'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { parsePaymentURL, type ParseUrlError } from '@/lib/url-parser/parser'
-import PeanutLoading from '@/components/Global/PeanutLoading'
-import ErrorAlert from '@/components/Global/ErrorAlert'
+import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
 import { useSearchParams } from 'next/navigation'
 import { useSafeBack } from '@/hooks/useSafeBack'
@@ -87,21 +87,27 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
     // loading state
     if (isLoading) {
         return (
-            <div className="flex min-h-[inherit] w-full flex-col gap-4">
+            <div className="flex min-h-inherit w-full flex-col gap-4">
                 <NavHeader title={t('headers.pay')} onPrev={onBack} />
                 <div className="flex flex-grow flex-col items-center justify-center gap-4 py-8">
-                    <PeanutLoading />
+                    <Loading variant="mascot" />
                 </div>
             </div>
         )
     }
 
-    // error state
+    // error state — centered card (ruled 2026-09-03: no more lone top banner)
     if (error || !parsedUrl) {
         return (
-            <div className="flex w-full flex-col gap-4">
+            <div className="flex min-h-inherit w-full flex-col gap-4">
                 <NavHeader title={t('headers.pay')} onPrev={onBack} />
-                <ErrorAlert description={error?.message || t('errors.invalidPaymentUrl')} />
+                <div className="flex flex-grow flex-col justify-center py-8">
+                    <EmptyState
+                        icon="link"
+                        title={t('errors.invalidPaymentUrlTitle')}
+                        description={error?.message || t('errors.invalidPaymentUrlDescription')}
+                    />
+                </div>
             </div>
         )
     }

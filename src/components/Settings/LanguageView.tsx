@@ -2,14 +2,28 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import Card from '@/components/Global/Card'
+import Image from 'next/image'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
+import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { APP_LOCALES, LOCALE_LABELS, type AppLocale } from '@/i18n/app/config'
-import { useAppLocale } from '@/i18n/app/AppIntlProvider'
+import { useAppLocale } from '@/i18n/app/locale-context'
 
-const positionFor = (index: number) => (index === 0 ? 'first' : index === APP_LOCALES.length - 1 ? 'last' : 'middle')
+/**
+ * ISO-2 country per locale, for the row flag. `es-419` is UN region 419 (Latin
+ * American Spanish) and has no country of its own; it flies the Spain flag
+ * because a flag row next to a globe row reads as a broken image, and Spain is
+ * the flag people already associate with "Spanish".
+ */
+const LOCALE_FLAG_CODES: Record<AppLocale, string> = {
+    en: 'us',
+    'es-419': 'es',
+    'es-AR': 'ar',
+    'pt-BR': 'br',
+}
 
 export const LanguageView = () => {
     const t = useTranslations('settings.language')
@@ -32,19 +46,26 @@ export const LanguageView = () => {
             <NavHeader title={t('title')} onPrev={onBack} />
             <div className="pt-4">
                 {APP_LOCALES.map((appLocale, index) => (
-                    <Card
+                    <ListItem
                         key={appLocale}
-                        position={positionFor(index)}
+                        position={getCardPosition(index, APP_LOCALES.length)}
                         onClick={() => select(appLocale)}
-                        className="cursor-pointer p-4 active:bg-grey-4"
-                    >
-                        <div className="flex items-center justify-between py-1">
-                            <span className="text-base font-medium" lang={appLocale}>
+                        leading={
+                            <Image
+                                src={getFlagUrl(LOCALE_FLAG_CODES[appLocale])}
+                                alt=""
+                                width={80}
+                                height={80}
+                                className="size-6 rounded-full object-cover"
+                            />
+                        }
+                        title={
+                            <span className="text-body-m text-foreground-primary" lang={appLocale}>
                                 {LOCALE_LABELS[appLocale]}
                             </span>
-                            {appLocale === locale && <Icon name="check" size={20} fill="black" />}
-                        </div>
-                    </Card>
+                        }
+                        trailing={appLocale === locale ? <Icon name="check" size={20} /> : undefined}
+                    />
                 ))}
             </div>
         </div>

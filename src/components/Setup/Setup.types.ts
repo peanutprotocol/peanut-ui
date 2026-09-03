@@ -2,6 +2,7 @@ export type ScreenId =
     | 'landing'
     | 'welcome'
     | 'signup'
+    | 'residence'
     | 'passkey-permission'
     | 'passkey-success'
     | 'notification-permission'
@@ -19,6 +20,7 @@ export type ScreenProps = {
     landing: undefined
     welcome: undefined
     signup: undefined
+    residence: undefined
     'passkey-permission': {
         handle: string
     }
@@ -47,6 +49,18 @@ export interface ISetupStep {
     component: React.ComponentType<StepComponentProps>
     showBackButton?: boolean
     showSkipButton?: boolean
+    /** Pre-auth steps offer Log In in the top-right group so a returning user is never trapped in signup. */
+    showLoginButton?: boolean
+    /**
+     * The step component renders the description itself (e.g. only on one of
+     * its sub-views), so the chrome must not also render it.
+     */
+    descriptionInView?: boolean
+    /**
+     * Same contract for the title: the step renders its own <h1> per sub-view
+     * (each view must keep exactly one top-level heading).
+     */
+    titleInView?: boolean
     imageClassName?: string
     titleClassName?: string
     contentClassName?: string

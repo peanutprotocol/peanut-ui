@@ -1,7 +1,9 @@
 'use client'
 
 import Image from 'next/image'
+import Link from 'next/link'
 import Marquee from 'react-fast-marquee'
+import type { MarqueeItem } from './marquee.types'
 
 type directionType = 'left' | 'right' | 'up' | 'down' | undefined
 
@@ -32,6 +34,19 @@ export function MarqueeWrapper({
     )
 }
 
+const wordClass = 'text-heading-card uppercase md:text-heading-xs'
+
+// A word is either plain text or a link — the strip looks identical either way,
+// so a linked word still reads as part of the run of words.
+function MarqueeWord({ item }: { item: MarqueeItem }) {
+    if (typeof item === 'string') return <div className={wordClass}>{item}</div>
+    return (
+        <Link href={item.href} className={`${wordClass} underline-offset-4 hover:underline`}>
+            {item.label}
+        </Link>
+    )
+}
+
 // MarqueeComp: A pre-configured marquee component with message and image
 export function MarqueeComp({
     message,
@@ -39,22 +54,26 @@ export function MarqueeComp({
     imageAnimationClass = 'animation-thumbsUp',
     backgroundColor = 'bg-primary',
 }: {
-    message?: string | string[]
+    message?: string | MarqueeItem[]
     imageSrc: string
     imageAnimationClass?: string
     backgroundColor?: string
 }) {
     return (
-        <div className="border-y-1 border-white shadow">
-            <MarqueeWrapper backgroundColor={backgroundColor} direction="left" className="border-y-2 border-n-1">
+        <div className="border-white shadow">
+            <MarqueeWrapper
+                backgroundColor={backgroundColor}
+                direction="left"
+                className="border-y-2 border-border-default"
+            >
                 {Array.isArray(message)
                     ? message.map((msg, index) => (
                           <div key={index} className="mx-3 inline-flex min-h-12 items-center gap-3 py-2">
-                              <div className="text-lg font-bold uppercase md:text-xl">{msg}</div>
+                              <MarqueeWord item={msg} />
                               {index < message.length && (
                                   <Image
                                       src={imageSrc}
-                                      alt="Marquee Image"
+                                      alt=""
                                       width={32}
                                       height={32}
                                       unoptimized
@@ -65,10 +84,10 @@ export function MarqueeComp({
                       ))
                     : message && (
                           <div className="mx-3 inline-flex min-h-12 items-center py-2">
-                              <div className="text-lg font-bold uppercase md:text-xl">{message}</div>
+                              <div className={wordClass}>{message}</div>
                               <Image
                                   src={imageSrc}
-                                  alt="Marquee Image"
+                                  alt=""
                                   width={32}
                                   height={32}
                                   unoptimized

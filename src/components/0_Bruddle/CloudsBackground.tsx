@@ -214,7 +214,7 @@ const CloudsBackground: React.FC<CloudsBackgroundProps> = ({ minimal = false }) 
           : desktopClouds
 
     return (
-        <div style={{ position: 'absolute', width: '100%', height: '100%', overflow: 'hidden' }}>
+        <div className="absolute h-full w-full overflow-hidden">
             {clouds.map((cloud, index) => (
                 <Cloud key={index} {...cloud} screenWidth={screenWidth} />
             ))}

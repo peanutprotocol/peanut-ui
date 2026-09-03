@@ -13,7 +13,7 @@
  * the wiring in this component was wrong, so the guard has to live here.
  */
 import React from 'react'
-import { act, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 
 const mockPush = jest.fn()
@@ -29,7 +29,11 @@ jest.mock('use-haptic', () => ({ useHaptic: () => ({ triggerHaptic: jest.fn() })
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 jest.mock('@/app/actions/ens', () => ({ resolveEns: jest.fn() }))
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
-jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false, openExternalUrl: jest.fn() }))
+jest.mock('@/utils/capacitor', () => ({
+    isCapacitor: () => false,
+    isAndroidNative: () => false,
+    openExternalUrl: jest.fn(),
+}))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { username: 'satoshi' } } }) }))
 jest.mock('@/context/ModalsContext', () => ({
@@ -100,7 +104,7 @@ describe('QRScannerOverlay case handling', () => {
     describe('all-uppercase payloads — QR alphanumeric mode uppercases, so retry lowercased', () => {
         it('accepts an uppercase EVM address', async () => {
             await scan(EVM_UPPERCASE)
-            expect(screen.getByText('ℹ️ Payment Confirmation')).toBeInTheDocument()
+            expect(screen.getByText('Payment Confirmation')).toBeInTheDocument()
         })
 
         it('accepts an uppercase bech32 Bitcoin address', async () => {
@@ -117,18 +121,42 @@ describe('QRScannerOverlay case handling', () => {
     describe('mixed case — the case is the user’s, so it must be honoured', () => {
         it('accepts a checksummed EVM address', async () => {
             await scan(EVM_CHECKSUMMED)
-            expect(screen.getByText('ℹ️ Payment Confirmation')).toBeInTheDocument()
+            expect(screen.getByText('Payment Confirmation')).toBeInTheDocument()
         })
 
         it('rejects an EVM address with a bad EIP-55 checksum rather than laundering it', async () => {
             await scan(EVM_BAD_CHECKSUM)
             expect(screen.getByText('Unrecognized QR code')).toBeInTheDocument()
-            expect(screen.queryByText('ℹ️ Payment Confirmation')).not.toBeInTheDocument()
+            expect(screen.queryByText('Payment Confirmation')).not.toBeInTheDocument()
         })
     })
 
     it('still routes a Peanut URL', async () => {
         await scan('https://peanut.example.org/satoshi')
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/satoshi'))
+    })
+})
+
+describe('direct-send acknowledgement gate', () => {
+    const continueButton = () => screen.getByRole('button', { name: 'Continue' })
+
+    it('keeps Continue disabled until the box is ticked, and starts a new scan unticked', async () => {
+        renderWithIntl(<QRScannerOverlay />)
+        await act(async () => {
+            await onScan(EVM_CHECKSUMMED)
+        })
+        expect(screen.getByText('Payment Confirmation')).toBeInTheDocument()
+        expect(continueButton()).toBeDisabled()
+
+        fireEvent.click(screen.getByRole('checkbox'))
+        expect(screen.getByRole('checkbox')).toBeChecked()
+        expect(continueButton()).toBeEnabled()
+
+        // second scan on the same overlay: the acknowledgement must not carry over
+        await act(async () => {
+            await onScan(EVM_UPPERCASE)
+        })
+        expect(screen.getByRole('checkbox')).not.toBeChecked()
+        expect(continueButton()).toBeDisabled()
     })
 })

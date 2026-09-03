@@ -26,7 +26,6 @@ import { Button } from '@/components/0_Bruddle/Button'
 import Loading from '@/components/Global/Loading'
 import MigrationHero from '@/components/Migration/MigrationHero'
 import { STORE_NAME, STORE_URL, type StoreKind } from '@/constants/migration.consts'
-import PeanutLoading from '@/components/Global/PeanutLoading'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { isNativeBridge } from '@/utils/capacitor'
 import { isPwaSunsetOn } from '@/utils/migration.utils'
@@ -88,7 +87,7 @@ export default function SmartStoreRedirect() {
         return () => clearTimeout(fallback)
     }, [inNativeApp, settled, migrationOn, targetStore])
 
-    if (inNativeApp) return <PeanutLoading coverFullScreen />
+    if (inNativeApp) return <Loading variant="mascot" coverFullScreen />
 
     if (settled && !migrationOn) notFound()
 
@@ -97,13 +96,13 @@ export default function SmartStoreRedirect() {
         : ['ios', 'android']
 
     return (
-        <div className="flex min-h-[100dvh] w-full flex-col bg-white md:flex-row">
+        <div className="flex min-h-dvh w-full flex-col bg-white md:flex-row">
             <MigrationHero className="h-[50dvh] md:h-auto md:w-1/2" />
-            <section className="flex flex-1 flex-col justify-between p-6 pb-[calc(1.5rem_+_env(safe-area-inset-bottom))] md:w-1/2 md:justify-center md:gap-10">
+            <section className="flex flex-1 flex-col justify-between p-6 pb-[calc(1.5rem_+_var(--safe-bottom))] md:w-1/2 md:justify-center md:gap-10">
                 <div className="mx-auto flex w-full max-w-md flex-col gap-3 md:text-center">
-                    <h1 className="text-3xl font-bold text-n-1">{t('qr.title')}</h1>
+                    <h1 className="text-heading-m text-foreground-primary">{t('qr.title')}</h1>
                     {settled && migrationOn && (
-                        <p className="text-base text-grey-1">
+                        <p className="text-body-m text-foreground-secondary">
                             {redirecting ? t('smartLink.redirecting') : t('smartLink.pickStore')}
                         </p>
                     )}

@@ -1,28 +1,29 @@
 'use client'
-import { PeanutCrying } from '@/assets/mascot'
-import { Button } from '@/components/0_Bruddle/Button'
-import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { RAGDOLL_ENABLED } from '@/constants/ragdoll.consts'
+import dynamic from 'next/dynamic'
+
+// Same dynamic-import + kill-switch pattern as the 404. When RAGDOLL_ENABLED is
+// false the chunk + p2-es never ship and the play area just stays empty (pink).
+// See ragdoll.consts.ts.
+const PeanutRagdoll = RAGDOLL_ENABLED ? dynamic(() => import('@/components/PeanutRagdoll'), { ssr: false }) : null
 
 const MaintenancePage = () => {
-    const router = useRouter()
     return (
         <div className="flex h-screen flex-col items-center justify-center gap-4 p-6">
-            <Image src={PeanutCrying.src} unoptimized alt="Maintenance" width={250} height={250} />
-            <h1 className="text-3xl font-bold text-black">Under Maintenance</h1>
-            <p className="text-center text-lg text-gray-1">
-                We are currently going through maintenance. We should be back online shortly. Sorry for the
-                inconvenience.
+            {/* The canvas sizes itself to this box, so the height has to be
+                definite — h-screen above gives the column one, but the box needs
+                its own. 250px matches the mascot it replaces. */}
+            <div aria-hidden="true" className="size-[250px] overflow-hidden rounded-sm border border-border-default">
+                {PeanutRagdoll && <PeanutRagdoll />}
+            </div>
+            <h1 className="text-heading-m text-black">We&apos;re doing some maintenance.</h1>
+            <p className="max-w-md text-center text-body-l text-foreground-secondary">
+                We&apos;ve taken the app offline to fix something. Check back in a few minutes — we&apos;ll have it
+                running again as soon as we can.
             </p>
-            <p className="text-center text-gray-1">Thank you for your patience.</p>
 
-            <Button
-                variant="transparent"
-                onClick={() => router.push('/support')}
-                className="h-5 w-fit p-0 underline underline-offset-2"
-            >
-                Contact Support?
-            </Button>
+            <LinkButton href="/support">Contact support</LinkButton>
         </div>
     )
 }

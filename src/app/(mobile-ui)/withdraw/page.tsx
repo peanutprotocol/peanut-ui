@@ -1,8 +1,9 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { AddWithdrawRouterView } from '@/components/AddWithdraw/AddWithdrawRouterView'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
@@ -22,7 +23,20 @@ import { getLimitsWarningCardProps } from '@/features/limits/utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { withdrawBankUrl, withdrawCountryUrl } from '@/utils/native-routes'
+import { readReturnTo } from '@/utils/return-to.utils'
 import { useTranslations } from 'next-intl'
+
+// Module scope on purpose. React.lazy() mints a fresh, unresolved lazy on every
+// call, so creating these inside the render body made the subtree suspend again
+// on EVERY re-render: React hid the rendered view and swapped in the Suspense
+// fallback (null) until the import re-resolved a microtask later. On the native
+// ?country=…&view=bank route that showed up as the withdraw screen blanking and
+// loading a second time — once on arrival, then again on the next re-render,
+// which the success view triggers itself when it invalidates the transactions
+// query. Hoisted, the lazy resolves once and later renders pass straight
+// through.
+const WithdrawBankPage = React.lazy(() => import('./_withdraw-bank'))
+const AddWithdrawCountriesList = React.lazy(() => import('@/components/AddWithdraw/AddWithdrawCountriesList'))
 
 type WithdrawStep = 'inputAmount' | 'selectMethod'
 
@@ -83,6 +97,10 @@ export default function WithdrawPage() {
 
     // raw amount currently typed in the input
     const [rawTokenAmount, setRawTokenAmount] = useState<string>(amountFromContext || '')
+
+    // client-side amount validation renders as the field's own error, never in
+    // the flow-level Notification (which keeps routing/setup failures only)
+    const [validationError, setValidationError] = useState<string>('')
 
     const { spendableBalance: balance, formattedSpendableBalance } = useWallet()
 
@@ -193,13 +211,13 @@ export default function WithdrawPage() {
     const validateAmount = useCallback(
         (amountStr: string): boolean => {
             if (!amountStr) {
-                setError({ showError: false, errorMessage: '' })
+                setValidationError('')
                 return true
             }
 
             const amount = Number(amountStr)
             if (!Number.isFinite(amount) || amount <= 0) {
-                setError({ showError: true, errorMessage: t('errors.invalidNumber') })
+                setValidationError(t('errors.invalidNumber'))
                 return false
             }
 
@@ -213,7 +231,7 @@ export default function WithdrawPage() {
             // re-validates once it lands (validateAmount is in its deps).
             const balanceLoaded = balance !== undefined
             if (usdEquivalent >= minUsdAmount && (!balanceLoaded || amount <= maxDecimalAmount)) {
-                setError({ showError: false, errorMessage: '' })
+                setValidationError('')
                 return true
             }
 
@@ -229,10 +247,10 @@ export default function WithdrawPage() {
             } else {
                 message = t('errors.invalidAmount')
             }
-            setError({ showError: true, errorMessage: message })
+            setValidationError(message)
             return false
         },
-        [balance, maxDecimalAmount, setError, selectedTokenData?.price, isFromSendFlow, minUsdAmount, t, tErrors]
+        [balance, maxDecimalAmount, selectedTokenData?.price, isFromSendFlow, minUsdAmount, t, tErrors]
     )
 
     const handleTokenAmountChange = useCallback(
@@ -259,6 +277,7 @@ export default function WithdrawPage() {
             if (error.showError) {
                 setError({ showError: false, errorMessage: '' })
             }
+            setValidationError('')
         },
         [setRawTokenAmount, error.showError, setError]
     )
@@ -268,6 +287,7 @@ export default function WithdrawPage() {
         if (step === 'inputAmount') {
             if (rawTokenAmount === '') {
                 setError({ showError: false, errorMessage: '' })
+                setValidationError('')
             } else {
                 // add a small delay to avoid validating while user is still typing
                 const timeoutId = setTimeout(() => {
@@ -365,8 +385,8 @@ export default function WithdrawPage() {
 
         // only apply the balance ceiling once it has loaded (maxDecimalAmount is 0
         // while spendableBalance is undefined) — else Continue is disabled during load
-        return (balance !== undefined && numericAmount > maxDecimalAmount) || error.showError
-    }, [rawTokenAmount, balance, maxDecimalAmount, error.showError, minUsdAmount])
+        return (balance !== undefined && numericAmount > maxDecimalAmount) || error.showError || !!validationError
+    }, [rawTokenAmount, balance, maxDecimalAmount, error.showError, validationError, minUsdAmount])
 
     // native app: render country-specific views when ?country= is present
     const viewFromQuery = searchParams.get('view')
@@ -374,14 +394,12 @@ export default function WithdrawPage() {
         // native app: render country-specific views.
         // stub exists for web build; real component is injected by native build script.
         if (viewFromQuery === 'bank') {
-            const WithdrawBankPage = React.lazy(() => import('./_withdraw-bank'))
             return (
                 <React.Suspense fallback={null}>
                     <WithdrawBankPage />
                 </React.Suspense>
             )
         }
-        const AddWithdrawCountriesList = React.lazy(() => import('@/components/AddWithdraw/AddWithdrawCountriesList'))
         return (
             <React.Suspense fallback={null}>
                 <AddWithdrawCountriesList flow="withdraw" />
@@ -394,7 +412,7 @@ export default function WithdrawPage() {
         const showLimitsCard = !isCryptoWithdraw && (limitsValidation.isBlocking || limitsValidation.isWarning)
 
         return (
-            <div className="flex min-h-[inherit] flex-col justify-start space-y-8">
+            <div className="flex min-h-inherit flex-col justify-start gap-8">
                 <NavHeader
                     title={isFromSendFlow ? tNav('send') : tNav('withdraw')}
                     onPrev={() => {
@@ -415,21 +433,27 @@ export default function WithdrawPage() {
                 />
                 <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                     <div className="space-y-1">
-                        <div className="text-xl font-bold">
+                        <div className="text-heading-xs text-foreground-primary">
                             {isFromSendFlow ? t('amountToSend') : t('amountToWithdraw')}
                         </div>
                     </div>
-                    <AmountInput
-                        initialAmount={rawTokenAmount}
-                        setPrimaryAmount={handleTokenAmountChange}
-                        primaryDenomination={{
-                            symbol: '$',
-                            price: 1,
-                            decimals: 6, // we want USDC decimals to be able to pay exactly
-                        }}
-                        walletBalance={peanutWalletBalance}
-                        hideCurrencyToggle
-                    />
+                    {/* only show the field error if limits blocking card is not displayed (warnings can coexist) */}
+                    <FieldColumn
+                        error={!limitsValidation.isBlocking ? validationError : undefined}
+                        errorTestId="error-alert"
+                    >
+                        <AmountInput
+                            initialAmount={rawTokenAmount}
+                            setPrimaryAmount={handleTokenAmountChange}
+                            primaryDenomination={{
+                                symbol: '$',
+                                price: 1,
+                                decimals: 6, // we want USDC decimals to be able to pay exactly
+                            }}
+                            walletBalance={peanutWalletBalance}
+                            hideCurrencyToggle
+                        />
+                    </FieldColumn>
 
                     {/* limits warning/error card for bank withdrawals */}
                     {showLimitsCard &&
@@ -456,7 +480,9 @@ export default function WithdrawPage() {
                     </Button>
                     {/* only show error if limits blocking card is not displayed (warnings can coexist) */}
                     {error.showError && !!error.errorMessage && !limitsValidation.isBlocking && (
-                        <ErrorAlert description={error.errorMessage} />
+                        <Notification priority="error" data-testid="error-alert">
+                            {error.errorMessage}
+                        </Notification>
                     )}
                 </div>
             </div>
@@ -473,9 +499,12 @@ export default function WithdrawPage() {
                     // if bank from send flow, go back to send page
                     if (isBankFromSend) {
                         router.push('/send')
-                    } else {
-                        router.push('/home')
+                        return
                     }
+                    // an explicit origin (e.g. the exchange-rate widget's "Try it!" CTA)
+                    // wins over the /home reset, which only fits tab-bar entries
+                    const returnTo = readReturnTo(searchParams, '/withdraw')
+                    router.push(returnTo ?? '/home')
                 }}
             />
         )

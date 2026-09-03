@@ -1,30 +1,36 @@
 import { ClientProviders } from './ClientProviders'
 import { type Viewport } from 'next'
-import { Londrina_Solid, Roboto_Flex, Sniglet } from 'next/font/google'
+import { Roboto_Flex, Sniglet } from 'next/font/google'
 import localFont from 'next/font/local'
 import Script from 'next/script'
 import '../styles/globals.css'
 import { PEANUT_API_URL, BASE_URL } from '@/constants/general.consts'
 import { CHUNK_ERROR_RECOVERY_SCRIPT } from '@/utils/chunk-error-recovery'
+import { isProductionDomain } from '@/constants/seo-route-policy'
 import { type Metadata } from 'next'
 
 const baseUrl = BASE_URL || 'https://peanut.me'
-const IS_PRODUCTION_DOMAIN = baseUrl === 'https://peanut.me'
+// Fail closed on the raw env (see isProductionDomain): BASE_URL deliberately
+// falls back to production for links, but that fallback must not make an
+// unset preview environment indexable.
+const IS_PRODUCTION_DOMAIN = isProductionDomain(process.env.NEXT_PUBLIC_BASE_URL)
 
 export const metadata: Metadata = {
-    title: 'Peanut - Instant Global P2P Payments in Digital Dollars',
+    title: 'Peanut - Send, Spend & Cash Out Digital Dollars',
     description:
-        'Send and receive money instantly with Peanut - a fast, peer-to-peer payments app powered by digital dollars. Easily transfer funds across borders. Enjoy cheap, instant remittances and cash out to local banks without technical hassle.',
+        'Peanut is a money app for people who cross borders — send and receive money globally, spend with the Peanut Card, cash in and out through local rails.',
     metadataBase: new URL(baseUrl),
     icons: { icon: '/favicon.ico' },
-    alternates: { canonical: '/' },
     keywords:
         'peer-to-peer payments, send money instantly, request money, fast global transfers, remittances, digital dollar transfers, Latin America, Argentina, Brazil, P2P payments, crypto payments, stablecoin, digital dollars',
-    // Block staging/preview deploys from indexing (belt-and-suspenders with robots.ts)
-    robots: IS_PRODUCTION_DOMAIN ? { index: true, follow: true } : { index: false, follow: false },
+    // Canonicals belong to leaf pages: a root canonical here would be inherited
+    // by app routes and falsely cluster them with the homepage. Index/follow is
+    // also the production default, so emit robots metadata only as a staging /
+    // preview belt-and-suspenders guard.
+    ...(IS_PRODUCTION_DOMAIN ? {} : { robots: { index: false, follow: false } }),
     openGraph: {
         type: 'website',
-        title: 'Peanut - Instant Global P2P Payments in Digital Dollars',
+        title: 'Peanut - Send, Spend & Cash Out Digital Dollars',
         description:
             'Send and receive money instantly with Peanut - a fast, peer-to-peer payments app powered by digital dollars.',
         url: baseUrl,
@@ -33,12 +39,12 @@ export const metadata: Metadata = {
     },
     twitter: {
         card: 'summary_large_image',
-        title: 'Peanut - Instant Global P2P Payments in Digital Dollars',
+        title: 'Peanut - Send, Spend & Cash Out Digital Dollars',
         description:
             'Send and receive money instantly with Peanut - a fast, peer-to-peer payments app powered by digital dollars.',
         images: ['/metadata-img.png'],
-        creator: '@PeanutProtocol',
-        site: '@PeanutProtocol',
+        creator: '@joinpeanut',
+        site: '@joinpeanut',
     },
     applicationName: process.env.NODE_ENV === 'development' ? 'Peanut Dev' : 'Peanut',
 }
@@ -58,7 +64,7 @@ const jsonLd = {
                 url: `${baseUrl}/metadata-img.png`,
             },
             sameAs: [
-                'https://twitter.com/PeanutProtocol',
+                'https://x.com/joinpeanut',
                 'https://github.com/peanutprotocol',
                 'https://www.linkedin.com/company/peanut-trade/',
             ],
@@ -95,34 +101,38 @@ const roboto = Roboto_Flex({
     axes: ['wdth'],
 })
 
-const londrina = Londrina_Solid({
-    weight: ['400', '900'],
-    subsets: ['latin'],
-    display: 'swap',
-    variable: '--font-londrina',
-})
-
+// preload: false on the decorative faces — next/font preloads every declared
+// family at High priority, and these three render below the fold (2-3 call
+// sites each) while competing with the hero image for bandwidth.
 const sniglet = Sniglet({
     weight: ['400', '800'],
     subsets: ['latin'],
     display: 'swap',
     variable: '--font-sniglet',
+    preload: false,
 })
 
+// The .woff2 files are latin + latin-ext subsets of the .ttf sources (built
+// with fonttools; roboto-flex additionally instanced down to just the wght
+// axis the CSS uses — the full 13-axis variable TTF was 1.6 MB, this is 53 KB).
+// The OG image routes still read the .ttf files at runtime (satori needs TTF),
+// so don't delete those.
 const knerdOutline = localFont({
-    src: '../assets/fonts/knerd-outline.ttf',
+    src: '../assets/fonts/knerd-outline.woff2',
     variable: '--font-knerd-outline',
     display: 'swap',
+    preload: false,
 })
 
 const knerdFilled = localFont({
-    src: '../assets/fonts/knerd-filled.ttf',
+    src: '../assets/fonts/knerd-filled.woff2',
     variable: '--font-knerd-filled',
     display: 'swap',
+    preload: false,
 })
 
 const robotoFlexBold = localFont({
-    src: '../assets/fonts/roboto-flex-bold.ttf',
+    src: '../assets/fonts/roboto-flex-bold.woff2',
     variable: '--font-roboto-flex-bold',
     display: 'swap',
 })
@@ -134,6 +144,11 @@ export const viewport: Viewport = {
     userScalable: false,
     colorScheme: 'light',
     viewportFit: 'cover',
+    // Renders <meta name="theme-color">, which Android Chrome applies
+    // immediately (browser tab AND installed PWA) and which overrides a
+    // cached manifest theme_color — the manifest alone left the status
+    // strip black until Chrome's day-scale manifest refresh.
+    themeColor: '#FAF4F0',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -141,7 +156,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     const apiHostname = new URL(PEANUT_API_URL).origin
 
     return (
-        <html lang="en" style={{ colorScheme: 'light' }} data-theme="light">
+        <html
+            lang="en"
+            style={{ colorScheme: 'light' }}
+            data-theme="light"
+            className={`${roboto.variable} ${knerdOutline.variable} ${knerdFilled.variable} ${sniglet.variable} ${robotoFlexBold.variable}`}
+        >
             <head>
                 <meta name="color-scheme" content="light" />
 
@@ -154,9 +174,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 {/* DNS prefetch for API */}
                 <link rel="dns-prefetch" href={apiHostname} />
                 <link rel="preconnect" href={apiHostname} crossOrigin="anonymous" />
-
-                {/* Prefetch /qr-pay route - disabled in dev to avoid 9s+ compile time */}
-                {process.env.NODE_ENV !== 'development' && <link rel="prefetch" href="/qr-pay" />}
 
                 {/* Chunk-load failure recovery: MUST be a raw inline script — error boundaries
                     are lazy chunks themselves and fail to load in the exact conditions that need
@@ -239,11 +256,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     process.env.NEXT_PUBLIC_CAPACITOR_BUILD !== 'true' &&
                     process.env.NEXT_PUBLIC_PERF_BARE !== 'true' && (
                         <>
+                            {/* lazyOnload, not afterInteractive: Next emits a
+                                <link rel="preload"> for afterInteractive scripts, which
+                                put 186 KB of gtag.js at High priority ahead of the LCP
+                                image. Loading it after `load` keeps the pageview and
+                                every downstream event, just off the critical path. */}
                             <Script
                                 src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_KEY}`}
-                                strategy="afterInteractive"
+                                strategy="lazyOnload"
                             />
-                            <Script id="google-analytics" strategy="afterInteractive">
+                            <Script id="google-analytics" strategy="lazyOnload">
                                 {`
                                 window.dataLayer = window.dataLayer || [];
                                 function gtag(){dataLayer.push(arguments);}
@@ -254,9 +276,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                         </>
                     )}
             </head>
-            <body
-                className={`${roboto.variable} ${londrina.variable} ${knerdOutline.variable} ${knerdFilled.variable} ${sniglet.variable} ${robotoFlexBold.variable} chakra-ui-light font-sans`}
-            >
+            {/* font variable classes live on <html>: @theme vars like --font-sans
+                substitute var(--font-roboto) at :root, so the next/font vars must
+                be defined there — on <body> the :root substitution fails and every
+                font-sans consumer falls back to the system font */}
+            <body className="chakra-ui-light font-sans">
                 <ClientProviders>{children}</ClientProviders>
             </body>
         </html>

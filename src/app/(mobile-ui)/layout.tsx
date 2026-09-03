@@ -1,17 +1,16 @@
 'use client'
 
+import { AppShell } from '@/components/Global/AppShell'
+import { BottomNav } from '@/components/Global/BottomNav'
 import GuestLoginModal from '@/components/Global/GuestLoginModal'
 import ReConsentModal from '@/components/Global/ReConsentModal'
-import PeanutLoading from '@/components/Global/PeanutLoading'
-import TopNavbar from '@/components/Global/TopNavbar'
-import WalletNavigation from '@/components/Global/WalletNavigation'
+import Loading from '@/components/Global/Loading'
 import OfflineScreen from '@/components/Global/OfflineScreen'
 import BackendErrorScreen from '@/components/Global/BackendErrorScreen'
 import { useAuth } from '@/context/authContext'
-import classNames from 'classnames'
 import { usePathname } from 'next/navigation'
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { Suspense, useEffect, useRef, useState } from 'react'
+import { twMerge } from '@/utils/tw'
 import '../../styles/globals.css'
 import QRScannerOverlay from '@/components/Global/QRScannerOverlay'
 import SecurityVerificationOverlay from '@/components/Global/SecurityVerificationOverlay'
@@ -19,13 +18,16 @@ import SupportDeepLink from '@/components/Global/SupportDeepLink'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import JoinWaitlistPage from '@/components/Invites/JoinWaitlistPage'
 import { useRouter } from 'next/navigation'
-import { Banner } from '@/components/Global/Banner'
+import { NavHeaderPresenceProvider } from '@/components/Global/Banner/navHeaderPresence'
+import { ShellBannerFallback } from '@/components/Global/Banner/ShellBannerFallback'
 import { useSetupStore } from '@/redux/hooks'
 import ForceIOSPWAInstall from '@/components/ForceIOSPWAInstall'
 import { isPublicRoute } from '@/constants/routes'
+import { saveRedirectUrl } from '@/utils/general.utils'
 import { IS_DEV } from '@/constants/general.consts'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
-import { usePullToRefresh } from '@/hooks/usePullToRefresh'
+import { FixtureBanner } from '@/dev/fixtures/FixtureBanner'
+import { usePullToRefresh, useShouldPullToRefresh } from '@/hooks/usePullToRefresh'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { useAccountSetupRedirect } from '@/hooks/useAccountSetupRedirect'
 import { useNativePlugins } from '@/hooks/useNativePlugins'
@@ -43,8 +45,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     useNativePlugins()
     const pathName = usePathname()
 
-    // Allow access to public paths without authentication
-    // Dev test pages (gift-test, shake-test) are only public in dev mode
+    // Allow access to public paths without authentication.
+    // Dev tooling (/dev/*) is public only in local IS_DEV builds. Do NOT widen this to
+    // staging/previews via BASE_URL: DEV_ONLY_PUBLIC_ROUTES_REGEX covers ALL of /dev,
+    // including /dev/debug, whose cheats drive the API dev endpoints — an unauthenticated
+    // staging visitor must never reach them. On deployed builds /dev requires login.
     const isPublicPath = isPublicRoute(pathName, IS_DEV)
 
     const { isFetchingUser, user, userFetchError } = useAuth()
@@ -63,38 +68,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     // detect online/offline status for full-page offline screen
     const { isOnline, isInitialized } = useNetworkStatus()
 
-    // cache the scrollable content element to avoid DOM queries on every scroll event
-    const scrollableContentRef = useRef<Element | null>(null)
-
     useEffect(() => {
         setIsReady(true)
     }, [])
 
-    // memoizing shouldPullToRefresh callback to prevent re-initialization on every render
-    // lazy-load element ref to ensure DOM is ready
-    const shouldPullToRefresh = useCallback(() => {
-        // window must be at the top first
-        if (window.scrollY > 0) {
-            return false
-        }
-
-        // lazy-load the element reference if not cached yet
-        if (!scrollableContentRef.current) {
-            scrollableContentRef.current = document.querySelector('#scrollable-content')
-        }
-
-        const scrollableContent = scrollableContentRef.current
-        if (!scrollableContent) {
-            // if element not found, window check already passed above
-            return true
-        }
-
-        // scrollable content must also be at the top
-        return scrollableContent.scrollTop === 0
-    }, [])
-
     // enable pull-to-refresh for both ios and android
-    usePullToRefresh({ shouldPullToRefresh })
+    usePullToRefresh({ shouldPullToRefresh: useShouldPullToRefresh() })
 
     const isRedirecting = useRef(false)
 
@@ -110,8 +89,25 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         // (reliable on the first render after the hard-nav); persist it so later
         // navigations that drop the hash stay in demo mode.
         if (isDemoMode()) enableDemoMode()
-        if (!isPublicPath && isReady && !isFetchingUser && !user && !isRedirecting.current && !isDemoMode()) {
+        // no user has two causes. the user query returns null for a 401, and throws
+        // for a 5xx or a network failure. so an error here means the backend is
+        // down, not that the person is logged out. leave them on the error screen
+        // below — a bounce to signup reads as "you are logged out" during an outage.
+        if (
+            !isPublicPath &&
+            isReady &&
+            !isFetchingUser &&
+            !user &&
+            !userFetchError &&
+            !isRedirecting.current &&
+            !isDemoMode()
+        ) {
             isRedirecting.current = true
+            // Keep the target: a logged-out tap on a protected deep link
+            // (/pay-request, /card, /receipt, every push) used to be dropped
+            // here and land on /home after login. useLogin/useAccountSetup
+            // consume this via consumePostAuthRedirect.
+            saveRedirectUrl()
             router.replace('/setup')
             // Hard-nav fallback if the soft nav silently fails; re-check at fire time.
             const fallback = setTimeout(() => {
@@ -120,7 +116,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             return () => clearTimeout(fallback)
         }
         return undefined
-    }, [user, isFetchingUser, isReady, isPublicPath, router])
+    }, [user, isFetchingUser, isReady, isPublicPath, userFetchError, router])
 
     // redirect logged-in users without peanut wallet account to complete setup
     const { needsRedirect, isCheckingAccount } = useAccountSetupRedirect()
@@ -144,8 +140,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     if (isPublicPath) {
         if (!isReady) {
             return (
-                <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
-                    <PeanutLoading />
+                <div className="flex h-dvh w-full flex-col items-center justify-center">
+                    <Loading variant="mascot" />
                 </div>
             )
         }
@@ -153,8 +149,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         // for protected paths, wait for auth to settle before rendering
         if (!isReady || isFetchingUser || !user || isCheckingAccount || needsRedirect) {
             return (
-                <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
-                    <PeanutLoading />
+                <div className="flex h-dvh w-full flex-col items-center justify-center">
+                    <Loading variant="mascot" />
                 </div>
             )
         }
@@ -179,95 +175,47 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     }
 
     return (
-        <div className="flex min-h-[100dvh] w-full bg-background pt-safe-top">
-            {/* Status-bar safe zone. On Android 15+ edge-to-edge the webview draws
-                under the status bar, where bg-background would otherwise show beige.
-                Fill the inset strip (above the feedback ribbon) with black so the top
-                always reads black. Height is the natively measured inset on Android
-                15+ and env() elsewhere, so still a no-op on web (inset = 0). */}
-            <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-40 h-safe-top bg-black" />
-            {/* Wrapper div for desktop layout */}
-            <div className="flex w-full">
-                {/* Sidebar - Fixed on desktop */}
-
-                {!isDev && (
-                    <div className="hidden md:block">
-                        <div className="fixed left-0 top-0 z-20 h-screen w-64">
-                            <WalletNavigation />
-                        </div>
-                    </div>
+        <NavHeaderPresenceProvider>
+            <AppShell
+                variant="app"
+                banner={!isDev && <ShellBannerFallback />}
+                nav={!isDev && isUserLoggedIn && <BottomNav />}
+                contentClassName={twMerge(
+                    'pb-[calc(6rem_+_var(--safe-bottom))]',
+                    isSupport && 'p-0 pb-[calc(5rem_+_var(--safe-bottom))]',
+                    isHome && 'p-0',
+                    isUserLoggedIn ? 'pb-[calc(6rem_+_var(--safe-bottom))]' : 'pb-[calc(1rem_+_var(--safe-bottom))]',
+                    isDev && 'p-0 pb-0',
+                    isHome && isCapacitor() && 'px-0 pt-0'
                 )}
-
-                {/* Main content area */}
-                <div className="flex w-full flex-1 flex-col">
-                    {/* Banner component handles maintenance and feedback banners */}
-                    {!isDev && <Banner />}
-
-                    {/* Fixed top navbar */}
-
-                    {!isDev && (
-                        <div className="sticky top-0 z-10 w-full">
-                            <TopNavbar />
-                        </div>
-                    )}
-
-                    {/* Scrollable content area */}
-                    <div
-                        id="scrollable-content"
-                        className={classNames(
-                            twMerge(
-                                'relative flex-1 overflow-y-auto bg-background p-6 pb-[calc(6rem_+_var(--safe-bottom))] md:pb-6',
-                                !!isSupport && 'p-0 pb-[calc(5rem_+_var(--safe-bottom))] md:p-6',
-                                !!isHome && 'p-0 md:p-6 md:pr-0',
-                                isUserLoggedIn
-                                    ? 'pb-[calc(6rem_+_var(--safe-bottom))]'
-                                    : 'pb-[calc(1rem_+_var(--safe-bottom))]',
-                                isDev && 'p-0 pb-0',
-                                isHome && isCapacitor() && 'px-0 pt-0'
-                            )
-                        )}
-                    >
-                        <div
-                            className={twMerge(
-                                'flex w-full items-center justify-center md:ml-auto md:w-[calc(100%_-_160px)]',
-                                alignStart && 'items-start',
-                                isSupport && 'h-full',
-                                isUserLoggedIn
-                                    ? 'min-h-[calc(100dvh_-_160px_-_var(--safe-top)_-_var(--safe-bottom))]'
-                                    : 'min-h-[calc(100dvh_-_64px_-_var(--safe-top)_-_var(--safe-bottom))]',
-                                isDev && 'min-h-[100dvh] items-start justify-start md:ml-0 md:w-full'
-                            )}
-                        >
-                            {children}
-                        </div>
-                    </div>
-
-                    {/* Mobile navigation */}
-                    {!isDev && (
-                        <div className="fixed bottom-0 left-0 right-0 z-10 bg-background pb-safe-bottom md:hidden">
-                            <WalletNavigation />
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Modal */}
-            <GuestLoginModal />
-
-            <ReConsentModal />
-
-            <SupportDrawer />
-
-            {/* Suspense is required: nuqs reads useSearchParams, which triggers
-                a client-side-rendering bailout without a boundary. */}
-            <Suspense fallback={null}>
-                <SupportDeepLink />
-            </Suspense>
-
-            <QRScannerOverlay />
-
-            <SecurityVerificationOverlay />
-        </div>
+                innerClassName={twMerge(
+                    alignStart && 'items-start',
+                    isSupport && 'h-full',
+                    isUserLoggedIn
+                        ? 'min-h-[calc(100dvh_-_160px_-_var(--safe-top)_-_var(--safe-bottom))]'
+                        : 'min-h-[calc(100dvh_-_64px_-_var(--safe-top)_-_var(--safe-bottom))]',
+                    isDev && 'max-w-full min-h-dvh items-start justify-start'
+                )}
+                modals={
+                    <>
+                        <GuestLoginModal />
+                        <ReConsentModal />
+                        <SupportDrawer />
+                        {/* Suspense is required: nuqs reads useSearchParams, which triggers
+                        a client-side-rendering bailout without a boundary. */}
+                        <Suspense fallback={null}>
+                            <SupportDeepLink />
+                        </Suspense>
+                        <QRScannerOverlay />
+                        <SecurityVerificationOverlay />
+                        {/* dev fixture warning strip — renders null outside fixture mode */}
+                        <FixtureBanner />
+                    </>
+                }
+            >
+                {children}
+            </AppShell>
+        </NavHeaderPresenceProvider>
     )
 }
 

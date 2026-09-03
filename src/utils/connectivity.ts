@@ -49,6 +49,10 @@ function prune(): void {
 // should be a sanitized url so retries of the same route dedupe to one entry.
 export function reportNetworkError(endpoint: string): void {
     prune()
+    // An un-expired entry already covers this endpoint; re-stamping it would
+    // slide the window forward on every retry and never let a continuous
+    // outage age out.
+    if (failures.some((f) => f.endpoint === endpoint)) return
     failures.push({ t: Date.now(), endpoint })
     // notify again once this entry has aged out so subscribers re-read the
     // pruned count; on freeze/sleep the overdue timer fires at resume, which
@@ -59,6 +63,15 @@ export function reportNetworkError(endpoint: string): void {
     }, FAILURE_WINDOW_MS + 50)
     expiryTimers.add(timer)
     emit()
+}
+
+// Has this endpoint already failed inside the current window? Callers use this
+// to report an outage ONCE rather than once per rejected request: React Query
+// retries, several hooks fetching the same route, and a poll that keeps firing
+// while the device is offline all hit the same endpoint within seconds.
+export function hasRecentFailure(endpoint: string): boolean {
+    prune()
+    return failures.some((f) => f.endpoint === endpoint)
 }
 
 // Distinct endpoints that failed inside the current window.

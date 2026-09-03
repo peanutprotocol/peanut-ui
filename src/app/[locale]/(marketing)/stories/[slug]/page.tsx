@@ -4,7 +4,7 @@ import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
-import { ArticleBackNav } from '@/components/Marketing/ArticleBackNav'
+import { ArticleLocaleNav } from '@/components/Marketing/ArticleLocaleNav'
 import {
     readPageContentLocalized,
     listPublishedSlugs,
@@ -19,7 +19,8 @@ interface PageProps {
     params: Promise<{ locale: string; slug: string }>
 }
 
-const STORY_SLUGS = listPublishedSlugs('stories')
+// 'index' is the legacy stories/index/ directory — the hub at /stories owns that URL space.
+const STORY_SLUGS = listPublishedSlugs('stories').filter((slug) => slug !== 'index')
 
 export async function generateStaticParams() {
     return SUPPORTED_LOCALES.flatMap((locale) => STORY_SLUGS.map((slug) => ({ locale, slug })))
@@ -87,13 +88,7 @@ export default async function StoryPage({ params }: PageProps) {
             }
         >
             <div className="mx-auto max-w-[640px] px-6 pt-4 md:px-4">
-                <ArticleBackNav
-                    parentLabel={i18n.filterStories}
-                    parentHref={`/${locale}/stories`}
-                    backToTemplate={i18n.backTo}
-                    currentLocale={locale as Locale}
-                    localizedHrefs={localizedHrefs}
-                />
+                <ArticleLocaleNav currentLocale={locale as Locale} localizedHrefs={localizedHrefs} />
             </div>
             {content}
         </ContentPage>

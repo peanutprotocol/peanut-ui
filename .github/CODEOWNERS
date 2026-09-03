@@ -1,0 +1,10 @@
+# Chip must never be able to satisfy a review requirement.
+#
+# main requires code-owner review. Without this file that rule has no owners
+# to require, so any approval counted -- including one from a bot holding a
+# write token. Listing humans here means a human has to approve, whatever else
+# happens to appear on the pull request.
+#
+# Keep this list to people. Never add an app or a bot.
+
+* @Hugo0 @jjramirezn @kushagrasarathe @0xkkonrad @innolope-dev @abalinda

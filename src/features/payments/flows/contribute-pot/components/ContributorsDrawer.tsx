@@ -48,7 +48,7 @@ export function ContributorsDrawer({ contributors }: ContributorsDrawerProps) {
                 <Button
                     icon={<Users />}
                     variant="transparent"
-                    className="h-5 w-fit self-start p-0 text-xs font-normal underline underline-offset-2 active:translate-x-0"
+                    className="relative h-5 w-fit self-start p-0 text-body-xs underline underline-offset-2 after:absolute after:inset-x-0 after:-inset-y-3.5 active:translate-x-0 active:translate-y-0 active:text-foreground-primary"
                 >
                     {t('contributors.seeAll')}
                 </Button>
@@ -59,7 +59,7 @@ export function ContributorsDrawer({ contributors }: ContributorsDrawerProps) {
                         {t('contributors.title', { count: contributors.length })}
                     </DrawerTitle>
                 </DrawerHeader>
-                <div className="max-h-[60vh] space-y-0 overflow-auto px-4">
+                <div className="space-y-0 max-h-[60vh] overflow-auto px-4">
                     {contributorCards.map((contributor, index) => (
                         <ContributorCard
                             key={contributor.uuid}

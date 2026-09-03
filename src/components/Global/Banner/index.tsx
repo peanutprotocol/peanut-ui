@@ -3,105 +3,80 @@
 import { useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { usePathname } from 'next/navigation'
-import { ConnectivityBanner } from './ConnectivityBanner'
-import { useConnectivity } from '@/hooks/useConnectivity'
-import { MaintenanceBanner } from './MaintenanceBanner'
-import { MarqueeWrapper } from '../MarqueeWrapper'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import maintenanceConfig from '@/config/underMaintenance.config'
-import HandThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
-import Image from 'next/image'
-import { useModalsContext } from '@/context/ModalsContext'
-import { GIT_COMMIT_HASH, IS_PRODUCTION } from '@/constants/general.consts'
-import { getRunMode, isRealMoneyMode, logRunMode } from '@/utils/mode'
+import { IS_PRODUCTION } from '@/constants/general.consts'
+import { logRunMode } from '@/utils/mode'
 import { isDemoMode } from '@/utils/demo'
-import { isIOSNative } from '@/utils/capacitor'
 
-export function Banner() {
-    const pathname = usePathname()
-    const connectivity = useConnectivity()
-    if (!pathname) return null
-
-    // Demo mode is the app-store review sandbox: synthetic data, no real
-    // backend — none of the banners (beta feedback, connectivity, maintenance)
-    // apply there.
-    if (isDemoMode()) return null
-
-    // Connectivity wins over the beta/maintenance banners: if the app can't reach
-    // the backend, that's the most actionable thing to tell the user right now.
-    if (connectivity.show) {
-        return <ConnectivityBanner isOffline={connectivity.isOffline} />
-    }
-
-    // check if maintenance banner OR full maintenance is enabled - show on all pages
-    if (maintenanceConfig.enableMaintenanceBanner || maintenanceConfig.enableFullMaintenance) {
-        return <MaintenanceBanner />
-    }
-
-    // don't show beta feedback banner on landing pages, setup page, or quests pages
-    if (
-        pathname === '/' ||
-        pathname === '/setup' ||
-        pathname === '/setup/' ||
-        pathname.startsWith('/quests') ||
-        pathname.startsWith('/lp')
-    )
-        return null
-
-    // The beta feedback banner is hidden in the iOS app: it's a marquee strip
-    // pinned above every screen, and on iPhone it eats vertical space directly
-    // under the notch for what is a web-era "we're in beta, tell us things"
-    // prompt. Support is still reachable from Settings. Deliberately iOS-only —
-    // Android and web keep it, and so does the non-prod run-mode pill below,
-    // which is how testers tell sandbox from real money at a glance.
-    if (isIOSNative()) return null
-
-    // show beta feedback banner when not in maintenance
-    return <FeedbackBanner />
+/**
+ * App-wide announcement surface. The old marquee banners (beta feedback,
+ * GenericBanner) are gone — announcements now render as an inline
+ * Notification (maintenance example: figma 17994:21117). Connectivity moved
+ * to the toast surface (ConnectivityToast, ruled 2026-09-03) — this banner
+ * now only carries maintenance.
+ *
+ * Placement (designer ruling, 2026-09-03): on app pages the banner renders
+ * BELOW the page's nav header — NavHeader mounts it, so every feature page
+ * gets it for free. The top-of-shell mounts remain only on surfaces without
+ * a NavHeader (setup ribbon, landing). It shows on every page by default;
+ * maintenanceBannerPaths in underMaintenance.config scopes it to specific
+ * path prefixes (full maintenance always shows it everywhere) — but never
+ * on /home: a warning on the money overview reads as "funds at risk" and
+ * reduces trust, so home is unconditionally excluded.
+ */
+interface BannerProps {
+    className?: string
+    /**
+     * feature — title + body copy, for the banner NavHeader mounts below a
+     * page's header. global — the short one-liner, for top-of-shell mounts
+     * (headerless fallback, setup ribbon, landing).
+     */
+    variant?: 'feature' | 'global'
 }
 
-function FeedbackBanner() {
+export function Banner({ className = 'mx-4 mt-2', variant = 'global' }: BannerProps) {
+    const pathname = usePathname()
     const t = useTranslations('global')
-    const { setIsSupportModalOpen } = useModalsContext()
 
-    // Log run-mode once on mount (dev only). Big yellow banner in the
-    // browser console so you can never confuse sandbox for staging at a
-    // glance. Real-money modes get a red banner instead.
+    // dev-only run-mode console log, kept from the old beta banner so testers
+    // can still tell sandbox from real money at a glance in the console
     useEffect(() => {
         if (IS_PRODUCTION) return
         logRunMode()
     }, [])
 
-    const handleClick = () => {
-        setIsSupportModalOpen(true)
+    if (!pathname) return null
+
+    // demo mode is the app-store review sandbox: synthetic data, no real
+    // backend — no announcement applies there
+    if (isDemoMode()) return null
+
+    // home never shows a maintenance banner, whatever the config says
+    // (designer ruling, 2026-09-03)
+    if (pathname === '/home' || pathname.startsWith('/home/')) return null
+
+    const onTargetedPath =
+        maintenanceConfig.maintenanceBannerPaths.length === 0 ||
+        maintenanceConfig.maintenanceBannerPaths.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+
+    if (maintenanceConfig.enableFullMaintenance || (maintenanceConfig.enableMaintenanceBanner && onTargetedPath)) {
+        // full maintenance is a global outage — "everything else works as
+        // usual" would be a lie, so the feature copy only applies to the
+        // scoped banner mode
+        if (variant === 'feature' && !maintenanceConfig.enableFullMaintenance) {
+            return (
+                <Notification priority="error" title={t('maintenanceTitle')} className={className}>
+                    {t('maintenanceBody')}
+                </Notification>
+            )
+        }
+        return (
+            <Notification priority="error" className={className}>
+                {t('maintenanceBanner')}
+            </Notification>
+        )
     }
 
-    const mode = !IS_PRODUCTION ? getRunMode() : null
-    const realMoney = !IS_PRODUCTION && isRealMoneyMode()
-
-    return (
-        <button onClick={handleClick} className="w-full cursor-pointer">
-            <MarqueeWrapper backgroundColor="bg-primary-1" direction="left">
-                <span className="z-10 mx-4 flex items-center gap-2 text-sm font-semibold">
-                    {t('betaBanner')}
-                    <Image src={HandThumbsUp} alt={t('betaBannerThumbsUpAlt')} className="h-4 w-4" />
-                    {!IS_PRODUCTION && <span className="ml-2 text-sm font-semibold">version: {GIT_COMMIT_HASH}</span>}
-                    {mode && (
-                        // High-contrast yellow-on-black pill. Visually impossible
-                        // to miss; the goal is "you can never accidentally think
-                        // you're in sandbox when you're hitting prod." Real-money
-                        // modes get a flashing red emoji prefix.
-                        <span
-                            className={
-                                'ml-2 rounded-sm border border-black px-2 py-0.5 text-xs font-extrabold ' +
-                                (realMoney ? 'bg-red-500 text-white' : 'bg-yellow-300 text-black')
-                            }
-                        >
-                            {realMoney ? '⚠ REAL MONEY · ' : '⚙ '}
-                            {mode.preset.toUpperCase()}
-                        </span>
-                    )}
-                </span>
-            </MarqueeWrapper>
-        </button>
-    )
+    return null
 }

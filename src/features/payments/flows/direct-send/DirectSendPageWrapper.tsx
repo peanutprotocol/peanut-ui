@@ -12,9 +12,9 @@
  */
 
 import { useUserByUsername } from '@/hooks/useUserByUsername'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { AccountType } from '@/interfaces/interfaces'
-import PeanutLoading from '@/components/Global/PeanutLoading'
-import ErrorAlert from '@/components/Global/ErrorAlert'
+import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useMemo } from 'react'
@@ -51,21 +51,27 @@ export function DirectSendPageWrapper({ username }: DirectSendPageWrapperProps) 
     // loading state
     if (isLoading) {
         return (
-            <div className="flex min-h-[inherit] w-full flex-col gap-4">
+            <div className="flex min-h-inherit w-full flex-col gap-4">
                 <NavHeader title={t('headers.send')} onPrev={onBack} />
                 <div className="flex flex-grow flex-col items-center justify-center gap-4 py-8">
-                    <PeanutLoading />
+                    <Loading variant="mascot" />
                 </div>
             </div>
         )
     }
 
-    // error state
+    // error state — centered card (ruled 2026-09-03: no more lone top banner)
     if (error || !recipient) {
         return (
-            <div className="flex w-full flex-col gap-4">
+            <div className="flex min-h-inherit w-full flex-col gap-4">
                 <NavHeader title={t('headers.send')} onPrev={onBack} />
-                <ErrorAlert description={error || t('errors.userNotFound', { username })} />
+                <div className="flex flex-grow flex-col justify-center py-8">
+                    <EmptyState
+                        icon="user"
+                        title={t('errors.userNotFoundTitle')}
+                        description={error || t('errors.userNotFoundDescription', { username })}
+                    />
+                </div>
             </div>
         )
     }

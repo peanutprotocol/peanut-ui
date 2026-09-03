@@ -1,26 +1,21 @@
 'use client'
 import { useRouter, useSearchParams } from 'next/navigation'
-import MERCADO_PAGO from '@/assets/payment-apps/mercado-pago.svg'
 import PIX from '@/assets/payment-apps/pix.svg'
 import LinkSendFlowManager from '../link/LinkSendFlowManager'
 import NavHeader from '@/components/Global/NavHeader'
 import Card from '@/components/Global/Card'
-import { Icon } from '@/components/Global/Icons/Icon'
 import { Button } from '@/components/0_Bruddle/Button'
 import Divider from '@/components/0_Bruddle/Divider'
-import { ActionListCard } from '@/components/ActionListCard'
-import IconStack from '@/components/Global/IconStack'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ACTION_METHODS, type PaymentMethod } from '@/constants/actionlist.consts'
 import Image from 'next/image'
-import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
-import { useContacts } from '@/hooks/useContacts'
-import { getInitialsFromName } from '@/utils/general.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { useCallback, useMemo } from 'react'
-import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
+import { useMemo } from 'react'
 import ContactsView from './Contacts.view'
 import { ValidatedUsernameWrapper } from '@/components/Username/ValidatedUsernameWrapper'
 import { DirectSendPageWrapper } from '@/features/payments/flows/direct-send/DirectSendPageWrapper'
@@ -57,73 +52,27 @@ export const SendRouterView = () => {
             : null
     const recipientUsername = recipientFromQuery || recipientFromPath || null
     const { resetWithdrawFlow } = useWithdrawFlow()
-    // only fetch 3 contacts for avatar display
-    const { contacts, isLoading: isFetchingContacts } = useContacts({ limit: 3 })
-
-    // fallback initials when no contacts
-    const fallbackInitials = ['PE', 'AN', 'UT']
-
-    const recentContactsAvatarInitials = useCallback(() => {
-        // if we have contacts, use them (already limited to 3 by API)
-        if (contacts.length > 0) {
-            return contacts.map((contact) => {
-                return getInitialsFromName(
-                    contact.showFullName ? contact.fullName || contact.username : contact.username
-                )
-            })
-        }
-        // fallback to default initials if no data
-        return fallbackInitials
-    }, [contacts])
-
-    const contactsAvatars = useMemo(() => {
-        // show loading skeleton while fetching
-        if (isFetchingContacts) {
-            return (
-                <div className="flex flex-row items-center -space-x-1.5">
-                    {[0, 1, 2].map((index) => (
-                        <div
-                            key={index}
-                            style={{ zIndex: index }}
-                            className="size-6 min-h-6 min-w-6 animate-pulse rounded-full bg-gray-200"
-                        />
-                    ))}
-                </div>
-            )
-        }
-
-        // show avatars (either real data or fallback)
-        return (
-            <div className="flex flex-row items-center -space-x-2">
-                {recentContactsAvatarInitials().map((initial, index) => {
-                    return (
-                        <div key={initial} style={{ zIndex: index }}>
-                            <AvatarWithBadge name={initial} size="tiny" />
-                        </div>
-                    )
-                })}
-            </div>
-        )
-    }, [isFetchingContacts, recentContactsAvatarInitials])
+    const goBack = useSafeBack('/home')
+    // replace, not push: a pushed fallback would mint a history entry that the
+    // base view's own safe-back then walks right back into the subview (loop)
+    const goBackToBase = useSafeBack('/send', { replace: true })
 
     const redirectToSendByLink = () => {
         router.push(`${window.location.pathname}?view=link`)
     }
 
     const handlePrev = () => {
-        // when in sub-views (link or contacts), go back to base send page
-        // otherwise, go to home
+        // sub-views (link or contacts) go back to the base send page; the base
+        // view goes back through in-app history (fallback: home)
         if (isSendingByLink || isSendingToContacts) {
-            router.push('/send')
+            goBackToBase()
         } else {
-            router.push('/home')
+            goBack()
         }
     }
 
-    const handleLinkCtaClick = () => {
-        router.push(`${window.location.pathname}?view=link`)
-        redirectToSendByLink()
-    }
+    // single navigation — the duplicate push was flagged by coderabbit on #2780
+    const handleLinkCtaClick = redirectToSendByLink
 
     // handle click on payment method options
     const handleMethodClick = (methodId: string) => {
@@ -146,11 +95,6 @@ export const SendRouterView = () => {
                 resetWithdrawFlow()
                 router.push('/withdraw?method=crypto')
                 break
-            case 'mercadopago':
-                // navigate to mercado pago send flow
-                resetWithdrawFlow()
-                router.push('/withdraw/manteca?method=mercado-pago&country=argentina')
-                break
             case 'pix':
                 // navigate to pix send flow
                 resetWithdrawFlow()
@@ -162,8 +106,12 @@ export const SendRouterView = () => {
     }
 
     // extend ACTION_METHODS with component-specific identifier icons
+    // (leading bubbles per the SendLink board 17832:79996).
+    // Mercado Pago is excluded here: it is a withdraw-to-OWN-account rail
+    // (Manteca), so it does not belong in the send-to-others list (PR #2813
+    // review). It stays available in the /withdraw flow.
     const extendedActionMethods = useMemo(() => {
-        return ACTION_METHODS.map((method) => {
+        return ACTION_METHODS.filter((method) => method.id !== 'mercadopago').map((method) => {
             // add identifier icon based on method id
             switch (method.id) {
                 case 'bank':
@@ -171,28 +119,14 @@ export const SendRouterView = () => {
                         ...method,
                         title: t('methods.bankTitle'),
                         description: t('methods.bankDescription'),
-                        identifierIcon: (
-                            <div className="flex size-8 min-w-8 items-center justify-center rounded-full bg-black">
-                                <Icon name="bank" size={14} fill="white" />
-                            </div>
-                        ),
+                        identifierIcon: <IconBubble icon="bank" size="s" color="gray" />,
                     }
                 case 'exchange-or-wallet':
                     return {
                         ...method,
                         title: t('methods.exchangeOrWalletTitle'),
                         description: t('methods.exchangeOrWalletDescription'),
-                        identifierIcon: (
-                            <div className="flex size-8 min-w-8 items-center justify-center rounded-full bg-yellow-1">
-                                <Icon name="wallet-outline" size={14} />
-                            </div>
-                        ),
-                    }
-                case 'mercadopago':
-                    return {
-                        ...method,
-                        description: t('methods.instantTransfers'),
-                        identifierIcon: <Image src={MERCADO_PAGO} alt="Mercado Pago" className="size-8 min-w-8" />,
+                        identifierIcon: <IconBubble icon="credit-card" size="s" color="blue" />,
                     }
                 case 'pix':
                     return {
@@ -215,11 +149,7 @@ export const SendRouterView = () => {
     const sendOptions = useMemo(() => {
         const peanutContactsOption: PaymentMethod = {
             id: 'peanut-contacts',
-            identifierIcon: (
-                <div className="flex size-8 min-w-8 items-center justify-center rounded-full bg-secondary-3">
-                    <Icon name="user" size={14} />
-                </div>
-            ),
+            identifierIcon: <IconBubble icon="user" size="s" color="green" />,
             title: t('methods.contactsTitle'),
             description: t('methods.contactsDescription'),
             icons: [],
@@ -257,69 +187,53 @@ export const SendRouterView = () => {
 
     // contacts view
     if (isSendingToContacts) {
-        return <ContactsView />
+        return <ContactsView onPrev={handlePrev} />
     }
 
     return (
         <div className="space-y-8">
             <NavHeader title={tNav('send')} onPrev={handlePrev} />
-            <div className="w-full space-y-4">
-                <Card position="single" className="p-4 pb-5">
-                    <div className="flex flex-col items-center justify-center gap-4">
-                        <div className="space-y-2">
-                            <div className="mx-auto w-fit rounded-full bg-primary-1 p-2">
-                                <Icon name="link" size={16} />
-                            </div>
-                            <div className="space-y-1 text-center">
-                                <div className="font-bold">{t('linkCard.title')}</div>
-                                <div className="text-sm font-medium">{t('linkCard.description')}</div>
-                            </div>
+            <div className="space-y-4 w-full">
+                {/* link card per the SendLink board (17832:79996): icon bubble,
+                    centered title + sub, full-width purple cta */}
+                <Card position="single" className="flex flex-col items-center gap-6 p-6">
+                    <div className="flex flex-col items-center gap-2">
+                        <IconBubble icon="link" size="m" color="blue" />
+                        <div className="space-y-1 text-center">
+                            <div className="text-heading-card text-foreground-primary">{t('linkCard.title')}</div>
+                            <div className="text-body-m text-foreground-secondary">{t('linkCard.description')}</div>
                         </div>
-                        <Button shadowSize="4" icon="link" iconSize={12} onClick={handleLinkCtaClick}>
-                            {t('linkCard.cta')}
-                        </Button>
                     </div>
+                    <Button
+                        variant="purple"
+                        icon="chevron-right"
+                        iconPosition="right"
+                        className="w-full"
+                        onClick={handleLinkCtaClick}
+                    >
+                        {t('linkCard.cta')}
+                    </Button>
                 </Card>
 
-                <Divider text={tCommon('or')} textClassname="font-bold text-grey-1" dividerClassname="bg-grey-1" />
+                <Divider
+                    text={tCommon('or')}
+                    textClassname="text-label-m text-foreground-secondary"
+                    dividerClassname="bg-border-subtle"
+                />
 
+                {/* board rows: leading bubble, title + body, trailing chevron */}
                 <div className="space-y-2">
-                    {sendOptions.map((option) => {
-                        // determine right content based on option id
-                        let rightContent
-                        switch (option.id) {
-                            case 'peanut-contacts':
-                                rightContent = contactsAvatars
-                                break
-                            case 'mercadopago':
-                                rightContent = (
-                                    <StatusBadge status="custom" customText={t('methods.yourAccountsOnly')} />
-                                )
-                                break
-                            default:
-                                rightContent = (
-                                    <IconStack
-                                        icons={option.icons ?? []}
-                                        iconSize={80}
-                                        imageClassName="size-6 min-h-6 min-w-6 object-cover"
-                                    />
-                                )
-                                break
-                        }
-
-                        return (
-                            <ActionListCard
-                                key={option.id}
-                                leftIcon={option.identifierIcon}
-                                position="single"
-                                title={option.title}
-                                description={option.description}
-                                descriptionClassName="text-[12px]"
-                                onClick={() => handleMethodClick(option.id)}
-                                rightContent={rightContent}
-                            />
-                        )
-                    })}
+                    {sendOptions.map((option) => (
+                        <ListItem
+                            key={option.id}
+                            leading={option.identifierIcon}
+                            position="single"
+                            title={option.title}
+                            body={option.description}
+                            onClick={() => handleMethodClick(option.id)}
+                            chevron
+                        />
+                    ))}
                 </div>
             </div>
         </div>

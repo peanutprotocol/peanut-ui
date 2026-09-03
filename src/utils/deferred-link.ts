@@ -4,10 +4,14 @@
 // hand-off written on the store-bounce tap and read once on first launch.
 // TASK-20772 — the download modal (TASK-20769) is the eventual web consumer.
 import { registerPlugin } from '@capacitor/core'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS, DEFERRED_LINK_OUTCOMES, type DeferredLinkOutcome } from '@/constants/analytics.consts'
 import { PLAY_STORE_URL } from '@/constants/general.consts'
 import { isValidLocale } from '@/i18n/config'
+import { type AppLocale, resolveLocaleOrNull } from '@/i18n/app/config'
 import { isAndroidNative, isIOSNative } from './capacitor'
-import { getFromCookie, saveToCookie, sanitizeRedirectURL, toInviteCode } from './general.utils'
+import { getFromCookie, saveToCookie, sanitizeRedirectURL } from './cookie-url.utils'
+import { toInviteCode } from './invite-code.utils'
 import { deepLinkToNativePath } from './native-routes'
 import {
     BADGE_CAMPAIGN_QUERY_PARAM,
@@ -22,27 +26,10 @@ import {
 const MARKER = 'pnutdl'
 export const CONSUMED_KEY = 'deferredLinkConsumed'
 
-// the key the in-app i18n reads (dev branch: src/i18n/app/locale-store.ts —
-// Preferences on native, cookie/localStorage on web). we persist the restored
-// preference under it so it applies the moment that system lands on main.
-// when it does, replace the mini-resolver below with its resolveLocale.
+// the key the in-app i18n reads (src/i18n/app/locale-store.ts — Preferences
+// on native, cookie/localStorage on web); the restored preference is persisted
+// under it so it applies on the next startup resolution.
 export const APP_LOCALE_KEY = 'app-locale'
-const APP_LOCALES = ['en', 'es-419', 'pt-BR'] as const
-type AppLocale = (typeof APP_LOCALES)[number]
-
-/** normalizes a BCP 47-ish tag to a supported app locale; null when the
- * language is unsupported (a garbage payload must never override the device
- * language). */
-function resolveAppLocale(raw: string): AppLocale | null {
-    const tag = raw.trim().toLowerCase()
-    const exact = APP_LOCALES.find((l) => l.toLowerCase() === tag)
-    if (exact) return exact
-    const lang = tag.split('-')[0]
-    if (lang === 'en') return 'en'
-    if (lang === 'es') return 'es-419'
-    if (lang === 'pt') return 'pt-BR'
-    return null
-}
 
 function persistRestoredLocale(locale: AppLocale): void {
     try {
@@ -192,6 +179,39 @@ export interface RestoredContext {
 let restoreInFlight: Promise<RestoredContext | null> | null = null
 
 /**
+ * Records the outcome of the one-shot restore. Only booleans and the channel
+ * leave the device — never the invite code, campaign tag or destination, which
+ * would put a user's inviter and intended screen into analytics.
+ *
+ * Swallows everything: this runs on the first-launch path, where a telemetry
+ * failure must not cost the user their restored context.
+ */
+function captureRestore(
+    channel: 'referrer' | 'clipboard' | 'none',
+    outcome: DeferredLinkOutcome,
+    fields?: Record<string, boolean>
+): void {
+    try {
+        posthog.capture(ANALYTICS_EVENTS.DEFERRED_LINK_RESTORED, { channel, outcome, ...fields })
+    } catch {}
+}
+
+/**
+ * Call from the store-bounce tap handler once the hand-off has been written, to
+ * give DEFERRED_LINK_RESTORED a denominator — restores alone can't distinguish
+ * "the hand-off is broken" from "nobody used it". Intentionally not fired inside
+ * `playStoreUrlWithReferrer`/`copyIOSHandoff`: the first is a pure URL builder
+ * invoked on render, so it would count impressions as taps.
+ * Consumers: the store-bounce handlers in migration.utils (openStore /
+ * onStoreAnchorClick); the download modal (TASK-20769) joins them when built.
+ */
+export function trackDeferredHandoffCreated(platform: 'ios' | 'android'): void {
+    try {
+        posthog.capture(ANALYTICS_EVENTS.DEFERRED_LINK_HANDOFF_CREATED, { platform })
+    } catch {}
+}
+
+/**
  * one-shot first-launch restore. reads the platform hand-off (android install
  * referrer / iOS clipboard), applies invite + campaign cookies, persists the
  * locale preference, and returns the destination for the caller to navigate
@@ -216,13 +236,21 @@ async function doRestore(): Promise<RestoredContext | null> {
         return null
     }
 
+    const channel = isAndroidNative() ? 'referrer' : isIOSNative() ? 'clipboard' : 'none'
+
+    let consumed = false
     const markConsumed = () => {
+        consumed = true
         try {
             localStorage.setItem(CONSUMED_KEY, '1')
         } catch {}
     }
 
     let raw: string | null = null
+    // Tracked separately from `raw === null`: a declined paste prompt is a
+    // broken hand-off, an empty clipboard is an organic install, and reporting
+    // both as "nothing found" is what makes a 0% match rate look like success.
+    let clipboardUnavailable = false
     if (isAndroidNative()) {
         raw = await readInstallReferrer()
         // the android read is prompt-free and the referrer stays readable for
@@ -251,15 +279,39 @@ async function doRestore(): Promise<RestoredContext | null> {
         } catch {
             // user declined the paste prompt, or clipboard unavailable
             markConsumed()
+            clipboardUnavailable = true
         }
     } else {
         markConsumed()
     }
 
     const payload = raw ? parseDeferredPayload(raw) : null
-    if (!payload) return null
+    if (!payload) {
+        // an unconsumed one-shot is a transient android referrer failure that
+        // the next launch retries — counting it would both duplicate the
+        // install and file a broken read as an organic one. `raw` present but
+        // unparsed means the marker was absent: an organic Play referrer, or
+        // unrelated clipboard text that passed the url gate.
+        if (consumed) {
+            captureRestore(
+                channel,
+                raw
+                    ? DEFERRED_LINK_OUTCOMES.MARKER_MISSING
+                    : clipboardUnavailable
+                      ? DEFERRED_LINK_OUTCOMES.CLIPBOARD_UNAVAILABLE
+                      : DEFERRED_LINK_OUTCOMES.NO_HANDOFF
+            )
+        }
+        return null
+    }
 
     const restored = applyDeferredPayload(payload)
+    captureRestore(channel, DEFERRED_LINK_OUTCOMES.RESTORED, {
+        has_dest: !!restored.dest,
+        has_locale: !!restored.locale,
+        has_invite: !!payload.invite,
+        has_campaign: !!(payload.badgeCampaigns?.length || payload.campaign),
+    })
 
     // privacy: clear the consumed hand-off off the clipboard. after the flag —
     // an interrupted clear can't cause a re-read. single space: some platforms
@@ -294,7 +346,8 @@ export function applyDeferredPayload(payload: DeferredPayload): RestoredContext 
     const badgeCampaigns = parsePendingBadgeCampaigns(payload.badgeCampaigns ?? payload.campaign)
     if (badgeCampaigns.length > 0) queuePendingBadgeCampaigns(badgeCampaigns, 30)
 
-    const locale = payload.lang ? resolveAppLocale(payload.lang) : null
+    // null, not the English fallback: a garbage payload must never override the device language
+    const locale = payload.lang ? resolveLocaleOrNull(payload.lang) : null
     if (locale) persistRestoredLocale(locale)
 
     // must-map, like openDeepLink: an unmappable dest (off-host, malformed

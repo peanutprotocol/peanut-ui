@@ -7,12 +7,13 @@ import { TRANSACTIONS } from '@/constants/query.consts'
 import { useAuth } from '@/context/authContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useUserStore } from '@/redux/hooks'
-import { ESendLinkStatus, sendLinksApi } from '@/services/sendLinks'
+import { useClaimSuccessPolling, type ClaimPollFailure } from './useClaimSuccessPolling'
 import { formatTokenAmount, getTokenDetails, shortenStringLong } from '@/utils/general.utils'
 import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
+import { captureMessage } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Hash } from 'viem'
 import { formatUnits } from 'viem'
 import * as _consts from '../../Claim.consts'
@@ -21,6 +22,11 @@ import { PeanutCheering } from '@/assets/mascot'
 import Image from 'next/image'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useTranslations } from 'next-intl'
+import { Notification } from '@/components/0_Bruddle/Notification'
+import Loading from '@/components/Global/Loading'
+import { useFriendlyError } from '@/hooks/useFriendlyError'
+import { useSafeBack } from '@/hooks/useSafeBack'
+import { API_ERROR_CODES } from '@/services/api-error'
 import { badgeCampaignForLegacyWire } from '@/components/Invites/badge-campaign-context'
 
 export const SuccessClaimLinkView = ({
@@ -28,8 +34,18 @@ export const SuccessClaimLinkView = ({
     setTransactionHash,
     claimLinkData,
     tokenPrice,
+    onCustom,
 }: _consts.IClaimScreenProps) => {
     const t = useTranslations('claim')
+    const tCommon = useTranslations('common')
+    const toFriendlyError = useFriendlyError()
+    const goBack = useSafeBack('/home')
+    // The optimistic claim path lands here before the broadcast is known to
+    // have succeeded, so a failure can only arrive through the poll below.
+    const [claimFailure, setClaimFailure] = useState<{ code: string | null } | null>(null)
+    // CLAIMED can settle before the on-chain txHash has projected, so success is
+    // its own flag rather than "we have a hash".
+    const [claimConfirmed, setClaimConfirmed] = useState(false)
     const { user: authUser } = useUserStore()
     const { fetchUser } = useAuth()
     const router = useRouter()
@@ -50,62 +66,50 @@ export const SuccessClaimLinkView = ({
         queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
     }, [queryClient])
 
-    useEffect(() => {
-        if (!!transactionHash) return
+    const handleClaimConfirmed = useCallback(
+        (txHash: string | null) => {
+            setClaimConfirmed(true)
+            // The hash may still be projecting when CLAIMED settles; set it once
+            // it is there so any hash-dependent path downstream still gets it.
+            if (txHash) setTransactionHash(txHash)
 
-        const fetchClaimData = async () => {
-            try {
-                const link = await sendLinksApi.get(claimLinkData.link)
-                if (link.claim) {
-                    const txHash = link.claim.txHash
-                    setTransactionHash(txHash)
+            // Force immediate refetch of balance and transactions,
+            // bypassing staleTime; only currently mounted queries.
+            queryClient.refetchQueries({ queryKey: [TRANSACTIONS], type: 'active' })
+            queryClient.refetchQueries({ queryKey: ['balance'], type: 'active' })
 
-                    // Force immediate refetch of balance and transactions
-                    // This runs inside the polling callback, so it works even if component unmounts
-                    // Using refetchQueries to bypass staleTime and force immediate refetch
-                    queryClient.refetchQueries({
-                        queryKey: [TRANSACTIONS],
-                        type: 'active', // Only refetch currently mounted queries
-                    })
-                    queryClient.refetchQueries({
-                        queryKey: ['balance'],
-                        type: 'active', // Only refetch currently mounted queries
-                    })
+            // Update user profile (points, etc)
+            fetchUser()
+        },
+        [queryClient, fetchUser, setTransactionHash]
+    )
 
-                    // Update user profile (points, etc)
-                    fetchUser()
+    const handleClaimFailed = useCallback((failure: ClaimPollFailure) => {
+        console.error('Claim failed:', failure.reason || 'Unknown error')
+        setClaimFailure({ code: failure.code })
+    }, [])
 
-                    console.log('✅ Claim confirmed. WebSocket will handle backend updates:', txHash) // Poll every 1 second
+    /*
+     * The poll ceiling was reached with no terminal answer (e.g. prolonged
+     * connectivity loss). Stay in the processing state — claiming success
+     * would be a lie and failure is not established either — and leave the
+     * query enabled so a window refocus gets one recovery fetch.
+     */
+    const handleClaimUnconfirmed = useCallback(() => {
+        captureMessage('Claim confirmation polling gave up without a terminal status', 'warning')
+    }, [])
 
-                    return true
-                } else if (link.status === ESendLinkStatus.FAILED) {
-                    // Claim failed after optimistic return - show error to user
-                    console.error('Claim failed:', link.events?.[link.events.length - 1]?.reason || 'Unknown error')
-                    // TODO: Show error UI to user instead of silent failure
-                    // For now, setting txHash to 'FAILED' to stop showing loading state
-                    setTransactionHash('FAILED')
-                    return true
-                }
-                return false
-            } catch (error) {
-                console.error('Error fetching claim data:', error)
-                return false
-            }
-        }
+    // Success once the claim is confirmed (CLAIMED status or a projected hash),
+    // matching the point the backend notifies — not "we have observed a hash".
+    const isClaimed = claimConfirmed || !!transactionHash
 
-        const intervalId = setInterval(async () => {
-            const claimFound = await fetchClaimData()
-            if (claimFound) {
-                clearInterval(intervalId)
-            }
-        }, 250)
-
-        // Initial fetch attempt
-        fetchClaimData()
-
-        // Clean up the interval when component unmounts or transactionHash changes
-        return () => clearInterval(intervalId)
-    }, [transactionHash, claimLinkData.link, queryClient, fetchUser])
+    useClaimSuccessPolling(
+        claimLinkData.link,
+        !isClaimed && !claimFailure,
+        handleClaimConfirmed,
+        handleClaimFailed,
+        handleClaimUnconfirmed
+    )
 
     const tokenDetails = useMemo(() => {
         if (!claimLinkData) return null
@@ -171,23 +175,72 @@ export const SuccessClaimLinkView = ({
     }
 
     useEffect(() => {
-        // trigger haptic on mount
+        // success feedback belongs to a confirmed claim, not to arriving here —
+        // the optimistic path mounts this view before the broadcast is known
+        if (!isClaimed) return
         triggerHaptic()
-    }, [triggerHaptic])
+    }, [isClaimed, triggerHaptic])
+
+    // The optimistic 202 lands here with no outcome yet. Hold the processing
+    // state until the claim is confirmed — rendering success before that would
+    // claim money that has not moved.
+    if (!isClaimed && !claimFailure) {
+        return (
+            <div className="flex min-h-inherit flex-col justify-between gap-8">
+                <div className="md:hidden">
+                    <NavHeader icon="cancel" title={navHeaderTitle} onPrev={goBack} />
+                </div>
+                <div className="relative z-10 my-auto flex h-full flex-col justify-center">
+                    <Loading variant="mascot" message={tCommon('status.processing')} />
+                </div>
+            </div>
+        )
+    }
+
+    if (claimFailure) {
+        const isRetryable = claimFailure.code === API_ERROR_CODES.CHAIN_INFRA_UNAVAILABLE
+        return (
+            <div className="flex min-h-inherit flex-col justify-between gap-8">
+                <div className="md:hidden">
+                    <NavHeader icon="cancel" title={navHeaderTitle} onPrev={goBack} />
+                </div>
+                <div className="relative z-10 my-auto space-y-4 flex h-full flex-col justify-center">
+                    <Notification priority="error" data-testid="error-alert">
+                        {toFriendlyError({ code: claimFailure.code })}
+                    </Notification>
+                    {isRetryable && (
+                        <Button
+                            shadowSize="4"
+                            className="w-full"
+                            onClick={() => {
+                                // the link was rolled back, so INITIAL offers
+                                // the claim again rather than a spent link
+                                setTransactionHash(undefined)
+                                onCustom('INITIAL')
+                            }}
+                        >
+                            {tCommon('tryAgain')}
+                        </Button>
+                    )}
+                    <Button variant="stroke" className="w-full" onClick={() => router.push('/home')}>
+                        {t('backToHome')}
+                    </Button>
+                </div>
+            </div>
+        )
+    }
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+        <div className="flex min-h-inherit flex-col justify-between gap-8">
             <SoundPlayer sound="success" />
-            <div className="md:hidden">
-                <NavHeader
-                    icon="cancel"
-                    title={navHeaderTitle}
-                    onPrev={() => {
-                        router.push('/home')
-                    }}
-                />
-            </div>
-            <div className="relative z-10 my-auto flex h-full flex-col justify-center space-y-4">
+            <NavHeader
+                icon="cancel"
+                title={navHeaderTitle}
+                onPrev={() => {
+                    router.push('/home')
+                }}
+            />
+            <div className="relative z-10 my-auto space-y-4 flex h-full flex-col justify-center">
                 <Image
                     src={PeanutCheering.src}
                     unoptimized
@@ -199,7 +252,9 @@ export const SuccessClaimLinkView = ({
                 <PeanutActionDetailsCard {...cardProps} />
                 {renderButtons()}
                 {campaignTag?.toLowerCase() === 'devconnect_ba_2025' && (
-                    <p className="text-center text-xs text-grey-1">{t('success.devconnectReturnHint')}</p>
+                    <p className="text-center text-body-xs text-foreground-secondary">
+                        {t('success.devconnectReturnHint')}
+                    </p>
                 )}
             </div>
         </div>

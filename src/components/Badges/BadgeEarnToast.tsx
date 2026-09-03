@@ -27,6 +27,8 @@ import { useBadgeCopy } from '@/components/Badges/useBadgeCopy'
 import { useBadgeEarnToast } from '@/components/Badges/useBadgeEarnToast'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { BadgeImage } from '@/components/Badges/BadgeImage'
+import { badgeAvatarKeys } from '@/components/Avatar/avatar.utils'
+import { AVATAR_PICKER_PATH } from '@/components/Avatar/avatar.consts'
 
 const HOME_PATH = '/home'
 
@@ -66,7 +68,7 @@ export default function BadgeEarnToast() {
         const openInspect = () => {
             dismiss(toastId)
             liveToastIdRef.current = null
-            posthog.capture(ANALYTICS_EVENTS.BADGE_EARN_TOAST_TAPPED, { count })
+            posthog.capture(ANALYTICS_EVENTS.BADGE_EARN_TOAST_TAPPED, { count, target: 'badge_detail' })
             if (count === 1) {
                 setModalBadge({
                     code: newest.code,
@@ -81,25 +83,47 @@ export default function BadgeEarnToast() {
 
         const label = count === 1 ? t('toastSingle', { name: newestName }) : t('toastMultiple', { count })
 
+        // A badge that ships avatars (TASK-22142) announces the unlock and
+        // links to the picker. The badge tap keeps its detail view, so these
+        // are two controls.
+        const avatarCount = badgeAvatarKeys(codes).length
+        const chooseAvatar = () => {
+            dismiss(toastId)
+            liveToastIdRef.current = null
+            posthog.capture(ANALYTICS_EVENTS.BADGE_EARN_TOAST_TAPPED, { count, target: 'avatar_picker' })
+            router.push(AVATAR_PICKER_PATH)
+        }
+
         toast({
             id: toastId,
             type: 'success',
             duration: 6000,
-            className: 'border-yellow-1',
+            // the compact notification carries no border of its own — this toast
+            // draws its accent border explicitly. custom content suppresses the
+            // priority icon by construction (ToastStack), no hideIcon needed.
+            className: 'border border-action-secondary bg-background-default',
             content: (
-                <button type="button" onClick={openInspect} className="flex items-center gap-3 text-left">
-                    <BadgeImage
-                        src={newestIcon}
-                        alt=""
-                        width={28}
-                        height={28}
-                        className="size-7 shrink-0 object-contain"
-                        unoptimized
-                    />
-                    <span className="text-sm font-bold">
-                        {label} <span className="font-medium underline">{t('toastTapToView')}</span>
-                    </span>
-                </button>
+                <div className="flex flex-col gap-1">
+                    <button type="button" onClick={openInspect} className="flex items-center gap-3 text-left">
+                        <BadgeImage
+                            src={newestIcon}
+                            alt=""
+                            width={28}
+                            height={28}
+                            className="size-7 shrink-0 object-contain"
+                            unoptimized
+                        />
+                        <span className="text-label-l">
+                            {label} <span className="font-medium underline">{t('toastTapToView')}</span>
+                        </span>
+                    </button>
+                    {avatarCount > 0 && (
+                        <button type="button" onClick={chooseAvatar} className="min-h-11 pl-10 text-left text-label-l">
+                            {t('toastAvatars', { count: avatarCount })}{' '}
+                            <span className="font-medium underline">{t('toastChooseAvatar')}</span>
+                        </button>
+                    )}
+                </div>
             ),
         })
         liveToastIdRef.current = toastId

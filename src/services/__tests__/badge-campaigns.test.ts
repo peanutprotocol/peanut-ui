@@ -1,7 +1,6 @@
 import {
     claimAndSettlePendingBadgeCampaigns,
     claimBadgeCampaigns,
-    destinationForConfirmedBadgeCampaignAcquisition,
     pendingBadgeCampaignsAfterClaims,
 } from '../badge-campaigns'
 import {
@@ -445,7 +444,7 @@ describe('badge badge campaign claims contract', () => {
         ).toEqual(['Second'])
     })
 
-    it('keeps validated acquisition navigation while dropping unknown policy and reward fields', async () => {
+    it('drops acquisition, unknown policy, and reward fields from the claim projection', async () => {
         mockServerFetch.mockResolvedValue(
             response(200, {
                 claims: [
@@ -468,28 +467,9 @@ describe('badge badge campaign claims contract', () => {
                 badgeCampaign: 'public-link',
                 badgeCode: 'PERMANENT_BADGE',
                 outcome: 'awarded',
-                acquisition: { fallback: 'normal_app', destination: 'offramp_migration' },
             },
         ])
         expect(result.pending).toEqual([])
-    })
-
-    it('routes only a confirmed, validated acquisition destination', () => {
-        const acquisition = { fallback: 'normal_app' as const, destination: 'offramp_migration' as const }
-
-        expect(
-            destinationForConfirmedBadgeCampaignAcquisition([
-                { badgeCampaign: 'opaque', outcome: 'already_owned', acquisition },
-            ])
-        ).toBe('/add-money/crypto?network=EVM&source=offramp')
-        expect(
-            destinationForConfirmedBadgeCampaignAcquisition([
-                { badgeCampaign: 'opaque', outcome: 'expired', acquisition },
-            ])
-        ).toBe('/home')
-        expect(
-            destinationForConfirmedBadgeCampaignAcquisition([{ badgeCampaign: 'offramp', outcome: 'awarded' }])
-        ).toBe('/home')
     })
 
     it('drops a malformed destination while retaining the permanent award outcome', async () => {
@@ -509,7 +489,6 @@ describe('badge badge campaign claims contract', () => {
         const result = await claimAndSettlePendingBadgeCampaigns(['offramp'])
 
         expect(result.claims).toEqual([{ badgeCampaign: 'offramp', badgeCode: 'OFFRAMP_USER', outcome: 'awarded' }])
-        expect(destinationForConfirmedBadgeCampaignAcquisition(result.claims)).toBe('/home')
         expect(result.pending).toEqual([])
     })
 })

@@ -47,7 +47,7 @@ const CAROUSEL_PREVIEWS: CarouselPreview[] = [
         id: 'perk-claim',
         label: 'Perk claim (pink-dot, no X) — Card Pioneer reward',
         icon: 'gift',
-        iconContainerClassName: 'bg-primary-1',
+        iconContainerClassName: 'bg-action-primary',
         iconSize: 16,
         isPerkClaim: true,
         title: (
@@ -65,7 +65,7 @@ const CAROUSEL_PREVIEWS: CarouselPreview[] = [
         id: 'card-pioneer',
         label: 'Card Pioneer — get your Peanut Card',
         icon: 'credit-card',
-        iconContainerClassName: 'bg-purple-1',
+        iconContainerClassName: 'bg-action-primary',
         iconSize: 16,
         title: (
             <span>
@@ -82,7 +82,7 @@ const CAROUSEL_PREVIEWS: CarouselPreview[] = [
         id: 'qr-payment',
         label: 'QR payment nudge (KYC-approved user)',
         icon: 'qr-code',
-        iconContainerClassName: 'bg-secondary-1',
+        iconContainerClassName: 'bg-action-secondary',
         iconSize: 16,
         title: (
             <span>
@@ -99,7 +99,7 @@ const CAROUSEL_PREVIEWS: CarouselPreview[] = [
         id: 'kyc-prompt',
         label: 'KYC prompt — unlock QR (un-verified user)',
         icon: 'qr-code',
-        iconContainerClassName: 'bg-secondary-1',
+        iconContainerClassName: 'bg-action-secondary',
         iconSize: 16,
         title: (
             <span>
@@ -135,7 +135,7 @@ const CAROUSEL_PREVIEWS: CarouselPreview[] = [
         id: 'bug-bounty',
         label: 'Bug bounty',
         icon: 'bug',
-        iconContainerClassName: 'bg-primary-1',
+        iconContainerClassName: 'bg-action-primary',
         iconSize: 20,
         title: (
             <span>
@@ -155,7 +155,7 @@ const CAROUSEL_PREVIEWS: CarouselPreview[] = [
         id: 'ios-pwa-install',
         label: 'iOS PWA install',
         icon: 'mobile-install',
-        iconContainerClassName: 'bg-secondary-1',
+        iconContainerClassName: 'bg-action-secondary',
         iconSize: 16,
         title: 'Add Peanut to your home screen',
         description: 'Follow a quick guide to add the app to your home screen, no download needed.',
@@ -189,7 +189,7 @@ export default function HomeCTAsPreviewPage() {
                     <DevSectionLabel>Carousel CTAs (CarouselCTA)</DevSectionLabel>
                     {CAROUSEL_PREVIEWS.map((cta) => (
                         <div key={cta.id} className="flex flex-col gap-1.5">
-                            <p className="text-[11px] text-grey-1">{cta.label}</p>
+                            <p className="text-[11px] text-foreground-secondary">{cta.label}</p>
                             <CarouselCTA
                                 title={cta.title}
                                 description={cta.description}
@@ -211,7 +211,7 @@ export default function HomeCTAsPreviewPage() {
                     <DevSectionLabel>Activation funnel steps (ActivationCTAs)</DevSectionLabel>
                     {ACTIVATION_STEPS.map(({ step, label }) => (
                         <div key={step} className="flex flex-col gap-1.5">
-                            <p className="text-[11px] text-grey-1">{label}</p>
+                            <p className="text-[11px] text-foreground-secondary">{label}</p>
                             <ActivationCTAs
                                 activationStep={step}
                                 onDismissCard={step === 'card' ? noop('dismiss card step') : undefined}
@@ -222,7 +222,9 @@ export default function HomeCTAsPreviewPage() {
 
                 <DevNoteCard>
                     Activation steps read defensive hooks (useCapabilities / useIdentityVerification) that return empty
-                    defaults when logged out, so every step renders here regardless of real KYC state.
+                    defaults when logged out, so every step renders here regardless of real KYC state — except the spend
+                    step, which needs card access or a QR rail to have an activating spend to route to, and so stays
+                    empty in a logged-out preview.
                 </DevNoteCard>
             </div>
         </DevPageShell>

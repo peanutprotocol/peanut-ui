@@ -28,6 +28,7 @@ import { useTranslations } from 'next-intl'
 import { areEvmAddressesEqual } from '@/utils/general.utils'
 import { useQueryClient } from '@tanstack/react-query'
 import { TRANSACTIONS } from '@/constants/query.consts'
+import { resolveSettledTxHash } from '@/utils/settled-tx-hash.utils'
 
 export function useSemanticRequestFlow() {
     const t = useTranslations('payment')
@@ -314,7 +315,7 @@ export function useSemanticRequestFlow() {
                     // `txHash` (Rain coordinator submits the on-chain tx). Fall
                     // back to it so card-collateral users don't get an
                     // undefined hash here.
-                    const hash = (txResult.receipt?.transactionHash ?? txResult.userOpHash ?? txResult.txHash) as Hash
+                    const { hash } = resolveSettledTxHash(txResult, 'semantic-request')
                     setTxHash(hash)
 
                     // record payment
@@ -509,7 +510,7 @@ export function useSemanticRequestFlow() {
                 })
                 // collateral-only routes return `txHash` only — see
                 // sibling site at line ~293 for the same fallback.
-                hash = (txResult.receipt?.transactionHash ?? txResult.userOpHash ?? txResult.txHash) as Hash
+                hash = resolveSettledTxHash(txResult, 'semantic-request-pay').hash
             } else if (needsRoute && routeTransactions && routeTransactions.length > 0) {
                 // cross-chain or token swap payment via Rhino SDA. Pass
                 // `requiredUsdcAmount = payAmount` (principal + Rhino fee on SDA
@@ -536,7 +537,7 @@ export function useSemanticRequestFlow() {
                           }
                         : undefined
                 )
-                hash = (txResult.receipt?.transactionHash ?? txResult.userOpHash) as Hash
+                hash = resolveSettledTxHash(txResult, 'semantic-request-fulfill').hash
             } else {
                 throw new Error('route not ready for cross-chain payment')
             }

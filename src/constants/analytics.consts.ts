@@ -7,6 +7,17 @@ export const ANALYTICS_EVENTS = {
     LOGIN: 'login',
 
     // ── Signup funnel ──
+    SIGNUP_STEP_VIEWED: 'signup_step_viewed',
+    SIGNUP_RESIDENCE_SELECTED: 'signup_residence_selected',
+    SIGNUP_RESIDENCE_RESTRICTED_SHOWN: 'signup_residence_restricted_shown',
+    SIGNUP_RESIDENCE_PARTIAL_SHOWN: 'signup_residence_partial_shown',
+    SIGNUP_RESIDENCE_CONGRATS_SHOWN: 'signup_residence_congrats_shown',
+    SIGNUP_RESIDENCE_RESTRICTED_CONTINUED: 'signup_residence_restricted_continued',
+    SIGNUP_RESIDENCE_NOTIFY_SUBMITTED: 'signup_residence_notify_submitted',
+    RESIDENCE_CHANGED: 'residence_changed',
+    HOME_CHECKLIST_VIEWED: 'home_checklist_viewed',
+    HOME_CHECKLIST_ITEM_CLICKED: 'home_checklist_item_clicked',
+    KYC_DEGRADED_NOTIFY_REQUESTED: 'kyc_degraded_notify_requested',
     SIGNUP_CLICKED: 'signup_signup_clicked',
     SIGNUP_LOGIN_ERROR: 'signup_login_error',
     SIGNUP_CREATE_WALLET_CLICKED: 'signup_create_wallet_clicked',
@@ -55,6 +66,23 @@ export const ANALYTICS_EVENTS = {
     // Emitted for every direct send that ends in the error toast, whatever the
     // step. Until this existed a failed send left no analytics trace at all.
     SEND_FAILED: 'send_failed',
+    // A payment was recorded with the userOp hash because no receipt (and no
+    // coordinator txHash) was available — the backend cannot validate that
+    // hash, so this rate should be ~0. See resolveSettledTxHash.
+    SEND_TXHASH_FALLBACK: 'send_txhash_fallback',
+    // waitForUserOperationReceipt failed but a capped retry of the wait
+    // recovered the receipt. Carries elapsed_ms, context ('zerodev-send' |
+    // 'mixed-ephemeral-spend') and reverted (a rescued REVERTED op is failed
+    // by the caller, never recorded as success). Fires below the flow layer;
+    // high counts = flaky bundler RPC. Not captured in demo mode.
+    SEND_RECEIPT_RESCUED: 'send_receipt_rescued',
+    // Client-side latency split of a successful direct send: charge_create_ms,
+    // send_money_ms (sign + bundler + receipt — INCLUDES human passkey-prompt
+    // dwell time; read p50, not the tail), record_payment_ms, tx_hash_source.
+    // Measures the client leg that prod DB timing can't see (TASK-21147:
+    // created→POST /payments was p50 7.9s with no attribution). Not captured
+    // in demo mode.
+    SEND_LATENCY_BREAKDOWN: 'send_latency_breakdown',
 
     // ── Send Link ──
     SEND_LINK_CREATED: 'send_link_created',
@@ -74,9 +102,6 @@ export const ANALYTICS_EVENTS = {
     DEPOSIT_CONFIRMED: 'deposit_confirmed',
     DEPOSIT_COMPLETED: 'deposit_completed',
     DEPOSIT_FAILED: 'deposit_failed',
-    // offramp.xyz migrants must self-report their Offramp username/email
-    // before the migration deposit address is revealed (payout reconciliation)
-    OFFRAMP_HANDLE_SUBMITTED: 'offramp_handle_submitted',
 
     // ── Withdraw ──
     WITHDRAW_AMOUNT_ENTERED: 'withdraw_amount_entered',
@@ -122,6 +147,7 @@ export const ANALYTICS_EVENTS = {
     NOTIFICATION_PERMISSION_DENIED: 'notification_permission_denied',
     NOTIFICATION_SUBSCRIBED: 'notification_subscribed',
     NOTIFICATION_CLICKED: 'notification_clicked',
+    NOTIFICATION_SUBSCRIPTION_SNAPSHOT: 'notification_subscription_snapshot',
 
     // ── Modal Fatigue ──
     MODAL_SHOWN: 'modal_shown',
@@ -132,6 +158,7 @@ export const ANALYTICS_EVENTS = {
     QR_SCANNED: 'qr_scanned',
     QR_NOTIFY_ME_CLICKED: 'qr_notify_me_clicked',
     QR_DECODING_ERROR_SHOWN: 'qr_decoding_error_shown',
+    QR_MERCHANT_CHARGE_EXPIRED_SHOWN: 'qr_merchant_charge_expired_shown',
 
     // ── Home ──
     BALANCE_VISIBILITY_TOGGLED: 'balance_visibility_toggled',
@@ -189,7 +216,7 @@ export const ANALYTICS_EVENTS = {
     // approval is bound to a deprecated validator; user must re-enable the card.
     CARD_STALE_APPROVAL_HIT: 'card_stale_approval_hit',
     // One-tap mixed spend via per-transaction ephemeral session key
-    // (SESSION_KEY_SPEND flag). A fallback means the passkey path took over —
+    // (one-tap mixed spend). A fallback means the passkey path took over —
     // `reason` says why; watch this before widening the flag.
     SESSION_KEY_SPEND_ATTEMPTED: 'session_key_spend_attempted',
     SESSION_KEY_SPEND_FALLBACK: 'session_key_spend_fallback',
@@ -283,6 +310,14 @@ export const ANALYTICS_EVENTS = {
     // refused/wedged, e.g. 1Password on iOS), `context` is the signing call site.
     PASSKEY_SIGN_FAILED: 'passkey_sign_failed',
 
+    // One event per WebAuthn ceremony our code requests, tagged with the purpose
+    // stack (`kernel_migration>user_op`, `admin_eip712`, …) and the flow it ran
+    // in. `webauthn_ceremony_flow` closes a flow with the total count — that
+    // count is what says whether a 2–3 prompt report is our call sites, a retry,
+    // or the native shim presenting extra sheets on its own.
+    WEBAUTHN_CEREMONY: 'webauthn_ceremony',
+    WEBAUTHN_CEREMONY_FLOW: 'webauthn_ceremony_flow',
+
     // Rain withdrawal-signature cooldown tripped during a spend. Handled
     // gracefully in-flow (no captureException), so this is the only telemetry.
     RAIN_COOLDOWN_HIT: 'rain_cooldown_hit',
@@ -291,6 +326,9 @@ export const ANALYTICS_EVENTS = {
     DELETE_ACCOUNT_INITIATED: 'delete_account_initiated',
     DELETE_ACCOUNT_CONFIRMED: 'delete_account_confirmed',
     DELETE_ACCOUNT_FAILED: 'delete_account_failed',
+    // Deletion refused because the account still holds funds — the user was sent
+    // to move the money out first.
+    DELETE_ACCOUNT_BLOCKED_BALANCE: 'delete_account_blocked_balance',
 
     // ── PWA sunset / app migration ──
     // Funnel: modal_shown(migration_download) → store_cta_clicked / qr_shown
@@ -305,7 +343,32 @@ export const ANALYTICS_EVENTS = {
     MIGRATION_STORE_CTA_CLICKED: 'migration_store_cta_clicked',
     MIGRATION_QR_SHOWN: 'migration_qr_shown',
     MIGRATION_KEEP_WEB_USED: 'migration_keep_web_used',
+    // ── Deferred deep linking (TASK-20772) ──
+    // Fired once per fresh install, on the one-shot restore. `outcome` is a
+    // DEFERRED_LINK_OUTCOMES value and is the whole point of the event: it's the
+    // only way to tell a working store→install hand-off from one that silently
+    // matches nothing, since a declined iOS paste prompt and an organic install
+    // both simply produce no payload.
+    DEFERRED_LINK_RESTORED: 'deferred_link_restored',
+    // Fired on the web side when a store bounce writes the hand-off.
+    DEFERRED_LINK_HANDOFF_CREATED: 'deferred_link_handoff_created',
 } as const
+
+/**
+ * Outcomes for DEFERRED_LINK_RESTORED — why a first-launch restore did or did
+ * not recover context. Distinguishing the empty cases is the reason this event
+ * exists: `clipboard_unavailable` (user declined the paste prompt, or the
+ * plugin is missing) and `no_handoff` (organic install) are indistinguishable
+ * without it, and only the first indicates a broken hand-off.
+ */
+export const DEFERRED_LINK_OUTCOMES = {
+    RESTORED: 'restored',
+    NO_HANDOFF: 'no_handoff',
+    MARKER_MISSING: 'marker_missing',
+    CLIPBOARD_UNAVAILABLE: 'clipboard_unavailable',
+} as const
+
+export type DeferredLinkOutcome = (typeof DEFERRED_LINK_OUTCOMES)[keyof typeof DEFERRED_LINK_OUTCOMES]
 
 /**
  * Valid modal_type values for MODAL_SHOWN / MODAL_DISMISSED / MODAL_CTA_CLICKED events.

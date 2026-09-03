@@ -22,18 +22,6 @@ jest.mock('../../KYCStatusDrawerItem', () => ({
     KYCStatusDrawerItem: () => <div data-testid="kyc-status-drawer-item" />,
 }))
 
-// InfoCard is the leaf both branches render through; surface its text so we can
-// assert the actual copy. RejectLabelsList is intentionally NOT mocked.
-jest.mock('@/components/Global/InfoCard', () => ({
-    __esModule: true,
-    default: ({ title, description }: { title?: string; description?: string }) => (
-        <>
-            {title ? <div>{title}</div> : null}
-            {description ? <div>{description}</div> : null}
-        </>
-    ),
-}))
-
 describe('KycActionRequired — real reject-label copy', () => {
     it('renders the DUPLICATE_EMAIL guidance, not the generic resubmit message', () => {
         render(

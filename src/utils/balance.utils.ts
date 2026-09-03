@@ -1,4 +1,4 @@
-import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
+import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/wallet-token.consts'
 import { formatUnits, parseUnits } from 'viem'
 
 /**
@@ -18,6 +18,29 @@ export const parseUsdAmountToUnits = (amountUsd: string | number): bigint | null
         return null
     }
 }
+
+/**
+ * Is the entered amount a real, spendable value (> 0)? String truthiness is not
+ * enough — "0" and "0.00" are truthy and would create a zero-value on-chain
+ * link/spend. Parses exactly like the spend does (parseUsdAmountToUnits), so
+ * anything parseUnits would reject fails here first.
+ */
+export const isValidSendAmount = (amountUsd: string | number | null | undefined): boolean => {
+    if (amountUsd == null) return false
+    const units = parseUsdAmountToUnits(amountUsd)
+    return units !== null && units > 0n
+}
+
+/**
+ * Balance at or above which self-service account deletion is refused (see
+ * `DeleteAccountButton`). Deletion is irreversible — login is blocked forever
+ * and there is no reactivation path — so anything left behind is unreachable.
+ * Sub-cent dust is exempt: it is neither displayable nor withdrawable, and
+ * trapping a user in an account they asked to delete over rounding beats losing
+ * it. Mirrors `DELETION_BALANCE_DUST_UNITS` in peanut-api-ts, which is the
+ * authoritative gate.
+ */
+export const DELETION_BALANCE_DUST_UNITS = parseUnits('0.01', PEANUT_WALLET_TOKEN_DECIMALS)
 
 export const printableUsdc = (balance: bigint): string => {
     // For 6 decimals, we want 2 decimal places in output

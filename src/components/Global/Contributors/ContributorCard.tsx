@@ -8,7 +8,7 @@ import { VerifiedUserLabel } from '@/components/UserHeader'
 import { formatTokenAmount } from '@/utils/general.utils'
 import { isAddress } from 'viem'
 import { useRouter } from 'next/navigation'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { profileUrl } from '@/utils/native-routes'
 
 export type Contributor = {

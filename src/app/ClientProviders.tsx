@@ -7,26 +7,25 @@
  * the root layout (server component) renders this single client boundary.
  */
 import { ConsoleGreeting } from '@/components/Global/ConsoleGreeting'
-import RainCooldownIntroModal from '@/components/Global/RainCooldown/IntroModal'
-import StaleCardApprovalReEnableModal from '@/components/Global/StaleCardApproval/ReEnableModal'
-import StaleDeploymentReload from '@/components/Global/StaleDeploymentReload'
-import BadgeEarnToast from '@/components/Badges/BadgeEarnToast'
-import { AppLockGate } from '@/components/Global/AppLock'
 import { ScreenOrientationLocker } from '@/components/Global/ScreenOrientationLocker'
 import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapper'
-import { AppIntlProvider } from '@/i18n/app/AppIntlProvider'
+import { UnsupportedWebViewScreen, hasUnsupportedWebViewBypass } from '@/components/Global/UnsupportedWebViewScreen'
+import { MarketingIntlProvider } from '@/i18n/app/MarketingIntlProvider'
 import { PeanutProvider } from '@/config/peanut.config'
 import { ContextProvider } from '@/context/contextProvider'
+import { OtaUpdateProvider } from '@/context/OtaUpdateContext'
 import { FooterVisibilityProvider } from '@/context/footerVisibility'
+import { DEV_TOOLS_ENABLED } from '@/constants/dev-tools.consts'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import { useNativeAppLinks } from '@/hooks/useNativeAppLinks'
-import { useOtaUpdates } from '@/hooks/useOtaUpdates'
 import { useSplashGate } from '@/hooks/useSplashGate'
 import { useZeroLegacyAndroidSafeAreaInsets } from '@/hooks/useZeroLegacyAndroidSafeAreaInsets'
+import { applyLegacyAndroidSafeAreaZeroFromUserAgent, isCapacitor, isWebViewCssSupported } from '@/utils/capacitor'
+import { isMarketingRoute } from '@/utils/marketing-routes'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import dynamic from 'next/dynamic'
+import { usePathname } from 'next/navigation'
 import { Suspense } from 'react'
-import { PeanutDebug } from '@/context/PeanutDebug'
 
 // Harness bootstrap ships only in harness builds. In prod bundles the dynamic
 // import is in dead code behind `if (false)` and webpack drops the chunk.
@@ -36,58 +35,84 @@ const HarnessBootstrap = HARNESS_ENABLED
       })
     : null
 
+// /dev/devices viewport harness: every pane runs this agent so the panes mirror
+// each other's route, scroll, input and clicks. Same build-time gate as the
+// page, so prod folds it to dead code. No-ops outside a pane, so a normal tab
+// is unaffected.
+if (DEV_TOOLS_ENABLED && typeof window !== 'undefined') {
+    import('@/dev/devsync-agent').then((m) => m.initDevsyncAgent())
+}
+
+// Module scope so it lands before hydration: the first paint on Android < 15
+// would otherwise show the phantom safe-area band until the async Device.getInfo
+// pass (useZeroLegacyAndroidSafeAreaInsets, still authoritative) corrects it.
+if (typeof window !== 'undefined') applyLegacyAndroidSafeAreaZeroFromUserAgent()
+
+// Decided once at load, client only. A WebView that cannot parse the
+// stylesheet gets the inline-styled update screen in place of the app tree.
+const UNSUPPORTED_WEBVIEW =
+    typeof window !== 'undefined' && isCapacitor() && !isWebViewCssSupported() && !hasUnsupportedWebViewBypass()
+
+const AppGlobals = dynamic(() => import('./AppGlobals').then((m) => m.AppGlobals))
+// The full message catalog is 129 KB; app routes load it as their own chunk.
+const AppIntlProvider = dynamic(() => import('@/i18n/app/AppIntlProvider').then((m) => m.AppIntlProvider))
+
 export function ClientProviders({ children }: { children: React.ReactNode }) {
-    // initialize capgo ota updates (calls notifyAppReady on mount, no-op on web)
-    useOtaUpdates()
     useSplashGate()
     // App Links + push-tap routing must be registered on EVERY cold-start
     // destination (including logged-out /setup), hence here and not (mobile-ui).
     useNativeAppLinks()
     useZeroLegacyAndroidSafeAreaInsets()
 
-    return (
-        <NuqsAdapter>
-            <PeanutProvider>
-                {/* Must sit ABOVE ContextProvider: TokenContextProvider → useWallet
-                    → useSendMoney calls useTranslations, so the intl context has to
-                    exist by the time ContextProvider renders. */}
+    // The marketing site renders without the wallet provider tree, so the
+    // globals that depend on it are not mounted there either. `isMarketingRoute`
+    // fails safe: an unrecognised path gets the full app tree.
+    const marketing = isMarketingRoute(usePathname())
+    const IntlProvider = marketing ? MarketingIntlProvider : AppIntlProvider
+
+    if (UNSUPPORTED_WEBVIEW) {
+        // notifyAppReady still has to run here, or the plugin's app-ready
+        // timeout rolls the active OTA bundle back on this screen.
+        return (
+            <OtaUpdateProvider>
                 <AppIntlProvider>
-                    <ContextProvider>
-                        <FooterVisibilityProvider>
-                            <TranslationSafeWrapper>
-                                <ConsoleGreeting />
-                                <ScreenOrientationLocker />
-                                <PeanutDebug />
-                                {/* Mounted here (not in a route-group layout) so the cooldown
-                                explainer also covers public pay/send/request pages —
-                                the rain:cooldown event fires on every spend path. */}
-                                <RainCooldownIntroModal />
-                                {/* Global recovery prompt: a withdraw refused with 409
-                                STALE_CARD_APPROVAL (stale session-key approval) fires
-                                RAIN_STALE_APPROVAL_EVENT — mount here so the re-enable
-                                CTA covers every spend path, not just the card screen. */}
-                                <StaleCardApprovalReEnableModal />
-                                {/* Non-intrusive "badge unlocked" toast on /home (TASK-19791).
-                                Global so it surfaces wherever the user lands after earning. */}
-                                <BadgeEarnToast />
-                                {/* Mounted inside the providers (not called in this
-                                component's body like useOtaUpdates) because it
-                                reads the query client, redux and loading-state
-                                context to know when a reload is safe. */}
-                                <StaleDeploymentReload />
-                                {HarnessBootstrap && (
-                                    <Suspense fallback={null}>
-                                        <HarnessBootstrap />
-                                    </Suspense>
-                                )}
-                                {/* Wraps rather than sits beside the page: while the
-                                    native app is locked, nothing protected renders. */}
-                                <AppLockGate>{children}</AppLockGate>
-                            </TranslationSafeWrapper>
-                        </FooterVisibilityProvider>
-                    </ContextProvider>
+                    <UnsupportedWebViewScreen />
                 </AppIntlProvider>
-            </PeanutProvider>
-        </NuqsAdapter>
+            </OtaUpdateProvider>
+        )
+    }
+
+    return (
+        /* OTA init (notifyAppReady) must run on every native launch AND land
+           inside the plugin's 15 s app-ready timeout, or Capgo rolls the active
+           bundle back. So it sits above every lazily-loaded provider, not just
+           above the route-conditional ones: PeanutProvider renders app routes
+           only through the dynamically-imported AppStateProviders chunk, and a
+           chunk that loads slowly or fails would take readiness down with it. */
+        <OtaUpdateProvider>
+            <NuqsAdapter>
+                <PeanutProvider>
+                    {/* Must sit ABOVE ContextProvider: TokenContextProvider → useWallet
+                        → useSendMoney calls useTranslations, so the intl context has to
+                        exist by the time ContextProvider renders. */}
+                    <IntlProvider>
+                        <ContextProvider>
+                            <FooterVisibilityProvider>
+                                <TranslationSafeWrapper>
+                                    <ConsoleGreeting />
+                                    <ScreenOrientationLocker />
+                                    {HarnessBootstrap && (
+                                        <Suspense fallback={null}>
+                                            <HarnessBootstrap />
+                                        </Suspense>
+                                    )}
+                                    {marketing ? children : <AppGlobals>{children}</AppGlobals>}
+                                </TranslationSafeWrapper>
+                            </FooterVisibilityProvider>
+                        </ContextProvider>
+                    </IntlProvider>
+                </PeanutProvider>
+            </NuqsAdapter>
+        </OtaUpdateProvider>
     )
 }

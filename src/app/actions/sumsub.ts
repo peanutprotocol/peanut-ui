@@ -9,6 +9,12 @@ import { serverFetch } from '@/utils/api-fetch'
  * and stays untranslated (#2554: keep BE prose as fallback where no code exists).
  */
 export type SumsubActionErrorCode =
+    // Permanent refusals the backend names in its `error` field. A retry sends
+    // the identical request and gets the identical answer, so callers must
+    // suppress their retry CTA on these.
+    | 'target_country_required'
+    | 'unsupported_target_country'
+    | 'manteca_us_nationality_restricted'
     | 'initiate_failed'
     | 'restart_failed'
     | 'resubmit_failed'
@@ -21,13 +27,44 @@ interface SumsubActionError {
     code?: SumsubActionErrorCode
 }
 
+/** Permanent refusals. These have no catalog entry, so classifying one never
+ *  displaces the backend's own explanation. */
+const TERMINAL_ACTION_CODES = new Set<string>([
+    'target_country_required',
+    'unsupported_target_country',
+    'manteca_us_nationality_restricted',
+])
+
+/** True when the result is a refusal no retry can change. */
+export const isTerminalActionCode = (code?: SumsubActionErrorCode): boolean => !!code && TERMINAL_ACTION_CODES.has(code)
+
+/**
+ * The backend's `error` field carries a MACHINE CODE on these routes, while
+ * `userMessage` carries the prose — but older routes put prose in `error`. So
+ * `error` is only read as a code when it matches one we know, and a recognized
+ * code is never shown to the user: rendering it verbatim is the raw-code
+ * outcome this whole path exists to remove.
+ */
+const terminalCodeOf = (responseJson: { error?: string }): SumsubActionErrorCode | undefined =>
+    typeof responseJson.error === 'string' && TERMINAL_ACTION_CODES.has(responseJson.error)
+        ? (responseJson.error as SumsubActionErrorCode)
+        : undefined
+
 const backendOrFallback = (
     responseJson: { userMessage?: string; error?: string },
     fallback: string,
     code: SumsubActionErrorCode
 ): SumsubActionError => {
-    const backendMessage = responseJson.userMessage || responseJson.error
-    return backendMessage ? { error: backendMessage } : { error: fallback, code }
+    const terminal = terminalCodeOf(responseJson)
+    const backendMessage = responseJson.userMessage || (terminal ? undefined : responseJson.error)
+    // A permanent refusal keeps its code so the caller can suppress the retry,
+    // AND its message — the two are not in competition.
+    if (terminal) return { error: backendMessage || fallback, code: terminal }
+    // Everything else: a backend message stays codeless, because
+    // `actionErrorMessage` prefers a mapped code over the message and would
+    // replace a specific explanation with generic retry copy.
+    if (!backendMessage) return { error: fallback, code }
+    return { error: backendMessage }
 }
 
 const caughtError = (e: unknown): SumsubActionError =>
@@ -87,6 +124,14 @@ export interface RestartIdentityResponse {
     token: string
     levelName: string
     applicantId: string
+    /**
+     * The intent the SERVER resolved. Drive the SDK session from this, not from
+     * what was asked for: the declared residence can overrule the request, and
+     * `levelName` cannot stand in for it (EU and NA share `bridge-requirements`,
+     * LATAM and ROW share `general`, and only EU and LATAM are multi-level).
+     * Optional so a response from an older backend still parses.
+     */
+    regionIntent?: KYCRegionIntent
 }
 
 /**
@@ -94,18 +139,42 @@ export interface RestartIdentityResponse {
  * "Verify with a different document" CTA on a Manteca rail that's blocked
  * because the user verified with a non-AR/BR document.
  */
-export const restartIdentityVerification = async (): Promise<{
+// The intents the restart route accepts; a server action is a public endpoint,
+// so anything else is dropped here rather than forwarded.
+const RESTART_REGION_INTENTS: ReadonlySet<string> = new Set(['LATAM', 'ROW', 'EU', 'NA'])
+
+export const restartIdentityVerification = async (
+    regionIntent?: KYCRegionIntent
+): Promise<{
     data?: RestartIdentityResponse
     error?: string
     code?: SumsubActionErrorCode
 }> => {
     try {
-        const response = await serverFetch('/users/identity/restart', { method: 'POST' })
+        const intent = regionIntent && RESTART_REGION_INTENTS.has(regionIntent) ? regionIntent : undefined
+        const response = await serverFetch('/users/identity/restart', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(intent ? { regionIntent: intent } : {}),
+        })
         const responseJson = await response.json()
         if (!response.ok) {
             return backendOrFallback(responseJson, 'Failed to restart identity verification', 'restart_failed')
         }
-        return { data: responseJson }
+        // Sanitize on the way OUT as well as in. `responseJson` is unvalidated,
+        // and the caller stores `regionIntent` in the ref that `refreshToken`
+        // later replays to `initiateSumsubKyc` — so an unrecognised value would
+        // not merely read as single-level here, it would be sent back to the
+        // API on the next refresh. Dropping it lets the caller's `??` fall back
+        // to the intent it already had.
+        const resolved = responseJson?.regionIntent
+        return {
+            data: {
+                ...responseJson,
+                regionIntent:
+                    typeof resolved === 'string' && RESTART_REGION_INTENTS.has(resolved) ? resolved : undefined,
+            },
+        }
     } catch (e: unknown) {
         return caughtError(e)
     }
@@ -141,16 +210,19 @@ export const initiateSelfHealResubmission = async (
 }
 
 /**
- * Exchange the `bridge-hosted` capability action for Bridge's hosted
- * verification URL (same POST /users/kyc/start-action endpoint as
- * {@link startKycAction}, different response shape: that path mints Sumsub
- * tokens, this one returns a URL — hence its own guard).
+ * Exchange a hosted-verification capability action for its provider's hosted
+ * URL (same POST /users/kyc/start-action endpoint as {@link startKycAction},
+ * different response shape: that path mints Sumsub tokens, this one returns a
+ * URL — hence its own guard). Serves both `bridge-hosted` (Bridge/Persona) and
+ * `rain-hosted` (Rain's card-member portal); the key selects the provider.
  */
-export const startBridgeHostedVerification = async (): Promise<{ url?: string; error?: string }> => {
+export const startHostedVerification = async (
+    key: 'bridge-hosted' | 'rain-hosted' = 'bridge-hosted'
+): Promise<{ url?: string; error?: string }> => {
     try {
         const response = await serverFetch('/users/kyc/start-action', {
             method: 'POST',
-            body: JSON.stringify({ key: 'bridge-hosted' }),
+            body: JSON.stringify({ key }),
         })
         const responseJson = await response.json()
         if (!response.ok) {

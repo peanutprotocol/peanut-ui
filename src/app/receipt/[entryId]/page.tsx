@@ -1,6 +1,7 @@
 import { connection } from 'next/server'
 import { notFound } from 'next/navigation'
-import { isFinalState } from '@/utils/history.utils'
+import { captureException } from '@sentry/nextjs'
+import { isFinalState, type HistoryEntry } from '@/utils/history.utils'
 import { getHistoryEntry } from '@/app/actions/history'
 import {
     mapTransactionDataForDrawer,
@@ -8,6 +9,7 @@ import {
 } from '@/components/TransactionDetails/transactionTransformer'
 import { resolveReceiptKind } from '@/components/TransactionDetails/strategies/registry'
 import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsReceipt'
+import { ReceiptUnavailable } from '@/components/TransactionDetails/ReceiptUnavailable'
 import NavHeader from '@/components/Global/NavHeader'
 import { generateMetadata as generateBaseMetadata } from '@/app/metadata'
 import { type Metadata } from 'next'
@@ -125,13 +127,18 @@ export async function generateMetadata({
         return basicMetadata
     }
 
-    const entry = await getHistoryEntry(entryId, kind)
-    if (!entry) {
+    let transactionDetails: TransactionDetails
+    try {
+        const entry = await getHistoryEntry(entryId, kind)
+        if (!entry) {
+            return basicMetadata
+        }
+        // Transform the entry data to get readable transaction details
+        transactionDetails = mapTransactionDataForDrawer(entry).transactionDetails
+    } catch {
+        // the page body reports the failure; metadata just degrades
         return basicMetadata
     }
-
-    // Transform the entry data to get readable transaction details
-    const { transactionDetails } = mapTransactionDataForDrawer(entry)
 
     // Generate dynamic title and description
     const title = generateReceiptTitle(transactionDetails)
@@ -178,24 +185,51 @@ export default async function ReceiptPage({
     const { entryId } = await params
     const resolvedParams = await searchParams
     const kind = resolveReceiptKind(resolvedParams.kind, resolvedParams.t)
+    // No resolvable kind — most often a pre-May-2026 `?t=` link whose id no
+    // longer resolves. A hard 404 reads as breakage on a link users hold, so
+    // show a branded explanation instead.
     if (!entryId || !kind) {
-        notFound()
+        return <ReceiptShell state="gone" />
     }
-    const entry = await getHistoryEntry(entryId, kind)
+    let entry: HistoryEntry | null
+    try {
+        entry = await getHistoryEntry(entryId, kind)
+    } catch (error) {
+        // A BE hiccup was crashing the whole Server Components render
+        // (PEANUT-UI-4S9); keep the Sentry signal but render a retryable state.
+        captureException(error)
+        return <ReceiptShell state="loadFailed" />
+    }
     if (!entry) {
         notFound()
     }
     if (!isFinalState(entry)) {
         await connection()
     }
-    const { transactionDetails } = mapTransactionDataForDrawer(entry)
+    let transactionDetails: TransactionDetails | undefined
+    try {
+        transactionDetails = mapTransactionDataForDrawer(entry).transactionDetails
+    } catch (error) {
+        captureException(error)
+    }
+    if (!transactionDetails) {
+        return <ReceiptShell state="loadFailed" />
+    }
     return (
-        <PageContainer className="flex min-h-[100dvh] flex-col items-center justify-center p-6">
-            <div className="md:hidden">
+        <ReceiptShell>
+            <TransactionDetailsReceipt className="w-full" transaction={transactionDetails} isPublic />
+        </ReceiptShell>
+    )
+}
+
+function ReceiptShell({ state, children }: { state?: 'gone' | 'loadFailed'; children?: React.ReactNode }) {
+    return (
+        <PageContainer className="receipt-page flex min-h-dvh flex-col items-center justify-center p-6">
+            <div className="md:hidden print:hidden">
                 <NavHeader titleKey="receipt" />
             </div>
             <div className="flex flex-1 flex-col items-center justify-center">
-                <TransactionDetailsReceipt className="w-full" transaction={transactionDetails!} isPublic />
+                {state ? <ReceiptUnavailable variant={state} /> : children}
             </div>
         </PageContainer>
     )

@@ -1,8 +1,9 @@
 'use client'
 
 import ActionModal from '@/components/Global/ActionModal'
+import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import AddressLink from '@/components/Global/AddressLink'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import ConfirmWithdrawView from '@/components/Withdraw/views/Confirm.withdraw.view'
 import InitialWithdrawView from '@/components/Withdraw/views/Initial.withdraw.view'
@@ -24,11 +25,12 @@ import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { captureMessage } from '@sentry/nextjs'
+import { captureNetworkTriagedFailure } from '@/utils/network-triage'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import type { Address, Hex, TransactionReceipt } from 'viem'
 import { parseUnits } from 'viem'
-import { Slider } from '@/components/Slider'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
@@ -40,10 +42,13 @@ import { useFriendlyError } from '@/hooks/useFriendlyError'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useTranslations } from 'next-intl'
+import { resolveSettledTxHash } from '@/utils/settled-tx-hash.utils'
+import { toError } from '@/utils/to-error'
 
 export default function WithdrawCryptoPage() {
     const router = useRouter()
     const t = useTranslations('withdraw')
+    const tCommon = useTranslations('common')
     const tNav = useTranslations('navigation')
     const toFriendlyError = useFriendlyError()
     // Send → Exchange or Wallet lands here as /withdraw/crypto?method=crypto.
@@ -395,7 +400,7 @@ export default function WithdrawCryptoPage() {
                 if (receipt !== null && isTxReverted(receipt)) {
                     throw new Error(`Transaction failed (reverted). Hash: ${receipt.transactionHash}`)
                 }
-                finalTxHash = (receipt?.transactionHash as Hex | undefined) ?? userOpHash ?? txHash
+                finalTxHash = resolveSettledTxHash({ receipt, userOpHash, txHash }, 'withdraw-crypto').hash as Hex
             } else {
                 // payAmount is the USDC the kernel actually needs on-hand to execute
                 // the first tx — principal + Rhino fee on the SDA path (mode='receive'),
@@ -414,7 +419,8 @@ export default function WithdrawCryptoPage() {
                 if (receipt !== null && isTxReverted(receipt)) {
                     throw new Error(`Transaction failed (reverted). Hash: ${receipt.transactionHash}`)
                 }
-                finalTxHash = (receipt?.transactionHash as Hex | undefined) ?? txResult.userOpHash
+                finalTxHash = resolveSettledTxHash({ receipt, userOpHash: txResult.userOpHash }, 'withdraw-crypto')
+                    .hash as Hex
             }
 
             if (!finalTxHash) throw new Error('Withdrawal returned no transaction identifier')
@@ -494,11 +500,24 @@ export default function WithdrawCryptoPage() {
                 method_type: 'crypto',
             })
         } catch (err) {
-            console.error('Withdrawal execution failed:', err)
+            console.error('Withdrawal execution failed:', toError(err))
             const errMsg = toFriendlyError(err)
-            posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
-                method_type: 'crypto',
-                error_message: errMsg,
+            // Reported here rather than left to the console-capture integration,
+            // which the noise filters then drop: a crypto withdrawal dying was
+            // leaving no queryable Sentry record at all, and `error_message` is
+            // the LOCALIZED copy so it can't be grouped on (TASK-21956).
+            void captureNetworkTriagedFailure(err, {
+                tags: { ...criticalFlowTags('withdraw-crypto'), withdraw_step: 'execute' },
+                extra: { chargeId: chargeDetails?.uuid, usdAmount },
+                analytics: {
+                    event: ANALYTICS_EVENTS.WITHDRAW_FAILED,
+                    props: {
+                        method_type: 'crypto',
+                        error_message: errMsg,
+                        error_name: err instanceof Error ? err.name : 'unknown',
+                        error_raw: err instanceof Error ? err.message : String(err),
+                    },
+                },
             })
             setError(errMsg)
         } finally {
@@ -601,11 +620,11 @@ export default function WithdrawCryptoPage() {
     }, [needsAmountRedirect, router, amountStepHref])
 
     if (needsAmountRedirect) {
-        return <PeanutLoading />
+        return <Loading variant="mascot" />
     }
 
     return (
-        <div className="mx-auto min-h-[inherit] w-full max-w-md space-y-4 self-center">
+        <div className="mx-auto flex min-h-inherit w-full max-w-md flex-col gap-4 self-center">
             {currentView === 'INITIAL' && (
                 <InitialWithdrawView
                     amount={usdAmount}
@@ -657,7 +676,7 @@ export default function WithdrawCryptoPage() {
                         usdAmount={usdAmount}
                         message={
                             <AddressLink
-                                className="text-sm font-normal text-grey-1 no-underline"
+                                className="text-body-s font-normal text-foreground-secondary no-underline"
                                 address={withdrawData.address}
                             />
                         }
@@ -682,7 +701,7 @@ export default function WithdrawCryptoPage() {
                         {!!withdrawData?.address && (
                             <p>
                                 {t('compatibilityModal.sendingTo')}{' '}
-                                <span className="font-mono font-medium text-n-1 dark:text-white">
+                                <span className="font-mono font-medium text-foreground-primary dark:text-foreground-inverse">
                                     {printableAddress(withdrawData.address)}
                                 </span>
                             </p>
@@ -692,12 +711,7 @@ export default function WithdrawCryptoPage() {
                 icon="alert"
                 footer={
                     <div className="w-full">
-                        <Slider
-                            onValueChange={(v: boolean) => {
-                                if (!v) return
-                                handleCompatibilityProceed()
-                            }}
-                        />
+                        <SlideToConfirm label={tCommon('slideToProceed')} onConfirm={handleCompatibilityProceed} />
                     </div>
                 }
             />

@@ -1,10 +1,9 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import Card from '@/components/Global/Card'
-import ErrorAlert from '@/components/Global/ErrorAlert'
-import InfoCard from '@/components/Global/InfoCard'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
@@ -37,11 +36,17 @@ import { useAdvisoryPreempt } from '@/hooks/useAdvisoryPreempt'
 import { useEeaUpliftFunnel } from '@/hooks/useEeaUpliftFunnel'
 import { upliftTriggerFromGate, upliftTriggerFromAdvisory } from '@/utils/eea-uplift.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { resolveKycModalVariant, getGateUserMessage, getGateReasonCode } from '@/utils/capability-gate'
+import {
+    resolveKycModalVariant,
+    getGateUserMessage,
+    getGateReasonCode,
+    isVerifiableGate,
+} from '@/utils/capability-gate'
 import { useModalsContext } from '@/context/ModalsContext'
 import ExchangeRate from '@/components/ExchangeRate'
 import countryCurrencyMappings, { isNonEuroSepaCountry } from '@/constants/countryCurrencyMapping'
-import { isBridgeSupportedCountry, getRegionIntent } from '@/utils/regions.utils'
+import { isBridgeSupportedCountry } from '@/utils/regions.utils'
+import { useBankRegionIntent } from '@/hooks/useBankRegionIntent'
 import { PointsAction } from '@/services/services.types'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import posthog from 'posthog-js'
@@ -51,6 +56,7 @@ import { useSafeBack } from '@/hooks/useSafeBack'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { useLocale, useTranslations } from 'next-intl'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
+import { resolveSettledTxHash } from '@/utils/settled-tx-hash.utils'
 
 type View = 'INITIAL' | 'SUCCESS'
 
@@ -98,6 +104,7 @@ export default function WithdrawBankPage() {
     // actually withdraws to (PT/DE/… → EU SEPA; US → ACH; etc.) so a stuck
     // PENDING rail in an unrelated jurisdiction can't block this page.
     const { gateFor } = useCapabilities()
+    const bankRegionIntent = useBankRegionIntent()
     const bankCountry = useMemo(() => railJurisdictionForBank(getCountryFromPath(country)?.id), [country])
     const countryFromPath = getCountryFromPath(country)
     const gate = useMemo(() => gateFor('withdraw', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
@@ -235,7 +242,10 @@ export default function WithdrawBankPage() {
             // (e.g. right after an eea uplift) — show the pending modal instead of
             // a dead button, and re-arm the capability poller so we pick up
             // bridge's latest status live and the modal auto-dismisses on clear.
-            if (gate.kind === 'waiting-on-provider') {
+            // Same rule as the deposit page: every gate the user cannot act on
+            // waits here, or `pending` falls through to the identity screen and
+            // is offered a verification run only time can clear.
+            if (!isVerifiableGate(gate.kind) && gate.kind !== 'accept-tos') {
                 pendingModal.open()
                 return
             }
@@ -333,7 +343,7 @@ export default function WithdrawBankPage() {
             // (collateral-only path) BEFORE the userOp hash. confirmOfframp expects a real
             // 32-byte tx hash — userOpHash is an account-abstraction bundler hash, not a
             // chain tx hash, and the BE rejects it.
-            const txIdentifier = receipt?.transactionHash ?? txHash ?? userOpHash
+            const txIdentifier = resolveSettledTxHash({ receipt, txHash, userOpHash }, 'withdraw-bank').hash
             if (!txIdentifier) throw new Error('No transaction identifier returned from sendMoney')
 
             // Mark the on-chain leg done BEFORE confirmOfframp. From this point on
@@ -428,7 +438,7 @@ export default function WithdrawBankPage() {
     }
 
     return (
-        <div className="flex min-h-[inherit] w-full flex-col justify-start gap-8 self-start">
+        <div className="flex min-h-inherit w-full flex-col justify-start gap-8 self-start">
             <NavHeader
                 title={fromSendFlow ? tNav('send') : tNav('withdraw')}
                 icon={view === 'SUCCESS' ? 'cancel' : undefined}
@@ -446,7 +456,7 @@ export default function WithdrawBankPage() {
             />
 
             {view === 'INITIAL' && (
-                <div className="my-auto flex h-full w-full flex-col justify-center space-y-4 pb-5">
+                <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center pb-4">
                     <PeanutActionDetailsCard
                         countryCodeForFlag={countryCodeForFlag()}
                         avatarSize="small"
@@ -460,12 +470,9 @@ export default function WithdrawBankPage() {
 
                     {/* Warning for non-EUR SEPA countries (not UK — UK uses Faster Payments with GBP) */}
                     {isNonEuroSepa && bankAccount?.type !== AccountType.GB && (
-                        <InfoCard
-                            variant="info"
-                            icon="info"
-                            title={t('bank.eurTitle')}
-                            description={t('bank.eurDescription')}
-                        />
+                        <Notification priority="info" title={t('bank.eurTitle')}>
+                            {t('bank.eurDescription')}
+                        </Notification>
                     )}
 
                     <Card className="rounded-sm">
@@ -550,16 +557,13 @@ export default function WithdrawBankPage() {
                         </Button>
                     )}
                     {submittedTxHash ? (
-                        <InfoCard
-                            variant="info"
-                            icon="info"
-                            title={t('bank.transferProcessing')}
-                            description={confirmPendingCopy}
-                        />
+                        <Notification priority="info" title={t('bank.transferProcessing')}>
+                            {confirmPendingCopy}
+                        </Notification>
                     ) : (
-                        error.showError && <ErrorAlert description={error.errorMessage} />
+                        error.showError && <Notification priority="error">{error.errorMessage}</Notification>
                     )}
-                    {balanceErrorMessage && <ErrorAlert description={balanceErrorMessage} />}
+                    {balanceErrorMessage && <Notification priority="error">{balanceErrorMessage}</Notification>}
                 </div>
             )}
 
@@ -602,7 +606,7 @@ export default function WithdrawBankPage() {
                         await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                     } else {
                         await sumsubFlow.handleInitiateKyc(
-                            getRegionIntent(getCountryFromPath(country)?.region ?? 'rest-of-the-world'),
+                            bankRegionIntent(getCountryFromPath(country)?.region ?? 'rest-of-the-world'),
                             undefined,
                             gate.kind === 'needs-enrollment' || undefined,
                             getCountryFromPath(country)?.id

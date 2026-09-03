@@ -19,6 +19,48 @@ jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }),
 }))
 
+let mockIsAndroidNativeBridge = false
+// keep the real module (the DS mascot picker calls isAndroidNative at import
+// time) and only override the bridge probe under test
+jest.mock('@/utils/capacitor', () => ({
+    ...jest.requireActual('@/utils/capacitor'),
+    isAndroidNativeBridge: () => mockIsAndroidNativeBridge,
+}))
+
+const mockBrowserOpen = jest.fn<Promise<void>, [{ url: string }]>(() => Promise.resolve())
+const mockRemoveListener = jest.fn()
+let browserFinished: (() => void) | undefined
+// when set, addListener does not resolve until resolveListener() is called —
+// lets tests unmount while registration is still in flight
+let deferListener = false
+let resolveListener: (() => void) | undefined
+jest.mock(
+    '@capacitor/browser',
+    () => ({
+        Browser: {
+            open: (options: { url: string }) => mockBrowserOpen(options),
+            addListener: (_event: string, cb: () => void) => {
+                browserFinished = cb
+                const handle = { remove: mockRemoveListener }
+                if (!deferListener) return Promise.resolve(handle)
+                return new Promise((resolve) => {
+                    resolveListener = () => resolve(handle)
+                })
+            },
+        },
+    }),
+    { virtual: true }
+)
+
+beforeEach(() => {
+    mockIsAndroidNativeBridge = false
+    mockBrowserOpen.mockClear()
+    mockRemoveListener.mockClear()
+    browserFinished = undefined
+    deferListener = false
+    resolveListener = undefined
+})
+
 function findIframe(src: string): HTMLIFrameElement {
     // headlessui Dialog portals into document.body — search the document.
     const iframe = Array.from(document.querySelectorAll('iframe')).find((f) => f.getAttribute('src') === src)
@@ -67,5 +109,79 @@ describe('IframeWrapper message routing', () => {
         postFrom(null, { name: 'complete', metadata: { status: 'completed' } })
         postFrom(null, { signedAgreementId: 'sig-x' })
         expect(onClose).not.toHaveBeenCalled()
+    })
+})
+
+/**
+ * Android's Capacitor WebView cancels third-party SUBFRAME navigations
+ * (BridgeWebViewClient hands every request to launchIntent without checking
+ * isForMainFrame), so the ToS iframe painted pure white and acceptance was
+ * impossible in the native app. Android renders no iframe at all now — the
+ * page opens in the system browser and the close event drives the flow.
+ */
+describe('IframeWrapper on android native', () => {
+    const flush = () => act(async () => undefined)
+
+    it('opens the system browser instead of framing the page', async () => {
+        mockIsAndroidNativeBridge = true
+        const onClose = jest.fn()
+        render(<IframeWrapper src="https://compliance.test/tos" visible onClose={onClose} />)
+        await flush()
+
+        expect(document.querySelectorAll('iframe')).toHaveLength(0)
+        expect(mockBrowserOpen).toHaveBeenCalledWith({ url: 'https://compliance.test/tos' })
+    })
+
+    it("reports the return as 'returned', never as an acceptance it did not observe", async () => {
+        mockIsAndroidNativeBridge = true
+        const onClose = jest.fn()
+        render(<IframeWrapper src="https://compliance.test/tos" visible onClose={onClose} />)
+        await flush()
+
+        act(() => browserFinished?.())
+        expect(onClose).toHaveBeenCalledWith('returned')
+        expect(onClose).not.toHaveBeenCalledWith('tos_accepted')
+    })
+
+    it('does not open the browser while hidden, and drops the listener on unmount', async () => {
+        mockIsAndroidNativeBridge = true
+        const { rerender, unmount } = render(
+            <IframeWrapper src="https://compliance.test/tos" visible={false} onClose={jest.fn()} />
+        )
+        await flush()
+        expect(mockBrowserOpen).not.toHaveBeenCalled()
+
+        rerender(
+            <IntlWrapper>
+                <IframeWrapper src="https://compliance.test/tos" visible onClose={jest.fn()} />
+            </IntlWrapper>
+        )
+        await flush()
+        expect(mockBrowserOpen).toHaveBeenCalledTimes(1)
+
+        unmount()
+        expect(mockRemoveListener).toHaveBeenCalled()
+    })
+
+    it('does not open the browser when unmounted while listener registration is in flight', async () => {
+        mockIsAndroidNativeBridge = true
+        deferListener = true
+        const { unmount } = render(<IframeWrapper src="https://compliance.test/tos" visible onClose={jest.fn()} />)
+        await flush()
+
+        unmount()
+        resolveListener?.()
+        await flush()
+
+        expect(mockBrowserOpen).not.toHaveBeenCalled()
+        expect(mockRemoveListener).toHaveBeenCalled()
+    })
+
+    it('still frames the page on every other platform', async () => {
+        render(<IframeWrapper src="https://compliance.test/tos" visible onClose={jest.fn()} />)
+        await flush()
+
+        expect(findIframe('https://compliance.test/tos')).toBeTruthy()
+        expect(mockBrowserOpen).not.toHaveBeenCalled()
     })
 })

@@ -5,7 +5,7 @@ import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { getAllPosts, getPostBySlug } from '@/lib/blog'
 import { MarketingShell } from '@/components/Marketing/MarketingShell'
 import { JsonLd } from '@/components/Marketing/JsonLd'
-import { ArticleBackNav } from '@/components/Marketing/ArticleBackNav'
+import { ArticleLocaleNav } from '@/components/Marketing/ArticleLocaleNav'
 import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
 import { availableContentLocales, contentLocaleFor } from '@/lib/content'
 import type { Locale } from '@/i18n/types'
@@ -87,9 +87,13 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
           }
         : null
 
+    // The standalone /{locale}/blog index is gone (308 to the content hub), so the
+    // parent crumb is the hub filtered to blog — same shape as compare/ and use-cases/.
+    const hubHref = `/${locale}/content?type=blog`
+
     const breadcrumbs = [
         { name: i18n.home, href: `/${locale}` },
-        { name: i18n.blog, href: `/${locale}/blog` },
+        { name: i18n.filterBlog, href: hubHref },
         { name: post.frontmatter.title, href: `/${locale}/blog/${slug}` },
     ]
 
@@ -115,13 +119,7 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
             <JsonLd data={breadcrumbSchema} />
             {faqSchema && <JsonLd data={faqSchema} />}
             <MarketingShell className="max-w-2xl">
-                <ArticleBackNav
-                    parentLabel={i18n.blog}
-                    parentHref={`/${locale}/blog`}
-                    backToTemplate={i18n.backTo}
-                    currentLocale={locale as Locale}
-                    localizedHrefs={localizedHrefs}
-                />
+                <ArticleLocaleNav currentLocale={locale as Locale} localizedHrefs={localizedHrefs} />
                 <nav aria-label="Breadcrumb" className="-mt-2 mb-4">
                     <ol className="flex flex-wrap items-center gap-1 text-xs text-grey-1">
                         {breadcrumbs.map((crumb, i) => (

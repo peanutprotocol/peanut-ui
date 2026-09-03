@@ -42,7 +42,7 @@ export default function DrawerPage() {
                                 </DrawerDescription>
                             </DrawerHeader>
                             <div className="px-4 pb-4">
-                                <p className="text-sm text-grey-1">
+                                <p className="text-body-s text-foreground-secondary">
                                     The Drawer component wraps vaul and provides a consistent bottom-sheet experience.
                                     It includes an overlay, drag handle, and max-height constraint (80vh).
                                 </p>

@@ -6,7 +6,7 @@ import type { StaticImageData } from 'next/image'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import React from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { CAROUSEL_CLOSE_BUTTON_POSITION, CAROUSEL_CLOSE_ICON_SIZE } from '@/constants/carousel.consts'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { Card } from '@/components/0_Bruddle/Card'
@@ -90,7 +90,8 @@ const CarouselCTA = ({
                     onClick={handleClose}
                     className={twMerge(
                         CAROUSEL_CLOSE_BUTTON_POSITION,
-                        'z-10 cursor-pointer p-0 text-black outline-none'
+                        // 16px glyph keeps its spot; pseudo-element grows the hit area past 44px (touch law)
+                        'z-10 cursor-pointer p-0 text-black transition-opacity duration-instant after:absolute after:-inset-4 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60'
                     )}
                 >
                     <Icon name="cancel" size={CAROUSEL_CLOSE_ICON_SIZE} />
@@ -101,7 +102,7 @@ const CarouselCTA = ({
             <div
                 className={twMerge(
                     'relative flex size-8 items-center justify-center rounded-full',
-                    logo ? 'bg-transparent' : 'bg-primary-1',
+                    logo ? 'bg-transparent' : 'bg-action-primary',
                     iconContainerClassName
                 )}
             >
@@ -130,7 +131,7 @@ const CarouselCTA = ({
             {/* Content */}
             <div className="flex w-[80%] flex-col">
                 <p className="font-medium">{title}</p>
-                <p className="text-xs text-gray-1">{description}</p>
+                <p className="text-body-xs text-foreground-secondary">{description}</p>
             </div>
         </Card>
     )

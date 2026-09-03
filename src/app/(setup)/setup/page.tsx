@@ -1,13 +1,16 @@
 'use client'
 
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
 import { type BeforeInstallPromptEvent, type ScreenId, type ISetupStep } from '@/components/Setup/Setup.types'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
+import { useSetupStepUrlSync } from '@/hooks/useSetupStepUrlSync'
+import { useSetupBackHandler } from '@/hooks/useSetupBackHandler'
 import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { Suspense, useEffect, useState } from 'react'
 import { setupSteps as masterSetupSteps } from '../../../components/Setup/Setup.consts'
+import { hasKnownDeviceCredentials, resolveSetupEntryStep } from '@/components/Setup/setup-entry'
 import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
 import { isLikelyWebview, isDeviceOsSupported } from '@/components/Setup/Setup.utils'
 import { isCapacitor } from '@/utils/capacitor'
@@ -15,6 +18,7 @@ import { isPwaSunsetOn } from '@/utils/migration.utils'
 import { getFromCookie, saveToCookie, toInviteCode } from '@/utils/general.utils'
 import { useSearchParams } from 'next/navigation'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
+import { useGeoLocation } from '@/hooks/useGeoLocation'
 import { useAuth } from '@/context/authContext'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -26,7 +30,7 @@ import { useTranslations } from 'next-intl'
 function SetupPageContent() {
     const t = useTranslations('setup')
     const { steps, inviteCode } = useSetupStore()
-    const { step, handleNext, handleBack } = useSetupFlow()
+    const { step, handleNext, handleBack, setScreenId } = useSetupFlow()
     const { logoutUser, isLoggingOut, user, isFetchingUser } = useAuth()
     const router = useRouter()
     const [direction, setDirection] = useState(0)
@@ -39,9 +43,37 @@ function SetupPageContent() {
     const [showDeviceNotSupportedModal, setShowDeviceNotSupportedModal] = useState(false)
     const [showBrowserNotSupportedModal, setShowBrowserNotSupportedModal] = useState(false)
     const { deviceType: detectedDeviceType } = useDeviceType()
+    // Warm the geo cache at entry, not when the residence step mounts: the
+    // lookup is a network round trip, and asking for it three steps early is
+    // what lets that select render its suggestion already filled in.
+    useGeoLocation()
     const searchParams = useSearchParams()
+    // The init effect must key on the VALUES it reads, not the searchParams
+    // object: the step-URL mirror rewrites ?screen= on every step, and a dep
+    // on the object identity would re-run determineInitialStep mid-flow and
+    // bounce the user back to the entry step.
+    const inviteCodeParam = searchParams.get('code')
+    const legacyStepParam = searchParams.get('step')
     const [sessionChecked, setSessionChecked] = useState(false)
     const [existingSessionUsername, setExistingSessionUsername] = useState<string | null>(null)
+
+    // only mirror steps that actually render: not while the entry step is
+    // being determined, and not behind the existing-session interstitial
+    // or the unsupported-device/browser modals
+    const stepRendered =
+        !isLoading &&
+        sessionChecked &&
+        !existingSessionUsername &&
+        !showDeviceNotSupportedModal &&
+        !showBrowserNotSupportedModal
+
+    useSetupStepUrlSync({
+        enabled: stepRendered,
+        step,
+        steps,
+        goToScreen: setScreenId,
+    })
+    useSetupBackHandler({ step, canStepBack: stepRendered, onBack: handleBack })
 
     /*
      * A device can arrive at /setup already authenticated: a half-completed
@@ -102,17 +134,15 @@ function SetupPageContent() {
             setIsLoading(true)
             await new Promise((resolve) => setTimeout(resolve, 100)) // ensure other initializations can complete
 
-            // Skip the invite-code gate straight to signup when either:
-            //  - an invite code is present (cookie survives the PWA-install hop), or
-            //  - the URL asks for it via ?step=signup — the signal every campaign
-            //    entrypoint sends when it pushes to /setup. After authentication,
-            //    useZeroDev submits the queued opaque campaign list to the canonical
-            //    claim service; the step decision never interprets that cookie.
+            // The entry-step rules (invite code / ?step=signup skipping the invite
+            // gate, ?step=login, a known device going to Log In) live in
+            // resolveSetupEntryStep. After authentication, useZeroDev submits the
+            // queued opaque campaign list to the canonical claim service; the step
+            // decision never interprets that cookie.
             //
             // Why not the campaignTag cookie: retryable campaign acquisition can
             // intentionally persist for 30 days. Using it as onboarding state would
-            // route a returning user past Landing (the only screen with Log In) onto
-            // Signup, unable to log back in (regression from PR #2346).
+            // route a returning user past Landing onto Signup (regression from PR #2346).
             /*
              * ?code= arrives from an /invite deep link (native maps
              * peanut.me/invite?code=X here — see native-routes.ts). Persist it
@@ -120,7 +150,7 @@ function SetupPageContent() {
              * deferred-install hand-off write, so it survives the multi-step
              * signup and reaches registration.
              */
-            const codeFromUrl = searchParams.get('code')
+            const codeFromUrl = inviteCodeParam
             if (codeFromUrl && toInviteCode(codeFromUrl)) {
                 saveToCookie('inviteCode', toInviteCode(codeFromUrl))
             }
@@ -131,7 +161,12 @@ function SetupPageContent() {
             // past the landing gate — otherwise claim/invite links deep-link
             // straight into the signup form. Native app keeps the fast path.
             const webSignupClosed = isPwaSunsetOn() && !isCapacitor()
-            const skipInviteGate = (!!userInviteCode || searchParams.get('step') === 'signup') && !webSignupClosed
+            const entryInput = {
+                hasInviteCode: !!userInviteCode,
+                stepParam: legacyStepParam,
+                webSignupClosed,
+                knownDevice: hasKnownDeviceCredentials(),
+            }
 
             const localDeviceType = detectedDeviceType
 
@@ -139,8 +174,12 @@ function SetupPageContent() {
             // and go straight to the landing (signup) flow
             if (isCapacitor()) {
                 setDeviceType(localDeviceType)
-                // invite code or ?step=signup → straight to signup, else landing
-                const targetStep = skipInviteGate ? 'signup' : 'landing'
+                const targetStep = resolveSetupEntryStep({
+                    ...entryInput,
+                    isCapacitor: true,
+                    deviceType: localDeviceType,
+                    isStandalonePWA: false,
+                })
                 const stepIndex = steps.findIndex((s: ISetupStep) => s.screenId === targetStep)
                 if (stepIndex !== -1) {
                     dispatch(setupActions.setStep(stepIndex + 1))
@@ -219,21 +258,14 @@ function SetupPageContent() {
                 setDeferredPrompt({} as BeforeInstallPromptEvent)
             }
 
-            if (localDeviceType === 'android') {
-                determinedSetupInitialStepId = isStandalonePWA ? 'landing' : 'android-initial-pwa-install'
-            }
-            // if ios, show landing screen
-            else if (localDeviceType === 'ios') {
-                determinedSetupInitialStepId = 'landing'
-            } else {
-                determinedSetupInitialStepId = 'pwa-install'
-            }
+            determinedSetupInitialStepId = resolveSetupEntryStep({
+                ...entryInput,
+                isCapacitor: false,
+                deviceType: localDeviceType,
+                isStandalonePWA,
+            })
 
-            // If an invite code or ?step=signup is present, jump to signup
-            if (determinedSetupInitialStepId && skipInviteGate) {
-                const signupScreenIndex = steps.findIndex((s: ISetupStep) => s.screenId === 'signup')
-                dispatch(setupActions.setStep(signupScreenIndex + 1))
-            } else if (determinedSetupInitialStepId) {
+            if (determinedSetupInitialStepId) {
                 const initialStepIndex = steps.findIndex((s: ISetupStep) => s.screenId === determinedSetupInitialStepId)
                 if (initialStepIndex !== -1) {
                     dispatch(setupActions.setStep(initialStepIndex + 1))
@@ -263,7 +295,7 @@ function SetupPageContent() {
         return () => {
             window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
         }
-    }, [dispatch, steps, searchParams])
+    }, [dispatch, steps, inviteCodeParam, legacyStepParam])
 
     useEffect(() => {
         if (step) {
@@ -275,8 +307,8 @@ function SetupPageContent() {
 
     if (isLoading || !sessionChecked)
         return (
-            <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
-                <PeanutLoading />
+            <div className="flex h-dvh w-full flex-col items-center justify-center">
+                <Loading variant="mascot" />
             </div>
         )
 
@@ -288,7 +320,7 @@ function SetupPageContent() {
                 image={PeanutWavingHello.src}
                 title={t('existingSession.title')}
                 description={t('existingSession.description', { username: existingSessionUsername })}
-                contentClassName="flex flex-col items-center justify-center gap-5"
+                contentClassName="flex flex-col items-center justify-center gap-6"
             >
                 <div className="flex w-full flex-col gap-3">
                     <Button shadowSize="4" onClick={handleContinueSession} disabled={isLoggingOut}>
@@ -306,8 +338,8 @@ function SetupPageContent() {
     if (!step && !showDeviceNotSupportedModal && !showBrowserNotSupportedModal) {
         console.warn('SetupPage: No current step found, and no blocking modal. Possibly init issue.')
         return (
-            <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
-                <PeanutLoading />
+            <div className="flex h-dvh w-full flex-col items-center justify-center">
+                <Loading variant="mascot" />
             </div>
         )
     }
@@ -320,8 +352,8 @@ function SetupPageContent() {
     if (!step) {
         console.warn('SetupPage: No current step after modal checks.')
         return (
-            <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
-                <PeanutLoading />
+            <div className="flex h-dvh w-full flex-col items-center justify-center">
+                <Loading variant="mascot" />
             </div>
         )
     }
@@ -334,11 +366,12 @@ function SetupPageContent() {
             layoutType={step.layoutType}
             screenId={step.screenId}
             image={step.image}
-            title={t(titleKey)}
-            description={t.has(descriptionKey) ? t(descriptionKey) : undefined}
+            title={!step.titleInView ? t(titleKey) : undefined}
+            description={!step.descriptionInView && t.has(descriptionKey) ? t(descriptionKey) : undefined}
             showBackButton={step.showBackButton}
             showSkipButton={step.showSkipButton}
             showLogoutButton={step.screenId === 'sign-test-transaction'}
+            showLoginButton={step.showLoginButton}
             imageClassName={step.imageClassName}
             onBack={handleBack}
             onSkip={() => handleNext()}
@@ -359,7 +392,7 @@ function SetupPageContent() {
 
 export default function SetupPage() {
     return (
-        <Suspense fallback={<PeanutLoading coverFullScreen />}>
+        <Suspense fallback={<Loading variant="mascot" coverFullScreen />}>
             <SetupPageContent />
         </Suspense>
     )

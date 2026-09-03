@@ -4,13 +4,13 @@ import { userActions } from '@/redux/slices/user-slice'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useQuery } from '@tanstack/react-query'
-import { usePWAStatus } from '../usePWAStatus'
+import { isStandaloneDisplayMode } from '../usePWAStatus'
 import { useDeviceType } from '../useGetDeviceType'
 import { USER } from '@/constants/query.consts'
 import { apiFetch } from '@/utils/api-fetch'
 import { clearAuthToken, getAuthToken, getClearEpoch, setAuthToken } from '@/utils/auth-token'
 import { isDemoMode } from '@/utils/demo'
-import { DEMO_USER } from '@/constants/demo-data'
+import { isNativeBridge } from '@/utils/capacitor'
 
 // custom error class for backend errors (5xx) that should trigger retry
 export class BackendError extends Error {
@@ -23,16 +23,21 @@ export class BackendError extends Error {
 }
 
 export const useUserQuery = (dependsOn: boolean = true) => {
-    const isPwa = usePWAStatus()
     const { deviceType } = useDeviceType()
     const dispatch = useAppDispatch()
     const { user: authUser } = useUserStore()
 
     const fetchUser = async (): Promise<IUserProfile | null> => {
-        // Demo mode: no backend/JWT/passkey — return the synthetic user.
+        // Demo mode: no backend/JWT/passkey — the synthetic user, read through
+        // the demo /users/me handler so state the demo routes mutate (the
+        // picked avatar, the celebration stamp) survives a refetch. Lazy
+        // import keeps the demo module out of the main bundle (api-fetch
+        // does the same).
         if (isDemoMode()) {
-            dispatch(userActions.setUser(DEMO_USER))
-            return DEMO_USER
+            const { demoRespond } = await import('@/utils/demo-api')
+            const payload: IUserProfile = await (await demoRespond('/users/me')).json()
+            dispatch(userActions.setUser(payload))
+            return payload
         }
 
         const epochAtRequest = getClearEpoch()
@@ -57,7 +62,14 @@ export const useUserQuery = (dependsOn: boolean = true) => {
             if (payload) {
                 // Was: hitUserMetric(userData.user.userId, 'login', ...) → POST /users/:id/metrics/login.
                 // DB `user_metrics` table deprecated 2026-04-24; analytics is PostHog's job.
-                posthog.capture(ANALYTICS_EVENTS.LOGIN, { isPwa, deviceType })
+                // For analytics the native app is not a PWA, and a capacitor-
+                // flavored WEB build in a plain browser tab isn't either — use
+                // real display-mode detection, not usePWAStatus's Capacitor
+                // short-circuit (TASK-21782 telemetry fix).
+                posthog.capture(ANALYTICS_EVENTS.LOGIN, {
+                    isPwa: isNativeBridge() ? false : isStandaloneDisplayMode(),
+                    deviceType,
+                })
                 dispatch(userActions.setUser(payload))
             }
             return payload

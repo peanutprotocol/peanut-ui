@@ -38,10 +38,17 @@ describe('invite response rollout helpers', () => {
         expect(isTypedCampaignOnlyInviteResponse(typed)).toBe(true)
         expect(isTypedCampaignOnlyInviteResponse({ ...typed, onboardingResolved: true })).toBe(false)
         expect(isTypedCampaignOnlyInviteResponse({ ...typed, legacyAcquisition: undefined })).toBe(false)
+        // retired destination fields are ignored, not validated (TASK-21226)
         expect(
             isTypedCampaignOnlyInviteResponse({
                 ...typed,
                 legacyAcquisition: { ...typed.legacyAcquisition, destination: 'future_product_flow' },
+            })
+        ).toBe(true)
+        expect(
+            isTypedCampaignOnlyInviteResponse({
+                ...typed,
+                legacyAcquisition: { ...typed.legacyAcquisition, campaignTag: '   ' },
             })
         ).toBe(false)
     })

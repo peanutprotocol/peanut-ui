@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback } from 'react'
+import { withCeremonyFlow, withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
 import { useQueryClient } from '@tanstack/react-query'
 import type { Address, Hex } from 'viem'
 import { encodeFunctionData, erc20Abi } from 'viem'
@@ -110,7 +111,7 @@ export const useSignSpendBundle = () => {
     const { grant } = useGrantSessionKey()
     const queryClient = useQueryClient()
 
-    const signSpend = useCallback(
+    const signSpendInner = useCallback(
         async (input: SignSpendBundleInput): Promise<SignedSpendArtifact> => {
             const {
                 requiredUsdcAmount,
@@ -190,7 +191,8 @@ export const useSignSpendBundle = () => {
                     requireOverview: true,
                     grant,
                     onGrantRequired,
-                    sendNoopUserOp: (call) => handleSendUserOpEncoded([call], chainIdStr),
+                    sendNoopUserOp: (call) =>
+                        handleSendUserOpEncoded([call], chainIdStr, { returnRevertedReceipt: true }),
                     rebuildClient: () => rebuildClientForChain(chainIdStr),
                     setSecurityOverlay: modals?.setIsSecurityVerificationOpen,
                     migrationTrigger: 'sign-spend',
@@ -225,8 +227,8 @@ export const useSignSpendBundle = () => {
                         kind,
                     })
 
-                    const adminSignature = (await activeAccount.signTypedData(
-                        buildRainWithdrawTypedData(prep, chainIdNum)
+                    const adminSignature = (await withCeremonyPurpose('admin_eip712', () =>
+                        activeAccount.signTypedData(buildRainWithdrawTypedData(prep, chainIdNum))
                     )) as Hex
 
                     return {
@@ -265,8 +267,8 @@ export const useSignSpendBundle = () => {
                     totalAmountCents: usdcUnitsToRainCents(requiredUsdcAmount).toString(),
                 })
 
-                const adminSignature = (await activeAccount.signTypedData(
-                    buildRainWithdrawTypedData(prep, chainIdNum)
+                const adminSignature = (await withCeremonyPurpose('admin_eip712', () =>
+                    activeAccount.signTypedData(buildRainWithdrawTypedData(prep, chainIdNum))
                 )) as Hex
 
                 const withdrawCall = {
@@ -300,7 +302,15 @@ export const useSignSpendBundle = () => {
                     }),
                 }
 
-                const signedUserOp = await signCallsUserOp([withdrawCall, transferCall], chainIdStr)
+                // Tap #2 follows the admin signature; tell the user so the second
+                // sheet is not dismissed as a duplicate (same beat as useSpendBundle).
+                modals?.setIsSecurityVerificationOpen?.(true, 'next-passkey')
+                let signedUserOp: SignedUserOpData
+                try {
+                    signedUserOp = await signCallsUserOp([withdrawCall, transferCall], chainIdStr)
+                } finally {
+                    modals?.setIsSecurityVerificationOpen?.(false)
+                }
                 return { strategy, signedUserOp, rainPreparationId: prep.preparationId }
             } catch (e) {
                 posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_FAILED, {
@@ -323,6 +333,27 @@ export const useSignSpendBundle = () => {
             grant,
             queryClient,
         ]
+    )
+
+    // Brackets every ceremony one spend triggers as a flow (sign_spend:<kind>) so
+    // the prompt count per kind is measurable; link_create nests inside it.
+    const signSpend = useCallback(
+        (input: SignSpendBundleInput) => {
+            let strategy: string | undefined
+            return withCeremonyFlow(
+                `sign_spend:${input.kind}`,
+                () =>
+                    signSpendInner({
+                        ...input,
+                        onStrategyDecided: (decided) => {
+                            strategy = decided
+                            input.onStrategyDecided?.(decided)
+                        },
+                    }),
+                () => ({ strategy })
+            )
+        },
+        [signSpendInner]
     )
 
     return { signSpend }

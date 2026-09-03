@@ -13,13 +13,19 @@ import {
     ItemText,
     ItemIndicator,
 } from '@radix-ui/react-select'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Icon } from '@/components/Global/Icons/Icon'
 
 export interface BaseSelectOption {
     label: string
     value: string
 }
+
+// The bottom nav is fixed over the page (AppShell mounts it at bottom-0; the
+// bar is 68px plus the safe-area inset), so the viewport edge is not the last
+// usable pixel. Without this the popper anchors to the window bottom and the
+// final option sits under the nav, unreachable — MX_STATES ends on Zacatecas.
+const BOTTOM_NAV_CLEARANCE_PX = 112
 
 interface BaseSelectProps {
     options: BaseSelectOption[]
@@ -30,10 +36,25 @@ interface BaseSelectProps {
     className?: string
     disabled?: boolean
     error?: boolean
+    /** accessible name — the trigger is a button, so a sibling <label htmlFor> cannot name it */
+    'aria-label'?: string
 }
 
 const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
-    ({ options, placeholder = 'Select...', value, onValueChange, onBlur, className, disabled, error }, ref) => {
+    (
+        {
+            options,
+            placeholder = 'Select...',
+            value,
+            onValueChange,
+            onBlur,
+            className,
+            disabled,
+            error,
+            'aria-label': ariaLabel,
+        },
+        ref
+    ) => {
         return (
             <Root
                 value={value}
@@ -48,43 +69,59 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
             >
                 <Trigger
                     ref={ref}
+                    aria-label={ariaLabel}
                     className={twMerge(
-                        'flex h-12 w-full items-center justify-between rounded-sm border border-n-1 bg-white px-4 text-sm font-bold text-n-1 outline-none transition-colors placeholder:text-n-3',
+                        'notranslate flex h-12 w-full items-center justify-between rounded-sm border border-border-default bg-white px-4 text-label-l text-foreground-primary transition-colors outline-none placeholder:text-foreground-secondary',
                         'disabled:cursor-not-allowed disabled:opacity-50',
-                        'focus:border-primary-1',
-                        error && 'border-error',
+                        // DS input state pattern: pointer press = 2px black (1px
+                        // border + 1px outline), keyboard focus = 3px blue ring.
+                        // base outline colors are set per state so transition-colors
+                        // cannot animate a ring in from the wrong color (flash bug)
+                        'outline-border-default focus:outline-1 focus:outline-solid focus-visible:border-transparent focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid',
+                        error && 'border-border-error',
                         className
                     )}
                 >
-                    <Value placeholder={placeholder} className="text-n-1 data-[placeholder]:text-n-3" />
+                    <Value
+                        placeholder={placeholder}
+                        className="text-foreground-primary data-[placeholder]:text-foreground-secondary"
+                    />
                     <SelectIcon>
-                        <Icon name="chevron-down" className="size-4 text-n-1" />
+                        <Icon name="chevron-down" className="size-4 text-foreground-primary" />
                     </SelectIcon>
                 </Trigger>
 
                 <Portal>
                     <Content
                         className={twMerge(
-                            'relative z-50 max-h-80 overflow-hidden rounded-sm border border-n-1 bg-white shadow-lg'
+                            // Cap at the smaller of the design height and the room
+                            // Radix measured (which honours collisionPadding below),
+                            // so a long list shrinks and scrolls instead of running
+                            // under the nav.
+                            'relative z-50 max-h-[min(20rem,var(--radix-select-content-available-height))] overflow-hidden rounded-sm border border-border-default bg-background-default shadow-lg'
                         )}
                         position="popper"
                         sideOffset={4}
                         align="start"
+                        collisionPadding={{ top: 8, right: 8, bottom: BOTTOM_NAV_CLEARANCE_PX, left: 8 }}
                         style={{ width: 'var(--radix-select-trigger-width)' }}
+                        // usePullToRefresh listens on `document` and only bails on window.scrollY > 0,
+                        // so scrolling a long list at page top reads as a pull. Same guard as Global/Drawer.
+                        onTouchMove={(e) => e.stopPropagation()}
                     >
-                        <Viewport className="w-full p-1">
+                        <Viewport className="notranslate w-full p-1">
                             {options.map((option) => (
                                 <Item
                                     key={option.value}
                                     value={option.value}
                                     className={twMerge(
-                                        'relative flex w-full cursor-pointer select-none items-center rounded-sm px-3 py-2 text-sm font-bold outline-none',
+                                        'relative flex w-full cursor-pointer items-center rounded-sm px-3 py-2 text-label-l outline-none select-none',
                                         'transition-colors',
-                                        'hover:bg-grey-2 focus:bg-grey-2',
-                                        'data-[state=checked]:bg-primary-1 data-[state=checked]:font-bold data-[state=checked]:text-white'
+                                        'hover:bg-gray-200 focus:bg-gray-200',
+                                        'data-[state=checked]:bg-action-primary data-[state=checked]:text-foreground-inverse'
                                     )}
                                 >
-                                    <ItemText className="text-sm font-bold">{option.label}</ItemText>
+                                    <ItemText className="text-label-l">{option.label}</ItemText>
                                     <ItemIndicator className="ml-auto">
                                         <Icon name="check" className="size-4" />
                                     </ItemIndicator>

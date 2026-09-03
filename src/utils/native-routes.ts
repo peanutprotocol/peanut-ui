@@ -4,6 +4,7 @@
 
 import { couldBeRecipient, isPlausibleUsername, isReservedRoute } from '@/constants/routes'
 import { isCapacitor } from './capacitor'
+import { sanitizeRedirectURL } from './cookie-url.utils'
 
 // Deep links are peanut.me links by definition — that's the host the Android
 // App Links filter and the AASA are bound to. Deliberately not derived from
@@ -114,8 +115,39 @@ function mapDeepLinkPath(parsed: URL): string | null {
     const extraParams = parsed.search.replace(/^\?/, '')
     const segments = path.split('/').filter(Boolean)
 
+    /*
+     * Bare origin (`https://peanut.me?id=X` / `?chargeId=X`) — the shape legacy
+     * withdraw pushes and their stored inbox rows carry. Without this branch the
+     * tap landed on the marketing page (web) or was dropped (native); the params
+     * are the same two /pay-request dispatches the recipient branch below uses.
+     */
+    if (segments.length === 0) {
+        const chargeId = parsed.searchParams.get('chargeId')
+        if (chargeId) return chargePayUrl(chargeId, parsed.searchParams.get('context') ?? undefined)
+        const requestId = parsed.searchParams.get('id')
+        if (requestId) return requestPotUrl(requestId)
+        return isCapacitor() ? null : appendParams(path, extraParams)
+    }
+
     if (segments[0] === 'send' && segments[1]) {
         return appendParams(sendUrl(decodeURIComponent(segments.slice(1).join('/'))), extraParams)
+    }
+    // `/pay/<recipient>` — every user's "My QR" payload. The web page is a pure
+    // client redirect to sendUrl(recipient) and is stripped from the native
+    // export, so both platforms funnel straight to the send dispatcher here.
+    if (segments[0] === 'pay' && segments[1]) {
+        return appendParams(sendUrl(decodeURIComponent(segments.slice(1).join('/'))), extraParams)
+    }
+    /*
+     * Legacy `/request/pay?id=<chargeUuid>` — printed into old shared links.
+     * `id` here is a CHARGE uuid, so it must dispatch as chargePayUrl; falling
+     * through to the request branch reads "request money from user 'pay'", and
+     * the page's own native fallback treats the uuid as a request pot and 404s.
+     */
+    if (segments[0] === 'request' && segments[1] === 'pay' && segments.length === 2) {
+        const chargeId = parsed.searchParams.get('id') ?? parsed.searchParams.get('chargeId')
+        if (chargeId) return chargePayUrl(chargeId)
+        return appendParams(path, extraParams)
     }
     if (segments[0] === 'request' && segments[1]) {
         return appendParams(requestUrl(decodeURIComponent(segments.slice(1).join('/'))), extraParams)
@@ -184,7 +216,172 @@ function mapDeepLinkPath(parsed: URL): string | null {
         return null
     }
 
+    /*
+     * Reserved roots that the native export does not ship (marketing, blog,
+     * legal, locale prefixes, redirect slugs…) must return null rather than
+     * pass through: the passthrough cold-boots the app to / and reads as a
+     * dropped tap. null tells openDeepLink to show the real page in the
+     * in-app browser instead. Web keeps the passthrough — every reserved
+     * root is a real page there.
+     */
+    if (isCapacitor() && !NATIVE_EXPORT_ROOTS.has(segments[0].toLowerCase())) {
+        return null
+    }
+
     return appendParams(path, extraParams)
+}
+
+/*
+ * Route roots that exist in the native static export — src/app/(mobile-ui)/* +
+ * /setup + /shhhhh, minus what scripts/native-build.js disables. Two tests in
+ * __tests__/native-routes.test.ts pin it: the AASA drift test walks the App
+ * Links path list against this mapper, and the export drift test walks src/app
+ * against this set, so a root claimed for the app but missing here — or listed
+ * here with no page behind it — fails CI instead of shipping a dead deep link.
+ */
+export const NATIVE_EXPORT_ROOTS: ReadonlySet<string> = new Set([
+    'add-money',
+    'badges',
+    'card',
+    'card-payment',
+    'card-recovery',
+    'claim',
+    'fix-card-signature',
+    'history',
+    'home',
+    'limits',
+    'pay-request',
+    'points',
+    'profile',
+    'qr',
+    'qr-pay',
+    'receipt',
+    'recover-funds',
+    'recover-wallet',
+    'request',
+    'rewards',
+    'send',
+    'settings',
+    'setup',
+    // card explainer — outside (mobile-ui) but not stripped by native-build,
+    // and linked from /profile, so it must resolve in-app
+    'shhhhh',
+    'withdraw',
+])
+
+/**
+ * True when the path's root segment exists in the native static export.
+ * The document click interceptor (useNativeAppLinks) uses this to catch
+ * in-app anchors to web-only routes (marketing, help, legal) that the
+ * export never built — next/link would land them on the SPA's 404 → home
+ * fallback.
+ */
+export function isNativeExportPath(path: string): boolean {
+    const root = path.split(/[?#]/)[0].split('/').filter(Boolean)[0]
+    if (!root) return true // '/' exists in the export (RootRedirect)
+    return NATIVE_EXPORT_ROOTS.has(root.toLowerCase())
+}
+
+export type InAppNavigation = { kind: 'push'; path: string } | { kind: 'external'; url: string }
+
+/**
+ * Where an app-authored link should go: an in-app route push, or a hand-off to
+ * the browser. Assigning `window.location` to an absolute peanut.me URL is an
+ * off-origin top-level navigation inside the Capacitor WebView, which the shell
+ * hands to the OS — so on native the link is mapped through the deep-link
+ * mapper first, and only a path the static export renders is pushed. On web,
+ * same-origin links push their path; everything else is external. Null for an
+ * empty or unparseable link — nothing to navigate to.
+ */
+export function resolveInAppNavigation(url: string): InAppNavigation | null {
+    if (!url) return null
+    if (isCapacitor()) {
+        const target = deepLinkToNativePath(url)
+        const safe = target === null ? null : sanitizeRedirectURL(target)
+        if (safe) return { kind: 'push', path: safe }
+        return parseExternal(url)
+    }
+    const safe = sanitizeRedirectURL(url)
+    if (safe) return { kind: 'push', path: safe }
+    return parseExternal(url)
+}
+
+// The request link comes from the charge API, which stores whatever baseUrl the
+// creating caller supplied — so it must not be trusted past this boundary. Only
+// an https Peanut origin (or the build's own base URL, for previews) may be
+// handed to the browser; any other scheme or host is dropped, never opened.
+function parseExternal(url: string): InAppNavigation | null {
+    let parsed: URL
+    try {
+        parsed = new URL(url)
+    } catch {
+        return null
+    }
+    if (parsed.protocol !== 'https:') return null
+    if (!APP_HOSTS.test(parsed.hostname) && parsed.origin !== baseOrigin()) return null
+    return { kind: 'external', url: parsed.href }
+}
+
+function baseOrigin(): string | null {
+    try {
+        return new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.me').origin
+    } catch {
+        return null
+    }
+}
+
+/**
+ * Static sub-view segments that carry diagnostic value and no identifier.
+ * Everything NOT here and not a route root is treated as an identifier.
+ */
+const TELEMETRY_SAFE_SEGMENTS = new Set(['success', 'bank', 'manteca', 'crypto', 'us'])
+
+/**
+ * The route FAMILY of a deep link, safe to put in telemetry.
+ *
+ * Dropping the query and the fragment is not enough: identifiers also travel
+ * in path segments, and some of them are bearer secrets. `/qr/<16-char code>`
+ * reaches telemetry before the user has claimed the QR, and the claim API
+ * binds a code to the first authenticated account that presents it — so a
+ * reader of the analytics stream could race the intended owner and take the
+ * QR permanently. `/claim/<id>`, `/receipt/<id>` and `/profile/<username>`
+ * are the same shape with lower stakes.
+ *
+ * Fail closed: a segment is kept only when it is a known route root
+ * (NATIVE_EXPORT_ROOTS, which the AASA drift test already pins) or a known
+ * static sub-view. Anything else becomes `:id`. A route added to
+ * NATIVE_EXPORT_ROOTS is therefore covered here the moment it is declared,
+ * and a route that is NOT declared degrades to `:id` rather than leaking.
+ *
+ * Position is not used: a locale or other prefix must not shift a root out of
+ * the window and silently turn the whole path into placeholders.
+ *
+ * @param value - A deep-link URL or path, with or without scheme, query or
+ *   fragment.
+ * @returns The same shape with query and fragment removed and every
+ *   identifier-bearing path segment replaced by `:id`.
+ *
+ * @example
+ * redactNativePath('https://peanut.me/qr/aB3xK9mQ2pL7vN4z')  // => 'https://peanut.me/qr/:id'
+ * redactNativePath('/claim?c=8453#p=SECRET')                 // => '/claim'
+ * redactNativePath('/add-money/belgium/bank')                // => '/add-money/:id/bank'
+ * redactNativePath('/qr/aB3xK9mQ2pL7vN4z/success')           // => '/qr/:id/success'
+ */
+export function redactNativePath(value: string): string {
+    const beforeQuery = value.split('#')[0].split('?')[0]
+    // Keep scheme://host so a peanut.me universal link stays distinguishable
+    // from a custom-scheme launch — neither carries an identifier.
+    const prefix = beforeQuery.match(/^[a-z][a-z0-9+.-]*:\/\/[^/]*/i)?.[0] ?? ''
+    const path = beforeQuery.slice(prefix.length)
+    const redacted = path
+        .split('/')
+        .map((segment) => {
+            if (segment === '') return segment
+            if (NATIVE_EXPORT_ROOTS.has(segment) || TELEMETRY_SAFE_SEGMENTS.has(segment)) return segment
+            return ':id'
+        })
+        .join('/')
+    return `${prefix}${redacted}`
 }
 
 function appendParams(base: string, params: string): string {
@@ -206,6 +403,10 @@ export function rewriteMethodPath(path: string, extraParams?: string): string {
     if (addMoneyMatch) {
         const country = addMoneyMatch[1]
         const subView = addMoneyMatch[2] // bank, manteca, etc.
+        // static routes, not [country] — same carve-out as withdraw below
+        if (country === 'crypto' || country === 'us') {
+            return extraParams ? `${path}${path.includes('?') ? '&' : '?'}${extraParams}` : path
+        }
         let url = `/add-money?country=${country}`
         if (subView) url += `&view=${subView}`
         if (extraParams) url += `&${extraParams}`

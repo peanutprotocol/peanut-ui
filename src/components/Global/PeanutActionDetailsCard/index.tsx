@@ -4,11 +4,10 @@ import { printableAddress } from '@/utils/general.utils'
 import { AVATAR_TEXT_DARK, getColorForUsername } from '@/utils/color.utils'
 import { useTranslations } from 'next-intl'
 import { useCallback } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import Attachment from '../Attachment'
 import Card from '../Card'
 import { Icon, type IconName } from '../Icons/Icon'
-import RouteExpiryTimer from '../RouteExpiryTimer'
 import Image, { type StaticImageData } from 'next/image'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import Loading from '../Loading'
@@ -41,14 +40,6 @@ export interface PeanutActionDetailsCardProps {
     avatarSize?: AvatarSize
     countryCodeForFlag?: string
     currencySymbol?: string
-    // Cross-chain timer props
-    showTimer?: boolean
-    timerExpiry?: string
-    isTimerLoading?: boolean
-    onTimerNearExpiry?: () => void
-    onTimerExpired?: () => void
-    disableTimerRefetch?: boolean
-    timerError?: string | null
     isLoading?: boolean
     logo?: StaticImageData
     /**
@@ -74,13 +65,6 @@ export default function PeanutActionDetailsCard({
     className,
     fileUrl,
     avatarSize = 'medium',
-    showTimer = false,
-    timerExpiry,
-    isTimerLoading = false,
-    onTimerNearExpiry,
-    onTimerExpired,
-    disableTimerRefetch = false,
-    timerError = null,
     countryCodeForFlag,
     currencySymbol,
     isLoading = false,
@@ -135,7 +119,7 @@ export default function PeanutActionDetailsCard({
         }
         if (transactionType === 'REGIONAL_METHOD_CLAIM') title = recipientName // Render the string as is for regional method
         return (
-            <h1 className="flex items-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap text-base font-normal text-grey-1">
+            <h1 className="flex items-center gap-2 overflow-hidden text-body-m font-normal text-ellipsis whitespace-nowrap text-foreground-secondary">
                 {icon && <Icon name={icon} size={10} />} {title}
             </h1>
         )
@@ -203,7 +187,7 @@ export default function PeanutActionDetailsCard({
                         />
                     )}
                     {!isRegionalMethodClaim && (
-                        <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-yellow-400 p-1.5">
+                        <div className="absolute -right-1 -bottom-1 flex h-6 w-6 items-center justify-center rounded-full bg-background-icon-bubble-blue p-1.5">
                             <Icon size={14} name="bank" className="text-black" />
                         </div>
                     )}
@@ -233,12 +217,12 @@ export default function PeanutActionDetailsCard({
                     )}
                 </div>
 
-                <div className="w-full space-y-1">
+                <div className="space-y-1 w-full">
                     {getTitle()}
                     {isLoading ? (
                         <Loading />
                     ) : (
-                        <h2 className="text-2xl font-extrabold">
+                        <h2 className="text-heading-s">
                             {(transactionType === 'ADD_MONEY' || isAddBankAccount || isClaimLinkBankAccount) &&
                             currencySymbol
                                 ? `${currencySymbol}`
@@ -257,16 +241,6 @@ export default function PeanutActionDetailsCard({
                     )}
 
                     <Attachment message={message ?? ''} fileUrl={fileUrl ?? ''} />
-                    {showTimer && (
-                        <RouteExpiryTimer
-                            expiry={timerExpiry}
-                            isLoading={isTimerLoading}
-                            onNearExpiry={onTimerNearExpiry}
-                            onExpired={onTimerExpired}
-                            disableRefetch={disableTimerRefetch}
-                            error={timerError}
-                        />
-                    )}
                 </div>
             </div>
         </Card>

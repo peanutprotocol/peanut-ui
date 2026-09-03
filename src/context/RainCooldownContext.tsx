@@ -55,8 +55,8 @@ const CooldownPillContent = ({ endsAt }: { endsAt: number }) => {
     const remainingMs = Math.max(0, endsAt - now)
     return (
         <div className="flex items-center gap-2">
-            <Icon name="clock" className="h-4 w-4 text-n-1" />
-            <span className="text-sm font-bold tabular-nums text-n-1">
+            <Icon name="clock" className="h-4 w-4 text-foreground-primary" />
+            <span className="text-label-l text-foreground-primary tabular-nums">
                 {t('rainCooldownPill')} · {formatRemaining(remainingMs)}
             </span>
         </div>
@@ -105,8 +105,9 @@ export function RainCooldownProvider({ children }: { children: ReactNode }) {
         toast({
             id: COOLDOWN_TOAST_ID,
             duration: 'persistent',
-            position: 'bottom-right',
-            className: 'border-yellow-1',
+            // the compact notification carries no border of its own — this pill
+            // draws its accent border explicitly
+            className: 'border border-action-secondary',
             content: <CooldownPillContent endsAt={cooldownEndsAt} />,
         })
     }, [cooldownEndsAt, toast, dismiss])

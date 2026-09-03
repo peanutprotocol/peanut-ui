@@ -68,7 +68,7 @@ const Avatar = ({ tweet }: { tweet: Tweet }) => {
 
 /** X/Twitter verified badge icon */
 const VerifiedBadge = () => (
-    <svg className="h-3.5 w-3.5 flex-shrink-0 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
+    <svg className="h-3.5 w-3.5 flex-shrink-0 text-[#3b82f6]" viewBox="0 0 24 24" fill="currentColor">
         <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484zm-6.616-3.334l-4.334 6.5c-.145.217-.382.334-.625.334-.143 0-.288-.04-.416-.126l-.115-.094-2.415-2.415c-.293-.293-.293-.768 0-1.06s.768-.294 1.06 0l1.77 1.767 3.825-5.74c.23-.345.696-.436 1.04-.207.346.23.44.696.21 1.04z" />
     </svg>
 )
@@ -146,10 +146,10 @@ const FeaturedCard = ({ tweet }: { tweet: Tweet }) => {
                     <PlayOverlay />
                 </div>
             ) : (
-                <div className="relative flex h-[220px] w-full flex-shrink-0 items-center justify-center overflow-hidden border-b-2 border-n-1 bg-gradient-to-br from-yellow-100 via-yellow-50 to-amber-100">
+                <div className="relative flex h-[220px] w-full flex-shrink-0 items-center justify-center overflow-hidden border-b-2 border-n-1 bg-gradient-to-br from-secondary-4 to-amber-100">
                     <div className="absolute inset-0 opacity-10">
-                        <div className="absolute -left-4 -top-4 text-7xl">🥜</div>
-                        <div className="absolute -bottom-4 -right-4 text-7xl">🥜</div>
+                        <div className="absolute -top-4 -left-4 text-7xl">🥜</div>
+                        <div className="absolute -right-4 -bottom-4 text-7xl">🥜</div>
                     </div>
                     <span className="text-6xl drop-shadow-sm">🥜</span>
                 </div>
@@ -202,7 +202,7 @@ const Column = ({ column }: { column: ColumnType }) => {
 
     if (column.type === 'featured') {
         return (
-            <div className="ml-3 pr-1 pt-[2px]" style={{ height: columnHeight }}>
+            <div className="ml-3 pt-[2px] pr-1" style={{ height: columnHeight }}>
                 <FeaturedCard tweet={column.tweet} />
             </div>
         )
@@ -210,7 +210,7 @@ const Column = ({ column }: { column: ColumnType }) => {
 
     if (column.type === 'tiny') {
         return (
-            <div className="ml-3 flex flex-col gap-4 pr-1 pt-[2px]" style={{ height: columnHeight }}>
+            <div className="ml-3 flex flex-col gap-4 pt-[2px] pr-1" style={{ height: columnHeight }}>
                 {column.tweets.map((tweet) => (
                     <TinyCard key={tweet.url} tweet={tweet} />
                 ))}
@@ -219,7 +219,7 @@ const Column = ({ column }: { column: ColumnType }) => {
     }
 
     return (
-        <div className="ml-3 flex flex-col gap-4 pr-1 pt-[2px]" style={{ height: columnHeight }}>
+        <div className="ml-3 flex flex-col gap-4 pt-[2px] pr-1" style={{ height: columnHeight }}>
             {column.tweets.map((tweet) => (
                 <StandardCard key={tweet.url} tweet={tweet} />
             ))}
@@ -338,7 +338,7 @@ const TweetCarousel = ({ strings }: { strings: LandingStrings }) => {
     if (columns.length === 0) return null
 
     return (
-        <section id="testimonials" className="w-full bg-primary-1 pb-10 pt-12 md:pb-14 md:pt-16">
+        <section id="testimonials" className="w-full bg-primary-1 pt-12 pb-10 md:pt-16 md:pb-14">
             <div className="mx-auto max-w-7xl px-4 pb-8">
                 <h2 className="font-roboto-flex-extrabold text-center text-[4rem] font-extraBlack text-n-1 lg:text-headingMedium">
                     {strings.wallOfLove}

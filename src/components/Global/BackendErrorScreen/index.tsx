@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { useAuth } from '@/context/authContext'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
@@ -84,25 +85,21 @@ export default function BackendErrorScreen() {
     }
 
     return (
-        <div className="flex h-[100dvh] w-full flex-col items-center justify-center gap-6 bg-background p-6">
+        <div className="flex h-dvh w-full flex-col items-center justify-center gap-6 bg-background p-6">
             <div className="h-32 w-32 opacity-50 grayscale">
                 <PeanutIcon className="h-full w-full" label={tNav('peanutLogoAlt')} />
             </div>
             <div className="flex flex-col items-center gap-2 text-center">
-                <h1 className="text-2xl font-bold text-gray-800">{t('backendErrorScreen.title')}</h1>
-                <p className="max-w-md text-sm text-gray-600">{t('backendErrorScreen.description')}</p>
+                <h1 className="text-heading-s">{t('backendErrorScreen.title')}</h1>
+                <p className="max-w-md text-body-s">{t('backendErrorScreen.description')}</p>
             </div>
             <div className="flex flex-col items-center gap-6">
                 <Button shadowSize="4" icon="retry" size="medium" className="w-fit rounded-full" onClick={handleRetry}>
                     {t('backendErrorScreen.tryAgain')}
                 </Button>
-                <button
-                    onClick={handleForceLogout}
-                    disabled={isLoggingOut}
-                    className="text-sm text-gray-600 underline hover:text-gray-800 disabled:opacity-50"
-                >
+                <LinkButton onClick={handleForceLogout} disabled={isLoggingOut}>
                     {isLoggingOut ? t('backendErrorScreen.loggingOut') : t('backendErrorScreen.logOut')}
-                </button>
+                </LinkButton>
             </div>
         </div>
     )

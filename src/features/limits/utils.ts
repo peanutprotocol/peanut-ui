@@ -138,7 +138,7 @@ export function getLimitColorClass(remainingPercent: number, type: 'bg' | 'text'
         return type === 'bg' ? 'bg-success-3' : 'text-success-1'
     }
     if (remainingPercent > LIMIT_WARNING_THRESHOLD) {
-        return type === 'bg' ? 'bg-yellow-1' : 'text-yellow-1'
+        return type === 'bg' ? 'bg-action-secondary' : 'text-action-secondary'
     }
     return type === 'bg' ? 'bg-error-4' : 'text-error-4'
 }

@@ -12,8 +12,16 @@ jest.mock('@sentry/nextjs', () => ({
     withScope: jest.fn((cb: (scope: unknown) => void) => cb({ setFingerprint: jest.fn(), setTag: jest.fn() })),
 }))
 
+// sentry.utils reports through the lazy wrapper, which dynamically imports the
+// SDK. Its surface matches the mock above, so aliasing it keeps the calls
+// synchronous and the assertions below unchanged.
+jest.mock('@/utils/sentry-lazy', () => require('@sentry/nextjs'))
+
 jest.mock('../connectivity', () => ({
     reportNetworkError: jest.fn(),
+    // fetchWithSentry consults this before capturing, to report one failure per
+    // endpoint per window. Always-false keeps every capture assertion below live.
+    hasRecentFailure: jest.fn(() => false),
 }))
 
 jest.mock('../native-http', () => ({
@@ -50,17 +58,12 @@ describe('fetchWithSentry native fallback', () => {
             expect.any(Number)
         )
         expect(reportNetworkError).not.toHaveBeenCalled()
-        // engaged notice fires once per session, not per request
-        const engaged = (Sentry.captureMessage as jest.Mock).mock.calls.filter(
-            (c) => c[0] === 'native http fallback engaged'
-        )
-        expect(engaged).toHaveLength(1)
-
+        // the rescue itself is not a Sentry event — only a genuine failure is
         await fetchWithSentry('https://api.test.com/misc', { method: 'GET' })
-        const engagedAfter = (Sentry.captureMessage as jest.Mock).mock.calls.filter(
-            (c) => c[0] === 'native http fallback engaged'
+        const engaged = (Sentry.captureMessage as jest.Mock).mock.calls.filter((c) =>
+            String(c[0]).includes('fallback engaged')
         )
-        expect(engagedAfter).toHaveLength(1)
+        expect(engaged).toHaveLength(0)
     })
 
     it('still reports non-ok statuses from the fallback transport', async () => {

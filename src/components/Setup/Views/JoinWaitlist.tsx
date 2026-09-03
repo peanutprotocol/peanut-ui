@@ -1,17 +1,14 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import { useToast } from '@/components/0_Bruddle/Toast'
+import { Divider } from '@/components/0_Bruddle/Divider'
+import { FieldError } from '@/components/0_Bruddle/FieldError'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { useEffect, useState } from 'react'
-import { twMerge } from 'tailwind-merge'
-import * as Sentry from '@sentry/nextjs'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAppDispatch } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { invitesApi } from '@/services/invites'
-import ErrorAlert from '@/components/Global/ErrorAlert'
-import { useLogin } from '@/hooks/useLogin'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { enableDemoMode, isDemoInviteCode } from '@/utils/demo'
@@ -34,10 +31,8 @@ const JoinWaitlist = () => {
     const [isLoading, setisLoading] = useState(false)
     const [error, setError] = useState('')
 
-    const toast = useToast()
     const { handleNext } = useSetupFlow()
     const dispatch = useAppDispatch()
-    const { handleLoginClick } = useLogin()
     const router = useRouter()
     const queryClient = useQueryClient()
 
@@ -80,29 +75,10 @@ const JoinWaitlist = () => {
         }
     }
 
-    const handleError = (error: unknown) => {
-        const errorCode = error instanceof Error && 'code' in error ? String(error.code) : undefined
-        const errorMessage =
-            errorCode === 'LOGIN_CANCELED'
-                ? t('waitlist.loginCanceled')
-                : errorCode === 'NO_PASSKEY'
-                  ? t('waitlist.noPasskey')
-                  : t('waitlist.loginUnexpectedError')
-        toast.error(errorMessage)
-        Sentry.captureException(error, { extra: { errorCode } })
-    }
-
-    const _onLoginClick = async () => {
-        try {
-            await handleLoginClick()
-        } catch (e) {
-            handleError(e)
-        }
-    }
-
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-2">
+            {/* input + its field error form one column, 4px apart (form-field board 17788:19179) */}
+            <div className="flex flex-col gap-1">
                 <ValidatedInput
                     placeholder={t('waitlist.inviterUsernamePlaceholder')}
                     value={inviteCode}
@@ -117,53 +93,46 @@ const JoinWaitlist = () => {
                     }}
                     isSetupFlow
                     isInputChanging={isChanging}
-                    className={twMerge(
-                        !isValid && !isChanging && !!inviteCode && 'border-error dark:border-error',
-                        isValid && !isChanging && !!inviteCode && 'border-secondary-8 dark:border-secondary-8',
-                        'rounded-sm'
-                    )}
+                    className="rounded-sm"
                 />
-                <Button
-                    disabled={!isValid || isChanging || isLoading || inviteCode.length === 0}
-                    onClick={() => {
-                        // Demo mode: skip signup + passkey. Soft-nav (no reload) so the
-                        // in-memory demo flag survives — a hard nav loses it and races the
-                        // no-credential logout/redirect guards before localStorage is
-                        // readable. Seed the user query so the app is logged-in instantly.
-                        if (isCapacitor() && isDemoInviteCode(inviteCode)) {
-                            enableDemoMode()
-                            dispatch(userActions.setUser(DEMO_USER))
-                            queryClient.setQueryData([USER], DEMO_USER)
-                            router.push('/home')
-                            return
-                        }
-                        dispatch(setupActions.setInviteCode(inviteCode))
-                        handleNext()
-                    }}
-                    shadowSize="4"
-                    className="h-12 w-4/12"
-                >
-                    {t('next')}
-                </Button>
-            </div>
-
-            {error && (
-                <div className="pb-1">
-                    <ErrorAlert description={error} className="gap-2 text-xs" iconSize={14} />
-                </div>
-            )}
-
-            <div className="flex items-center gap-4 py-2">
-                <div className="h-px flex-1 bg-grey-1" />
-                <span className="text-sm text-grey-1">{tCommon('or')}</span>
-                <div className="h-px flex-1 bg-grey-1" />
+                {error && <FieldError>{error}</FieldError>}
             </div>
 
             <Button
+                variant="purple"
+                disabled={!isValid || isChanging || isLoading || inviteCode.length === 0}
+                onClick={() => {
+                    // Demo mode: skip signup + passkey. Soft-nav (no reload) so the
+                    // in-memory demo flag survives — a hard nav loses it and races the
+                    // no-credential logout/redirect guards before localStorage is
+                    // readable. Seed the user query so the app is logged-in instantly.
+                    if (isCapacitor() && isDemoInviteCode(inviteCode)) {
+                        enableDemoMode()
+                        dispatch(userActions.setUser(DEMO_USER))
+                        queryClient.setQueryData([USER], DEMO_USER)
+                        router.push('/home')
+                        return
+                    }
+                    dispatch(setupActions.setInviteCode(inviteCode))
+                    handleNext()
+                }}
+                shadowSize="4"
+                icon="chevron-right"
+                iconPosition="right"
+                className="w-full"
+            >
+                {t('next')}
+            </Button>
+
+            <Divider text={tCommon('or')} textClassname="text-body-s text-foreground-secondary" />
+
+            <Button
+                variant="stroke"
                 onClick={() => {
                     handleNext()
                 }}
                 shadowSize="4"
+                className="w-full"
             >
                 {t('waitlist.joinWaitlist')}
             </Button>

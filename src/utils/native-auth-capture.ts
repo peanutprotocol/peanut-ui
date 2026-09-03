@@ -5,11 +5,10 @@
 // works with CapacitorHttp both on (bridge-patched fetch) and off (plain
 // WebView fetch), so the same JS runs on old and new binaries.
 
-import * as Sentry from '@sentry/nextjs'
+import * as Sentry from '@/utils/sentry-lazy'
 import { isCapacitor } from './capacitor'
-import { setAuthToken } from './auth-token'
+import { currentCeremonyId, stashCeremonyVerifyToken } from './passkeyCeremony.utils'
 
-const VERIFY_URL_PATTERN = /\/passkeys\/(login|register)\/verify/
 // ZeroDev swallows the status/body of these fetches, so a rejected ceremony
 // reaches Sentry only as an opaque "Login not verified" (PEANUT-UI-R0X) with
 // no hint of WHICH server check failed — report non-2xx responses here.
@@ -58,6 +57,10 @@ export function installNativeAuthCapture(): void {
     window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
         const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
         const passkeyPath = PASSKEY_URL_PATTERN.exec(url)?.[0] ?? null
+        const isVerify = passkeyPath !== null && passkeyPath.endsWith('/verify')
+        // Bind the request to the ceremony active at ISSUE time: a verify whose
+        // request predates the current ceremony's window must not enter its stash.
+        const issuingCeremonyId = isVerify ? currentCeremonyId() : null
 
         let response: Response
         try {
@@ -79,10 +82,15 @@ export function installNativeAuthCapture(): void {
                     .catch(() => '')
                 reportPasskeyHttpFailure(passkeyPath, response.status, body)
             }
-            if (response.ok && VERIFY_URL_PATTERN.test(url)) {
+            // The token is only STASHED here (keyed to the issuing ceremony);
+            // guardPasskeyCeremony persists it when the owning ceremony resolves
+            // and discards it on failure — so a verify landing after its
+            // ceremony was reported "failed" can never leave a
+            // half-authenticated session (TASK-21782).
+            if (response.ok && isVerify) {
                 const body = await response.clone().json()
                 if (body && typeof body.token === 'string' && body.token) {
-                    setAuthToken(body.token)
+                    stashCeremonyVerifyToken(body.token, issuingCeremonyId)
                 }
             }
         } catch {

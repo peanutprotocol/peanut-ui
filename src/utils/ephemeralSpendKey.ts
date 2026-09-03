@@ -1,4 +1,5 @@
 import type { Address, Chain, Hex, PublicClient } from 'viem'
+import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
 import { http, pad, slice, toFunctionSelector, toHex } from 'viem'
 import type { KernelValidator } from '@zerodev/sdk/types'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
@@ -23,6 +24,7 @@ import {
 } from '@zerodev/sdk'
 import { getEntryPoint, KERNEL_V3_1 } from '@zerodev/sdk/constants'
 import {
+    assertZeroDevRpcUrls,
     BUNDLER_URL,
     PAYMASTER_URL,
     PEANUT_WALLET_CHAIN,
@@ -32,7 +34,7 @@ import {
 import { rainCoordinatorAbi } from '@/constants/rain.consts'
 
 /*
- * Per-transaction ephemeral session key (SESSION_KEY_SPEND flag).
+ * Per-transaction ephemeral session key for the one-tap mixed spend.
  *
  * One passkey tap signs a permission-enable for a throwaway ECDSA key whose
  * authority is enforced ON-CHAIN by the kernel's permission validator, scoped
@@ -194,6 +196,7 @@ export async function createEphemeralSpendSession(args: {
     patchedSudoValidator: KernelValidator
 }): Promise<EphemeralSpendSession> {
     const { publicClient, chain, scope, patchedSudoValidator } = args
+    assertZeroDevRpcUrls(BUNDLER_URL, PAYMASTER_URL)
 
     try {
         let privateKey: Hex | null = generatePrivateKey()
@@ -293,7 +296,9 @@ export async function createEphemeralSpendSession(args: {
         })
 
         // THE passkey tap.
-        const enableSignature = await patchedSudoValidator.signTypedData(enableTypedData)
+        const enableSignature = await withCeremonyPurpose('ephemeral_enable', () =>
+            patchedSudoValidator.signTypedData(enableTypedData)
+        )
 
         // Rebuild the account with the precomputed enable signature injected so
         // the SDK's enable-mode UserOp encoding uses OUR nonce-verified

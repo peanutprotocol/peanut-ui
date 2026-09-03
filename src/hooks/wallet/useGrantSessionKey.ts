@@ -17,6 +17,7 @@ import { toECDSASigner } from '@zerodev/permissions/signers'
 import { accountMetadata, createKernelAccount, getPluginsEnableTypedData, KernelV3AccountAbi } from '@zerodev/sdk'
 import { getEntryPoint, KERNEL_V3_1 } from '@zerodev/sdk/constants'
 import { serializePermissionAccount } from '@zerodev/permissions'
+import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
 import { peanutPublicClient } from '@/app/actions/clients'
 import { rainApi } from '@/services/rain'
 import { useZeroDev } from '@/hooks/useZeroDev'
@@ -247,7 +248,7 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
                 // back a rebuilt client. One extra passkey tap.
                 await ensureRootValidatorMigrated({
                     client: kernelClient,
-                    sendNoopUserOp: (call) => handleSendUserOpEncoded([call], chainId),
+                    sendNoopUserOp: (call) => handleSendUserOpEncoded([call], chainId, { returnRevertedReceipt: true }),
                     rebuildClient: () => rebuildClientForChain(chainId),
                 })
                 // Freshly deployed: read the live nonce; fail loud if unreadable.
@@ -308,7 +309,9 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
         })
         // Same sudo validator + signing path the SDK uses internally, so for
         // healthy nonce=1 accounts this yields an identical approval.
-        const enableSignature = await patchedSudoValidator.signTypedData(enableTypedData)
+        const enableSignature = await withCeremonyPurpose('session_key_grant', () =>
+            patchedSudoValidator.signTypedData(enableTypedData)
+        )
 
         const serialized = await serializePermissionAccount(sessionKernelAccount, undefined, enableSignature)
         return { ok: true, serialized }

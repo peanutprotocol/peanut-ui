@@ -89,7 +89,10 @@ describe('completeHistoryEntry amount-contract guards', () => {
 })
 
 /**
- * getTransactionSign drives the +/- prefix on the activity-feed amount.
+ * getTransactionSign drives the "-" prefix on the activity-feed amount.
+ *
+ * Both directions are signed: "-" out, "+" in (ruled 2026-08-28 over the
+ * states board's unsigned inflow).
  *
  * Regression: a Rain card AUTH sits in `pending` for hours until the CLEAR
  * webhook settles it. The old guard suppressed the sign for anything that
@@ -110,8 +113,22 @@ describe('getTransactionSign', () => {
         expect(sign('qr_payment', 'completed')).toBe('-')
     })
 
-    it('shows the inflow sign for a pending receive', () => {
+    it('shows the inflow sign for a receive, pending or settled', () => {
         expect(sign('receive', 'pending')).toBe('+')
+        expect(sign('receive', 'completed')).toBe('+')
+    })
+
+    it('shows the inflow sign for a received request — the viewer created it, money comes IN', () => {
+        expect(sign('request_received', 'pending')).toBe('+')
+        expect(sign('request_received', 'completed')).toBe('+')
+    })
+
+    // The wording is inbound but the money is not: p2p-send emits this for the
+    // SENDER of a bridge-fulfilled request, who is paying. A "+" here told a
+    // payer their balance had gone up.
+    it('shows the outflow sign for a bank-request fulfillment (the payer)', () => {
+        expect(sign('bank_request_fulfillment', 'pending')).toBe('-')
+        expect(sign('bank_request_fulfillment', 'completed')).toBe('-')
     })
 
     it.each(['cancelled', 'failed', 'refunded'])('suppresses the sign for status=%s', (status) => {

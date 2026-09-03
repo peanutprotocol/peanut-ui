@@ -4,12 +4,12 @@ const Module = require('module')
 
 const SCRIPT_PATH = path.join(__dirname, '..', 'native-build.js')
 
-// native-build.js is a script, not a module: it calls main() at import time and
-// exports nothing. Load the real source with that call stripped so the scan
-// helpers can be asserted against the actual app tree.
+// native-build.js only exports ITEMS_TO_DISABLE. Load the real source with the
+// entrypoint stripped so the scan helpers can be asserted against the actual
+// app tree.
 function loadScriptInternals() {
     const source = fs.readFileSync(SCRIPT_PATH, 'utf-8')
-    const withoutEntrypoint = source.replace(/\nmain\(\)\s*$/, '\n')
+    const withoutEntrypoint = source.replace(/\nif \(require\.main === module\) main\(\)\s*$/, '\n')
     expect(withoutEntrypoint).not.toBe(source)
 
     const exposed =
@@ -53,5 +53,17 @@ describe('native build server-route scan', () => {
         const transformed = new Set(P0_TRANSFORMS.map((t) => t.path))
         const offenders = detectUncoveredServerRoutes().filter((o) => transformed.has(toPosix(o.rel)))
         expect(offenders).toEqual([])
+    })
+
+    // This is the actual anti-rot check: it runs the same scan the native build
+    // guard does, against the real app tree, on every PR — not just on push to
+    // dev via the Capgo deploy workflow. A route added to src/app with `export
+    // const dynamic = 'force-dynamic'` (or a bare route.ts) and missing from
+    // ITEMS_TO_DISABLE fails here instead of silently breaking every native/OTA
+    // build until someone notices dev is red.
+    it('has no server-only route left uncovered by ITEMS_TO_DISABLE or P0_TRANSFORMS', () => {
+        const offenders = detectUncoveredServerRoutes()
+        const describe = offenders.map((o) => `${toPosix(o.rel)} (${o.reason})`).join('\n')
+        expect(describe).toBe('')
     })
 })

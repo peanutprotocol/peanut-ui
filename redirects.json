@@ -80,6 +80,11 @@
         "permanent": true
     },
     {
+        "source": "/status",
+        "destination": "/en/status",
+        "permanent": true
+    },
+    {
         "source": "/:slug(card-terms-us|card-terms-international|card-esign|card-privacy|card-prohibited-activities)",
         "destination": "/en/:slug",
         "permanent": false
@@ -142,6 +147,16 @@
         "permanent": true
     },
     {
+        "source": "/lp/card",
+        "destination": "/shhhhh",
+        "permanent": true
+    },
+    {
+        "source": "/exchange",
+        "destination": "/",
+        "permanent": true
+    },
+    {
         "source": "/sh",
         "destination": "/card",
         "permanent": false
@@ -168,7 +183,17 @@
     },
     {
         "source": "/devconnect",
-        "destination": "/quests",
+        "destination": "/",
+        "permanent": false
+    },
+    {
+        "source": "/quests",
+        "destination": "/",
+        "permanent": false
+    },
+    {
+        "source": "/quests/:path*",
+        "destination": "/",
         "permanent": false
     },
     {
@@ -204,6 +229,16 @@
     {
         "source": "/:locale/deposit/from-spei",
         "destination": "/:locale/deposit/via-spei",
+        "permanent": true
+    },
+    {
+        "source": "/:locale/blog",
+        "destination": "/:locale/content",
+        "permanent": true
+    },
+    {
+        "source": "/:locale/team",
+        "destination": "/:locale/press",
         "permanent": true
     },
     {

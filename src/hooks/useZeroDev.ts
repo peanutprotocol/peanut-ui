@@ -1,6 +1,7 @@
 'use client'
 
 import { PASSKEY_SERVER_URL } from '@/constants/zerodev.consts'
+import { WEB_AUTHN_COOKIE_KEY } from '@/constants/auth.consts'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { useAuth } from '@/context/authContext'
 import { useKernelClient } from '@/context/kernelClient.context'
@@ -10,7 +11,14 @@ import { zerodevActions } from '@/redux/slices/zerodev-slice'
 import { getFromCookie, removeFromCookie, saveToCookie, saveToLocalStorage } from '@/utils/general.utils'
 import { clearAuthState } from '@/utils/auth.utils'
 import { isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
-import { capturePasskeySignFailure, classifyPasskeyError } from '@/utils/webauthn.utils'
+import { capturePasskeySignFailure, classifyPasskeyError, normalizePasskeyServerError } from '@/utils/webauthn.utils'
+import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
+import {
+    captureCeremonyGuardError,
+    guardPasskeyCeremony,
+    isCeremonyGuardError,
+    isPasskeyShimInstalled,
+} from '@/utils/passkeyCeremony.utils'
 import { toWebAuthnKey, WebAuthnMode } from '@zerodev/passkey-validator'
 import { useCallback, useContext } from 'react'
 import type { TransactionReceipt, Hex, Hash } from 'viem'
@@ -22,7 +30,6 @@ import {
     isUnavailableBadgeCampaignClaim,
 } from '@/services/badge-campaigns'
 import { settleAcceptedInviteAcquisition } from '@/services/invite-acquisition'
-import { persistRegistrationBadgeCampaignDestination } from '@/services/registration-acquisition'
 import { getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 import { settleShhhhhCampaignContinuation } from '@/app/shhhhh/shhhhh-acquisition'
 import { signupConsentDocuments } from '@/services/consent'
@@ -30,6 +37,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
+import { rescueUserOpReceipt } from '@/utils/userop-rescue.utils'
 
 // types
 type UserOpEncodedParams = {
@@ -51,8 +59,6 @@ class PasskeyError extends Error {
         this.name = 'PasskeyError'
     }
 }
-
-const WEB_AUTHN_COOKIE_KEY = 'web-authn-key'
 
 export const useZeroDev = () => {
     const dispatch = useAppDispatch()
@@ -80,16 +86,22 @@ export const useZeroDev = () => {
 
             // @capgo/capacitor-passkey shim patches navigator.credentials on native,
             // so toWebAuthnKey works on all platforms (web, android, ios).
-            const webAuthnKey = await toWebAuthnKey({
-                passkeyName: _getPasskeyName(username),
-                passkeyServerUrl: PASSKEY_SERVER_URL as string,
-                mode: WebAuthnMode.Register,
-                // Consent-ledger echo (tos-v1 phase 2): the ZeroDev SDK owns the
-                // register/verify request body, so the terms+privacy versions the
-                // signup screen displayed ride in a header the backend ledgers.
-                passkeyServerHeaders: { 'x-accepted-legal': JSON.stringify(signupConsentDocuments()) },
-                rpID: rpId,
-            })
+            // Same TASK-21782 guard as login: native shim gate + 60s bound —
+            // signup is the tightest shim race (first tap after a fresh install).
+            const webAuthnKey = await withCeremonyPurpose('registration', () =>
+                guardPasskeyCeremony(() =>
+                    toWebAuthnKey({
+                        passkeyName: _getPasskeyName(username),
+                        passkeyServerUrl: PASSKEY_SERVER_URL as string,
+                        mode: WebAuthnMode.Register,
+                        // Consent-ledger echo (tos-v1 phase 2): the ZeroDev SDK owns the
+                        // register/verify request body, so the terms+privacy versions the
+                        // signup screen displayed ride in a header the backend ledgers.
+                        passkeyServerHeaders: { 'x-accepted-legal': JSON.stringify(signupConsentDocuments()) },
+                        rpID: rpId,
+                    })
+                )
+            )
 
             const inviteCodeFromCookie = getFromCookie('inviteCode')
 
@@ -196,12 +208,11 @@ export const useZeroDev = () => {
                 const confirmed = batch.claims.filter(isConfirmedBadgeCampaignClaim)
                 const unavailable = batch.claims.filter(isUnavailableBadgeCampaignClaim)
 
-                // Explicit/UTM badge campaigns do not pass through `/invites/accept`.
-                // Shhhhh owns one compatibility continuation: only a confirmed
-                // Skip Pass replaces its safe /home marker with /card. Every
-                // other entrypoint uses backend-owned acquisition navigation.
-                const shhhhhDestination = settleShhhhhCampaignContinuation(batch.claims)
-                if (shhhhhDestination === undefined) persistRegistrationBadgeCampaignDestination(batch.claims)
+                // Explicit badge campaigns do not pass through `/invites/accept`.
+                // Shhhhh owns the one remaining compatibility continuation: only a
+                // confirmed Skip Pass replaces its safe /home marker with /card.
+                // Bespoke campaign destinations retired with TASK-21226.
+                settleShhhhhCampaignContinuation(batch.claims)
 
                 if (confirmed.length > 0) {
                     posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, {
@@ -235,13 +246,17 @@ export const useZeroDev = () => {
             saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
         } catch (e) {
             if ((e as Error).message.includes('pending')) {
+                // the concurrent-request bail must still release the button
+                dispatch(zerodevActions.setIsRegistering(false))
                 return
             }
             const err = e as Error
             console.error('[useZeroDev] registration failed:', err.name, err.message, err, {
-                shimInstalled: (globalThis as typeof globalThis & { __capgoPasskeyShimInstalled?: boolean })
-                    .__capgoPasskeyShimInstalled,
+                shimInstalled: isPasskeyShimInstalled(),
             })
+            if (isCeremonyGuardError(err)) {
+                captureCeremonyGuardError(err, 'register')
+            }
             dispatch(zerodevActions.setIsRegistering(false))
             throw e
         }
@@ -250,6 +265,7 @@ export const useZeroDev = () => {
     // login function
     const handleLogin = async () => {
         dispatch(zerodevActions.setIsLoggingIn(true))
+        const ceremonyStartedAt = Date.now()
         try {
             const passkeyServerHeaders: Record<string, string> = {}
 
@@ -259,30 +275,39 @@ export const useZeroDev = () => {
 
             const rpId = isCapacitor() ? getNativeRpId() : window.location.hostname.replace(/^www\./, '')
 
-            const webAuthnKey = await toWebAuthnKey({
-                passkeyName: '[]',
-                passkeyServerUrl: PASSKEY_SERVER_URL as string,
-                mode: WebAuthnMode.Login,
-                passkeyServerHeaders,
-                rpID: rpId,
-            })
+            // TASK-21782: on native, gate on the shim being installed (a tap
+            // racing autoShimWebAuthn runs the webview's raw WebAuthn, which
+            // silently hangs in Capacitor) and bound the ceremony to 60s so a
+            // never-settling toWebAuthnKey can't leave isLoggingIn true until
+            // app kill. A late result is discarded and its verify token is not
+            // captured (ceremony window closed) — see passkeyCeremony.utils.
+            const webAuthnKey = await withCeremonyPurpose('login', () =>
+                guardPasskeyCeremony(() =>
+                    toWebAuthnKey({
+                        passkeyName: '[]',
+                        passkeyServerUrl: PASSKEY_SERVER_URL as string,
+                        mode: WebAuthnMode.Login,
+                        passkeyServerHeaders,
+                        rpID: rpId,
+                    })
+                )
+            )
 
             setWebAuthnKey(webAuthnKey)
             saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
         } catch (e) {
-            // zerodev's toWebAuthnKey login path reads loginVerifyResult.verification.verified
-            // with no HTTP-status check, so a non-2xx /login/verify (e.g. a 401 when this
-            // device's passkey doesn't verify) throws a raw TypeError. Normalize it to a
-            // clean auth error so it classifies and reports as a login failure instead of a
-            // confusing "undefined is not an object (…verification.verified)" crash (PEANUT-UI-R0V).
-            const err =
-                e instanceof TypeError && /verif(ication|ied)/i.test(e.message ?? '')
-                    ? new Error('Login not verified')
-                    : e
+            const err = normalizePasskeyServerError(e)
             const { code, message } = classifyPasskeyError(err)
             dispatch(zerodevActions.setIsLoggingIn(false))
-            // Cancel saved no state; everything else clears stale state and reports the error to Sentry.
-            if (code !== 'LOGIN_CANCELED') {
+            // Ceremony guards and server/network failures: nothing was
+            // authenticated, so keep any existing state (no clearAuthState) and
+            // report with a discriminating tag — this is the telemetry that
+            // tells us WHERE native logins hang.
+            if (isCeremonyGuardError(err)) {
+                captureCeremonyGuardError(err, 'login', { elapsedMs: Date.now() - ceremonyStartedAt })
+            } else if (code === 'NETWORK') {
+                captureException(err, { tags: { error_type: 'passkey_server_failure' } })
+            } else if (code !== 'LOGIN_CANCELED') {
                 console.error('Error logging in', err)
                 await clearAuthState(user?.user.userId)
                 captureException(err, { tags: { error_type: 'login_error' } })
@@ -298,7 +323,12 @@ export const useZeroDev = () => {
     const handleSendUserOpEncoded = useCallback(
         async (
             calls: UserOpEncodedParams[],
-            chainId: string
+            chainId: string,
+            // The kernel-migration noop relies on RECEIVING the bundle receipt
+            // of a reverted userOp so it can verify migration state against
+            // on-chain truth (kernelMigration.utils.ts). Payment flows must
+            // instead FAIL a reverted op — throwing is the default.
+            opts?: { returnRevertedReceipt?: boolean }
         ): Promise<{ userOpHash: Hash; receipt: TransactionReceipt | null }> => {
             // demo mode: simulated success, no chain.
             if (isDemoMode()) {
@@ -313,10 +343,12 @@ export const useZeroDev = () => {
 
             let userOpHash: Hash
             try {
-                userOpHash = await client.sendUserOperation({
-                    account: client.account,
-                    callData: await client.account!.encodeCalls(calls),
-                })
+                userOpHash = await withCeremonyPurpose('user_op', async () =>
+                    client.sendUserOperation({
+                        account: client.account,
+                        callData: await client.account!.encodeCalls(calls),
+                    })
+                )
             } catch (error) {
                 console.error('Error sending UserOp:', error)
                 capturePasskeySignFailure(error, 'send-user-op')
@@ -353,19 +385,36 @@ export const useZeroDev = () => {
             } catch (error) {
                 console.error('Error waiting for UserOp receipt:', error)
                 captureException(error)
-                // Reset the loading banner too — callers that treat a null
-                // receipt as a failure (migration gate) would otherwise leave
-                // the UI stuck on 'Executing transaction'.
+                // Rescue via the shared helper (skips after a genuine 120s
+                // timeout; captures telemetry). See rescueUserOpReceipt.
+                const rescued = await rescueUserOpReceipt(client, userOpHash, error, 'zerodev-send')
                 setLoadingState('Idle')
                 dispatch(zerodevActions.setIsSendingUserOp(false))
-                return {
-                    userOpHash,
-                    receipt: null,
+                // A rescued-but-REVERTED op is a real revert, not a lost
+                // receipt: returning a success-shaped result would send flows
+                // down the userOpHash fallback and show a success screen for a
+                // transfer that moved no funds.
+                if (rescued && !rescued.success) {
+                    if (opts?.returnRevertedReceipt) return { userOpHash, receipt: rescued.receipt }
+                    throw new Error(`UserOperation reverted on-chain (userOpHash ${userOpHash})`)
                 }
+                return { userOpHash, receipt: rescued?.receipt ?? null }
             }
 
             setLoadingState('Idle')
             dispatch(zerodevActions.setIsSendingUserOp(false))
+
+            // A mined-but-REVERTED userOp still carries a successful EntryPoint
+            // bundle receipt — returning it here let downstream flows record a
+            // reverted transfer as a successful payment (same trap the rescue
+            // path above guards; caller-side isTxReverted checks the BUNDLE
+            // status and cannot catch an inner revert). The migration noop
+            // opts INTO receiving the receipt instead (contract documented in
+            // kernelMigration.utils.ts).
+            if (!userOpReceipt.success) {
+                if (opts?.returnRevertedReceipt) return { userOpHash, receipt: userOpReceipt.receipt }
+                throw new Error(`UserOperation reverted on-chain (userOpHash ${userOpHash})`)
+            }
 
             return {
                 userOpHash,

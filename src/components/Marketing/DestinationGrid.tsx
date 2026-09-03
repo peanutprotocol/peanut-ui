@@ -7,6 +7,7 @@ import { localizedPath } from '@/i18n/config'
 import { CARD_HOVER } from '@/components/Marketing/mdx/constants'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
+import { resolveContentHref } from '@/lib/content'
 
 interface DestinationGridProps {
     /** If provided, only show these country slugs */
@@ -34,7 +35,10 @@ export function DestinationGrid({ countries, exclude, title, locale = DEFAULT_LO
                     const flagCode = seo.iso2
 
                     return (
-                        <Link key={slug} href={localizedPath('send-money-to', locale, slug)}>
+                        <Link
+                            key={slug}
+                            href={resolveContentHref(localizedPath('send-money-to', locale, slug), locale)}
+                        >
                             <Card shadowSize="4" className={`flex-row items-center gap-3 p-4 ${CARD_HOVER}`}>
                                 {flagCode && (
                                     <Image

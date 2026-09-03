@@ -28,10 +28,12 @@ let mockQueryResult: {
         attributionResolved: boolean
         onboardingResolved: boolean
         username: string
+        // old-wire fields (fallback/destination) may appear in fixtures; the
+        // page reads only the campaign identity (TASK-21226)
         legacyAcquisition?: {
             campaignTag: string
-            fallback: 'normal_app'
-            destination: 'offramp_migration' | 'normal_app'
+            fallback?: 'normal_app'
+            destination?: 'offramp_migration' | 'normal_app'
         }
     }
     isLoading: boolean
@@ -53,6 +55,10 @@ jest.mock('@/redux/slices/setup-slice', () => ({
     },
 }))
 jest.mock('@/hooks/useLogin', () => ({ useLogin: () => ({ handleLoginClick: mockLogin, isLoggingIn: false }) }))
+jest.mock('@/components/0_Bruddle/Toast', () => ({
+    ...jest.requireActual('@/components/0_Bruddle/Toast'),
+    useToast: () => ({ error: jest.fn(), success: jest.fn() }),
+}))
 jest.mock('@/hooks/useGuestStoreHandoff', () => ({
     useGuestStoreHandoff: (opts: { trackImpressionWhenGuest?: boolean }) => {
         mockUseGuestStoreHandoff(opts)
@@ -61,23 +67,9 @@ jest.mock('@/hooks/useGuestStoreHandoff', () => ({
 }))
 jest.mock('@/services/badge-campaigns', () => ({
     claimAndSettlePendingBadgeCampaigns: (badgeCampaigns: readonly string[]) => mockClaimBadgeCampaigns(badgeCampaigns),
-    destinationForConfirmedBadgeCampaignAcquisition: (
-        claims: Array<{ outcome: string; acquisition?: { destination: string } }>
-    ) => {
-        const destinations = new Set(
-            claims
-                .filter(
-                    (claim) =>
-                        (claim.outcome === 'awarded' || claim.outcome === 'already_owned') &&
-                        !!claim.acquisition &&
-                        claim.acquisition.destination !== 'normal_app'
-                )
-                .map((claim) => claim.acquisition!.destination)
-        )
-        return destinations.size === 1 && destinations.has('offramp_migration')
-            ? '/add-money/crypto?network=EVM&source=offramp'
-            : '/home'
-    },
+    // every destination maps to /home since the offramp migration surface
+    // was removed (TASK-20535); mirror the real service
+    destinationForConfirmedBadgeCampaignAcquisition: () => '/home',
     isConfirmedBadgeCampaignClaim: (claim: { outcome: string }) =>
         claim.outcome === 'awarded' || claim.outcome === 'already_owned',
     isUnavailableBadgeCampaignClaim: (claim: { outcome: string }) =>
@@ -119,9 +111,9 @@ jest.mock('./InvitesPageLayout', () => ({
     __esModule: true,
     default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }))
-jest.mock('../Global/PeanutLoading', () => ({
+jest.mock('../Global/Loading', () => ({
     __esModule: true,
-    default: () => <div>Loading</div>,
+    default: (props: any) => (props.variant === 'mascot' ? <div>Loading</div> : <div data-testid="loading-spinner" />),
 }))
 jest.mock('../Payment/Views/Error.validation.view', () => ({
     __esModule: true,
@@ -201,7 +193,7 @@ describe('invite and badge campaign routing boundaries', () => {
         render(<InvitesPage />)
 
         await waitFor(() => expect(mockClaimBadgeCampaigns).toHaveBeenCalledWith(['offramp']))
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/crypto?network=EVM&source=offramp'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/home'))
     })
 
     it('falls back to the normal app when code-only legacy acquisition is unconfirmed', async () => {
@@ -228,28 +220,17 @@ describe('invite and badge campaign routing boundaries', () => {
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/home'))
     })
 
-    it.each([
-        ['token-nation-2026', 'TOKEN_NATION_SP_2026'],
-        ['nita', 'NITA'],
-    ])('source-qualifies historic UTM alias %s and follows only the typed backend outcome', async (raw, badgeCode) => {
-        mockSearch = `utm_campaign=${raw}`
-        mockClaimBadgeCampaigns.mockResolvedValue({
-            transport: 'canonical',
-            pending: [],
-            claims: [
-                {
-                    badgeCampaign: `utm:${raw}`,
-                    badgeCode,
-                    outcome: 'awarded',
-                },
-            ],
-        })
+    it.each([['token-nation-2026'], ['nita'], ['offramp']])(
+        'treats a utm_campaign=%s-only link as a dead bare link (TASK-21226)',
+        async (raw) => {
+            mockSearch = `utm_campaign=${raw}`
 
-        render(<InvitesPage />)
+            render(<InvitesPage />)
 
-        await waitFor(() => expect(mockClaimBadgeCampaigns).toHaveBeenCalledWith([`utm:${raw}`]))
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/home'))
-    })
+            await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/'))
+            expect(mockClaimBadgeCampaigns).not.toHaveBeenCalled()
+        }
+    )
 
     it.each([
         ['campaign=naija', 'naija', 'NAIJA'],
@@ -274,7 +255,6 @@ describe('invite and badge campaign routing boundaries', () => {
     it.each([
         ['badge_campaign=offramp', 'offramp'],
         ['campaign=offramp', 'offramp'],
-        ['utm_campaign=offramp', 'utm:offramp'],
     ])('uses confirmed acquisition navigation for badge-campaign-only %s', async (search, badgeCampaign) => {
         mockSearch = search
         mockClaimBadgeCampaigns.mockResolvedValue({
@@ -297,13 +277,12 @@ describe('invite and badge campaign routing boundaries', () => {
         render(<InvitesPage />)
 
         await waitFor(() => expect(mockClaimBadgeCampaigns).toHaveBeenCalledWith([badgeCampaign]))
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/crypto?network=EVM&source=offramp'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/home'))
     })
 
     it.each([
         ['badge_campaign=offramp', 'offramp'],
         ['campaign=offramp', 'offramp'],
-        ['utm_campaign=offramp', 'utm:offramp'],
         ['campaign=naija', 'naija'],
         ['campaign=terere', 'terere'],
     ])('queues signed-out %s for post-registration badge settlement', async (search, badgeCampaign) => {
@@ -349,7 +328,9 @@ describe('invite and badge campaign routing boundaries', () => {
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/profile/alice'))
     })
 
-    it('lets a confirmed bespoke campaign destination override a personal inviter profile', async () => {
+    // no campaign carries a bespoke destination anymore (offramp migration
+    // surface removed), so the inviter profile keeps navigation
+    it('keeps the personal inviter profile when a confirmed claim resolves the default destination', async () => {
         mockSearch = 'code=alice&badge_campaign=offramp'
         mockQueryResult.data = {
             success: true,
@@ -374,7 +355,7 @@ describe('invite and badge campaign routing boundaries', () => {
 
         render(<InvitesPage />)
 
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/crypto?network=EVM&source=offramp'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/profile/alice'))
     })
 
     it('preserves a safe financial continuation over campaign and inviter navigation', async () => {
@@ -416,7 +397,8 @@ describe('invite and badge campaign routing boundaries', () => {
         render(<InvitesPage />)
 
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/claim?step=claim&id=payment-1'))
-        expect(mockPush).not.toHaveBeenCalledWith('/add-money/crypto?network=EVM&source=offramp')
+        // exactly one navigation: campaign and inviter destinations must not fire
+        expect(mockPush).toHaveBeenCalledTimes(1)
     })
 
     it('shows Invalid Invite only for an invalid code with no independent campaign', async () => {
@@ -539,37 +521,29 @@ describe('invite and badge campaign routing boundaries', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Claim your spot' }))
 
         expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'squirrelinvitesyou')
-        expect(mockQueuePendingBadgeCampaigns).toHaveBeenCalledWith(['utm:summer-analytics'])
+        // utm values stopped being badge identities (TASK-21226); nothing queues
+        expect(mockQueuePendingBadgeCampaigns).not.toHaveBeenCalled()
         expect(mockPush).toHaveBeenCalledWith('/setup?step=signup')
     })
 
-    it('consumes unknown analytics without blocking a typed system acquisition normal fallback', async () => {
+    it('ignores analytics UTM while a typed system acquisition follows the normal fallback', async () => {
         mockSearch = 'code=SQUIRRELINVITESYOU&utm_campaign=summer-analytics'
         mockQueryResult.data = {
             success: true,
             attributionResolved: true,
             onboardingResolved: true,
             username: 'peanut',
-            legacyAcquisition: {
-                campaignTag: 'arbiverseinvitesyou',
-                fallback: 'normal_app',
-                destination: 'normal_app',
-            },
+            legacyAcquisition: { campaignTag: 'arbiverseinvitesyou' },
         }
         mockClaimBadgeCampaigns.mockResolvedValue({
             transport: 'canonical',
             pending: [],
-            claims: [
-                { badgeCampaign: 'utm:summer-analytics', outcome: 'unknown' },
-                { badgeCampaign: 'arbiverseinvitesyou', outcome: 'already_owned' },
-            ],
+            claims: [{ badgeCampaign: 'arbiverseinvitesyou', outcome: 'already_owned' }],
         })
 
         render(<InvitesPage />)
 
-        await waitFor(() =>
-            expect(mockClaimBadgeCampaigns).toHaveBeenCalledWith(['utm:summer-analytics', 'arbiverseinvitesyou'])
-        )
+        await waitFor(() => expect(mockClaimBadgeCampaigns).toHaveBeenCalledWith(['arbiverseinvitesyou']))
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/home'))
         expect(mockPush).not.toHaveBeenCalledWith('/profile/peanut')
     })

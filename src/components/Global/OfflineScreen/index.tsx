@@ -138,13 +138,13 @@ export default function OfflineScreen() {
     }
 
     return (
-        <div className="flex h-[100dvh] w-full flex-col items-center justify-center gap-6 bg-background p-6">
+        <div className="flex h-dvh w-full flex-col items-center justify-center gap-6 bg-background p-6">
             <div className="h-32 w-32 opacity-50 grayscale">
                 <PeanutIcon className="h-full w-full" label={tNav('peanutLogoAlt')} />
             </div>
             <div className="flex flex-col items-center gap-2 text-center">
-                <h1 className="text-2xl font-bold text-gray-800">{t('offlineScreen.title')}</h1>
-                <p className="max-w-md text-sm text-gray-600">{t('offlineScreen.description')}</p>
+                <h1 className="text-heading-s">{t('offlineScreen.title')}</h1>
+                <p className="max-w-md text-body-s">{t('offlineScreen.description')}</p>
             </div>
             <Button
                 shadowSize="4"

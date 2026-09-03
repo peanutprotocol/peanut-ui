@@ -21,7 +21,7 @@ const FULL_LOCALES = APP_LOCALES.filter((locale) => !DELTA_LOCALES.includes(loca
  */
 const CONTEXT_DIVERGENT: Record<string, string> = {
     Send: 'nav/action verb vs. transaction-type noun (Enviar / Envío)',
-    Request: 'nav/action verb vs. transaction-type noun (Solicitar / Solicitud)',
+    Request: 'nav/action verb vs. transaction-type noun (Recibir / Solicitud)',
     Add: 'nav verb vs. transaction-type noun (Agregar / Ingreso)',
     Withdraw: 'nav verb vs. transaction-type noun (Retirar / Retiro)',
     Pay: 'nav/action verb vs. transaction-type noun (Pagar / Pago)',
@@ -30,6 +30,7 @@ const CONTEXT_DIVERGENT: Record<string, string> = {
     Join: 'standalone CTA vs. sentence fragment completed by a team name',
     Processing: 'generic in-flight status vs. KYC under-review status (En proceso)',
     Failed: 'generic status vs. KYC status agreeing with "verificación" (Fallido / Fallida)',
+    Verified: 'badge/KYC status vs. residence chip agreeing with "residencia" (Verificado / Verificada)',
     'Settings → Passwords → Search "Peanut"': 'iOS and Android name the settings app differently',
 }
 
@@ -126,9 +127,21 @@ describe('ICU message compilation', () => {
             minutes: 2,
         }
         for (const path of leafPaths(messages)) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             t(path as any, dummy)
         }
         expect(invalid).toEqual([])
+    })
+})
+
+// TASK-22143: the ENS badge reached production with no `badges.catalog` entry, so
+// `useBadgeCopy` fell back to the backend's English name and the Spanish and
+// Portuguese Badges screens rendered "Name Dropper" in the middle of translated
+// copy. Key parity alone would not have caught it — the key was absent from every
+// locale, en included — so pin the localized names against English directly.
+describe('ENS badge copy is localized', () => {
+    it.each(APP_LOCALES.filter((locale) => locale !== 'en'))('%s translates the ENS badge', async (locale) => {
+        const messages = await loadMessages(locale)
+        expect(messages.badges.catalog.ENS.name).not.toBe(en.badges.catalog.ENS.name)
+        expect(messages.badges.catalog.ENS.description).not.toBe(en.badges.catalog.ENS.description)
     })
 })

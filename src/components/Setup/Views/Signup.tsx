@@ -1,18 +1,17 @@
 import { Button } from '@/components/0_Bruddle/Button'
-import ErrorAlert from '@/components/Global/ErrorAlert'
+import { FieldError } from '@/components/0_Bruddle/FieldError'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import DocsLink from '@/components/Global/DocsLink'
-import { PEANUT_API_URL, USERNAME_MIN_LENGTH } from '@/constants/general.consts'
+import { USERNAME_MIN_LENGTH } from '@/constants/general.consts'
 import { isCapacitor } from '@/utils/capacitor'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
-import { fetchWithSentry } from '@/utils/sentry.utils'
+import { apiFetch } from '@/utils/api-fetch'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useState } from 'react'
-import { twMerge } from 'tailwind-merge'
 import { useTranslations } from 'next-intl'
 
 const SignupStep = () => {
@@ -51,10 +50,12 @@ const SignupStep = () => {
         }
 
         try {
-            // here we expect 404 or 400 so dont use the fetchWithSentry helper
+            // public pre-auth availability check — includeAuth: false so it never
+            // waits on (or sends) a session token. 404/400 are expected statuses.
             // capacitorHttp doesn't support HEAD — use GET in native
-            const res = await fetchWithSentry(`${PEANUT_API_URL}/users/username/${username}`, {
+            const res = await apiFetch(`/users/username/${username}`, {
                 method: isCapacitor() ? 'GET' : 'HEAD',
+                includeAuth: false,
             })
             switch (res.status) {
                 case 200:
@@ -119,8 +120,8 @@ const SignupStep = () => {
 
     return (
         <>
-            <div className="flex h-full flex-col justify-between gap-11 md:pt-5">
-                <div className="mb-auto w-full space-y-2.5">
+            <div className="flex h-full flex-col justify-between gap-10 md:pt-6">
+                <div className="space-y-1 mb-auto w-full">
                     <div className="flex items-center gap-2">
                         <ValidatedInput
                             placeholder={t('signupStep.usernamePlaceholder')}
@@ -131,11 +132,7 @@ const SignupStep = () => {
                             onUpdate={handleInputUpdate}
                             isSetupFlow
                             isInputChanging={isChanging}
-                            className={twMerge(
-                                !isValid && !isChanging && !!username && 'border-error dark:border-error',
-                                isValid && !isChanging && !!username && 'border-secondary-8 dark:border-secondary-8',
-                                'rounded-sm'
-                            )}
+                            className="rounded-sm"
                         />
                         <Button
                             className="h-12 w-4/12"
@@ -147,14 +144,13 @@ const SignupStep = () => {
                             {t('next')}
                         </Button>
                     </div>
-                    {error && (
-                        <div className="pb-1">
-                            <ErrorAlert description={error} className="gap-2 text-xs" iconSize={14} />
-                        </div>
-                    )}
+                    {/* slot space is always reserved so the error mounting doesn't
+                        re-center the vertically-centered step block (F-5). min-h-8
+                        = two 16px body-xs lines, enough for the longest message */}
+                    <div className="min-h-8">{error && <FieldError>{error}</FieldError>}</div>
                 </div>
                 <div>
-                    <p className="border-t border-grey-1 pt-2 text-center text-xs text-grey-1">
+                    <p className="border-t border-border-subtle pt-2 text-center text-body-xs text-foreground-secondary">
                         {t.rich('signupStep.termsAgreement', {
                             terms: (chunks) => (
                                 <DocsLink href="/terms" className="underline underline-offset-2">

@@ -139,7 +139,8 @@ pnpm native:release        # derive version → native-build → cap sync → bu
   (route handler / `force-dynamic`) isn't in `ITEMS_TO_DISABLE`. Fix = add it there
   (web-only) or give the page `generateStaticParams`.
 - **Versioning** (`android/app/build.gradle`, zero manual edits):
-  - `versionName` ← `ANDROID_VERSION_NAME` env, else `package.json` `version`.
+  - `versionName` ← `ANDROID_VERSION_NAME` env, else `package.json` `version` (a
+    local-build fallback only — CI resolves it, see "Version scheme" below).
   - `versionCode` ← `ANDROID_VERSION_CODE` env, else git commit count; floored at 2
     (rejected first upload was code 1). CI passes `10000 + github.run_number`.
   - **CI is the only authoritative versionCode source.** Local builds derive the code
@@ -150,6 +151,53 @@ pnpm native:release        # derive version → native-build → cap sync → bu
 - **Headers note:** `vercel.json` headers (CSP, HSTS, …) apply to the Vercel web
   deployment only — the native static export is served from the app bundle and ships
   no HTTP headers, so nothing there affects (or protects) the WebView.
+
+### Version scheme
+
+Every shipped version is `<major>.<build>.<ota>`:
+
+| component | means | moves when |
+|-----------|-------|------------|
+| `major` | app generation | a deliberate major upgrade — edit `package.json` `version`, the only place it is read from |
+| `build` | native build counter | every store build; resets `ota` to 0 |
+| `ota` | OTA counter within that build | every OTA on top of that binary; `.0` is the JS baked into the binary itself |
+
+So `1.7.0` is the seventh store build and `1.7.3` is its third OTA. Two properties fall
+out of the shape that used to be maintained by hand: an OTA always sorts strictly above
+the binary it targets (Capgo drops anything below it — TASK-21793), and the version alone
+says which binary a bundle belongs to.
+
+**Nobody types a number.** `scripts/release-version.mjs` resolves them from git tags
+(`v<major>.<build>.0`) plus the Capgo channel. That registry is deliberately not a file
+in the repo: `dev` and `main` both carry a `pull_request` ruleset with no bypass actors,
+so CI cannot push a version-bump commit and `package.json` cannot be the auto-bumped
+source of truth. Its `version` is now only the major anchor and the local-build fallback,
+and it is fine for it to lag behind what ships.
+
+### Cutting a release
+
+Two `workflow_dispatch` buttons, both run from `dev` (they refuse any other ref — `main`
+runs well behind, and a release off the wrong ref would look correctly numbered while
+shipping stale code):
+
+| | button | what it does |
+|-|--------|--------------|
+| native | **Release Native** | resolves `<major>.<build+1>.0` → builds iOS + Android from that one number → TestFlight + Play `internal` → tags `v<version>` |
+| OTA | **Release OTA** | resolves `<major>.<build>.<ota+1>` off the production channel → uploads the bundle → tags `ota-<version>` |
+
+Neither is automatic: no push, merge or commit reaches them. They are the same deliberate
+act as the `git tag … && git push` they replace, minus the hand-picked number.
+
+The tag is written **after** the build, as the record of what shipped — a failed run
+leaves no tag, so a re-run resolves the same number instead of burning one. CI tags with
+`GITHUB_TOKEN` on purpose: GitHub does not start workflows from a push made with it, so
+the tag records the release without re-triggering the build. **A PAT there would
+double-build.**
+
+Both build workflows still accept a `v*` tag push as break-glass, and validate the
+version against the scheme before starting. That check is what a glob cannot do: `v*`
+cannot reject `v2026.02.26` (a real tag on `main`) because it is `X.Y.Z` shaped — only
+the major comparison catches it.
 
 ---
 
@@ -189,11 +237,14 @@ a leak is bounded by Play review + account 2FA. Still treat it as a secret.
 Removes the "release only builds on one laptop" gap — keystore lives as CI secrets,
 the build is reproducible, the AAB lands on a Play track.
 
-- **Trigger:** push tag `vX.Y.Z`, or manual dispatch (pick a track).
+- **Trigger:** called by `release-native.yml` (§6, "Version scheme"). A `vX.Y.0` tag push and a
+  manual dispatch stay as break-glass paths.
 - **Flow:** checkout (submodules) → JDK 17 + Node 22 → install → decode keystore +
   write `keystore.properties` → write prod `NEXT_PUBLIC_*` → `pnpm native:release`
   (`versionCode = github.run_number`) → upload AAB to Play (`internal` by default).
-- **Gate** with a `production` GitHub Environment + required reviewers.
+- **Gate** with a `production` GitHub Environment + required reviewers — not configured
+  yet: the environment has no protection rules today, so runs ship without a second
+  approval (see §9, "No second approver yet").
 - **Track promotion:** internal → closed/beta → production with **staged rollout**
   (`status: inProgress` + `userFraction: 0.1`, promote after metrics look clean).
 
@@ -223,36 +274,52 @@ the build is reproducible, the AAB lands on a Play track.
 `capgo-deploy.yml` builds the static export and uploads it. Production is **opt-in per
 release**, never a side effect of pushing code:
 
-| trigger                                    | channel      | bundle version    |
-| ------------------------------------------ | ------------ | ----------------- |
-| push tag `ota-1.0.48`                       | `production` | `1.0.48`          |
-| push tag `ota-1.0.48-hotfix1`               | `production` | `1.0.48-hotfix1`  |
-| push to `dev`                               | `staging`    | `<pkg>-<sha>`     |
-| manual dispatch                             | your choice  | as above          |
+| trigger                              | channel      | bundle version                    |
+| ------------------------------------ | ------------ | --------------------------------- |
+| **Release OTA** workflow (§6)        | `production` | `<major>.<build>.<ota+1>`         |
+| merge to `dev`                       | `staging`    | `<major>.<build>.<commit count>`  |
+| push tag `ota-1.1.4` (break-glass)   | `production` | `1.1.4`                           |
+| manual dispatch                      | `staging` / `development` only | `<major>.<build>.<commit count>` |
 
-Shipping an OTA to everyone is therefore two steps — land the code, then tag it:
+Shipping an OTA to everyone is therefore two steps — land the code, then run **Release
+OTA** (§6). Merging only reaches `staging`, which no production device sees. A bare manual
+dispatch to `production` is refused: it would upload a staging-shaped version and drag
+the production OTA counter into the commit-count band, where the next resolved version
+collides with a bundle that already exists.
 
-```bash
-git push origin mobile-release          # lands code, ships nothing
-git tag ota-1.0.48 && git push origin ota-1.0.48   # ships to all users
-```
-
-The tag is the approval, and a permanent record of which commit went out. Use a suffixed
-tag (`ota-1.0.48-hotfix1`) to ship JS again on the same native build — bundle versions
-must be unique, and re-tagging is cheaper than a package.json bump.
+Staging keeps the commit count as its OTA component on purpose. Both lanes share one
+bundle namespace, production counts OTAs in single digits, and a version collision
+no-ops under `--version-exists-ok` — uploaded, listed, shipped to nobody.
 
 Not `v*`: that prefix belongs to `ios-release.yml` / `android-release.yml` for native
 store builds, and the two must not trigger each other.
 
+One deliberate exception to "opt-in per release": a **native release auto-publishes a
+matching production bundle** when its versionName is ahead of the newest production
+bundle. Capgo refuses on-device any bundle sorting below the installed native version
+(`disable_auto_update_under_native`), so a binary that outruns the bundles strands its
+whole fleet with green CI — that was TASK-21793 (102 devices refused OTA for a month
+because internal builds shipped 1.0.53 while the newest bundle was 1.0.51). The release
+workflows check the floor before building (`scripts/semver-newer.mjs` against
+`channel currentBundle production`) and, after the store upload, publish the release's
+own `out/` under the binary's versionName, then assert the channel serves it.
+
 - **The `production` channel** must exist in the Capgo dashboard and be bound to the prod
   app. It does — bundle 1.0.48 shipped to it on 2026-08-06.
 - **No second approver yet.** The job declares the `Production` environment, but that
-  environment has no protection rules, so the tag push ships immediately. Adding required
+  environment has no protection rules, so the run ships immediately. Adding required
   reviewers under Settings → Environments → Production makes it queue for approval with no
   workflow change (needs repo admin).
-- **Native-version gating:** `--auto-min-update-version` (already set) keeps a JS bundle
-  built against new plugins off older native shells. **Bump the native version whenever
-  you change plugins/native code**, then ship that via Play — OTA can't.
+- **Native-version gating:** every upload passes an explicit `--min-update-version`, so a
+  JS bundle built against new plugins stays off older native shells. The release lanes pin
+  it to the binary they ship; `capgo-deploy.yml` resolves it from the newest `v<major>.<build>.0`
+  tag (`scripts/release-version.mjs native-floor`) and fails if none is visible. It replaced
+  `--auto-min-update-version`, which only copies the previous bundle's floor forward — with no
+  native version stamped on the `dev` checkout (package.json says 1.0.53) the floor never
+  rose past the first upload, and the CLI refuses the two flags together. Capgo only enforces
+  the floor when the channel's "disable auto update" strategy is set to *version number*.
+  **Bump the native version whenever you change plugins/native code**, then ship that via
+  Play — OTA can't.
 - **Staged rollout:** roll production OTA to ~10% → watch Sentry/crash + error rates →
   100%. Don't 100% every merge.
 - **Rollback** is configured in `capacitor.config.ts` (`appReadyTimeout: 15000` +
@@ -260,6 +327,50 @@ store builds, and the two must not trigger each other.
   `notifyAppReady()` auto-reverts. **Verify once** with a deliberately-broken bundle.
 - **Boundary:** OTA ships web assets only. New plugins, Gradle, permissions, versionCode
   → Play release.
+
+### Internal testing (the `staging` channel on a real device)
+
+Every merge to `dev` already publishes to `staging`; the missing half was a way for a
+tester's device to read it. Five taps on the version line in **Profile → About** reveal a
+Beta-updates switch that calls `setChannel('staging')` — no dashboard work per tester, and
+the row also prints the device ID for the times someone has to be forced onto a channel
+from the dashboard instead.
+
+Three prerequisites, all one-time:
+
+- The account must be in the **`beta-ota-channel`** PostHog cohort, which is what keeps
+  the switch off customer devices. Read what it is, though: a client-side flag that
+  decides whether a React component renders. `setChannel` talks to Capgo directly with
+  the app key shipped in every binary, and non-prod builds skip the flag entirely, so
+  anyone running a modified client can self-assign regardless. It stops people who did
+  not mean to be on beta, not people who do. Move the join behind the backend (verify
+  the account server-side, assign the device through Capgo's API) if that ever needs to
+  be a real boundary.
+- `staging` must have **"Allow devices to self dissociate/associate"** enabled, or
+  `setChannel()` is refused and the app says so. Changing it needs a Super Admin — and
+  it is the decision that actually opens the channel: from that point any install that
+  can call the plugin can join, whatever the cohort says.
+- The tester's binary must not outrank the bundle: `disable_auto_update_under_native`
+  makes a device on versionName 1.1.x refuse anything sorting below it. Staging's
+  commit-count band sits far above production's, so this only bites right after a native
+  release.
+
+Leaving the channel unsets it **and** calls `reset()` back to the store bundle: staging
+versions outrank every production one, so no production OTA could ever replace a beta
+bundle on its own.
+
+One asymmetry to know before forcing anyone from the dashboard: `unsetChannel()` is
+local-only in the plugin (it drops a stored preference and returns ok), so a **dashboard
+device override survives it** and Capgo keeps serving beta. The switch detects that —
+it re-reads the effective channel and says an admin has to remove the override rather
+than resetting into an exit that undoes itself on the next launch — but the removal is
+dashboard-side. Self-assignment is the cleaner enrolment path for that reason. When Capgo
+cannot be reached to answer that question, the switch refuses to reset at all and asks the
+tester to retry online: only a confirmed answer licenses the reset. That attempt is recorded
+in local storage **before** the channel is cleared, and the switch keeps reading as "on beta"
+until the store bundle is actually the one running — otherwise a device whose channel was
+cleared but whose bundle was not looks settled while running beta code that no production OTA
+can replace, and the card that offers the retry would disappear for anyone outside the cohort.
 
 ---
 

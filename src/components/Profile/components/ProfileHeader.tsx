@@ -4,12 +4,13 @@ import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts
 import { shareableUrl } from '@/utils/url.utils'
 import posthog from 'posthog-js'
 import React, { useEffect, useRef } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import AvatarWithBadge from '../AvatarWithBadge'
+import { UserAvatar } from '@/components/Avatar/UserAvatar'
+import { useTranslations } from 'next-intl'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
-import CopyToClipboard from '@/components/Global/CopyToClipboard'
 
 const REFERRAL_PILL_PROPS = { source: REFERRAL_SOURCES.PROFILE_HEADER, link_type: 'profile' } as const
 
@@ -20,6 +21,8 @@ interface ProfileHeaderProps {
     className?: string
     showShareButton?: boolean
     haveSentMoneyToUser?: boolean
+    /** Self profile only: makes the avatar a button that opens the picker (TASK-22142). */
+    onChangeAvatar?: () => void
 }
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({
@@ -29,8 +32,10 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     className,
     showShareButton = true,
     haveSentMoneyToUser = false,
+    onChangeAvatar,
 }) => {
     const { user: authenticatedUser } = useAuth()
+    const tAvatar = useTranslations('avatar')
     // The self-profile verified badge means "this person's ID was confirmed" —
     // NOT "this person has an enabled payment rail." It reads identityVerification
     // (Sumsub-cleared), matching the counterparty badge logic (`isVerified` on
@@ -38,6 +43,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     const { isVerified: selfIsIdentityVerified } = useIdentityVerification()
     const isAuthenticatedUserVerified = selfIsIdentityVerified && authenticatedUser?.user.username === username
     const isSelfProfile = authenticatedUser?.user.username?.toLowerCase() === username.toLowerCase()
+    const ownAvatar = <UserAvatar name={username} avatarKey={authenticatedUser?.user.avatarKey} size="large" />
 
     // `shareableUrl` reads the live origin, so preview and staging share
     // themselves — the old BASE_URL import is non-null-asserted with no fallback.
@@ -61,23 +67,46 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
     return (
         <>
-            <div className={twMerge('flex flex-col items-center space-y-2', className)}>
-                {/* Avatar with initials */}
-                <AvatarWithBadge name={name || username} />
+            <div className={twMerge('space-y-2 flex flex-col items-center', className)}>
+                {/* Own profile shows the first letter of the username; someone
+                    else's public profile keeps initials (letters identify others).
+                    The generated face (497ab2a5e) is parked until avatar v2. */}
+                {isSelfProfile ? (
+                    onChangeAvatar ? (
+                        <button
+                            type="button"
+                            onClick={onChangeAvatar}
+                            aria-label={tAvatar('change')}
+                            className="rounded-full focus-visible:outline-[3px] focus-visible:outline-action-focus"
+                        >
+                            {ownAvatar}
+                        </button>
+                    ) : (
+                        ownAvatar
+                    )
+                ) : (
+                    <AvatarWithBadge name={name || username} />
+                )}
 
-                {/* Name */}
-                <div className="flex items-center gap-1.5">
-                    <VerifiedUserLabel
-                        name={name}
-                        username={username}
-                        isVerified={isVerified}
-                        className="text-2xl font-bold"
-                        iconSize={20}
-                        haveSentMoneyToUser={haveSentMoneyToUser}
-                        isAuthenticatedUserVerified={isAuthenticatedUserVerified && isSelfProfile} // can be true only for self profile
-                    />
-                    <CopyToClipboard textToCopy={username} fill="black" iconSize="5" />
-                </div>
+                {/* Name — dropped entirely when the caller has no name to show.
+                    On the self profile that is the no-full-name case, where the
+                    row used to fall back to the username and just repeat the
+                    handle the share pill already spells out. Callers without a
+                    pill (public profile, profile edit) always pass a name, so
+                    they keep the row. */}
+                {!!name && (
+                    <div className="flex items-center gap-1">
+                        <VerifiedUserLabel
+                            name={name}
+                            username={username}
+                            isVerified={isVerified}
+                            className="text-heading-s text-foreground-primary"
+                            iconSize={20}
+                            haveSentMoneyToUser={haveSentMoneyToUser}
+                            isAuthenticatedUserVerified={isAuthenticatedUserVerified && isSelfProfile} // can be true only for self profile
+                        />
+                    </div>
+                )}
                 {/* `isSelfProfile` guards wrong attribution: `showShareButton`
                     defaults to true, so a caller on someone else's profile would
                     share that other handle. */}
@@ -88,9 +117,9 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                         variant="primary-soft"
                         showIcon={false}
                         onSuccess={() => posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, REFERRAL_PILL_PROPS)}
-                        className="h-10 w-fit rounded-full py-3 pl-6 pr-4"
+                        className="h-10 w-fit rounded-full py-3 pr-4 pl-6"
                     >
-                        <div className="text-sm font-semibold">{profileUrl.replace('https://', '')}</div>
+                        <div className="text-label-l">{profileUrl.replace('https://', '')}</div>
                         <div className="-ml-2">
                             <Icon name="share" size={16} fill="black" />
                         </div>

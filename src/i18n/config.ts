@@ -12,7 +12,6 @@ export const ROUTE_SLUGS = [
     'content',
     'receive-money-from',
     'pay-with',
-    'team',
     'press',
     'help',
     'use-cases',
@@ -27,6 +26,7 @@ export const ROUTE_SLUGS = [
     'card-privacy',
     'card-prohibited-activities',
     'card-esign',
+    'status',
 ] as const
 
 export type RouteSlug = (typeof ROUTE_SLUGS)[number]
@@ -117,18 +117,6 @@ export function getLandingAlternates(): Record<string, string> {
         alternates[HREFLANG_MAP[locale]] = `${BASE_URL}/${locale}`
     }
     return alternates
-}
-
-/**
- * Re-point an internal content href at `locale`. Content authors write hrefs
- * both with and without a locale prefix (`/en/help/x` and `/help/x`), so strip
- * any leading locale before prefixing. External links and anchors pass through.
- */
-export function localizeContentHref(href: string, locale: Locale): string {
-    if (!href.startsWith('/')) return href
-    const segments = href.split('/').filter(Boolean)
-    if (segments.length > 0 && isValidLocale(segments[0])) segments.shift()
-    return segments.length > 0 ? `/${locale}/${segments.join('/')}` : `/${locale}`
 }
 
 export function isValidLocale(locale: string): locale is Locale {

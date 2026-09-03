@@ -1,5 +1,7 @@
 import { useTranslations } from 'next-intl'
-import ActionModal from '@/components/Global/ActionModal'
+import { Button } from '@/components/0_Bruddle/Button'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 
 interface KycProcessingModalProps {
     visible: boolean
@@ -12,20 +14,24 @@ export const KycProcessingModal = ({ visible, onClose }: KycProcessingModalProps
     const tCommon = useTranslations('common')
 
     return (
-        <ActionModal
-            visible={visible}
-            onClose={onClose}
-            icon="clock"
-            iconContainerClassName="bg-yellow-1"
-            title={t('processingTitle')}
-            description={t('processingDescription')}
-            ctas={[
-                {
-                    text: tCommon('gotIt'),
-                    onClick: onClose,
-                    shadowSize: '4',
-                },
-            ]}
-        />
+        <Drawer
+            open={visible}
+            onOpenChange={(isOpen) => {
+                if (!isOpen) onClose()
+            }}
+        >
+            <DrawerContent>
+                <div className="flex flex-col items-center gap-4 px-4 pt-1 pb-6 text-center">
+                    <IconBubble icon="clock" color="yellow" />
+                    <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
+                        <DrawerTitle>{t('processingTitle')}</DrawerTitle>
+                        <DrawerDescription>{t('processingDescription')}</DrawerDescription>
+                    </DrawerHeader>
+                    <Button shadowSize="4" className="w-full justify-center" onClick={onClose}>
+                        {tCommon('gotIt')}
+                    </Button>
+                </div>
+            </DrawerContent>
+        </Drawer>
     )
 }

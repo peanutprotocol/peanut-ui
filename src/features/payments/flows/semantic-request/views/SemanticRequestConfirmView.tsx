@@ -14,10 +14,10 @@
  */
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
-import ErrorAlert from '@/components/Global/ErrorAlert'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import DisplayIcon from '@/components/Global/DisplayIcon'
 import { useSemanticRequestFlow } from '../useSemanticRequestFlow'
@@ -121,7 +121,7 @@ export function SemanticRequestConfirmView() {
             <>
                 <span className="line-through">$ {calculatedGasCost.toFixed(2)}</span>
                 {' - '}
-                <span className="font-medium text-gray-500">{tCommon('sponsoredByPeanut')}</span>
+                <span className="font-medium text-foreground-secondary">{tCommon('sponsoredByPeanut')}</span>
             </>
         )
     }, [calculatedGasCost, isFeeEstimationError, tCommon])
@@ -176,17 +176,17 @@ export function SemanticRequestConfirmView() {
     // show loading if we don't have charge details yet or fetching
     if (!charge || isFetchingCharge) {
         return (
-            <div className="flex min-h-[inherit] flex-col items-center justify-center">
-                <PeanutLoading />
+            <div className="flex min-h-inherit flex-col items-center justify-center">
+                <Loading variant="mascot" />
             </div>
         )
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+        <div className="flex min-h-inherit flex-col justify-between gap-8">
             <NavHeader onPrev={handleBack} title={t('headers.confirmPayment')} />
 
-            <div className="my-auto flex h-full flex-col justify-center space-y-4 pb-5">
+            <div className="my-auto space-y-4 flex h-full flex-col justify-center pb-4">
                 {recipient && recipient.recipientType && (
                     <PeanutActionDetailsCard
                         avatarSize="small"
@@ -287,7 +287,7 @@ export function SemanticRequestConfirmView() {
                     )}
                     {errorMessage && (
                         <div className="space-y-2">
-                            <ErrorAlert description={errorMessage} />
+                            <Notification priority="error">{errorMessage}</Notification>
                         </div>
                     )}
                 </div>
@@ -331,13 +331,13 @@ function TokenChainInfoDisplay({
                         />
                     )}
                     {chainIconUrl && (
-                        <div className="absolute -bottom-1 -right-1">
+                        <div className="absolute -right-1 -bottom-1">
                             <DisplayIcon
                                 iconUrl={chainIconUrl}
                                 altText={`${chainName} chain`}
                                 fallbackName={chainName.charAt(0) || 'C'}
                                 sizeClass="h-3.5 w-3.5"
-                                className="rounded-full border-2 border-white dark:border-grey-4"
+                                className="rounded-full border-2 border-white dark:border-gray-100"
                             />
                         </div>
                     )}

@@ -1,6 +1,7 @@
 'use client'
 
 import { useToast } from '@/components/0_Bruddle/Toast'
+import { isAlreadyReported } from '@/utils/webauthn.utils'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useLogin } from '@/hooks/useLogin'
 import * as Sentry from '@sentry/nextjs'
@@ -45,8 +46,10 @@ const LandingStep = () => {
     const handleError = (error: unknown) => {
         const errorCode = error instanceof Error && 'code' in error ? String(error.code) : undefined
         toast.error((error instanceof Error && error.message) || t('loginFailed'))
-        Sentry.captureException(error, { extra: { errorCode } })
-        posthog.capture(ANALYTICS_EVENTS.SIGNUP_LOGIN_ERROR, { error_code: errorCode })
+        if (!isAlreadyReported(error)) {
+            Sentry.captureException(error, { extra: { errorCode } })
+        }
+        posthog.capture(ANALYTICS_EVENTS.SIGNUP_LOGIN_ERROR, { error_code: errorCode, native: isCapacitor() })
     }
 
     const onLoginClick = async () => {
@@ -65,7 +68,9 @@ const LandingStep = () => {
                         {/* heading only above the desktop QR — a lone store button
                             explains itself */}
                         {deviceType === DeviceType.WEB && (
-                            <p className="text-center text-sm font-semibold text-n-1">{tMigration('banner.title')}</p>
+                            <p className="text-center text-label-l text-foreground-primary">
+                                {tMigration('banner.title')}
+                            </p>
                         )}
                         <StoreButtons surface={MIGRATION_SURFACES.SETUP} />
                     </div>
@@ -73,6 +78,11 @@ const LandingStep = () => {
                     <Button
                         shadowSize="4"
                         className="h-11"
+                        // native only: mid-ceremony Sign Up taps flashed the waitlist
+                        // step (TASK-21782). On web an abandoned hybrid/QR ceremony can
+                        // pend minutes — Sign Up must stay an escape hatch there, and a
+                        // mid-ceremony register fails cleanly as CeremonyConflictError.
+                        disabled={isLoggingIn && isCapacitor()}
                         onClick={() => {
                             posthog.capture(ANALYTICS_EVENTS.SIGNUP_CLICKED)
                             handleNext()
@@ -94,7 +104,7 @@ const LandingStep = () => {
                 <div className="pt-2 text-center">
                     <DocsLink
                         href="/en/help/account-recovery"
-                        className="text-xs text-grey-1 underline underline-offset-2"
+                        className="text-body-xs text-foreground-secondary underline underline-offset-2"
                     >
                         {t('landing.recoverWallet')}
                     </DocsLink>

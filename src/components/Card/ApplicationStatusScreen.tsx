@@ -1,5 +1,6 @@
 'use client'
 import type { FC } from 'react'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { PeanutCrying } from '@/assets/mascot'
@@ -7,6 +8,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import Loading from '@/components/Global/Loading'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 
 type Variant = 'pending' | 'manual-review' | 'requires-info' | 'requires-support' | 'rejected' | 'geo-blocked'
 
@@ -25,6 +27,10 @@ interface Props {
      *  the Sumsub upload flow — rendered as the primary CTA so users fix it
      *  themselves instead of messaging support. */
     onUploadProofOfAddress?: () => void
+    /** When the rail carries a `rain-hosted` action (identity document rejected),
+     *  this opens Rain's card-member portal to re-upload — the primary CTA so
+     *  users fix it themselves instead of hitting the contact-support dead end. */
+    onUploadIdentity?: () => void
     /** Inline failure from starting the upload (a silent primary CTA on a
      *  stuck-application screen reads as broken). */
     uploadError?: string
@@ -63,6 +69,7 @@ const ApplicationStatusScreen: FC<Props> = ({
     reasonCode,
     onContactSupport,
     onUploadProofOfAddress,
+    onUploadIdentity,
     uploadError,
     onPrev,
 }) => {
@@ -73,7 +80,7 @@ const ApplicationStatusScreen: FC<Props> = ({
     const reasonKey = reasonCodeKey(reasonCode)
     const reasonText = reasonKey ? tIdentity(reasonKey) : reasonMessage
     return (
-        <div className="flex min-h-[inherit] flex-col gap-8">
+        <PageStack>
             <NavHeader title={t('navAddCard')} onPrev={onPrev} />
             <div className="my-auto flex flex-col items-center gap-6 text-center">
                 {variant === 'pending' && <Loading />}
@@ -89,35 +96,36 @@ const ApplicationStatusScreen: FC<Props> = ({
                     />
                 )}
                 <div className="flex flex-col gap-3">
-                    <h1 className="text-2xl font-extrabold text-n-1">{t(copyKeys.title)}</h1>
-                    {reasonText && <p className="text-grey-1">{reasonText}</p>}
-                    <p className="text-grey-1">{t(copyKeys.body)}</p>
+                    <h1 className="text-heading-s text-foreground-primary">{t(copyKeys.title)}</h1>
+                    {reasonText && <p className="text-foreground-secondary">{reasonText}</p>}
+                    <p className="text-foreground-secondary">{t(copyKeys.body)}</p>
                 </div>
                 {variant === 'geo-blocked' && (
-                    <a
-                        href={PROHIBITED_ACTIVITIES_POLICY_URL}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-black underline"
-                    >
+                    <LinkButton href={PROHIBITED_ACTIVITIES_POLICY_URL} external>
                         {t('status.geoBlockedPolicyLink')}
-                    </a>
+                    </LinkButton>
                 )}
                 {SUPPORT_VARIANTS.has(variant) && onUploadProofOfAddress && (
                     <div className="flex w-full flex-col gap-2">
                         <Button variant="purple" shadowSize="4" className="w-full" onClick={onUploadProofOfAddress}>
                             {t('uploadProofOfAddress')}
                         </Button>
-                        {uploadError && <p className="text-sm text-error">{uploadError}</p>}
+                        {uploadError && <p className="text-body-s text-foreground-error">{uploadError}</p>}
+                    </div>
+                )}
+                {SUPPORT_VARIANTS.has(variant) && onUploadIdentity && (
+                    <div className="flex w-full flex-col gap-2">
+                        <Button variant="purple" shadowSize="4" className="w-full" onClick={onUploadIdentity}>
+                            {t('uploadIdentityDocuments')}
+                        </Button>
+                        {uploadError && <p className="text-body-s text-foreground-error">{uploadError}</p>}
                     </div>
                 )}
                 {SUPPORT_VARIANTS.has(variant) && onContactSupport && (
-                    <button type="button" onClick={onContactSupport} className="text-black underline">
-                        {tCommon('contactSupport')}
-                    </button>
+                    <LinkButton onClick={onContactSupport}>{tCommon('contactSupport')}</LinkButton>
                 )}
             </div>
-        </div>
+        </PageStack>
     )
 }
 

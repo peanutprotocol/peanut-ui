@@ -6,24 +6,20 @@
  * blocking tasks and advisory orphans (future-dated tasks on fully-enabled
  * users, which no rail references). accept-tos routes into the existing
  * BridgeTosStep (its compliance.bridge.xyz link frames fine); bridge-hosted
- * exchanges the key for a Persona URL and opens it in an EXTERNAL browser —
- * bridge.withpersona.com sends X-Frame-Options: SAMEORIGIN and cannot be
- * embedded. The ToS modal is snapshotted at tap time so it survives the task
- * list flapping under the ~4s user auto-refresh.
+ * routes to the additional-verification screen, which owns the prep copy and
+ * the handoff to Persona (see AdditionalVerificationView). The ToS modal is
+ * snapshotted at tap time so it survives the task list flapping under the ~4s
+ * user auto-refresh.
  */
 import React from 'react'
-import { screen, fireEvent, waitFor } from '@testing-library/react'
+import { screen, fireEvent } from '@testing-library/react'
 import { renderWithIntl as render } from '@/test-utils/intl'
 import type { NextAction } from '@/types/capabilities'
 import PendingVerificationTasks from '../PendingVerificationTasks'
 
 let mockNextActions: NextAction[] = []
 const mockFetchUser = jest.fn(() => Promise.resolve(null))
-const mockStartHosted = jest.fn<Promise<{ url?: string; error?: string }>, []>()
 let mockStoredDismissal: string[] | undefined
-let mockReservedTab: { location: { href: string }; close: jest.Mock; closed: boolean; opener: unknown }
-const mockAssignHref = jest.fn()
-let mockWindowOpen: jest.SpyInstance
 const mockUpdatePreferences = jest.fn()
 
 jest.mock('@/hooks/useCapabilities', () => ({
@@ -37,33 +33,20 @@ jest.mock('@/utils/general.utils', () => ({
     getUserPreferences: () => ({ pendingVerificationTasksDismissed: mockStoredDismissal }),
     updateUserPreferences: (userId: string, prefs: Record<string, unknown>) => mockUpdatePreferences(userId, prefs),
 }))
-jest.mock('@/app/actions/sumsub', () => ({
-    startBridgeHostedVerification: () => mockStartHosted(),
-}))
 jest.mock('@/components/Kyc/BridgeTosStep', () => ({
     BridgeTosStep: (props: { visible: boolean; reasonCode?: string }) =>
         props.visible ? <div data-testid="tos-step">{props.reasonCode}</div> : null,
 }))
-const mockOpenExternalUrl = jest.fn<Promise<void>, [string]>()
-let mockIsCapacitor = false
 jest.mock('@/utils/capacitor', () => ({
-    isNativeBridge: () => mockIsCapacitor,
+    isNativeBridge: () => false,
     // mobile-release's mascot picker + useAppHaptic call these
     isAndroidNative: () => false,
     isCapacitor: () => false,
-    openExternalUrl: (url: string) => mockOpenExternalUrl(url),
 }))
-const mockBrowserListener = { remove: jest.fn() }
-const mockBrowserAddListener = jest.fn<Promise<{ remove: jest.Mock }>, [string, () => void]>(() =>
-    Promise.resolve(mockBrowserListener)
-)
-jest.mock(
-    '@capacitor/browser',
-    () => ({
-        Browser: { addListener: (event: string, cb: () => void) => mockBrowserAddListener(event, cb) },
-    }),
-    { virtual: true }
-)
+const mockRouterPush = jest.fn()
+jest.mock('next/navigation', () => ({
+    useRouter: () => ({ push: mockRouterPush }),
+}))
 
 const tosAction: NextAction = { key: 'accept-tos', kind: 'accept-tos', purpose: 'accept-bridge-tos' }
 const sepaTosAction: NextAction = {
@@ -83,29 +66,7 @@ describe('PendingVerificationTasks', () => {
         mockNextActions = []
         mockFetchUser.mockReset()
         mockFetchUser.mockResolvedValue(null)
-        mockStartHosted.mockReset()
-        mockOpenExternalUrl.mockReset()
-        mockOpenExternalUrl.mockResolvedValue(undefined)
-        mockIsCapacitor = false
-        mockAssignHref.mockReset()
-        // jsdom refuses real navigation; capture the same-tab fallback instead.
-        Object.defineProperty(window, 'location', {
-            configurable: true,
-            value: {
-                get href() {
-                    return 'http://localhost/home'
-                },
-                set href(value: string) {
-                    mockAssignHref(value)
-                },
-            },
-        })
-        mockBrowserAddListener.mockClear()
-        mockBrowserAddListener.mockReturnValue(Promise.resolve(mockBrowserListener))
-        mockBrowserListener.remove.mockClear()
-        mockReservedTab = { location: { href: '' }, close: jest.fn(), closed: false, opener: {} }
-        mockWindowOpen = jest.spyOn(window, 'open').mockReturnValue(mockReservedTab as unknown as Window)
-        mockWindowOpen.mockClear()
+        mockRouterPush.mockReset()
         mockStoredDismissal = undefined
         mockUpdatePreferences.mockReset()
         mockUserId = 'user-1'
@@ -138,171 +99,15 @@ describe('PendingVerificationTasks', () => {
         expect(screen.getByTestId('tos-step')).toHaveTextContent('bridge_tos_v2_required')
     })
 
-    it('bridge-hosted reserves a tab IN the click, then navigates it — never an iframe', async () => {
-        // bridge.withpersona.com sends X-Frame-Options: SAMEORIGIN — embedding
-        // it rendered "refused to connect" for every user in prod. And the tab
-        // must be reserved inside the user gesture: after the ~800ms
-        // start-action round-trip, window.open() is popup-blocked on Safari.
+    it('bridge-hosted routes to the prep screen rather than handing straight to the vendor', () => {
+        // Persona runs in a browser we don't control and saves nothing: a user
+        // who leaves mid-check to find a document restarts from step one. The
+        // screen that says so owns the handoff, so the card only navigates.
         mockNextActions = [hostedAction]
-        let resolveUrl: (v: { url: string }) => void = () => {}
-        mockStartHosted.mockReturnValue(new Promise((r) => (resolveUrl = r)))
         render(<PendingVerificationTasks />)
 
         fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
-        // Reserved synchronously, BEFORE the URL exists.
-        expect(mockWindowOpen).toHaveBeenCalledWith('', '_blank')
-        expect(mockReservedTab.location.href).toBe('')
-
-        resolveUrl({ url: 'https://bridge.withpersona.com/verify?x=1' })
-        await waitFor(() => expect(mockReservedTab.location.href).toBe('https://bridge.withpersona.com/verify?x=1'))
-        expect(document.querySelector('iframe')).toBeNull()
-        expect(mockReservedTab.close).not.toHaveBeenCalled()
-    })
-
-    it('no usable tab (pop-up blocked / standalone PWA) falls back to same-tab navigation', async () => {
-        // A post-await window.open would be blocked and its null return is
-        // unobservable; same-tab navigation is never gesture-gated.
-        mockWindowOpen.mockReturnValue(null)
-        mockNextActions = [hostedAction]
-        mockStartHosted.mockResolvedValue({ url: 'https://bridge.withpersona.com/verify?x=1' })
-        render(<PendingVerificationTasks />)
-
-        fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
-        await waitFor(() => expect(mockAssignHref).toHaveBeenCalledWith('https://bridge.withpersona.com/verify?x=1'))
-        expect(mockOpenExternalUrl).not.toHaveBeenCalled()
-    })
-
-    it('a REJECTED start-action closes the tab and unsticks the button (transport-layer failure)', async () => {
-        // The action body catches its own errors, but the server action itself
-        // can reject — dropped network, or a deploy invalidating the action id.
-        mockNextActions = [hostedAction]
-        mockStartHosted.mockRejectedValue(new Error('Failed to find Server Action'))
-        render(<PendingVerificationTasks />)
-
-        fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
-        expect(await screen.findByText(/couldn't start the verification/i)).toBeInTheDocument()
-        expect(mockReservedTab.close).toHaveBeenCalledTimes(1)
-        // Not stranded on "Loading..." — the button is tappable again.
-        expect(screen.getByRole('button', { name: /complete verification/i })).toBeEnabled()
-        expect(mockAssignHref).not.toHaveBeenCalled()
-    })
-
-    it('a tab closed mid-fetch falls back instead of silently navigating a dead window', async () => {
-        mockNextActions = [hostedAction]
-        mockStartHosted.mockResolvedValue({ url: 'https://bridge.withpersona.com/verify?x=1' })
-        mockReservedTab.closed = true
-        render(<PendingVerificationTasks />)
-
-        fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
-        await waitFor(() => expect(mockAssignHref).toHaveBeenCalledWith('https://bridge.withpersona.com/verify?x=1'))
-        expect(mockReservedTab.location.href).toBe('')
-        expect(mockReservedTab.close).toHaveBeenCalled()
-    })
-
-    it('severs window.opener on the reserved tab (reverse tabnabbing)', async () => {
-        mockNextActions = [hostedAction]
-        mockStartHosted.mockResolvedValue({ url: 'https://bridge.withpersona.com/verify?x=1' })
-        render(<PendingVerificationTasks />)
-
-        fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
-        expect(mockReservedTab.opener).toBeNull()
-    })
-
-    it('native waits on the in-app browser close event, not visibilitychange', async () => {
-        mockIsCapacitor = true
-        mockNextActions = [hostedAction]
-        mockStartHosted.mockResolvedValue({ url: 'https://bridge.withpersona.com/verify?x=1' })
-        render(<PendingVerificationTasks />)
-
-        fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
-        await waitFor(() =>
-            expect(mockBrowserAddListener).toHaveBeenCalledWith('browserFinished', expect.any(Function))
-        )
-
-        // Android WebViews may never fire visibilitychange on resume.
-        Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
-        document.dispatchEvent(new Event('visibilitychange'))
-        expect(mockFetchUser).not.toHaveBeenCalled()
-
-        const onFinished = mockBrowserAddListener.mock.calls[0][1]
-        onFinished()
-        await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
-    })
-
-    it('closes the reserved tab when the hosted URL never arrives', async () => {
-        mockNextActions = [hostedAction]
-        mockStartHosted.mockResolvedValue({ error: 'Action not allowed for this user' })
-        render(<PendingVerificationTasks />)
-
-        fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
-        expect(await screen.findByText(/couldn't start the verification/i)).toBeInTheDocument()
-        await waitFor(() => expect(mockReservedTab.close).toHaveBeenCalledTimes(1))
-    })
-
-    it('native (Capacitor) skips the tab reservation and uses the in-app browser', async () => {
-        mockIsCapacitor = true
-        mockNextActions = [hostedAction]
-        mockStartHosted.mockResolvedValue({ url: 'https://bridge.withpersona.com/verify?x=1' })
-        render(<PendingVerificationTasks />)
-
-        fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
-        await waitFor(() =>
-            expect(mockOpenExternalUrl).toHaveBeenCalledWith('https://bridge.withpersona.com/verify?x=1')
-        )
-        expect(mockWindowOpen).not.toHaveBeenCalled()
-    })
-
-    it('refetches the user when they come back to the app (nothing polls a requires-info rail)', async () => {
-        mockNextActions = [hostedAction]
-        mockStartHosted.mockResolvedValue({ url: 'https://bridge.withpersona.com/verify?x=1' })
-        render(<PendingVerificationTasks />)
-
-        fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
-        await waitFor(() => expect(mockReservedTab.location.href).toContain('withpersona'))
-        expect(mockFetchUser).not.toHaveBeenCalled()
-
-        // Leaving the app fires visibilitychange too — only the return refetches.
-        Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true })
-        document.dispatchEvent(new Event('visibilitychange'))
-        expect(mockFetchUser).not.toHaveBeenCalled()
-
-        Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
-        document.dispatchEvent(new Event('visibilitychange'))
-        await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
-
-        // NOT one-shot: an incidental switch-back must not burn the refetch,
-        // so a later real return refreshes again.
-        document.dispatchEvent(new Event('visibilitychange'))
-        await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(2))
-    })
-
-    it('start-action failure surfaces FRIENDLY copy (never the raw server error) and resyncs the user', async () => {
-        mockNextActions = [hostedAction]
-        mockStartHosted.mockResolvedValue({ error: 'Action not allowed for this user' })
-        render(<PendingVerificationTasks />)
-
-        fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
-        expect(await screen.findByText(/couldn't start the verification/i)).toBeInTheDocument()
-        expect(screen.queryByText('Action not allowed for this user')).not.toBeInTheDocument()
-        expect(mockOpenExternalUrl).not.toHaveBeenCalled()
-        expect(mockFetchUser).toHaveBeenCalledTimes(1)
-    })
-
-    it('a browserFinished listener resolving AFTER cleanup removes itself', async () => {
-        mockIsCapacitor = true
-        mockNextActions = [hostedAction]
-        mockStartHosted.mockResolvedValue({ url: 'https://bridge.withpersona.com/verify?x=1' })
-        // Registration still in flight when the component goes away.
-        let resolveListener: (v: { remove: jest.Mock }) => void = () => {}
-        mockBrowserAddListener.mockReturnValue(new Promise((r) => (resolveListener = r)))
-        const { unmount } = render(<PendingVerificationTasks />)
-
-        fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
-        await waitFor(() => expect(mockBrowserAddListener).toHaveBeenCalled())
-        unmount()
-
-        resolveListener(mockBrowserListener)
-        await waitFor(() => expect(mockBrowserListener.remove).toHaveBeenCalledTimes(1))
+        expect(mockRouterPush).toHaveBeenCalledWith('/profile/identity-verification/additional')
     })
 
     it('advisory task renders its deadline and keep-access copy; blocking renders enable copy', () => {

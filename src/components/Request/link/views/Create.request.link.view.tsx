@@ -21,6 +21,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { type IToken } from '@/interfaces/interfaces'
 import { type IAttachmentOptions } from '@/interfaces/attachment'
 import { requestsApi } from '@/services/requests'
+import { beginClipboardCopy } from '@/utils/clipboard.utils'
 import { fetchTokenSymbol, formatTokenAmount, getRequestLink, isNativeCurrency } from '@/utils/general.utils'
 import * as Sentry from '@sentry/nextjs'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
@@ -28,7 +29,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { Icon as IconComponent } from '@/components/Global/Icons/Icon'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { useSafeBack } from '@/hooks/useSafeBack'
 
 export const CreateRequestLinkView = () => {
@@ -193,7 +194,6 @@ export const CreateRequestLinkView = () => {
                 // Update the last saved state
                 lastSavedAttachmentRef.current = { ...attachmentOptions }
 
-                toast.success(t('linkCreatedToast'))
                 queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
                 return link
             } catch (error) {
@@ -344,13 +344,22 @@ export const CreateRequestLinkView = () => {
         if (generatedLink) return generatedLink
         if (isCreatingLink || isUpdatingRequest) return '' // Prevent duplicate operations
 
+        // reserved before the await: WebKit rejects a clipboard write once the
+        // click's user activation is spent, and creating the request spends it
+        const pendingCopy = beginClipboardCopy()
+
         // Create new request when share button is clicked
         const link = await createRequestLink(attachmentOptions)
-        if (link) {
-            setGeneratedLink(link)
+        if (!link) {
+            pendingCopy.cancel()
+            return ''
         }
-        return link || ''
-    }, [generatedLink, qrCodeLink, tokenValue, attachmentOptions, createRequestLink, isCreatingLink, isUpdatingRequest])
+
+        setGeneratedLink(link)
+        const copied = await pendingCopy.resolve(link)
+        toast.success(copied ? t('linkCreatedAndCopiedToast') : t('linkCreatedToast'))
+        return link
+    }, [generatedLink, attachmentOptions, createRequestLink, isCreatingLink, isUpdatingRequest, toast, t])
 
     // Set wallet defaults when connected
     useMemo(() => {
@@ -368,16 +377,11 @@ export const CreateRequestLinkView = () => {
     }, [merchantComment, tokenValue, generateLink, recipientAddress])
 
     return (
-        <div className="flex min-h-[inherit] w-full flex-col justify-start space-y-8">
+        <div className="flex min-h-inherit w-full flex-col justify-start gap-8">
             <NavHeader onPrev={onBack} title={tNav('request')} />
             <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
+                {/* board order (17831:78719): card, amount, helper note, qr, message, cta */}
                 <PeanutActionCard type="request" />
-
-                <QRCodeWrapper
-                    isBlurred={!requestId}
-                    url={qrCodeLink}
-                    isLoading={isCreatingLink || isUpdatingRequest}
-                />
 
                 <AmountInput
                     className="w-full"
@@ -386,12 +390,20 @@ export const CreateRequestLinkView = () => {
                     onSubmit={handleTokenAmountSubmit}
                     walletBalance={peanutWalletBalance}
                     disabled={!!requestId}
-                    infoContent={
-                        <div className="mx-auto flex w-fit items-center gap-2 rounded-full bg-grey-2 p-1.5">
-                            <IconComponent name="info" size={12} className="text-grey-1" />
-                            <p className="text-[10px] font-bold text-grey-1"> {t('leaveEmptyHint')}</p>
-                        </div>
-                    }
+                />
+
+                {/* only meaningful while the amount is empty (coderabbit #2780) */}
+                {(!tokenValue || Number(tokenValue) === 0) && (
+                    <Notification priority="helper">{t('leaveEmptyHint')}</Notification>
+                )}
+
+                {/* Before a request exists the QR already encodes the profile
+                    payment link for the entered amount, so it only stays
+                    blurred while there's neither a request nor an amount. */}
+                <QRCodeWrapper
+                    isBlurred={!requestId && !(parseFloat(tokenValue) > 0)}
+                    url={qrCodeLink}
+                    isLoading={isCreatingLink || isUpdatingRequest}
                 />
 
                 <FileUploadInput
@@ -412,15 +424,17 @@ export const CreateRequestLinkView = () => {
                     </Button>
                 )}
 
+                {/* the share button waits for the link itself, not just the request id:
+                    it shares what create produced, it never creates */}
                 {requestId &&
-                    (isCreatingLink || isUpdatingRequest ? (
+                    (isCreatingLink || isUpdatingRequest || !generatedLink ? (
                         <Button disabled={true} shadowSize="4">
                             <div className="flex w-full flex-row items-center justify-center gap-2">
                                 <Loading /> {tLoading('loading')}
                             </div>
                         </Button>
                     ) : (
-                        <ShareButton generateUrl={generateLink}>
+                        <ShareButton url={generatedLink}>
                             {!tokenValue || !parseFloat(tokenValue) || parseFloat(tokenValue) === 0
                                 ? t('shareOpenRequest')
                                 : t('shareAmountRequest', { amount: tokenValue })}
@@ -429,7 +443,9 @@ export const CreateRequestLinkView = () => {
 
                 {errorState.showError && (
                     <div className="text-start">
-                        <label className="text-h8 font-normal text-red">{errorState.errorMessage}</label>
+                        <label className="text-body-s font-normal text-foreground-error">
+                            {errorState.errorMessage}
+                        </label>
                     </div>
                 )}
             </div>

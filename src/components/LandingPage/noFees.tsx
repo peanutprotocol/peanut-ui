@@ -1,76 +1,61 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
-import borderCloud from '@/assets/illustrations/border-cloud.svg'
-import noHiddenFees from '@/assets/illustrations/no-hidden-fees.svg'
+import gotItHand from '@/assets/illustrations/got-it-hand.svg'
+import gotItHandFlipped from '@/assets/illustrations/got-it-hand-flipped.svg'
+import scribbleCircle from '@/assets/illustrations/scribble-circle.svg'
 import Star from '@/assets/illustrations/star.svg'
 import Image from 'next/image'
 import ExchangeRateWidget from '../Global/ExchangeRateWidget'
 import { useRouter } from 'next/navigation'
-import { printableUsdc } from '@/utils/balance.utils'
-import { getExchangeRateWidgetRedirectRoute } from '@/utils/exchangeRateWidget.utils'
-import { useWallet } from '@/hooks/wallet/useWallet'
-import { useAuth } from '@/context/authContext'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { ContextualLinks } from './ContextualLinks'
+import { AnimateOnView } from '@/components/Global/AnimateOnView'
+import { CloudsCss } from './CloudsCss'
 import type { LandingStrings } from './landingStrings'
-import type { Locale } from '@/i18n/types'
+import type { LandingContentHrefs } from './landingContentHrefs'
 
 export function NoFees({
     className,
-    locale,
     strings,
+    contentHrefs,
 }: {
     className?: string
-    locale: Locale
     strings: LandingStrings
+    contentHrefs: LandingContentHrefs
 }) {
-    const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200)
     const router = useRouter()
-    const { fetchBalance, balance } = useWallet()
-    const { user } = useAuth()
 
-    const handleCtaAction = (sourceCurrency: string, destinationCurrency: string) => {
-        if (!user) {
+    // One vw ramp can't serve every locale: "TRANSFER" only clips under ~340px,
+    // while "TRANSFERENCIA"/"TRANSFERÊNCIA" (both 491px at 60px) need ~545px.
+    // <html lang> is SSR'd as "en" and only corrected after hydration, so a
+    // :lang() ramp would first paint at the EN size and jump on the es/pt pages.
+    // At 320px the ramps carry a longest word of 337px / 540px at 60px, which
+    // is 8 / 14 characters — messages.test.ts holds the catalogs to that.
+    const headlineSize =
+        Math.max(...strings.zeroFees.split(' ').map((word) => word.length)) > 8
+            ? 'text-[min(10vw,3.75rem)]'
+            : 'text-[min(16vw,3.75rem)]'
+
+    // The scribble circles the closing word of the line, so each catalog picks
+    // what gets circled just by putting that word last.
+    const lastSpace = strings.reallyZero.lastIndexOf(' ')
+    const reallyZeroLead = lastSpace === -1 ? '' : strings.reallyZero.slice(0, lastSpace + 1)
+    const reallyZeroCircled = lastSpace === -1 ? strings.reallyZero : strings.reallyZero.slice(lastSpace + 1)
+
+    /*
+     * Session is read from the cookie rather than AuthProvider: that context is
+     * the only thing that kept react-query and the redux store mounted on the
+     * marketing site. Native keeps its token outside cookies, but the landing
+     * page there is a bootstrap shell that redirects away before this matters.
+     */
+    const handleCtaAction = async (sourceCurrency: string, destinationCurrency: string) => {
+        const signedIn = typeof document !== 'undefined' && /(^|;\s*)jwt-token=/.test(document.cookie)
+        if (!signedIn) {
             router.push('/setup')
             return
         }
-        const formattedBalance = parseFloat(printableUsdc(balance ?? 0n))
-
-        const redirectRoute = getExchangeRateWidgetRedirectRoute(sourceCurrency, destinationCurrency, formattedBalance)
-        router.push(redirectRoute)
-    }
-
-    useEffect(() => {
-        const handleResize = () => {
-            setScreenWidth(window.innerWidth)
-        }
-
-        handleResize()
-        window.addEventListener('resize', handleResize)
-        return () => window.removeEventListener('resize', handleResize)
-    }, [])
-
-    useEffect(() => {
-        if (user) {
-            fetchBalance()
-        }
-    }, [user])
-
-    const createCloudAnimation = (side: 'left' | 'right', top: string, width: number, speed: number) => {
-        const vpWidth = screenWidth || 1080
-        const totalDistance = vpWidth + width
-
-        return {
-            initial: { x: side === 'left' ? -width : vpWidth },
-            animate: { x: side === 'left' ? vpWidth : -width },
-            transition: {
-                ease: 'linear',
-                duration: totalDistance / speed,
-                repeat: Infinity,
-            },
-        }
+        const { resolveExchangeCtaRoute } = await import('./exchangeCtaRoute')
+        router.push(await resolveExchangeCtaRoute(sourceCurrency, destinationCurrency))
     }
 
     return (
@@ -78,90 +63,71 @@ export function NoFees({
             id="no-fees"
             className={twMerge('relative overflow-hidden bg-secondary-3 px-4 py-24 md:py-14', className)}
         >
-            <div className="absolute left-0 top-0 h-full w-full overflow-hidden">
-                {/* Animated clouds */}
-                <motion.img
-                    src={borderCloud.src}
-                    alt="Floating Border Cloud"
-                    className="absolute left-0"
-                    style={{ top: '20%', width: 200 }}
-                    {...createCloudAnimation('left', '20%', 200, 35)}
-                />
-                <motion.img
-                    src={borderCloud.src}
-                    alt="Floating Border Cloud"
-                    className="absolute right-0"
-                    style={{ top: '60%', width: 220 }}
-                    {...createCloudAnimation('right', '60%', 220, 40)}
-                />
-            </div>
+            {/* CSS keyframes rather than framer-motion: these loop forever, and a
+                perpetual rAF loop on the main thread was the landing page's single
+                largest blocking cost. transform animations run on the compositor. */}
+            <CloudsCss
+                clouds={[
+                    { top: '20%', width: 200, speed: '37s', direction: 'ltr' },
+                    { top: '60%', width: 220, speed: '33s', direction: 'rtl' },
+                ]}
+            />
 
             <div className="relative mx-auto w-full max-w-3xl text-center">
                 {/* Animated stars */}
-                <motion.img
-                    src={Star.src}
-                    alt="Floating Star"
-                    width={50}
-                    height={50}
-                    className="absolute -right-36 -top-12"
-                    initial={{ opacity: 0, translateY: 20, translateX: 5, rotate: 22 }}
-                    whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: 22 }}
-                    transition={{ type: 'spring', damping: 5, delay: 0.2 }}
-                />
-                <motion.img
-                    src={Star.src}
-                    alt="Floating Star"
-                    width={50}
-                    height={50}
-                    className="absolute -right-58 top-30"
-                    initial={{ opacity: 0, translateY: 28, translateX: -5, rotate: -17 }}
-                    whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: -17 }}
-                    transition={{ type: 'spring', damping: 5, delay: 0.4 }}
-                />
-                <motion.img
-                    src={Star.src}
-                    alt="Floating Star"
-                    width={50}
-                    height={50}
-                    className="absolute -right-0 -top-16 md:top-58"
-                    initial={{ opacity: 0, translateY: 20, translateX: 5, rotate: 22 }}
-                    whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: 22 }}
-                    transition={{ type: 'spring', damping: 5, delay: 0.6 }}
-                />
-                <motion.img
-                    src={Star.src}
-                    alt="Floating Star"
-                    width={50}
-                    height={50}
-                    className="absolute -left-36 -top-20"
-                    initial={{ opacity: 0, translateY: 15, translateX: -5, rotate: -7 }}
-                    whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: -7 }}
-                    transition={{ type: 'spring', damping: 5, delay: 0.8 }}
-                />
-                <motion.img
-                    src={Star.src}
-                    alt="Floating Star"
-                    width={50}
-                    height={50}
-                    className="absolute -bottom-6 -left-10"
-                    initial={{ opacity: 0, translateY: 25, translateX: -5, rotate: -5 }}
-                    whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: -5 }}
-                    transition={{ type: 'spring', damping: 5, delay: 1.0 }}
-                />
+                <AnimateOnView className="absolute -top-12 -right-36" y="20px" x="5px" rotate="22deg" delay="0.2s">
+                    <Image src={Star} alt="Floating Star" width={50} height={50} />
+                </AnimateOnView>
+                <AnimateOnView className="absolute top-30 -right-58" y="28px" x="-5px" rotate="-17deg" delay="0.4s">
+                    <Image src={Star} alt="Floating Star" width={50} height={50} />
+                </AnimateOnView>
+                <AnimateOnView
+                    className="absolute -top-16 -right-0 md:top-58"
+                    y="20px"
+                    x="5px"
+                    rotate="22deg"
+                    delay="0.6s"
+                >
+                    <Image src={Star} alt="Floating Star" width={50} height={50} />
+                </AnimateOnView>
+                <AnimateOnView className="absolute -top-20 -left-36" y="15px" x="-5px" rotate="-7deg" delay="0.8s">
+                    <Image src={Star} alt="Floating Star" width={50} height={50} />
+                </AnimateOnView>
+                <AnimateOnView className="absolute -bottom-6 -left-10" y="25px" x="-5px" rotate="-5deg" delay="1.0s">
+                    <Image src={Star} alt="Floating Star" width={50} height={50} />
+                </AnimateOnView>
 
-                <h1 className="font-roboto-flex-extrabold text-heading text-black md:text-headingMedium">
+                {/* fluid below md so the longest word of the headline still
+                    fits at 320px; unchanged from md up */}
+                <h1 className={`font-roboto-flex-extrabold ${headlineSize} text-black md:text-headingMedium`}>
                     {strings.zeroFees}
                 </h1>
 
-                {/* No hidden fees SVG */}
-                <div className="mb-1">
-                    <Image
-                        src={noHiddenFees}
-                        alt="Really, we mean zero. No hidden fees"
-                        width={600}
-                        height={150}
-                        className="mx-auto h-auto w-full max-w-xs md:max-w-md"
-                    />
+                {/* Was a single SVG with the copy baked into vector paths — the
+                    lettering is real text now so it localizes; only the doodles
+                    stay as art. Sizes are cqw/em so the block scales exactly as
+                    the SVG did. */}
+                <div className="@container mx-auto mb-1 w-full max-w-xs md:max-w-md">
+                    {/* cqw sizing has to sit inside the container, not on it */}
+                    <div className="pt-[0.23em] font-sans text-[9.79cqw]/[1.21] font-[450] tracking-[-0.058em] text-black">
+                        <p>
+                            {reallyZeroLead}
+                            <span className="relative inline-block">
+                                {reallyZeroCircled}
+                                <Image
+                                    src={scribbleCircle}
+                                    alt=""
+                                    aria-hidden
+                                    className="pointer-events-none absolute -top-[0.23em] -left-[0.27em] h-[1.54em] w-[calc(100%+0.52em)] max-w-none"
+                                />
+                            </span>
+                        </p>
+                        <p className="flex items-center justify-center gap-[0.19em]">
+                            <Image src={gotItHand} alt="" aria-hidden className="w-[0.887em] shrink-0" />
+                            <span>{strings.noHiddenFees}</span>
+                            <Image src={gotItHandFlipped} alt="" aria-hidden className="w-[0.887em] shrink-0" />
+                        </p>
+                    </div>
                 </div>
 
                 <ExchangeRateWidget
@@ -175,9 +141,11 @@ export function NoFees({
                     className="mt-6"
                     label={strings.seeMarkupOn}
                     links={[
-                        { label: 'Wise', href: `/${locale}/compare/wise` },
-                        { label: 'PayPal', href: `/${locale}/compare/paypal` },
-                        { label: 'Western Union', href: `/${locale}/compare/western-union` },
+                        // the route is `peanut-vs-<slug>` — generateStaticParams builds
+                        // no bare-slug page, so the short form 404s
+                        { label: 'Wise', href: contentHrefs.wiseComparison },
+                        { label: 'PayPal', href: contentHrefs.paypalComparison },
+                        { label: 'Western Union', href: contentHrefs.westernUnionComparison },
                     ]}
                 />
             </div>

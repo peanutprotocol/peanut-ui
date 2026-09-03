@@ -1,10 +1,15 @@
 /**
- * SendLinkActionList — guest claim-to-bank maintenance gating
+ * SendLinkActionList — who sees the alternate claim rails, and how the bank
+ * option behaves once they do.
  *
- * The GUEST claim-to-bank off-ramp is under maintenance (BE 503s
- * POST /bridge/offramp/create-for-guest). The bank method must render greyed +
- * "Soon!" and be non-interactive when the claim resolves to GuestBankClaim,
- * while the authenticated self off-ramp (UserBankClaim) stays fully clickable.
+ * The rails exist for a recipient with no Peanut account; a device we can
+ * identify as a Peanut user's (live session or an earlier registration) gets
+ * the Peanut option alone.
+ *
+ * On the rails themselves, the GUEST claim-to-bank off-ramp is under
+ * maintenance (BE 503s POST /bridge/offramp/create-for-guest): the bank method
+ * must render greyed + "Soon!" and be non-interactive when the claim resolves
+ * to GuestBankClaim, while UserBankClaim stays fully clickable.
  */
 import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
@@ -117,6 +122,12 @@ jest.mock('@/hooks/useGeoFilteredPaymentOptions', () => ({
     useGeoFilteredPaymentOptions: () => ({ filteredMethods: [bankMethod, walletMethod], isLoading: false }),
 }))
 
+// Device recognition — null while the storage reads are in flight.
+let mockKnownDevice: boolean | null = false
+jest.mock('@/hooks/useKnownPeanutDevice', () => ({
+    useKnownPeanutDevice: () => mockKnownDevice,
+}))
+
 // ---------- import component under test AFTER mocks ----------
 import SendLinkActionList from '../SendLinkActionList'
 
@@ -126,16 +137,48 @@ const claimLinkData = {
     sender: { userId: 'sender-123', username: 'alice' },
 } as any
 
-function renderList() {
+function renderList({ isLoggedIn = false }: { isLoggedIn?: boolean } = {}) {
     return render(
         <IntlWrapper>
-            <SendLinkActionList claimLinkData={claimLinkData} isLoggedIn isInviteLink={false} />
+            <SendLinkActionList claimLinkData={claimLinkData} isLoggedIn={isLoggedIn} isInviteLink={false} />
         </IntlWrapper>
     )
 }
 
 beforeEach(() => {
     jest.clearAllMocks()
+    mockClaimType = 'user-bank-claim'
+    mockKnownDevice = false
+})
+
+describe('SendLinkActionList — who gets the alternate rails', () => {
+    test('an unrecognised recipient keeps every rail, so a bank claim needs no account', () => {
+        renderList()
+
+        expect(screen.getByText('Bank')).toBeInTheDocument()
+        expect(screen.getByText('Exchange or Wallet')).toBeInTheDocument()
+    })
+
+    test('a logged-in recipient gets Peanut only', () => {
+        renderList({ isLoggedIn: true })
+
+        expect(screen.queryByText('Bank')).not.toBeInTheDocument()
+        expect(screen.queryByText('Exchange or Wallet')).not.toBeInTheDocument()
+    })
+
+    test('a logged-out device holding credentials gets Peanut only', () => {
+        mockKnownDevice = true
+        renderList()
+
+        expect(screen.queryByText('Bank')).not.toBeInTheDocument()
+    })
+
+    test('nothing is offered before recognition resolves, so no rail is shown then withdrawn', () => {
+        mockKnownDevice = null
+        renderList()
+
+        expect(screen.queryByText('Bank')).not.toBeInTheDocument()
+    })
 })
 
 describe('SendLinkActionList — guest claim-to-bank maintenance', () => {
@@ -151,7 +194,7 @@ describe('SendLinkActionList — guest claim-to-bank maintenance', () => {
         expect(mockSetFlowStep).not.toHaveBeenCalled()
     })
 
-    test('UserBankClaim: authenticated self off-ramp stays interactive (no "Soon!")', () => {
+    test('UserBankClaim: the non-guest off-ramp stays interactive (no "Soon!")', () => {
         mockClaimType = 'user-bank-claim'
         renderList()
 

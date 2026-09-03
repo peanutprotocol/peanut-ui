@@ -12,8 +12,9 @@ export const DEFAULT_APP_LOCALE: AppLocale = 'en'
 const MARKETING_SEGMENT: Record<AppLocale, MarketingLocale> = {
     en: 'en',
     'es-419': 'es-419',
-    // marketing site has no es-AR variant — es-419 is its Spanish
-    'es-AR': 'es-419',
+    // es-ar is a real marketing route (src/i18n/es-ar.json, /es-ar landing,
+    // hreflang es-AR); its content falls back through es-419 to en.
+    'es-AR': 'es-ar',
     'pt-BR': 'pt-br',
 }
 
@@ -37,17 +38,25 @@ export const LOCALE_LABELS: Record<AppLocale, string> = {
 
 /**
  * Normalizes any BCP 47-ish tag (device language, cookie, navigator.language)
- * to a supported app locale. Every locale source must pass through here so an
- * unsupported tag can never reach the intl provider.
+ * to a supported app locale, or null when the language is unsupported — for
+ * callers where garbage must not override the device language (deferred links).
  */
-export function resolveLocale(raw: string | null | undefined): AppLocale {
-    if (!raw) return DEFAULT_APP_LOCALE
-    const tag = raw.trim().toLowerCase()
-    if (!tag) return DEFAULT_APP_LOCALE
+export function resolveLocaleOrNull(raw: string | null | undefined): AppLocale | null {
+    const tag = raw?.trim().toLowerCase()
+    if (!tag) return null
     const exact = APP_LOCALES.find((locale) => locale.toLowerCase() === tag)
     if (exact) return exact
     const language = tag.split('-')[0]
+    if (language === 'en') return 'en'
     if (language === 'es') return 'es-419'
     if (language === 'pt') return 'pt-BR'
-    return DEFAULT_APP_LOCALE
+    return null
+}
+
+/**
+ * Same normalization with the English fallback. Every locale source must pass
+ * through here so an unsupported tag can never reach the intl provider.
+ */
+export function resolveLocale(raw: string | null | undefined): AppLocale {
+    return resolveLocaleOrNull(raw) ?? DEFAULT_APP_LOCALE
 }

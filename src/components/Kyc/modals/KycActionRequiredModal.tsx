@@ -1,5 +1,7 @@
 import { useTranslations } from 'next-intl'
-import ActionModal from '@/components/Global/ActionModal'
+import { Button } from '@/components/0_Bruddle/Button'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { RejectLabelsList } from '../RejectLabelsList'
 
 interface KycActionRequiredModalProps {
@@ -22,27 +24,33 @@ export const KycActionRequiredModal = ({
     const tCommon = useTranslations('common')
 
     return (
-        <ActionModal
-            visible={visible}
-            onClose={onClose}
-            icon="alert"
-            iconContainerClassName="bg-yellow-1"
-            title={t('actionRequiredTitle')}
-            description={t('actionRequiredDescription')}
-            content={
-                <div className="w-full">
-                    <RejectLabelsList rejectLabels={rejectLabels} />
+        <Drawer
+            open={visible}
+            onOpenChange={(isOpen) => {
+                if (!isOpen) onClose()
+            }}
+        >
+            <DrawerContent>
+                <div className="flex flex-col items-center gap-4 px-4 pt-1 pb-6 text-center">
+                    <IconBubble icon="alert" color="yellow" />
+                    <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
+                        <DrawerTitle>{t('actionRequiredTitle')}</DrawerTitle>
+                        <DrawerDescription>{t('actionRequiredDescription')}</DrawerDescription>
+                    </DrawerHeader>
+                    <div className="w-full text-left">
+                        <RejectLabelsList rejectLabels={rejectLabels} />
+                    </div>
+                    <Button
+                        icon="retry"
+                        shadowSize="4"
+                        className="w-full justify-center"
+                        disabled={isLoading}
+                        onClick={onResubmit}
+                    >
+                        {tCommon(isLoading ? 'loading' : 'continue')}
+                    </Button>
                 </div>
-            }
-            ctas={[
-                {
-                    text: tCommon(isLoading ? 'loading' : 'continue'),
-                    icon: 'retry',
-                    onClick: onResubmit,
-                    disabled: isLoading,
-                    shadowSize: '4',
-                },
-            ]}
-        />
+            </DrawerContent>
+        </Drawer>
     )
 }

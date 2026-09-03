@@ -1,5 +1,6 @@
 'use client'
 import { type FC, type ReactNode, useEffect, useMemo, useState } from 'react'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useLocale, useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -38,7 +39,7 @@ interface Term {
 }
 
 const ExternalLink: FC<{ href: string; children: ReactNode }> = ({ href, children }) => (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="text-black underline">
+    <a href={href} target="_blank" rel="noopener noreferrer" className="text-foreground-primary underline">
         {children}
     </a>
 )
@@ -107,28 +108,31 @@ const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitErro
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col gap-6">
+        <PageStack gap="6">
             <NavHeader title={tCard('navAddCard')} onPrev={onPrev} />
 
             <div className="flex flex-col gap-2">
-                <h1 className="text-2xl font-extrabold text-n-1">{t('title')}</h1>
-                <p className="text-grey-1">{t('description')}</p>
+                <h1 className="text-heading-s text-foreground-primary">{t('title')}</h1>
+                <p className="text-foreground-secondary">{t('description')}</p>
             </div>
 
             <ul className="flex flex-col gap-3">
                 {terms.map((term) => (
-                    <li key={term.id} className="flex items-start gap-3 rounded-sm border border-n-1 bg-white p-4">
+                    <li
+                        key={term.id}
+                        className="flex items-start gap-3 rounded-sm border border-border-default bg-background-default p-4"
+                    >
                         <Checkbox
                             value={!!checked[term.id]}
                             onChange={(e) => setChecked((prev) => ({ ...prev, [term.id]: e.target.checked }))}
                             className="mt-0.5"
                         />
-                        <div className="flex-1 text-sm">{term.label}</div>
+                        <div className="flex-1 text-body-s">{term.label}</div>
                     </li>
                 ))}
             </ul>
 
-            {submitError && <p className="text-sm text-red">{submitError}</p>}
+            {submitError && <p className="text-body-s text-foreground-error">{submitError}</p>}
 
             <Button
                 variant="purple"
@@ -140,7 +144,7 @@ const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitErro
             >
                 {tCommon('continue')}
             </Button>
-        </div>
+        </PageStack>
     )
 }
 

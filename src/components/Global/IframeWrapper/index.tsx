@@ -6,11 +6,22 @@ import ActionModal from '../ActionModal'
 import { useRouter } from 'next/navigation'
 import { useModalsContext } from '@/context/ModalsContext'
 import { Button, type ButtonVariant } from '@/components/0_Bruddle/Button'
+import { isAndroidNativeBridge } from '@/utils/capacitor'
+
+/**
+ * Why the wrapper closed:
+ *   - `manual`       — the user backed out
+ *   - `completed`    — the embedded flow reported completion (postMessage)
+ *   - `tos_accepted` — Bridge's iframe reported a signed agreement (postMessage)
+ *   - `returned`     — the android system-browser tab closed; carries NO
+ *                      acceptance claim, the caller must ask the provider
+ */
+export type IframeCloseSource = 'manual' | 'completed' | 'tos_accepted' | 'returned'
 
 export type IFrameWrapperProps = {
     src: string
     visible: boolean
-    onClose: (source?: 'manual' | 'completed' | 'tos_accepted') => void
+    onClose: (source?: IframeCloseSource) => void
     closeConfirmMessage?: string
 }
 
@@ -23,6 +34,55 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
     const iframeRef = useRef<HTMLIFrameElement | null>(null)
     const router = useRouter()
     const { setIsSupportModalOpen } = useModalsContext()
+
+    /*
+     * Android's Capacitor WebView cannot host a third-party subframe:
+     * BridgeWebViewClient.shouldOverrideUrlLoading hands EVERY navigation to
+     * Bridge.launchIntent — it never checks request.isForMainFrame() — which
+     * cancels the load for any host outside the app origin that isn't in
+     * server.allowNavigation. The frame paints pure white and the provider
+     * never records an acceptance. iOS gates the same detour on
+     * targetFrame.isMainFrame, so only Android needs the system-browser
+     * detour. Coming back from that tab means "the user returned", not "the
+     * user accepted" — hence a `returned` source the caller resolves against
+     * the provider rather than a fabricated `tos_accepted`.
+     */
+    const [useSystemBrowser] = useState(isAndroidNativeBridge)
+    const onCloseRef = useRef(onClose)
+    useEffect(() => {
+        onCloseRef.current = onClose
+    })
+
+    useEffect(() => {
+        if (!useSystemBrowser || !visible) return
+        let disposed = false
+        let remove: (() => void) | undefined
+        void import('@capacitor/browser')
+            .then(({ Browser }) =>
+                // Listener first: a tab the user dismisses immediately must not
+                // close before we are listening, or the flow hangs forever.
+                Browser.addListener('browserFinished', () => onCloseRef.current('returned')).then((handle) => {
+                    // Cleanup can run while the dynamic import / listener
+                    // registration is still in flight; a late arrival must both
+                    // drop its listener AND skip the open, or a fast unmount
+                    // pops the tab after its owning flow has closed.
+                    if (disposed) {
+                        handle.remove()
+                        return
+                    }
+                    remove = () => handle.remove()
+                    return Browser.open({ url: src })
+                })
+            )
+            .catch((error) => {
+                console.error('[iframe-wrapper] system browser open failed', error)
+                onCloseRef.current('manual')
+            })
+        return () => {
+            disposed = true
+            remove?.()
+        }
+    }, [useSystemBrowser, visible, src])
 
     const handleCopy = (textToCopy: string) => {
         navigator.clipboard.writeText(textToCopy).then(() => {
@@ -43,7 +103,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                     </p>
                 ),
                 icon: 'question-mark' as IconName,
-                iconContainerClassName: 'bg-primary-1',
+                iconContainerClassName: 'bg-action-primary',
                 ctas: [
                     {
                         text: t('iframeWrapper.copyLink'),
@@ -58,14 +118,14 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                         text: t('iframeWrapper.chatWithSupport'),
                         icon: 'peanut-support' as IconName,
                         onClick: () => setIsSupportModalOpen(true),
-                        variant: 'transparent' as ButtonVariant,
-                        className: 'underline text-sm font-medium w-full fill-none h-fit mt-3',
+                        variant: 'stroke' as ButtonVariant,
+                        className: 'w-full',
                     },
                     {
                         text: t('iframeWrapper.cancel'),
                         onClick: () => setIsHelpModalOpen(false),
-                        variant: 'transparent' as ButtonVariant,
-                        className: 'underline text-sm font-medium w-full h-fit mt-3',
+                        variant: 'stroke' as ButtonVariant,
+                        className: 'w-full',
                     },
                 ],
             }
@@ -75,7 +135,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
             title: t('iframeWrapper.exitTitle'),
             description: t('iframeWrapper.exitDescription'),
             icon: 'alert' as IconName,
-            iconContainerClassName: 'bg-secondary-1',
+            iconContainerClassName: 'bg-action-secondary',
             ctas: [
                 {
                     text: t('iframeWrapper.exit'),
@@ -89,8 +149,8 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                 {
                     text: t('iframeWrapper.continueVerifying'),
                     onClick: () => setIsHelpModalOpen(false),
-                    variant: 'transparent' as ButtonVariant,
-                    className: 'underline text-sm font-medium w-full h-fit mt-3',
+                    variant: 'stroke' as ButtonVariant,
+                    className: 'w-full',
                 },
             ],
         }
@@ -124,6 +184,8 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
         return () => window.removeEventListener('message', handleMessage)
     }, [onClose, visible])
 
+    if (useSystemBrowser) return null
+
     return (
         <Modal
             visible={visible}
@@ -138,7 +200,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                 }
             }}
             classWrap="h-full w-full !max-w-none sm:!max-w-[600px] border-none sm:m-auto m-0"
-            classOverlay={`bg-black bg-opacity-50 ${isHelpModalOpen ? 'pointer-events-none' : ''}`}
+            classOverlay={`bg-black/50 ${isHelpModalOpen ? 'pointer-events-none' : ''}`}
             video={false}
             className={`z-[100] !p-0 md:!p-6 ${isHelpModalOpen ? 'pointer-events-none' : ''}`}
             classButtonClose="hidden"
@@ -152,14 +214,13 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                         ref={iframeRef}
                         src={src}
                         allow="camera *; microphone *; fullscreen *"
-                        style={{ width: '100%', height: '85%', border: 'none' }}
-                        className="rounded-md"
+                        className="h-[85%] w-full rounded-sm border-0"
                         sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-top-navigation-by-user-activation allow-media-devices"
                     />
-                    <div className="flex h-[15%] w-full flex-col items-center justify-center gap-2 px-5">
+                    <div className="flex h-[15%] w-full flex-col items-center justify-center gap-2 px-4">
                         <Button
-                            variant={'transparent'}
-                            className={`h-8 max-w-md font-normal underline`}
+                            variant={'stroke'}
+                            className={`max-w-md`}
                             onClick={() => {
                                 setModalVariant('stop-verification')
                                 setIsHelpModalOpen(true)
@@ -176,8 +237,8 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                             }}
                             className="flex items-center gap-1"
                         >
-                            <Icon name="peanut-support" size={16} className="text-grey-1" />
-                            <p className="text-xs font-medium text-grey-1 underline">
+                            <Icon name="peanut-support" size={16} className="text-foreground-secondary" />
+                            <p className="text-body-xs font-medium text-foreground-secondary underline">
                                 {t('iframeWrapper.havingTrouble')}
                             </p>
                         </button>

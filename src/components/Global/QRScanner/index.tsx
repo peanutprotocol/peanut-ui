@@ -5,6 +5,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
 import { PEANUTMAN } from '@/assets/mascot'
 import { ETHEREUM_ICON } from '@/assets/icons'
+import { QR_DRAWER_PASTE_GAP_PX, QR_DRAWER_PEEK_PX } from '@/constants/qr-drawer.consts'
 import Image from 'next/image'
 import { Icon } from '../Icons/Icon'
 import { useQRScanner, type QRScanHandler } from './useQRScanner'
@@ -15,6 +16,7 @@ import { clipboardHasStrings } from '@/utils/clipboard-detect'
 import { extractPaymentValue, readClipboard } from '@/utils/clipboard-extract.utils'
 import { isAndroidNative } from '@/utils/capacitor'
 import { printableAddress } from '@/utils/general.utils'
+import { reportQrScanError } from './utils'
 
 // ============================================================================
 // Configuration
@@ -36,6 +38,24 @@ const CORNER_POSITIONS = [
     { position: '-bottom-1 -left-1', rotation: '-rotate-90' },
     { position: '-bottom-1 -right-1', rotation: '-rotate-180' },
 ] as const
+
+// The same 730px threshold the icon grid uses. Tracked in JS (not CSS
+// dual-render): rendering PasteActions twice put duplicate interactive
+// controls in the DOM and the a11y tree order could not be trusted.
+const SHORT_VIEWPORT_QUERY = '(max-height: 729px)'
+
+function useIsShortViewport(): boolean {
+    const [isShort, setIsShort] = useState(false)
+    useEffect(() => {
+        if (typeof window.matchMedia !== 'function') return
+        const mq = window.matchMedia(SHORT_VIEWPORT_QUERY)
+        const update = () => setIsShort(mq.matches)
+        update()
+        mq.addEventListener('change', update)
+        return () => mq.removeEventListener('change', update)
+    }, [])
+    return isShort
+}
 
 // ============================================================================
 // Types
@@ -59,7 +79,7 @@ function PinkCorner({ className }: { className?: string }) {
                 stroke="currentColor"
                 strokeWidth="5"
                 strokeLinecap="round"
-                className="text-primary-1"
+                className="text-action-primary"
             />
         </svg>
     )
@@ -69,7 +89,7 @@ function PaymentMethodBadge({ src, alt, name }: { src: string; alt: string; name
     return (
         <div className="flex max-w-26 items-center gap-1">
             <Image src={src} alt={alt} height={24} priority />
-            <span className="break-normal text-left text-xs font-black uppercase leading-none tracking-wider text-white">
+            <span className="text-left text-label-m leading-none tracking-wider break-normal text-white uppercase">
                 {name}
             </span>
         </div>
@@ -80,21 +100,22 @@ function ScannerControls({ onClose, onToggleCamera }: { onClose: () => void; onT
     const t = useTranslations('global')
     return (
         // portalled overlay escapes the layout's safe-area padding; max() keeps the old 2.5rem on web
-        <div className="fixed left-0 top-0 z-50 grid w-full grid-flow-col items-center pb-2 pt-[max(2.5rem,calc(var(--safe-top)_+_0.5rem))] text-center text-white">
+        <div className="fixed top-0 left-0 z-50 grid w-full grid-flow-col items-center pt-[max(2.5rem,calc(var(--safe-top)_+_0.5rem))] pb-2 text-center text-white">
+            {/* ds icon-button recipe: 40px circle + 20px icon */}
             <Button
                 variant="transparent-light"
-                className="border-1 mx-auto flex h-8 w-8 items-center justify-center border-white p-0"
+                className="mx-auto flex size-10 items-center justify-center border-white p-0"
                 onClick={onClose}
             >
-                <Icon name="cancel" size={18} fill="white" />
+                <Icon name="cancel" size={20} fill="white" />
             </Button>
-            <span className="text-3xl font-extrabold">{t('qrScanner.scanToPay')}</span>
+            <span className="text-heading-m text-foreground-inverse">{t('qrScanner.scanToPay')}</span>
             <Button
                 variant="transparent-light"
-                className="border-1 mx-auto flex h-8 w-8 items-center justify-center border-white p-0"
+                className="mx-auto flex size-10 items-center justify-center border-white p-0"
                 onClick={onToggleCamera}
             >
-                <Icon name="camera-flip" fill="white" height={24} width={24} />
+                <Icon name="camera-flip" fill="white" size={20} />
             </Button>
         </div>
     )
@@ -118,26 +139,26 @@ function PasteActions({
         <>
             <button
                 onClick={onPaste}
-                className="justify mx-auto mt-10 flex items-center gap-1.5 text-center text-white underline underline-offset-2"
+                className="mx-auto mt-4 flex items-center gap-1 text-center text-white underline underline-offset-2"
             >
                 <Icon name="paste" fill="white" height={16} width={16} />
-                <span className="text-sm">{t('qrScanner.clickToPaste')}</span>
+                <span className="text-body-s">{t('qrScanner.clickToPaste')}</span>
             </button>
             {detectedAddress ? (
                 <button
                     onClick={onUseDetected}
-                    className="mx-auto mt-3 flex items-center gap-1.5 rounded-full border border-white/40 px-3 py-1.5 text-white"
+                    className="mx-auto mt-3 flex items-center gap-1 rounded-full border border-white/40 px-3 py-2 text-white"
                 >
                     <Icon name="wallet" fill="white" height={16} width={16} />
-                    <span className="text-sm font-semibold">{printableAddress(detectedAddress)}</span>
+                    <span className="text-label-l">{printableAddress(detectedAddress)}</span>
                 </button>
             ) : showPasteChip ? (
                 <button
                     onClick={onUsePasteChip}
-                    className="mx-auto mt-3 flex items-center gap-1.5 rounded-full border border-white/40 px-3 py-1.5 text-white"
+                    className="mx-auto mt-3 flex items-center gap-1 rounded-full border border-white/40 px-3 py-2 text-white"
                 >
                     <Icon name="paste" fill="white" height={16} width={16} />
-                    <span className="text-sm font-semibold">{t('qrScanner.useCopiedCode')}</span>
+                    <span className="text-label-l">{t('qrScanner.useCopiedCode')}</span>
                 </button>
             ) : null}
         </>
@@ -158,56 +179,105 @@ function ScanRegionOverlay({
     onUsePasteChip: () => void
 }) {
     const t = useTranslations('global')
+    const isShortViewport = useIsShortViewport()
     return (
-        <div className="fixed left-1/2 flex h-64 w-64 -translate-x-1/2 translate-y-1/2 justify-center">
-            {/* Darkened background with transparent scan region */}
-            <div className="absolute inset-0">
-                <div className="absolute inset-0 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.8)]" />
-                {CORNER_POSITIONS.map(({ position, rotation }, index) => (
-                    <PinkCorner key={index} className={`absolute ${position} ${rotation}`} />
-                ))}
-            </div>
-
-            {/* Supported payment methods and paste option */}
-            <div className="flex-column z-50 translate-y-[100%] transform items-center text-center">
-                <div className="mt-10 flex flex-wrap justify-center gap-2">
-                    {PAYMENT_METHODS.map((method) => (
-                        <PaymentMethodBadge
-                            key={method.name ?? 'evm'}
-                            src={method.src}
-                            alt={method.alt ?? t('qrScanner.paymentMethods.evmAlt')}
-                            name={method.name ?? t('qrScanner.paymentMethods.evmName')}
-                        />
+        <>
+            <div className="fixed left-1/2 flex h-64 w-64 -translate-x-1/2 translate-y-1/2 justify-center">
+                {/* Darkened background with transparent scan region */}
+                <div className="absolute inset-0">
+                    <div className="absolute inset-0 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.8)]" />
+                    {CORNER_POSITIONS.map(({ position, rotation }, index) => (
+                        <PinkCorner key={index} className={`absolute ${position} ${rotation}`} />
                     ))}
                 </div>
-                <PasteActions
-                    onPaste={onPaste}
-                    detectedAddress={detectedAddress}
-                    onUseDetected={onUseDetected}
-                    showPasteChip={showPasteChip}
-                    onUsePasteChip={onUsePasteChip}
-                />
+
+                {/* Icons (2-per-row grid) then paste actions, hanging one XL
+                    section gap (24px) below the scan square so the group reads
+                    as part of it. Ruled 2026-09-02 (TASK-22121 #20), replacing
+                    the drawer-anchored strip. Tall viewports only: the short
+                    fallback below cannot live in this subtree, because the
+                    square's transform makes it the containing block for
+                    position:fixed — a bottom offset here would resolve against
+                    the 256px square, not the viewport. */}
+                {!isShortViewport && (
+                    <div className="pointer-events-auto absolute inset-x-0 top-full z-50 mt-6 flex flex-col items-center">
+                        <div className="grid grid-cols-2 gap-2">
+                            {PAYMENT_METHODS.map((method) => (
+                                <PaymentMethodBadge
+                                    key={method.name ?? 'evm'}
+                                    src={method.src}
+                                    alt={method.alt ?? t('qrScanner.paymentMethods.evmAlt')}
+                                    name={method.name ?? t('qrScanner.paymentMethods.evmName')}
+                                />
+                            ))}
+                        </div>
+                        <PasteActions
+                            onPaste={onPaste}
+                            detectedAddress={detectedAddress}
+                            onUseDetected={onUseDetected}
+                            showPasteChip={showPasteChip}
+                            onUsePasteChip={onUsePasteChip}
+                        />
+                    </div>
+                )}
             </div>
-        </div>
+
+            {/* Short-viewport fallback: a viewport-fixed sibling OUTSIDE the
+                transformed square, anchored a gap above the drawer peek (the
+                pre-#20 geometry) — inside the square's subtree the transform
+                would hijack the containing block for position:fixed. Exactly
+                one PasteActions copy renders (useIsShortViewport), never two. */}
+            {isShortViewport && (
+                <div
+                    className="pointer-events-none fixed inset-x-0 z-50 flex flex-col items-center"
+                    style={{ bottom: QR_DRAWER_PEEK_PX + QR_DRAWER_PASTE_GAP_PX }}
+                >
+                    <div className="pointer-events-auto flex flex-col items-center">
+                        <PasteActions
+                            onPaste={onPaste}
+                            detectedAddress={detectedAddress}
+                            onUseDetected={onUseDetected}
+                            showPasteChip={showPasteChip}
+                            onUsePasteChip={onUsePasteChip}
+                        />
+                    </div>
+                </div>
+            )}
+        </>
     )
 }
 
 function ErrorView({
     message,
     onClose,
+    onRetry,
     children,
 }: {
     message: string
     onClose: () => void
+    onRetry?: () => void
     children?: React.ReactNode
 }) {
     const tCommon = useTranslations('common')
     return (
         <div className="p-4 text-center text-white">
-            <p className="text-red-500">{message}</p>
-            <button onClick={onClose} className="mt-4 rounded bg-white px-4 py-2 text-black">
-                {tCommon('close')}
-            </button>
+            <p className="text-foreground-error">{message}</p>
+            <div className="mt-4 flex items-center justify-center gap-2">
+                {onRetry && (
+                    <button
+                        onClick={onRetry}
+                        className="rounded-sm bg-background-default px-4 py-2 text-foreground-primary"
+                    >
+                        {tCommon('retry')}
+                    </button>
+                )}
+                <button
+                    onClick={onClose}
+                    className="rounded-sm bg-background-default px-4 py-2 text-foreground-primary"
+                >
+                    {tCommon('close')}
+                </button>
+            </div>
             {children}
         </div>
     )
@@ -277,7 +347,10 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
         try {
             await onScan(data)
         } catch (err) {
-            console.error('Error processing QR code:', err)
+            // console.info, not error: captureConsoleIntegration would turn an
+            // error-level log into a second Sentry event on top of the capture below.
+            console.info('Error processing QR code:', err)
+            reportQrScanError(err, data)
             toast.error(t('qrScanner.qrProcessingError'))
         }
     }
@@ -308,7 +381,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
     if (!isScanning) return null
 
     return createPortal(
-        <div className="qr-scanner-container fixed left-0 top-0 z-50 flex h-full w-full flex-col bg-black">
+        <div className="qr-scanner-container fixed top-0 left-0 z-50 flex h-full w-full flex-col bg-black">
             {/* modal uses !z-[60] to appear above this z-50 scanner portal (Dialog portals to body) */}
             {isPermissionDenied ? (
                 /*
@@ -319,9 +392,9 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                  * for a copied Pix code. The modal owns the whole screen here, so the
                  * action has to sit inside it to be reachable.
                  */
-                <CameraPermissionModal visible onRetry={retryCamera} onClose={close} onPaste={handlePaste} />
+                <CameraPermissionModal visible onRetry={retryCamera} onClose={close} />
             ) : error ? (
-                <ErrorView message={error} onClose={close}>
+                <ErrorView message={error} onClose={close} onRetry={retryCamera}>
                     <PasteActions
                         onPaste={handlePaste}
                         detectedAddress={detectedAddress}
@@ -343,7 +416,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                     {!isCameraReady && (
                         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black">
                             <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                            <span className="text-sm text-white/80">{t('qrScanner.startingCamera')}</span>
+                            <span className="text-body-s text-white/80">{t('qrScanner.startingCamera')}</span>
                         </div>
                     )}
                     <ScannerControls onClose={close} onToggleCamera={toggleCamera} />

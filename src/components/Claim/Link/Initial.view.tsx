@@ -1,6 +1,10 @@
 'use client'
 
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
+import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
+import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
@@ -34,20 +38,19 @@ import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowCont
 import useClaimLink from '../useClaimLink'
 import underMaintenanceConfig, { CROSS_CHAIN_DISABLED_MESSAGE } from '@/config/underMaintenance.config'
 import ActionModal from '@/components/Global/ActionModal'
-import { Slider } from '@/components/Slider'
 import { BankFlowManager } from './views/BankFlowManager.view'
 import { type ClaimXChainPreview } from '../Claim.consts'
 import { previewSdaTransfer } from '@/services/rhino-sda'
 import { evmChainIdToRhinoName } from '@/constants/rhino.consts'
 import { getTokenSymbol } from '@/utils/general.utils'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import Image from 'next/image'
 import PEANUT_LOGO_BLACK from '@/assets/logos/peanut-logo-dark.svg'
 import { PEANUTMAN } from '@/assets/mascot'
 import { GuestVerificationModal } from '@/components/Global/GuestVerificationModal'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import MantecaFlowManager from './MantecaFlowManager'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import { invitesApi } from '@/services/invites'
 import { EInviteType } from '@/services/services.types'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
@@ -98,6 +101,10 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
+    // client-side validation (recipient input, cashout min/max) renders as the
+    // field's own error under the recipient input; errorState keeps flow
+    // failures (claim/route/provider errors) in the Notification above
+    const [fieldError, setFieldError] = useState<string>('')
     const [isXchainLoading, setIsXchainLoading] = useState<boolean>(false)
     const [routes, setRoutes] = useState<ClaimXChainPreview[]>([])
     const [inputChanging, setInputChanging] = useState<boolean>(false)
@@ -108,6 +115,8 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         flowStep: claimBankFlowStep,
         showVerificationModal,
         setShowVerificationModal,
+        verificationPromptReason,
+        setVerificationPromptReason,
         setClaimToExternalWallet,
         resetFlow: resetClaimBankFlow,
         claimToMercadoPago,
@@ -491,23 +500,30 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 showError: false,
                 errorMessage: '',
             })
+            setFieldError('')
             setLoadingState('Fetching route')
 
             if (tokenPrice) {
                 const cashoutUSDAmount =
                     Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * tokenPrice
                 const usd = (amount: number) => format.number(amount, { style: 'currency', currency: 'USD' })
+                // flow channel, NOT fieldError: this refusal comes from the
+                // submit handler on the claim-to-bank path, where the external-
+                // wallet input (fieldError's only render site) is not mounted —
+                // on fieldError the message could never be shown (chip P17)
                 if (cashoutUSDAmount < MIN_CASHOUT_LIMIT) {
                     setErrorState({
                         showError: true,
                         errorMessage: t('errors.belowMinimum', { amount: usd(MIN_CASHOUT_LIMIT) }),
                     })
+                    setLoadingState('Idle')
                     return
                 } else if (cashoutUSDAmount > MAX_CASHOUT_LIMIT) {
                     setErrorState({
                         showError: true,
                         errorMessage: t('errors.aboveMaximum', { amount: usd(MAX_CASHOUT_LIMIT) }),
                     })
+                    setLoadingState('Idle')
                     return
                 }
             }
@@ -933,9 +949,12 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
     useEffect(() => {
         if (claimToMercadoPago && !user) {
+            // regional claim without an account: the sender's verification is
+            // irrelevant here, so don't render copy that blames them
+            setVerificationPromptReason('account-required')
             setShowVerificationModal(true)
         }
-    }, [claimToMercadoPago, user, setShowVerificationModal])
+    }, [claimToMercadoPago, user, setShowVerificationModal, setVerificationPromptReason])
 
     if (claimBankFlowStep) {
         return <BankFlowManager {...props} />
@@ -958,7 +977,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8 md:min-h-fit">
+        <div className="flex min-h-inherit flex-col justify-between gap-8 md:min-h-fit">
             {!!user?.user.userId || claimBankFlowStep || claimToExternalWallet ? (
                 <div>
                     <NavHeader
@@ -974,10 +993,10 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 </div>
             ) : (
                 <div className="-mt-1 md:hidden">
-                    <div className="pb-1 text-center text-2xl font-extrabold">{t('receive')}</div>
+                    <div className="pb-1 text-center text-heading-s">{t('receive')}</div>
                 </div>
             )}
-            <div className="my-auto flex h-full flex-col justify-center space-y-4">
+            <PageStack.Center className="gap-4">
                 <PeanutActionDetailsCard
                     avatarSize="small"
                     transactionType="CLAIM_LINK"
@@ -994,7 +1013,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     message={attachment.message}
                     fileUrl={attachment.attachmentUrl}
                 />
-                {errorState.showError && <ErrorAlert description={errorState.errorMessage} />}
+                {errorState.showError && <Notification priority="error">{errorState.errorMessage}</Notification>}
 
                 {/* Token Selector
                  * We don't want to show this if we're claiming to peanut wallet. Else its okay
@@ -1011,39 +1030,45 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     {/* Alternative options section with divider */}
                     {/* Manual Input Section - Always visible in non-peanut-only mode */}
                     {!!claimToExternalWallet && (
-                        <GeneralRecipientInput
-                            placeholder={t('initial.recipientPlaceholder')}
-                            recipient={recipient}
-                            onUpdate={(update: GeneralRecipientUpdate) => {
-                                setRecipient(update.recipient)
-                                if (!update.recipient.address) {
-                                    setRecipientType('address')
-                                    // Reset loading state when input is cleared
-                                    setLoadingState('Idle')
+                        <FieldColumn error={fieldError}>
+                            <GeneralRecipientInput
+                                placeholder={t('initial.recipientPlaceholder')}
+                                recipient={recipient}
+                                onUpdate={(update: GeneralRecipientUpdate) => {
+                                    setRecipient(update.recipient)
+                                    if (!update.recipient.address) {
+                                        setRecipientType('address')
+                                        // Reset loading state when input is cleared
+                                        setLoadingState('Idle')
+                                        setErrorState({
+                                            showError: false,
+                                            errorMessage: '',
+                                        })
+                                    } else {
+                                        setRecipientType(update.type)
+                                        if (update.isValid && !update.isChanging) {
+                                            posthog.capture(ANALYTICS_EVENTS.CLAIM_RECIPIENT_SELECTED, {
+                                                recipient_type: update.type,
+                                            })
+                                        }
+                                    }
+                                    setIsValidRecipient(update.isValid)
+                                    // recipient validity is field-level; editing the
+                                    // recipient also releases any stale flow error, as
+                                    // before the validation/flow split
+                                    setFieldError(!update.isChanging && !update.isValid ? update.errorMessage : '')
                                     setErrorState({
                                         showError: false,
                                         errorMessage: '',
                                     })
-                                } else {
-                                    setRecipientType(update.type)
-                                    if (update.isValid && !update.isChanging) {
-                                        posthog.capture(ANALYTICS_EVENTS.CLAIM_RECIPIENT_SELECTED, {
-                                            recipient_type: update.type,
-                                        })
-                                    }
-                                }
-                                setIsValidRecipient(update.isValid)
-                                setErrorState({
-                                    showError: !update.isChanging && !update.isValid,
-                                    errorMessage: update.errorMessage,
-                                })
-                                setInputChanging(update.isChanging)
-                            }}
-                            showInfoText={false}
-                        />
+                                    setInputChanging(update.isChanging)
+                                }}
+                                showInfoText={false}
+                            />
+                        </FieldColumn>
                     )}
                     {recipientType === 'username' && !!claimToExternalWallet && (
-                        <div className="text-xs text-grey-1">{t('initial.usdcArbitrumOnly')}</div>
+                        <div className="text-body-xs text-foreground-secondary">{t('initial.usdcArbitrumOnly')}</div>
                     )}
                 </div>
 
@@ -1061,7 +1086,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                                 !isValidRecipient ||
                                 (isXChain && !selectedRoute && (!hasFetchedRoute || isXchainLoading))
                             }
-                            className="text-sm md:text-base"
+                            className="text-body-s md:text-body-m"
                         >
                             {getButtonText()}
                         </Button>
@@ -1076,7 +1101,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         />
                     )}
                 </div>
-            </div>
+            </PageStack.Center>
             <ActionModal
                 visible={showConfirmationModal}
                 onClose={() => setShowConfirmationModal(false)}
@@ -1088,32 +1113,31 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     </div>
                 }
                 icon="alert"
-                iconContainerClassName="bg-yellow-400"
+                iconContainerClassName="bg-action-secondary"
                 footer={
-                    <div className="w-full space-y-3">
-                        <Slider
-                            onValueChange={(v) => {
-                                if (!v) return
+                    <div className="space-y-3 w-full">
+                        <SlideToConfirm
+                            label={tCommon('slideToProceed')}
+                            onConfirm={() => {
                                 // for cross-chain claims, advance to the confirm screen first
                                 if (isXChain) {
                                     setShowConfirmationModal(false)
                                     onNext()
                                 } else {
-                                    // direct on-chain claim – initiate immediately
+                                    // direct on-chain claim - initiate immediately
                                     handleClaimLink(true)
                                 }
                             }}
                         />
-                        <Button
-                            variant="transparent"
-                            className="h-fit p-0 text-sm underline"
+                        <LinkButton
+                            className="self-center"
                             onClick={() => {
                                 setShowConfirmationModal(false)
                                 setClaimToExternalWallet(false)
                             }}
                         >
                             {t('addressCompatible.claimToPeanut')}
-                        </Button>
+                        </LinkButton>
                     </div>
                 }
                 preventClose={false}
@@ -1127,7 +1151,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     removeParamStep()
                     setShowVerificationModal(false)
                 }}
-                description={t('guestVerification.description')}
+                description={
+                    verificationPromptReason === 'sender-unverified'
+                        ? t('guestVerification.senderUnverifiedDescription')
+                        : t('guestVerification.accountRequiredDescription')
+                }
                 inviterUsername={claimLinkData?.sender?.username}
             />
         </div>

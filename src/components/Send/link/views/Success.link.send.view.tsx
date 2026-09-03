@@ -1,13 +1,15 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import CancelSendLinkModal from '@/components/Global/CancelSendLinkModal'
+import CancelSendLinkDrawer from '@/components/Global/CancelSendLinkDrawer'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ShareButton from '@/components/Global/ShareButton'
 import { SuccessViewDetailsCard } from '@/components/Global/SuccessViewComponents/SuccessViewDetailsCard'
+import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import { useLinkSendFlow } from '@/context/LinkSendFlowContext'
 import { useUserStore } from '@/redux/hooks'
 import { captureException } from '@sentry/nextjs'
@@ -31,8 +33,9 @@ const LinkSendSuccessView = () => {
     const { user } = useUserStore()
     const { cancelLinkAndClaim, pollForClaimConfirmation } = useClaimLink()
     const toast = useToast()
+    const friendly = useFriendlyError()
     const [isLoading, setIsLoading] = useState<boolean>(false)
-    const [showCancelLinkModal, setshowCancelLinkModal] = useState(false)
+    const [showCancelLinkDrawer, setShowCancelLinkDrawer] = useState(false)
 
     const [cancelStatus, setCancelStatus] = useState<'idle' | 'cancelling' | 'cancelled'>('idle')
     const cancelLinkText =
@@ -50,7 +53,7 @@ const LinkSendSuccessView = () => {
     }, [resetLinkSendFlow])
 
     return (
-        <div className="flex  w-full flex-col justify-start space-y-8">
+        <div className="space-y-8 flex w-full flex-col justify-start">
             <NavHeader
                 icon="cancel"
                 title={tNav('send')}
@@ -85,7 +88,7 @@ const LinkSendSuccessView = () => {
                             {t('link.shareLink')}
                         </ShareButton>
                         <Button
-                            onClick={() => setshowCancelLinkModal(true)}
+                            onClick={() => setShowCancelLinkDrawer(true)}
                             variant={'primary-soft'}
                             className="flex w-full items-center gap-1"
                             shadowSize="4"
@@ -94,7 +97,7 @@ const LinkSendSuccessView = () => {
                         >
                             {!isLoading && (
                                 <div className="flex items-center">
-                                    <Icon name="ban" size={18} />
+                                    <Icon name="ban" size={20} />
                                 </div>
                             )}
                             <span>{cancelLinkText}</span>
@@ -103,11 +106,11 @@ const LinkSendSuccessView = () => {
                 )}
             </div>
 
-            {/* Cancel Link Modal  */}
+            {/* Cancel Link Drawer */}
             {link && (
-                <CancelSendLinkModal
-                    showCancelLinkModal={showCancelLinkModal}
-                    setshowCancelLinkModal={setshowCancelLinkModal}
+                <CancelSendLinkDrawer
+                    showCancelLinkDrawer={showCancelLinkDrawer}
+                    setShowCancelLinkDrawer={setShowCancelLinkDrawer}
                     amount={`$ ${tokenValue}`}
                     isLoading={isLoading}
                     onClick={async () => {
@@ -143,7 +146,7 @@ const LinkSendSuccessView = () => {
                                 await queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
 
                                 setIsLoading(false)
-                                setshowCancelLinkModal(false)
+                                setShowCancelLinkDrawer(false)
                                 setCancelStatus('cancelled')
                                 toast.success(t('link.cancelSuccess'))
 
@@ -159,13 +162,24 @@ const LinkSendSuccessView = () => {
 
                                 // Still navigate even if invalidation fails
                                 setIsLoading(false)
-                                setshowCancelLinkModal(false)
+                                setShowCancelLinkDrawer(false)
                                 setCancelStatus('cancelled')
                                 toast.success(t('link.cancelSuccessRefresh'))
                                 await new Promise((resolve) => setTimeout(resolve, 1500))
                                 router.push('/home')
                             }
                         } catch (error) {
+                            if (wireErrorCode(error) === API_ERROR_CODES.LINK_ALREADY_CLAIMED) {
+                                // the recipient got there first — the link is CLAIMED, not
+                                // failed; home renders it as claimed once refetched
+                                setIsLoading(false)
+                                setCancelStatus('idle')
+                                setShowCancelLinkDrawer(false)
+                                toast.info(friendly(error))
+                                await queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] }).catch(() => undefined)
+                                router.push('/home')
+                                return
+                            }
                             captureException(error)
                             console.error('Error claiming link:', error)
                             setIsLoading(false)
