@@ -154,6 +154,10 @@ jobs:
               with:
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
+                  # Clone-only token — see the format job. This job runs both
+                  # pnpm install and the native build, so PR-authored code must
+                  # never see it in .git/config.
+                  persist-credentials: false
 
             - uses: pnpm/action-setup@v4
 

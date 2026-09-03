@@ -252,6 +252,16 @@ let nextConfig = {
         .map((o) => o.trim())
         .filter(Boolean),
     images: {
+        // 16.3.1 predates the 16.3.3 fix for GHSA-2xp9-vwfh-vxw4: decoding an
+        // attacker-supplied AVIF through sharp/libheif is RCE. Production is
+        // covered by Vercel's managed optimizer, which has AVIF disabled
+        // platform-side, and the native export is already unoptimized — but a
+        // dev server runs the optimizer in-process, and remotePatterns below
+        // is a wildcard, so any page a developer visits can drive
+        // /_next/image?url=<attacker>.avif. `unoptimized` 404s the endpoint
+        // before the upstream fetch. Drop this line when the release-age floor
+        // allows 16.3.4.
+        unoptimized: process.env.NODE_ENV === 'development',
         remotePatterns: [
             {
                 hostname: '*',
@@ -274,6 +284,11 @@ let nextConfig = {
 
     // Disable source maps in production (already handled by Sentry)
     productionBrowserSourceMaps: false,
+
+    // AGENTS.md and CLAUDE.md are both tracked symlinks to ../AGENTS.md, so
+    // Next 16.3's default agent-rules writer would follow them out of the repo
+    // and overwrite mono's shared instructions on `next dev`.
+    agentRules: false,
 
     // Transpile packages for better compatibility
     transpilePackages: ['@squirrel-labs/peanut-sdk'],
