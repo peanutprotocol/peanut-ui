@@ -15,6 +15,13 @@ export interface QrPaymentRequest {
     qrCode: string
     amount?: string
     qrType?: string
+    /**
+     * Stable per-scan key. The backend replays the price lock it already
+     * created for this key instead of minting a second one at Manteca, which is
+     * what makes retrying this POST after a timeout safe. Optional so an API
+     * build without the guard still accepts the request.
+     */
+    idempotencyKey?: string
 }
 
 export type QrPayment = {

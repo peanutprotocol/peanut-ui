@@ -17,6 +17,9 @@ const mockServerFetch = serverFetch as jest.MockedFunction<typeof serverFetch>
 
 const okResponse = (body: unknown) => ({ ok: true, status: 200, json: async () => body }) as unknown as Response
 
+const errorResponse = (status: number, body: unknown) =>
+    ({ ok: false, status, statusText: 'Error', json: async () => body }) as unknown as Response
+
 describe('mantecaApi.initiateQrPayment — scan timeout forwarding', () => {
     beforeEach(() => jest.clearAllMocks())
 
@@ -57,5 +60,79 @@ describe('mantecaApi.initiateQrPayment — scan timeout forwarding', () => {
         await mantecaApi.initiateQrPayment({ qrCode: '00020101' })
 
         expect(mockServerFetch.mock.calls[0][1]).not.toHaveProperty('timeoutMs')
+    })
+
+    /*
+     * The idempotency key is what makes retrying this POST safe: the backend
+     * replays the price lock it already created rather than minting a second
+     * one at Manteca. Dropping it from the body would restore the orphaned-lock
+     * behaviour with every page test still green.
+     */
+    it('forwards the idempotency key in the body', async () => {
+        mockServerFetch.mockResolvedValue(okResponse({ code: 'LOCK1' }))
+
+        await mantecaApi.initiateQrPayment({ qrCode: '00020101', idempotencyKey: 'scan-key-1' })
+
+        expect(JSON.parse(String(mockServerFetch.mock.calls[0][1]?.body))).toMatchObject({
+            idempotencyKey: 'scan-key-1',
+        })
+    })
+})
+
+/*
+ * The construction itself, not a hand-built fixture.
+ *
+ * Retry gating and the copy mapping both key off the `code` this branch
+ * attaches. Every other suite builds its own `Object.assign(new Error(...), {
+ * name: 'ApiError', code })`, so regressing this throw to a plain Error — or
+ * dropping `code` — would restore four POSTs and generic copy for a
+ * KYC-blocked user while the whole repo stayed green.
+ */
+describe('mantecaApi.initiateQrPayment — error construction', () => {
+    beforeEach(() => jest.clearAllMocks())
+
+    it('preserves name, status, message and code on a reworded rejection', async () => {
+        mockServerFetch.mockResolvedValue(
+            errorResponse(400, { error: 'some entirely reworded sentence', code: 'MANTECA_KYC_REQUIRED' })
+        )
+
+        const thrown = await mantecaApi.initiateQrPayment({ qrCode: '00020101' }).catch((e) => e)
+
+        expect(thrown).toBeInstanceOf(Error)
+        expect(thrown.name).toBe('ApiError')
+        expect(thrown.status).toBe(400)
+        expect(thrown.message).toBe('some entirely reworded sentence')
+        expect(thrown.code).toBe('MANTECA_KYC_REQUIRED')
+    })
+
+    /*
+     * The 422s put the code in `error`, which becomes `message`. The
+     * classifier's legacy fallback reads it from there for API builds that
+     * predate the `code` field, so the message must stay the bare code.
+     */
+    it('keeps the bare code as the message for the legacy 422 shape', async () => {
+        mockServerFetch.mockResolvedValue(errorResponse(422, { error: 'MANTECA_SOURCE_OVER_MONTHLY_CAP' }))
+
+        const thrown = await mantecaApi.initiateQrPayment({ qrCode: '00020101' }).catch((e) => e)
+
+        expect(thrown.message).toBe('MANTECA_SOURCE_OVER_MONTHLY_CAP')
+        expect(thrown.status).toBe(422)
+        expect(thrown.code).toBeUndefined()
+    })
+
+    it('survives an unreadable error body', async () => {
+        mockServerFetch.mockResolvedValue({
+            ok: false,
+            status: 502,
+            statusText: 'Bad Gateway',
+            json: async () => {
+                throw new Error('not json')
+            },
+        } as unknown as Response)
+
+        const thrown = await mantecaApi.initiateQrPayment({ qrCode: '00020101' }).catch((e) => e)
+
+        expect(thrown.name).toBe('ApiError')
+        expect(thrown.status).toBe(502)
     })
 })
