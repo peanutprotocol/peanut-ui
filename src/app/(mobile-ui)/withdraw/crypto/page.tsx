@@ -551,6 +551,8 @@ export default function WithdrawCryptoPage() {
         setTransactionHash,
         setPaymentDetails,
         clearErrors,
+        routeError,
+        calculateCurrentRoute,
         setError,
         triggerHaptic,
         t,

@@ -486,3 +486,33 @@ describe('crypto withdraw retry — record-only replay (TASK-19581 double-spend)
         expect(mockSendMoney).toHaveBeenCalledTimes(2)
     })
 })
+
+describe('crypto withdraw retry — after a route error (cross-chain cap 429, TASK-22154)', () => {
+    // The cap answers the SDA provision with 429 while the route is being
+    // prepared, so the confirm view renders the error with no transactions
+    // built. Retry must recompute the route, not fail on "not prepared".
+    it('Retry recomputes the route instead of failing on the transactions the failed route never built', async () => {
+        const m = mockCrossChainTransfer as unknown as { transactions: unknown; error: unknown; calculate: jest.Mock }
+        const prev = { transactions: m.transactions, error: m.error }
+        m.transactions = null
+        m.error = 'You reached the limit for withdrawals to other networks. Try again in about 50 minutes.'
+        try {
+            render(<WithdrawCryptoPage />)
+            await waitFor(() => expect(m.calculate).toHaveBeenCalled())
+            const calculateCalls = m.calculate.mock.calls.length
+            const errorCalls = mockSetPaymentError.mock.calls.length
+
+            fireEvent.click(screen.getByTestId('confirm-withdraw'))
+
+            await waitFor(() => expect(m.calculate.mock.calls.length).toBe(calculateCalls + 1))
+            expect(mockSendMoney).not.toHaveBeenCalled()
+            expect(mockSendTransactions).not.toHaveBeenCalled()
+            // Retry only clears errors (null); it never sets "transaction not prepared"
+            const afterClick = mockSetPaymentError.mock.calls.slice(errorCalls).map((c) => c[0])
+            expect(afterClick.every((v) => v === null)).toBe(true)
+        } finally {
+            m.transactions = prev.transactions
+            m.error = prev.error
+        }
+    })
+})

@@ -410,7 +410,7 @@ describe('cross-chain withdraw cap (XCHAIN_WITHDRAW_LIMIT_REACHED)', () => {
             retryAfterSec,
         })
 
-    it('renders the wait in the coarsest non-zero unit', () => {
+    it('renders the wait in the coarsest reached unit, rounded up so it never under-promises', () => {
         expect(friendlyError(at(90))).toEqual({
             kind: 'params',
             code: 'xchainWithdrawLimitRetry',
@@ -421,10 +421,14 @@ describe('cross-chain withdraw cap (XCHAIN_WITHDRAW_LIMIT_REACHED)', () => {
             code: 'xchainWithdrawLimitRetry',
             values: { days: 0, hours: 3, minutes: 180 },
         })
+        // 119 min is shown as 2 hours, not 1
+        expect(friendlyError(at(119 * 60))).toMatchObject({ values: { days: 0, hours: 2 } })
+        // 47 h is shown as 2 days, not 1
+        expect(friendlyError(at(47 * 3600))).toMatchObject({ values: { days: 2, hours: 47 } })
         expect(friendlyError(at(2 * 86400 + 60))).toEqual({
             kind: 'params',
             code: 'xchainWithdrawLimitRetry',
-            values: { days: 2, hours: 48, minutes: 2881 },
+            values: { days: 3, hours: 49, minutes: 2881 },
         })
     })
 

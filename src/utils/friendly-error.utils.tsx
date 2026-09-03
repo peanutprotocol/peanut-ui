@@ -217,8 +217,10 @@ const classifyError = (error: unknown): FriendlyError => {
         // the coarsest non-zero unit.
         const minutes = cooldownMinutes(error)
         if (minutes === null) return code('xchainWithdrawLimit')
-        const days = Math.floor(minutes / (24 * 60))
-        const hours = Math.floor(minutes / 60)
+        // Round the shown unit UP so the copy never promises a retry before the
+        // cap lifts; a unit is used only once the wait reaches it.
+        const hours = minutes >= 60 ? Math.ceil(minutes / 60) : 0
+        const days = minutes >= 24 * 60 ? Math.ceil(minutes / (24 * 60)) : 0
         return { kind: 'params', code: 'xchainWithdrawLimitRetry', values: { days, hours, minutes } }
     }
     if (wire) {
