@@ -468,7 +468,12 @@ async function runBridgePath({
         ...(context !== 'claim-xchain' ? { context, contextId } : {}),
     })
 
-    const commit: BridgeCommitResponse = await commitBridgeQuote(quote.quoteId, quote.isSwap, isSameChainSwap)
+    const commit: BridgeCommitResponse = await commitBridgeQuote(
+        quote.quoteId,
+        quote.isSwap,
+        isSameChainSwap,
+        context !== 'claim-xchain' ? { context, contextId } : undefined
+    )
 
     if (!commit.contractAddress) {
         throw new Error('Rhino did not return a bridge contract address — cannot construct tx')

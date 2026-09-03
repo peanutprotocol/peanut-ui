@@ -83,6 +83,11 @@ describe('useCrossChainTransfer — bridge path names its charge', () => {
         expect(mockGetBridgeQuote).toHaveBeenCalledWith(
             expect.objectContaining({ chainOut: 'BASE', tokenOut: 'ETH', context: 'withdraw', contextId: 'charge-1' })
         )
+        // the commit names the same charge: the API allows one live commitment per charge
+        expect(mockCommitBridgeQuote).toHaveBeenCalledWith('quote-1', false, false, {
+            context: 'withdraw',
+            contextId: 'charge-1',
+        })
         expect(result.current.error).toBeNull()
         expect(result.current.transactions).toHaveLength(2)
     })
@@ -103,5 +108,6 @@ describe('useCrossChainTransfer — bridge path names its charge', () => {
         const body = mockGetBridgeQuote.mock.calls[0][0] as Record<string, unknown>
         expect(body).not.toHaveProperty('context')
         expect(body).not.toHaveProperty('contextId')
+        expect(mockCommitBridgeQuote.mock.calls[0][3]).toBeUndefined()
     })
 })

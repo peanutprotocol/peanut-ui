@@ -107,9 +107,15 @@ export function getBridgeQuote(params: BridgeQuoteParams): Promise<BridgeQuoteRe
 export function commitBridgeQuote(
     quoteId: string,
     isSwap: boolean,
-    isSameChainSwap: boolean
+    isSameChainSwap: boolean,
+    /** Same charge as the quote; the API allows one live commitment per charge and refuses commits without it once the cap is on. */
+    charge?: { context: 'withdraw' | 'pay-request'; contextId: string }
 ): Promise<BridgeCommitResponse> {
-    return postJson('/rhino/bridge/commit', { quoteId, isSwap, isSameChainSwap }, 'Failed to commit bridge quote')
+    return postJson(
+        '/rhino/bridge/commit',
+        { quoteId, isSwap, isSameChainSwap, ...(charge ?? {}) },
+        'Failed to commit bridge quote'
+    )
 }
 
 export function getBridgeStatus(bridgeId: string): Promise<BridgeStatusResponse> {
