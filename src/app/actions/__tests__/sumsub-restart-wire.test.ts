@@ -46,7 +46,13 @@ describe('restartIdentityVerification — request', () => {
         expect(requestBody()).toEqual({})
     })
 
-    it('forwards a supported intent', async () => {
+    // The action still accepts an intent (the residence-change caller on `dev`
+    // passes the NEWLY declared one), but callers with only a stale local intent
+    // must send nothing: `resolveRestartIntent` on the route returns the intent
+    // canonical to the declared residence in every non-null branch and never the
+    // one asked for, so a mismatched request is at best a no-op and at worst a
+    // 400 across the provider axis.
+    it('forwards a supported intent when one is given', async () => {
         respondWith(ok)
 
         await restartIdentityVerification('LATAM')

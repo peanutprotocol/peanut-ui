@@ -851,10 +851,15 @@ describe('useSumsubKycFlow — restart uses the server-resolved intent', () => {
         })
 
         await waitFor(() => expect(result.current.isMultiLevel).toBe(true))
+        // Bodyless: the route derives the level from the declared residence, and
+        // forwarding a local intent could only no-op or 400.
+        expect(mockRestart).toHaveBeenCalledWith()
     })
 
     // The override has to work in BOTH directions, or a stale local LATAM would
-    // hold a ROW session open waiting for a questionnaire that never comes.
+    // hold a ROW session open waiting for a questionnaire that never comes. This
+    // is reachable precisely BECAUSE the request is bodyless: a user with a local
+    // LATAM intent but a ROW declared residence gets ROW back from the server.
     it('a resolved ROW response overrides a local LATAM intent to single-level', async () => {
         mockInitiate.mockResolvedValue({
             data: { token: 'tok_0', applicantId: 'app_1', status: 'PENDING' },

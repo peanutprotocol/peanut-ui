@@ -550,7 +550,14 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         actionKeyRef.current = null
 
         try {
-            const response = await restartIdentityVerification(regionIntentRef.current)
+            // Bodyless on purpose. `resolveRestartIntent` on the route returns the
+            // intent CANONICAL to the declared residence in every non-null branch
+            // and never the one asked for, so forwarding a local intent can only
+            // be a no-op — or a 400, when it crosses the provider axis. An AR
+            // resident who had tapped a locked non-LATAM region first would send
+            // ROW/EU against a LATAM residence and get an error instead of the
+            // document upload. The server decides; we read its answer below.
+            const response = await restartIdentityVerification()
             if (response.error) {
                 userInitiatedRef.current = false
                 setError(actionErrorMessage(response))
@@ -558,11 +565,6 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             }
             if (response.data?.token) {
                 setAccessToken(response.data.token)
-                // The restart targets a level the backend chose, which need not be
-                // the one this hook last initiated. `refreshToken` replays this ref
-                // to `initiateSumsubKyc`, so leaving it stale would refresh an
-                // expired restart token against the OLD level.
-                levelNameRef.current = response.data.levelName
                 // The restart no longer reopens the applicant's existing level:
                 // the backend targets the level the DECLARED residence needs, and
                 // can overrule the intent we sent. So the multi-level flag comes
