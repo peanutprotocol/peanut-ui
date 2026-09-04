@@ -1,5 +1,6 @@
 package me.peanut.wallet;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.webkit.WebResourceRequest;
@@ -15,6 +16,30 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 
 public class MainActivity extends BridgeActivity {
+
+    /*
+     * PushProvisioningPlugin compiles only when the MeaWallet Nexus credentials
+     * were present at build time (src/meawallet/java, see app/build.gradle), so
+     * both the registration and the Google Pay activity-result forward go
+     * through reflection — a build without the SDK must run exactly as before.
+     */
+    private void registerPushProvisioningPlugin() {
+        try {
+            registerPlugin(Class.forName("me.peanut.wallet.PushProvisioningPlugin")
+                    .asSubclass(com.getcapacitor.Plugin.class));
+        } catch (Exception ignored) {}
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        try {
+            Object handled = Class.forName("me.peanut.wallet.PushProvisioningPlugin")
+                    .getMethod("handleGooglePayActivityResult", int.class, int.class, Intent.class, android.app.Activity.class)
+                    .invoke(null, requestCode, resultCode, data, this);
+            if (Boolean.TRUE.equals(handled)) return;
+        } catch (Exception ignored) {}
+        super.onActivityResult(requestCode, resultCode, data);
+    }
 
     private void maybeSentryTestCrash() {
         if (getIntent() == null || !getIntent().getBooleanExtra("sentry_test_crash", false)) return;
@@ -32,6 +57,7 @@ public class MainActivity extends BridgeActivity {
     protected void onCreate(Bundle savedInstanceState) {
         // app-local plugin, not auto-discovered — must register before super.onCreate
         registerPlugin(InstallReferrerPlugin.class);
+        registerPushProvisioningPlugin();
         super.onCreate(savedInstanceState);
 
         /*

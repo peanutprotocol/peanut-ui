@@ -197,6 +197,15 @@ jobs:
 
             - name: Build web + sync iOS
               env:
+                  # MeaWallet MPP SDK (Apple Pay push provisioning): postsync
+                  # vendors the xcframework only when these are set, so the
+                  # build stays green until the secrets are provisioned.
+                  # MeaWallet issues separate iOS and Android Nexus credentials,
+                  # and an Environment secret holds one value per name — sharing
+                  # a name would send whichever pair was configured last to both
+                  # platforms and fail the other one's SDK download.
+                  MEAWALLET_NEXUS_USER: ${{ secrets.MEAWALLET_NEXUS_USER_IOS }}
+                  MEAWALLET_NEXUS_PASSWORD: ${{ secrets.MEAWALLET_NEXUS_PASSWORD_IOS }}
                   # postsync stamps project.pbxproj; without this it would stamp
                   # package.json's version, which no longer tracks releases.
                   IOS_MARKETING_VERSION: ${{ steps.version.outputs.name }}
@@ -204,39 +213,83 @@ jobs:
                   node scripts/native-build.js && npx cap sync ios
                   if [ -f scripts/native-ios-postsync.js ]; then node scripts/native-ios-postsync.js; fi
 
+            - name: Write MeaWallet config
+              # mea_config (encrypted, non-sensitive per MeaWallet, but kept out
+              # of git) — the Copy MeaWallet Config build phase bundles it when
+              # present; no-op until the secret is provisioned.
+              env:
+                  MEA_CONFIG: ${{ secrets.MEAWALLET_CONFIG_BASE64 }}
+              run: |
+                  if [ -n "$MEA_CONFIG" ]; then
+                      echo "$MEA_CONFIG" | base64 -d > ios/App/App/mea_config
+                      echo "mea_config written"
+                  else
+                      echo "MEAWALLET_CONFIG_BASE64 not set — push provisioning stays stubbed"
+                  fi
+
             - name: Install Apple distribution certificate
               uses: apple-actions/import-codesign-certs@5142e029c445c10ffc7149d172e540235a065466 # v7
               with:
                   p12-file-base64: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
                   p12-password: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
 
-            - name: Install provisioning profile
+            - name: Install provisioning profiles
               id: provision
               env:
                   IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+                  IOS_PROVISIONING_PROFILE_EXT_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_EXT_BASE64 }}
+                  IOS_PROVISIONING_PROFILE_EXT_UI_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_EXT_UI_BASE64 }}
               run: |
                   PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
                   mkdir -p "$PROFILE_DIR"
-                  echo "$IOS_PROVISIONING_PROFILE_BASE64" | base64 -d > /tmp/profile.mobileprovision
-                  # Decode the profile to read its UUID + Name (no extra secret needed).
-                  security cms -D -i /tmp/profile.mobileprovision > /tmp/profile.plist
-                  PROFILE_UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' /tmp/profile.plist)
-                  PROFILE_NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' /tmp/profile.plist)
-                  cp /tmp/profile.mobileprovision "$PROFILE_DIR/$PROFILE_UUID.mobileprovision"
-                  echo "name=$PROFILE_NAME" >> "$GITHUB_OUTPUT"
-                  echo "Installed provisioning profile: $PROFILE_NAME ($PROFILE_UUID)"
+
+                  # The archive is manual-signed, so EVERY bundle it embeds needs its
+                  # own profile installed and named in ExportOptions — a missing
+                  # extension profile fails the archive, not just the extension.
+                  install_profile() {
+                      local b64="$1" out="$2" var="$3"
+                      if [ -z "$b64" ]; then
+                          echo "::error::$var is empty — the app and both Wallet extensions each need their profile"
+                          exit 1
+                      fi
+                      echo "$b64" | base64 -d > "/tmp/$out.mobileprovision"
+                      # Decode the profile to read its UUID + Name (no extra secret needed).
+                      security cms -D -i "/tmp/$out.mobileprovision" > "/tmp/$out.plist"
+                      local uuid name
+                      uuid=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "/tmp/$out.plist")
+                      name=$(/usr/libexec/PlistBuddy -c 'Print :Name' "/tmp/$out.plist")
+                      cp "/tmp/$out.mobileprovision" "$PROFILE_DIR/$uuid.mobileprovision"
+                      echo "$out=$name" >> "$GITHUB_OUTPUT"
+                      echo "Installed provisioning profile: $name ($uuid)"
+                  }
+
+                  install_profile "$IOS_PROVISIONING_PROFILE_BASE64" profile IOS_PROVISIONING_PROFILE_BASE64
+                  install_profile "$IOS_PROVISIONING_PROFILE_EXT_BASE64" ext IOS_PROVISIONING_PROFILE_EXT_BASE64
+                  install_profile "$IOS_PROVISIONING_PROFILE_EXT_UI_BASE64" extui IOS_PROVISIONING_PROFILE_EXT_UI_BASE64
+
                   # A profile without aps-environment ships an app that can never
                   # register with APNs, even when the entitlements file asks for it.
+                  # Only the app carries push; the extensions legitimately do not.
                   PROFILE_APS=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:aps-environment' /tmp/profile.plist 2>/dev/null || true)
                   if [ "$PROFILE_APS" != "production" ]; then
                       echo "::error::provisioning profile aps-environment is '${PROFILE_APS:-missing}' — enable Push Notifications on the App ID, regenerate the profile, and update IOS_PROVISIONING_PROFILE_BASE64"
                       exit 1
                   fi
 
+                  # The app and the extensions share group.me.peanut.wallet; if the app's
+                  # profile predates that capability the archive signs but the extension
+                  # can never read the store the app writes.
+                  if ! /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.security.application-groups' /tmp/profile.plist 2>/dev/null | grep -q 'group.me.peanut.wallet$'; then
+                      echo "::error::the app profile is missing the group.me.peanut.wallet app group — regenerate it after enabling the App Group on me.peanut.wallet and update IOS_PROVISIONING_PROFILE_BASE64"
+                      exit 1
+                  fi
+
             - name: Archive & export IPA
               env:
                   APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-                  PROFILE_NAME: ${{ steps.provision.outputs.name }}
+                  PROFILE_NAME: ${{ steps.provision.outputs.profile }}
+                  PROFILE_NAME_EXT: ${{ steps.provision.outputs.ext }}
+                  PROFILE_NAME_EXT_UI: ${{ steps.provision.outputs.extui }}
                   # Monotonic, always-increments-even-on-rerun. TestFlight requires each
                   # upload's build number to exceed the last.
                   IOS_BUILD_NUMBER: ${{ github.run_number }}
@@ -272,6 +325,10 @@ jobs:
                       <dict>
                           <key>me.peanut.wallet</key>
                           <string>${PROFILE_NAME}</string>
+                          <key>me.peanut.wallet.PushProvisioningExtension</key>
+                          <string>${PROFILE_NAME_EXT}</string>
+                          <key>me.peanut.wallet.PushProvisioningExtensionUI</key>
+                          <string>${PROFILE_NAME_EXT_UI}</string>
                       </dict>
                       <key>uploadSymbols</key>
                       <true/>

@@ -1581,6 +1581,8 @@
             "navTitle": "Your card",
             "addToGoogleWallet": "Add to Google Wallet",
             "addToAppleWallet": "Add to Apple Wallet",
+            "walletAddSuccess": "Card added to your wallet",
+            "walletAddFailed": "Couldn't add the card to your wallet. Please try again.",
             "cardNumberCopied": "Card number copied",
             "cvvCopied": "CVV copied",
             "autoRenewTitle": "Card auto renews soon",

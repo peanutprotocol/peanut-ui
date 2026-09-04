@@ -2,16 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>com.apple.developer.associated-domains</key>
-	<array>
-		<string>applinks:peanut.me</string>
-		<string>webcredentials:peanut.me</string>
-	</array>
-	<key>aps-environment</key>
-	<string>production</string>
+	<!-- payment-pass-provisioning is added here (and to the App ID) once Apple
+	     grants the entitlement via Rain's request — same timing as the main
+	     app's entitlement. -->
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.me.peanut.wallet.onesignal</string>
 		<string>group.me.peanut.wallet</string>
 	</array>
 </dict>

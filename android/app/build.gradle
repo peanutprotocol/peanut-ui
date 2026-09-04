@@ -92,6 +92,36 @@ repositories {
     }
 }
 
+/*
+ * MeaWallet MPP SDK (Google Pay push provisioning) — credential-gated.
+ * The artifact lives on MeaWallet's private Nexus (repo declared in the root
+ * build.gradle), so both the dependency and PushProvisioningPlugin.java (in
+ * src/meawallet/java) are compiled only when credentials are present — CI
+ * release builds and devs who fetched the 1Password credentials. Without them
+ * the build stays green and MainActivity's reflection lookup of the plugin
+ * silently no-ops, so the web layer falls back to the manual carousel.
+ */
+def meaWalletUser = System.getenv('MEAWALLET_NEXUS_USER') ?: (findProperty('MEAWALLET_NEXUS_USER') ?: null)
+def meaWalletPass = System.getenv('MEAWALLET_NEXUS_PASSWORD') ?: (findProperty('MEAWALLET_NEXUS_PASSWORD') ?: null)
+// Both, because the root build.gradle only declares the Nexus repo when it has
+// both. Gating on the user alone would add the dependency with no repo to
+// resolve it from, so the build fails instead of falling back to the stub.
+if ((meaWalletUser as boolean) != (meaWalletPass as boolean)) {
+    // Half-configured is never intended: a typo'd secret name would otherwise
+    // ship a release binary with push provisioning silently stubbed out.
+    throw new GradleException('[meawallet] set both MEAWALLET_NEXUS_USER and MEAWALLET_NEXUS_PASSWORD, or neither')
+}
+if (meaWalletUser && meaWalletPass) {
+    logger.lifecycle('[meawallet] Nexus credentials present — MPP SDK enabled')
+    android.sourceSets.main.java.srcDirs += 'src/meawallet/java'
+    dependencies {
+        debugImplementation 'com.meawallet:mpp-prod:2.1.0-debug'
+        releaseImplementation 'com.meawallet:mpp-prod:2.1.0'
+    }
+} else {
+    logger.lifecycle('[meawallet] no Nexus credentials — building without MPP SDK (push provisioning stubbed)')
+}
+
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
