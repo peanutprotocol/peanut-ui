@@ -34,10 +34,6 @@ jest.mock('@/components/0_Bruddle/Toast', () => ({
     useToast: () => ({ error: mockToastError }),
 }))
 
-jest.mock('@/redux/hooks', () => ({
-    useSetupStore: () => ({ telegramHandle: '' }),
-}))
-
 jest.mock('@/utils/auth.utils', () => ({ clearAuthState: jest.fn() }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), captureMessage: jest.fn() }))
 

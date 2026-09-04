@@ -2,7 +2,7 @@ import { act, renderHook } from '@testing-library/react'
 import { useZeroDev } from '../useZeroDev'
 import { clearAuthState } from '@/utils/auth.utils'
 
-const mockDispatch = jest.fn()
+const mockSetIsLoggingIn = jest.fn()
 const mockCaptureException = jest.fn()
 const mockToWebAuthnKey = jest.fn()
 
@@ -20,23 +20,21 @@ jest.mock('@/context/loadingStates.context', () => {
     const React = jest.requireActual<typeof import('react')>('react')
     return { loadingStateContext: React.createContext({ setLoadingState: jest.fn() }) }
 })
-jest.mock('@/redux/hooks', () => ({
-    useAppDispatch: () => mockDispatch,
-    useZerodevStore: () => ({
+jest.mock('@/hooks/useZeroDevFlow', () => ({
+    useZeroDevFlow: () => ({
         isKernelClientReady: true,
         isRegistering: false,
         isLoggingIn: false,
         isSendingUserOp: false,
         address: undefined,
     }),
-}))
-jest.mock('@/redux/slices/zerodev-slice', () => ({
-    zerodevActions: {
-        resetZeroDevState: () => ({ type: 'zerodev/reset' }),
-        setIsRegistering: (payload: boolean) => ({ type: 'zerodev/registering', payload }),
-        setIsLoggingIn: (payload: boolean) => ({ type: 'zerodev/logging-in', payload }),
-        setIsSendingUserOp: (payload: boolean) => ({ type: 'zerodev/sending', payload }),
-        setAddress: (payload: string) => ({ type: 'zerodev/address', payload }),
+    zeroDevFlowActions: {
+        reset: jest.fn(),
+        setIsKernelClientReady: jest.fn(),
+        setIsRegistering: jest.fn(),
+        setIsLoggingIn: (value: boolean) => mockSetIsLoggingIn(value),
+        setIsSendingUserOp: jest.fn(),
+        setAddress: jest.fn(),
     },
 }))
 jest.mock('@/utils/invite-stash', () => ({
@@ -118,7 +116,7 @@ describe('useZeroDev handleLogin — passkey-server failures keep the session', 
                 expect.objectContaining({ name: 'PasskeyServerError' }),
                 expect.objectContaining({ tags: { error_type: 'passkey_server_failure' } })
             )
-            expect(mockDispatch).toHaveBeenCalledWith({ type: 'zerodev/logging-in', payload: false })
+            expect(mockSetIsLoggingIn).toHaveBeenCalledWith(false)
         }
     )
 

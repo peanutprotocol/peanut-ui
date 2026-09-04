@@ -10,7 +10,6 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useUserStore } from '@/redux/hooks'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { formatUnits } from 'viem'
@@ -44,8 +43,7 @@ export function HomeModals() {
     const { showPermissionModal } = useNotifications()
     const { isGetAppModalOpen, setIsGetAppModalOpen, isIosPwaInstallModalOpen } = useModalsContext()
     const { balance, isFetchingBalance } = useWallet()
-    const { user } = useUserStore()
-    const { fetchUser } = useAuth()
+    const { user, fetchUser } = useAuth()
     const { isKycApproved } = useCapabilities()
 
     const [showBalanceWarningModal, setShowBalanceWarningModal] = useState(false)

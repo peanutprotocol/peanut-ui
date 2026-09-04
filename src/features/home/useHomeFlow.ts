@@ -5,7 +5,6 @@ import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useActivationStatus } from '@/hooks/useActivationStatus'
 import { useCardInfo } from '@/hooks/useCardInfo'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useUserStore } from '@/redux/hooks'
 import { useEffect } from 'react'
 import { useAccount, useDisconnect } from 'wagmi'
 import { useBalanceVisibility } from './useBalanceVisibility'
@@ -16,8 +15,7 @@ import { useBalanceVisibility } from './useBalanceVisibility'
  */
 export function useHomeFlow() {
     const { spendableBalance, isFetchingSpendableBalance, isSpendableBalanceStale } = useWallet()
-    const { user } = useUserStore()
-    const { isFetchingUser, fetchUser } = useAuth()
+    const { user, isFetchingUser, fetchUser } = useAuth()
     const { isActivated, activationStep, dismissCardStep } = useActivationStatus()
     const { resetFlow: resetClaimBankFlow } = useClaimBankFlow()
     const { isConnected: isWagmiConnected } = useAccount()

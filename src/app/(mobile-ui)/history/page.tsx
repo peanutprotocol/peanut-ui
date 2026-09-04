@@ -11,7 +11,6 @@ import TransactionCard from '@/components/TransactionDetails/TransactionCard'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import { useTransactionHistory } from '@/hooks/useTransactionHistory'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
-import { useUserStore } from '@/redux/hooks'
 import { getUserPreferences } from '@/utils/general.utils'
 import { DateGroup, getDateGroup, getDateGroupKey } from '@/utils/dateGrouping.utils'
 import * as Sentry from '@sentry/nextjs'
@@ -47,7 +46,7 @@ import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 const HistoryPage = () => {
     const t = useTranslations('history')
     const format = useFormatter()
-    const { user } = useUserStore()
+    const { user } = useAuth()
     const queryClient = useQueryClient()
     // one `?tx=` subscription for the whole list — rows are memo'd and get
     // isSelected/open/close as props (see useTransactionDetailsDrawer)

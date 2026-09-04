@@ -4,9 +4,7 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { useUserQuery } from '@/hooks/query/user'
 import { useUserAutoRefresh } from '@/hooks/useUserAutoRefresh'
 import type { IUserProfile } from '@/interfaces/interfaces'
-import { useAppDispatch } from '@/redux/hooks'
-import { userActions } from '@/redux/slices/user-slice'
-import { zerodevActions } from '@/redux/slices/zerodev-slice'
+import { zeroDevFlowActions } from '@/hooks/useZeroDevFlow'
 import {
     removeFromCookie,
     syncLocalStorageToCookie,
@@ -67,7 +65,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
  * adding accounts and logging out. It also provides hooks for child components to access user data and auth-related functions.
  */
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-    const dispatch = useAppDispatch()
     const toast = useToast()
     const tErrors = useTranslations('errors')
     const queryClient = useQueryClient()
@@ -248,7 +245,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     /**
-     * Clears all client-side auth state (cookies, localStorage, redux, caches)
+     * Clears all client-side auth state (cookies, localStorage, query cache, zerodev flags)
      * Used by both normal logout and force logout (when backend is down)
      */
     const clearLocalAuthState = useCallback(async () => {
@@ -295,10 +292,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // re-persist a sliding-refresh token into native Preferences otherwise
         // (Android post-logout splash loop). Don't move it back down.
 
-        // reset redux state (user, zerodev — the invite stash is already
-        // cleared above, and the setup slice died with TASK-21460)
-        dispatch(userActions.setUser(null))
-        dispatch(zerodevActions.resetZeroDevState())
+        // The user query cache is already gone (queryClient.clear() above)
+        // and the invite stash is cleared once at the top of logout — reset
+        // the zerodev flow flags too.
+        zeroDevFlowActions.reset()
 
         // clear service worker caches (non-fatal if it fails)
         await purgeCaches(USER_DATA_CACHE_PATTERNS)
@@ -329,7 +326,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } catch (e) {
             console.warn('posthog reset failed:', e)
         }
-    }, [dispatch, queryClient, user?.user.userId])
+    }, [queryClient, user?.user.userId])
 
     /**
      * Logs out the user

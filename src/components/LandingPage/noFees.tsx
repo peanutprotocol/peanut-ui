@@ -24,7 +24,7 @@ export function NoFees({
     const router = useRouter()
     /*
      * Session is read from the cookie rather than AuthProvider: that context is
-     * the only thing that kept react-query and the redux store mounted on the
+     * the only thing that kept react-query mounted on the
      * marketing site. Native keeps its token outside cookies, but the landing
      * page there is a bootstrap shell that redirects away before this matters.
      */

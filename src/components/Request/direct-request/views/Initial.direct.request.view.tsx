@@ -12,7 +12,7 @@ import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuc
 import UserCard from '@/components/User/UserCard'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useUserStore } from '@/redux/hooks'
+import { useAuth } from '@/context/authContext'
 import { type IAttachmentOptions } from '@/interfaces/attachment'
 import { usersApi } from '@/services/users'
 import { formatAmount } from '@/utils/general.utils'
@@ -34,7 +34,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     const tCommon = useTranslations('common')
     const tLoading = useTranslations('loadingStates')
     const onBack = useSafeBack('/home')
-    const { user: authUser } = useUserStore()
+    const { user: authUser } = useAuth()
     const { spendableBalance: balance, formattedSpendableBalance, address } = useWallet()
     const [attachmentOptions, setAttachmentOptions] = useState<IAttachmentOptions>({
         message: undefined,

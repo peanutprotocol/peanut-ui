@@ -1,6 +1,4 @@
 import { type IUserProfile } from '@/interfaces/interfaces'
-import { useAppDispatch, useUserStore } from '@/redux/hooks'
-import { userActions } from '@/redux/slices/user-slice'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useQuery } from '@tanstack/react-query'
@@ -25,13 +23,10 @@ export class BackendError extends Error {
 
 export const useUserQuery = (dependsOn: boolean = true) => {
     const { deviceType } = useDeviceType()
-    const dispatch = useAppDispatch()
-    const { user: authUser } = useUserStore()
 
     const fetchUser = async (): Promise<IUserProfile | null> => {
         // Demo mode: no backend/JWT/passkey — return the synthetic user.
         if (isDemoMode()) {
-            dispatch(userActions.setUser(DEMO_USER))
             return DEMO_USER
         }
 
@@ -65,7 +60,6 @@ export const useUserQuery = (dependsOn: boolean = true) => {
                     isPwa: isNativeBridge() ? false : isStandaloneDisplayMode(),
                     deviceType,
                 })
-                dispatch(userActions.setUser(payload))
             }
             return payload
         }
@@ -94,9 +88,8 @@ export const useUserQuery = (dependsOn: boolean = true) => {
             await clearAuthToken()
         }
 
-        // 4xx = auth failure, clear stale redux so layout redirects to /setup
+        // 4xx = auth failure — resolve null so the layout redirects to /setup
         console.warn('Failed to fetch user, status:', userResponse.status)
-        dispatch(userActions.setUser(null))
         return null
     }
 
@@ -115,6 +108,10 @@ export const useUserQuery = (dependsOn: boolean = true) => {
         gcTime: 10 * 60 * 1000,
         refetchOnMount: true,
         refetchOnWindowFocus: true,
-        placeholderData: authUser || undefined,
+        // Demo mode: seed the synthetic user synchronously so `user` is never
+        // null on first render — prevents the protected-route layout racing a
+        // /setup redirect before the query settles. (Was the redux user
+        // slice's initialState seed — TASK-21462.)
+        placeholderData: isDemoMode() ? DEMO_USER : undefined,
     })
 }

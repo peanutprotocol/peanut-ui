@@ -4,7 +4,6 @@ import InvitesPage from './InvitesPage'
 
 const mockPush = jest.fn()
 const mockReplace = jest.fn()
-const mockDispatch = jest.fn()
 const mockFetchUser = jest.fn().mockResolvedValue(null)
 const mockLogin = jest.fn().mockResolvedValue(undefined)
 const mockClaimBadgeCampaigns = jest.fn()
@@ -45,7 +44,6 @@ jest.mock('next/navigation', () => ({
 
 jest.mock('@tanstack/react-query', () => ({ useQuery: () => mockQueryResult }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => mockAuth }))
-jest.mock('@/redux/hooks', () => ({ useAppDispatch: () => mockDispatch }))
 const mockStashInvite = jest.fn()
 jest.mock('@/utils/invite-stash', () => ({
     stashInvite: (...args: unknown[]) => mockStashInvite(...args),
@@ -681,7 +679,6 @@ describe('invite and badge campaign routing boundaries', () => {
         fireEvent.click(await screen.findByRole('button', { name: 'Sign up' }))
 
         expect(mockSaveToCookie).not.toHaveBeenCalled()
-        expect(mockDispatch).not.toHaveBeenCalled()
         expect(mockQueuePendingBadgeCampaigns).toHaveBeenCalledWith(['nita'])
         expect(mockPush).toHaveBeenCalledWith('/setup?step=signup')
     })

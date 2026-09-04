@@ -15,10 +15,6 @@ jest.mock('@/utils/auth-token', () => ({
 }))
 jest.mock('@/hooks/usePWAStatus', () => ({ usePWAStatus: () => false, isStandaloneDisplayMode: () => false }))
 jest.mock('@/hooks/useGetDeviceType', () => ({ useDeviceType: () => ({ deviceType: 'desktop' }) }))
-jest.mock('@/redux/hooks', () => ({
-    useAppDispatch: () => jest.fn(),
-    useUserStore: () => ({ user: null }),
-}))
 jest.mock('posthog-js', () => ({ default: { capture: jest.fn() }, capture: jest.fn() }))
 
 const mockApiFetch = apiFetch as jest.MockedFunction<typeof apiFetch>

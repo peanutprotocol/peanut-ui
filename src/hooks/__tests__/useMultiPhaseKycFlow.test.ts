@@ -28,10 +28,12 @@ jest.mock('@/hooks/useWebSocket', () => ({
         mockWs.handler = opts.onSumsubKycStatusUpdate
     },
 }))
-jest.mock('@/redux/hooks', () => ({ useUserStore: () => ({ user: { user: { username: 'test' } } }) }))
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn(), replace: jest.fn() }) }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false, isAndroidNative: () => false }))
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ fetchUser: mockFetchUser, user: null }) }))
+// the transitive useSumsubKycFlow reads user.user.username off the same useAuth
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ fetchUser: mockFetchUser, user: { user: { username: 'test' } } }),
+}))
 jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ capabilities: undefined }) }))
 jest.mock('@/hooks/useSumsubReloadResume', () => ({ useSumsubReloadResume: jest.fn() }))
 jest.mock('@/hooks/useSubmissionWindow', () => ({ markSubmitted: jest.fn() }))

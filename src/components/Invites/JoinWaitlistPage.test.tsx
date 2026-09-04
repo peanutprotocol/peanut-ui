@@ -40,7 +40,6 @@ jest.mock('@/utils/invite-stash', () => ({
     clearInvite: () => mockClearInvite(),
     stashInvite: jest.fn(),
 }))
-jest.mock('@/redux/hooks', () => ({}))
 jest.mock('@/hooks/useNotifications', () => ({
     useNotifications: () => ({
         requestPermission: jest.fn(),

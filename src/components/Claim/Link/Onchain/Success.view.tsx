@@ -6,7 +6,6 @@ import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useAuth } from '@/context/authContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
-import { useUserStore } from '@/redux/hooks'
 import { useClaimSuccessPolling, type ClaimPollFailure } from './useClaimSuccessPolling'
 import { formatTokenAmount, getTokenDetails, shortenStringLong } from '@/utils/general.utils'
 import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
@@ -43,8 +42,7 @@ export const SuccessClaimLinkView = ({
     // The optimistic claim path lands here before the broadcast is known to
     // have succeeded, so a failure can only arrive through the poll below.
     const [claimFailure, setClaimFailure] = useState<{ code: string | null } | null>(null)
-    const { user: authUser } = useUserStore()
-    const { fetchUser } = useAuth()
+    const { user: authUser, fetchUser } = useAuth()
     const router = useRouter()
     const queryClient = useQueryClient()
     const { offrampDetails, claimType, bankDetails } = useClaimBankFlow()

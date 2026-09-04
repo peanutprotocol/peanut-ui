@@ -32,7 +32,6 @@ jest.mock('@/hooks/useNativePlugins', () => ({ useNativePlugins: jest.fn() }))
 jest.mock('@/hooks/useKeepWebBypass', () => ({ useKeepWebBypass: () => false }))
 jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => false }))
 jest.mock('@/hooks/useSafeBack', () => ({}))
-jest.mock('@/redux/hooks', () => ({ useSetupStore: () => ({ showIosPwaInstallScreen: false }) }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false, enableDemoMode: jest.fn() }))
 jest.mock('@/utils/migration.utils', () => ({ shouldShowSunsetBlock: () => false }))
 

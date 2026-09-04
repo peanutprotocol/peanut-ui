@@ -125,7 +125,7 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
 
     /*
      * The query client is needed everywhere — the landing page's exchange-rate
-     * widget is a react-query hook — but the redux store and wagmi are not:
+     * widget is a react-query hook — but wagmi is not:
      * nothing the marketing site renders reads either, and AuthProvider, which
      * did, now lives in AppFlowProviders.
      */
