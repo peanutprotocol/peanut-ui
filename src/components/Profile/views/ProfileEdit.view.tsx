@@ -22,6 +22,18 @@ import { useSafeBack } from '@/hooks/useSafeBack'
 // (same pattern as OPEN_GATED) so the fields come back with the feature.
 const SHOW_COMING_SOON_FIELDS = false
 
+/**
+ * Setting a name for the FIRST time turns the display toggle on: someone who
+ * just typed their name meant it to be shown, and the row on this screen is
+ * where they opt back out. Deliberately only the empty → named transition —
+ * `showFullName` is a plain boolean on the wire with no "never chose" state,
+ * so re-deriving it on every save would silently undo a deliberate off.
+ */
+export const shouldActivateShowFullName = (
+    existingFullName: string | null | undefined,
+    nextFullName: string | undefined
+): boolean => !existingFullName?.trim() && !!nextFullName?.trim()
+
 export const ProfileEditView = () => {
     const t = useTranslations('profile.edit')
     const tMenu = useTranslations('profile.menu')
@@ -125,13 +137,17 @@ export const ProfileEditView = () => {
             }
 
             // prepare request payload
-            const payload: { userId?: string; fullName?: string; email?: string } = {
+            const payload: { userId?: string; fullName?: string; email?: string; showFullName?: boolean } = {
                 userId: user?.user.userId,
             }
 
             // only include name when the field is editable (not provider-locked)
             if (canEditName) {
                 payload.fullName = `${formData.name} ${formData.surname}`.trim()
+            }
+
+            if (shouldActivateShowFullName(user?.user.fullName, payload.fullName)) {
+                payload.showFullName = true
             }
 
             // only include email if it's not already set and has a value

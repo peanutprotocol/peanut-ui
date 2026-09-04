@@ -1,6 +1,8 @@
 'use client'
 
 import PageContainer from '@/components/0_Bruddle/PageContainer'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import ExchangeRateWidget from '@/components/Global/ExchangeRateWidget'
 import NavHeader from '@/components/Global/NavHeader'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -45,26 +47,31 @@ export default function ExchangeRatePage() {
     }
 
     return (
-        <PageContainer className="flex flex-col">
-            <NavHeader title={t('title')} onPrev={onBack} />
-            <div className="m-auto">
-                <ExchangeRateWidget
-                    ctaIcon="arrow-down"
-                    ctaLabel={t('tryIt')}
-                    ctaAction={handleCtaAction}
-                    labels={{
-                        youSend: t('widget.youSend'),
-                        recipientGets: t('widget.recipientGets'),
-                        swapCurrencies: t('widget.swapCurrencies'),
-                        rateUnavailable: t('widget.rateUnavailable'),
-                        bankFee: t('widget.bankFee'),
-                        peanutFee: tCommon('peanutFee'),
-                        free: t('widget.free'),
-                        arrivesHours: t('widget.arrivesHours'),
-                        arrivesMinutes: t('widget.arrivesMinutes'),
-                    }}
-                />
-            </div>
+        <PageContainer>
+            <PageStack gap="6">
+                <NavHeader title={t('title')} onPrev={onBack} />
+                {/* The pair the widget shows is a conversion, not a wallet:
+                    people read "EUR" here as "my balance is in euros". */}
+                <Notification priority="info">{t('balanceNote')}</Notification>
+                <PageStack.Center>
+                    <ExchangeRateWidget
+                        ctaIcon="arrow-down"
+                        ctaLabel={t('tryIt')}
+                        ctaAction={handleCtaAction}
+                        labels={{
+                            youSend: t('widget.youSend'),
+                            recipientGets: t('widget.recipientGets'),
+                            swapCurrencies: t('widget.swapCurrencies'),
+                            rateUnavailable: t('widget.rateUnavailable'),
+                            bankFee: t('widget.bankFee'),
+                            peanutFee: tCommon('peanutFee'),
+                            free: t('widget.free'),
+                            arrivesHours: t('widget.arrivesHours'),
+                            arrivesMinutes: t('widget.arrivesMinutes'),
+                        }}
+                    />
+                </PageStack.Center>
+            </PageStack>
         </PageContainer>
     )
 }
