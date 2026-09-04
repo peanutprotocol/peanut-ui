@@ -295,9 +295,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // re-persist a sliding-refresh token into native Preferences otherwise
         // (Android post-logout splash loop). Don't move it back down.
 
-        // reset redux state (user, setup, zerodev)
+        // reset redux state (user, zerodev — the invite stash is already
+        // cleared above, and the setup slice died with TASK-21460)
         dispatch(userActions.setUser(null))
-        clearInvite()
         dispatch(zerodevActions.resetZeroDevState())
 
         // clear service worker caches (non-fatal if it fails)
