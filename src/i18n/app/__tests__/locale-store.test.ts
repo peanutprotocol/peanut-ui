@@ -227,12 +227,40 @@ describe('emitDeviceContextToAnalytics', () => {
         expect(registered).not.toHaveProperty('binary_version')
     })
 
+    // Two registers on the first emit — the context, then the device identity as
+    // its own step so a bridge that never answers cannot take `platform` and
+    // `app_release` down with it. What must not repeat is the emit itself.
     it('emits once per session', async () => {
         setNavigatorLanguage('pt-BR')
         const store = freshStore()
         await store.emitDeviceContextToAnalytics()
+        const afterFirst = mockRegister.mock.calls.length
         await store.emitDeviceContextToAnalytics()
-        expect(mockRegister).toHaveBeenCalledTimes(1)
+        expect(mockRegister).toHaveBeenCalledTimes(afterFirst)
+    })
+
+    // The cached context is what authContext re-registers after posthog.reset()
+    // wipes super properties, so the identity has to be folded into it — not
+    // just registered — or a logout would silently drop device segmentation.
+    it('folds the device identity into the context it exposes for logout re-register', async () => {
+        setNavigatorLanguage('en-US')
+        const store = freshStore()
+        await store.emitDeviceContextToAnalytics()
+        expect(store.currentDeviceContext()).toEqual(
+            expect.objectContaining({ platform: 'web', device_class: expect.any(String) })
+        )
+    })
+
+    // Super properties reach events, not the person profile. A visitor still
+    // anonymous when the identity resolved gets no $set, so authContext folds
+    // this into its identify payload — without it the cohort omits everyone who
+    // logs in after startup.
+    it('exposes the resolved identity for the identify payload', async () => {
+        setNavigatorLanguage('en-US')
+        const store = freshStore()
+        expect(store.currentDeviceIdentity()).toBeNull()
+        await store.emitDeviceContextToAnalytics()
+        expect(store.currentDeviceIdentity()).toEqual(expect.objectContaining({ device_class: expect.any(String) }))
     })
 
     it('a posthog throw never propagates and leaves the context unset so a retry can register', async () => {

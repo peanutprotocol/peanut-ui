@@ -217,7 +217,9 @@ export interface Translations {
     statusWindowStart: string
     statusIncidentOngoing: string
     statusIncidentResolved: string
-    statusFetchFailed: string
+    statusFeedUnreachable: string
+    statusFeedUnreachableTitle: string
+    statusBucketNotMonitored: string
     statusGroupApp: string
     statusServiceApp: string
     statusServiceSumsub: string
