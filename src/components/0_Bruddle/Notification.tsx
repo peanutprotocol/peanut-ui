@@ -218,11 +218,11 @@ export const Notification = ({
                             <div
                                 className={twMerge(
                                     'min-w-0 flex-1 text-body-s break-words',
-                                    // Body/S carries weight 500, one step heavy for a
-                                    // card floating over a screen. Stacking a weight on
-                                    // a type token is normally banned — this wants a real
-                                    // Body/S-Regular token on the type board.
-                                    isFloating && 'font-normal'
+                                    // Body/S carries weight 500, one step heavy for a card
+                                    // floating over a screen. Its own token, not a weight
+                                    // stacked on Body/S — that is banned, and the merge
+                                    // would drop one of the two anyway.
+                                    isFloating && 'text-body-s-regular'
                                 )}
                             >
                                 {body}

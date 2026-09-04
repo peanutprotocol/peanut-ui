@@ -252,6 +252,13 @@
     --text-body-s: 0.875rem;
     --text-body-s--line-height: 1.25rem;
     --text-body-s--font-weight: 500;
+    /* Body/S at regular weight. The floating notification needs 400 at 14px and
+       stacking `font-normal` on Body/S is banned — a type token carries its own
+       weight. No board defines this step yet; it wants a vlad ruling alongside
+       the background/surface/* tints above. */
+    --text-body-s-regular: 0.875rem;
+    --text-body-s-regular--line-height: 1.25rem;
+    --text-body-s-regular--font-weight: 400;
     --text-body-xs: 0.75rem;
     --text-body-xs--line-height: 1rem;
     --text-body-xs--font-weight: 400;

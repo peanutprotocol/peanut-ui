@@ -791,6 +791,13 @@ export const TEXT_STYLES: TextStyle[] = [
         "fontWeight": "500"
     },
     {
+        "name": "body-s-regular",
+        "section": "semantic",
+        "fontSize": "0.875rem",
+        "lineHeight": "1.25rem",
+        "fontWeight": "400"
+    },
+    {
         "name": "body-xs",
         "section": "semantic",
         "fontSize": "0.75rem",
