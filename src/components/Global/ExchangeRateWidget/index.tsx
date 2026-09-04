@@ -1,5 +1,10 @@
 import CurrencySelect from '@/components/LandingPage/CurrencySelect'
 import countryCurrencyMappings, { getFlagUrl } from '@/constants/countryCurrencyMapping'
+import {
+    resolveExchangeCurrencyPair,
+    toDisplayCurrency,
+    toSupportedExchangeCurrency,
+} from '@/constants/exchange-currencies.consts'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { applyBridgeCrossCurrencyFee, reverseBridgeCrossCurrencyFee } from '@/utils/bridge.utils'
@@ -41,9 +46,22 @@ interface IExchangeRateWidgetProps {
     ctaIcon: IconName
     ctaAction: (sourceCurrency: string, destinationCurrency: string) => void
     labels?: Partial<ExchangeRateWidgetLabels>
+    // Marketing send-to pages seed the URL with currencies that only need a
+    // quote (see the comment on `sourceCurrency` below). Product callers whose
+    // CTA routes into a country flow — currently just /profile/exchange-rate —
+    // need the URL clamped to the six routable currencies instead, or a stale
+    // `?to=PLN` shows a rate the dropdown never offers and the CTA can only
+    // route by falling back to the default pair.
+    restrictToRoutable?: boolean
 }
 
-const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, ctaAction, labels }) => {
+const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
+    ctaLabel,
+    ctaIcon,
+    ctaAction,
+    labels,
+    restrictToRoutable = false,
+}) => {
     const l = { ...DEFAULT_LABELS, ...labels }
     // shallow + history:'replace' uses window.history.replaceState — bypasses
     // Next.js navigation so URL updates don't (occasionally) scroll the page
@@ -57,8 +75,21 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
         { shallow: true, history: 'replace', scroll: false }
     )
 
-    const sourceCurrency = query.from
-    const destinationCurrency = query.to
+    // Normalised, and — for marketing callers — not filtered to the routable
+    // six. Those pages seed this URL from their MDX frontmatter
+    // (Marketing/mdx/ExchangeWidget.tsx) with ~20 currencies the FX feed
+    // quotes but no rail supports — THB, PLN, JPY and the rest. Rejecting those
+    // would render a euro rate on a "send money to Thailand" page. Displaying
+    // a quote and offering a payment rail are different permissions — but a
+    // caller whose CTA routes into a country flow needs both to agree, so it
+    // opts into the routable-only parse via `restrictToRoutable`.
+    const resolveCurrency = restrictToRoutable ? toSupportedExchangeCurrency : toDisplayCurrency
+    // Resolved as a pair, not two independently-defaulted sides — see
+    // resolveExchangeCurrencyPair. A page that derives its own label or
+    // redirect from this same URL before the widget mounts (currently just
+    // /profile/exchange-rate) must call this exact function too, or its
+    // fallback can disagree with what the widget ends up showing.
+    const [sourceCurrency, destinationCurrency] = resolveExchangeCurrencyPair(query.from, query.to, resolveCurrency)
     const urlSourceAmount = query.amount > 0 ? query.amount : 10
 
     // Exchange rate hook handles all the conversion logic
@@ -108,7 +139,12 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
     // Setter functions that update URL
     // USD must always be one of the two currencies in the pair
     const setSourceCurrency = useCallback(
-        (currency: string) => {
+        (raw: string) => {
+            // CurrencySelect only renders supported rows, so this is a type
+            // narrowing rather than a real filter — but it is the same door the
+            // URL comes through, and one of them had no guard at all.
+            const currency = toSupportedExchangeCurrency(raw)
+            if (!currency) return
             if (currency === 'USD') {
                 // If setting source to USD and destination is already USD, switch destination
                 if (destinationCurrency === 'USD') {
@@ -124,7 +160,9 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
     )
 
     const setDestinationCurrency = useCallback(
-        (currency: string) => {
+        (raw: string) => {
+            const currency = toSupportedExchangeCurrency(raw)
+            if (!currency) return
             if (currency === 'USD') {
                 if (sourceCurrency === 'USD') {
                     updateUrlParams({ from: 'EUR', to: currency }) // fallback to EUR

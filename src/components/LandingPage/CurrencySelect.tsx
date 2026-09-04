@@ -1,11 +1,11 @@
 'use client'
 import { Popover, PopoverButton, PopoverPanel } from '@headlessui/react'
-import React, { useState, useMemo } from 'react'
-import BaseInput from '../0_Bruddle/BaseInput'
+import React, { useMemo } from 'react'
 import { Icon } from '../Global/Icons/Icon'
 import { twMerge } from '@/utils/tw'
 import Image from 'next/image'
 import countryCurrencyMappings, { getFlagUrl } from '@/constants/countryCurrencyMapping'
+import { SUPPORTED_EXCHANGE_CURRENCIES } from '@/constants/exchange-currencies.consts'
 import StatusBadge from '../Global/Badges/StatusBadge'
 
 interface CurrencySelectProps {
@@ -16,15 +16,16 @@ interface CurrencySelectProps {
 }
 
 // Transform the currency mappings into the format expected by the component
-const currencies = countryCurrencyMappings.map((mapping) => ({
-    countryCode: mapping.flagCode,
-    country: mapping.country,
-    currency: mapping.currencyCode,
-    currencyName: mapping.currencyName,
-    comingSoon: mapping.comingSoon || false,
-}))
-
-const popularCurrencies = ['USD', 'EUR', 'ARS', 'BRL', 'MXN']
+const currencies = SUPPORTED_EXCHANGE_CURRENCIES.map((code) => {
+    const mapping = countryCurrencyMappings.find((m) => m.currencyCode === code)!
+    return {
+        countryCode: mapping.flagCode,
+        country: mapping.country,
+        currency: mapping.currencyCode,
+        currencyName: mapping.currencyName,
+        comingSoon: mapping.comingSoon || false,
+    }
+})
 
 const CurrencySelect = ({
     selectedCurrency,
@@ -32,24 +33,10 @@ const CurrencySelect = ({
     trigger,
     excludeCurrencies = [],
 }: CurrencySelectProps) => {
-    const [searchTerm, setSearchTerm] = useState('')
-
-    const filteredCurrencies = useMemo(() => {
-        // First filter out excluded currencies
-        const availableCurrencies = currencies.filter((currency) => !excludeCurrencies.includes(currency.currency))
-
-        if (!searchTerm.trim()) {
-            return availableCurrencies
-        }
-
-        const lowerSearchTerm = searchTerm.toLowerCase().trim()
-        return availableCurrencies.filter(
-            (currency) =>
-                currency.currency.toLowerCase().includes(lowerSearchTerm) ||
-                currency.country.toLowerCase().includes(lowerSearchTerm) ||
-                currency.currencyName.toLowerCase().includes(lowerSearchTerm)
-        )
-    }, [searchTerm, excludeCurrencies])
+    const availableCurrencies = useMemo(
+        () => currencies.filter((currency) => !excludeCurrencies.includes(currency.currency)),
+        [excludeCurrencies]
+    )
 
     return (
         <Popover className="relative">
@@ -58,72 +45,29 @@ const CurrencySelect = ({
                     <PopoverButton as={React.Fragment}>{trigger}</PopoverButton>
                     <PopoverPanel
                         anchor="bottom end"
-                        className="z-50 mt-4 h-72 w-72 overflow-scroll rounded-sm border border-black bg-white shadow-lg sm:w-80 md:w-96"
+                        className="z-50 mt-4 w-72 overflow-scroll rounded-sm border border-black bg-white shadow-lg sm:w-80 md:w-96"
                         // usePullToRefresh listens on `document` and only bails on window.scrollY > 0,
                         // so scrolling this panel at page top reads as a pull. Same guard as Global/Drawer.
                         onTouchMove={(e: React.TouchEvent) => e.stopPropagation()}
                     >
-                        <div className="flex max-h-full w-full flex-col gap-4 overflow-hidden p-4">
-                            <div className="relative w-full">
-                                <div className="absolute top-1/2 left-2 -translate-y-1/2">
-                                    <Icon name="search" size={15} />
-                                </div>
-                                <BaseInput
-                                    type="text"
-                                    placeholder="Currency or country"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="h-10 w-full rounded-sm border-[1.15px] border-black pr-10 pl-10 font-normal caret-[#FF90E8] focus:border-black focus:ring-0 focus:outline-none"
+                        <div className="flex max-h-full w-full flex-col items-start overflow-y-scroll p-4">
+                            {availableCurrencies.map((currency, index) => (
+                                <CurrencyBox
+                                    key={`${currency.countryCode}-${currency.country}-${index}`}
+                                    countryCode={currency.countryCode}
+                                    country={currency.country}
+                                    currency={currency.currency}
+                                    currencyName={currency.currencyName}
+                                    comingSoon={currency.comingSoon}
+                                    selected={currency.currency === selectedCurrency}
+                                    onSelect={() => {
+                                        if (!currency.comingSoon) {
+                                            close()
+                                            setSelectedCurrency(currency.currency)
+                                        }
+                                    }}
                                 />
-                            </div>
-
-                            <div className="flex max-h-full w-full flex-col items-start overflow-y-scroll">
-                                {!searchTerm && (
-                                    <h2 className="text-left text-xs font-normal text-gray-1">Popular currencies</h2>
-                                )}
-                                {filteredCurrencies
-                                    .filter((currency) => popularCurrencies.includes(currency.currency))
-                                    .map((currency, index) => (
-                                        <CurrencyBox
-                                            key={`${currency.countryCode}-${currency.country}-${index}`}
-                                            countryCode={currency.countryCode}
-                                            country={currency.country}
-                                            currency={currency.currency}
-                                            currencyName={currency.currencyName}
-                                            comingSoon={currency.comingSoon}
-                                            selected={currency.currency === selectedCurrency}
-                                            onSelect={() => {
-                                                if (!currency.comingSoon) {
-                                                    close()
-                                                    setSelectedCurrency(currency.currency)
-                                                }
-                                            }}
-                                        />
-                                    ))}
-
-                                {!searchTerm && (
-                                    <h2 className="text-left text-xs font-normal text-gray-1">Supported currencies</h2>
-                                )}
-                                {filteredCurrencies
-                                    .filter((currency) => !popularCurrencies.includes(currency.currency))
-                                    .map((currency, index) => (
-                                        <CurrencyBox
-                                            key={`${currency.countryCode}-${currency.country}-${index}`}
-                                            countryCode={currency.countryCode}
-                                            country={currency.country}
-                                            currency={currency.currency}
-                                            currencyName={currency.currencyName}
-                                            comingSoon={currency.comingSoon}
-                                            selected={currency.currency === selectedCurrency}
-                                            onSelect={() => {
-                                                if (!currency.comingSoon) {
-                                                    close()
-                                                    setSelectedCurrency(currency.currency)
-                                                }
-                                            }}
-                                        />
-                                    ))}
-                            </div>
+                            ))}
                         </div>
                     </PopoverPanel>
                 </>

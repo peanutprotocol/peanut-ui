@@ -59,10 +59,13 @@ jest.mock('@/components/Global/NavHeader', () => ({
     ),
 }))
 
+// The real widget clamps its own currencies via `restrictToRoutable` — this
+// stub instead forwards whatever the URL currently says, so the CTA-handler
+// tests below exercise the page's own defensive clamp independently of that.
 jest.mock('@/components/Global/ExchangeRateWidget', () => ({
     __esModule: true,
     default: ({ ctaAction, ctaLabel }: any) => (
-        <button data-testid="widget-cta" onClick={() => ctaAction('USD', 'EUR')}>
+        <button data-testid="widget-cta" onClick={() => ctaAction(mockPair.from, mockPair.to)}>
             {ctaLabel}
         </button>
     ),
@@ -81,6 +84,8 @@ const renderPage = (search = '') => {
 
 beforeEach(() => {
     jest.clearAllMocks()
+    mockPair.from = 'USD'
+    mockPair.to = 'EUR'
     mockUseWallet.mockReturnValue({ balance: 0n })
     mockUseCapabilities.mockReturnValue({ rails: [] })
     mockGetRedirectRoute.mockReturnValue('/add-money')
@@ -130,5 +135,55 @@ describe('exchange-rate CTA', () => {
         renderPage()
 
         expect(screen.getByTestId('widget-cta')).toHaveTextContent('Withdraw now')
+    })
+
+    /*
+     * A stale bookmark or hand-edited URL can carry a currency the dropdown no
+     * longer offers (`?from=PLN`, predating the six-currency trim). The label
+     * above is derived from a clamped pair; the click handler used to pass the
+     * widget's raw values straight through, so a positive balance with
+     * `?from=PLN&to=EUR` named "Withdraw now" but routed to /add-money/poland.
+     */
+    it('clamps a non-routable currency to the same pair for both the label and the route', () => {
+        mockPair.from = 'PLN'
+        mockPair.to = 'EUR'
+        mockGetRedirectRoute.mockReturnValue('/withdraw?currencyCode=EUR')
+        renderPage()
+
+        expect(screen.getByTestId('widget-cta')).toHaveTextContent('Withdraw now')
+
+        fireEvent.click(screen.getByTestId('widget-cta'))
+
+        // Every call — the label's `destination` computation and the click
+        // handler's redirect — must see PLN clamped to the USD default, never
+        // the raw, unsupported currency.
+        expect(mockGetRedirectRoute.mock.calls.length).toBeGreaterThan(0)
+        for (const [from, to] of mockGetRedirectRoute.mock.calls) {
+            expect(from).toBe('USD')
+            expect(to).toBe('EUR')
+        }
+    })
+
+    /*
+     * `?from=PLN&to=USD` is the collision case: PLN is invalid and would
+     * independently default to 'USD', landing on the same currency as the
+     * other, explicit and valid 'USD' side. The page must resolve this pair
+     * through the same pair-aware function the widget uses (EUR/USD), not its
+     * own independent fallback (which used to produce USD/USD) — otherwise
+     * the label names one flow and the tap opens another.
+     */
+    it('resolves an invalid source next to an explicit USD to EUR, not USD/USD', () => {
+        mockPair.from = 'PLN'
+        mockPair.to = 'USD'
+        mockGetRedirectRoute.mockReturnValue('/withdraw?currencyCode=USD')
+        renderPage()
+
+        fireEvent.click(screen.getByTestId('widget-cta'))
+
+        expect(mockGetRedirectRoute.mock.calls.length).toBeGreaterThan(0)
+        for (const [from, to] of mockGetRedirectRoute.mock.calls) {
+            expect(from).toBe('EUR')
+            expect(to).toBe('USD')
+        }
     })
 })
