@@ -60,6 +60,9 @@ import { UnsupportedWebViewScreen } from '@/components/Global/UnsupportedWebView
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import { FAQsPanel } from '@/components/Global/FAQs'
+import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
+import { ContributorsDrawer } from '@/features/payments/flows/contribute-pot/components/ContributorsDrawer'
+import PerkClaimModal from '@/components/Home/PerkClaimModal'
 import IosPwaInstallModal from '@/components/Global/IosPwaInstallModal'
 import NoMoreJailModal from '@/components/Global/NoMoreJailModal'
 
@@ -425,7 +428,20 @@ export const SURFACES: Record<string, Surface> = {
     '46-c-perkclaimmodal': {
         name: 'PerkClaimModal',
         path: 'Home/PerkClaimModal.tsx',
-        blocked: 'Needs a PendingPerk from the perks endpoint; no fixture serves one yet.',
+        render: () => (
+            <PerkClaimModal
+                visible
+                onClose={noop}
+                onClaimed={noop}
+                perk={{
+                    id: 'perk-1',
+                    name: 'Invite bonus',
+                    amountUsd: 5,
+                    createdAt: '2026-08-01T10:00:00.000Z',
+                    inviteeName: 'Ana',
+                }}
+            />
+        ),
     },
     '47-c-welcomeunlockmodal': {
         name: 'WelcomeUnlockModal',
@@ -445,7 +461,26 @@ export const SURFACES: Record<string, Surface> = {
     '50-d-transactiondetailsdrawer': {
         name: 'TransactionDetailsDrawer',
         path: 'TransactionDetails/TransactionDetailsDrawer.tsx',
-        blocked: 'Needs a full TransactionDetails record; reachable from the /history fixture, not from a prop.',
+        render: () => (
+            <TransactionDetailsDrawer
+                isOpen
+                onClose={noop}
+                transaction={
+                    {
+                        id: 'demo-tx',
+                        direction: 'OUTGOING',
+                        userName: 'ana',
+                        fullName: 'Ana Ruiz',
+                        amount: 25,
+                        initials: 'AR',
+                        status: 'completed',
+                        date: '2026-08-01T10:00:00.000Z',
+                        memo: 'Dinner',
+                    } as never
+                }
+                transactionAmount="$25.00"
+            />
+        ),
     },
     '51-d-homeactiondrawers': {
         name: 'HomeActionDrawers',
@@ -455,7 +490,14 @@ export const SURFACES: Record<string, Surface> = {
     '52-d-contributorsdrawer': {
         name: 'ContributorsDrawer',
         path: 'features/payments/flows/contribute-pot/components/ContributorsDrawer.tsx',
-        blocked: 'Rendered inside the contribute-pot flow, which owns the open state.',
+        render: () => (
+            <ContributorsDrawer
+                contributors={[
+                    { uuid: 'c1', username: 'ana', amount: '25.00', createdAt: '2026-08-01T10:00:00.000Z' },
+                    { uuid: 'c2', username: 'bruno', amount: '10.00', createdAt: '2026-08-01T11:00:00.000Z' },
+                ]}
+            />
+        ),
     },
     '53-d-cancelsendlinkdrawer': {
         name: 'CancelSendLinkDrawer',
@@ -495,7 +537,7 @@ export const SURFACES: Record<string, Surface> = {
         path: 'Global/SuccessViewComponents/SuccessViewDetailsCard.tsx',
         render: () => (
             <div className="p-4">
-                <SuccessViewDetailsCard title="Sent to @ana" amountDisplay="$25.00" description="Arrives in minutes" />
+                <SuccessViewDetailsCard title="Sent to @ana" amountDisplay="25.00" description="Arrives in minutes" />
             </div>
         ),
     },

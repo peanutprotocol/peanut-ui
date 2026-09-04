@@ -1374,14 +1374,14 @@
             "cameraSwitchFailed": "No se pudo cambiar de cámara. Intentalo de nuevo.",
             "cameraPermission": {
                 "withStepsHint": "Seguí estos pasos para habilitar el acceso a la cámara y volvé a intentarlo.",
-                "noStepsHint": "Activá el acceso a la cámara en tu configuración y volvé a intentarlo.",
-                "androidChrome1": "Tocá el ícono del candado en la barra de direcciones",
-                "androidChrome2": "Tocá “Permisos”",
-                "androidChrome3": "Activá la cámara",
-                "iosChrome1": "Abrí Ajustes → Chrome",
-                "iosChrome2": "Activá la cámara",
-                "iosSafari1": "Tocá “aA” en la barra de direcciones",
-                "iosSafari2": "Tocá “Ajustes del sitio web”"
+                "noStepsHint": "Habilitá el acceso a la cámara en la configuración de tu navegador o dispositivo y volvé a intentarlo.",
+                "androidChrome1": "Paso 1: tocá el ícono del candado en la barra de direcciones",
+                "androidChrome2": "Paso 2: tocá “Permisos”",
+                "androidChrome3": "Paso 3: activá la cámara",
+                "iosChrome1": "Paso 1: abrí Ajustes → Chrome",
+                "iosChrome2": "Paso 2: activá la cámara",
+                "iosSafari1": "Paso 1: tocá “aA” en la barra de direcciones",
+                "iosSafari2": "Paso 2: tocá “Ajustes del sitio web”"
             }
         },
         "qrScannerOverlay": {

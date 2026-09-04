@@ -107,11 +107,7 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '43-c-scantodownloadmodal': { name: 'ScanToDownloadModal', path: 'Migration/ScanToDownloadModal.tsx' },
     '44-c-otaupdatemodal': { name: 'OtaUpdateModal (normal)', path: 'Profile/components/OtaUpdateModal.tsx' },
     '45-c-residencechangemodal': { name: 'ResidenceChangeModal', path: 'Profile/views/ResidenceChangeModal.tsx' },
-    '46-c-perkclaimmodal': {
-        name: 'PerkClaimModal',
-        path: 'Home/PerkClaimModal.tsx',
-        blocked: 'Needs a PendingPerk from the perks endpoint; no fixture serves one yet.',
-    },
+    '46-c-perkclaimmodal': { name: 'PerkClaimModal', path: 'Home/PerkClaimModal.tsx' },
     '47-c-welcomeunlockmodal': { name: 'WelcomeUnlockModal', path: 'Home/WelcomeUnlockModal/index.tsx' },
     '48-c-balancewarningmodal': { name: 'BalanceWarningModal', path: 'Global/BalanceWarningModal/index.tsx' },
     '49-c-tokenandnetworkconfirmationmodal': {
@@ -121,7 +117,6 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '50-d-transactiondetailsdrawer': {
         name: 'TransactionDetailsDrawer',
         path: 'TransactionDetails/TransactionDetailsDrawer.tsx',
-        blocked: 'Needs a full TransactionDetails record; reachable from the /history fixture, not from a prop.',
     },
     '51-d-homeactiondrawers': {
         name: 'HomeActionDrawers',
@@ -131,7 +126,6 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '52-d-contributorsdrawer': {
         name: 'ContributorsDrawer',
         path: 'features/payments/flows/contribute-pot/components/ContributorsDrawer.tsx',
-        blocked: 'Rendered inside the contribute-pot flow, which owns the open state.',
     },
     '53-d-cancelsendlinkdrawer': { name: 'CancelSendLinkDrawer', path: 'Global/CancelSendLinkDrawer/index.tsx' },
     '54-d-qrbottomdrawer': {
