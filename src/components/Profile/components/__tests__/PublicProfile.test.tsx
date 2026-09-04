@@ -9,7 +9,7 @@ import en from '@/i18n/app/messages/en.json'
 
 const mockPush = jest.fn()
 const mockBack = jest.fn()
-const mockSaveToCookie = jest.fn()
+const mockStashInvite = jest.fn()
 const mockGetByUsername = jest.fn()
 const mockValidateInviteCode = jest.fn()
 const mockInterceptGuestCta = jest.fn(() => false)
@@ -31,9 +31,12 @@ jest.mock('@/hooks/useGuestStoreHandoff', () => ({
         storeHandoffModal: <div data-testid="store-handoff" />,
     }),
 }))
+jest.mock('@/utils/invite-stash', () => ({
+    stashInvite: (...args: unknown[]) => mockStashInvite(...args),
+}))
 jest.mock('@/utils/general.utils', () => {
     const actual = jest.requireActual('@/utils/general.utils')
-    return { ...actual, saveToCookie: (...args: unknown[]) => mockSaveToCookie(...args) }
+    return { ...actual }
 })
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
@@ -132,7 +135,7 @@ describe('PublicProfile guest door', () => {
 
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/invite?code=satoshi'))
         expect(mockValidateInviteCode).toHaveBeenCalledWith('satoshi')
-        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'satoshi')
+        expect(mockStashInvite).toHaveBeenCalledWith('satoshi', 'DIRECT')
         expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
             source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,
             link_type: 'invite_code',
@@ -150,7 +153,7 @@ describe('PublicProfile guest door', () => {
         // runs in a promise continuation — so it must fire before the validation
         // response lands, not after it
         expect(mockInterceptGuestCta).toHaveBeenCalled()
-        expect(mockSaveToCookie).not.toHaveBeenCalled()
+        expect(mockStashInvite).not.toHaveBeenCalled()
 
         settleValidation({
             success: true,
@@ -160,7 +163,7 @@ describe('PublicProfile guest door', () => {
         })
 
         // the handoff opens `_blank`, so this tab lives on and the cookie lands
-        await waitFor(() => expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'satoshi'))
+        await waitFor(() => expect(mockStashInvite).toHaveBeenCalledWith('satoshi', 'DIRECT'))
         expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
             source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,
             link_type: 'invite_code',
@@ -209,7 +212,7 @@ describe('PublicProfile guest door', () => {
         fireEvent.click(joinButtons[joinButtons.length - 1])
 
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/invite?code=satoshi'))
-        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'satoshi')
+        expect(mockStashInvite).toHaveBeenCalledWith('satoshi', 'DIRECT')
     })
 
     // Three ways a code fails to credit. All three still navigate — /invite owns
@@ -230,7 +233,7 @@ describe('PublicProfile guest door', () => {
             fireEvent.click(await screen.findByRole('button', { name: JOIN_CTA }))
 
             await waitFor(() => expect(mockPush).toHaveBeenCalledWith(`/invite?code=${expectedCode}`))
-            expect(mockSaveToCookie).not.toHaveBeenCalled()
+            expect(mockStashInvite).not.toHaveBeenCalled()
             expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
                 source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,
                 link_type: 'none',

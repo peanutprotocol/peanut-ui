@@ -97,6 +97,9 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
                     }
                     verifiedWithdrawal = artifact.rainWithdrawal
                 }
+                // No draft back-out on a lockCard throw: the backend may have
+                // consumed the withdrawal before the error surfaced — cleanup
+                // belongs to the probe-verified TTL sweep (TASK-21815 review).
                 await rainApi.lockCard(cardId, verifiedWithdrawal)
             } else {
                 await rainApi.activateCard(cardId)

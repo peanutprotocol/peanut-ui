@@ -25,6 +25,7 @@ import { useModalsContextOptional } from '@/context/ModalsContext'
 import { isDemoMode } from '@/utils/demo'
 import { debitDemoBalance } from '@/utils/demo-balance'
 import { resolveSettledTxHash } from '@/utils/settled-tx-hash.utils'
+import { WebAuthnErrorName } from '@/utils/webauthn.utils'
 import {
     resolveSpendStrategy,
     runCollateralSpendPreflight,
@@ -168,6 +169,20 @@ export const useSpendBundle = () => {
             onStrategyDecided?.(strategy)
             posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_ATTEMPTED, { strategy, kind })
 
+            // Hoisted so the catch can back an abandoned draft out — `prep`
+            // itself is block-scoped inside the try (TASK-21815). Once a
+            // broadcast is ATTEMPTED, a throw is execution-ambiguous (the
+            // response may be lost after money moved) — from that point the
+            // catch must NOT cancel; the backend's TTL sweep (probe-verified)
+            // owns cleanup.
+            let livePreparationId: string | undefined
+            let broadcastAttempted = false
+            // Sticky: an attempt that crossed the broadcast boundary and then
+            // failed WITHOUT a ceremony rejection of its own (the session-key
+            // attempt falls through to the passkey path). Once set, NOTHING
+            // may cancel this draft — not even a later ceremony rejection on
+            // the fallback attempt: the earlier broadcast may have landed.
+            let ambiguousBroadcast = false
             try {
                 // Shared collateral pre-flights (root-validator migration gate +
                 // session-key grant) — ONE ordered sequence for both spend
@@ -190,22 +205,27 @@ export const useSpendBundle = () => {
 
                 // ─── collateral-only ──────────────────────────────────────────────
                 if (strategy === 'collateral-only') {
+                    // The backend chooses the intent kind from the destination
+                    // (TASK-21815) — nothing user-declared goes on the wire.
                     const prep = await rainApi.prepareWithdrawal({
                         amount: usdcUnitsToRainCents(requiredUsdcAmount).toString(),
                         recipientAddress: recipient!,
                         directTransfer: true,
-                        kind,
                         // When set, the backend uses the charge as the prep and
                         // completes it directly on confirm; a follow-up
                         // recordPayment re-enters the same trusted-completion
                         // path idempotently (see SpendBundleInput.chargeId).
                         chargeId,
                     })
+                    // A charge-backed prep IS the charge — never back it out
+                    // through the draft-cancel door.
+                    if (!chargeId) livePreparationId = prep.preparationId
 
                     const adminSignature = (await withCeremonyPurpose('admin_eip712', () =>
                         activeClient.account!.signTypedData(buildRainWithdrawTypedData(prep, chainIdNum))
                     )) as Hex
 
+                    broadcastAttempted = true
                     const { txHash } = await rainApi.submitWithdrawal({
                         preparationId: prep.preparationId,
                         amount: prep.amount,
@@ -264,11 +284,11 @@ export const useSpendBundle = () => {
                     // withdraw beneficiary, which equals msg.sender-to-be in the follow-up UserOp.
                     recipientAddress: adminAddress,
                     directTransfer: false,
-                    kind,
                     // History shows the full user-initiated spend, not just the
                     // shortfall Rain signed over.
                     totalAmountCents: usdcUnitsToRainCents(requiredUsdcAmount).toString(),
                 })
+                livePreparationId = prep.preparationId
 
                 /*
                  * One-tap variant (dark flag): a per-transaction ephemeral key
@@ -283,9 +303,14 @@ export const useSpendBundle = () => {
                     posthog.capture(ANALYTICS_EVENTS.SESSION_KEY_SPEND_ATTEMPTED, { kind })
                     modals?.setIsSecurityVerificationOpen?.(true)
                     let attempt: Awaited<ReturnType<typeof tryMixedEphemeralSpend>>
+                    let ephemeralCrossed = false
                     try {
                         const patchedSudoValidator = await getPatchedSudoValidator(peanutPublicClient)
                         attempt = await tryMixedEphemeralSpend({
+                            onBroadcastAttempt: () => {
+                                broadcastAttempted = true
+                                ephemeralCrossed = true
+                            },
                             publicClient: peanutPublicClient,
                             chain: PEANUT_WALLET_CHAIN,
                             patchedSudoValidator,
@@ -298,6 +323,11 @@ export const useSpendBundle = () => {
                     } finally {
                         modals?.setIsSecurityVerificationOpen?.(false)
                     }
+                    // A crossed-but-failed session-key attempt is ambiguous
+                    // forever — the fallback passkey attempt reuses the SAME
+                    // prep (only one can execute on-chain), so the draft must
+                    // never be cancelled after this point.
+                    if (!attempt.ok && ephemeralCrossed) ambiguousBroadcast = true
                     if (attempt.ok) {
                         const mixedTxHash = resolveSettledTxHash(
                             { receipt: attempt.receipt, userOpHash: attempt.userOpHash },
@@ -379,7 +409,11 @@ export const useSpendBundle = () => {
                         ...(transferCall ? [transferCall] : []),
                         ...subsequentCalls,
                     ]
-                    const { userOpHash, receipt } = await handleSendUserOpEncoded(calls, chainIdStr)
+                    const { userOpHash, receipt } = await handleSendUserOpEncoded(calls, chainIdStr, {
+                        onBroadcastAttempt: () => {
+                            broadcastAttempted = true
+                        },
+                    })
 
                     // Stamp the intent so the Rain collateral webhook reconciles to the
                     // right category (P2P_SEND, CRYPTO_WITHDRAW, etc). Non-blocking —
@@ -398,6 +432,21 @@ export const useSpendBundle = () => {
                     modals?.setIsSecurityVerificationOpen?.(false)
                 }
             } catch (e) {
+                // Back the abandoned draft out ONLY when the failure provably
+                // precedes any broadcast: either the broadcast boundary was
+                // never reached (grant/setup/first-ceremony failure), or the
+                // throw is a WebAuthn ceremony rejection — an unsigned op
+                // cannot have been submitted, so a dismissed tap #2 inside the
+                // broadcast call is still pre-broadcast. Anything else is
+                // execution-ambiguous (money may have moved with the response
+                // lost) and relies on the backend's probe-verified TTL sweep
+                // (TASK-21815 review). Fire-and-forget either way.
+                const ceremonyRejection = Object.values(WebAuthnErrorName).includes(
+                    (e as Error)?.name as WebAuthnErrorName
+                )
+                if (livePreparationId && !ambiguousBroadcast && (!broadcastAttempted || ceremonyRejection)) {
+                    void rainApi.cancelPreparation(livePreparationId)
+                }
                 const errorKind =
                     e instanceof SessionKeyGrantRequiredError
                         ? `session-key:${e.cause.kind}`

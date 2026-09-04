@@ -329,7 +329,15 @@ export const useZeroDev = () => {
             // of a reverted userOp so it can verify migration state against
             // on-chain truth (kernelMigration.utils.ts). Payment flows must
             // instead FAIL a reverted op — throwing is the default.
-            opts?: { returnRevertedReceipt?: boolean }
+            opts?: {
+                returnRevertedReceipt?: boolean
+                /** Fired immediately before the UserOp broadcast — the caller's
+                 *  "failures after this are execution-ambiguous" boundary. A
+                 *  WebAuthn ceremony rejection INSIDE the broadcast call still
+                 *  proves pre-broadcast (an unsigned op cannot submit) — see
+                 *  useSpendBundle's ceremony-rejection carve-out. */
+                onBroadcastAttempt?: () => void
+            }
         ): Promise<{ userOpHash: Hash; receipt: TransactionReceipt | null }> => {
             // demo mode: simulated success, no chain.
             if (isDemoMode()) {
@@ -340,16 +348,40 @@ export const useZeroDev = () => {
             // Non-Arb chains (recover-funds) aren't pre-built — wait for lazy build.
             await ensureClientForChain(chainId)
             const client = getClientForChain(chainId)
+            // Encode BEFORE the sending-state flag: a rejecting encoder must
+            // not leave isSendingUserOp stuck true (that suppresses
+            // stale-deployment reloads for the rest of the session).
+            const encodedCallData = await client.account!.encodeCalls(calls)
             zeroDevFlowActions.setIsSendingUserOp(true)
 
             let userOpHash: Hash
             try {
-                userOpHash = await withCeremonyPurpose('user_op', async () =>
-                    client.sendUserOperation({
-                        account: client.account,
-                        callData: await client.account!.encodeCalls(calls),
+                // Decomposed so onBroadcastAttempt fires at the TRUE transport
+                // boundary: estimation + paymaster (prepareUserOperation) and
+                // the WebAuthn signature both complete first, so any failure
+                // in them is provably pre-broadcast to the caller. The final
+                // sendUserOperation receives the fully-prepared request plus
+                // the signature with `parameters: []`, making it a pure
+                // eth_sendUserOperation transport call (viem skips both the
+                // prepare fill-list and signing when they are supplied).
+                userOpHash = await withCeremonyPurpose('user_op', async () => {
+                    const preparedOp = await client.prepareUserOperation({
+                        account: client.account!,
+                        callData: encodedCallData,
                     })
-                )
+                    // Same cast viem's sendUserOperation applies internally
+                    // before calling account.signUserOperation.
+                    const signature = await client.account!.signUserOperation(
+                        preparedOp as Parameters<NonNullable<typeof client.account>['signUserOperation']>[0]
+                    )
+                    opts?.onBroadcastAttempt?.()
+                    return client.sendUserOperation({
+                        ...preparedOp,
+                        account: client.account!,
+                        signature,
+                        parameters: [],
+                    } as never)
+                })
             } catch (error) {
                 console.error('Error sending UserOp:', error)
                 capturePasskeySignFailure(error, 'send-user-op')

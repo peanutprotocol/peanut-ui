@@ -116,6 +116,7 @@ const REFERRAL_NUDGE_KINDS: ReadonlySet<string> = new Set([
     'SEND_LINK',
     'SEND_LINK_CLAIM',
     'DIRECT_TRANSFER',
+    'P2P_SEND', // legacy charge-backed sends — same outbound payment as DIRECT_TRANSFER
     'P2P_REQUEST_FULFILL',
     'CRYPTO_WITHDRAW',
     'OFFRAMP',

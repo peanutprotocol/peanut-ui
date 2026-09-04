@@ -1,5 +1,9 @@
 import { EInviteType } from '@/services/services.types'
-import { getFromCookie, saveToCookie } from '@/utils/general.utils'
+// cookie-url.utils directly, NOT general.utils: useNativeAppLinks (mounted on
+// every route via ClientProviders) imports this stash, and general.utils pulls
+// the ~189 KB token-catalog graph the cookie-url split exists to keep out
+// (Chip review round 3)
+import { getFromCookie, saveToCookie } from '@/utils/cookie-url.utils'
 
 /**
  * Invite hand-off between surfaces: a payment/claim/invite page stashes the

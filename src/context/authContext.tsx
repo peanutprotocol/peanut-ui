@@ -292,9 +292,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // re-persist a sliding-refresh token into native Preferences otherwise
         // (Android post-logout splash loop). Don't move it back down.
 
-        // The user query cache is already gone (queryClient.clear() above);
-        // clear the invite stash and the zerodev flow flags too.
-        clearInvite()
+        // The user query cache is already gone (queryClient.clear() above)
+        // and the invite stash is cleared once at the top of logout — reset
+        // the zerodev flow flags too.
         zeroDevFlowActions.reset()
 
         // clear service worker caches (non-fatal if it fails)

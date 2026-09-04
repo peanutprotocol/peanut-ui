@@ -52,3 +52,17 @@ describe('resolveReceiptKind', () => {
         expect(resolveReceiptKind(undefined, '4')).toBeUndefined()
     })
 })
+
+describe('isIntentKind — own-property guard (TASK-21817 review)', () => {
+    // `in` walks the prototype chain: a crafted receipt URL like
+    // `?kind=toString` would dispatch Object.prototype.toString as a
+    // strategy. Prototype keys must fall through to the fallback.
+    it.each(['toString', 'constructor', 'hasOwnProperty', 'valueOf'])('rejects prototype key %s', (key) => {
+        expect(isIntentKind(key)).toBe(false)
+    })
+
+    it('still accepts real wire kinds', () => {
+        expect(isIntentKind('QR_PAY')).toBe(true)
+        expect(isIntentKind('PERK_REWARD')).toBe(true)
+    })
+})

@@ -2450,6 +2450,9 @@
                                         "flowEarlyAccess": {
                                             "type": "boolean"
                                         },
+                                        "geoProhibited": {
+                                            "type": "boolean"
+                                        },
                                         "hasCardAccess": {
                                             "type": "boolean"
                                         },
@@ -2502,6 +2505,7 @@
                                     "required": [
                                         "hasCardAccess",
                                         "isEligible",
+                                        "geoProhibited",
                                         "flowEarlyAccess",
                                         "isPublicLaunched",
                                         "waitlistJoinedAt",
@@ -2730,7 +2734,7 @@
                         "description": "Default Response"
                     }
                 },
-                "summary": "Get the user’s current waitlist state",
+                "summary": "Get the user\u2019s current waitlist state",
                 "tags": [
                     "card"
                 ]
@@ -3331,6 +3335,7 @@
                                     },
                                     "claimParams": {
                                         "items": {},
+                                        "maxItems": 4,
                                         "minItems": 3,
                                         "type": "array"
                                     },
@@ -7281,7 +7286,7 @@
         },
         "/dev/poll": {
             "post": {
-                "description": "Triggers runPollingCycle() on demand — used by the QA harness to observe provider state transitions without waiting for the 5-minute interval.",
+                "description": "Triggers runPollingCycle() on demand \u2014 used by the QA harness to observe provider state transitions without waiting for the 5-minute interval.",
                 "responses": {
                     "200": {
                         "content": {
@@ -7946,7 +7951,7 @@
         },
         "/dev/submit-to-providers": {
             "post": {
-                "description": "Drives Peanut's submitToProviders(userId, applicantId) synchronously, the same function the Sumsub status-processor calls after GREEN. Used by QA harness to test routing (AR user → Manteca, US user → Bridge) end-to-end.",
+                "description": "Drives Peanut's submitToProviders(userId, applicantId) synchronously, the same function the Sumsub status-processor calls after GREEN. Used by QA harness to test routing (AR user \u2192 Manteca, US user \u2192 Bridge) end-to-end.",
                 "requestBody": {
                     "content": {
                         "application/json": {
@@ -8184,7 +8189,7 @@
         },
         "/dev/trigger-sumsub-webhook": {
             "post": {
-                "description": "Invokes processSumsubKycUpdate({ applicantId, externalUserId, reviewAnswer, reviewStatus, source: 'webhook' }) — same entry point as the real /sumsub/webhooks route, minus HMAC. Used by the QA harness to exercise the full Sumsub → routing chain without real webhook delivery.",
+                "description": "Invokes processSumsubKycUpdate({ applicantId, externalUserId, reviewAnswer, reviewStatus, source: 'webhook' }) \u2014 same entry point as the real /sumsub/webhooks route, minus HMAC. Used by the QA harness to exercise the full Sumsub \u2192 routing chain without real webhook delivery.",
                 "requestBody": {
                     "content": {
                         "application/json": {
@@ -9174,6 +9179,61 @@
                 }
             }
         },
+        "/healthz/bridge": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/healthz/manteca/{geo}": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "geo",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/healthz/rain": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/healthz/rhino": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/healthz/sumsub": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
         "/history/{entryId}": {
             "get": {
                 "parameters": [
@@ -9182,6 +9242,26 @@
                         "name": "kind",
                         "required": true,
                         "schema": {
+                            "enum": [
+                                "ONRAMP",
+                                "OFFRAMP",
+                                "P2P_SEND",
+                                "P2P_REQUEST_FULFILL",
+                                "DIRECT_TRANSFER",
+                                "SEND_LINK",
+                                "SEND_LINK_CLAIM",
+                                "CRYPTO_DEPOSIT",
+                                "CRYPTO_WITHDRAW",
+                                "CARD_SPEND_AUTH",
+                                "CARD_SPEND_CLEAR",
+                                "CARD_AUTH_REVERSAL",
+                                "QR_PAY",
+                                "INTERNAL_TRANSFER",
+                                "REWARD_PAYOUT",
+                                "REFUND",
+                                "CHARGEBACK",
+                                "PERK_REWARD"
+                            ],
                             "type": "string"
                         }
                     },
@@ -10117,7 +10197,7 @@
         },
         "/manteca/deposit/{depositId}/status": {
             "get": {
-                "description": "Poll the status of a deposit order by its Manteca synthetic id. Used by the BRL PIX QR flow to detect completion (intent.status === COMPLETED) without leaving the user on a static QR. Read-only — the webhook/poller remain the authoritative completion trigger.",
+                "description": "Poll the status of a deposit order by its Manteca synthetic id. Used by the BRL PIX QR flow to detect completion (intent.status === COMPLETED) without leaving the user on a static QR. Read-only \u2014 the webhook/poller remain the authoritative completion trigger.",
                 "parameters": [
                     {
                         "in": "path",
@@ -10142,54 +10222,6 @@
                     }
                 },
                 "summary": "Get deposit order status",
-                "tags": [
-                    "manteca"
-                ]
-            }
-        },
-        "/manteca/initiate-onboarding": {
-            "post": {
-                "description": "Creates an onboarding widget URL for the current user using userId as userExternalId and returns the URL",
-                "parameters": [
-                    {
-                        "in": "header",
-                        "name": "Authorization",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "exchange": {
-                                        "type": "string"
-                                    },
-                                    "failureUrl": {
-                                        "type": "string"
-                                    },
-                                    "returnUrl": {
-                                        "type": "string"
-                                    }
-                                },
-                                "required": [
-                                    "returnUrl"
-                                ],
-                                "type": "object"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "description": "Default Response"
-                    }
-                },
-                "summary": "Initiate Manteca onboarding",
                 "tags": [
                     "manteca"
                 ]
@@ -12053,38 +12085,102 @@
                                     "actionType": {
                                         "anyOf": [
                                             {
+                                                "anyOf": [
+                                                    {
+                                                        "enum": [
+                                                            "BRIDGE_TRANSFER"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "MANTECA_TRANSFER"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "MANTECA_QR_PAYMENT"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "P2P_SEND_LINK"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "P2P_REQUEST_PAYMENT"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "KYC_VERIFIED"
+                                                        ],
+                                                        "type": "string"
+                                                    }
+                                                ]
+                                            },
+                                            {
                                                 "enum": [
-                                                    "BRIDGE_TRANSFER"
+                                                    "DIRECT_TRANSFER"
                                                 ],
                                                 "type": "string"
                                             },
                                             {
                                                 "enum": [
-                                                    "MANTECA_TRANSFER"
+                                                    "P2P_SEND"
                                                 ],
                                                 "type": "string"
                                             },
                                             {
                                                 "enum": [
-                                                    "MANTECA_QR_PAYMENT"
+                                                    "P2P_REQUEST_FULFILL"
                                                 ],
                                                 "type": "string"
                                             },
                                             {
                                                 "enum": [
-                                                    "P2P_SEND_LINK"
+                                                    "SEND_LINK"
                                                 ],
                                                 "type": "string"
                                             },
                                             {
                                                 "enum": [
-                                                    "P2P_REQUEST_PAYMENT"
+                                                    "QR_PAY"
                                                 ],
                                                 "type": "string"
                                             },
                                             {
                                                 "enum": [
-                                                    "KYC_VERIFIED"
+                                                    "ONRAMP"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "OFFRAMP"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "CRYPTO_WITHDRAW"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "CARD_SPEND_AUTH"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "CARD_SPEND_CLEAR"
                                                 ],
                                                 "type": "string"
                                             }
@@ -13388,76 +13484,6 @@
                                     "directTransfer": {
                                         "type": "boolean"
                                     },
-                                    "kind": {
-                                        "anyOf": [
-                                            {
-                                                "enum": [
-                                                    "P2P_SEND"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "QR_PAY"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "LINK_CREATE"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "CRYPTO_WITHDRAW"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "FIAT_OFFRAMP"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "FIAT_ONRAMP"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "REQUEST_PAY"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "AUTO_REBALANCE"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "CARD_SPEND"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "DEPOSIT_EXTERNAL"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "OTHER"
-                                                ],
-                                                "type": "string"
-                                            }
-                                        ]
-                                    },
                                     "recipientAddress": {
                                         "pattern": "^0x[0-9a-fA-F]{40}$",
                                         "type": "string"
@@ -13470,8 +13496,7 @@
                                 "required": [
                                     "amount",
                                     "recipientAddress",
-                                    "directTransfer",
-                                    "kind"
+                                    "directTransfer"
                                 ],
                                 "type": "object"
                             }
@@ -13684,6 +13709,133 @@
                 }
             }
         },
+        "/rain/cards/withdraw/prepare/cancel": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "preparationId": {
+                                        "minLength": 1,
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "preparationId"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "ok"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "503": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
         "/rain/cards/withdraw/session-approve": {
             "post": {
                 "requestBody": {
@@ -13828,6 +13980,27 @@
                                     },
                                     "required": [
                                         "ok"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
                                     ],
                                     "type": "object"
                                 }
@@ -15923,6 +16096,74 @@
                 }
             },
             "post": {
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "properties": {
+                                    "amount": {
+                                        "anyOf": [
+                                            {
+                                                "pattern": "^[0-9]+$",
+                                                "type": "string"
+                                            },
+                                            {
+                                                "minimum": 1,
+                                                "type": "integer"
+                                            }
+                                        ]
+                                    },
+                                    "attachment": {},
+                                    "chainId": {
+                                        "type": "string"
+                                    },
+                                    "contractVersion": {
+                                        "type": "string"
+                                    },
+                                    "depositIdx": {
+                                        "anyOf": [
+                                            {
+                                                "pattern": "^[0-9]+$",
+                                                "type": "string"
+                                            },
+                                            {
+                                                "minimum": 0,
+                                                "type": "integer"
+                                            }
+                                        ]
+                                    },
+                                    "filename": {
+                                        "type": "string"
+                                    },
+                                    "mimetype": {
+                                        "type": "string"
+                                    },
+                                    "preparationId": {
+                                        "type": "string"
+                                    },
+                                    "pubKey": {
+                                        "minLength": 1,
+                                        "type": "string"
+                                    },
+                                    "reference": {
+                                        "type": "string"
+                                    },
+                                    "tokenAddress": {
+                                        "type": "string"
+                                    },
+                                    "txHash": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "pubKey"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
                 "responses": {
                     "200": {
                         "description": "Default Response"
@@ -16002,6 +16243,75 @@
                         }
                     }
                 ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "amount": {
+                                        "anyOf": [
+                                            {
+                                                "pattern": "^[0-9]+$",
+                                                "type": "string"
+                                            },
+                                            {
+                                                "minimum": 1,
+                                                "type": "integer"
+                                            }
+                                        ]
+                                    },
+                                    "chainId": {
+                                        "minLength": 1,
+                                        "type": "string"
+                                    },
+                                    "contractVersion": {
+                                        "minLength": 1,
+                                        "type": "string"
+                                    },
+                                    "depositIdx": {
+                                        "anyOf": [
+                                            {
+                                                "pattern": "^[0-9]+$",
+                                                "type": "string"
+                                            },
+                                            {
+                                                "minimum": 0,
+                                                "type": "integer"
+                                            }
+                                        ]
+                                    },
+                                    "tokenAddress": {
+                                        "minLength": 1,
+                                        "type": "string"
+                                    },
+                                    "txHash": {
+                                        "minLength": 1,
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "txHash",
+                                    "chainId",
+                                    "depositIdx",
+                                    "contractVersion",
+                                    "amount",
+                                    "tokenAddress"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/status/summary": {
+            "get": {
                 "responses": {
                     "200": {
                         "description": "Default Response"
@@ -16242,6 +16552,106 @@
                 },
                 "responses": {
                     "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "additionalProperties": true,
+                                    "properties": {},
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "description": "Invalid input \u2014 malformed email, rejected username, or a residence country that is not a real ISO-3166 alpha-2 code.",
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Invalid input \u2014 malformed email, rejected username, or a residence country that is not a real ISO-3166 alpha-2 code."
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "success": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "429": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "description": "The declared residence changed too recently. Only the residence keys were refused \u2014 every other field in the request was applied. Retry the residence change at `retryAt`; `/users/me` reports the same instant as `residence.nextChangeAllowedAt`.",
+                                    "properties": {
+                                        "code": {
+                                            "enum": [
+                                                "RESIDENCE_CHANGE_COOLDOWN"
+                                            ],
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "retryAt": {
+                                            "format": "date-time",
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error",
+                                        "code",
+                                        "retryAt"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "The declared residence changed too recently. Only the residence keys were refused \u2014 every other field in the request was applied. Retry the residence change at `retryAt`; `/users/me` reports the same instant as `residence.nextChangeAllowedAt`."
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "success": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
                         "description": "Default Response"
                     }
                 }
@@ -16546,6 +16956,12 @@
                                                                             "bridge-hosted"
                                                                         ],
                                                                         "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "enum": [
+                                                                            "rain-hosted"
+                                                                        ],
+                                                                        "type": "string"
                                                                     }
                                                                 ]
                                                             },
@@ -16845,6 +17261,12 @@
                                                                                     {
                                                                                         "enum": [
                                                                                             "bridge-hosted"
+                                                                                        ],
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "enum": [
+                                                                                            "rain-hosted"
                                                                                         ],
                                                                                         "type": "string"
                                                                                     }
@@ -17244,7 +17666,9 @@
                         "name": "limit",
                         "required": false,
                         "schema": {
-                            "type": "number"
+                            "maximum": 100,
+                            "minimum": 1,
+                            "type": "integer"
                         }
                     },
                     {
@@ -17508,6 +17932,12 @@
                                                                     {
                                                                         "enum": [
                                                                             "bridge-hosted"
+                                                                        ],
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "enum": [
+                                                                            "rain-hosted"
                                                                         ],
                                                                         "type": "string"
                                                                     }
@@ -17811,6 +18241,12 @@
                                                                                             "bridge-hosted"
                                                                                         ],
                                                                                         "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "enum": [
+                                                                                            "rain-hosted"
+                                                                                        ],
+                                                                                        "type": "string"
                                                                                     }
                                                                                 ]
                                                                             },
@@ -18033,6 +18469,26 @@
                                                         }
                                                     ]
                                                 },
+                                                "declaredSecond": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "kycReported": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
                                                 "nextChangeAllowedAt": {
                                                     "anyOf": [
                                                         {
@@ -18056,7 +18512,9 @@
                                             },
                                             "required": [
                                                 "declared",
+                                                "declaredSecond",
                                                 "verified",
+                                                "kycReported",
                                                 "nextChangeAllowedAt"
                                             ],
                                             "type": "object"
@@ -18122,6 +18580,405 @@
             "post": {
                 "responses": {
                     "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/users/saved-addresses": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "savedAddresses": {
+                                            "items": {
+                                                "properties": {
+                                                    "address": {
+                                                        "type": "string"
+                                                    },
+                                                    "chainId": {
+                                                        "type": "string"
+                                                    },
+                                                    "createdAt": {
+                                                        "type": "string"
+                                                    },
+                                                    "id": {
+                                                        "type": "string"
+                                                    },
+                                                    "lastUsedAt": {
+                                                        "type": "string"
+                                                    },
+                                                    "nickname": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "address",
+                                                    "chainId",
+                                                    "nickname",
+                                                    "lastUsedAt",
+                                                    "createdAt"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "type": "array"
+                                        }
+                                    },
+                                    "required": [
+                                        "savedAddresses"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            },
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "address": {
+                                        "pattern": "^(0x[a-fA-F0-9]{40}|[1-9A-HJ-NP-Za-km-z]{32,44})$",
+                                        "type": "string"
+                                    },
+                                    "chainId": {
+                                        "maxLength": 32,
+                                        "minLength": 1,
+                                        "type": "string"
+                                    },
+                                    "nickname": {
+                                        "maxLength": 15,
+                                        "minLength": 1,
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "address",
+                                    "chainId",
+                                    "nickname"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "savedAddress": {
+                                            "properties": {
+                                                "address": {
+                                                    "type": "string"
+                                                },
+                                                "chainId": {
+                                                    "type": "string"
+                                                },
+                                                "createdAt": {
+                                                    "type": "string"
+                                                },
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "lastUsedAt": {
+                                                    "type": "string"
+                                                },
+                                                "nickname": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "address",
+                                                "chainId",
+                                                "nickname",
+                                                "lastUsedAt",
+                                                "createdAt"
+                                            ],
+                                            "type": "object"
+                                        }
+                                    },
+                                    "required": [
+                                        "savedAddress"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/users/saved-addresses/{id}": {
+            "delete": {
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "format": "uuid",
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "deleted": {
+                                            "enum": [
+                                                true
+                                            ],
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "deleted"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            },
+            "patch": {
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "format": "uuid",
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "nickname": {
+                                        "maxLength": 15,
+                                        "minLength": 1,
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "nickname"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "savedAddress": {
+                                            "properties": {
+                                                "address": {
+                                                    "type": "string"
+                                                },
+                                                "chainId": {
+                                                    "type": "string"
+                                                },
+                                                "createdAt": {
+                                                    "type": "string"
+                                                },
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "lastUsedAt": {
+                                                    "type": "string"
+                                                },
+                                                "nickname": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "address",
+                                                "chainId",
+                                                "nickname",
+                                                "lastUsedAt",
+                                                "createdAt"
+                                            ],
+                                            "type": "object"
+                                        }
+                                    },
+                                    "required": [
+                                        "savedAddress"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
                         "description": "Default Response"
                     }
                 }
@@ -18305,6 +19162,13 @@
             }
         },
         "/webhooks/onesignal": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            },
             "post": {
                 "responses": {
                     "200": {
