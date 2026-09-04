@@ -5,6 +5,7 @@ import { inferSentryEnvironment } from '@/utils/sentry-env'
 import { withoutBrowserTracing } from '@/utils/sentry-integrations'
 import { posthogErrorMirror } from '@/utils/sentry-posthog-mirror'
 import { whenIdle } from '@/utils/defer-analytics'
+import { startWebVitalsShim } from '@/utils/web-vitals-shim'
 import { installPaymentNetworkGoogleAnalyticsGuard, isPaymentNetworkExplorerPath } from '@/utils/private-routes'
 
 // Same conditions as the GA bootstrap in app/layout.tsx: with no GA to disable
@@ -83,6 +84,12 @@ if (
     })
 
     whenIdle(() => posthog.startSessionRecording())
+
+    // No-ops unless the document is one PostHog refuses to measure (iOS native,
+    // served from capacitor://). Not deferred to idle like the recorder above:
+    // the INP observer has to exist before the taps it measures. `web-vitals`
+    // itself loads dynamically inside, so http(s) documents never fetch it.
+    startWebVitalsShim()
 
     // expose the instance like the official snippet does — console access for
     // QA (feature-flag overrides, e.g. pwa-sunset preview testing) and support
