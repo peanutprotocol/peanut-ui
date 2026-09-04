@@ -1,4 +1,4 @@
-import { MAX_SUMMARY_AGE_MS, isFresh, parseStatusSummary, type StatusSummary } from './types'
+import { MAX_CLOCK_SKEW_MS, MAX_SUMMARY_AGE_MS, isFresh, parseStatusSummary, type StatusSummary } from './types'
 
 const validBucket = { hourStart: '2026-08-25T00:00:00.000Z', state: 'operational', checks: 12, failures: 0 }
 const validProvider = { provider: 'rain', state: 'operational', uptimePct: 100, buckets: [validBucket], incidents: [] }
@@ -61,5 +61,16 @@ describe('isFresh', () => {
 
     it('rejects an unparseable timestamp rather than reading it as age zero', () => {
         expect(isFresh(at('whenever'), now)).toBe(false)
+    })
+
+    // Age is the only thing stopping a cached green board outliving the system
+    // it describes, and a future stamp suspends it for as long as the clock is
+    // wrong — an hour ahead would buy a dead backend seventy minutes of green.
+    it('rejects a summary stamped further ahead than clock skew explains', () => {
+        expect(isFresh(at(new Date(now + 60 * 60_000).toISOString()), now)).toBe(false)
+    })
+
+    it('tolerates a feed host running slightly ahead of us', () => {
+        expect(isFresh(at(new Date(now + MAX_CLOCK_SKEW_MS - 1000).toISOString()), now)).toBe(true)
     })
 })

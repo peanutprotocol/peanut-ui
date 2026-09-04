@@ -175,7 +175,21 @@ export function parseStatusSummary(value: unknown): StatusSummary | null {
  */
 export const MAX_SUMMARY_AGE_MS = 10 * 60 * 1000
 
+/**
+ * How far ahead of us the feed's clock may be before we stop believing it
+ * rather than its timestamps. Hosts run NTP; a minute is generous.
+ */
+export const MAX_CLOCK_SKEW_MS = 60 * 1000
+
 export function isFresh(summary: StatusSummary, now: number): boolean {
     const generatedAt = Date.parse(summary.generatedAt)
-    return Number.isFinite(generatedAt) && now - generatedAt <= MAX_SUMMARY_AGE_MS
+    if (!Number.isFinite(generatedAt)) return false
+
+    const age = now - generatedAt
+    // A summary stamped in the future is refused, not treated as very fresh.
+    // Age is the only thing keeping a cached green board from outliving the
+    // system it describes, and an unbounded negative age suspends that
+    // protection for exactly as long as the clock is wrong: an hour ahead
+    // buys a dead backend seventy minutes of green rather than ten.
+    return age >= -MAX_CLOCK_SKEW_MS && age <= MAX_SUMMARY_AGE_MS
 }
