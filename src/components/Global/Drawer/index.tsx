@@ -136,7 +136,11 @@ DrawerContent.displayName = 'DrawerContent'
 // modals. A call site that puts the header in a gapped flex column has to zero
 // that gap, or the two stack.
 const DrawerHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-    <div className={twMerge('mb-3 grid gap-1 p-4 text-center sm:text-left', className)} {...props} />
+    <div
+        className={twMerge('mb-3 grid gap-1 p-4 text-center sm:text-left', className)}
+        data-testid="drawer-header"
+        {...props}
+    />
 )
 DrawerHeader.displayName = 'DrawerHeader'
 

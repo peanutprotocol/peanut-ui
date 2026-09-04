@@ -20,7 +20,8 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '04-a-installpwa': {
         name: 'InstallPWA',
         path: 'Setup/Views/InstallPWA.tsx',
-        blocked: 'Renders only inside the setup step machine, off a beforeinstallprompt event the harness cannot fire.',
+        blocked:
+            'Redirects to /home when a session exists (InstallPWA.tsx:75), and the harness is signed in — the shot lands on the home screen, not this step.',
     },
     '05-a-signtesttransaction': {
         name: 'SignTestTransaction — account ready',
@@ -40,20 +41,13 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '13-a-guestloginmodal': { name: 'GuestLoginModal', path: 'Global/GuestLoginModal/index.tsx' },
     '14-a-guestverificationmodal': { name: 'GuestVerificationModal', path: 'Global/GuestVerificationModal/index.tsx' },
     '15-a-invitefriendsmodal': { name: 'InviteFriendsModal', path: 'Global/InviteFriendsModal/index.tsx' },
-    '16-a-iospwainstallmodal': {
-        name: 'IosPwaInstallModal',
-        path: 'Global/IosPwaInstallModal/index.tsx',
-        blocked: 'Mounted only by the home screen’s modal stack, not the app layout — nothing renders it here.',
-    },
-    '17-a-nomorejailmodal': {
-        name: 'NoMoreJailModal',
-        path: 'Global/NoMoreJailModal/index.tsx',
-        blocked: 'Opens itself off a stored flag and a route match — no visible prop.',
-    },
+    '16-a-iospwainstallmodal': { name: 'IosPwaInstallModal', path: 'Global/IosPwaInstallModal/index.tsx' },
+    '17-a-nomorejailmodal': { name: 'NoMoreJailModal', path: 'Global/NoMoreJailModal/index.tsx' },
     '18-a-reconsentmodal': {
         name: 'ReConsentModal',
         path: 'Global/ReConsentModal/index.tsx',
-        blocked: 'Opens only when the consent-status endpoint reports outdated documents.',
+        blocked:
+            'Opens only when the consent-status endpoint reports outdated documents — needs a fixture that serves them, which does not exist yet.',
     },
     '19-a-unsupportedbrowsermodal': {
         name: 'UnsupportedBrowserModal',
@@ -62,7 +56,8 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '20-a-setupnotificationsmodal': {
         name: 'SetupNotificationsModal',
         path: 'Notifications/SetupNotificationsModal.tsx',
-        blocked: 'Opens off the browser push-permission state — not forceable headless.',
+        blocked:
+            'Driven by a module-level notifications store whose setter is not exported, off the browser push-permission state.',
     },
     '21-b-advisorypreemptmodal': { name: 'AdvisoryPreemptModal', path: 'Kyc/AdvisoryPreemptModal.tsx' },
     '22-b-initiatekycmodal': { name: 'InitiateKycModal (default)', path: 'Kyc/InitiateKycModal.tsx' },
@@ -145,7 +140,12 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         blocked:
             'Always-open snap-point drawer: it starts at its peek snap and is positioned against the screen behind it, so on an empty harness page it sits off-frame.',
     },
-    '55-d-supportdrawer': { name: 'SupportDrawer (chat-failed)', path: 'Global/SupportDrawer/index.tsx' },
+    '55-d-supportdrawer': {
+        name: 'SupportDrawer (chat-failed)',
+        path: 'Global/SupportDrawer/index.tsx',
+        blocked:
+            'Renders its real loading state: the Crisp chat host is an external origin the capture blocks, and the chat-failed state needs that request to time out.',
+    },
     '56-d-camerapermissionmodal': { name: 'CameraPermissionModal', path: 'Global/QRScanner/CameraPermissionModal.tsx' },
     '57-d-raincooldownintromodal': {
         name: 'RainCooldownIntroModal',

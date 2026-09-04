@@ -148,7 +148,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
                 Whatever follows the head is 12px from it; the ctas keep XL/24
                 from the body when there is one. */}
             <div className={twMerge('flex flex-col items-center p-6 text-center', contentContainerClassName)}>
-                <div className="mb-3 flex w-full flex-col items-center gap-4">
+                <div className="mb-3 flex w-full flex-col items-center gap-4" data-testid="modal-head">
                     {iconContent && (
                         <IconBubble
                             size="m"

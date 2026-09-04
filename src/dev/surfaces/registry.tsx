@@ -60,6 +60,8 @@ import { UnsupportedWebViewScreen } from '@/components/Global/UnsupportedWebView
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import { FAQsPanel } from '@/components/Global/FAQs'
+import IosPwaInstallModal from '@/components/Global/IosPwaInstallModal'
+import NoMoreJailModal from '@/components/Global/NoMoreJailModal'
 
 /**
  * A setup step exactly as /setup renders it — SetupWrapper driven by the step's
@@ -127,7 +129,8 @@ export const SURFACES: Record<string, Surface> = {
     '04-a-installpwa': {
         name: 'InstallPWA',
         path: 'Setup/Views/InstallPWA.tsx',
-        render: () => <SetupScreen screenId="pwa-install" />,
+        blocked:
+            'Redirects to /home when a session exists (InstallPWA.tsx:75), and the harness is signed in — the shot lands on the home screen, not this step.',
     },
     '05-a-signtesttransaction': {
         name: 'SignTestTransaction — account ready',
@@ -206,12 +209,16 @@ export const SURFACES: Record<string, Surface> = {
     '16-a-iospwainstallmodal': {
         name: 'IosPwaInstallModal',
         path: 'Global/IosPwaInstallModal/index.tsx',
-        blocked: 'Mounted only by the home screen’s modal stack, not the app layout — nothing renders it here.',
+        // mounted by the home screen's modal stack, not the app layout, so the
+        // harness renders it itself and flips the context flag that opens it
+        render: () => <IosPwaInstallModal />,
+        modalsContextFlag: 'iosPwaInstall',
     },
     '17-a-nomorejailmodal': {
         name: 'NoMoreJailModal',
         path: 'Global/NoMoreJailModal/index.tsx',
-        blocked: 'Opens itself off a stored flag and a route match — no visible prop.',
+        // opens off sessionStorage showNoMoreJailModal, which the spec seeds
+        render: () => <NoMoreJailModal />,
     },
     '18-a-reconsentmodal': {
         name: 'ReConsentModal',
