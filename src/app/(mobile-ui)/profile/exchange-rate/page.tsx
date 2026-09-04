@@ -99,6 +99,7 @@ export default function ExchangeRatePage() {
                         ctaLabel={goesToAddMoney ? t('addMoneyCta') : t('tryIt')}
                         ctaAction={handleCtaAction}
                         restrictToRoutable
+                        shadow={false}
                         labels={{
                             youSend: t('widget.youSend'),
                             recipientGets: t('widget.recipientGets'),
