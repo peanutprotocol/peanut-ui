@@ -374,7 +374,7 @@ const UnlockPayments = () => {
                     aria-label={residenceIso2 ? t('residence.change') : t('residence.set')}
                 />
                 {residence?.verified && residence?.declared && residence.declared !== residence.verified && (
-                    <p className="text-body-xs text-foreground-secondary">
+                    <p className="text-center text-body-xs text-foreground-secondary">
                         {t('residence.pendingReverify', { country: declaredCountryName ?? residence.declared })}
                     </p>
                 )}

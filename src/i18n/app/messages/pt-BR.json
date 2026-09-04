@@ -78,6 +78,7 @@
         "receipt": "Recibo",
         "supportUnread": "Nova resposta do suporte",
         "card": "Cartão",
+        "exchangeRates": "Câmbio",
         "scanQr": "Escanear QR"
     },
     "home": {
@@ -655,16 +656,18 @@
     },
     "exchangeRate": {
         "title": "Câmbio e taxas",
-        "tryIt": "Experimente!",
+        "balanceNote": "Seu saldo na Peanut fica em uma única moeda. Onde houver um canal bancário local disponível, você pode sacar nessa moeda local.",
+        "tryIt": "Sacar agora",
+        "addMoneyCta": "Adicionar dinheiro",
         "widget": {
             "youSend": "Você envia",
-            "recipientGets": "O destinatário recebe",
+            "recipientGets": "Você recebe",
             "swapCurrencies": "Trocar moedas",
             "rateUnavailable": "Câmbio indisponível no momento",
             "bankFee": "Taxa do banco",
             "free": "Grátis!",
-            "arrivesHours": "Deve chegar em horas.",
-            "arrivesMinutes": "Deve chegar em minutos."
+            "arrivesHours": "Costuma chegar em horas.",
+            "arrivesMinutes": "Costuma chegar em minutos."
         },
         "row": {
             "approximate": "Este é um valor aproximado. O valor recebido pode variar conforme a taxa de câmbio do seu banco.",
@@ -2570,12 +2573,12 @@
             "descriptionBlocked": "Não conseguimos confirmar seu documento. Fale com o suporte para receber ajuda.",
             "descriptionRestartIdentity": "Este método exige um documento de um país compatível. Você pode verificar com outro documento.",
             "descriptionProviderRejection": "Envie uma foto mais nítida do seu documento para continuar.",
-            "descriptionCrossRegion": "Sua identidade já está verificada. Para ativar os pagamentos em {region}, só precisamos confirmar mais alguns dados — cerca de um minuto.",
-            "descriptionCrossRegionGeneric": "Sua identidade já está verificada. Para ativar os pagamentos aqui, só precisamos confirmar mais alguns dados — cerca de um minuto.",
+            "descriptionCrossRegion": "Sua identidade já está verificada. Para ativar os pagamentos em {region}, precisamos confirmar mais alguns dados.",
+            "descriptionCrossRegionGeneric": "Sua identidade já está verificada. Para ativar os pagamentos aqui, precisamos confirmar mais alguns dados.",
             "descriptionRegionUnavailable": "Devido às regulamentações do Reino Unido, transferências bancárias não estão disponíveis para residentes do Reino Unido. Seu dinheiro está seguro — você pode sacá-lo como cripto a qualquer momento.",
             "titleBankUnavailable": "Indisponível no seu país",
             "descriptionBankUnavailable": "Transferências bancárias não estão disponíveis no seu país, então verificar seu documento não vai desbloqueá-las. Seu dinheiro está seguro e você ainda pode enviar e receber dinheiro de outras pessoas.",
-            "descriptionDefault": "Confirme seu documento para desbloquear os pagamentos. Leva cerca de um minuto.",
+            "descriptionDefault": "Confirme seu documento para desbloquear os pagamentos.",
             "ctaUploadDocument": "Enviar documento",
             "ctaUnlockNow": "Desbloquear agora",
             "ctaWithdrawFunds": "Sacar fundos"

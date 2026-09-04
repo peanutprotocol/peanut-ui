@@ -102,7 +102,7 @@ const CurrencySelect = ({
                                     ))}
 
                                 {!searchTerm && (
-                                    <h2 className="text-left text-xs font-normal text-gray-1">All currencies</h2>
+                                    <h2 className="text-left text-xs font-normal text-gray-1">Supported currencies</h2>
                                 )}
                                 {filteredCurrencies
                                     .filter((currency) => !popularCurrencies.includes(currency.currency))

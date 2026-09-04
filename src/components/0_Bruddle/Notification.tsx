@@ -55,6 +55,18 @@ const CTA_VARIANTS = ['purple', 'stroke'] as const
  * passed `items` also passed no `icon` — the check marks already carry the
  * tone, and a second (i) in front of the block reads as a stray glyph. The
  * rule lives here rather than as an opt-out prop at each call site.
+ *
+ * SPACING, 2026-09-04 — partial reversal of the TASK-22121 compact-inline
+ * ruling (kush, 2026-09-03, `9515dcf7a`). Variant A changed four things at
+ * once: no border, one type step down, a 16px icon, AND halved padding and
+ * gaps (p-3 → p-2, gap-2 → gap-1.5 in three places). On device the first
+ * three read well and the fourth did not — the tint block sat too close to
+ * its own text, which is what the border used to keep it off. Padding and
+ * gaps are back at 12px/8px; the border, type step and icon size stay at
+ * variant A. `indent` is recomputed from the 16px icon rather than restored,
+ * so it clears the icon that actually renders. Vertical rhythm INSIDE the
+ * content group (the 2px title→body pair from board 17872:89021) is a
+ * separate, earlier ruling and is untouched.
  */
 export const Notification = ({
     priority = 'info',
@@ -79,7 +91,7 @@ export const Notification = ({
               // Body/S line box with a 2px nudge, pinned to the first line.
               <div className="flex flex-col gap-1">
                   {items.map((item, index) => (
-                      <div key={index} className="flex items-start gap-1.5">
+                      <div key={index} className="flex items-start gap-2">
                           <Icon name="check" size={16} className="mt-0.5 shrink-0" />
                           <div className="min-w-0 flex-1">{item}</div>
                       </div>
@@ -90,9 +102,10 @@ export const Notification = ({
     // a checklist carries its own check marks — no leading priority icon
     const showIcon = !items && !hideIcon
     // the title body and the ctas line up under the title, which the leading
-    // icon pushes in by 22px (16px icon + 6px gap). Without the icon there is
-    // nothing to clear.
-    const indent = showIcon ? 'pl-5.5' : ''
+    // icon pushes in by 24px (16px icon + the restored 8px gap). Recomputed,
+    // not reverted to the old pl-7: that cleared a 20px icon, and variant A's
+    // 16px icon stands.
+    const indent = showIcon ? 'pl-6' : ''
     // an empty `items` array used to fall through to `children` (undefined at
     // every migrated call site) and paint a bare icon-only box — WelcomeUnlockModal
     // hits that when the user unlocked no channel at all
@@ -105,8 +118,11 @@ export const Notification = ({
                 // container, and a notification inside a modal must still read
                 // left-aligned. The deleted InfoCard carried the same guard.
                 // compact-inline (TASK-22121 variant A): tint only, no border,
-                // 8px padding, one type step down.
-                'flex items-start gap-1.5 rounded-sm p-2 text-start text-foreground-over-color-secondary',
+                // one type step down — but at the ORIGINAL 12px padding and 8px
+                // gaps. Variant A also halved both, and on a device the tint
+                // block read as cramped against its own text; reverted
+                // 2026-09-04 (see the block comment above).
+                'flex items-start gap-2 rounded-sm p-3 text-start text-foreground-over-color-secondary',
                 bg,
                 className
             )}
@@ -122,7 +138,7 @@ export const Notification = ({
                         icon sits in the 20px Body/S line box with a 2px nudge —
                         a list or a wrapping body never centres the icon against
                         the whole block. */}
-                    <div className="flex items-start gap-1.5">
+                    <div className="flex items-start gap-2">
                         {showIcon && <Icon name={icon} size={16} className="mt-0.5 shrink-0" />}
                         {title ? (
                             <span className="text-body-s font-semibold">{title}</span>
