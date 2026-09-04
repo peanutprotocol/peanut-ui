@@ -139,7 +139,12 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         blocked: 'Rendered inside the contribute-pot flow, which owns the open state.',
     },
     '53-d-cancelsendlinkdrawer': { name: 'CancelSendLinkDrawer', path: 'Global/CancelSendLinkDrawer/index.tsx' },
-    '54-d-qrbottomdrawer': { name: 'QRBottomDrawer', path: 'Global/QRBottomDrawer/index.tsx' },
+    '54-d-qrbottomdrawer': {
+        name: 'QRBottomDrawer',
+        path: 'Global/QRBottomDrawer/index.tsx',
+        blocked:
+            'Always-open snap-point drawer: it starts at its peek snap and is positioned against the screen behind it, so on an empty harness page it sits off-frame.',
+    },
     '55-d-supportdrawer': { name: 'SupportDrawer (chat-failed)', path: 'Global/SupportDrawer/index.tsx' },
     '56-d-camerapermissionmodal': { name: 'CameraPermissionModal', path: 'Global/QRScanner/CameraPermissionModal.tsx' },
     '57-d-raincooldownintromodal': {

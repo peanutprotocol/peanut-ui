@@ -52,7 +52,6 @@ import WelcomeUnlockModal from '@/components/Home/WelcomeUnlockModal'
 import BalanceWarningModal from '@/components/Global/BalanceWarningModal'
 import TokenAndNetworkConfirmationModal from '@/components/Global/TokenAndNetworkConfirmationModal'
 import CancelSendLinkDrawer from '@/components/Global/CancelSendLinkDrawer'
-import QRBottomDrawer from '@/components/Global/QRBottomDrawer'
 import CameraPermissionModal from '@/components/Global/QRScanner/CameraPermissionModal'
 import { SuccessViewDetailsCard } from '@/components/Global/SuccessViewComponents/SuccessViewDetailsCard'
 import OfflineScreen from '@/components/Global/OfflineScreen'
@@ -461,14 +460,8 @@ export const SURFACES: Record<string, Surface> = {
     '54-d-qrbottomdrawer': {
         name: 'QRBottomDrawer',
         path: 'Global/QRBottomDrawer/index.tsx',
-        render: () => (
-            <QRBottomDrawer
-                url="https://peanut.me/demo"
-                title="Your QR code"
-                text="Show this to get paid."
-                buttonText="Share"
-            />
-        ),
+        blocked:
+            'Always-open snap-point drawer: it starts at its peek snap and is positioned against the screen behind it, so on an empty harness page it sits off-frame.',
     },
     '55-d-supportdrawer': {
         name: 'SupportDrawer (chat-failed)',
