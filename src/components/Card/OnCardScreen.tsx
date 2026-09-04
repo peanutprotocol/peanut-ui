@@ -10,6 +10,7 @@ import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Toggle } from '@/components/0_Bruddle/Toggle'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Card } from '@/components/0_Bruddle/Card'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import ActionModal from '@/components/Global/ActionModal'
@@ -114,7 +115,7 @@ const AmountModal: FC<AmountModalProps> = ({
                     <label htmlFor="on-card-amount-input" className="text-label-l">
                         {label}
                     </label>
-                    <div className="flex items-center gap-2 rounded-sm border border-border-default bg-background-default px-3 py-2">
+                    <Card className="flex-row items-center gap-2 px-3 py-2">
                         <span className="text-foreground-secondary">$</span>
                         <input
                             id="on-card-amount-input"
@@ -137,7 +138,7 @@ const AmountModal: FC<AmountModalProps> = ({
                                 {t('max')}
                             </button>
                         )}
-                    </div>
+                    </Card>
                     {hint && <p className="text-body-s text-foreground-secondary">{hint}</p>}
                     {error && <p className="text-body-s text-foreground-error">{error}</p>}
                 </div>
@@ -426,12 +427,12 @@ const OnCardScreen: FC<Props> = ({ cardId, onPrev }) => {
 }
 
 const BalanceTile: FC<{ label: string; cents: number | null }> = ({ label, cents }) => (
-    <div className="rounded-sm border border-border-default bg-background-default px-4 py-3">
+    <Card className="px-4 py-3">
         <div className="text-body-s text-foreground-secondary">{label}</div>
         <div className="text-heading-s text-foreground-primary tabular-nums">
             {cents === null ? '—' : formatDollars(cents)}
         </div>
-    </div>
+    </Card>
 )
 
 export default OnCardScreen
