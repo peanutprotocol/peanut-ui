@@ -16,6 +16,7 @@ const mockUpdater = {
     current: jest.fn(),
     reset: jest.fn().mockResolvedValue(undefined),
     getPluginVersion: jest.fn(),
+    getFailedUpdate: jest.fn().mockResolvedValue(null),
 }
 const mockPlatform = { android: true }
 
@@ -36,6 +37,7 @@ beforeEach(() => {
     window.localStorage.clear()
     mockPlatform.android = true
     mockUpdater.getPluginVersion.mockReset()
+    mockUpdater.getFailedUpdate.mockReset().mockResolvedValue(null)
     info = jest.spyOn(console, 'info').mockImplementation(() => {})
     error = jest.spyOn(console, 'error').mockImplementation(() => {})
 })
