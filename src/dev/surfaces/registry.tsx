@@ -12,14 +12,12 @@
  */
 
 import React from 'react'
+import { useTranslations } from 'next-intl'
 import type { Region } from '@/utils/regions.utils'
+import { setupSteps } from '@/components/Setup/Setup.consts'
+import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
+import type { ScreenId } from '@/components/Setup/Setup.types'
 
-import LandingStep from '@/components/Setup/Views/Landing'
-import JoinWaitlist from '@/components/Setup/Views/JoinWaitlist'
-import ResidenceStep from '@/components/Setup/Views/Residence'
-import SignTestTransaction from '@/components/Setup/Views/SignTestTransaction'
-import SignupStep from '@/components/Setup/Views/Signup'
-import SetupPasskey from '@/components/Setup/Views/SetupPasskey'
 import { PasskeySetupHelpModal } from '@/components/Setup/Views/PasskeySetupHelpModal'
 import PasskeyInfoModal from '@/components/Setup/components/PasskeyInfoModal'
 import ConfirmInviteModal from '@/components/Global/ConfirmInviteModal'
@@ -64,6 +62,39 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import { FAQsPanel } from '@/components/Global/FAQs'
 
+/**
+ * A setup step exactly as /setup renders it — SetupWrapper driven by the step's
+ * own entry in Setup.consts, so the hero, clouds, title, back/skip and progress
+ * are the app's, not the harness's. Mounting the view bare (which this harness
+ * did first) drops all of that and photographs a naked form.
+ */
+function SetupScreen({ screenId }: { screenId: ScreenId }) {
+    const t = useTranslations('setup')
+    const step = setupSteps.find((entry) => entry.screenId === screenId)
+    if (!step) return null
+    const View = step.component
+    const titleKey = `steps.${step.screenId}.title` as Parameters<typeof t>[0]
+    const descriptionKey = `steps.${step.screenId}.description` as Parameters<typeof t>[0]
+    return (
+        <SetupWrapper
+            layoutType={step.layoutType}
+            screenId={step.screenId}
+            image={step.image}
+            title={!step.titleInView ? t(titleKey) : undefined}
+            description={!step.descriptionInView && t.has(descriptionKey) ? t(descriptionKey) : undefined}
+            showBackButton={step.showBackButton}
+            showSkipButton={step.showSkipButton}
+            showLogoutButton={step.screenId === 'sign-test-transaction'}
+            showLoginButton={step.showLoginButton}
+            imageClassName={step.imageClassName}
+            contentClassName={step.contentClassName}
+            step={setupSteps.indexOf(step)}
+        >
+            <View />
+        </SetupWrapper>
+    )
+}
+
 const noop = () => {}
 const asyncNoop = async () => {}
 
@@ -79,32 +110,36 @@ export type Surface = SurfaceMeta & {
 const europe: Region = { path: 'europe', name: 'Europe', icon: '' }
 
 export const SURFACES: Record<string, Surface> = {
-    '01-a-landing': { name: 'Landing', path: 'Setup/Views/Landing.tsx', render: () => <LandingStep /> },
+    '01-a-landing': {
+        name: 'Landing',
+        path: 'Setup/Views/Landing.tsx',
+        render: () => <SetupScreen screenId="landing" />,
+    },
     '02-a-joinwaitlist': {
         name: 'JoinWaitlist',
         path: 'Setup/Views/JoinWaitlist.tsx',
-        render: () => <JoinWaitlist />,
+        render: () => <SetupScreen screenId="welcome" />,
     },
     '03-a-residence-select': {
         name: 'Residence — select',
         path: 'Setup/Views/Residence.tsx',
-        render: () => <ResidenceStep />,
+        render: () => <SetupScreen screenId="residence" />,
     },
     '04-a-installpwa': {
         name: 'InstallPWA',
         path: 'Setup/Views/InstallPWA.tsx',
-        blocked: 'Renders only inside the setup step machine, off a beforeinstallprompt event the harness cannot fire.',
+        render: () => <SetupScreen screenId="pwa-install" />,
     },
     '05-a-signtesttransaction': {
         name: 'SignTestTransaction — account ready',
         path: 'Setup/Views/SignTestTransaction.tsx',
-        render: () => <SignTestTransaction />,
+        render: () => <SetupScreen screenId="sign-test-transaction" />,
     },
-    '06-a-signup': { name: 'Signup', path: 'Setup/Views/Signup.tsx', render: () => <SignupStep /> },
+    '06-a-signup': { name: 'Signup', path: 'Setup/Views/Signup.tsx', render: () => <SetupScreen screenId="signup" /> },
     '07-a-setuppasskey': {
         name: 'SetupPasskey',
         path: 'Setup/Views/SetupPasskey.tsx',
-        render: () => <SetupPasskey />,
+        render: () => <SetupScreen screenId="passkey-permission" />,
     },
     '08-a-passkeysetuphelpmodal': {
         name: 'PasskeySetupHelpModal',
