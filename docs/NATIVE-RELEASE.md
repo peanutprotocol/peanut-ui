@@ -336,6 +336,21 @@ own `out/` under the binary's versionName, then assert the channel serves it.
   the floor when the channel's "disable auto update" strategy is set to *version number*.
   **Bump the native version whenever you change plugins/native code**, then ship that via
   Play — OTA can't.
+- **Native fingerprint (the check behind that rule):** `scripts/native-fingerprint.mjs`
+  hashes the JS↔native contract — Capacitor's two generated plugin manifests (which pin
+  every plugin's resolved version in its dependency path), `capacitor.config.ts`, the
+  gradle files, `AndroidManifest.xml`, `project.pbxproj`, `Info.plist` and both
+  entitlements files. `capgo-deploy.yml` recomputes it and compares against the
+  `v<major>.<build>.0` tag the bundle's floor targets; a mismatch **fails the OTA** and
+  names the file that moved. It is a pure function of the tree, so nothing is stored and
+  any tag can be fingerprinted retroactively (`--ref v1.2.0`). `MARKETING_VERSION` and
+  `CURRENT_PROJECT_VERSION` are normalised out — `native-ios-postsync.js` stamps them on
+  every sync, and leaving them in would refuse an OTA after every release.
+  **Why it exists:** `min_update_version` only blocks *delivery*, only under the
+  `metadata` channel strategy, and lives in a dashboard CI cannot read, so nothing
+  previously reported that an incompatible bundle had been *built* — the mismatch first
+  appeared on a user's device. The remedy for a failure is always to cut a native
+  release, never to widen or skip the check.
 - **Staged rollout:** roll production OTA to ~10% → watch Sentry/crash + error rates →
   100%. Don't 100% every merge.
 - **Rollback** is configured in `capacitor.config.ts` (`appReadyTimeout: 15000` +
