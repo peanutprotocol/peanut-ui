@@ -80,8 +80,14 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
     // caller whose CTA routes into a country flow needs both to agree, so it
     // opts into the routable-only parse via `restrictToRoutable`.
     const resolveCurrency = restrictToRoutable ? toSupportedExchangeCurrency : toDisplayCurrency
-    const sourceCurrency = resolveCurrency(query.from) ?? 'USD'
-    const destinationCurrency = resolveCurrency(query.to) ?? 'EUR'
+    const rawSourceCurrency = resolveCurrency(query.from)
+    const rawDestinationCurrency = resolveCurrency(query.to)
+    // Resolved together, not with independent 'USD'/'EUR' defaults: an invalid
+    // side falling back to 'USD' while the other side was already the
+    // explicit, valid 'USD' collapsed the pair to USD/USD — a currency
+    // "exchanged" with itself.
+    const sourceCurrency = rawSourceCurrency ?? (rawDestinationCurrency === 'USD' ? 'EUR' : 'USD')
+    const destinationCurrency = rawDestinationCurrency ?? (sourceCurrency === 'USD' ? 'EUR' : 'USD')
     const urlSourceAmount = query.amount > 0 ? query.amount : 10
 
     // Exchange rate hook handles all the conversion logic

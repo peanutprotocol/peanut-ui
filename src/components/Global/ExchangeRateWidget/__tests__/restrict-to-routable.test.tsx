@@ -59,4 +59,18 @@ describe('ExchangeRateWidget restrictToRoutable', () => {
 
         expect(screen.getByText('THB')).toBeInTheDocument()
     })
+
+    /*
+     * Each side used to fall back independently ('USD' for source, 'EUR' for
+     * destination). An invalid source next to an explicit, valid destination
+     * of 'USD' then defaulted the source to 'USD' too, producing a USD/USD
+     * pair — a currency "exchanged" with itself.
+     */
+    it('never collapses to USD/USD when an invalid side would default onto an explicit USD', () => {
+        renderWidget({ from: 'PLN', to: 'USD' }, true)
+
+        expect(screen.getByText('EUR')).toBeInTheDocument()
+        expect(screen.getAllByText('USD')).toHaveLength(1)
+        expect(screen.queryByText('PLN')).not.toBeInTheDocument()
+    })
 })
