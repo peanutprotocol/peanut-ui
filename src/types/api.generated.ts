@@ -9018,6 +9018,7 @@ export interface paths {
                 content: {
                     "application/json": {
                         amountCents: number;
+                        idempotencyKey: string;
                     };
                 };
             };

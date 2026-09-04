@@ -14858,10 +14858,16 @@
                                         "maximum": 10000000,
                                         "minimum": 100,
                                         "type": "integer"
+                                    },
+                                    "idempotencyKey": {
+                                        "maxLength": 100,
+                                        "minLength": 8,
+                                        "type": "string"
                                     }
                                 },
                                 "required": [
-                                    "amountCents"
+                                    "amountCents",
+                                    "idempotencyKey"
                                 ],
                                 "type": "object"
                             }
