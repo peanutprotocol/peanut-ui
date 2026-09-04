@@ -34,7 +34,6 @@ import useSavedAccounts from '@/hooks/useSavedAccounts'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { DEVCONNECT_CLAIM_METHODS, type PaymentMethod } from '@/constants/actionlist.consts'
 import useClaimLink from '../useClaimLink'
-import { setupActions } from '@/redux/slices/setup-slice'
 import starStraightImage from '@/assets/icons/starStraight.svg'
 import { useAuth } from '@/context/authContext'
 import { EInviteType } from '@/services/services.types'
@@ -46,9 +45,9 @@ import SupportCTA from '../../Global/SupportCTA'
 import DEVCONNECT_LOGO from '@/assets/logos/devconnect.svg'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { CLAIM_RAIL_MINIMUMS, validateMinimumAmount } from '@/constants/payment.consts'
-import { useAppDispatch } from '@/redux/hooks'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { useTranslations } from 'next-intl'
+import { stashInvite } from '@/utils/invite-stash'
 
 const SHOW_INVITE_MODAL_FOR_DEVCONNECT = false
 
@@ -104,7 +103,6 @@ export default function SendLinkActionList({
     // `isUserMantecaKycApproved`; mapped to canDo('pay', { provider: 'manteca' }) so a Sumsub-
     // approved user with only the pool-tier pay rail correctly sees these methods as available.
     const isMantecaPayEnabled = useCapabilities().canDo('pay', { provider: 'manteca' })
-    const dispatch = useAppDispatch()
 
     const requiresVerification = useMemo(() => {
         return claimType === BankClaimType.GuestKycNeeded || claimType === BankClaimType.ReceiverKycNeeded
@@ -201,8 +199,7 @@ export default function SendLinkActionList({
         const redirectUri = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash)
         if (isInviteLink && !userHasAppAccess && rawUsername) {
             const inviteCode = toInviteCode(rawUsername)
-            dispatch(setupActions.setInviteCode(inviteCode))
-            dispatch(setupActions.setInviteType(EInviteType.PAYMENT_LINK))
+            stashInvite(inviteCode, EInviteType.PAYMENT_LINK)
             router.push(inviteFlowUrl(inviteCode, redirectUri))
         } else {
             router.push(`/setup?redirect_uri=${redirectUri}`)

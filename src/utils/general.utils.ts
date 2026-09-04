@@ -778,13 +778,13 @@ export { jsonStringify, jsonParse, saveToCookie, getFromCookie, sanitizeRedirect
 /**
  * invite-flow url for a guest CTA. web routes to the /invite landing page; in
  * the native export that page is pruned (scripts/native-build.js), so write
- * the SESSION invite cookie — the same hand-off openDeepLink and the deferred
- * restore use — and go straight to signup. click handlers only: this writes a
- * cookie on native, never call it during render.
+ * signup directly. Pure URL builder: the caller stashes the invite first via
+ * stashInvite (every caller knows the TRUE invite type; this function used to
+ * write a code-only cookie, which could leave a stale type behind — Chip
+ * review, PR #2949).
  */
 export const inviteFlowUrl = (inviteCode: string, redirectUri: string): string => {
     if (!isCapacitor()) return `/invite?code=${inviteCode}&redirect_uri=${redirectUri}`
-    saveToCookie('inviteCode', inviteCode)
     return `/setup?step=signup&redirect_uri=${redirectUri}`
 }
 

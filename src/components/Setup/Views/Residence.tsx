@@ -7,8 +7,7 @@ import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestr
 import { useGeoLocation } from '@/hooks/useGeoLocation'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useBackHandler } from '@/hooks/useBackHandler'
-import { useAppDispatch, useSetupStore } from '@/redux/hooks'
-import { setupActions } from '@/redux/slices/setup-slice'
+import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { isValidEmail } from '@/utils/format.utils'
 import { residenceAvailability } from '@/utils/residence-availability'
 import { buildResidenceCountryOptions } from '@/utils/residence-options'
@@ -22,8 +21,8 @@ type PartialRestriction = 'card' | 'banking'
 const ResidenceStep = () => {
     const t = useTranslations('setup')
     const locale = useLocale()
-    const dispatch = useAppDispatch()
-    const { residenceCountry, secondResidenceCountry } = useSetupStore()
+    const { residenceCountry, setResidenceCountry, secondResidenceCountry, setSecondResidenceCountry } =
+        useSetupFlowContext()
     const { handleNext, isLoading } = useSetupFlow()
     const { countryCode: geoCountryCode } = useGeoLocation()
     // server-authoritative tier lists with the bundled mirror as fallback
@@ -55,12 +54,12 @@ const ResidenceStep = () => {
     useEffect(() => {
         if (residenceCountry || !geoSuggestion) return
         wasPrefilledRef.current = true
-        dispatch(setupActions.setResidenceCountry(geoSuggestion))
-    }, [geoSuggestion, residenceCountry, dispatch])
+        setResidenceCountry(geoSuggestion)
+    }, [geoSuggestion, residenceCountry, setResidenceCountry])
 
     const onResidenceChange = (value: string) => {
         wasPrefilledRef.current = false
-        dispatch(setupActions.setResidenceCountry(value))
+        setResidenceCountry(value)
     }
 
     const onContinue = () => {
@@ -329,7 +328,7 @@ const ResidenceStep = () => {
                         // analytics and persisted after signup. Dispatch stays
                         // outside the updater (React may replay updaters).
                         if (showSecondCountry && secondResidenceCountry) {
-                            dispatch(setupActions.setSecondResidenceCountry(''))
+                            setSecondResidenceCountry('')
                         }
                         setShowSecondCountry((current) => !current)
                     }}
@@ -341,7 +340,7 @@ const ResidenceStep = () => {
                         options={countryOptions}
                         placeholder={t('residenceStep.secondCountryPlaceholder')}
                         value={secondResidenceCountry || undefined}
-                        onValueChange={(value) => dispatch(setupActions.setSecondResidenceCountry(value))}
+                        onValueChange={(value) => setSecondResidenceCountry(value)}
                     />
                 )}
                 {/* Dual-residence comparison: facts about each residence, not a

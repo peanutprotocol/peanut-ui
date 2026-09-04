@@ -5,8 +5,7 @@ import DocsLink from '@/components/Global/DocsLink'
 import { USERNAME_MIN_LENGTH } from '@/constants/general.consts'
 import { isCapacitor } from '@/utils/capacitor'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
-import { useAppDispatch, useSetupStore } from '@/redux/hooks'
-import { setupActions } from '@/redux/slices/setup-slice'
+import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { apiFetch } from '@/utils/api-fetch'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
@@ -16,8 +15,7 @@ import { useTranslations } from 'next-intl'
 
 const SignupStep = () => {
     const t = useTranslations('setup')
-    const dispatch = useAppDispatch()
-    const { username } = useSetupStore()
+    const { username, setUsername } = useSetupFlowContext()
     const [error, setError] = useState('')
     const { handleNext, isLoading } = useSetupFlow()
     const [isValid, setIsValid] = useState(false)
@@ -108,7 +106,7 @@ const SignupStep = () => {
         isChanging: boolean
         isValid: boolean
     }) => {
-        dispatch(setupActions.setUsername(value.toLowerCase()))
+        setUsername(value.toLowerCase())
         setIsValid(isValid)
         setIsChanging(isChanging)
 

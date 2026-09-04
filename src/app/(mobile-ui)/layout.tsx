@@ -19,7 +19,6 @@ import SupportDrawer from '@/components/Global/SupportDrawer'
 import JoinWaitlistPage from '@/components/Invites/JoinWaitlistPage'
 import { useRouter } from 'next/navigation'
 import { Banner } from '@/components/Global/Banner'
-import { useSetupStore } from '@/redux/hooks'
 import ForceIOSPWAInstall from '@/components/ForceIOSPWAInstall'
 import { isPublicRoute } from '@/constants/routes'
 import { saveRedirectUrl } from '@/utils/general.utils'
@@ -39,6 +38,7 @@ import SunsetScreen from '@/components/Migration/SunsetScreen'
 import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { shouldShowSunsetBlock } from '@/utils/migration.utils'
+import { useIosPwaInstallGate } from '@/hooks/useIosPwaInstallGate'
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     useNativePlugins()
@@ -60,7 +60,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const isDev = pathName?.startsWith('/dev') ?? false
     const alignStart = isHome || isHistory || isSupport
     const router = useRouter()
-    const { showIosPwaInstallScreen } = useSetupStore()
+    const { showIosPwaInstallScreen } = useIosPwaInstallGate()
     const migrationOn = useMigrationFlag()
     const hasKeepWebBypass = useKeepWebBypass()
 

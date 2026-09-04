@@ -7,7 +7,8 @@ import ValidatedInput from '@/components/Global/ValidatedInput'
 import { useEffect, useState } from 'react'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAppDispatch } from '@/redux/hooks'
-import { setupActions } from '@/redux/slices/setup-slice'
+import { stashInvite } from '@/utils/invite-stash'
+import { EInviteType } from '@/services/services.types'
 import { invitesApi } from '@/services/invites'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -113,7 +114,7 @@ const JoinWaitlist = () => {
                         router.push('/home')
                         return
                     }
-                    dispatch(setupActions.setInviteCode(inviteCode))
+                    stashInvite(inviteCode, EInviteType.DIRECT)
                     handleNext()
                 }}
                 shadowSize="4"

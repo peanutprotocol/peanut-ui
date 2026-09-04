@@ -9,11 +9,9 @@ import { PeanutWavingHello } from '@/assets/mascot'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { invitesApi } from '@/services/invites'
 import { useQuery } from '@tanstack/react-query'
-import { useAppDispatch } from '@/redux/hooks'
-import { setupActions } from '@/redux/slices/setup-slice'
 import { useAuth } from '@/context/authContext'
 import { EInviteType } from '@/services/services.types'
-import { getValidRedirectUrl, saveRedirectUrl, saveToCookie } from '@/utils/general.utils'
+import { getValidRedirectUrl, saveRedirectUrl } from '@/utils/general.utils'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { useLogin } from '@/hooks/useLogin'
 import { useToast } from '@/components/0_Bruddle/Toast'
@@ -36,6 +34,7 @@ import {
 } from '@/services/badge-campaigns'
 import { destinationForInviteAcquisition } from '@/services/invite-acquisition'
 import { getPasskeyErrorSetupKey } from '@/utils/webauthn.utils'
+import { stashInvite } from '@/utils/invite-stash'
 
 function InvitePageContent() {
     const t = useTranslations('invites')
@@ -53,7 +52,6 @@ function InvitePageContent() {
     const urlBadgeCampaigns = useMemo(() => badgeCampaignsFromSearchParams(searchParams), [searchParams])
     const hasUrlBadgeCampaigns = urlBadgeCampaigns.length > 0
 
-    const dispatch = useAppDispatch()
     const router = useRouter()
     const { handleLoginClick, isLoggingIn } = useLogin()
     const [isClaimingBadgeCampaigns, setIsClaimingBadgeCampaigns] = useState(false)
@@ -258,10 +256,8 @@ function InvitePageContent() {
 
         const hasBackendLegacyAcceptance = !!inviteCode && !!inviteCodeData?.success && !!legacyAcquisition
         if (hasValidInvite || hasBackendLegacyAcceptance) {
-            dispatch(setupActions.setInviteCode(inviteCode))
-            dispatch(setupActions.setInviteType(EInviteType.PAYMENT_LINK))
-            // Save to cookie so PWA-install + later signup still see the invite.
-            saveToCookie('inviteCode', inviteCode)
+            // Cookies so PWA-install + later signup + registration all see the invite.
+            stashInvite(inviteCode, EInviteType.PAYMENT_LINK)
         }
         // Explicit URL acquisition survives signup in the shared cookie.
         // Backend legacy acquisition is processed by `/invites/accept`, whose

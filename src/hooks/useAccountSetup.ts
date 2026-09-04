@@ -5,7 +5,6 @@ import { useAuth } from '@/context/authContext'
 import { WalletProviderType } from '@/interfaces/wallet.interfaces'
 import { clearAuthState } from '@/utils/auth.utils'
 import { POST_SIGNUP_ACTIONS } from '@/components/Global/PostSignupActionManager/post-signup-action.consts'
-import { useSetupStore } from '@/redux/hooks'
 import { consumePostAuthRedirect } from '@/services/post-auth-redirect'
 
 /**
@@ -15,7 +14,6 @@ import { consumePostAuthRedirect } from '@/services/post-auth-redirect'
 export const useAccountSetup = () => {
     const { user } = useAuth()
     const { addAccount } = useAuth()
-    const { telegramHandle } = useSetupStore()
     const router = useRouter()
     const searchParams = useSearchParams()
     const [error, setError] = useState<string | null>(null)
@@ -64,7 +62,6 @@ export const useAccountSetup = () => {
                         accountIdentifier: address,
                         accountType: WalletProviderType.PEANUT,
                         userId: user.user.userId as string,
-                        telegramHandle: telegramHandle.length > 0 ? telegramHandle : undefined,
                     })
                     console.log('[useAccountSetup] Account added successfully')
                     break // success, exit retry loop

@@ -35,7 +35,6 @@ jest.mock('@/context/loadingStates.context', () => {
 })
 jest.mock('@/redux/hooks', () => ({
     useAppDispatch: () => mockDispatch,
-    useSetupStore: () => ({ inviteCode: 'founderhaus', inviteType: 'PAYMENT_LINK' }),
     useZerodevStore: () => ({
         isKernelClientReady: true,
         isRegistering: false,
@@ -53,10 +52,11 @@ jest.mock('@/redux/slices/zerodev-slice', () => ({
         setAddress: (payload: string) => ({ type: 'zerodev/address', payload }),
     },
 }))
-jest.mock('@/redux/slices/setup-slice', () => ({
-    setupActions: {
-        setInviteCode: (payload: string) => ({ type: 'setup/invite-code', payload }),
-    },
+const mockClearInvite = jest.fn()
+jest.mock('@/utils/invite-stash', () => ({
+    readInviteCode: () => 'founderhaus',
+    readInviteType: () => 'PAYMENT_LINK',
+    clearInvite: (...args: unknown[]) => mockClearInvite(...args),
 }))
 jest.mock('@/utils/general.utils', () => ({
     getFromCookie: (key: string) => (key === 'inviteCode' ? 'founderhaus' : null),
@@ -142,8 +142,7 @@ describe('useZeroDev registration invite boundary', () => {
                 expect.objectContaining({ campaignTag: 'founderhaus' }),
                 [expect.objectContaining({ badgeCampaign: 'founderhaus', outcome })]
             )
-            expect(mockRemoveFromCookie).toHaveBeenCalledWith('inviteCode')
-            expect(mockDispatch).toHaveBeenCalledWith({ type: 'setup/invite-code', payload: '' })
+            expect(mockClearInvite).toHaveBeenCalled()
             expect(mockSaveToCookie).not.toHaveBeenCalledWith('inviteCode', expect.anything(), expect.anything())
             expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.INVITE_ACCEPTED, expect.anything())
             expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.INVITE_ACCEPT_FAILED, expect.anything())

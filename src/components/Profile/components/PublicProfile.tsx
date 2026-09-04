@@ -19,7 +19,7 @@ import { useRouter } from 'next/navigation'
 import { isCapacitor } from '@/utils/capacitor'
 import { requestUrl } from '@/utils/native-routes'
 import Card from '@/components/Global/Card'
-import { saveToCookie, toInviteCode } from '@/utils/general.utils'
+import { toInviteCode } from '@/utils/general.utils'
 import { useAuth } from '@/context/authContext'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { useSafeBack } from '@/hooks/useSafeBack'
@@ -27,6 +27,8 @@ import { useUserInteractions } from '@/hooks/useUserInteractions'
 import ShareButton from '@/components/Global/ShareButton'
 import ActionModal from '@/components/Global/ActionModal'
 import BadgesRow from '@/components/Badges/BadgesRow'
+import { stashInvite } from '@/utils/invite-stash'
+import { EInviteType } from '@/services/services.types'
 
 interface PublicProfileProps {
     username: string
@@ -108,7 +110,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
             // Session scope, no expiryDays — a poisoned cookie outlives this page
             // and locks setup past the only screen with Log In (PR #2346).
             const resolvedToOwner = !!onboardingResolved && inviterUsername === code
-            if (resolvedToOwner) saveToCookie('inviteCode', code)
+            if (resolvedToOwner) stashInvite(code, EInviteType.DIRECT)
             posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
                 source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,
                 link_type: resolvedToOwner ? 'invite_code' : 'none',
@@ -116,9 +118,8 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
             if (intercepted) return
             // Unresolvable and mismatched codes still navigate — /invite owns the
             // messaging. Native strips /invite; /setup?step=signup is its stand-in
-            // (the cookie above already carries the code, and ONLY when it resolved
-            // to the owner — don't route through inviteFlowUrl, which writes it
-            // unconditionally and would revert the resolvedToOwner guard).
+            // (the stash above already carries the code, and ONLY when it
+            // resolved to the owner).
             router.push(isCapacitor() ? '/setup?step=signup' : `/invite?code=${code}`)
         } finally {
             setIsJoining(false)

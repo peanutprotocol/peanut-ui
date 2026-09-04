@@ -5,8 +5,7 @@ import { WEB_AUTHN_COOKIE_KEY } from '@/constants/auth.consts'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { useAuth } from '@/context/authContext'
 import { useKernelClient } from '@/context/kernelClient.context'
-import { useAppDispatch, useSetupStore, useZerodevStore } from '@/redux/hooks'
-import { setupActions } from '@/redux/slices/setup-slice'
+import { useAppDispatch, useZerodevStore } from '@/redux/hooks'
 import { zerodevActions } from '@/redux/slices/zerodev-slice'
 import { getFromCookie, removeFromCookie, saveToCookie, saveToLocalStorage } from '@/utils/general.utils'
 import { clearAuthState } from '@/utils/auth.utils'
@@ -39,6 +38,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
 import { rescueUserOpReceipt } from '@/utils/userop-rescue.utils'
+import { clearInvite, extendInviteForRetry, readInviteCode, readInviteType } from '@/utils/invite-stash'
 
 // types
 type UserOpEncodedParams = {
@@ -67,7 +67,9 @@ export const useZeroDev = () => {
     const { isKernelClientReady, isRegistering, isLoggingIn, isSendingUserOp, address } = useZerodevStore()
     const { setWebAuthnKey, getClientForChain, ensureClientForChain } = useKernelClient()
     const { setLoadingState } = useContext(loadingStateContext)
-    const { inviteCode, inviteType } = useSetupStore()
+    // invite hand-off lives in cookies (survives the PWA-install hop) — TASK-21460
+    const inviteCode = readInviteCode()
+    const inviteType = readInviteType()
 
     // Future note: could be `${username}.${process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN || 'peanut.me'}` (have to change BE too)
     const _getPasskeyName = (username: string) => `${username}.peanut.wallet`
@@ -119,10 +121,9 @@ export const useZeroDev = () => {
                  * a systematic accept failure looks like a completed signup otherwise.
                  * The cookie is only cleared on confirmed success.
                  */
-                const keepInviteCodeForRetry = () => saveToCookie('inviteCode', userInviteCode, 30)
+                const keepInviteCodeForRetry = () => extendInviteForRetry(30)
                 const clearAcceptedInviteCode = () => {
-                    removeFromCookie('inviteCode')
-                    dispatch(setupActions.setInviteCode(''))
+                    clearInvite()
                 }
                 try {
                     const result = await invitesApi.acceptInvite(userInviteCode, inviteType)

@@ -5,7 +5,6 @@ import { useUserQuery } from '@/hooks/query/user'
 import { useUserAutoRefresh } from '@/hooks/useUserAutoRefresh'
 import type { IUserProfile } from '@/interfaces/interfaces'
 import { useAppDispatch } from '@/redux/hooks'
-import { setupActions } from '@/redux/slices/setup-slice'
 import { userActions } from '@/redux/slices/user-slice'
 import { zerodevActions } from '@/redux/slices/zerodev-slice'
 import {
@@ -31,6 +30,7 @@ import { purgeCaches } from '@/utils/cache.utils'
 import { clearStepUpToken } from '@/services/step-up'
 import { claimAndSettlePendingBadgeCampaigns, isConfirmedBadgeCampaignClaim } from '@/services/badge-campaigns'
 import { clearPendingBadgeCampaigns, getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
+import { clearInvite } from '@/utils/invite-stash'
 
 interface AuthContextType {
     user: IUserProfile | null
@@ -284,7 +284,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Log In. A signed-in native user who tapped a friend's invite App Link
         // has it set; leaving it through logout would strand them on Signup,
         // unable to log back in until the process dies (session cookie).
-        removeFromCookie('inviteCode')
+        clearInvite()
 
         // A cached step-up proof outliving the session would let the next user
         // of this device skip verification on card and withdrawal screens.
@@ -295,9 +295,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // re-persist a sliding-refresh token into native Preferences otherwise
         // (Android post-logout splash loop). Don't move it back down.
 
-        // reset redux state (user, setup, zerodev)
+        // reset redux state (user, zerodev — the invite stash is already
+        // cleared above, and the setup slice died with TASK-21460)
         dispatch(userActions.setUser(null))
-        dispatch(setupActions.resetSetup())
         dispatch(zerodevActions.resetZeroDevState())
 
         // clear service worker caches (non-fatal if it fails)
