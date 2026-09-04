@@ -374,7 +374,13 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 onClose={() => setIsKycModalOpen(false)}
                 onVerify={async () => {
                     if (gate.kind === 'fixable-rejection') {
-                        await sumsubFlow.handleSelfHealResubmit('BRIDGE')
+                        // Through the shared router: it sends a residence park to the
+                        // address step and everything else to resubmit as before.
+                        await sumsubFlow.handleFixableRejection({
+                            provider: 'BRIDGE',
+                            actionKey: gate.actionKey,
+                            reasonCode: gate.reason?.code,
+                        })
                     } else {
                         await sumsubFlow.handleInitiateKyc(
                             bankRegionIntent(currentCountry?.region ?? 'rest-of-the-world'),
