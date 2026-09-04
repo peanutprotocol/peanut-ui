@@ -259,9 +259,16 @@ export const Notification = ({
                 // disagree with when the toast leaves. scaleX keeps it on the
                 // compositor, and fill-mode forwards holds it empty through the
                 // exit animation instead of snapping back to full.
+                // motion-safe: under prefers-reduced-motion the bar stays a
+                // static tone strip. The countdown is information, not decoration,
+                // but law 4 wins — a continuous animation running for the whole
+                // lifetime of every toast is exactly what that preference is for.
                 <span
                     aria-hidden
-                    className={twMerge('absolute inset-x-0 bottom-0 h-1 origin-left animate-toast-progress', bar)}
+                    className={twMerge(
+                        'absolute inset-x-0 bottom-0 h-1 origin-left motion-safe:animate-toast-progress',
+                        bar
+                    )}
                     style={{ animationDuration: `${progressMs}ms` }}
                 />
             )}

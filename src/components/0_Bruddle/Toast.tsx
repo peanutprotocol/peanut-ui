@@ -64,6 +64,34 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
     // Tracks the auto-dismiss timer per toast id so `dismiss(id)` can cancel it
     // (avoids a late timer firing after the toast was removed manually).
     const timersRef = useRef<Map<ToastId, ReturnType<typeof setTimeout>>>(new Map())
+    // Toasts created before the renderer arrived, holding the duration they
+    // will be armed with. ToastStack is next/dynamic and only STARTS loading
+    // on the first toast, so arming at creation raced the chunk: on a cold
+    // session where it took longer than the toast's lifetime, the timer
+    // removed the toast before anything was ever drawn and the user saw no
+    // feedback at all. A lifetime now starts when the toast can be seen.
+    const pendingRef = useRef<Map<ToastId, number>>(new Map())
+    const stackReadyRef = useRef(false)
+
+    const armTimer = useCallback((id: ToastId, duration: number) => {
+        // one timer per toast — StrictMode mounts the stack twice
+        if (timersRef.current.has(id)) return
+        timersRef.current.set(
+            id,
+            setTimeout(() => {
+                timersRef.current.delete(id)
+                setToasts((prev) => prev.filter((t) => t.id !== id))
+            }, duration)
+        )
+    }, [])
+
+    // ToastStack calls this once it is on screen. Everything queued while the
+    // chunk was in flight starts its lifetime here, together.
+    const handleStackReady = useCallback(() => {
+        stackReadyRef.current = true
+        pendingRef.current.forEach((duration, id) => armTimer(id, duration))
+        pendingRef.current.clear()
+    }, [armTimer])
 
     const dismiss = useCallback((id: ToastId) => {
         const t = timersRef.current.get(id)
@@ -71,42 +99,43 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
             clearTimeout(t)
             timersRef.current.delete(id)
         }
+        pendingRef.current.delete(id)
         setToasts((prev) => prev.filter((t) => t.id !== id))
     }, [])
 
-    const createToast = useCallback((options: ToastOptions | string): ToastId => {
-        const toastOptions = typeof options === 'string' ? { message: options } : options
+    const createToast = useCallback(
+        (options: ToastOptions | string): ToastId => {
+            const toastOptions = typeof options === 'string' ? { message: options } : options
 
-        const defaults: Partial<ToastOptions> = {
-            type: 'info',
-            duration: readingDuration(toastOptions.message),
-        }
-
-        const id: ToastId = toastOptions.id ?? Date.now()
-
-        // De-dupe: a persistent toast (or any explicitly-id'd toast) is a
-        // no-op if one with the same id is already showing. Stops a retry
-        // mid-cooldown from re-pushing the pill and re-animating it in.
-        let alreadyPresent = false
-        setToasts((prev) => {
-            if (prev.some((t) => t.id === id)) {
-                alreadyPresent = true
-                return prev
+            const defaults: Partial<ToastOptions> = {
+                type: 'info',
+                duration: readingDuration(toastOptions.message),
             }
-            return [...prev, { ...defaults, ...toastOptions, id }]
-        })
 
-        const duration = toastOptions.duration ?? defaults.duration
-        if (!alreadyPresent && duration !== 'persistent') {
-            const handle = setTimeout(() => {
-                timersRef.current.delete(id)
-                setToasts((prev) => prev.filter((t) => t.id !== id))
-            }, duration as number)
-            timersRef.current.set(id, handle)
-        }
+            const id: ToastId = toastOptions.id ?? Date.now()
 
-        return id
-    }, [])
+            // De-dupe: a persistent toast (or any explicitly-id'd toast) is a
+            // no-op if one with the same id is already showing. Stops a retry
+            // mid-cooldown from re-pushing the pill and re-animating it in.
+            let alreadyPresent = false
+            setToasts((prev) => {
+                if (prev.some((t) => t.id === id)) {
+                    alreadyPresent = true
+                    return prev
+                }
+                return [...prev, { ...defaults, ...toastOptions, id }]
+            })
+
+            const duration = toastOptions.duration ?? defaults.duration
+            if (!alreadyPresent && duration !== 'persistent') {
+                if (stackReadyRef.current) armTimer(id, duration as number)
+                else pendingRef.current.set(id, duration as number)
+            }
+
+            return id
+        },
+        [armTimer]
+    )
 
     // Memoized so consumers that include this in effect/callback dep arrays
     // don't re-fire on every render. createToast/dismiss are useCallback-stable.
@@ -131,7 +160,7 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
                     the notification board has no toast component, so placement was
                     never ruled; this one is (2026-09-04, slava). */}
                 <div className="fixed right-4 bottom-[calc(var(--safe-bottom)_+_1rem)] z-[99999] flex flex-col items-end gap-2">
-                    {toasts.length > 0 && <ToastStack toasts={toasts} dismiss={dismiss} />}
+                    {toasts.length > 0 && <ToastStack toasts={toasts} dismiss={dismiss} onReady={handleStackReady} />}
                 </div>
                 {children}
             </ToastContext.Provider>

@@ -122,4 +122,39 @@ describe('Notification', () => {
         fireEvent.click(screen.getByRole('button', { name: /One/ }))
         expect(first).toHaveBeenCalledTimes(1)
     })
+
+    // chip flagged the countdown running through prefers-reduced-motion. The bar
+    // is informative rather than decorative, but law 4 wins: a continuous
+    // animation for the whole lifetime of every toast is what the preference is
+    // for. Under motion-reduce it stays as a static tone strip.
+    test('the countdown bar animates only under motion-safe, and is absent without a duration', () => {
+        const { container, rerender } = render(
+            <Notification priority="success" variant="floating" progressMs={2000}>
+                Link cancelled successfully!
+            </Notification>
+        )
+        const bar = container.querySelector('span[aria-hidden]')
+        expect(bar).toBeInTheDocument()
+        expect(bar).toHaveClass('motion-safe:animate-toast-progress')
+        // the unguarded class would run for everyone
+        expect(bar?.className).not.toMatch(/(^|\s)animate-toast-progress/)
+        expect(bar).toHaveStyle({ animationDuration: '2000ms' })
+
+        // a persistent toast has no lifetime to draw
+        rerender(
+            <Notification priority="success" variant="floating">
+                Link cancelled successfully!
+            </Notification>
+        )
+        expect(container.querySelector('span[aria-hidden]')).not.toBeInTheDocument()
+    })
+
+    test('the inline banner never draws a countdown, even if a duration is passed', () => {
+        const { container } = render(
+            <Notification priority="success" progressMs={2000}>
+                Link cancelled successfully!
+            </Notification>
+        )
+        expect(container.querySelector('span[aria-hidden]')).not.toBeInTheDocument()
+    })
 })

@@ -1,7 +1,7 @@
 'use client'
 
 import { AnimatePresence, motion } from 'framer-motion'
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Notification } from './Notification'
 import type { ToastMessage } from './Toast'
 
@@ -64,10 +64,18 @@ const Toast: React.FC<ToastMessage & { onDismiss: () => void }> = ({
 export default function ToastStack({
     toasts,
     dismiss,
+    onReady,
 }: {
     toasts: ToastMessage[]
     dismiss: (id: ToastMessage['id']) => void
+    /** Fired once this chunk is on screen, so the provider can start the
+     *  lifetimes of anything created while it was still loading. */
+    onReady?: () => void
 }) {
+    useEffect(() => {
+        onReady?.()
+    }, [onReady])
+
     return (
         <AnimatePresence mode="sync">
             {toasts.map((toast) => (
