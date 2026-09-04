@@ -1,5 +1,5 @@
 'use client'
-import { type FC, useCallback, useEffect, useState } from 'react'
+import { type FC, useCallback, useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
@@ -250,9 +250,15 @@ const OnCardScreen: FC<Props> = ({ cardId, onPrev }) => {
         }
     }
 
+    // One key per tap, kept until the attempt settles: a retry after a lost
+    // response replays the first move server-side instead of moving twice.
+    const moveKeyRef = useRef<string | null>(null)
     const moveToCard = async (cents: number) => {
+        const idempotencyKey = moveKeyRef.current ?? `${cardId.slice(0, 8)}-${cents}-${crypto.randomUUID()}`
+        moveKeyRef.current = idempotencyKey
         try {
-            const res = await rainApi.moveToCard(cardId, cents)
+            const res = await rainApi.moveToCard(cardId, { amountCents: cents, idempotencyKey })
+            moveKeyRef.current = null
             posthog.capture(ANALYTICS_EVENTS.CARD_MOVE_TO_CARD, { amount_cents: res.amountCents })
             toast.success(t('moveToCardDone', { amount: formatDollars(res.amountCents) }))
         } catch (e) {

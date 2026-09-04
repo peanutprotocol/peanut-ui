@@ -788,12 +788,12 @@ export const rainApi = {
      *  passkey). Waits for the on-chain receipt, so the timeout is generous. */
     moveToCard: async (
         cardId: string,
-        amountCents: number
+        input: { amountCents: number; idempotencyKey: string }
     ): Promise<{ ok: boolean; amountCents: number; userOpHash: string }> => {
         return rainRequest({
             method: 'POST',
             path: `/rain/cards/${cardId}/move-to-card`,
-            body: { amountCents },
+            body: input,
             timeoutMs: 90_000,
         })
     },
