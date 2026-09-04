@@ -534,7 +534,15 @@ const UnlockPayments = () => {
                               text: tRegions('providerRejection.uploadDocument'),
                               onClick: () => {
                                   handleModalClose()
-                                  flow.handleSelfHealResubmit(providerRejectionForRegion.provider)
+                                  // Through the handler, not straight to resubmit. This
+                                  // modal already renders the residence copy from
+                                  // `reasonCode` above, so calling resubmit directly put
+                                  // "add your address and we will retry" over a button
+                                  // that 404s — the exact incoherence this fixes. The
+                                  // rejection object already carries the code and the
+                                  // action key, and every other state routes on as
+                                  // before.
+                                  void flow.handleFixableRejection(providerRejectionForRegion)
                               },
                               variant: 'purple' as const,
                               shadowSize: '4' as const,
