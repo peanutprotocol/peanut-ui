@@ -105,6 +105,11 @@ export const NATIVE_INPUTS = [
     { kind: 'file', id: 'android/capacitor.settings.gradle' },
     { kind: 'file', id: 'ios/App/CapApp-SPM/Package.swift' },
 
+    // The resolved SPM graph xcodebuild actually archives against. Package.swift
+    // declares ranges; this pins the revision each native SDK is built from, so
+    // a pin can move with no other file changing.
+    { kind: 'file', id: 'ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved' },
+
     // Native runtime config the JS half reads through the bridge.
     { kind: 'file', id: 'capacitor.config.ts' },
 

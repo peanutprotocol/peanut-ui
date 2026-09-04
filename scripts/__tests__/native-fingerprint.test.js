@@ -22,6 +22,7 @@ const FIXTURE_FILES = [
     'android/app/src/main/java/me/peanut/wallet/MainActivity.java',
     'android/app/src/meawallet/java/me/peanut/wallet/PushProvisioningPlugin.java',
     'ios/App/CapApp-SPM/Package.swift',
+    'ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved',
     'ios/App/App.xcodeproj/project.pbxproj',
     'ios/App/App/Info.plist',
     'ios/App/App/App.entitlements',
@@ -182,6 +183,18 @@ describe('native-fingerprint', () => {
         withPatchedInput(
             'ios/App/App.xcodeproj/project.pbxproj',
             (content) => content.replace(/IPHONEOS_DEPLOYMENT_TARGET = [^;]*;/g, 'IPHONEOS_DEPLOYMENT_TARGET = 18.0;'),
+            () => expect(fingerprint()).not.toBe(before)
+        )
+    })
+
+    it('moves when a resolved SPM pin changes', () => {
+        const before = fingerprint()
+
+        withPatchedInput(
+            // Package.swift declares ranges; Package.resolved pins the revision
+            // xcodebuild archives against, so a pin can move on its own.
+            'ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved',
+            (content) => content.replace('"version" : "5.12.0"', '"version" : "5.13.0"'),
             () => expect(fingerprint()).not.toBe(before)
         )
     })
