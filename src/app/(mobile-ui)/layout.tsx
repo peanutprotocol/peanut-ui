@@ -188,12 +188,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     'pb-[calc(6rem_+_var(--safe-bottom))]',
                     isSupport && 'p-0 pb-[calc(5rem_+_var(--safe-bottom))]',
                     isHome && 'p-0',
-                    isUserLoggedIn ? 'pb-[calc(6rem_+_var(--safe-bottom))]' : 'pb-[calc(1rem_+_var(--safe-bottom))]',
+                    // the 6rem reservation exists to clear the bottom nav, so a
+                    // screen without one takes the same inset as a logged-out one
+                    isUserLoggedIn && !isProfileMenu
+                        ? 'pb-[calc(6rem_+_var(--safe-bottom))]'
+                        : 'pb-[calc(1rem_+_var(--safe-bottom))]',
                     isDev && 'p-0 pb-0',
-                    isHome && isCapacitor() && 'px-0 pt-0',
-                    // no nav to clear, so the 6rem reservation above is only
-                    // dead space under the last row (last wins in twMerge)
-                    isProfileMenu && 'pb-[calc(1rem_+_var(--safe-bottom))]'
+                    isHome && isCapacitor() && 'px-0 pt-0'
                 )}
                 innerClassName={twMerge(
                     alignStart && 'items-start',
