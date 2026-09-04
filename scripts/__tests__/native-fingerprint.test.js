@@ -52,6 +52,11 @@ describe('native-fingerprint', () => {
         expect(keys).toContain('android/capacitor.settings.gradle')
         expect(keys).toContain('ios/App/CapApp-SPM/Package.swift')
         expect(keys).toContain('capacitor.config.ts')
+        // The bridges JS actually calls, and the lockfile the OTA build
+        // installs from — config files alone do not move when either changes.
+        expect(keys).toContain('android/app/src/**.{java,kt}')
+        expect(keys).toContain('ios/App/**.swift')
+        expect(keys).toContain('native-plugin-versions')
         expect(keys.length).toBeGreaterThanOrEqual(10)
 
         // Nothing is silently skipped — absence is its own sentinel, so adding
@@ -117,6 +122,54 @@ describe('native-fingerprint', () => {
             (content) => content.replace(/IPHONEOS_DEPLOYMENT_TARGET = [^;]*;/g, 'IPHONEOS_DEPLOYMENT_TARGET = 18.0;'),
             () => expect(fingerprint()).not.toBe(before)
         )
+    })
+
+    it('moves when an Android bridge changes', () => {
+        const before = fingerprint()
+
+        withPatchedInput(
+            'android/app/src/main/java/me/peanut/wallet/MainActivity.java',
+            // MainActivity is where app-local plugins are registered, so a
+            // bundle calling a newly-registered one needs this binary. No
+            // config file moves when it changes.
+            (content) => `${content}\n// surface change\n`,
+            () => expect(fingerprint()).not.toBe(before)
+        )
+    })
+
+    it('moves when an iOS bridge changes', () => {
+        const before = fingerprint()
+
+        withPatchedInput(
+            'ios/App/App/ClipboardDetectPlugin.swift',
+            (content) => `${content}\n// surface change\n`,
+            () => expect(fingerprint()).not.toBe(before)
+        )
+    })
+
+    it('moves on a lockfile-only plugin bump, which the generated manifests miss', () => {
+        const before = fingerprint()
+
+        withPatchedInput(
+            'pnpm-lock.yaml',
+            // The gap this closes: the OTA workflow runs `pnpm install` but
+            // never regenerates capacitor.settings.gradle / Package.swift, so a
+            // plugin bumped without a `cap sync` ships the new JS wrapper while
+            // both generated manifests still read unchanged.
+            (content) => content.split('@capgo/capacitor-updater@8.51.14').join('@capgo/capacitor-updater@9.0.0'),
+            () => expect(fingerprint()).not.toBe(before)
+        )
+    })
+
+    it('resolves the bridge file sets at a git ref, not just in the working tree', () => {
+        // Regression guard: `git ls-tree -r -- 'dir/**/*.java'` matches nothing
+        // and exits 0, so a glob pathspec made every ref report an empty bridge
+        // set — the check compared nothing against nothing and passed.
+        const entries = JSON.parse(run('--manifest', '--ref', 'v1.1.0').stdout)
+
+        expect(entries['android/app/src/**.{java,kt}']).not.toBe('<absent>')
+        expect(entries['ios/App/**.swift']).not.toBe('<absent>')
+        expect(entries['native-plugin-versions']).not.toBe('<absent>')
     })
 
     it('rejects --diff without a ref rather than comparing against nothing', () => {

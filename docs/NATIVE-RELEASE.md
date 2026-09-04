@@ -337,10 +337,15 @@ own `out/` under the binary's versionName, then assert the channel serves it.
   **Bump the native version whenever you change plugins/native code**, then ship that via
   Play — OTA can't.
 - **Native fingerprint (the check behind that rule):** `scripts/native-fingerprint.mjs`
-  hashes the JS↔native contract — Capacitor's two generated plugin manifests (which pin
-  every plugin's resolved version in its dependency path), `capacitor.config.ts`, the
-  gradle files, `AndroidManifest.xml`, `project.pbxproj`, `Info.plist` and both
-  entitlements files. `capgo-deploy.yml` recomputes it and compares against the
+  hashes the JS↔native contract in three parts: the **config** (Capacitor's two generated
+  plugin manifests, `capacitor.config.ts`, the gradle files, `AndroidManifest.xml`,
+  `project.pbxproj`, `Info.plist`, both entitlements files), the **bridges** JS actually
+  calls (`android/app/src/**.{java,kt}`, `ios/App/**.swift` — a bundle calling a new
+  method on `PushProvisioningPlugin` needs the binary that has it, and no config file
+  moves when that changes), and the **resolved plugin versions from `pnpm-lock.yaml`**
+  (the OTA workflow runs `pnpm install` but never regenerates the committed manifests, so
+  a plugin bumped without a `cap sync` would ship the new JS wrapper against unchanged
+  manifest bytes). `capgo-deploy.yml` recomputes it and compares against the
   `v<major>.<build>.0` tag the bundle's floor targets; a mismatch **fails the OTA** and
   names the file that moved. It is a pure function of the tree, so nothing is stored and
   any tag can be fingerprinted retroactively (`--ref v1.2.0`). `MARKETING_VERSION` and
