@@ -53,6 +53,10 @@ interface IExchangeRateWidgetProps {
     // `?to=PLN` shows a rate the dropdown never offers and the CTA can only
     // route by falling back to the default pair.
     restrictToRoutable?: boolean
+    // Marketing/landing pages keep the hard drop shadow (matches the rest of
+    // that page's brutalist button styling); the in-app /profile/exchange-rate
+    // screen drops it — not used on any other in-app card (TASK-22121).
+    shadow?: boolean
 }
 
 const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
@@ -61,6 +65,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
     ctaAction,
     labels,
     restrictToRoutable = false,
+    shadow = true,
 }) => {
     const l = { ...DEFAULT_LABELS, ...labels }
     // shallow + history:'replace' uses window.history.replaceState — bypasses
@@ -235,10 +240,12 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
 
     // no exchange-rate board exists in figma (checked 2026-08-20) — container
     // rebuilt on the DS Card primitive (board 17802:61536) as the conservative
-    // recipe; a dedicated board can restyle the internals later. No shadow: not
-    // used anywhere else in the app (TASK-22121).
+    // recipe; a dedicated board can restyle the internals later.
     return (
-        <Card className="mx-auto mt-12 h-fit w-full items-center justify-center gap-4 p-6 md:w-[420px]">
+        <Card
+            shadowSize={shadow ? '4' : undefined}
+            className="mx-auto mt-12 h-fit w-full items-center justify-center gap-4 p-6 md:w-[420px]"
+        >
             <div className="w-full">
                 <h2 className="text-left text-body-s">{l.youSend}</h2>
                 <div className="mt-2 flex w-full items-center justify-center gap-4 rounded-sm border border-border-default bg-background-default p-4">
