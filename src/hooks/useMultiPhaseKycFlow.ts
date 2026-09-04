@@ -259,6 +259,7 @@ export const useMultiPhaseKycFlow = ({
         handleSelfHealResubmit,
         handleStartAction,
         handleFixableRejection,
+        handleFixableGate,
         handleSdkComplete: originalHandleSdkComplete,
         handleClose,
         refreshToken,
@@ -541,6 +542,7 @@ export const useMultiPhaseKycFlow = ({
         handleSelfHealResubmit,
         handleStartAction,
         handleFixableRejection,
+        handleFixableGate,
         isLoading,
         error,
         // terminal = the user has no action that changes the outcome; consumers

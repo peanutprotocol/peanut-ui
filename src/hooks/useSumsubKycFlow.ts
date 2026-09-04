@@ -723,6 +723,22 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         [handleStartAction, handleSelfHealResubmit]
     )
 
+    /**
+     * The gate-shaped handoff, in one place.
+     *
+     * Four bank surfaces each built `{ provider, actionKey, reasonCode }` from a
+     * `fixable-rejection` gate by hand. A site that dropped `reasonCode`, or
+     * passed `gate.reason` instead of `gate.reason.code`, would silently fall
+     * back to the resubmit route that 404s for a residence park — with every
+     * test still green, because the mistake lives in the argument rather than in
+     * the router. One adapter makes that a single-site bug with a single test.
+     */
+    const handleFixableGate = useCallback(
+        (provider: 'BRIDGE' | 'MANTECA', gate: { actionKey?: string; reason?: { code?: string } }) =>
+            handleFixableRejection({ provider, actionKey: gate.actionKey, reasonCode: gate.reason?.code }),
+        [handleFixableRejection]
+    )
+
     return {
         isLoading,
         error,
@@ -736,6 +752,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         handleSelfHealResubmit,
         handleStartAction,
         handleFixableRejection,
+        handleFixableGate,
         handleSdkComplete,
         handleClose,
         refreshToken,

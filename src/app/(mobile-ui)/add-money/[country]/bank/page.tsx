@@ -291,11 +291,7 @@ function BridgeBankOnrampPage() {
         } else if (gate.kind === 'fixable-rejection') {
             // Through the shared router: it sends a residence park to the
             // address step and everything else to resubmit as before.
-            await sumsubFlow.handleFixableRejection({
-                provider: 'BRIDGE',
-                actionKey: gate.actionKey,
-                reasonCode: gate.reason?.code,
-            })
+            await sumsubFlow.handleFixableGate('BRIDGE', gate)
         } else {
             await sumsubFlow.handleInitiateKyc(
                 bankRegionIntent(selectedCountry?.region ?? 'rest-of-the-world'),
