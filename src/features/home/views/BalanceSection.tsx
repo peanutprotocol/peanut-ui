@@ -10,6 +10,7 @@ import { useTranslations } from 'next-intl'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import Link from 'next/link'
 import { useHomeDrawer, type HomeDrawer } from '../useHomeDrawer'
+import type { BalanceSplit } from '@/hooks/wallet/useBalanceSplit'
 
 interface BalanceSectionProps {
     balance: bigint | undefined
@@ -17,9 +18,13 @@ interface BalanceSectionProps {
     /** balance is the persisted last-known-good while the live sum is still
      *  pending — dim it rather than asserting it as current */
     isStale?: boolean
+    /** on card / off card halves for card holders; null hides the line */
+    split?: BalanceSplit | null
     isHidden: boolean
     onToggleVisibility: () => void
 }
+
+const formatCents = (cents: number) => `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
 
 // home IA (figma section 17609:2334): add + send open a bottom drawer,
 // request navigates directly (a Link, so it keeps prefetch + anchor semantics)
@@ -35,7 +40,14 @@ const SUBMENU_ACTIONS: Array<{ key: 'add' | 'send' | 'request'; icon: IconName; 
  * visibility toggle, plus the add / send / request submenu underneath.
  * submenu states per component 17533:117867 (default / pressed).
  */
-export function BalanceSection({ balance, isFetching, isStale, isHidden, onToggleVisibility }: BalanceSectionProps) {
+export function BalanceSection({
+    balance,
+    isFetching,
+    isStale,
+    split,
+    isHidden,
+    onToggleVisibility,
+}: BalanceSectionProps) {
     const t = useAppTranslations('home')
     const tNav = useTranslations('navigation')
     const { triggerHaptic } = useAppHaptic()
@@ -75,6 +87,23 @@ export function BalanceSection({ balance, isFetching, isStale, isHidden, onToggl
                     </button>
                 )}
             </div>
+            {split && !isFetching && (
+                <Link
+                    href="/card/on-card"
+                    className={twMerge(
+                        '-mt-4 text-center text-body-s text-foreground-secondary tabular-nums',
+                        isStale && 'opacity-50'
+                    )}
+                    data-testid="balance-split"
+                >
+                    {isHidden
+                        ? t('splitHidden')
+                        : t('split', {
+                              onCard: formatCents(split.onCardCents),
+                              offCard: formatCents(split.offCardCents),
+                          })}
+                </Link>
+            )}
             <div className="flex items-start justify-between px-10">
                 {SUBMENU_ACTIONS.map((action) => {
                     const inner = (

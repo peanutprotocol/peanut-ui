@@ -1,20 +1,21 @@
 /**
- * Contract tests for useReturnExcessCollateral — the hook that, after a card
- * limit decrease, returns the collateral held above the new limit to the
- * user's smart wallet.
+ * Contract tests for useMoveOffCard — the hook that returns collateral to the
+ * user's smart wallet on request (the "Move off card" action and the excess
+ * after lowering the on-card target).
  *
  * The contracts locked down here:
- *  1. below-threshold / no-excess cases return 0 WITHOUT any signing or
+ *  1. below-threshold / nothing-on-card cases return 0 WITHOUT any signing or
  *     submission (the user must not see a passkey prompt),
- *  2. an excess is signed via the FORCED collateral-only strategy (routing
+ *  2. the move is signed via the FORCED collateral-only strategy (routing
  *     would pick smart-only — a self-transfer no-op — whenever the smart
- *     wallet covers the amount) and submitted for exactly the excess,
+ *     wallet covers the amount) and submitted for exactly the amount, capped
+ *     at what the card actually holds,
  *  3. a missing wallet address fails closed before any signing.
  */
 import { renderHook, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
-import { useReturnExcessCollateral } from '../useReturnExcessCollateral'
+import { useMoveOffCard } from '../useMoveOffCard'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
@@ -42,8 +43,6 @@ const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={new QueryClient()}>{children}</QueryClientProvider>
 )
 
-// `null` sentinels model the not-loaded states (a destructuring default would
-// silently swallow an explicit `undefined`).
 const setup = ({
     spendingPower = 20_000,
     address = WALLET,
@@ -56,7 +55,7 @@ const setup = ({
     })
     mockUseWallet.mockReturnValue({ address: address === null ? undefined : address })
     mockUseSignSpendBundle.mockReturnValue({ signSpend: mockSignSpend })
-    return renderHook(() => useReturnExcessCollateral(), { wrapper })
+    return renderHook(() => useMoveOffCard(), { wrapper })
 }
 
 beforeEach(() => {
@@ -65,11 +64,11 @@ beforeEach(() => {
     mockSubmitWithdrawal.mockResolvedValue({ txHash: '0xhash' })
 })
 
-describe('useReturnExcessCollateral', () => {
-    it('skips (no prompt, no submit) when the collateral does not exceed the new limit', async () => {
-        const { result } = setup({ spendingPower: 5_000 })
+describe('useMoveOffCard', () => {
+    it('skips (no prompt, no submit) below the $1 threshold', async () => {
+        const { result } = setup()
         await act(async () => {
-            expect(await result.current.returnExcess(20_000)).toBe(0)
+            expect(await result.current.moveOffCard(50)).toBe(0)
         })
         expect(mockSignSpend).not.toHaveBeenCalled()
         expect(mockSubmitWithdrawal).not.toHaveBeenCalled()
@@ -78,16 +77,15 @@ describe('useReturnExcessCollateral', () => {
     it('skips when the overview has not loaded (no spending power)', async () => {
         const { result } = setup({ spendingPower: null })
         await act(async () => {
-            expect(await result.current.returnExcess(5_000)).toBe(0)
+            expect(await result.current.moveOffCard(5_000)).toBe(0)
         })
         expect(mockSignSpend).not.toHaveBeenCalled()
     })
 
-    it('signs a FORCED collateral-only withdrawal of exactly the excess, to the smart wallet, then submits', async () => {
+    it('signs a FORCED collateral-only withdrawal of exactly the amount, to the smart wallet, then submits', async () => {
         const { result } = setup({ spendingPower: 20_000 })
         await act(async () => {
-            // $200 backing, limit lowered to $50 → $150 excess
-            expect(await result.current.returnExcess(5_000)).toBe(15_000)
+            expect(await result.current.moveOffCard(15_000)).toBe(15_000)
         })
         expect(mockSignSpend).toHaveBeenCalledWith({
             requiredUsdcAmount: 150_000_000n, // 15000 cents → 6dp USDC units
@@ -99,10 +97,18 @@ describe('useReturnExcessCollateral', () => {
         expect(mockSubmitWithdrawal).toHaveBeenCalledWith(RAIN_WITHDRAWAL)
     })
 
+    it('caps the move at what the card actually holds', async () => {
+        const { result } = setup({ spendingPower: 4_200 })
+        await act(async () => {
+            expect(await result.current.moveOffCard(10_000)).toBe(4_200)
+        })
+        expect(mockSignSpend).toHaveBeenCalledWith(expect.objectContaining({ requiredUsdcAmount: 42_000_000n }))
+    })
+
     it('fails closed before signing when the wallet address is not ready', async () => {
         const { result } = setup({ address: null })
         await act(async () => {
-            await expect(result.current.returnExcess(5_000)).rejects.toThrow('Wallet not ready')
+            await expect(result.current.moveOffCard(5_000)).rejects.toThrow('Wallet not ready')
         })
         expect(mockSignSpend).not.toHaveBeenCalled()
         expect(mockSubmitWithdrawal).not.toHaveBeenCalled()
@@ -112,7 +118,7 @@ describe('useReturnExcessCollateral', () => {
         mockSignSpend.mockRejectedValue(new Error('user cancelled'))
         const { result } = setup()
         await act(async () => {
-            await expect(result.current.returnExcess(5_000)).rejects.toThrow('user cancelled')
+            await expect(result.current.moveOffCard(5_000)).rejects.toThrow('user cancelled')
         })
         expect(mockSubmitWithdrawal).not.toHaveBeenCalled()
     })

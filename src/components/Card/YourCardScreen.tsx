@@ -135,6 +135,7 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
             <div className="space-y-4">
                 <Section title={t('managementTitle')}>
                     <ListGroup>
+                        <ProfileMenuItem icon="arrow-exchange" label={t('onCard')} href="/card/on-card" />
                         <ProfileMenuItem icon="more-horizontal" label={t('pin')} href="/card/pin" />
                         <ProfileMenuItem icon="meter" label={t('spendingLimit')} href="/card/limit" />
                         <ProfileMenuItem icon="credit-card" label={t('physicalCard')} href="/card/physical" />

@@ -802,7 +802,7 @@
             "holdAriaLabel": "Mantené presionado para revisar si calificás"
         },
         "limits": {
-            "subtitle": "Definí tu límite de gasto por transacción.",
+            "subtitle": "El máximo de una sola compra con tarjeta. No cambia cuánto se queda en la tarjeta.",
             "invalidAmount": "Ingresá un monto válido",
             "noActiveCard": "No tenés una tarjeta activa para gestionar límites."
         },
@@ -844,6 +844,15 @@
         "recovery": {
             "failed": "Falló la recuperación — intentalo de nuevo",
             "title": "Recuperá el colateral de tu tarjeta"
+        },
+        "onCard": {
+            "noActiveCard": "No tenés una tarjeta activa para gestionar.",
+            "pinned": "Definido por vos",
+            "invalidAmount": "Ingresá un monto válido",
+            "saveFailed": "No se pudo guardar. Intentá de nuevo.",
+            "moveFailed": "No se pudo mover el dinero. Intentá de nuevo.",
+            "setupRequired": "Terminá de configurar tu tarjeta para mover dinero a ella.",
+            "autoBalanceOff": "Las recargas automáticas están desactivadas para esta tarjeta. Mové dinero a la tarjeta manualmente antes de pagar."
         }
     },
     "addMoney": {
@@ -1446,7 +1455,7 @@
         },
         "rainCooldownIntroModal": {
             "title": "Esperá un momento",
-            "description": "Tu tarjeta necesita un breve tiempo de espera entre gastos seguidos. Para evitar esto en el futuro, podés bajar el límite de tu tarjeta por debajo del saldo de tu wallet; el resto siempre estará disponible."
+            "description": "Tu tarjeta permite un retiro cada pocos minutos. El dinero fuera de la tarjeta se envía al instante; cambiá cuánto se queda en la tarjeta desde la pantalla de la tarjeta."
         },
         "staleCardApprovalModal": {
             "description": "Necesitás volver a habilitar tu tarjeta antes de retirar. Solo toma un toque con tu passkey.",

@@ -58,6 +58,33 @@ export interface RainCardSummary {
     /** Whether the user has granted the one-time session-key permission
      *  used to submit collateral withdrawals with a single passkey tap. */
     hasWithdrawApproval: boolean
+    /** On-card / off-card policy the auto-balancer runs for this card.
+     *  Optional for backward-compat with a pre-deploy backend. */
+    collateral?: RainCardCollateralPolicy
+}
+
+/**
+ * How much stays on the card and how much stays off it (TASK-22293). The
+ * per-purchase limit is a separate Rain control and no longer drives this.
+ */
+export interface RainCardCollateralPolicy {
+    /** Cents the auto-balancer keeps on the card. */
+    targetCents: number
+    /** True when the user set the target; the nightly tuner leaves it alone. */
+    targetPinned: boolean
+    /** Cents the sweep leaves off the card. */
+    walletFloorCents: number
+    /** Sweep everything to the card — no target, no floor, no debounce. */
+    loadAllToCard: boolean
+    /** Per-authorization purchase limit mirrored from Rain, in cents. */
+    cardLimitCents: number | null
+    autoBalanceEnabled: boolean
+}
+
+export interface UpdateCollateralSettingsInput {
+    collateralTargetCents?: number
+    walletFloorCents?: number
+    loadAllToCard?: boolean
 }
 
 export interface RainCardOverview {
@@ -751,6 +778,26 @@ export const rainApi = {
     },
 
     /** Read the current spending limits (per-txn / 24h / 30d / all-time) from Rain. */
+    /** Change what stays on / off the card. Raising the target tops the card
+     *  up in the background; lowering it never withdraws (see useMoveOffCard). */
+    updateCollateralSettings: async (cardId: string, input: UpdateCollateralSettingsInput): Promise<void> => {
+        await rainRequest<{ ok: boolean }>({ method: 'PATCH', path: `/rain/cards/${cardId}`, body: input })
+    },
+
+    /** User-chosen wallet→card move through the stored session key (no
+     *  passkey). Waits for the on-chain receipt, so the timeout is generous. */
+    moveToCard: async (
+        cardId: string,
+        amountCents: number
+    ): Promise<{ ok: boolean; amountCents: number; userOpHash: string }> => {
+        return rainRequest({
+            method: 'POST',
+            path: `/rain/cards/${cardId}/move-to-card`,
+            body: { amountCents },
+            timeoutMs: 90_000,
+        })
+    },
+
     getCardLimits: async (cardId: string): Promise<RainCardLimit[]> => {
         const { limits } = await rainRequest<{ limits: RainCardLimit[] }>({
             method: 'GET',

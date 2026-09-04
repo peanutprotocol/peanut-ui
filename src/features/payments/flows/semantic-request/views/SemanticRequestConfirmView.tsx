@@ -31,6 +31,7 @@ import PeanutActionDetailsCard, {
 import { useSearchParams, useRouter } from 'next/navigation'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
 import { useTranslations } from 'next-intl'
+import { CollateralPullNotice } from '@/components/Global/CollateralPullNotice'
 
 export function SemanticRequestConfirmView() {
     const router = useRouter()
@@ -251,6 +252,8 @@ export function SemanticRequestConfirmView() {
 
                     {!isCardPioneer && <PaymentInfoRow hideBottomBorder label={tCommon('peanutFee')} value="$ 0.00" />}
                 </Card>
+
+                <CollateralPullNotice amountUsd={usdAmount || amount} />
 
                 {/* buttons and error */}
                 <div className="flex flex-col gap-4">

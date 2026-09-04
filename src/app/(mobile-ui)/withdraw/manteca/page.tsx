@@ -77,6 +77,7 @@ import { MantecaTransfersMaintenanceView } from '@/components/Global/Banner/Mant
 import { useLocale, useTranslations } from 'next-intl'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 import { loadingStateKey } from '@/i18n/app/loading-states'
+import { CollateralPullNotice } from '@/components/Global/CollateralPullNotice'
 
 type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success' | 'failure'
 
@@ -790,6 +791,8 @@ function MantecaBankWithdrawFlow() {
                             />
                         )
                     })()}
+
+                    {!balanceErrorMessage && <CollateralPullNotice amountUsd={usdAmount} />}
 
                     <Button
                         variant="purple"

@@ -13,8 +13,9 @@ let mockUser: any = null
 let mockIsFetchingUser = false
 let mockWagmiConnected = false
 
+let mockOverview: unknown = undefined
 jest.mock('@/hooks/wallet/useWallet', () => ({
-    useWallet: () => ({ spendableBalance: 123n, isFetchingSpendableBalance: false }),
+    useWallet: () => ({ spendableBalance: 123n, isFetchingSpendableBalance: false, balance: 2_840_000n }),
 }))
 jest.mock('@/redux/hooks', () => ({
     useUserStore: () => ({ user: mockUser }),
@@ -30,6 +31,9 @@ jest.mock('@/context/ClaimBankFlowContext', () => ({
 }))
 jest.mock('@/context/WithdrawFlowContext', () => ({
     useWithdrawFlow: () => ({ resetWithdrawFlow: mockResetWithdrawFlow }),
+}))
+jest.mock('@/hooks/useRainCardOverview', () => ({
+    useRainCardOverview: () => ({ overview: mockOverview }),
 }))
 jest.mock('@/hooks/useCardInfo', () => ({
     useCardInfo: jest.fn(() => ({})),
@@ -50,6 +54,7 @@ describe('useHomeFlow', () => {
         mockUser = null
         mockIsFetchingUser = false
         mockWagmiConnected = false
+        mockOverview = undefined
     })
 
     it('gates the page on first user fetch only', () => {
@@ -96,5 +101,31 @@ describe('useHomeFlow', () => {
 
         mockUser = userWith({})
         expect(renderHook(() => useHomeFlow()).result.current.avatarKey).toBeNull()
+    })
+
+    it('hides the on card / off card line until the user has an active card and both halves are known', () => {
+        mockUser = userWith({})
+        const { result } = renderHook(() => useHomeFlow())
+        expect(result.current.balanceSplit).toBeNull()
+    })
+
+    it('splits the total into on card and off card for a card holder', () => {
+        mockUser = userWith({})
+        mockOverview = {
+            status: { hasApplication: true },
+            balanceUnavailable: false,
+            balance: {
+                creditLimit: 0,
+                pendingCharges: 0,
+                postedCharges: 0,
+                balanceDue: 0,
+                spendingPower: 10_000,
+                inTransitToCollateralCents: 250,
+            },
+            cards: [{ id: 'c1', status: 'ACTIVE', hasWithdrawApproval: true }],
+        }
+        const { result } = renderHook(() => useHomeFlow())
+        // $102.50 on card (landed + in transit), $2.84 off card (smart wallet)
+        expect(result.current.balanceSplit).toEqual({ onCardCents: 10_250, offCardCents: 284 })
     })
 })

@@ -25,6 +25,7 @@ import AmountInput from '../../../Global/AmountInput'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { CollateralPullNotice } from '@/components/Global/CollateralPullNotice'
 
 // Below the smallest fiat minimum the recipient loses every fiat claim rail
 // (bank / Pix / Mercado Pago all reject at claim time) and is left with only
@@ -289,6 +290,8 @@ const LinkSendInitialView = () => {
                     {t('link.minFiatClaimWarning', { amount: MIN_FIAT_CLAIM_AMOUNT })}
                 </Notification>
             )}
+
+            {!errorState?.showError && <CollateralPullNotice amountUsd={tokenValue} />}
 
             <div className="flex flex-col gap-4">
                 {/* only a flow (submit-time) error flips the CTA to retry — a

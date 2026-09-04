@@ -93,6 +93,7 @@ import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { useLimits } from '@/hooks/useLimits'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
+import { CollateralPullNotice } from '@/components/Global/CollateralPullNotice'
 
 const MAX_QR_PAYMENT_AMOUNT = '2000'
 const MIN_QR_PAYMENT_AMOUNT = '0.1'
@@ -1855,6 +1856,8 @@ export default function QRPayPage() {
                             hideBottomBorder
                         />
                     </Card>
+
+                    {!balanceErrorMessage && <CollateralPullNotice amountUsd={usdAmount} />}
 
                     {/* Send Button */}
                     <Button

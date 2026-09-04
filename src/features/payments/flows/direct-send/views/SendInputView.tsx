@@ -26,6 +26,7 @@ import { useAuth } from '@/context/authContext'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
 import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
 import { useTranslations } from 'next-intl'
+import { CollateralPullNotice } from '@/components/Global/CollateralPullNotice'
 
 export function SendInputView() {
     const onBack = useSafeBack('/home')
@@ -86,6 +87,7 @@ export function SendInputView() {
                         hideCurrencyToggle={true}
                     />
                     {isInsufficientBalance && <FieldError>{t('errors.insufficientPayment')}</FieldError>}
+                    {isLoggedIn && !isInsufficientBalance && <CollateralPullNotice amountUsd={amount} />}
                 </div>
 
                 {/* message input */}

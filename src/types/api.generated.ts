@@ -420,7 +420,8 @@ export interface paths {
                         "application/json": {
                             claim: {
                                 acquisition?: {
-                                    destination: "offramp_migration" | "normal_app";
+                                    /** @enum {string} */
+                                    destination: "normal_app";
                                     /** @enum {string} */
                                     fallback: "normal_app";
                                 };
@@ -485,7 +486,8 @@ export interface paths {
                         "application/json": {
                             claims: {
                                 acquisition?: {
-                                    destination: "offramp_migration" | "normal_app";
+                                    /** @enum {string} */
+                                    destination: "normal_app";
                                     /** @enum {string} */
                                     fallback: "normal_app";
                                 };
@@ -503,6 +505,45 @@ export interface paths {
                                 badgeCode?: string;
                                 outcome: "awarded" | "already_owned" | "inactive" | "expired" | "unknown" | "definition_missing";
                             }[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/badge/team": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            awarded: boolean;
                         };
                     };
                 };
@@ -1372,6 +1413,7 @@ export interface paths {
                             admittedTotal: number;
                             eligibilityReason?: string;
                             flowEarlyAccess: boolean;
+                            geoProhibited: boolean;
                             hasCardAccess: boolean;
                             isEligible: boolean;
                             isPublicLaunched: boolean;
@@ -5422,6 +5464,173 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/healthz/bridge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/healthz/manteca/{geo}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    geo: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/healthz/rain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/healthz/rhino": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/healthz/sumsub": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/history/{entryId}": {
         parameters: {
             query?: never;
@@ -5532,7 +5741,8 @@ export interface paths {
                             attributionResolved: true;
                             claims: {
                                 acquisition?: {
-                                    destination: "offramp_migration" | "normal_app";
+                                    /** @enum {string} */
+                                    destination: "normal_app";
                                     /** @enum {string} */
                                     fallback: "normal_app";
                                 };
@@ -5552,7 +5762,8 @@ export interface paths {
                             }[];
                             legacyAcquisition?: {
                                 campaignTag: string;
-                                destination: "offramp_migration" | "normal_app";
+                                /** @enum {string} */
+                                destination: "normal_app";
                                 /** @enum {string} */
                                 fallback: "normal_app";
                             };
@@ -5584,7 +5795,8 @@ export interface paths {
                             attributionResolved: false;
                             claims: {
                                 acquisition?: {
-                                    destination: "offramp_migration" | "normal_app";
+                                    /** @enum {string} */
+                                    destination: "normal_app";
                                     /** @enum {string} */
                                     fallback: "normal_app";
                                 };
@@ -5604,7 +5816,8 @@ export interface paths {
                             }[];
                             legacyAcquisition?: {
                                 campaignTag: string;
-                                destination: "offramp_migration" | "normal_app";
+                                /** @enum {string} */
+                                destination: "normal_app";
                                 /** @enum {string} */
                                 fallback: "normal_app";
                             };
@@ -5757,7 +5970,8 @@ export interface paths {
                             attributionResolved: true;
                             legacyAcquisition?: {
                                 campaignTag: string;
-                                destination: "offramp_migration" | "normal_app";
+                                /** @enum {string} */
+                                destination: "normal_app";
                                 /** @enum {string} */
                                 fallback: "normal_app";
                             };
@@ -5790,7 +6004,8 @@ export interface paths {
                             attributionResolved: false;
                             legacyAcquisition?: {
                                 campaignTag: string;
-                                destination: "offramp_migration" | "normal_app";
+                                /** @enum {string} */
+                                destination: "normal_app";
                                 /** @enum {string} */
                                 fallback: "normal_app";
                             };
@@ -6010,53 +6225,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/manteca/initiate-onboarding": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Initiate Manteca onboarding
-         * @description Creates an onboarding widget URL for the current user using userId as userExternalId and returns the URL
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header: {
-                    Authorization: string;
-                };
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        exchange?: string;
-                        failureUrl?: string;
-                        returnUrl: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/manteca/prices": {
         parameters: {
             query?: never;
@@ -6211,6 +6379,8 @@ export interface paths {
                     "application/json": {
                         /** @description Amount for static QR codes (optional for dynamic QR codes) */
                         amount?: string;
+                        /** @description Idempotency key for THIS init request, a non-blank string of at most 200 characters. Scoped to the exact (qrCode, qrType, amount) tuple, not to the scan: retries of the same request reuse one Manteca price lock instead of minting a new one per attempt, but an open-amount QR MUST derive a new key once the user supplies an amount, or the second init is refused with QR_INIT_KEY_MISMATCH. Optional: older clients omit it and get the previous behaviour. */
+                        idempotencyKey?: unknown;
                         /** @description The QR code string to process for payment */
                         qrCode: string;
                         /** @description Type of QR code (e.g. PIX, QR30, CODI). Used to select the correct fallback user for non-Manteca users. */
@@ -7097,7 +7267,7 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        actionType: "BRIDGE_TRANSFER" | "MANTECA_TRANSFER" | "MANTECA_QR_PAYMENT" | "P2P_SEND_LINK" | "P2P_REQUEST_PAYMENT" | "KYC_VERIFIED";
+                        actionType: ("BRIDGE_TRANSFER" | "MANTECA_TRANSFER" | "MANTECA_QR_PAYMENT" | "P2P_SEND_LINK" | "P2P_REQUEST_PAYMENT" | "KYC_VERIFIED") | "DIRECT_TRANSFER" | "P2P_SEND" | "P2P_REQUEST_FULFILL" | "SEND_LINK" | "QR_PAY" | "ONRAMP" | "OFFRAMP" | "CRYPTO_WITHDRAW" | "CARD_SPEND_AUTH" | "CARD_SPEND_CLEAR";
                         otherUserId?: string;
                         usdAmount?: number;
                     };
@@ -7348,6 +7518,14 @@ export interface paths {
                             };
                             balanceUnavailable: boolean;
                             cards: {
+                                collateral: {
+                                    autoBalanceEnabled: boolean;
+                                    cardLimitCents: null | number;
+                                    loadAllToCard: boolean;
+                                    targetCents: number;
+                                    targetPinned: boolean;
+                                    walletFloorCents: number;
+                                };
                                 expiryMonth: number;
                                 expiryYear: number;
                                 hasWithdrawApproval: boolean;
@@ -7911,7 +8089,6 @@ export interface paths {
                         amount: string;
                         chargeId?: string;
                         directTransfer: boolean;
-                        kind: "P2P_SEND" | "QR_PAY" | "LINK_CREATE" | "CRYPTO_WITHDRAW" | "FIAT_OFFRAMP" | "FIAT_ONRAMP" | "REQUEST_PAY" | "AUTO_REBALANCE" | "CARD_SPEND" | "DEPOSIT_EXTERNAL" | "OTHER";
                         recipientAddress: string;
                         totalAmountCents?: string;
                     };
@@ -8005,6 +8182,97 @@ export interface paths {
                 };
                 /** @description Default Response */
                 502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rain/cards/withdraw/prepare/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        preparationId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            ok: boolean;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -8135,6 +8403,18 @@ export interface paths {
                     content: {
                         "application/json": {
                             ok: boolean;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -8310,10 +8590,13 @@ export interface paths {
                     "application/json": {
                         autoBalanceEnabled?: boolean;
                         cardLimit?: number;
+                        collateralTargetCents?: number;
                         limits?: {
                             amount: number;
                             frequency: "perAuthorization" | "per24HourPeriod" | "per30DayPeriod" | "perAllTime";
                         }[];
+                        loadAllToCard?: boolean;
+                        walletFloorCents?: number;
                     };
                 };
             };
@@ -8713,6 +8996,89 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rain/cards/{cardId}/move-to-card": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    cardId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        amountCents: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            amountCents: number;
+                            ok: boolean;
+                            userOpHash: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/rain/cards/{cardId}/physical-waitlist": {
         parameters: {
             query?: never;
@@ -8953,123 +9319,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/rain/cards/{cardId}/provisioning-data": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    cardId: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        wallet: "apple" | "google";
-                    };
-                };
-            };
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            cardId: string;
-                            cardSecret: string;
-                            last4: string;
-                            network: string;
-                            cardholderName?: string;
-                            billingAddress: {
-                                line1: string;
-                                line2?: string;
-                                city: string;
-                                region: string;
-                                postalCode: string;
-                                countryCode: string;
-                            };
-                        };
-                    };
-                };
-                /** @description Default Response */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                            code?: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                            code?: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                429: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                            code?: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                            code?: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                503: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                            code?: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/rain/webhooks": {
         parameters: {
             query?: never;
@@ -9097,6 +9346,39 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/readyz": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -9641,6 +9923,9 @@ export interface paths {
                         context: "withdraw" | "pay-request" | "claim-xchain";
                         contextId: string;
                         depositChain: string;
+                        depositChainId?: string;
+                        depositContractVersion?: string;
+                        depositIdx?: number;
                         destinationAddress: string;
                         destinationChain: string;
                         feeUsd?: number;
@@ -9784,7 +10069,24 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        amount?: string | number;
+                        attachment?: unknown;
+                        chainId?: string;
+                        contractVersion?: string;
+                        depositIdx?: string | number;
+                        filename?: string;
+                        mimetype?: string;
+                        preparationId?: string;
+                        pubKey: string;
+                        reference?: string;
+                        tokenAddress?: string;
+                        txHash?: string;
+                    };
+                };
+            };
             responses: {
                 /** @description Default Response */
                 200: {
@@ -9881,6 +10183,44 @@ export interface paths {
                 };
                 cookie?: never;
             };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        amount: string | number;
+                        chainId: string;
+                        contractVersion: string;
+                        depositIdx: string | number;
+                        tokenAddress: string;
+                        txHash: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/status/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
             requestBody?: never;
             responses: {
                 /** @description Default Response */
@@ -9892,6 +10232,12 @@ export interface paths {
                 };
             };
         };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/sumsub/webhooks": {
@@ -10114,7 +10460,6 @@ export interface paths {
                         fullName?: string;
                         hasSeenEarlyUserModal?: boolean;
                         locale?: string;
-                        offrampHandle?: string;
                         pushSubscriptionId?: string;
                         residenceCountry?: string;
                         secondResidenceCountry?: string;
@@ -10131,7 +10476,61 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Invalid input — malformed email, rejected username, or a residence country that is not a real ISO-3166 alpha-2 code. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                            success: boolean;
+                        };
+                    };
+                };
+                /** @description The declared residence changed too recently. Only the residence keys were refused — every other field in the request was applied. Retry the residence change at `retryAt`; `/users/me` reports the same instant as `residence.nextChangeAllowedAt`. */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            code: "RESIDENCE_CHANGE_COOLDOWN";
+                            error: string;
+                            /** Format: date-time */
+                            retryAt: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                            success: boolean;
+                        };
+                    };
                 };
             };
         };
@@ -10347,7 +10746,7 @@ export interface paths {
                                 nextActions: {
                                     effectiveDate?: string;
                                     key: string;
-                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted";
+                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted";
                                     levelKey?: string;
                                     purpose: string;
                                     requirementKey?: string;
@@ -10384,7 +10783,7 @@ export interface paths {
                                         nextAction?: {
                                             effectiveDate?: string;
                                             key: string;
-                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted";
+                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted";
                                             levelKey?: string;
                                             purpose: string;
                                             requirementKey?: string;
@@ -10638,6 +11037,112 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/identity/restart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Reset the Sumsub IDENTITY step after a residence change and mint a fresh SDK token. Allowed only while the declared residence differs from the verified one. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @description Level the token must target. The declared residence decides (AR/BR → LATAM, US/MX → NA, SEPA zone → EU, else ROW); a request for another provider's level is rejected with 400, an EU/ROW request is corrected. Defaults to the level the declared residence needs. */
+                        regionIntent?: "LATAM" | "ROW" | "EU" | "NA";
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            applicantId: string;
+                            levelName: string;
+                            /** @description The intent the server resolved for this restart. The caller must drive its SDK session from THIS value, not from what it asked for: the declared residence can overrule the request, and `levelName` alone cannot tell EU from NA or LATAM from ROW (each pair shares a level). */
+                            regionIntent: string;
+                            token: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** Format: date-time */
+                            retryAt?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
                 };
             };
         };
@@ -10935,7 +11440,7 @@ export interface paths {
                                 nextActions: {
                                     effectiveDate?: string;
                                     key: string;
-                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted";
+                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted";
                                     levelKey?: string;
                                     purpose: string;
                                     requirementKey?: string;
@@ -10972,7 +11477,7 @@ export interface paths {
                                         nextAction?: {
                                             effectiveDate?: string;
                                             key: string;
-                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted";
+                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted";
                                             levelKey?: string;
                                             purpose: string;
                                             requirementKey?: string;
@@ -11003,6 +11508,8 @@ export interface paths {
                             };
                             residence: {
                                 declared: string | null;
+                                declaredSecond: string | null;
+                                kycReported: string | null;
                                 nextChangeAllowedAt: string | null;
                                 verified: string | null;
                             };
@@ -11108,6 +11615,250 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/users/saved-addresses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            savedAddresses: {
+                                address: string;
+                                chainId: string;
+                                createdAt: string;
+                                id: string;
+                                lastUsedAt: string;
+                                nickname: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        address: string;
+                        chainId: string;
+                        nickname: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            savedAddress: {
+                                address: string;
+                                chainId: string;
+                                createdAt: string;
+                                id: string;
+                                lastUsedAt: string;
+                                nickname: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/saved-addresses/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            deleted: true;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        nickname: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            savedAddress: {
+                                address: string;
+                                chainId: string;
+                                createdAt: string;
+                                id: string;
+                                lastUsedAt: string;
+                                nickname: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
         trace?: never;
     };
     "/users/search": {
@@ -11375,7 +12126,24 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         put?: never;
         post: {
             parameters: {
