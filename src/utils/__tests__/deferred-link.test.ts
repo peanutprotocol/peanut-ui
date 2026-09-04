@@ -31,6 +31,7 @@ jest.mock('../capacitor', () => ({
     getPlatform: jest.fn(() => 'web'),
     isAndroidNative: jest.fn(() => false),
     isIOSNative: jest.fn(() => false),
+    isNativeBridge: jest.fn(() => true),
 }))
 
 jest.mock('../clipboard-detect', () => ({
