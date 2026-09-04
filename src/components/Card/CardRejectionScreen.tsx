@@ -188,7 +188,7 @@ const CardRejectionScreen: FC<Props> = ({
                     ref={captureRef}
                     username={safeUsername}
                     mascot={mascot}
-                    className="overflow-hidden rounded-sm border-2 border-border-default shadow-[0.25rem_0.25rem_0_#000]"
+                    className="overflow-hidden rounded-sm border-2 border-border-default shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)]"
                 />
 
                 {/* Scarcity tally + appeal pitch — screen HTML, not on the asset */}

@@ -41,8 +41,12 @@ const ContributorCard = ({ contributor, position }: { contributor: Contributor; 
                     <AvatarWithBadge
                         name={contributor.username ?? ''}
                         size={'extra-small'}
-                        inlineStyle={{ backgroundColor: isEvmAddress ? '#FFC900' : colors.lightShade }}
-                        textColor={isEvmAddress ? '#000000' : colors.darkShade}
+                        inlineStyle={{
+                            backgroundColor: isEvmAddress
+                                ? 'var(--color-background-icon-bubble-yellow)'
+                                : colors.lightShade,
+                        }}
+                        textColor={isEvmAddress ? 'var(--color-foreground-primary)' : colors.darkShade}
                         icon={isEvmAddress ? 'wallet-outline' : undefined}
                     />
 
