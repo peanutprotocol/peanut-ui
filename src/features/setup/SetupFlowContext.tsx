@@ -1,7 +1,7 @@
 'use client'
 
 import React, { createContext, type ReactNode, useContext, useMemo, useState, useCallback } from 'react'
-import { type ISetupStep } from '@/components/Setup/Setup.types'
+import { type ISetupStep, type ScreenId } from '@/components/Setup/Setup.types'
 
 /**
  * Setup flow memory that cannot live in the URL: the filtered step list (a
@@ -26,6 +26,16 @@ interface SetupFlowContextType {
     setResidenceCountry: (country: string) => void
     secondResidenceCountry: string
     setSecondResidenceCountry: (country: string) => void
+    /**
+     * The point of no return: the no-back step the PAGE has confirmed visible
+     * (stepRendered — entry resolution done, no interstitial/modal). Guards
+     * refuse every earlier step while set. Context state, not a per-instance
+     * ref: several components run their own useSetupFlow instance, and the
+     * lock must be one fact — and it must NOT arm off a stale terminal URL
+     * that never actually rendered (Chip review round 2).
+     */
+    noBackLockScreenId: ScreenId | null
+    setNoBackLockScreenId: (screenId: ScreenId | null) => void
     resetSetupFlow: () => void
 }
 
@@ -38,6 +48,7 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode }> = ({ children 
     const [username, setUsername] = useState('')
     const [residenceCountry, setResidenceCountry] = useState('')
     const [secondResidenceCountry, setSecondResidenceCountry] = useState('')
+    const [noBackLockScreenId, setNoBackLockScreenId] = useState<ScreenId | null>(null)
 
     // "start fresh" on the existing-session interstitial: the provider stays
     // mounted through the logout, so the typed state clears explicitly
@@ -47,6 +58,7 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode }> = ({ children 
         setUsername('')
         setResidenceCountry('')
         setSecondResidenceCountry('')
+        setNoBackLockScreenId(null)
     }, [])
 
     const value = useMemo(
@@ -63,9 +75,20 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode }> = ({ children 
             setResidenceCountry,
             secondResidenceCountry,
             setSecondResidenceCountry,
+            noBackLockScreenId,
+            setNoBackLockScreenId,
             resetSetupFlow,
         }),
-        [steps, isLoading, direction, username, residenceCountry, secondResidenceCountry, resetSetupFlow]
+        [
+            steps,
+            isLoading,
+            direction,
+            username,
+            residenceCountry,
+            secondResidenceCountry,
+            noBackLockScreenId,
+            resetSetupFlow,
+        ]
     )
 
     return <SetupFlowContext.Provider value={value}>{children}</SetupFlowContext.Provider>

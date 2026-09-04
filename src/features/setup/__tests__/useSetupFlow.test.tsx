@@ -104,17 +104,47 @@ describe('useSetupFlow (URL stepper)', () => {
         expect(result.current.context.direction).toBe(-1)
     })
 
-    it('point of no return: after a no-back step renders, earlier screens bounce back (history pop tampering)', async () => {
-        const { result, rerender } = renderFlow({ screen: 'sign-test-transaction' })
+    it('point of no return: once the page arms the lock for a VISIBLE no-back step, earlier screens bounce back', async () => {
+        const { result } = renderFlow({ screen: 'sign-test-transaction' })
         await seedSteps(result)
-        // the no-back step has rendered — its lock is derived from the render
         expect(result.current.flow.step?.screenId).toBe('sign-test-transaction')
-        rerender()
+        // the page arms the lock only when stepRendered confirms visibility
+        await act(async () => {
+            result.current.context.setNoBackLockScreenId('sign-test-transaction')
+        })
         // a backward URL move (browser back / hand edit) may not re-enter the forms
         await act(async () => {
             await result.current.flow.setScreenId('signup')
         })
         expect(result.current.flow.step?.screenId).toBe('sign-test-transaction')
+    })
+
+    it('a STALE terminal URL never locks: with no rendered lock, entry resolution can replace it (Chip round 2)', async () => {
+        // fresh logged-out session lands on /setup?screen=sign-test-transaction
+        // (a copied/reloaded stale URL) — the page is still on its loading
+        // screen, so no lock is armed and the entry resolver moves freely
+        const { result } = renderFlow({ screen: 'sign-test-transaction' })
+        await seedSteps(result)
+        expect(result.current.flow.step?.screenId).toBe('sign-test-transaction')
+        await act(async () => {
+            await result.current.flow.setScreenId('signup')
+        })
+        expect(result.current.flow.step?.screenId).toBe('signup')
+    })
+
+    it('resetSetupFlow disarms the lock (start-fresh on the existing-session interstitial)', async () => {
+        const { result } = renderFlow({ screen: 'sign-test-transaction' })
+        await seedSteps(result)
+        await act(async () => {
+            result.current.context.setNoBackLockScreenId('sign-test-transaction')
+        })
+        await act(async () => {
+            result.current.context.resetSetupFlow()
+        })
+        await act(async () => {
+            await result.current.flow.setScreenId('signup')
+        })
+        expect(result.current.flow.step?.screenId).toBe('signup')
     })
 })
 

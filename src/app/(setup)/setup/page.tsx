@@ -31,7 +31,7 @@ import { EInviteType } from '@/services/services.types'
 
 function SetupPageContent() {
     const t = useTranslations('setup')
-    const { steps, resetSetupFlow } = useSetupFlowContext()
+    const { steps, resetSetupFlow, setNoBackLockScreenId } = useSetupFlowContext()
     const { step, currentIndex: currentStepIndex, direction, handleNext, handleBack, setScreenId } = useSetupFlow()
     const { logoutUser, isLoggingOut, user, isFetchingUser } = useAuth()
     const { setShowIosPwaInstallScreen } = useIosPwaInstallGate()
@@ -72,6 +72,17 @@ function SetupPageContent() {
         !existingSessionUsername &&
         !showDeviceNotSupportedModal &&
         !showBrowserNotSupportedModal
+
+    // Arm the point of no return only for a step the user actually SEES —
+    // stepRendered excludes entry-resolution loading, the existing-session
+    // interstitial, and the unsupported modals. A stale terminal URL
+    // (?screen=sign-test-transaction in a fresh session) must stay unlockable
+    // so the entry resolver can replace it (Chip review round 2).
+    useEffect(() => {
+        if (stepRendered && step && step.showBackButton === false) {
+            setNoBackLockScreenId(step.screenId)
+        }
+    }, [stepRendered, step, setNoBackLockScreenId])
 
     useSetupStepAnalytics({
         enabled: stepRendered,
