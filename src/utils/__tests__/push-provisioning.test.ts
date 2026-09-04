@@ -18,6 +18,7 @@ jest.mock('@capacitor/core', () => ({
 jest.mock('../capacitor', () => ({
     isIOSNative: jest.fn(() => false),
     isAndroidNative: jest.fn(() => false),
+    isNativeBridge: jest.fn(() => true),
 }))
 
 const mockIsIOSNative = isIOSNative as jest.MockedFunction<typeof isIOSNative>

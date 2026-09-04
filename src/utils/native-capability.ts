@@ -1,5 +1,5 @@
 import { registerPlugin } from '@capacitor/core'
-import { isAndroidNative, isIOSNative } from './capacitor'
+import { isAndroidNative, isIOSNative, isNativeBridge } from './capacitor'
 
 /**
  * The one place app-local Capacitor plugins are reached, because every call to
@@ -13,8 +13,12 @@ import { isAndroidNative, isIOSNative } from './capacitor'
  *
  * 1. **Missing plugin.** Older binary, or a platform with no implementation:
  *    the call rejects, and `call()` answers with the caller's fallback.
- * 2. **Wrong platform.** `registerPlugin` happily hands back a proxy on web,
- *    where invoking it rejects. The platform gate means no call is attempted.
+ * 2. **Wrong platform, or no bridge.** `registerPlugin` happily hands back a
+ *    proxy on web, where invoking it rejects. The gate requires a LIVE bridge
+ *    as well as the right platform: isIOSNative/isAndroidNative fall back to a
+ *    user-agent sniff, which deliberately reports a capacitor-flavoured web
+ *    build (a Vercel preview opened on an Android phone) as native even though
+ *    no bridge exists — so platform alone would let a call through there.
  * 3. **The thenable trap.** The proxy answers ANY property with a native-method
  *    wrapper, `.then` included, so resolving a promise WITH a plugin leaves it
  *    pending forever (shipped twice — getPreferences in 1.0.44, the Crisp
@@ -79,7 +83,8 @@ export function nativeCapability<T extends object>(
     const plugin = registerPlugin<T>(name)
 
     const isSupportedPlatform = () =>
-        (platforms.includes('ios') && isIOSNative()) || (platforms.includes('android') && isAndroidNative())
+        isNativeBridge() &&
+        ((platforms.includes('ios') && isIOSNative()) || (platforms.includes('android') && isAndroidNative()))
 
     // One cast at the boundary: the per-method generics above are what call
     // sites are checked against, and expressing them inside the implementation

@@ -2,7 +2,7 @@
 // job is the failure paths: a plugin the running binary predates, a platform
 // with no native half, and the registerPlugin proxy's thenable trap.
 import { nativeCapability } from '../native-capability'
-import { isAndroidNative, isIOSNative } from '../capacitor'
+import { isAndroidNative, isIOSNative, isNativeBridge } from '../capacitor'
 import { createPluginProxy, expectToSettle } from '../__mocks__/capacitor-plugin-proxy'
 
 const pluginImplementation: Record<string, unknown> = {}
@@ -19,10 +19,14 @@ jest.mock('@capacitor/core', () => ({
 jest.mock('../capacitor', () => ({
     isIOSNative: jest.fn(() => false),
     isAndroidNative: jest.fn(() => false),
+    // Defaults true so the platform mocks stay the subject of each test; the
+    // bridge gate gets its own case below.
+    isNativeBridge: jest.fn(() => true),
 }))
 
 const mockIsIOSNative = isIOSNative as jest.MockedFunction<typeof isIOSNative>
 const mockIsAndroidNative = isAndroidNative as jest.MockedFunction<typeof isAndroidNative>
+const mockIsNativeBridge = isNativeBridge as jest.MockedFunction<typeof isNativeBridge>
 
 interface TestPlugin {
     doThing(options?: undefined): Promise<{ value: string }>
@@ -34,6 +38,7 @@ describe('nativeCapability', () => {
         for (const key of Object.keys(pluginImplementation)) delete pluginImplementation[key]
         mockIsIOSNative.mockReturnValue(false)
         mockIsAndroidNative.mockReturnValue(false)
+        mockIsNativeBridge.mockReturnValue(true)
     })
 
     it('returns the native answer on a supported platform', async () => {
@@ -131,6 +136,24 @@ describe('nativeCapability', () => {
         }
 
         expect(typeof rejectedByTheCompiler).toBe('function')
+    })
+
+    it('needs a live bridge, not just a native-looking platform', () => {
+        // isIOSNative/isAndroidNative fall back to a user-agent sniff, which
+        // deliberately reports a capacitor-flavoured web build as native — a
+        // Vercel preview opened on an Android phone. There is no bridge there,
+        // so the plugin proxy would reject; platform alone is not enough.
+        mockIsIOSNative.mockReturnValue(true)
+        mockIsNativeBridge.mockReturnValue(false)
+        const doThing = jest.fn()
+        pluginImplementation.doThing = doThing
+
+        const capability = nativeCapability<TestPlugin>('TestPlugin', { platforms: ['ios'] })
+
+        expect(capability.isSupportedPlatform()).toBe(false)
+        return expect(capability.call('doThing', undefined, () => ({ value: 'fallback' })))
+            .resolves.toEqual({ value: 'fallback' })
+            .then(() => expect(doThing).not.toHaveBeenCalled())
     })
 
     it('reports platform support from the declared platforms', () => {

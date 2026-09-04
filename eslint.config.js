@@ -48,7 +48,7 @@ const REGISTER_PLUGIN_IMPORT_RESTRICTION = {
     name: '@capacitor/core',
     importNames: ['registerPlugin'],
     message:
-        "Don't call registerPlugin directly — declare the plugin with nativeCapability() from '@/utils/native-capability' and reach it through .call(invoke, onUnavailable). This JS ships over the air onto binaries built months earlier, where the plugin simply does not exist and Capacitor answers a missing native method with a rejected promise, not a compile error: a forgotten try/catch is a crash on a user's device that no type and no test sees. The wrapper also gates on platform and keeps the proxy inside the closure, so it can never be returned across an await (the .then trap that shipped in 1.0.44 and 1.0.45–1.0.47).",
+        "Don't call registerPlugin directly — declare the plugin with nativeCapability() from '@/utils/native-capability' and reach it through .call(method, options, onUnavailable). This JS ships over the air onto binaries built months earlier, where the plugin simply does not exist and Capacitor answers a missing native method with a rejected promise, not a compile error: a forgotten try/catch is a crash on a user's device that no type and no test sees. The wrapper also gates on platform and keeps the proxy inside the closure, so it can never be returned across an await (the .then trap that shipped in 1.0.44 and 1.0.45–1.0.47).",
 }
 
 const QUERY_STRING_PUSH_MESSAGE =
@@ -369,7 +369,15 @@ module.exports = [
             'src/hooks/useSendFlowOrigin.ts',
         ],
         rules: {
-            'no-restricted-imports': ['error', { paths: RESTRICTED_IMPORT_PATHS }],
+            // REGISTER_PLUGIN_IMPORT_RESTRICTION rides along: this block REPLACES
+            // the base rule rather than extending it, so leaving it out would let
+            // every allowlisted file import registerPlugin directly and walk
+            // around the single-door invariant. The DS 10 exemption is about
+            // useSearchParams, not about native plugins.
+            'no-restricted-imports': [
+                'error',
+                { paths: [...RESTRICTED_IMPORT_PATHS, REGISTER_PLUGIN_IMPORT_RESTRICTION] },
+            ],
         },
     },
     {
