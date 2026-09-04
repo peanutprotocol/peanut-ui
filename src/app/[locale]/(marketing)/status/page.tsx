@@ -23,8 +23,14 @@ import { isFresh, parseStatusSummary, type StatusSummary } from './types'
  * fetch a minute per region however much traffic an incident brings. What
  * makes that safe is `isFresh`, now evaluated before every response rather
  * than only on a background regeneration.
+ *
+ * `revalidate = 0` rather than `dynamic = 'force-dynamic'`: both render per
+ * request and both leave the fetch below cached, but force-dynamic only leaves
+ * it cached because the fetch names its own revalidate — drop that and
+ * force-dynamic opts it out, taking the shield with it. This says the one
+ * thing it means.
  */
-export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 /** Matches the feed's own `max-age=60`. */
 const FEED_REVALIDATE_SECONDS = 60
