@@ -143,9 +143,12 @@ const BANNER_STYLES: Record<BucketState, string> = {
 export function StatusBanner({ state, title, detail }: { state: BucketState; title: string; detail?: string }) {
     return (
         <div className={`flex items-start gap-3 rounded-md border p-4 ${BANNER_STYLES[state]}`}>
-            <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${DOT_COLORS[state]}`} />
+            <span className={`mt-2 h-2.5 w-2.5 shrink-0 rounded-full ${DOT_COLORS[state]}`} />
             <div>
-                <p className="text-body-l font-bold">{title}</p>
+                {/* heading-card is 1.125rem at weight 700 on its own — the
+                    same result as stacking a weight utility onto a body token,
+                    without minting an off-ramp style to get there. */}
+                <p className="text-heading-card">{title}</p>
                 {detail && <p className="mt-1 text-body-s text-grey-1">{detail}</p>}
             </div>
         </div>
