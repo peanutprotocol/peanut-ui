@@ -3,30 +3,31 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
 import { type IconName } from '@/components/Global/Icons/Icon'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import Card from '@/components/Global/Card'
+import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { countryData, type CountryData } from '@/components/AddMoney/consts'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 
-/** A feature unlocked by identity verification, tagged by which channel unlocked it. */
+/** A rail unlocked by identity verification, as a region → rail DataRow. */
 type UnlockItem = {
     id: string
-    title: React.ReactNode | string
+    label: string
+    value: string
     /** `bank` = shown when bank rails are enabled (US/EU/MX users). `qr` = shown
-     * when QR-pay is enabled (LATAM users). Bullets in both groups display when
-     * both unlock — the duplicate QR bullet between groups is de-duped below. */
-    type: 'bank' | 'qr'
+     * when QR-pay is enabled (LATAM users). A rail listed in both shows once. */
+    channels: Array<'bank' | 'qr'>
 }
 
 const WelcomeUnlockModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
     const t = useTranslations('home.welcomeUnlock')
     const [approvedCountryData, setApprovedCountryData] = useState<CountryData | null>(null)
 
-    // Provider-blind: the celebration modal splits its copy by what CHANNEL the
+    // Provider-blind: the celebration modal splits its rows by what CHANNEL the
     // user just unlocked, not which provider's rail enabled. Bank-channel = the
-    // "transfers" bullets; qr-only OR a Manteca rail's `pay` op = the "QR" bullets.
+    // "transfers" rows; qr-only OR a Manteca rail's `pay` op = the "QR" rows.
     // (Manteca's pool tier shows up via canDo('pay') without naming the provider.)
     const { canDo, rails, bankRails, channelOf } = useCapabilities()
     const hasBankUnlock = bankRails().some((rail) => rail.status === 'enabled')
@@ -40,9 +41,9 @@ const WelcomeUnlockModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () 
         }
     }, [isOpen])
 
-    // Pick which feature bullets to show based on the channels the user unlocked.
+    // Pick which rails to show based on the channels the user unlocked.
     // 'all' = bank + qr; 'bank' = bank only (US/EU/MX user); 'qr' = qr-only
-    // (LATAM pool-tier user). Drives the bulletshown by `items` below.
+    // (LATAM pool-tier user). Drives the rows shown by `items` below.
     const unlockedChannels: 'all' | 'bank' | 'qr' | 'none' = useMemo(() => {
         if (hasBankUnlock && hasQrUnlock) return 'all'
         if (hasQrUnlock) return 'qr'
@@ -51,31 +52,31 @@ const WelcomeUnlockModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () 
     }, [hasBankUnlock, hasQrUnlock])
 
     /**
-     * Unlocked-feature bullets. The verified-ID country personalizes the LATAM
-     * bank-transfer bullet — the user's verified ID country, not their selected
+     * Unlocked rails, as region → rail rows. The verified-ID country personalizes
+     * the LATAM bank-transfer row — the user's verified ID country, not their selected
      * country. Example: user picks Argentina but has Brazil ID → they get QR in
      * Argentina but bank transfers only work in Brazil (their verified country).
      */
-    const items = useMemo((): UnlockItem[] => {
-        const b = (chunks: React.ReactNode) => <b>{chunks}</b>
-        return [
-            { id: 'qrArBr', title: <p>{t.rich('items.qrArBr', { b })}</p>, type: 'bank' },
-            { id: 'usTransfers', title: <p>{t.rich('items.usTransfers', { b })}</p>, type: 'bank' },
-            { id: 'euTransfers', title: <p>{t.rich('items.euTransfers', { b })}</p>, type: 'bank' },
-            { id: 'mxTransfers', title: <p>{t.rich('items.mxTransfers', { b })}</p>, type: 'bank' },
+    const items = useMemo(
+        (): UnlockItem[] => [
+            { id: 'qr', label: t('items.qr.label'), value: t('items.qr.value'), channels: ['bank', 'qr'] },
+            { id: 'us', label: t('items.us.label'), value: t('items.us.value'), channels: ['bank'] },
+            { id: 'europe', label: t('items.europe.label'), value: t('items.europe.value'), channels: ['bank'] },
+            { id: 'mexico', label: t('items.mexico.label'), value: t('items.mexico.value'), channels: ['bank'] },
             {
-                id: 'ownCountryTransfers',
-                title: t('items.ownCountryTransfers', { country: approvedCountryData?.title || t('yourCountry') }),
-                type: 'qr',
+                id: 'ownCountry',
+                label: approvedCountryData?.title || t('yourCountry'),
+                value: t('items.ownCountry.value'),
+                channels: ['qr'],
             },
-            { id: 'qrBrAr', title: t('items.qrBrAr'), type: 'qr' },
-        ]
-    }, [t, approvedCountryData?.title])
+        ],
+        [t, approvedCountryData?.title]
+    )
 
-    // Personalize the "Bank transfers to your own accounts in {country}" bullet
+    // Personalize the "Bank transfers to your own accounts" row's country label
     // off the user's first enabled qr-only-or-pay-capable LATAM rail. Provider-
     // blind via the channel classifier — the qr-only channel today is exactly
-    // the set that drives this bullet ("approved in country X for QR + bank
+    // the set that drives this row ("approved in country X for QR + bank
     // transfers"). NOTE: if multiple enabled qr-pay rails exist, this picks the
     // last (matches the old forEach behavior).
     const qrCapableRails = useMemo(
@@ -121,22 +122,19 @@ const WelcomeUnlockModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () 
                 },
             ]}
             content={
-                <div className="flex w-full flex-col items-start gap-2">
-                    <p>{t('youCanNow')}</p>
-                    <Notification
-                        priority="info"
-                        className="w-full"
-                        items={items
-                            .filter((item) => {
-                                if (unlockedChannels === 'all') {
-                                    // Show all items except the duplicate QR bullet
-                                    // (the bank list already mentions QR in AR/BR).
-                                    return !(item.type === 'qr' && item.id === 'qrBrAr')
-                                }
-                                return item.type === unlockedChannels
-                            })
-                            .map((item) => item.title)}
-                    />
+                <div className="flex w-full flex-col items-start gap-2 text-left">
+                    <p className="text-body-s text-foreground-secondary">{t('youCanNow')}</p>
+                    <Card position="single" className="divide-y divide-dashed divide-border-default px-4 py-0">
+                        {items
+                            .filter(
+                                (item) =>
+                                    unlockedChannels === 'all' ||
+                                    item.channels.includes(unlockedChannels as 'bank' | 'qr')
+                            )
+                            .map((item) => (
+                                <DataRow key={item.id} label={item.label} value={item.value} />
+                            ))}
+                    </Card>
                 </div>
             }
         />

@@ -171,16 +171,29 @@
         },
         "welcomeUnlock": {
             "title": "Acesso liberado",
-            "cta": "Comece a enviar dinheiro",
+            "cta": "Enviar dinheiro",
             "youCanNow": "Agora você pode:",
             "yourCountry": "seu país",
             "items": {
-                "qrArBr": "Pagamentos QR na <b>Argentina e no Brasil</b>",
-                "usTransfers": "Transferências ACH e Wire nos <b>Estados Unidos</b>",
-                "euTransfers": "Transferências SEPA na <b>Europa</b> (+30 países)",
-                "mxTransfers": "Transferências SPEI no <b>México</b>",
-                "ownCountryTransfers": "Transferências bancárias para suas próprias contas em {country}",
-                "qrBrAr": "Pagamentos QR no Brasil e na Argentina"
+                "qr": {
+                    "label": "Argentina e Brasil",
+                    "value": "Pagamentos QR"
+                },
+                "us": {
+                    "label": "Estados Unidos",
+                    "value": "Transferências ACH e Wire"
+                },
+                "europe": {
+                    "label": "Europa",
+                    "value": "Transferências SEPA (+30 países)"
+                },
+                "mexico": {
+                    "label": "México",
+                    "value": "Transferências bancárias SPEI"
+                },
+                "ownCountry": {
+                    "value": "Transferências para suas próprias contas"
+                }
             }
         },
         "perk": {
@@ -706,8 +719,8 @@
                 "description": "Seu @usuário é como os amigos enviam dinheiro para você. Pense nele como um número de conta que dá para falar em voz alta."
             },
             "residence": {
-                "title": "Onde você é residente?",
-                "description": "O país onde você mora legalmente: o que aparece nos seus documentos, não onde você está viajando agora. Ele define quais métodos de pagamento podemos ativar para você."
+                "title": "Onde você mora legalmente?",
+                "description": "O país que seus documentos mostram, não onde você está viajando. Isso decide quais formas de pagamento você pode desbloquear."
             },
             "passkey-permission": {
                 "title": "Vamos configurar sua passkey",
@@ -860,15 +873,15 @@
                 },
                 "descriptions": {
                     "notReadable": "Há um problema com as configurações de passkey do seu dispositivo. Tente de novo.",
-                    "notAllowedAndroid": "Não conseguimos criar uma passkey. Isso geralmente acontece quando você não está conectado a uma conta do Google, o Google Play Services está desatualizado ou o bloqueio de tela não está configurado. Corrija um desses pontos e tente de novo — ou pode ter sido cancelado.",
+                    "notAllowedAndroid": "Não conseguimos criar uma passkey. Entre em uma conta Google, atualize o Google Play Services ou configure o bloqueio de tela e tente de novo.",
                     "notAllowed": "As passkeys não estão habilitadas no seu dispositivo. Verifique as configurações do dispositivo para habilitá-las",
                     "invalidState": "Já existe uma passkey para esta conta no seu dispositivo.",
                     "default": "Algo deu errado ao configurar a passkey. Provavelmente é um problema do dispositivo."
                 },
                 "tryTheseFixes": "Tente estas soluções:",
                 "importantNote": "Nota importante",
-                "stillHavingIssues": "Ainda com problemas?",
-                "contactSupport": "Fale com nosso time de suporte em <link>peanut.me/support</link>",
+                "stillHavingIssues": "Ainda travado?",
+                "contactSupport": "Fale com o suporte em <link>peanut.me/support</link>",
                 "steps": {
                     "signInGoogle": "Entre em uma conta do Google neste dispositivo",
                     "ensureSignedInGoogle": "Verifique se você está conectado a uma conta do Google neste dispositivo",
@@ -892,9 +905,9 @@
             },
             "info": {
                 "title": "O que é uma passkey?",
-                "what": "Uma passkey é uma chave digital que seu aparelho cria para este app. Você a aprova com a digital, o rosto ou o bloqueio de tela que já usa. Sem senha para lembrar e nada para digitar.",
-                "backup": "Seu gerenciador de senhas (iCloud Keychain, Gerenciador de Senhas do Google ou similar) faz o backup e a sincroniza, então ela vai com você para um celular novo.",
-                "privacy": "O Peanut nunca vê sua digital nem seu rosto. Seu aparelho só nos diz que você aprovou.",
+                "what": "Uma passkey é uma chave digital que seu dispositivo cria para este app. Você aprova com digital, rosto ou bloqueio de tela: sem senha e sem digitar nada.",
+                "backup": "Seu gerenciador de senhas (iCloud Keychain, Google Password Manager ou outro) faz o backup e sincroniza com seu próximo celular.",
+                "privacy": "A Peanut nunca vê sua digital nem seu rosto: seu dispositivo só nos diz que você aprovou.",
                 "fullGuide": "Ler o guia completo"
             },
             "unsupported": "Passkeys ainda não estão disponíveis neste dispositivo. Entre com uma conta Google, atualize o Google Play Services e tente de novo.",
@@ -918,9 +931,9 @@
         },
         "accountReady": {
             "worksNowTitle": "Funciona agora mesmo",
-            "worksNowBody": "Receba dólares, envie para qualquer @usuário e guarde seu saldo. Nada disso precisa de identificação.",
-            "laterTitle": "Quando você quiser pagamentos bancários ou o cartão",
-            "laterBody": "Uma única verificação de identidade, cerca de 10 minutos para a maioria das pessoas. Se um revisor precisar analisar, de 1 a 3 dias úteis. Vamos mostrar exatamente o que você precisa antes de começar.",
+            "worksNowBody": "Receba dólares, envie para qualquer @usuário e guarde seu saldo: sem verificar identidade.",
+            "laterTitle": "Quando quiser pagamentos bancários ou um cartão",
+            "laterBody": "Vai ser preciso verificar sua identidade: alguns minutos, ou de 1 a 3 dias úteis se alguém revisar com calma.",
             "cta": "Ir para minha conta"
         }
     },
@@ -1194,7 +1207,7 @@
         },
         "guestVerification": {
             "otherMethod": "Resgatar com outro método",
-            "senderUnverifiedDescription": "Quem enviou ainda não pode enviar para um banco. Você pode resgatar com outro método, ou criar uma conta e verificar sua identidade para receber no seu banco.",
+            "senderUnverifiedDescription": "Quem enviou ainda não pode enviar para um banco. Resgate de outra forma, ou crie e verifique uma conta para receber no seu banco.",
             "accountRequiredDescription": "Você precisa de uma conta Peanut para resgatar com este método. Crie uma e verifique sua identidade, e seus fundos serão depositados no seu banco."
         },
         "actions": {
@@ -1433,8 +1446,8 @@
             "continueToCard": "Continuar para seu cartão"
         },
         "cancel": {
-            "title": "Cancelar cartão?",
-            "body": "Isso vai cancelar seu cartão permanentemente. Ele não vai funcionar em nenhuma transação. Você terá que pedir um novo se mudar de ideia.",
+            "title": "Cancelar seu cartão?",
+            "body": "Você não vai poder usar de novo. Peça um novo quando quiser.",
             "canceling": "Cancelando…",
             "slideToCancel": "Deslize para cancelar",
             "canceledTitle": "Cartão cancelado",
@@ -1695,10 +1708,10 @@
             "step": "Passo {number}",
             "warning": "Enviar para a rede ou o token errado vai resultar em perda permanente.",
             "default": {
-                "step1": "Copie seu endereço de depósito acima",
-                "step2": "Abra sua carteira ou corretora e inicie um saque",
-                "step3": "Cole o endereço e escolha uma das redes compatíveis",
-                "step4": "Confirme e envie: os fundos chegam em poucos minutos"
+                "step1": "Copie o endereço de depósito acima",
+                "step2": "Inicie um saque na sua carteira ou corretora",
+                "step3": "Cole o endereço e escolha uma rede compatível",
+                "step4": "Confirme: os fundos chegam em minutos"
             }
         },
         "crypto": {
@@ -1761,11 +1774,11 @@
             "scanWithBankApp": "Escaneie com o app do seu banco ou copie o código PIX."
         },
         "confirmationModal": {
-            "title": "IMPORTANTE!",
-            "nextStep": "No próximo passo você vai ver:",
+            "title": "Importante",
+            "nextStep": "A seguir você vai ver:",
             "bankDetailsItem": "Os dados bancários para enviar o dinheiro",
             "referenceCodeItem": "Um código de referência do depósito",
-            "youMust": "VOCÊ PRECISA:",
+            "youMust": "Você precisa:",
             "sendExactly": "Enviar exatamente <b>{currency}{amount}</b> (o valor exato mostrado)",
             "copyReferenceCode": "Copiar o código de referência de uso único exatamente",
             "pasteReference": "Colar no campo de descrição/referência",
@@ -2309,9 +2322,9 @@
         "collectionLabel": "Coleção de selos",
         "showNext": "Mostrar próximos selos",
         "showPrevious": "Mostrar selos anteriores",
-        "unlocked": "Selo desbloqueado!",
+        "unlocked": "Selo desbloqueado: {name}",
         "unlockedAtLabel": "Desbloqueado",
-        "reasonLabel": "Motivo",
+        "reasonLabel": "Por quê",
         "iconAlt": "Ícone de {name}",
         "shareAchievement": "Compartilhar conquista",
         "shareText": "Ganhei o selo {badge} no Peanut!\n\nEntre no Peanut e comece a ganhar pontos, desbloquear conquistas e movimentar dinheiro pelo mundo\n\n{link}",
@@ -2594,7 +2607,7 @@
         "regionRestricted": {
             "title": "Não conseguimos verificar documentos do seu país",
             "description": "Nosso parceiro de verificação não aceita documentos emitidos no seu país. Enviar de novo não vai mudar o resultado.",
-            "stillAvailable": "Seu dinheiro está seguro e você ainda pode usar o Peanut para enviar e receber dinheiro de outras pessoas.",
+            "stillAvailable": "Seu dinheiro está seguro: você pode continuar enviando e recebendo dinheiro com a Peanut.",
             "homeDescription": "Seu dinheiro está seguro — você ainda pode enviar e receber dinheiro de outras pessoas.",
             "cta": "Enviar ou pedir dinheiro"
         },
@@ -2662,7 +2675,7 @@
         },
         "reverificationPending": {
             "title": "Estamos analisando seus dados",
-            "description": "Sua verificação está em análise — isso normalmente leva alguns minutos. Avisaremos assim que você puder continuar. Você pode esperar aqui ou voltar para o início."
+            "description": "Sua verificação está em análise. Você não precisa fazer nada: avisamos assim que ficar pronta. Espere aqui ou volte para o início."
         },
         "rejectLabels": {
             "PROBLEMATIC_APPLICANT_DATA": {
@@ -2985,15 +2998,38 @@
         "unlockTitleGeneric": "Desbloquear esta região",
         "thisRegion": "esta região",
         "unlockDescription": "Para enviar e receber dinheiro aqui, confirme sua identidade com um <b>documento oficial.</b>",
-        "whatYoullUnlock": "O que você vai desbloquear:",
+        "whatYoullUnlock": "Você vai desbloquear:",
         "unlockNow": "Desbloquear agora",
-        "qrPayments": "Pagamentos QR na <b>Argentina e no Brasil</b>",
-        "sepaTransfers": "Transferências SEPA na <b>Europa</b> (+30 países)",
-        "ukFasterPayments": "Transferências Faster Payments no <b>Reino Unido</b>",
-        "usAchWire": "Transferências ACH e Wire nos <b>Estados Unidos</b>",
-        "mxSpei": "Transferências SPEI no <b>México</b>",
-        "latamBankTransfers": "Transferências bancárias para suas próprias contas na <b>LATAM</b>",
-        "defaultUnlockItem": "Transferências bancárias e formas de pagamento locais",
+        "rails": {
+            "europe": {
+                "label": "Europa",
+                "value": "Transferências SEPA (+30 países)"
+            },
+            "uk": {
+                "label": "Reino Unido",
+                "value": "Faster Payments"
+            },
+            "us": {
+                "label": "Estados Unidos",
+                "value": "Transferências ACH e Wire"
+            },
+            "mexico": {
+                "label": "México",
+                "value": "Transferências bancárias SPEI"
+            },
+            "qr": {
+                "label": "Argentina e Brasil",
+                "value": "Pagamentos QR"
+            },
+            "latamBank": {
+                "label": "América Latina",
+                "value": "Transferências para suas próprias contas"
+            },
+            "fallback": {
+                "label": "Sua região",
+                "value": "Transferências bancárias e formas de pagamento locais"
+            }
+        },
         "reasons": {
             "tax_identification_number": "Precisamos do seu número de identificação fiscal para continuar.",
             "address_of_residence": "Precisamos do seu endereço residencial para continuar.",
@@ -3096,15 +3132,15 @@
                 "title": "Acesso à câmera necessário",
                 "dismiss": "Dispensar",
                 "withStepsHint": "Siga estes passos para permitir o acesso à câmera e tente novamente.",
-                "noStepsHint": "Permita o acesso à câmera nas configurações do seu navegador ou dispositivo e tente novamente.",
-                "androidChrome1": "Passo 1: toque no ícone de cadeado na barra de endereço",
-                "androidChrome2": "Passo 2: toque em “Permissões”",
-                "androidChrome3": "Passo 3: ative a câmera",
-                "iosChrome1": "Passo 1: abra Ajustes → Chrome",
-                "iosChrome2": "Passo 2: ative a câmera",
-                "iosSafari1": "Passo 1: toque em “aA” na barra de endereço",
-                "iosSafari2": "Passo 2: toque em “Ajustes do site”",
-                "iosSafari3": "Passo 3: defina a câmera como “Permitir”"
+                "noStepsHint": "Ative o acesso à câmera nos seus ajustes e tente de novo.",
+                "androidChrome1": "Toque no ícone de cadeado na barra de endereço",
+                "androidChrome2": "Toque em “Permissões”",
+                "androidChrome3": "Ative a câmera",
+                "iosChrome1": "Abra Ajustes → Chrome",
+                "iosChrome2": "Ative a câmera",
+                "iosSafari1": "Toque em “aA” na barra de endereço",
+                "iosSafari2": "Toque em “Configurações do site”",
+                "iosSafari3": "Defina a câmera como “Permitir”"
             },
             "useCopiedCode": "Usar código copiado",
             "paymentMethods": {
@@ -3207,7 +3243,7 @@
         "cancelSendLinkModal": {
             "title": "Cancelar este link?",
             "amountReturned": "Os <strong>{amount}</strong> bloqueados no link voltam direto para o seu saldo.",
-            "noLongerClaimable": "Depois de cancelado, ninguém vai conseguir resgatar.",
+            "noLongerClaimable": "Depois disso, ninguém vai poder resgatar.",
             "cancelCta": "Cancelar e devolver fundos"
         },
         "balanceWarningModal": {
@@ -3512,7 +3548,7 @@
     "migration": {
         "downloadPrompt": {
             "earlyTitle": "O app do Peanut chegou!",
-            "earlyDescription": "O Peanut agora vive na App Store e no Google Play. Mais rápido, mais fluido e te avisa na hora que o dinheiro chega. Sua conta vai com você, sem configurar nada.",
+            "earlyDescription": "A Peanut agora é um app, na App Store e no Google Play. Mesma conta, experiência mais rápida e avisos na hora em que o dinheiro cai.",
             "maybeLater": "Baixo depois",
             "title": "O Peanut vai ser só app",
             "description": "Em {days, plural, one {# dia} other {# dias}} o Peanut se muda por completo para o app. Baixe agora e continue de onde parou. Sua conta e seu dinheiro se mudam com você automaticamente.",

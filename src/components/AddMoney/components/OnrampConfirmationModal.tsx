@@ -32,34 +32,39 @@ export const OnrampConfirmationModal = ({
         >
             <DrawerContent>
                 <div className="flex flex-col items-center gap-4 px-4 pt-1 pb-6 text-center">
-                    <IconBubble icon="alert" color="yellow" />
-                    <DrawerTitle>{t('title')}</DrawerTitle>
-                    <div className="flex w-full flex-col gap-4 text-left">
-                        <h2 className="mr-auto font-bold">{t('nextStep')}</h2>
-                        <Notification priority="helper" hideIcon className="w-full">
-                            <ul className="list-inside list-disc text-start">
-                                <li>{t('bankDetailsItem')}</li>
-                                <li>{t('referenceCodeItem')}</li>
-                            </ul>
-                        </Notification>
-                        <h2 className="mr-auto font-bold">{t('youMust')}</h2>
-                        <Notification
-                            priority="info"
-                            className="w-full"
-                            items={[
-                                t.rich('sendExactly', {
-                                    currency,
-                                    amount,
-                                    b: (chunks) => <b>{chunks}</b>,
-                                }),
-                                t('copyReferenceCode'),
-                                t('pasteReference'),
-                            ]}
-                        />
+                    {/* head and body sit M/12 apart; the slide keeps the L/16 of the outer stack */}
+                    <div className="flex w-full flex-col items-center gap-3">
+                        <div className="flex w-full flex-col items-center gap-4">
+                            <IconBubble icon="alert" color="yellow" />
+                            <DrawerTitle>{t('title')}</DrawerTitle>
+                        </div>
+                        <div className="flex w-full flex-col gap-4 text-left">
+                            <h2 className="mr-auto text-label-m">{t('nextStep')}</h2>
+                            <Notification priority="helper" hideIcon className="w-full">
+                                <ul className="list-inside list-disc text-start">
+                                    <li>{t('bankDetailsItem')}</li>
+                                    <li>{t('referenceCodeItem')}</li>
+                                </ul>
+                            </Notification>
+                            <h2 className="mr-auto text-label-m">{t('youMust')}</h2>
+                            <Notification
+                                priority="info"
+                                className="w-full"
+                                items={[
+                                    t.rich('sendExactly', {
+                                        currency,
+                                        amount,
+                                        b: (chunks) => <b>{chunks}</b>,
+                                    }),
+                                    t('copyReferenceCode'),
+                                    t('pasteReference'),
+                                ]}
+                            />
 
-                        <Notification priority="error" title={t('mismatchTitle')}>
-                            {t('mismatchDescription')}
-                        </Notification>
+                            <Notification priority="error" title={t('mismatchTitle')}>
+                                {t('mismatchDescription')}
+                            </Notification>
+                        </div>
                     </div>
                     {/* data-vaul-no-drag: the horizontal slide gesture must not start a drawer drag */}
                     <div className="w-full" data-vaul-no-drag>

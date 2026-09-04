@@ -2,7 +2,8 @@
 
 import { useTranslations } from 'next-intl'
 import ActionModal from '../Global/ActionModal'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import Card from '@/components/Global/Card'
+import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { Icon } from '../Global/Icons/Icon'
 import { type Region } from '@/utils/regions.utils'
 import { useRegionLabel } from '@/hooks/useRegionLabel'
@@ -14,6 +15,17 @@ interface StartVerificationModalProps {
     onStartVerification: () => void
     selectedRegion: Region | null
     isLoading?: boolean
+}
+
+type RailKey = 'europe' | 'uk' | 'us' | 'mexico' | 'qr' | 'latamBank' | 'fallback'
+
+// region → rail pairs, so they render as label/value DataRows rather than a checklist
+const BRIDGE_RAILS: RailKey[] = ['europe', 'uk', 'us', 'mexico', 'qr']
+const REGION_RAILS: Record<string, RailKey[]> = {
+    latam: ['latamBank', 'qr'],
+    europe: BRIDGE_RAILS,
+    'north-america': BRIDGE_RAILS,
+    'rest-of-the-world': ['qr'],
 }
 
 const UnlockRegionModal = ({
@@ -29,37 +41,27 @@ const UnlockRegionModal = ({
     const regionLabel = useRegionLabel()
     const regionName = selectedRegion && regionLabel(selectedRegion).name
 
-    const bold = { b: (chunks: React.ReactNode) => <b>{chunks}</b> }
-    const qrPayments = <p key="qr">{t.rich('qrPayments', bold)}</p>
-    const bridgeUnlockItems: Array<string | React.ReactNode> = [
-        <p key="sepa">{t.rich('sepaTransfers', bold)}</p>,
-        <p key="uk">{t.rich('ukFasterPayments', bold)}</p>,
-        <p key="ach">{t.rich('usAchWire', bold)}</p>,
-        <p key="mx">{t.rich('mxSpei', bold)}</p>,
-        qrPayments,
-    ]
-
-    // unlock benefits shown per region
-    const regionUnlockItems: Record<string, Array<string | React.ReactNode>> = {
-        latam: [<p key="bank">{t.rich('latamBankTransfers', bold)}</p>, qrPayments],
-        europe: bridgeUnlockItems,
-        'north-america': bridgeUnlockItems,
-        'rest-of-the-world': [qrPayments],
+    // spelled out rather than built from a template key so next-intl's typed messages still check them
+    const railCopy: Record<RailKey, { label: string; value: string }> = {
+        europe: { label: t('rails.europe.label'), value: t('rails.europe.value') },
+        uk: { label: t('rails.uk.label'), value: t('rails.uk.value') },
+        us: { label: t('rails.us.label'), value: t('rails.us.value') },
+        mexico: { label: t('rails.mexico.label'), value: t('rails.mexico.value') },
+        qr: { label: t('rails.qr.label'), value: t('rails.qr.value') },
+        latamBank: { label: t('rails.latamBank.label'), value: t('rails.latamBank.value') },
+        fallback: { label: t('rails.fallback.label'), value: t('rails.fallback.value') },
     }
 
-    const defaultUnlockItems = [<p key="bank">{t('defaultUnlockItem')}</p>]
-
-    const unlockItems = selectedRegion
-        ? (regionUnlockItems[selectedRegion.path] ?? defaultUnlockItems)
-        : defaultUnlockItems
+    const rails: RailKey[] = (selectedRegion && REGION_RAILS[selectedRegion.path]) ?? ['fallback']
 
     return (
         <ActionModal
             visible={visible}
             onClose={onClose}
             title={regionName ? t('unlockTitle', { region: regionName }) : t('unlockTitleGeneric')}
-            description={<p>{t.rich('unlockDescription', bold)}</p>}
-            descriptionClassName="text-black"
+            description={<p>{t.rich('unlockDescription', { b: (chunks) => <b>{chunks}</b> })}</p>}
+            // more than one block under the head → body reads left-aligned, not centered
+            descriptionClassName="text-black text-left"
             icon="shield"
             iconContainerClassName="bg-action-primary"
             iconProps={{ className: 'text-black' }}
@@ -73,9 +75,13 @@ const UnlockRegionModal = ({
                 },
             ]}
             content={
-                <div className="flex w-full flex-col items-start gap-2">
-                    <h2 className="text-label-m">{t('whatYoullUnlock')}</h2>
-                    <Notification priority="info" className="w-full" items={unlockItems} />
+                <div className="flex w-full flex-col items-start gap-2 text-left">
+                    <p className="text-body-s text-foreground-secondary">{t('whatYoullUnlock')}</p>
+                    <Card position="single" className="divide-y divide-dashed divide-border-default px-4 py-0">
+                        {rails.map((rail) => (
+                            <DataRow key={rail} label={railCopy[rail].label} value={railCopy[rail].value} />
+                        ))}
+                    </Card>
                     <div className="flex items-center gap-2">
                         <Icon name="info" size={16} className="text-foreground-secondary" />
                         <p className="text-body-xs text-foreground-secondary">{tKyc('doesntStoreDocumentsPeriod')}</p>

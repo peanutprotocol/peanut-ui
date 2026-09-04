@@ -45,7 +45,8 @@ const CancelSendLinkDrawer = ({
 
                     <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                         <DrawerTitle>{t('cancelSendLinkModal.title')}</DrawerTitle>
-                        <DrawerDescription className="space-y-2">
+                        {/* two paragraphs under the head → body reads left-aligned, not centered */}
+                        <DrawerDescription className="space-y-2 text-left">
                             <span className="block">
                                 {t.rich('cancelSendLinkModal.amountReturned', {
                                     amount,

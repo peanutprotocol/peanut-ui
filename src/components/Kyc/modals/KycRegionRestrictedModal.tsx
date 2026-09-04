@@ -30,12 +30,17 @@ export const KycRegionRestrictedModal = ({ visible, onClose }: KycRegionRestrict
         >
             <DrawerContent>
                 <div className="flex flex-col items-center gap-4 px-4 pt-1 pb-6 text-center">
-                    <IconBubble icon="globe-lock" className="bg-action-primary" />
-                    <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
-                        <DrawerTitle>{t('title')}</DrawerTitle>
-                    </DrawerHeader>
-                    <div className="w-full">
-                        <KycRegionRestrictedContent />
+                    {/* head and body sit M/12 apart; the cta keeps the L/16 of the outer stack */}
+                    <div className="flex w-full flex-col items-center gap-3">
+                        <div className="flex w-full flex-col items-center gap-4">
+                            <IconBubble icon="globe-lock" className="bg-action-primary" />
+                            <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
+                                <DrawerTitle>{t('title')}</DrawerTitle>
+                            </DrawerHeader>
+                        </div>
+                        <div className="w-full">
+                            <KycRegionRestrictedContent />
+                        </div>
                     </div>
                     <Button variant="purple" shadowSize="4" className="w-full justify-center" onClick={cta.onClick}>
                         {cta.label}

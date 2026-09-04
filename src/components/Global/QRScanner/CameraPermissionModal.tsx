@@ -5,7 +5,7 @@ import type { StaticImageData } from 'next/image'
 import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
 import { Button } from '@/components/0_Bruddle/Button'
-import Carousel from '@/components/Global/Carousel'
+import { NumberedList } from '@/components/0_Bruddle/NumberedList'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
 import { useGetBrowserType, BrowserType } from '@/hooks/useGetBrowserType'
 import {
@@ -109,23 +109,25 @@ export default function CameraPermissionModal({ visible, onRetry, onClose }: Cam
                             : t('qrScanner.cameraPermission.noStepsHint')}
                     </p>
 
+                    {/* the platform is already detected, so there is nothing to swipe
+                        between — one static numbered list instead of a carousel */}
                     {steps && (
-                        <Carousel>
-                            {steps.map((step, i) => {
+                        <NumberedList
+                            items={steps.map((step) => {
                                 const label = t(step.labelKey)
                                 return (
-                                    <div key={i} className="embla__slide flex flex-col items-center gap-2">
+                                    <div className="flex flex-col gap-2">
+                                        <p>{label}</p>
                                         <Image
                                             src={step.image}
                                             alt={label}
                                             className="w-full rounded-sm"
                                             placeholder="blur"
                                         />
-                                        <p className="text-center text-body-xs text-foreground-secondary">{label}</p>
                                     </div>
                                 )
                             })}
-                        </Carousel>
+                        />
                     )}
                 </div>
             }
