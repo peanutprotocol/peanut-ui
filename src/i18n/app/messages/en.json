@@ -1163,6 +1163,8 @@
             "offrampUnavailable": "Offramp unavailable",
             "bankClaimUnavailable": "You can not claim this link to your bank account.",
             "belowMinimum": "This link is below the {amount} minimum for bank payouts.",
+            "belowNetworkMinimum": "Claiming to {network} needs at least {amount}. Try a different network.",
+            "belowMinimumCrossChain": "This link is below the {amount} minimum to move cross-chain. Ask the sender to reclaim it.",
             "aboveMaximum": "This link is above the {amount} maximum for bank payouts."
         },
         "claimed": {

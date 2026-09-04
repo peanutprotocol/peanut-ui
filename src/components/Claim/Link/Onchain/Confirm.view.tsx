@@ -11,7 +11,8 @@ import { loadingStateContext } from '@/context/loadingStates.context'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { formatTokenAmount, isStableCoin } from '@/utils/general.utils'
+import { formatTokenAmount, isStableCoin, getChainName } from '@/utils/general.utils'
+import { belowClaimBridgeMinimum } from '@/utils/claim-min-guard'
 import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import * as Sentry from '@sentry/nextjs'
@@ -25,7 +26,7 @@ import { useSearchParams } from 'next/navigation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import underMaintenanceConfig, { CROSS_CHAIN_DISABLED_MESSAGE } from '@/config/underMaintenance.config'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useFormatter } from 'next-intl'
 import { badgeCampaignForLegacyWire } from '@/components/Invites/badge-campaign-context'
 
 export const ConfirmClaimLinkView = ({
@@ -40,6 +41,7 @@ export const ConfirmClaimLinkView = ({
     selectedRoute,
 }: _consts.IClaimScreenProps) => {
     const t = useTranslations('claim')
+    const format = useFormatter()
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const toFriendlyError = useFriendlyError()
@@ -110,12 +112,38 @@ export const ConfirmClaimLinkView = ({
                     setLoadingState('Idle')
                     return
                 }
+
+                // Rhino parks (and does NOT auto-refund) a cross-chain deposit
+                // below the route minimum — block a sub-minimum claim before the
+                // SDA is provisioned. This view only handles external-wallet claims,
+                // so the network-picker copy always applies. Without a token price we
+                // can't size the claim in USD, so defer to the backend guard.
+                const claimUsdAmount = Number(formattedAmount) * tokenPrice
+                const hasUsdAmount = tokenPrice > 0 && Number.isFinite(claimUsdAmount)
+                const belowMin = belowClaimBridgeMinimum({
+                    isXChain: true,
+                    destinationChainId: selectedChainID,
+                    amountUsd: hasUsdAmount ? claimUsdAmount : null,
+                })
+                if (belowMin) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: t('errors.belowNetworkMinimum', {
+                            amount: format.number(belowMin.minUsd, { style: 'currency', currency: 'USD' }),
+                            network: getChainName(selectedChainID) ?? selectedChainID,
+                        }),
+                    })
+                    setLoadingState('Idle')
+                    return
+                }
+
                 claimTxHash = await claimLinkXchain({
                     address: recipient ? recipient.address : (address ?? ''),
                     link: claimLinkData.link,
                     destinationChainId: selectedChainID,
                     destinationToken: selectedTokenAddress,
                     campaignTag: campaignTag ?? undefined,
+                    amountUsd: hasUsdAmount ? claimUsdAmount : undefined,
                 })
                 setClaimType('claimxchain')
             } else {

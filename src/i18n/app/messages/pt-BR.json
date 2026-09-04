@@ -1163,6 +1163,8 @@
             "offrampUnavailable": "Saque indisponível",
             "bankClaimUnavailable": "Você não pode resgatar este link para sua conta bancária.",
             "belowMinimum": "Este link está abaixo do mínimo de {amount} para saques bancários.",
+            "belowNetworkMinimum": "Resgatar para {network} exige no mínimo {amount}. Tente outra rede.",
+            "belowMinimumCrossChain": "Este link está abaixo do mínimo de {amount} para transferência entre redes. Peça a quem enviou para resgatá-lo.",
             "aboveMaximum": "Este link está acima do máximo de {amount} para saques bancários."
         },
         "claimed": {

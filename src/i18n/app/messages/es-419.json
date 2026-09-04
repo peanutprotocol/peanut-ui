@@ -1163,6 +1163,8 @@
             "offrampUnavailable": "Retiro no disponible",
             "bankClaimUnavailable": "No puedes reclamar este enlace a tu cuenta bancaria.",
             "belowMinimum": "Este enlace está por debajo del mínimo de {amount} para retiros bancarios.",
+            "belowNetworkMinimum": "Reclamar a {network} requiere al menos {amount}. Prueba con otra red.",
+            "belowMinimumCrossChain": "Este enlace está por debajo del mínimo de {amount} para moverse entre redes. Pídele a quien lo envió que lo reclame.",
             "aboveMaximum": "Este enlace supera el máximo de {amount} para retiros bancarios."
         },
         "claimed": {

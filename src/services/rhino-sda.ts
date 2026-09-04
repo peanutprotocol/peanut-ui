@@ -42,6 +42,15 @@ export interface SdaTransferRequest {
     feeUsd?: number
     payAmount?: string
     receiveAmount?: string
+    /**
+     * Deposit identity for claim-xchain, so the backend can read the claim
+     * amount from chain (authoritative, immutable) and reject a sub-minimum
+     * bridge that Rhino would park without auto-refund. Omitted for
+     * withdraw/pay-request, whose amount the backend derives from the charge.
+     */
+    depositChainId?: string
+    depositIdx?: number
+    depositContractVersion?: string
 }
 
 export interface SdaTransferResult {
@@ -78,7 +87,25 @@ async function postRhino<TReq, TRes>(path: string, body: TReq, errorLabel: strin
     })
     if (!response.ok) {
         const text = await response.text().catch(() => '')
-        throw new Error(`${errorLabel}: ${response.status} ${text}`)
+        // Surface the backend's own message (and wire `code`) verbatim so callers
+        // can show it directly — e.g. the sub-minimum rejection ("Amount ($2.00)
+        // is below the $5 minimum to bridge to ETHEREUM.") reaches the confirm
+        // view instead of a `${errorLabel}: 400 {json}` blob. Falls back to the
+        // labelled status line for a non-JSON or empty body.
+        let message = `${errorLabel}: ${response.status} ${text}`
+        let code: string | undefined
+        try {
+            const parsed = JSON.parse(text) as { error?: unknown; message?: unknown; code?: unknown }
+            if (typeof parsed.error === 'string' && parsed.error) message = parsed.error
+            else if (typeof parsed.message === 'string' && parsed.message) message = parsed.message
+            if (typeof parsed.code === 'string' && parsed.code) code = parsed.code
+        } catch {
+            // non-JSON body — keep the labelled fallback message
+        }
+        const error = new Error(message) as Error & { status?: number; code?: string }
+        error.status = response.status
+        if (code) error.code = code
+        throw error
     }
     return (await response.json()) as TRes
 }
