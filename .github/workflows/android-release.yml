@@ -229,10 +229,21 @@ jobs:
                   MEAWALLET_NEXUS_PASSWORD: ${{ secrets.MEAWALLET_NEXUS_PASSWORD_ANDROID }}
                   ANDROID_VERSION_NAME: ${{ steps.version.outputs.name }}
               run: |
-                  # Monotonic (run_number always increases). +10000 clears legacy
-                  # codes already on Play from earlier manual/local uploads (small
-                  # console codes plus git-commit-count builds up to ~8600).
-                  export ANDROID_VERSION_CODE=$((10000 + GITHUB_RUN_NUMBER))
+                  # Derived from the resolved version, NOT github.run_number: inside a
+                  # workflow_call run_number is the CALLER's counter, so the first
+                  # release-native.yml run numbered itself 1 and produced versionCode
+                  # 10001 against the live 10048 — Play refused it ("does not allow any
+                  # existing users to upgrade"). The version is the only counter that is
+                  # monotonic across every entry point, and 1000/1000000 spacing leaves
+                  # 999 builds per major and 999 OTAs per build while clearing the legacy
+                  # codes on Play (small console codes, git-commit-count builds to ~8600,
+                  # and the run_number era up to 10048).
+                  IFS=. read -r V_MAJOR V_BUILD V_OTA <<< "$ANDROID_VERSION_NAME"
+                  export ANDROID_VERSION_CODE=$((V_MAJOR * 1000000 + V_BUILD * 1000 + V_OTA))
+                  if [ "$ANDROID_VERSION_CODE" -le 10048 ]; then
+                      echo "::error::versionCode $ANDROID_VERSION_CODE does not clear the live 10048 — Play would refuse the upload" >&2
+                      exit 1
+                  fi
                   pnpm native:release
 
             - name: Upload to Google Play
