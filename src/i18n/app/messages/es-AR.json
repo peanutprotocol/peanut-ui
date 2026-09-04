@@ -392,7 +392,7 @@
             "youSend": "Vos enviás",
             "recipientGets": "Recibís"
         },
-        "balanceNote": "Tu saldo de Peanut se mantiene en USD. Donde haya un canal bancario local disponible, podés retirar en esa moneda local."
+        "balanceNote": "Tu saldo de Peanut se muestra en USD. Donde haya un canal bancario local disponible, podés retirar en esa moneda local."
     },
     "setup": {
         "steps": {
