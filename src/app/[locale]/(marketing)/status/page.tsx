@@ -41,16 +41,20 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
 async function loadSummary(): Promise<StatusSummary | null> {
     try {
         const response = await fetch(`${statusFeedOrigin()}/status/summary`, {
-            // Uncached on purpose, despite the page itself being revalidated.
+            // Cached, and therefore not to be trusted on its own.
             //
             // Next's Data Cache serves the last good body when a revalidating
-            // fetch fails, so `next: { revalidate }` here kept rendering the
-            // last green board for as long as the API stayed down — the exact
-            // failure this page exists to avoid, and one that survives every
-            // amount of red further down the stack. The page-level
-            // `revalidate` above still holds requests to one per minute at the
-            // edge, so the API keeps its shield.
-            cache: 'no-store',
+            // fetch *fails*, silently — verified against a feed refusing every
+            // connection, where this page went on rendering the last green
+            // board indefinitely and the catch below never ran. `cache:
+            // 'no-store'` fixes that and costs too much: it marks the route
+            // dynamic (confirmed in the build output), so every visitor during
+            // an incident would reach an API that is already struggling.
+            //
+            // So the cache stays and `isFresh` is what catches a dead origin:
+            // a body Next keeps re-serving ages, and this page refuses it once
+            // it has.
+            next: { revalidate },
             signal: AbortSignal.timeout(8000),
         })
         if (!response.ok) return null

@@ -163,14 +163,17 @@ export function parseStatusSummary(value: unknown): StatusSummary | null {
 /**
  * How old a summary may be before the page stops believing it.
  *
- * The feed is resampled every 5 minutes and served with `max-age=60,
- * stale-while-revalidate=300`, so ~6 minutes is the oldest a healthy system
- * ever hands back. Past that we are looking at a copy that outlived whatever
- * produced it — a CDN still serving the last good body over a dead origin is
- * exactly the shape of an outage — and a cached "all operational" is the one
- * answer this page must never give on someone else's word.
+ * This is the page's only defence against a cached "all operational" outliving
+ * the system it describes — both Next's Data Cache and a CDN keep serving the
+ * last good body over a dead origin, neither of them says so, and that is the
+ * shape an outage takes from where this page sits.
+ *
+ * The budget is set by how old a *healthy* body can legitimately be: the feed
+ * is served `max-age=60, stale-while-revalidate=300`, and Next's own cache
+ * adds up to another 60s, so ~7 minutes. Ten leaves headroom against a false
+ * outage while bounding how long a dead backend can read green.
  */
-export const MAX_SUMMARY_AGE_MS = 15 * 60 * 1000
+export const MAX_SUMMARY_AGE_MS = 10 * 60 * 1000
 
 export function isFresh(summary: StatusSummary, now: number): boolean {
     const generatedAt = Date.parse(summary.generatedAt)
