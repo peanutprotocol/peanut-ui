@@ -534,17 +534,22 @@ const UnlockPayments = () => {
                               text: tRegions('providerRejection.uploadDocument'),
                               onClick: () => {
                                   handleModalClose()
-                                  // Deliberately still the direct resubmit call. Routing
-                                  // this through `handleFixableRejection` would also
-                                  // divert every Manteca fixable rejection on this
-                                  // surface from resubmit to start-action, which is a
-                                  // behaviour change this PR has no reason to make and
-                                  // no test for. It is not needed for the residence
-                                  // cohort either: `hasFunctionalRail` counts a
-                                  // `requires-info` rail as functional, so their region
-                                  // reads Active and this modal never opens for them.
-                                  // Aligning this surface with the shared router is
-                                  // worth doing on its own (TASK-22286 follow-up).
+                                  // This IS the surface the residence cohort reaches.
+                                  // REQUIRES_SUPPORT maps to a top-level rail status of
+                                  // `blocked`, and `hasFunctionalRail` tests that field,
+                                  // so their region is LOCKED, they tap it, and this
+                                  // modal opens with copy asking for their address over
+                                  // a button that 404s.
+                                  //
+                                  // Gated on the one reason code rather than routing
+                                  // everything through the handler: that would also
+                                  // divert every Manteca fixable rejection here from
+                                  // resubmit to start-action, which is a change this has
+                                  // no reason to make.
+                                  if (providerRejectionForRegion.reasonCode === 'residence_unresolved') {
+                                      void flow.handleFixableRejection(providerRejectionForRegion)
+                                      return
+                                  }
                                   flow.handleSelfHealResubmit(providerRejectionForRegion.provider)
                               },
                               variant: 'purple' as const,
