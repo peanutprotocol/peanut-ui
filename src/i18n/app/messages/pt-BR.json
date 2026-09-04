@@ -3647,13 +3647,9 @@
     },
     "avatar": {
         "title": "Seu avatar",
-        "description": "Escolha um ou jogue os dados para ver outros básicos.",
-        "fromBadges": "Dos seus selos",
-        "basics": "Básicos",
-        "unlocked": "{count} desbloqueados",
-        "noBadgeAvatars": "Ganhe um selo e seus avatares aparecem aqui.",
-        "rollDice": "Jogar os dados",
-        "useInitial": "Usar minha inicial",
+        "initial": "Sua inicial",
+        "earned": "Conquistado",
+        "rollDie": "Jogar o dado",
         "change": "Trocar avatar",
         "saveFailed": "Não foi possível salvar seu avatar. Tente de novo."
     }

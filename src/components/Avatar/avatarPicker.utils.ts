@@ -1,6 +1,6 @@
 import type { KeyboardEvent } from 'react'
 
-export const AVATAR_PICKER_COLUMNS = 5
+export const AVATAR_PICKER_COLUMNS = 3
 
 /** One tab stop per radiogroup; arrows move between tiles and wrap. */
 export function roveAvatarTiles(event: KeyboardEvent<HTMLDivElement>): void {

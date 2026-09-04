@@ -3647,13 +3647,9 @@
     },
     "avatar": {
         "title": "Your avatar",
-        "description": "Pick one, or roll the dice for a fresh row of basics.",
-        "fromBadges": "From your badges",
-        "basics": "Basics",
-        "unlocked": "{count} unlocked",
-        "noBadgeAvatars": "Earn a badge and its avatars appear here.",
-        "rollDice": "Roll the dice",
-        "useInitial": "Use my initial instead",
+        "initial": "Your initial",
+        "earned": "Earned",
+        "rollDie": "Roll the die",
         "change": "Change avatar",
         "saveFailed": "Could not save your avatar. Try again."
     }

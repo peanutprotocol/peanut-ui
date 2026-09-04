@@ -18,9 +18,9 @@ import { useCardSurfaceAccess } from '@/hooks/useCardSurfaceAccess'
 import InviteFriendsModal from '../Global/InviteFriendsModal'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import Image from 'next/image'
-import { useQueryState } from 'nuqs'
+import { useQueryStates } from 'nuqs'
 import { AvatarPicker } from '@/components/Avatar/AvatarPicker'
-import { AVATAR_PICKER_PARAM, avatarPickerParser } from '@/components/Avatar/avatar.consts'
+import { avatarPickerParsers } from '@/components/Avatar/avatar.consts'
 import { useOtaUpdate } from '@/context/OtaUpdateContext'
 import OtaUpdateModal from './components/OtaUpdateModal'
 import { openStore } from '@/utils/migration.utils'
@@ -30,8 +30,10 @@ import { isIOSNative } from '@/utils/capacitor'
 export const Profile = () => {
     const { logoutUser, isLoggingOut, user } = useAuth()
     const [isInviteFriendsModalOpen, setIsInviteFriendsModalOpen] = useState(false)
-    // URL state so the badge-earned toast can deep-link straight into the picker
-    const [avatarPickerOpen, setAvatarPickerOpen] = useQueryState(AVATAR_PICKER_PARAM, avatarPickerParser)
+    // URL state so the badge-earned toast can deep-link straight into the
+    // picker, naming the badge whose art the first hand must hold
+    const [{ avatarPicker: avatarPickerOpen, badge: preferredBadge }, setAvatarPickerState] =
+        useQueryStates(avatarPickerParsers)
     const router = useRouter()
     const onBack = useSafeBack('/home')
     // Profile "verified" reflects identity verification only (the human was ID-verified) — NOT
@@ -75,9 +77,16 @@ export const Profile = () => {
                     name={displayName}
                     username={username}
                     isVerified={isUserSumsubKycApproved}
-                    onChangeAvatar={() => setAvatarPickerOpen(true)}
+                    onChangeAvatar={() => setAvatarPickerState({ avatarPicker: true })}
                 />
-                <AvatarPicker open={avatarPickerOpen} onOpenChange={setAvatarPickerOpen} />
+                <AvatarPicker
+                    open={avatarPickerOpen}
+                    prefer={preferredBadge ?? undefined}
+                    // closing also drops the toast's badge, so a reopen deals a plain hand
+                    onOpenChange={(open) =>
+                        setAvatarPickerState(open ? { avatarPicker: true } : { avatarPicker: false, badge: null })
+                    }
+                />
                 <div className="space-y-4">
                     {/* IA from #2834: identity/products first, then social +
                         account, then app settings. Payment limits moved inline

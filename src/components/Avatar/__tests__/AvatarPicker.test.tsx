@@ -9,16 +9,10 @@ jest.mock('next/image', () => ({
 }))
 
 // vaul needs a real layout; the picker's own logic is what is under test
-jest.mock('@/components/Global/Drawer', () => {
-    const Passthrough = ({ children }: { children?: ReactNode }) => <div>{children}</div>
-    return {
-        Drawer: ({ open, children }: { open: boolean; children?: ReactNode }) => (open ? <div>{children}</div> : null),
-        DrawerContent: Passthrough,
-        DrawerHeader: Passthrough,
-        DrawerTitle: Passthrough,
-        DrawerDescription: Passthrough,
-    }
-})
+jest.mock('@/components/Global/Drawer', () => ({
+    Drawer: ({ open, children }: { open: boolean; children?: ReactNode }) => (open ? <div>{children}</div> : null),
+    DrawerContent: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+}))
 
 const mockToast = jest.fn()
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ toast: mockToast }) }))
@@ -33,6 +27,8 @@ let mockUser: {
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser, fetchUser: mockFetchUser }) }))
 
 const radio = (key: string) => screen.getByRole('radio', { name: key })
+const handOf = () => screen.getAllByRole('radio').map((el) => el.getAttribute('aria-label'))
+const rollDie = () => screen.getByRole('button', { name: 'Roll the die' })
 const A = 'Bug Whisperer · beetle'
 const B = 'Bug Whisperer · shell'
 const KEY_A = 'badge.BUG_WHISPERER.beetle'
@@ -64,8 +60,15 @@ function fakeServer() {
     }
 }
 
+// The deal is random. Pinned at 0.99, every draw takes the last candidate and
+// the shuffle is the identity, so with one Bug Whisperer badge the hand is
+// [initial, peek, shell, beetle, …basics] whatever the pick — A and B are
+// always on the table (dealHand fills basics first, then the earned avatars).
+let random: jest.SpyInstance<number, []>
+
 beforeEach(() => {
     jest.clearAllMocks()
+    random = jest.spyOn(Math, 'random').mockReturnValue(0.99)
     mockUpdateUserById.mockResolvedValue({ data: {} })
     mockFetchUser.mockResolvedValue(null)
     mockUser = {
@@ -78,24 +81,40 @@ beforeEach(() => {
     }
 })
 
+afterEach(() => random.mockRestore())
+
 describe('AvatarPicker', () => {
-    it('lists one row of five basics and only the avatars of badges the user holds', () => {
+    it('deals one hand of eight behind the initial, earned avatars marked, the die ninth', () => {
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        expect(screen.getAllByRole('radio')).toHaveLength(8)
-        // human labels, not keys: badge name + slug, or the slug alone
+        const group = screen.getByRole('radiogroup', { name: 'Your avatar' })
+        expect(group.querySelectorAll('[role="radio"]')).toHaveLength(8)
+        expect(handOf()[0]).toBe('Your initial')
+        expect(radio('Your initial')).toHaveAttribute('aria-checked', 'true')
+        // the three Bug Whisperer avatars, each tagged; nothing from badges not held
+        expect(screen.getAllByText('Earned')).toHaveLength(3)
         expect(radio(A)).toBeInTheDocument()
-        expect(screen.getByRole('radiogroup', { name: 'Basics' }).querySelectorAll('[role="radio"]')).toHaveLength(5)
         expect(screen.queryByRole('radio', { name: /Offramp/ })).not.toBeInTheDocument()
-        expect(screen.getByRole('radiogroup', { name: 'From your badges' })).toBeInTheDocument()
+        // basics carry their cast name, not their slug
+        expect(radio('Bossy Goose')).toBeInTheDocument()
+        expect(rollDie()).toBeInTheDocument()
+        // no title, no description, no button besides the die (tiles are radios)
+        expect(screen.getAllByRole('button')).toHaveLength(1)
     })
 
-    it('tells a user with no badges where avatars come from', () => {
+    it('deals the initial plus seven basics to a user with no badges', () => {
         mockUser.user.badges = []
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        expect(screen.getAllByRole('radio')).toHaveLength(5)
-        expect(screen.getByText('Earn a badge and its avatars appear here.')).toBeInTheDocument()
+        expect(screen.getAllByRole('radio')).toHaveLength(8)
+        expect(screen.queryByText('Earned')).not.toBeInTheDocument()
+    })
+
+    it('deals the first hand from the badge the deep link names', () => {
+        mockUser.user.badges.push({ code: 'OG_2025_10_12', name: 'OG' })
+        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} prefer="OG_2025_10_12" />)
+
+        expect(radio('OG · shades')).toBeInTheDocument()
     })
 
     it('saves a tap at once and refreshes the user', async () => {
@@ -197,45 +216,33 @@ describe('AvatarPicker', () => {
         expect(radio(B)).toHaveAttribute('aria-checked', 'true')
         // pending is cleared: a later refetch that says otherwise wins
         mockUser.user.avatarKey = KEY_A
-        fireEvent.click(screen.getByRole('button', { name: 'Roll the dice' }))
+        fireEvent.click(rollDie())
         expect(radio(A)).toHaveAttribute('aria-checked', 'true')
     })
 
-    it('the dice redeals the basics row and never changes the pick', () => {
+    it('the die deals a new hand and never changes the pick or the initial', () => {
         mockUser.user.avatarKey = 'basic.apple'
-        const random = jest.spyOn(Math, 'random').mockReturnValue(0)
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
-        const rowOf = () =>
-            Array.from(screen.getByRole('radiogroup', { name: 'Basics' }).querySelectorAll('[role="radio"]')).map(
-                (el) => el.getAttribute('aria-label')
-            )
-        const before = rowOf()
+        const before = handOf()
+        expect(radio('Jackpot Cherry')).toHaveAttribute('aria-checked', 'true')
 
-        random.mockReturnValue(0.99)
-        act(() => fireEvent.click(screen.getByRole('button', { name: 'Roll the dice' })))
+        random.mockReturnValue(0)
+        act(() => fireEvent.click(rollDie()))
 
-        expect(rowOf()).not.toEqual(before)
-        expect(rowOf()).toContain('apple')
-        expect(radio('apple')).toHaveAttribute('aria-checked', 'true')
+        expect(handOf()).not.toEqual(before)
+        expect(handOf()[0]).toBe('Your initial')
+        expect(handOf()).toContain('Jackpot Cherry')
+        expect(radio('Jackpot Cherry')).toHaveAttribute('aria-checked', 'true')
         expect(mockUpdateUserById).not.toHaveBeenCalled()
-        random.mockRestore()
     })
 
-    it('clears the pick back to the initial', () => {
+    it('tapping the initial clears the pick', () => {
         mockUser.user.avatarKey = 'basic.apple'
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        fireEvent.click(screen.getByRole('button', { name: 'Use my initial instead' }))
+        fireEvent.click(radio('Your initial'))
 
+        expect(radio('Your initial')).toHaveAttribute('aria-checked', 'true')
         expect(mockUpdateUserById).toHaveBeenCalledWith({ userId: 'u1', avatarKey: null })
-    })
-
-    it('closes on done', () => {
-        const onOpenChange = jest.fn()
-        renderWithIntl(<AvatarPicker open onOpenChange={onOpenChange} />)
-
-        fireEvent.click(screen.getByRole('button', { name: 'Done' }))
-
-        expect(onOpenChange).toHaveBeenCalledWith(false)
     })
 })

@@ -128,7 +128,8 @@ describe('BadgeEarnToast', () => {
 
         act(() => fireEvent.click(screen.getByRole('button', { name: /Choose avatar/ })))
         expect(mockDismissToast).toHaveBeenCalledWith('badge-earn:BUG_WHISPERER')
-        expect(mockRouterPush).toHaveBeenCalledWith('/profile?avatarPicker=true')
+        // the badge rides along so the first hand holds its art
+        expect(mockRouterPush).toHaveBeenCalledWith('/profile?avatarPicker=true&badge=BUG_WHISPERER')
         expect(screen.queryByTestId('badge-detail-modal')).not.toBeInTheDocument()
     })
 

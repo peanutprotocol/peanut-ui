@@ -370,7 +370,7 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'avatar-picker': {
         route: AVATAR_PICKER_PATH,
-        about: 'Avatar picker open: three Bug Whisperer avatars unlocked above the twenty basics, beetle selected.',
+        about: 'Avatar picker open: a hand of eight with the initial first and a Bug Whisperer avatar guaranteed, beetle selected.',
         responses: {
             'GET /users/me': {
                 user: {

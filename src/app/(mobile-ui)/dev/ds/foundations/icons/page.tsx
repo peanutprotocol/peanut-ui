@@ -30,6 +30,7 @@ const ALL_ICONS: IconName[] = [
     'clock',
     'copy',
     'currency',
+    'dice',
     'docs',
     'dollar',
     'double-check',
