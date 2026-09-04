@@ -43,6 +43,7 @@ export function useCardReveal({ cardId, autoMaskMs = DEFAULT_AUTO_MASK_MS }: Use
     // overlay is the upgrade if a device check ever catches the PAN in recents.
     const [obscured, setObscured] = useState(false)
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const inFlightRef = useRef(false)
 
     const hide = useCallback(() => {
         setRevealed(null)
@@ -55,6 +56,10 @@ export function useCardReveal({ cardId, autoMaskMs = DEFAULT_AUTO_MASK_MS }: Use
     }, [])
 
     const reveal = useCallback(async () => {
+        // A second tap while the step-up sheet is up would open a second ceremony
+        // that fails instantly (overlapped=true in telemetry) and loops.
+        if (inFlightRef.current) return
+        inFlightRef.current = true
         setIsLoading(true)
         setError(null)
         setIsRateLimited(false)
@@ -89,6 +94,7 @@ export function useCardReveal({ cardId, autoMaskMs = DEFAULT_AUTO_MASK_MS }: Use
                 posthog.capture(ANALYTICS_EVENTS.CARD_PAN_FAILED, { error_message: errorMessage.slice(0, 120) })
             }
         } finally {
+            inFlightRef.current = false
             setIsLoading(false)
         }
     }, [cardId, autoMaskMs])

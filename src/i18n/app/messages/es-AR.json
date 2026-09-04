@@ -347,9 +347,9 @@
                 "leftOverride": "Este dispositivo fue puesto en beta desde el panel de Capgo, así que la app no puede sacarlo. Pedile a un administrador que quite la asignación de canal del dispositivo.",
                 "leftUnconfirmed": "No se pudo contactar a Capgo para confirmar el cambio, así que este dispositivo sigue en la compilación beta. Probá de nuevo cuando tengas conexión.",
                 "closed": "El canal {channel} todavía no acepta testers. Pedile a un administrador que habilite la autoasignación en Capgo.",
+                "notEligible": "Las actualizaciones beta todavía no están habilitadas para esta cuenta. Tocá cinco veces el número de versión para reintentar.",
                 "failed": "No se pudo cambiar el canal de actualizaciones.",
                 "revealed": "El interruptor de actualizaciones beta ya está visible abajo.",
-                "notEnabled": "Las actualizaciones beta no están habilitadas para este dispositivo.",
                 "appOnly": "Las actualizaciones beta solo están disponibles en la app de Peanut."
             }
         }
@@ -386,10 +386,13 @@
         }
     },
     "exchangeRate": {
-        "tryIt": "¡Probalo!",
+        "tryIt": "Retirar ahora",
+        "addMoneyCta": "Agregar dinero",
         "widget": {
-            "youSend": "Vos enviás"
-        }
+            "youSend": "Vos enviás",
+            "recipientGets": "Recibís"
+        },
+        "balanceNote": "Tu saldo de Peanut se mantiene en una sola moneda. Donde haya un canal bancario local disponible, podés retirar en esa moneda local."
     },
     "setup": {
         "steps": {
@@ -638,7 +641,9 @@
         "errors": {
             "brokenLinkMessage": "¿Seguro que hiciste clic en el enlace correcto? ¿El enlace se acaba de crear? Intentalo de nuevo en unos segundos.",
             "missingInviter": "No se pudo aceptar la invitación: falta quien te invitó. Contactá a soporte.",
-            "bankClaimUnavailable": "No podés reclamar este enlace a tu cuenta bancaria."
+            "bankClaimUnavailable": "No podés reclamar este enlace a tu cuenta bancaria.",
+            "belowNetworkMinimum": "Reclamar a {network} requiere al menos {amount}. Probá con otra red.",
+            "belowMinimumCrossChain": "Este enlace está por debajo del mínimo de {amount} para moverse entre redes. Pedile a quien lo envió que lo reclame."
         },
         "claimed": {
             "createWalletHint": "Creá una billetera para recibir enlaces en el futuro."
@@ -1064,7 +1069,7 @@
             "descriptionProviderRejection": "Subí una foto más nítida de tu documento para continuar.",
             "descriptionRegionUnavailable": "Por regulaciones del Reino Unido, las transferencias bancarias no están disponibles para residentes del Reino Unido. Tus fondos están seguros: podés retirarlos como cripto en cualquier momento.",
             "descriptionBankUnavailable": "Las transferencias bancarias no están disponibles en tu país, así que verificar tu identidad no las desbloquearía. Tus fondos están seguros y podés seguir enviando y recibiendo dinero con otras personas.",
-            "descriptionDefault": "Confirmá tu identidad para desbloquear los pagos. Toma alrededor de un minuto."
+            "descriptionDefault": "Confirmá tu identidad para desbloquear los pagos."
         },
         "regionRestricted": {
             "title": "No podemos verificar identificaciones de tu país",

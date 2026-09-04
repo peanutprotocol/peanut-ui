@@ -1,13 +1,13 @@
-// Captures the session JWT from passkey verify responses on native.
-// The ZeroDev SDK performs the /passkeys/{login,register}/verify fetch
-// internally and discards the response body, so the token the API ships for
-// cookie-less clients would otherwise be lost. Wrapping window.fetch here
-// works with CapacitorHttp both on (bridge-patched fetch) and off (plain
-// WebView fetch), so the same JS runs on old and new binaries.
+// Captures what the ZeroDev SDK throws away from /passkeys/{login,register}/verify:
+// it performs the fetch internally and discards the response body. On native
+// the body carries the session JWT for cookie-less clients; on every platform
+// it carries the step-up proof a login mints (so the card does not ask for a
+// second sheet) and, for non-2xx, the server's reason. Wrapping window.fetch
+// works with CapacitorHttp both on (bridge-patched fetch) and off.
 
 import * as Sentry from '@/utils/sentry-lazy'
 import { isCapacitor } from './capacitor'
-import { currentCeremonyId, stashCeremonyVerifyToken } from './passkeyCeremony.utils'
+import { currentCeremonyId, stashCeremonyStepUpToken, stashCeremonyVerifyToken } from './passkeyCeremony.utils'
 
 // ZeroDev swallows the status/body of these fetches, so a rejected ceremony
 // reaches Sentry only as an opaque "Login not verified" (PEANUT-UI-R0X) with
@@ -48,8 +48,8 @@ export function getUnderlyingFetch(): typeof fetch | null {
     return underlyingFetch
 }
 
-export function installNativeAuthCapture(): void {
-    if (!isCapacitor() || installed || typeof window === 'undefined') return
+export function installPasskeyVerifyCapture(): void {
+    if (installed || typeof window === 'undefined') return
     installed = true
 
     underlyingFetch = window.fetch
@@ -89,8 +89,11 @@ export function installNativeAuthCapture(): void {
             // half-authenticated session (TASK-21782).
             if (response.ok && isVerify) {
                 const body = await response.clone().json()
-                if (body && typeof body.token === 'string' && body.token) {
+                if (isCapacitor() && body && typeof body.token === 'string' && body.token) {
                     stashCeremonyVerifyToken(body.token, issuingCeremonyId)
+                }
+                if (body && typeof body.stepUpToken === 'string' && typeof body.stepUpExpiresIn === 'number') {
+                    stashCeremonyStepUpToken(body.stepUpToken, body.stepUpExpiresIn, issuingCeremonyId)
                 }
             }
         } catch {

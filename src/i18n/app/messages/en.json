@@ -78,6 +78,7 @@
         "receipt": "Receipt",
         "supportUnread": "New support reply",
         "card": "Card",
+        "exchangeRates": "Exchange rates",
         "scanQr": "Scan QR"
     },
     "home": {
@@ -561,9 +562,9 @@
                 "leftOverride": "This device was put on beta from the Capgo dashboard, so the app cannot take it off. Ask an admin to remove the device's channel override.",
                 "leftUnconfirmed": "Could not reach Capgo to confirm the switch, so this device is still on the beta build. Try again when you are back online.",
                 "closed": "The {channel} channel does not accept testers yet. Ask an admin to allow self-assignment in Capgo.",
+                "notEligible": "Beta updates are not enabled for this account yet. Tap the version number five times again to retry.",
                 "failed": "Could not change the update channel.",
                 "revealed": "Beta updates switch revealed below.",
-                "notEnabled": "Beta updates aren't enabled for this device.",
                 "appOnly": "Beta updates are only available in the Peanut app."
             }
         }
@@ -659,16 +660,18 @@
     },
     "exchangeRate": {
         "title": "Exchange rate & fees",
-        "tryIt": "Try it!",
+        "balanceNote": "Your Peanut balance is held in a single currency. Where a local bank rail is supported, you can withdraw in that local currency.",
+        "tryIt": "Withdraw now",
+        "addMoneyCta": "Add money",
         "widget": {
-            "youSend": "You Send",
-            "recipientGets": "Recipient Gets",
+            "youSend": "You send",
+            "recipientGets": "You get",
             "swapCurrencies": "Swap currencies",
             "rateUnavailable": "Rate currently unavailable",
             "bankFee": "Bank fee",
             "free": "Free!",
-            "arrivesHours": "Should arrive in hours.",
-            "arrivesMinutes": "Should arrive in minutes."
+            "arrivesHours": "Usually arrives in hours.",
+            "arrivesMinutes": "Usually arrives in minutes."
         },
         "row": {
             "approximate": "This is an approximate value. The actual amount received may vary based on your bank's exchange rate",
@@ -1167,6 +1170,8 @@
             "offrampUnavailable": "Offramp unavailable",
             "bankClaimUnavailable": "You can not claim this link to your bank account.",
             "belowMinimum": "This link is below the {amount} minimum for bank payouts.",
+            "belowNetworkMinimum": "Claiming to {network} needs at least {amount}. Try a different network.",
+            "belowMinimumCrossChain": "This link is below the {amount} minimum to move cross-chain. Ask the sender to reclaim it.",
             "aboveMaximum": "This link is above the {amount} maximum for bank payouts."
         },
         "claimed": {
@@ -1581,6 +1586,8 @@
             "navTitle": "Your card",
             "addToGoogleWallet": "Add to Google Wallet",
             "addToAppleWallet": "Add to Apple Wallet",
+            "walletAddSuccess": "Card added to your wallet",
+            "walletAddFailed": "Couldn't add the card to your wallet. Please try again.",
             "cardNumberCopied": "Card number copied",
             "expiryCopied": "Expiry date copied",
             "cvvCopied": "CVV copied",
@@ -2076,7 +2083,7 @@
             "tokenAmount": "Token amount",
             "tokenAndNetwork": "Token and network",
             "tokenOnChain": "{token} on {chain}",
-            "txId": "TX ID",
+            "txId": "Transaction ID",
             "fee": "Fee",
             "transferId": "Transfer ID",
             "pointsEarned": "Points earned",
@@ -2574,12 +2581,12 @@
             "descriptionBlocked": "We couldn't confirm your ID. Please contact support for assistance.",
             "descriptionRestartIdentity": "This rail needs a document from a supported country. You can verify with a different ID.",
             "descriptionProviderRejection": "Please upload a clearer photo of your ID to continue.",
-            "descriptionCrossRegion": "Your identity is already verified. To turn on payments in {region}, we just need to confirm a few more details — about a minute.",
-            "descriptionCrossRegionGeneric": "Your identity is already verified. To turn on payments here, we just need to confirm a few more details — about a minute.",
+            "descriptionCrossRegion": "Your identity is already verified. To turn on payments in {region}, we need to confirm a few more details.",
+            "descriptionCrossRegionGeneric": "Your identity is already verified. To turn on payments here, we need to confirm a few more details.",
             "descriptionRegionUnavailable": "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe — you can withdraw them as crypto anytime.",
             "titleBankUnavailable": "Not available in your country",
             "descriptionBankUnavailable": "Bank transfers aren't available in your country, so an ID check wouldn't unlock them. Your funds are safe, and you can still send and receive money with other people.",
-            "descriptionDefault": "Confirm your ID to unlock payments. Takes about a minute.",
+            "descriptionDefault": "Confirm your ID to unlock payments.",
             "ctaUploadDocument": "Upload document",
             "ctaUnlockNow": "Unlock now",
             "ctaWithdrawFunds": "Withdraw funds"
@@ -3263,7 +3270,8 @@
             "doneCta": "Done"
         },
         "securityVerificationOverlay": {
-            "message": "Verifying security…"
+            "message": "Verifying security…",
+            "nextPasskeyMessage": "Verifying security… one more passkey confirmation comes next"
         },
         "iframeWrapper": {
             "troubleTitle": "Need a hand?",

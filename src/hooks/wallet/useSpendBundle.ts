@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback } from 'react'
-import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
+import { withCeremonyFlow, withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
 import { useQueryClient } from '@tanstack/react-query'
 import type { Address, Hash, Hex, TransactionReceipt } from 'viem'
 import { encodeFunctionData, erc20Abi } from 'viem'
@@ -15,7 +15,6 @@ import { rainCoordinatorAbi } from '@/constants/rain.consts'
 import { buildRainWithdrawTypedData } from '@/utils/rainWithdraw.utils'
 import { rainApi, type RainCollateralKind } from '@/services/rain'
 import { peanutPublicClient } from '@/app/actions/clients'
-import { sessionKeySpendEnabled } from '@/constants/session-key-spend.consts'
 import { tryMixedEphemeralSpend } from './mixedEphemeralSpend'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
@@ -123,7 +122,7 @@ export const useSpendBundle = () => {
     const modals = useModalsContextOptional()
     const queryClient = useQueryClient()
 
-    const spend = useCallback(
+    const spendInner = useCallback(
         async (input: SpendBundleInput): Promise<SpendBundleResult> => {
             const {
                 requiredUsdcAmount,
@@ -271,19 +270,22 @@ export const useSpendBundle = () => {
                 })
 
                 /*
-                 * One-tap variant (dark flag): a per-transaction ephemeral key
-                 * signs both the admin EIP-712 and the UserOp after a single
-                 * enable-signature tap. Falls through to the passkey path on
-                 * any failure — safe even for ambiguous post-broadcast errors
-                 * because both attempts reuse THIS prep, and the coordinator's
-                 * adminNonce lets only one of them execute (the loser's batch
-                 * reverts atomically). See mixedEphemeralSpend.ts.
+                 * One tap: a per-transaction ephemeral key signs both the admin
+                 * EIP-712 and the UserOp after a single enable-signature tap.
+                 * Falls through to the two-tap passkey path on any failure —
+                 * safe even for ambiguous post-broadcast errors because both
+                 * attempts reuse THIS prep, and the coordinator's adminNonce
+                 * lets only one of them execute (the loser's batch reverts
+                 * atomically). See mixedEphemeralSpend.ts.
                  */
-                if (sessionKeySpendEnabled()) {
+                {
                     posthog.capture(ANALYTICS_EVENTS.SESSION_KEY_SPEND_ATTEMPTED, { kind })
                     modals?.setIsSecurityVerificationOpen?.(true)
                     let attempt: Awaited<ReturnType<typeof tryMixedEphemeralSpend>>
                     try {
+                        // Resolving the sudo validator is outside the helper's own
+                        // catch: a rejection here must still take the passkey path,
+                        // not escape as a failed spend after /prepare already ran.
                         const patchedSudoValidator = await getPatchedSudoValidator(peanutPublicClient)
                         attempt = await tryMixedEphemeralSpend({
                             publicClient: peanutPublicClient,
@@ -295,14 +297,20 @@ export const useSpendBundle = () => {
                             requiredUsdcAmount,
                             subsequentCalls,
                         })
+                    } catch (e) {
+                        attempt = { ok: false, reason: e instanceof Error ? e.message : String(e) }
                     } finally {
                         modals?.setIsSecurityVerificationOpen?.(false)
                     }
                     if (attempt.ok) {
-                        const mixedTxHash = resolveSettledTxHash(
-                            { receipt: attempt.receipt, userOpHash: attempt.userOpHash },
-                            'spend-bundle-mixed-stamp'
-                        ).hash as Hex | undefined
+                        /*
+                         * Stamp only a real transaction hash. With the receipt
+                         * unresolved (bundler timeout, rescue miss) the op is still
+                         * in flight: report it as submitted like the passkey path
+                         * does, leave the intent PENDING for webhook reconciliation,
+                         * and never hand the userOp hash to /stamp as a tx hash.
+                         */
+                        const mixedTxHash = attempt.receipt?.transactionHash
                         if (mixedTxHash) {
                             rainApi
                                 .stampWithdrawal({ preparationId: prep.preparationId, txHash: mixedTxHash })
@@ -312,6 +320,7 @@ export const useSpendBundle = () => {
                             strategy,
                             kind,
                             engine: 'session-key',
+                            receipt: mixedTxHash ? 'settled' : 'unresolved',
                         })
                         return {
                             strategy,
@@ -337,7 +346,7 @@ export const useSpendBundle = () => {
                 // look at and the UI feels intentional rather than frozen.
                 // try/finally guarantees the overlay closes on success AND on
                 // bundler / kernel failure.
-                modals?.setIsSecurityVerificationOpen?.(true)
+                modals?.setIsSecurityVerificationOpen?.(true, 'next-passkey')
                 try {
                     // Backend `/prepare` normalizes the executor salt (bytes32) and signature
                     // to 0x-hex regardless of what Rain returned — trust the wire shape here.
@@ -411,7 +420,38 @@ export const useSpendBundle = () => {
                 throw e
             }
         },
-        [getClientForChain, rebuildClientForChain, handleSendUserOpEncoded, user, overview, grant, modals, queryClient]
+        [
+            getClientForChain,
+            rebuildClientForChain,
+            getPatchedSudoValidator,
+            handleSendUserOpEncoded,
+            user,
+            overview,
+            grant,
+            modals,
+            queryClient,
+        ]
+    )
+
+    // Brackets every ceremony one spend triggers as a flow (spend:<kind>) so
+    // the prompt count per kind is measurable; link_create nests inside it.
+    const spend = useCallback(
+        (input: SpendBundleInput) => {
+            let strategy: string | undefined
+            return withCeremonyFlow(
+                `spend:${input.kind}`,
+                () =>
+                    spendInner({
+                        ...input,
+                        onStrategyDecided: (decided) => {
+                            strategy = decided
+                            input.onStrategyDecided?.(decided)
+                        },
+                    }),
+                () => ({ strategy })
+            )
+        },
+        [spendInner]
     )
 
     return { spend }

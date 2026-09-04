@@ -78,6 +78,7 @@
         "receipt": "Recibo",
         "supportUnread": "Nueva respuesta de soporte",
         "card": "Tarjeta",
+        "exchangeRates": "Tipos de cambio",
         "scanQr": "Escanear QR"
     },
     "home": {
@@ -561,9 +562,9 @@
                 "leftOverride": "Este dispositivo fue puesto en beta desde el panel de Capgo, así que la app no puede sacarlo. Pedile a un administrador que quite la asignación de canal del dispositivo.",
                 "leftUnconfirmed": "No se pudo contactar a Capgo para confirmar el cambio, así que este dispositivo sigue en la compilación beta. Probá de nuevo cuando tengas conexión.",
                 "closed": "El canal {channel} todavía no acepta testers. Pedile a un administrador que habilite la autoasignación en Capgo.",
+                "notEligible": "Las actualizaciones beta todavía no están habilitadas para esta cuenta. Toca cinco veces el número de versión para reintentar.",
                 "failed": "No se pudo cambiar el canal de actualizaciones.",
                 "revealed": "El interruptor de actualizaciones beta ya está visible abajo.",
-                "notEnabled": "Las actualizaciones beta no están habilitadas para este dispositivo.",
                 "appOnly": "Las actualizaciones beta solo están disponibles en la app de Peanut."
             }
         }
@@ -659,16 +660,18 @@
     },
     "exchangeRate": {
         "title": "Tipo de cambio y comisiones",
-        "tryIt": "¡Pruébalo!",
+        "balanceNote": "Tu saldo de Peanut se mantiene en una sola moneda. Donde haya un canal bancario local disponible, puedes retirar en esa moneda local.",
+        "tryIt": "Retirar ahora",
+        "addMoneyCta": "Agregar dinero",
         "widget": {
             "youSend": "Tú envías",
-            "recipientGets": "El destinatario recibe",
+            "recipientGets": "Recibes",
             "swapCurrencies": "Intercambiar monedas",
             "rateUnavailable": "Tipo de cambio no disponible por ahora",
             "bankFee": "Comisión bancaria",
             "free": "¡Gratis!",
-            "arrivesHours": "Debería llegar en horas.",
-            "arrivesMinutes": "Debería llegar en minutos."
+            "arrivesHours": "Suele llegar en horas.",
+            "arrivesMinutes": "Suele llegar en minutos."
         },
         "row": {
             "approximate": "Este es un valor aproximado. El monto que recibas puede variar según el tipo de cambio de tu banco.",
@@ -1167,6 +1170,8 @@
             "offrampUnavailable": "Retiro no disponible",
             "bankClaimUnavailable": "No puedes reclamar este enlace a tu cuenta bancaria.",
             "belowMinimum": "Este enlace está por debajo del mínimo de {amount} para retiros bancarios.",
+            "belowNetworkMinimum": "Reclamar a {network} requiere al menos {amount}. Prueba con otra red.",
+            "belowMinimumCrossChain": "Este enlace está por debajo del mínimo de {amount} para moverse entre redes. Pídele a quien lo envió que lo reclame.",
             "aboveMaximum": "Este enlace supera el máximo de {amount} para retiros bancarios."
         },
         "claimed": {
@@ -1581,6 +1586,8 @@
             "navTitle": "Tu tarjeta",
             "addToGoogleWallet": "Agregar a Google Wallet",
             "addToAppleWallet": "Agregar a Apple Wallet",
+            "walletAddSuccess": "Tarjeta agregada a tu billetera",
+            "walletAddFailed": "No pudimos agregar la tarjeta a tu billetera. Intenta de nuevo.",
             "cardNumberCopied": "Número de tarjeta copiado",
             "expiryCopied": "Fecha de vencimiento copiada",
             "cvvCopied": "CVV copiado",
@@ -2076,7 +2083,7 @@
             "tokenAmount": "Monto del token",
             "tokenAndNetwork": "Token y red",
             "tokenOnChain": "{token} en {chain}",
-            "txId": "ID de TX",
+            "txId": "ID de transacción",
             "fee": "Comisión",
             "transferId": "ID de transferencia",
             "pointsEarned": "Puntos ganados",
@@ -2574,12 +2581,12 @@
             "descriptionBlocked": "No pudimos confirmar tu identidad. Contacta a soporte para recibir ayuda.",
             "descriptionRestartIdentity": "Este medio de pago requiere un documento de un país compatible. Puedes verificarte con otro documento.",
             "descriptionProviderRejection": "Sube una foto más nítida de tu documento para continuar.",
-            "descriptionCrossRegion": "Tu identidad ya está verificada. Para activar los pagos en {region}, solo necesitamos confirmar algunos datos más — alrededor de un minuto.",
-            "descriptionCrossRegionGeneric": "Tu identidad ya está verificada. Para activar los pagos aquí, solo necesitamos confirmar algunos datos más — alrededor de un minuto.",
+            "descriptionCrossRegion": "Tu identidad ya está verificada. Para activar los pagos en {region}, necesitamos confirmar algunos datos más.",
+            "descriptionCrossRegionGeneric": "Tu identidad ya está verificada. Para activar los pagos aquí, necesitamos confirmar algunos datos más.",
             "descriptionRegionUnavailable": "Debido a las regulaciones del Reino Unido, las transferencias bancarias no están disponibles para sus residentes. Tus fondos están seguros: puedes retirarlos como cripto en cualquier momento.",
             "titleBankUnavailable": "No disponible en tu país",
             "descriptionBankUnavailable": "Las transferencias bancarias no están disponibles en tu país, así que verificar tu identidad no las desbloquearía. Tus fondos están seguros y puedes seguir enviando y recibiendo dinero con otras personas.",
-            "descriptionDefault": "Confirma tu identidad para desbloquear los pagos. Toma alrededor de un minuto.",
+            "descriptionDefault": "Confirma tu identidad para desbloquear los pagos.",
             "ctaUploadDocument": "Subir documento",
             "ctaUnlockNow": "Desbloquear ahora",
             "ctaWithdrawFunds": "Retirar fondos"
@@ -3263,7 +3270,8 @@
             "doneCta": "Listo"
         },
         "securityVerificationOverlay": {
-            "message": "Verificando seguridad…"
+            "message": "Verificando seguridad…",
+            "nextPasskeyMessage": "Verificando seguridad… falta una confirmación más con tu passkey"
         },
         "iframeWrapper": {
             "troubleTitle": "¿Necesitas ayuda?",

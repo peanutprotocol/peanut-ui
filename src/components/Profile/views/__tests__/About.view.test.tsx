@@ -4,7 +4,7 @@
  * OTA channels mean nothing on the web.
  */
 import React from 'react'
-import { fireEvent, render as rtlRender, screen } from '@testing-library/react'
+import { fireEvent, render as rtlRender, screen, waitFor } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import { IntlWrapper } from '@/test-utils/intl'
 import { loadMessages } from '@/i18n/app/messages'
@@ -15,8 +15,8 @@ const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper 
 
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
-const access = { supported: true, visible: true }
-const toast = { info: jest.fn(), warning: jest.fn() }
+const access = { supported: true }
+const toast = { info: jest.fn() }
 
 jest.mock('@/components/Profile/components/BetaUpdatesCard', () => ({
     BetaUpdatesCard: () => <div data-testid="beta-updates-card" />,
@@ -24,11 +24,17 @@ jest.mock('@/components/Profile/components/BetaUpdatesCard', () => ({
 }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => toast }))
 
+const fetchUser = jest.fn()
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ fetchUser }) }))
+
+const claimPeanutTeamBadge = jest.fn<Promise<boolean>, []>()
+jest.mock('@/services/peanut-team-badge', () => ({ claimPeanutTeamBadge: () => claimPeanutTeamBadge() }))
+
 beforeEach(() => {
     access.supported = true
-    access.visible = true
     toast.info.mockClear()
-    toast.warning.mockClear()
+    fetchUser.mockClear()
+    claimPeanutTeamBadge.mockReset().mockResolvedValue(true)
 })
 
 const tapVersion = (times: number) => {
@@ -48,32 +54,47 @@ describe('AboutView', () => {
         )
     })
 
-    it('keeps the beta switch hidden until the fifth tap', () => {
+    it('keeps the beta switch hidden until the fifth tap', async () => {
         render(<AboutView appVersion="1.2.3" />)
         tapVersion(4)
         expect(screen.queryByTestId('beta-updates-card')).not.toBeInTheDocument()
         tapVersion(1)
-        expect(screen.getByTestId('beta-updates-card')).toBeInTheDocument()
         expect(toast.info).toHaveBeenCalledWith('Beta updates switch revealed below.')
+        expect(await screen.findByTestId('beta-updates-card')).toBeInTheDocument()
     })
 
-    // The card renders nothing on the web and outside the cohort, so without a
-    // toast the fifth tap would look like the gesture is simply broken.
-    it('says the switch is app-only when tapped on the web', () => {
+    // The card reads the badge off the user object, so revealing before the
+    // claim lands would show a disabled toggle and an "ask for access" line on
+    // the very gesture that just granted it.
+    it('earns the team badge and refetches the user before revealing the card', async () => {
+        render(<AboutView appVersion="1.2.3" />)
+        tapVersion(5)
+
+        await waitFor(() => expect(claimPeanutTeamBadge).toHaveBeenCalledTimes(1))
+        await waitFor(() => expect(fetchUser).toHaveBeenCalledTimes(1))
+        expect(await screen.findByTestId('beta-updates-card')).toBeInTheDocument()
+    })
+
+    // Offline, the switch still has to appear: a device already on beta needs
+    // the off switch, and that must not depend on the claim succeeding.
+    it('still reveals the card when the badge claim fails', async () => {
+        claimPeanutTeamBadge.mockResolvedValue(false)
+        render(<AboutView appVersion="1.2.3" />)
+        tapVersion(5)
+
+        expect(await screen.findByTestId('beta-updates-card')).toBeInTheDocument()
+        expect(fetchUser).not.toHaveBeenCalled()
+    })
+
+    // The card renders nothing on the web, so without a toast the fifth tap
+    // would look like the gesture is simply broken.
+    it('says the switch is app-only when tapped on the web, and earns nothing', () => {
         access.supported = false
-        access.visible = false
         render(<AboutView appVersion="1.2.3" />)
         tapVersion(5)
         expect(screen.queryByTestId('beta-updates-card')).not.toBeInTheDocument()
         expect(toast.info).toHaveBeenCalledWith('Beta updates are only available in the Peanut app.')
-    })
-
-    it('says beta is not enabled when the device is outside the cohort', () => {
-        access.visible = false
-        render(<AboutView appVersion="1.2.3" />)
-        tapVersion(5)
-        expect(screen.queryByTestId('beta-updates-card')).not.toBeInTheDocument()
-        expect(toast.warning).toHaveBeenCalledWith("Beta updates aren't enabled for this device.")
+        expect(claimPeanutTeamBadge).not.toHaveBeenCalled()
     })
 
     it('forgets a partial tap streak once the window lapses', () => {

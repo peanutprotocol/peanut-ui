@@ -216,7 +216,7 @@ export const ANALYTICS_EVENTS = {
     // approval is bound to a deprecated validator; user must re-enable the card.
     CARD_STALE_APPROVAL_HIT: 'card_stale_approval_hit',
     // One-tap mixed spend via per-transaction ephemeral session key
-    // (SESSION_KEY_SPEND flag). A fallback means the passkey path took over —
+    // (one-tap mixed spend). A fallback means the passkey path took over —
     // `reason` says why; watch this before widening the flag.
     SESSION_KEY_SPEND_ATTEMPTED: 'session_key_spend_attempted',
     SESSION_KEY_SPEND_FALLBACK: 'session_key_spend_fallback',
@@ -290,6 +290,12 @@ export const ANALYTICS_EVENTS = {
     CARD_PHYSICAL_WAITLIST_VIEWED: 'card_physical_waitlist_viewed',
     CARD_PHYSICAL_WAITLIST_JOINED: 'card_physical_waitlist_joined',
     CARD_ADD_TO_WALLET_VIEWED: 'card_add_to_wallet_viewed',
+    // Native push provisioning (MeaWallet MPP). Server-side card_tokenized /
+    // card_tokenization_declined (Rain webhooks) close this funnel.
+    CARD_ADD_TO_WALLET_TAPPED: 'card_add_to_wallet_tapped',
+    CARD_ADD_TO_WALLET_SUCCEEDED: 'card_add_to_wallet_succeeded',
+    CARD_ADD_TO_WALLET_CANCELED: 'card_add_to_wallet_canceled',
+    CARD_ADD_TO_WALLET_FAILED: 'card_add_to_wallet_failed',
     // Spend routing across collateral / smart / mixed buckets. `strategy` is SpendStrategy.
     // Root-validator migration userOp fired ahead of a mixed spend (pre-2025-09-18
     // accounts still on the unpatched validator) — see kernelMigration.utils.ts.

@@ -343,10 +343,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
             </Button>
 
             {typeof destinationAmount === 'number' && destinationAmount > 0 && (
-                <div className="flex items-center gap-1">
-                    <Icon name="info" className="text-foreground-secondary" size={16} />
-                    <p className="text-body-xs text-foreground-secondary">{deliveryTimeText}</p>
-                </div>
+                <p className="text-body-xs text-foreground-secondary">{deliveryTimeText}</p>
             )}
         </Card>
     )

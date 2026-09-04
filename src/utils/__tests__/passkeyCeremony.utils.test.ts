@@ -10,9 +10,11 @@ import {
     isPasskeyShimInstalled,
     markPasskeyShimFailed,
     raceCeremonyTimeout,
+    stashCeremonyStepUpToken,
     stashCeremonyVerifyToken,
     waitForPasskeyShim,
 } from '../passkeyCeremony.utils'
+import { clearCachedStepUpToken, getCachedStepUpToken } from '@/services/step-up-cache'
 import { isCapacitor } from '@/utils/capacitor'
 import { setAuthToken } from '@/utils/auth-token'
 
@@ -240,6 +242,37 @@ describe('guardPasskeyCeremony', () => {
         // a token landing with no ceremony active is refused outright
         stashCeremonyVerifyToken('jwt-late', null)
         expect(mockSetAuthToken).not.toHaveBeenCalled()
+    })
+
+    it('primes the step-up cache from a login-minted proof only when the ceremony resolves', async () => {
+        clearCachedStepUpToken()
+        let resolveCeremony!: (v: string) => void
+        const pending = guardPasskeyCeremony(
+            () =>
+                new Promise<string>((resolve) => {
+                    resolveCeremony = resolve
+                })
+        )
+        await Promise.resolve()
+        stashCeremonyStepUpToken('step-up-abc', 300, currentCeremonyId())
+        expect(getCachedStepUpToken()).toBeNull()
+        resolveCeremony('key')
+        await pending
+        expect(getCachedStepUpToken()).toBe('step-up-abc')
+        clearCachedStepUpToken()
+    })
+
+    it('discards a stashed step-up proof when the ceremony fails', async () => {
+        clearCachedStepUpToken()
+        const pending = guardPasskeyCeremony(async () => {
+            stashCeremonyStepUpToken('step-up-stale', 300, currentCeremonyId())
+            throw new Error('cancelled')
+        })
+        await expect(pending).rejects.toThrow('cancelled')
+        expect(getCachedStepUpToken()).toBeNull()
+        // and one landing with no ceremony active is refused outright
+        stashCeremonyStepUpToken('step-up-late', 300, null)
+        expect(getCachedStepUpToken()).toBeNull()
     })
 
     it('refuses a token whose request was issued outside the active window', async () => {

@@ -4,7 +4,7 @@ import PackageDescription
 // DO NOT MODIFY THIS FILE - managed by Capacitor CLI commands
 let package = Package(
     name: "CapApp-SPM",
-    platforms: [.iOS(.v15)],
+    platforms: [.iOS(.v16)],
     products: [
         .library(
             name: "CapApp-SPM",
@@ -25,7 +25,7 @@ let package = Package(
         .package(name: "CapgoCapacitorCrisp", path: "../../../node_modules/.pnpm/@capgo+capacitor-crisp@8.0.27_@capacitor+core@8.2.0/node_modules/@capgo/capacitor-crisp"),
         .package(name: "CapgoCapacitorNativeBiometric", path: "../../../node_modules/.pnpm/@capgo+capacitor-native-biometric@8.6.0_@capacitor+core@8.2.0/node_modules/@capgo/capacitor-native-biometric"),
         .package(name: "CapgoCapacitorPasskey", path: "../../../node_modules/@capgo/capacitor-passkey"),
-        .package(name: "CapgoCapacitorUpdater", path: "../../../node_modules/.pnpm/@capgo+capacitor-updater@8.45.9_@capacitor+core@8.2.0/node_modules/@capgo/capacitor-updater"),
+        .package(name: "CapgoCapacitorUpdater", path: "../../../node_modules/.pnpm/@capgo+capacitor-updater@8.51.14_@capacitor+core@8.2.0/node_modules/@capgo/capacitor-updater"),
         .package(name: "OnesignalCapacitorPlugin", path: "../../../node_modules/@onesignal/capacitor-plugin"),
         .package(name: "SumsubCordovaIdensicMobileSdkPlugin", path: "../../capacitor-cordova-ios-plugins/sources/SumsubCordovaIdensicMobileSdkPlugin")
     ],

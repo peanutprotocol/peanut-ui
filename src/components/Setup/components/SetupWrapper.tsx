@@ -91,7 +91,7 @@ function LoginButton() {
             if (!isAlreadyReported(error)) {
                 Sentry.captureException(error, { extra: { errorCode } })
             }
-            posthog.capture(ANALYTICS_EVENTS.SIGNUP_LOGIN_ERROR, { error_code: errorCode })
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_LOGIN_ERROR, { error_code: errorCode, native: isCapacitor() })
         }
     }
 
