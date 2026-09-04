@@ -3,6 +3,29 @@ import * as Sentry from '@/utils/sentry-lazy'
 
 const CLIPBOARD_WRITE_TIMEOUT_MS = 1000
 
+/**
+ * Android 13+ pops a system clipboard preview at the bottom-left on every
+ * write, and nothing inside the WebView can see or measure it. The toast stack
+ * reads this to lift itself clear for the moment one is on screen.
+ *
+ * Stamped here rather than passed as a flag from the eight call sites that
+ * copy-then-toast: the overlay is caused by the write, not by the toast, so a
+ * ninth call site gets the behaviour without having to remember it.
+ */
+let lastClipboardWriteAt = 0
+
+const markClipboardWrite = () => {
+    lastClipboardWriteAt = Date.now()
+}
+
+export const clipboardWrittenWithin = (ms: number): boolean =>
+    lastClipboardWriteAt !== 0 && Date.now() - lastClipboardWriteAt < ms
+
+/** test seam — there is no way to un-write a real clipboard */
+export const resetClipboardWriteMarkForTests = () => {
+    lastClipboardWriteAt = 0
+}
+
 const describeError = (err: unknown) => (err instanceof Error ? `${err.name}: ${err.message}` : String(err))
 
 /**
@@ -24,6 +47,7 @@ export async function copyTextToClipboard(text: string): Promise<boolean> {
         try {
             const { Clipboard } = await import('@capacitor/clipboard')
             await Clipboard.write({ string: text })
+            markClipboardWrite()
             return true
         } catch (err) {
             failed.nativePlugin = describeError(err)
@@ -42,6 +66,7 @@ export async function copyTextToClipboard(text: string): Promise<boolean> {
                     )
                 }),
             ])
+            markClipboardWrite()
             return true
         } catch (err) {
             failed.clipboardApi = describeError(err)
@@ -61,7 +86,10 @@ export async function copyTextToClipboard(text: string): Promise<boolean> {
     try {
         textArea.focus()
         textArea.select()
-        if (document.execCommand('copy')) return true
+        if (document.execCommand('copy')) {
+            markClipboardWrite()
+            return true
+        }
         failed.execCommand = 'returned false'
     } catch (err) {
         failed.execCommand = describeError(err)
@@ -115,7 +143,10 @@ export function beginClipboardCopy(): PendingClipboardCopy {
 
     // started here, inside the gesture; the text arrives later
     const reserved = navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]).then(
-        () => true,
+        () => {
+            markClipboardWrite()
+            return true
+        },
         (err) => {
             console.error('Failed to copy: ', err)
             return false

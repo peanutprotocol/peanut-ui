@@ -1,20 +1,20 @@
 {
     "rawHex": 27,
     "rawHexFiles": 20,
-    "inlineStyle": 20,
+    "inlineStyle": 21,
     "stockTextSize": 8,
     "dsTextScale": 11,
     "nonDsClassesInViews": 16,
     "useSearchParamsFiles": 44,
-    "nuqsFiles": 20,
+    "nuqsFiles": 23,
     "legacyColorClasses": 0,
     "offRampPalette": 0,
     "deadLegacyTokens": 0,
     "consumedUndefinedTokens": 0,
     "classNameSitesInPages": 312,
     "fontWeightOnTypeToken": 47,
-    "offScaleSpacing": 190,
-    "iconOffScale": 71,
+    "offScaleSpacing": 188,
+    "iconOffScale": 70,
     "offScaleRadius": 37,
     "rawDuration": 6,
     "retypedCardLiteral": 17,
@@ -42,6 +42,16 @@
             "date": "2026-09-03",
             "metrics": ["offScaleSpacing 188 -> 190", "arbitraryFontSize 110 -> 111"],
             "reason": "dev-side debt: PRs merged to dev (es419 landing, kyc restart) pre-date this branch's new ratchet metrics; counted in on merge, not authored here"
+        },
+        {
+            "date": "2026-09-04",
+            "metrics": ["inlineStyle 20 -> 21"],
+            "reason": "toast countdown bar: the animation duration is computed per toast from its message length, so it cannot be a class — an arbitrary ms value has to reach css through the element. one inline style, in the ds component itself, not a page."
+        },
+        {
+            "date": "2026-09-04",
+            "metrics": ["classNameSitesInPages 310 -> 312"],
+            "reason": "dev-side, not authored here: the exchange-rate page gained 2 className sites in dev's exchange-currencies work (profile/exchange-rate/page.tsx), counted in on the merge. this branch touches no (mobile-ui) page.tsx at all."
         }
     ]
 }
