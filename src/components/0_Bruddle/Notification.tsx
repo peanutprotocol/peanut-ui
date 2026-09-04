@@ -215,18 +215,7 @@ export const Notification = ({
                         {title ? (
                             <span className="text-body-s font-semibold">{title}</span>
                         ) : (
-                            <div
-                                className={twMerge(
-                                    'min-w-0 flex-1 text-body-s break-words',
-                                    // Body/S carries weight 500, one step heavy for a card
-                                    // floating over a screen. Its own token, not a weight
-                                    // stacked on Body/S — that is banned, and the merge
-                                    // would drop one of the two anyway.
-                                    isFloating && 'text-body-s-regular'
-                                )}
-                            >
-                                {body}
-                            </div>
+                            <div className="min-w-0 flex-1 text-body-s break-words">{body}</div>
                         )}
                     </div>
                     {title && <div className={twMerge('text-body-s break-words', indent)}>{body}</div>}

@@ -788,14 +788,14 @@ export const TEXT_STYLES: TextStyle[] = [
         "section": "semantic",
         "fontSize": "0.875rem",
         "lineHeight": "1.25rem",
-        "fontWeight": "500"
+        "fontWeight": "400"
     },
     {
-        "name": "body-s-regular",
+        "name": "body-s-semibold",
         "section": "semantic",
         "fontSize": "0.875rem",
         "lineHeight": "1.25rem",
-        "fontWeight": "400"
+        "fontWeight": "500"
     },
     {
         "name": "body-xs",
