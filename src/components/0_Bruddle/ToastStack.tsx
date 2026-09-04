@@ -26,20 +26,30 @@ const Toast: React.FC<ToastMessage & { onDismiss: () => void }> = ({
     content,
     className,
     hideIcon,
+    duration,
     onDismiss,
 }) => {
     return (
         <motion.div
-            initial={{ opacity: 0, scale: 0.8, y: 80 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: 80 }}
+            // no opacity in any of the three states: a toast is an opaque card and
+            // must never render as a wash over the screen behind it, not even for
+            // the 300ms it is arriving. It springs up into place and, on exit,
+            // slides clear of the viewport instead of fading out. The stack is
+            // position:fixed, so travelling past the bottom edge adds no scroll.
+            initial={{ scale: 0.8, y: 80 }}
+            animate={{ scale: 1, y: 0 }}
+            exit={{ scale: 0.9, y: 200, transition: { duration: 0.2, ease: 'easeIn' } }}
             transition={{ type: 'spring', stiffness: 400, damping: 25 }}
             className="max-w-[calc(100vw_-_2rem)] md:max-w-md"
         >
             <Notification
+                variant="floating"
                 priority={TOAST_PRIORITY[type]}
                 onDismiss={onDismiss}
                 className={className}
+                // a 'persistent' toast has no timer to draw — only a numeric
+                // duration gets the countdown bar
+                progressMs={typeof duration === 'number' ? duration : undefined}
                 // custom content designs its own leading visual (badge art, clock
                 // pill) — the stock priority icon must never stack in front of it,
                 // whether or not the caller remembered hideIcon

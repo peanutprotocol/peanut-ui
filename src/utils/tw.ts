@@ -49,7 +49,15 @@ const DS_RADIUS_TOKEN = /^(?:round|1)$/
 // tailwind-merge, so those go through the duration class group directly.
 const DS_DURATION_TOKENS = ['instant', 'fast', 'moderate', 'slow']
 const DS_EASE_TOKENS = ['spring', 'sharp']
-const DS_ANIMATE_TOKENS = ['pulsate', 'pulse-strong', 'blink', 'accordion-down', 'accordion-up', 'star-pulsate-wiggle']
+const DS_ANIMATE_TOKENS = [
+    'pulsate',
+    'pulse-strong',
+    'blink',
+    'accordion-down',
+    'accordion-up',
+    'star-pulsate-wiggle',
+    'toast-progress',
+]
 const DS_SAFE_SPACING_TOKENS = ['safe-top', 'safe-right', 'safe-bottom', 'safe-left']
 // the brutalist offset shadows from @layer components / @utility shadow-4
 const DS_SHADOW_TOKENS = ['2', '4', 'primary-4', 'primary-6', 'primary-8', 'secondary-4', 'secondary-6', 'secondary-8']

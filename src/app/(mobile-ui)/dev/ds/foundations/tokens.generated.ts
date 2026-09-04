@@ -266,6 +266,31 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "section": "semantic"
     },
     {
+        "name": "background-surface-success",
+        "value": "#f4fcf8",
+        "section": "semantic"
+    },
+    {
+        "name": "background-surface-error",
+        "value": "#fef9f9",
+        "section": "semantic"
+    },
+    {
+        "name": "background-surface-attention",
+        "value": "#fffcf2",
+        "section": "semantic"
+    },
+    {
+        "name": "background-surface-info",
+        "value": "#f9fbfe",
+        "section": "semantic"
+    },
+    {
+        "name": "background-surface-helper",
+        "value": "#fdfdfd",
+        "section": "semantic"
+    },
+    {
         "name": "background-badge-attention",
         "value": "#ffe6b3",
         "section": "semantic"
@@ -1166,6 +1191,11 @@ export const TOKEN_GROUPS: Record<string, ThemeToken[]> = {
         {
             "name": "star-pulsate-wiggle",
             "value": "starPulsateWiggle 10s ease-in-out infinite",
+            "section": "parity"
+        },
+        {
+            "name": "toast-progress",
+            "value": "toast-progress linear forwards",
             "section": "parity"
         }
     ]

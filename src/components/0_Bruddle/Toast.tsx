@@ -8,6 +8,20 @@ type ToastId = string | number
 
 const ToastStack = dynamic(() => import('./ToastStack'), { ssr: false })
 
+/**
+ * How long a toast stays up, from how much there is to read: 2s for anything
+ * you take in at a glance, +200ms per word up to six, +100ms per word after
+ * that. A `content` toast designs its own body, so there is nothing to count —
+ * it keeps the flat 3s. An explicit `duration` from the caller always wins.
+ */
+const readingDuration = (message?: string): number => {
+    if (!message) return 3000
+    const words = message.trim().split(/\s+/).filter(Boolean).length
+    if (words <= 3) return 2000
+    if (words <= 6) return 2000 + (words - 3) * 200
+    return 2600 + (words - 6) * 100
+}
+
 interface ToastOptions {
     /** Plain-string message — wrapped in a styled <p>. Ignored when `content` is provided. */
     message?: string
@@ -61,12 +75,13 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
     }, [])
 
     const createToast = useCallback((options: ToastOptions | string): ToastId => {
+        const toastOptions = typeof options === 'string' ? { message: options } : options
+
         const defaults: Partial<ToastOptions> = {
             type: 'info',
-            duration: 3000,
+            duration: readingDuration(toastOptions.message),
         }
 
-        const toastOptions = typeof options === 'string' ? { message: options } : options
         const id: ToastId = toastOptions.id ?? Date.now()
 
         // De-dupe: a persistent toast (or any explicitly-id'd toast) is a
@@ -110,7 +125,12 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
     return (
         <>
             <ToastContext.Provider value={contextValue}>
-                <div className="fixed right-4 bottom-[100px] z-[99999] flex flex-col items-end gap-2">
+                {/* L/16 off the bottom edge, plus the home indicator so the toast
+                    never lands in the gesture area. It deliberately sits OVER the
+                    bottom nav (z beats the nav's z-10) rather than clearing it —
+                    the notification board has no toast component, so placement was
+                    never ruled; this one is (2026-09-04, slava). */}
+                <div className="fixed right-4 bottom-[calc(var(--safe-bottom)_+_1rem)] z-[99999] flex flex-col items-end gap-2">
                     {toasts.length > 0 && <ToastStack toasts={toasts} dismiss={dismiss} />}
                 </div>
                 {children}
