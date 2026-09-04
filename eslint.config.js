@@ -405,10 +405,13 @@ module.exports = [
             // base rule rather than extending it, so a bare RESTRICTED_IMPORT_PATHS
             // let every allowlisted file import registerPlugin directly and walk
             // around the single-door invariant.
-            'no-restricted-imports': restrictedImportsExcept(
-                USE_SEARCH_PARAMS_IMPORT_RESTRICTION,
-                TAILWIND_MERGE_IMPORT_RESTRICTION
-            ),
+            // useSearchParams ONLY. The pre-existing list here was a bare
+            // RESTRICTED_IMPORT_PATHS, which also dropped the tailwind-merge
+            // ban by omission — invisible until the lifts became explicit.
+            // Stock tailwind-merge does not know the DS token groups and
+            // silently deletes DS classes, so that exemption was never
+            // intended.
+            'no-restricted-imports': restrictedImportsExcept(USE_SEARCH_PARAMS_IMPORT_RESTRICTION),
         },
     },
     {
