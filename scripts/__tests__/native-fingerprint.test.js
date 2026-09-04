@@ -57,6 +57,9 @@ describe('native-fingerprint', () => {
         expect(keys).toContain('android/app/src/**.{java,kt}')
         expect(keys).toContain('ios/App/**.swift')
         expect(keys).toContain('native-plugin-versions')
+        // Native resource contracts the config files delegate to.
+        expect(keys).toContain('android/app/src/main/res/**.xml')
+        expect(keys).toContain('ios/App/**.{plist,entitlements}')
         expect(keys.length).toBeGreaterThanOrEqual(10)
 
         // Nothing is silently skipped — absence is its own sentinel, so adding
@@ -185,6 +188,58 @@ describe('native-fingerprint', () => {
         expect(entries['android/app/src/**.{java,kt}']).not.toBe('<absent>')
         expect(entries['ios/App/**.swift']).not.toBe('<absent>')
         expect(entries['native-plugin-versions']).not.toBe('<absent>')
+    })
+
+    it('moves when the passkey asset statement changes', () => {
+        const before = fingerprint()
+
+        withPatchedInput(
+            // The asset statement passkeys are validated against. AndroidManifest.xml
+            // delegates to it and does not move when it changes.
+            'android/app/src/main/res/values/capacitor-passkey.xml',
+            (content) => `${content}\n<!-- surface change -->\n`,
+            () => expect(fingerprint()).not.toBe(before)
+        )
+    })
+
+    it('moves when an extension entitlement changes', () => {
+        const before = fingerprint()
+
+        withPatchedInput(
+            // An extension's capabilities are part of the shell a bundle lands
+            // on, and none of the app-level inputs move when one changes.
+            'ios/App/PushProvisioningExtension/PushProvisioningExtension.entitlements',
+            (content) => `${content}\n`,
+            () => expect(fingerprint()).not.toBe(before)
+        )
+    })
+
+    it('counts a community plugin, which no first-party scope matches', () => {
+        const before = fingerprint()
+
+        withPatchedInput(
+            'package.json',
+            // @capacitor-community/… and @transistorsoft/capacitor-… are native
+            // but sit outside the first-party scopes, so a scope allowlist would
+            // let a bump through with both generated manifests stale.
+            (content) =>
+                content.replace(
+                    '"@capacitor/android"',
+                    '"@capacitor-community/in-app-review": "^7.0.0",\n        "@capacitor/android"'
+                ),
+            () => expect(fingerprint()).not.toBe(before)
+        )
+    })
+
+    it('refuses an unresolvable ref instead of hashing an empty tree', () => {
+        const result = run('--ref', 'v99.99.99-does-not-exist')
+
+        // Both git reads fail quietly for an unknown ref, which would produce a
+        // well-formed fingerprint of nothing that differs from any real tree —
+        // so a --diff against a missing tag would report "changed" and look
+        // like the check had run.
+        expect(result.status).toBe(1)
+        expect(result.stderr).toContain('does not resolve')
     })
 
     it('rejects --diff without a ref rather than comparing against nothing', () => {

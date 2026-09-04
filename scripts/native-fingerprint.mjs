@@ -51,10 +51,13 @@ import { fileURLToPath } from 'node:url'
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
-// Dependencies with a native half. The generated Capacitor manifests already
-// list the plugin SET, so this exists to catch a version bump that never made
-// it through `cap sync` — the two are deliberately redundant.
-const NATIVE_DEPENDENCY_PATTERN = /^(@capacitor\/|@capgo\/|@onesignal\/|@sumsub\/)|cordova/
+// Dependencies with a native half. Deliberately not a scope allowlist:
+// community plugins live outside the first-party scopes (@capacitor-community/…,
+// @transistorsoft/capacitor-…, capacitor-plugin-…), and one of those bumped
+// without a `cap sync` is exactly the case this input exists to catch. Matching
+// the substring over-includes a pure-JS package that happens to be named for
+// Capacitor, which costs nothing but an extra native release.
+const NATIVE_DEPENDENCY_PATTERN = /capacitor|cordova|^@onesignal\/|^@sumsub\//i
 
 // Every input is one line of the manifest. Adding one is a deliberate act: it
 // widens what counts as "the native surface changed" and therefore how often an
@@ -77,9 +80,22 @@ export const NATIVE_INPUTS = [
 
     // iOS build surface: targets, deployment floor, capabilities.
     { kind: 'file', id: 'ios/App/App.xcodeproj/project.pbxproj' },
-    { kind: 'file', id: 'ios/App/App/Info.plist' },
-    { kind: 'file', id: 'ios/App/App/App.entitlements' },
-    { kind: 'file', id: 'ios/App/App/AppRelease.entitlements' },
+
+    // Native resource contracts the config files delegate to, which nothing
+    // else here moves for. On Android that is res/values — capacitor-passkey.xml
+    // carries the asset statement passkeys are validated against. On iOS it is
+    // every Info.plist and entitlements file, the app's AND the extensions',
+    // since an extension's capabilities are part of the shell a bundle lands on.
+    // Extensions rather than a `**` glob: the generated web assets under
+    // ios/App/App/public and android/app/src/main/assets/public are gitignored,
+    // so neither ls-files nor ls-tree ever reports them.
+    { kind: 'glob', id: 'android/app/src/main/res/**.xml', dirs: ['android/app/src/main/res'], extensions: ['.xml'] },
+    {
+        kind: 'glob',
+        id: 'ios/App/**.{plist,entitlements}',
+        dirs: ['ios/App'],
+        extensions: ['.plist', '.entitlements'],
+    },
 
     // The bridges JS calls into. MainActivity registers the app-local plugins;
     // the *Plugin.java / *Plugin.swift files are the methods themselves. A
@@ -165,6 +181,39 @@ function sha(text) {
     return createHash('sha256').update(text).digest('hex')
 }
 
+// Plugin package names as Capacitor itself resolved them, read out of the
+// dependency paths in its two generated manifests.
+function generatedPluginNames(ref) {
+    const names = new Set()
+    const gradle = readAtRef('android/capacitor.settings.gradle', ref)
+    const swift = readAtRef('ios/App/CapApp-SPM/Package.swift', ref)
+
+    for (const match of (gradle ?? '').matchAll(/node_modules\/((?:@[^/]+\/)?[^/'"]+)\/android/g)) {
+        names.add(match[1])
+    }
+    for (const match of (swift ?? '').matchAll(/node_modules\/((?:@[^/]+\/)?[^/'"]+)"/g)) {
+        names.add(match[1])
+    }
+    return [...names]
+}
+
+/*
+ * An unresolvable ref must be an error, never an empty read. `git show` and
+ * `git ls-tree` both fail quietly for an unknown ref, which would make every
+ * input <absent> — a perfectly well-formed fingerprint of nothing, differing
+ * from any real tree, so a --diff against a missing tag would report "changed"
+ * and a caller could conclude the check ran. It is the same shape as the
+ * ls-tree glob bug: silence that reads as a result.
+ */
+function assertRefExists(ref) {
+    if (!ref) return
+    try {
+        git(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`])
+    } catch {
+        throw new Error(`ref "${ref}" does not resolve in this checkout — fetch it (tags need fetch-depth: 0)`)
+    }
+}
+
 // Every native dependency's resolved version(s), read from the lockfile. Names
 // come from package.json so the set is explicit; versions come from the
 // lockfile so a bump cannot hide behind a caret specifier.
@@ -180,9 +229,14 @@ function nativeDependencyVersions(ref) {
         return null
     }
 
-    const names = Object.keys({ ...parsed.dependencies, ...parsed.devDependencies })
-        .filter((name) => NATIVE_DEPENDENCY_PATTERN.test(name))
-        .sort()
+    // Union of two imperfect sources, because each covers the other's blind
+    // spot: the declared dependencies catch a plugin that was never synced, and
+    // the generated manifests catch one whose package name says nothing about
+    // being native (Capacitor detected it, we would not have).
+    const declared = Object.keys({ ...parsed.dependencies, ...parsed.devDependencies }).filter((name) =>
+        NATIVE_DEPENDENCY_PATTERN.test(name)
+    )
+    const names = [...new Set([...declared, ...generatedPluginNames(ref)])].sort()
 
     return names
         .map((name) => {
@@ -200,6 +254,7 @@ function nativeDependencyVersions(ref) {
 }
 
 export function manifest(ref) {
+    assertRefExists(ref)
     const entries = {}
     for (const input of NATIVE_INPUTS) {
         if (input.kind === 'file') {
