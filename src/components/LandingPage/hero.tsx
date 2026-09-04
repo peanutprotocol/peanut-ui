@@ -240,6 +240,16 @@ export function Hero({
                 </span>
                 {primaryCta ? renderCTAButton(primaryCta, 'primary') : customCta ? renderCustomCta() : null}
                 {secondaryCta && renderCTAButton(secondaryCta, 'secondary')}
+                {/* Returning users with an expired session had no way back in from the
+                    marketing site: every CTA pointed at signup. `?step=login` lands on
+                    the passkey Log In step (setup-entry.ts). */}
+                <Link
+                    prefetch={false}
+                    href="/setup?step=login"
+                    className="mt-4 block text-center text-body-s text-n-1 underline"
+                >
+                    {strings.logIn}
+                </Link>
                 <AnimateOnView
                     className="absolute bottom-[-4%] left-[1%] w-8 sm:bottom-[11%] sm:left-[12%] md:bottom-[18%] md:left-[5%] md:w-12"
                     y="20px"
