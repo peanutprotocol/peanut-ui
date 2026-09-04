@@ -111,4 +111,42 @@ describe('toast placement around the android clipboard overlay', () => {
             jest.useRealTimers()
         }
     })
+
+    test('the lift transition is gated on motion-safe', async () => {
+        await setup()
+        fire()
+        // a ~120px travel is the same large decorative motion the card's own
+        // spring is gated on
+        expect(stack()).toHaveClass('motion-safe:transition-[bottom]')
+        expect(stack().className).not.toMatch(/(^|\s)transition-\[bottom\]/)
+    })
+})
+
+// chip: the lift reads a marker that only clipboard.utils sets, so a copy that
+// writes the clipboard directly and then toasts shows Android's system preview
+// with the toast still underneath it. The QR success screen did exactly that.
+// This is the call-site sweep as a test, so the next one cannot bypass it.
+describe('every copy-to-toast path goes through clipboard.utils', () => {
+    test('no file that toasts also writes the clipboard directly', () => {
+        const fs = require('fs') as typeof import('fs')
+        const path = require('path') as typeof import('path')
+        const root = path.join(__dirname, '..', '..', '..')
+
+        const walk = (dir: string): string[] =>
+            fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+                const full = path.join(dir, entry.name)
+                if (entry.isDirectory()) return entry.name === '__tests__' ? [] : walk(full)
+                return /\.tsx?$/.test(entry.name) ? [full] : []
+            })
+
+        const offenders = walk(root)
+            .filter((file) => !file.endsWith(path.join('utils', 'clipboard.utils.ts')))
+            .filter((file) => {
+                const text = fs.readFileSync(file, 'utf8')
+                return /\buseToast\b/.test(text) && /navigator\.clipboard\.write/.test(text)
+            })
+            .map((file) => path.relative(root, file))
+
+        expect(offenders).toEqual([])
+    })
 })

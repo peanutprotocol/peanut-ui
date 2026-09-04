@@ -185,7 +185,10 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
                     never ruled; this one is (2026-09-04, slava). */}
                 <div
                     className={twMerge(
-                        'fixed right-4 z-[99999] flex flex-col items-end gap-2 transition-[bottom] duration-fast',
+                        // motion-safe: the lift is a ~120px travel, which is the
+                        // same large decorative motion the card's own spring is
+                        // gated on. Under reduce the stack simply moves.
+                        'fixed right-4 z-[99999] flex flex-col items-end gap-2 motion-safe:transition-[bottom] motion-safe:duration-fast',
                         toasts.some((t) => t.raised) ? RAISED_BOTTOM : NORMAL_BOTTOM
                     )}
                 >
