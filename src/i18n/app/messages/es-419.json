@@ -2997,6 +2997,7 @@
         "reasons": {
             "tax_identification_number": "Necesitamos tu número de identificación fiscal para continuar.",
             "address_of_residence": "Necesitamos tu dirección de residencia para continuar.",
+            "residence_unresolved": "Todavía necesitamos tu domicilio para terminar de configurar las transferencias bancarias. Agrégalo y lo reintentamos automáticamente.",
             "proof_of_address": "Necesitamos un comprobante de domicilio válido.",
             "source_of_funds": "Necesitamos información sobre el origen de tus fondos.",
             "proof_of_source_of_funds": "Necesitamos un documento que compruebe el origen de tus fondos.",

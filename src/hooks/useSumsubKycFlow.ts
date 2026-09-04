@@ -707,9 +707,17 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // ID-reupload action, which Sumsub opens on its "already verified" screen and
     // the user loops back to the same modal. Bridge stays on resubmit: that route
     // resolves the level itself and stamps the externalActionId its webhook keys on.
+    // "Bridge stays on resubmit" holds wherever a Bridge rejection actually
+    // exists, which is every case that route was built for. `residence_unresolved`
+    // is the one that is not: the residence gate parks the rail BEFORE Bridge ever
+    // sees the user, so there is no rejectType and no remediation for
+    // `/kyc/resubmit` to find. It answers 404 "No provider rejection found" and the
+    // CTA renders an error under copy that just asked for the user's address
+    // (TASK-22286). Route that one code to start-action, which resolves the level
+    // from RFI_LEVELS, and leave every rejection-shaped case exactly as it was.
     const handleFixableRejection = useCallback(
-        (rejection: { provider: 'BRIDGE' | 'MANTECA'; actionKey?: string | null }) =>
-            rejection.provider === 'MANTECA' && rejection.actionKey
+        (rejection: { provider: 'BRIDGE' | 'MANTECA'; actionKey?: string | null; reasonCode?: string | null }) =>
+            rejection.actionKey && (rejection.provider === 'MANTECA' || rejection.reasonCode === 'residence_unresolved')
                 ? handleStartAction(rejection.actionKey)
                 : handleSelfHealResubmit(rejection.provider),
         [handleStartAction, handleSelfHealResubmit]
