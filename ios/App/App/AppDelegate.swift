@@ -20,6 +20,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             SentrySDK.start { options in
                 options.dsn = dsn
                 options.environment = "native"
+                // The JS layer already reports failed requests with sanitised URLs;
+                // the native default would duplicate every 5xx under a second release.
+                options.enableCaptureFailedRequests = false
             }
             // Reconciliation hook (mirror of MainActivity.maybeSentryTestCrash).
             // Only a developer can pass launch arguments to an iOS app: an Xcode
