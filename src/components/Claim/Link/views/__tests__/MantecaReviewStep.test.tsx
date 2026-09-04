@@ -79,7 +79,9 @@ beforeEach(() => {
 
 describe('MantecaReviewStep — pre-claim entity lookup', () => {
     test('claims the link to the API-served entity deposit address', async () => {
-        mockInitiateWithdraw.mockResolvedValue({ data: { priceLockCode: 'pl-1', depositAddress: SERVED_ADDRESS } })
+        mockInitiateWithdraw.mockResolvedValue({
+            data: { priceLockCode: 'pl-1', legalEntity: 'CRYPTO_ARG', depositAddress: SERVED_ADDRESS },
+        })
 
         renderStep()
         clickConfirm()
@@ -90,8 +92,23 @@ describe('MantecaReviewStep — pre-claim entity lookup', () => {
         await waitFor(() => expect(mockWithdraw).toHaveBeenCalledTimes(1))
     })
 
-    test('FAILS CLOSED when the API returns no depositAddress — the one-shot link is never spent', async () => {
+    test('a PRE-ENTITY API response (no legalEntity) falls back to the legacy constant — deploy-window safe', async () => {
+        // The older API omits both fields and still validates the legacy
+        // constant, so the claim must proceed rather than abort: this is the
+        // window where the new UI meets the not-yet-deployed API.
         mockInitiateWithdraw.mockResolvedValue({ data: { priceLockCode: 'pl-1' } })
+
+        renderStep()
+        clickConfirm()
+
+        await waitFor(() => expect(mockClaimLinkSecure).toHaveBeenCalled())
+        expect(mockClaimLinkSecure).toHaveBeenCalledWith(
+            expect.objectContaining({ address: '0x959e088a09f61aB01cb83b0eBCc74b2CF6d62053' })
+        )
+    })
+
+    test('FAILS CLOSED when the API returns no depositAddress — the one-shot link is never spent', async () => {
+        mockInitiateWithdraw.mockResolvedValue({ data: { priceLockCode: 'pl-1', legalEntity: 'CRYPTO_ARG' } })
 
         renderStep()
         clickConfirm()
@@ -106,7 +123,9 @@ describe('MantecaReviewStep — pre-claim entity lookup', () => {
             cleanup()
             jest.clearAllMocks()
             mockClaimLinkSecure.mockResolvedValue('0x' + 'ab'.repeat(32))
-            mockInitiateWithdraw.mockResolvedValue({ data: { priceLockCode: 'pl-1', depositAddress: bad } })
+            mockInitiateWithdraw.mockResolvedValue({
+                data: { priceLockCode: 'pl-1', legalEntity: 'CRYPTO_ARG', depositAddress: bad },
+            })
 
             renderStep()
             clickConfirm()

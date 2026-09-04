@@ -11,7 +11,9 @@ import { MercadoPagoStep } from '@/types/manteca.types'
 import { type Dispatch, type FC, type SetStateAction, useState } from 'react'
 import useClaimLink from '@/components/Claim/useClaimLink'
 import * as Sentry from '@sentry/nextjs'
-import { requireMantecaDepositAddress } from '@/utils/manteca.utils'
+import { pickMantecaDepositAddress, requireMantecaDepositAddress } from '@/utils/manteca.utils'
+import { MANTECA_DEPOSIT_ADDRESS } from '@/constants/manteca.consts'
+import type { Address } from 'viem'
 import { useTranslations } from 'next-intl'
 
 interface MantecaReviewStepProps {
@@ -78,10 +80,21 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
                     setError(t('manteca.errors.generic'))
                     return
                 }
-                const depositAddress = requireMantecaDepositAddress(initData?.depositAddress)
-                if (!depositAddress) {
-                    setError(t('manteca.errors.generic'))
-                    return
+                // Strict only against an ENTITY-AWARE API (it marks its
+                // responses with legalEntity): there the served address is
+                // the one truth and anything else fails closed. A pre-entity
+                // API omits both fields and still validates the legacy
+                // constant — falling back keeps claim links working during
+                // the deploy window where this UI meets the older API.
+                let depositAddress: Address | null
+                if (initData?.legalEntity) {
+                    depositAddress = requireMantecaDepositAddress(initData?.depositAddress)
+                    if (!depositAddress) {
+                        setError(t('manteca.errors.generic'))
+                        return
+                    }
+                } else {
+                    depositAddress = pickMantecaDepositAddress(initData?.depositAddress, MANTECA_DEPOSIT_ADDRESS)
                 }
 
                 // Use secure SDK claim (password stays client-side, only signature sent to backend)
