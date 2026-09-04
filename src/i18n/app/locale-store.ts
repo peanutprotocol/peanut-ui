@@ -141,11 +141,23 @@ async function registerDeviceIdentity(): Promise<void> {
     try {
         const identity = await resolveDeviceIdentity()
         posthog.register(identity)
+        // Covers the identity resolving after login. The other order — a login
+        // that lands after this — is covered by authContext folding
+        // currentDeviceIdentity() into its identify payload, because a visitor
+        // who was still anonymous here gets no $set at all.
         if (posthog._isIdentified()) posthog.setPersonProperties(identity)
+        deviceIdentity = identity
         if (deviceContext) deviceContext = { ...deviceContext, ...identity }
     } catch {
         // analytics failure degrades to missing data, never a broken app
     }
+}
+
+let deviceIdentity: DeviceIdentity | null = null
+
+/** Resolved device identity, for the identify payload; null until it resolves. */
+export function currentDeviceIdentity(): DeviceIdentity | null {
+    return deviceIdentity
 }
 
 async function resolveStartupLocale(): Promise<AppLocale> {

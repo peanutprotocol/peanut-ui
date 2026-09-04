@@ -251,6 +251,18 @@ describe('emitDeviceContextToAnalytics', () => {
         )
     })
 
+    // Super properties reach events, not the person profile. A visitor still
+    // anonymous when the identity resolved gets no $set, so authContext folds
+    // this into its identify payload — without it the cohort omits everyone who
+    // logs in after startup.
+    it('exposes the resolved identity for the identify payload', async () => {
+        setNavigatorLanguage('en-US')
+        const store = freshStore()
+        expect(store.currentDeviceIdentity()).toBeNull()
+        await store.emitDeviceContextToAnalytics()
+        expect(store.currentDeviceIdentity()).toEqual(expect.objectContaining({ device_class: expect.any(String) }))
+    })
+
     it('a posthog throw never propagates and leaves the context unset so a retry can register', async () => {
         setNavigatorLanguage('en-US')
         mockRegister.mockImplementationOnce(() => {

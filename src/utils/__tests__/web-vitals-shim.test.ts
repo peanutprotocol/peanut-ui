@@ -1,13 +1,28 @@
 /**
  * The shim exists because posthog-js gates web vitals on `location.protocol`
  * being http(s) — which the iOS binary, served from `capacitor://localhost`,
- * never is. These guard the two things that make the shim safe to ship: it
- * stays out of the documents PostHog already covers, and the rows it does emit
- * carry PostHog's own property names so they merge into the existing series.
+ * never is. These guard the three things that make it safe to ship: it stays
+ * out of the documents PostHog already covers, it obeys PostHog's own
+ * enablement rather than only the protocol, and the rows it emits carry
+ * PostHog's property names and the URL they were actually measured on.
  */
 
-import { createWebVitalsReporter, postHogCapturesWebVitals, type WebVitalsReporter } from '../web-vitals-shim'
+import {
+    createWebVitalsReporter,
+    postHogCapturesWebVitals,
+    postHogWebVitalsSettings,
+    type WebVitalsReporter,
+    type WebVitalsSettings,
+} from '../web-vitals-shim'
 import type { Metric } from 'web-vitals'
+import posthog from 'posthog-js'
+
+jest.mock('posthog-js', () => ({
+    __esModule: true,
+    default: { config: {}, get_property: jest.fn() },
+}))
+
+const mockGetProperty = posthog.get_property as jest.Mock
 
 const metric = (name: string, value: number): Metric =>
     ({
@@ -34,16 +49,51 @@ describe('postHogCapturesWebVitals', () => {
     })
 })
 
+describe('postHogWebVitalsSettings', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        posthog.config = {} as typeof posthog.config
+    })
+
+    // Turning web vitals off server-side has to stop iOS too, or the switch
+    // silently only applies to the http(s) clients.
+    it('follows the persisted remote-config flag', () => {
+        mockGetProperty.mockImplementation((key: string) => key === '$web_vitals_enabled_server_side')
+        expect(postHogWebVitalsSettings().enabled).toBe(true)
+
+        mockGetProperty.mockReturnValue(undefined)
+        expect(postHogWebVitalsSettings().enabled).toBe(false)
+    })
+
+    it('lets explicit client config outrank the remote flag, as PostHog does', () => {
+        mockGetProperty.mockImplementation((key: string) => key === '$web_vitals_enabled_server_side')
+        posthog.config = { capture_performance: { web_vitals: false } } as unknown as typeof posthog.config
+        expect(postHogWebVitalsSettings().enabled).toBe(false)
+    })
+
+    it('honours a configured metric allowlist, falling back to all four', () => {
+        mockGetProperty.mockImplementation((key: string) =>
+            key === '$web_vitals_allowed_metrics' ? ['LCP'] : undefined
+        )
+        expect(postHogWebVitalsSettings().allowed).toEqual(['LCP'])
+
+        mockGetProperty.mockReturnValue(undefined)
+        expect(postHogWebVitalsSettings().allowed).toEqual(['CLS', 'FCP', 'INP', 'LCP'])
+    })
+})
+
 describe('createWebVitalsReporter', () => {
     let capture: jest.Mock
     let url: string
+    let settings: WebVitalsSettings
     let reporter: WebVitalsReporter
 
     beforeEach(() => {
         jest.useFakeTimers()
         capture = jest.fn()
         url = 'capacitor://localhost/home'
-        reporter = createWebVitalsReporter(capture, () => url)
+        settings = { enabled: true, allowed: ['CLS', 'FCP', 'INP', 'LCP'] }
+        reporter = createWebVitalsReporter({ capture, currentUrl: () => url, settings: () => settings })
     })
 
     afterEach(() => jest.useRealTimers())
@@ -85,6 +135,46 @@ describe('createWebVitalsReporter', () => {
         jest.advanceTimersByTime(5000)
         expect(capture).toHaveBeenCalledTimes(2)
         expect(capture.mock.calls[1][1].$web_vitals_LCP_value).toBe(900)
+    })
+
+    /*
+     * A route change alone does not flush — only a later metric or the timer
+     * does. PostHog stamps the event with wherever the app is at capture time,
+     * so without carrying the batch's own URL, /home's LCP is filed under /send.
+     */
+    it('attributes a batch to the screen it was measured on, not the one navigated to', () => {
+        reporter.record(metric('LCP', 2400))
+        url = 'capacitor://localhost/send'
+        jest.advanceTimersByTime(5000)
+
+        expect(capture.mock.calls[0][1]).toEqual(
+            expect.objectContaining({ $current_url: 'capacitor://localhost/home', $pathname: '/home' })
+        )
+    })
+
+    it('sends nothing while PostHog has web vitals switched off', () => {
+        settings = { enabled: false, allowed: ['CLS', 'FCP', 'INP', 'LCP'] }
+        reporter.record(metric('LCP', 2400))
+        jest.advanceTimersByTime(5000)
+        expect(capture).not.toHaveBeenCalled()
+    })
+
+    it('drops metrics outside the configured allowlist', () => {
+        settings = { enabled: true, allowed: ['LCP'] }
+        reporter.record(metric('LCP', 2400))
+        reporter.record(metric('INP', 180))
+        jest.advanceTimersByTime(5000)
+
+        const [, properties] = capture.mock.calls[0]
+        expect(properties).toHaveProperty('$web_vitals_LCP_value')
+        expect(properties).not.toHaveProperty('$web_vitals_INP_value')
+    })
+
+    it('sends no event at all when the allowlist excludes everything buffered', () => {
+        settings = { enabled: true, allowed: ['CLS'] }
+        reporter.record(metric('LCP', 2400))
+        jest.advanceTimersByTime(5000)
+        expect(capture).not.toHaveBeenCalled()
     })
 
     it('drops implausible values rather than poisoning the percentiles', () => {
