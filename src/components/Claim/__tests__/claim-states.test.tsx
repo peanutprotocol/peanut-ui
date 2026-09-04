@@ -418,7 +418,8 @@ describe('GROUP 3: Already Claimed / Cancelled', () => {
 
     // A sender's cancel/reclaim leaves no SEND_LINK_CLAIM intent behind, so the
     // `events` fallback is empty and the receipt used to show no cancellation
-    // date at all; GET /send-links now carries the row's own cancelledAt.
+    // date at all. GET /send-links carries the row's own cancelledAt as of
+    // peanut-api-ts#1525; until that ships the fallback keeps today's behaviour.
     test('CANCELLED receipt shows the cancellation date from cancelledAt', async () => {
         mockUseAuth.mockReturnValue({
             user: { user: { userId: 'sender-123' } },
