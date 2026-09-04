@@ -117,7 +117,7 @@ describe('native-fingerprint', () => {
         expect(keys).toContain('android/capacitor.settings.gradle')
         expect(keys).toContain('ios/App/CapApp-SPM/Package.swift')
         expect(keys).toContain('capacitor.config.ts')
-        expect(keys).toContain('android/app/src/main/**.{java,kt}')
+        expect(keys).toContain('android/app/src/**.{java,kt}')
         expect(keys).toContain('ios/App/**.swift')
         expect(keys).toContain('native-plugin-versions')
         expect(keys).toContain('android/app/src/main/res/**.xml')
@@ -197,18 +197,44 @@ describe('native-fingerprint', () => {
         )
     })
 
-    it('does NOT claim a bridge whose source set is gated on CI secrets', () => {
+    it('tracks the credential-gated source set too, erring toward refusal', () => {
         const before = fingerprint()
 
         withPatchedInput(
             // build.gradle adds src/meawallet only when the Nexus credentials
-            // are present, so whether this reaches the binary depends on
-            // secrets rather than on the tree. Claiming it let a release tag
-            // assert a bridge the binary may never have registered.
+            // are present, so whether it reaches the binary is not knowable
+            // from the tree. Both choices are unsound; including it can only
+            // force an unnecessary native release, while excluding it fails
+            // silently when the binary DOES carry the bridge.
             'android/app/src/meawallet/java/me/peanut/wallet/PushProvisioningPlugin.java',
-            (content) => `${content}\n// not compiled without credentials\n`,
-            () => expect(fingerprint()).toBe(before)
+            (content) => `${content}\n// surface change\n`,
+            () => expect(fingerprint()).not.toBe(before)
         )
+    })
+
+    it('lists every plugin Capacitor generated in NATIVE_DEPENDENCIES', () => {
+        // Keeps the explicit map honest: a plugin that has been synced cannot
+        // silently drop out of it, which is what makes the map trustworthy for
+        // the case it exists to cover — a generically-named plugin whose
+        // manifests are stale, invisible to both the name heuristic and to
+        // Capacitor's own list.
+        // Parsed from the source, not imported: Jest runs CJS here, so a
+        // dynamic import of the .mjs does not resolve.
+        const source = fs.readFileSync(SCRIPT_PATH, 'utf8')
+        const listed = source.slice(
+            source.indexOf('export const NATIVE_DEPENDENCIES = ['),
+            source.indexOf(']', source.indexOf('export const NATIVE_DEPENDENCIES = ['))
+        )
+        const NATIVE_DEPENDENCIES = [...listed.matchAll(/'([^']+)'/g)].map((m) => m[1])
+        const gradle = fs.readFileSync(path.join(repoRoot, 'android/capacitor.settings.gradle'), 'utf8')
+        const swift = fs.readFileSync(path.join(repoRoot, 'ios/App/CapApp-SPM/Package.swift'), 'utf8')
+
+        const generated = new Set()
+        for (const match of `${gradle}${swift}`.matchAll(/node_modules\/((?:@[^/]+\/)?[^/'"]+)(?:\/android|")/g)) {
+            if (match[1] !== '@capacitor') generated.add(match[1])
+        }
+
+        expect([...generated].filter((name) => !NATIVE_DEPENDENCIES.includes(name))).toEqual([])
     })
 
     it('moves when an iOS bridge changes', () => {

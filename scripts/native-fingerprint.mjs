@@ -57,7 +57,37 @@ import { fileURLToPath } from 'node:url'
 const defaultRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 let repoRoot = defaultRoot
 
-// Dependencies with a native half. Deliberately not a scope allowlist:
+// Packages with a native half, named explicitly.
+//
+// A package NAME cannot be trusted to say whether it is native, and the
+// generated manifests only list plugins that have been synced — so a
+// generically-named plugin released while the committed manifests were stale is
+// invisible to both. This list is the third source, and the suite asserts every
+// plugin Capacitor generated appears in it, so a synced plugin cannot go
+// missing from it silently.
+export const NATIVE_DEPENDENCIES = [
+    '@capacitor/android',
+    '@capacitor/app',
+    '@capacitor/browser',
+    '@capacitor/camera',
+    '@capacitor/clipboard',
+    '@capacitor/core',
+    '@capacitor/device',
+    '@capacitor/haptics',
+    '@capacitor/ios',
+    '@capacitor/keyboard',
+    '@capacitor/preferences',
+    '@capacitor/splash-screen',
+    '@capacitor/status-bar',
+    '@capgo/capacitor-crisp',
+    '@capgo/capacitor-native-biometric',
+    '@capgo/capacitor-passkey',
+    '@capgo/capacitor-updater',
+    '@onesignal/capacitor-plugin',
+    '@sumsub/cordova-idensic-mobile-sdk-plugin',
+]
+
+// Backstop for anything not yet in the list above. Deliberately not a scope allowlist:
 // community plugins live outside the first-party scopes (@capacitor-community/…,
 // @transistorsoft/capacitor-…, capacitor-plugin-…), and one of those bumped
 // without a `cap sync` is exactly the case this input exists to catch. Matching
@@ -108,18 +138,19 @@ export const NATIVE_INPUTS = [
     // bundle calling a new method, or relying on corrected behaviour in one of
     // these, needs the binary that carries it — and none of the config files
     // above move when they change.
-    // src/main only, NOT every source set. `src/meawallet` is added to the
-    // build by android/app/build.gradle only when the MeaWallet Nexus
-    // credentials are present, so whether its bridge is in the binary depends
-    // on CI secrets rather than on the tree. Hashing it unconditionally made a
-    // release tag claim a bridge the binary may never have registered — worse
-    // than not claiming it, because a later OTA could rely on the claim.
-    {
-        kind: 'glob',
-        id: 'android/app/src/main/**.{java,kt}',
-        dirs: ['android/app/src/main'],
-        extensions: ['.java', '.kt'],
-    },
+    // EVERY source set, including the credential-gated `src/meawallet`.
+    //
+    // build.gradle adds that one only when the MeaWallet Nexus credentials are
+    // present, so whether its bridge reaches the binary is not knowable from
+    // the tree, and BOTH choices are unsound: including it lets a tag claim a
+    // bridge the binary may lack; excluding it lets a bridge change go
+    // untracked when the binary does have it. Including is the conservative
+    // error — it can only force an unnecessary native release, while excluding
+    // fails silently and ships JS against a binary without the method.
+    //
+    // The real fix is for the variant to stop depending on a CI secret; until
+    // then the guard errs toward refusing an OTA.
+    { kind: 'glob', id: 'android/app/src/**.{java,kt}', dirs: ['android/app/src'], extensions: ['.java', '.kt'] },
     { kind: 'glob', id: 'ios/App/**.swift', dirs: ['ios/App'], extensions: ['.swift'] },
 
     // pnpm patches rewrite a package's JS wrapper AND its native sources with
@@ -258,7 +289,7 @@ function nativeDependencyVersions(ref) {
     const declared = Object.keys({ ...parsed.dependencies, ...parsed.devDependencies }).filter((name) =>
         NATIVE_DEPENDENCY_PATTERN.test(name)
     )
-    const names = [...new Set([...declared, ...generatedPluginNames(ref)])].sort()
+    const names = [...new Set([...NATIVE_DEPENDENCIES, ...declared, ...generatedPluginNames(ref)])].sort()
 
     // Every dependency NAME, not just the native-looking ones. A plugin whose
     // package name says nothing about being native (and whose generated

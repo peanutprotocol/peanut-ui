@@ -349,13 +349,17 @@ own `out/` under the binary's versionName, then assert the channel serves it.
   (the OTA workflow runs `pnpm install` but never regenerates the committed manifests, so
   a plugin bumped without a `cap sync` would ship the new JS wrapper against unchanged
   manifest bytes; the plugin set is the union of the declared dependencies and the names
-  Capacitor generated, plus the full dependency NAME set so a plugin named after neither
-  still counts, plus `patches/` and the `patchedDependencies` map, since a pnpm patch
-  rewrites both halves of a package with no version change). Only `src/main` is hashed on
-  Android: `src/meawallet` is added to the build by build.gradle only when the Nexus
-  credentials are present, so claiming it would let a tag assert a bridge the binary may
-  never have registered. An unresolvable ref is an error, never an empty read, and
-  `--root` points the CLI at another checkout so its tests never mutate this one. `capgo-deploy.yml` recomputes it and compares against the
+  Capacitor generated and an explicit `NATIVE_DEPENDENCIES` list — three sources, because
+  a package name cannot be trusted and the generated manifests only cover plugins that
+  have been synced; a test asserts every generated plugin appears in the list so it cannot
+  drift. Plus the full dependency NAME set, and `patches/` with the `patchedDependencies`
+  map, since a pnpm patch rewrites both halves of a package with no version change).
+  Every Android source set is hashed, including the credential-gated `src/meawallet`:
+  whether it reaches a binary is not knowable from the tree, and of the two unsound
+  choices, over-claiming only forces an unnecessary native release while under-claiming
+  fails silently. **The real fix is for that variant to stop depending on a CI secret.**
+  An unresolvable ref is an error, never an empty read, and `--root` points the CLI at
+  another checkout so its tests never mutate this one. `capgo-deploy.yml` recomputes it and compares against the
   `v<major>.<build>.0` tag the bundle's floor targets; a mismatch **fails the OTA** and
   names the file that moved. It is a pure function of the tree, so nothing is stored and
   any tag can be fingerprinted retroactively (`--ref v1.2.0`). `MARKETING_VERSION` and
