@@ -153,6 +153,26 @@ export function parseStatusSummary(value: unknown): StatusSummary | null {
     const s = value as StatusSummary
     if (!s || typeof s !== 'object') return null
     if (!BUCKET_STATES.includes(s.state)) return null
+    // The page refuses a summary older than a few minutes, so a payload that
+    // cannot say when it was made is a payload it cannot check.
+    if (typeof s.generatedAt !== 'string') return null
     if (!Array.isArray(s.providers) || !s.providers.every(isProvider)) return null
     return s
+}
+
+/**
+ * How old a summary may be before the page stops believing it.
+ *
+ * The feed is resampled every 5 minutes and served with `max-age=60,
+ * stale-while-revalidate=300`, so ~6 minutes is the oldest a healthy system
+ * ever hands back. Past that we are looking at a copy that outlived whatever
+ * produced it — a CDN still serving the last good body over a dead origin is
+ * exactly the shape of an outage — and a cached "all operational" is the one
+ * answer this page must never give on someone else's word.
+ */
+export const MAX_SUMMARY_AGE_MS = 15 * 60 * 1000
+
+export function isFresh(summary: StatusSummary, now: number): boolean {
+    const generatedAt = Date.parse(summary.generatedAt)
+    return Number.isFinite(generatedAt) && now - generatedAt <= MAX_SUMMARY_AGE_MS
 }

@@ -5,8 +5,8 @@ import { getTranslations } from '@/i18n'
 import { getAlternatesFor, localizedPath } from '@/i18n/config'
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type Locale } from '@/i18n/types'
 import { Hero } from '@/components/Marketing/mdx/Hero'
-import { StatusBoard } from './StatusBoard'
-import { parseStatusSummary, type StatusSummary } from './types'
+import { StatusBanner, StatusBoard } from './StatusBoard'
+import { isFresh, parseStatusSummary, type StatusSummary } from './types'
 
 // The feed is resampled every 5 minutes; a minute of edge cache keeps a
 // traffic spike during an incident off the API that is already struggling.
@@ -41,11 +41,22 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
 async function loadSummary(): Promise<StatusSummary | null> {
     try {
         const response = await fetch(`${statusFeedOrigin()}/status/summary`, {
-            next: { revalidate },
+            // Uncached on purpose, despite the page itself being revalidated.
+            //
+            // Next's Data Cache serves the last good body when a revalidating
+            // fetch fails, so `next: { revalidate }` here kept rendering the
+            // last green board for as long as the API stayed down — the exact
+            // failure this page exists to avoid, and one that survives every
+            // amount of red further down the stack. The page-level
+            // `revalidate` above still holds requests to one per minute at the
+            // edge, so the API keeps its shield.
+            cache: 'no-store',
             signal: AbortSignal.timeout(8000),
         })
         if (!response.ok) return null
-        return parseStatusSummary(await response.json())
+        const summary = parseStatusSummary(await response.json())
+        if (!summary || !isFresh(summary, Date.now())) return null
+        return summary
     } catch {
         // Swallowed on purpose: this page's whole job is to render during an
         // outage, so a failed fetch is an expected state with its own copy,
@@ -60,19 +71,25 @@ export default async function StatusPage({ params }: { params: Promise<{ locale:
     const summary = await loadSummary()
 
     if (!summary) {
-        // Same header as the loaded page: this is a normal state, not an
-        // error page, and it is the one on show whenever the feed's own
-        // backend is the thing that is down.
+        // Red, not a neutral notice.
+        //
+        // This page renders on Vercel and the feed comes from Render, so the
+        // fetch above is the one measurement the page can still make when the
+        // backend is the thing that is broken — and it just came back
+        // negative. Reporting that as an amber "try again shortly" is how a
+        // status page whose data lives behind the outage reports the outage as
+        // a hiccup.
         return (
-            <>
+            <div className="bg-background">
                 <Hero title={i18n.statusPageTitle} subtitle={i18n.statusWindowLabel} />
                 <div className="mx-auto w-full max-w-3xl px-6 pb-12">
-                    {/* secondary-2 died with the v4 theme; yellow-500 keeps the warning tone */}
-                    <p className="rounded-md border border-yellow-500 bg-secondary-4 p-4 text-body-s">
-                        {i18n.statusFetchFailed}
-                    </p>
+                    <StatusBanner
+                        state="down"
+                        title={i18n.statusFeedUnreachableTitle}
+                        detail={i18n.statusFeedUnreachable}
+                    />
                 </div>
-            </>
+            </div>
         )
     }
 

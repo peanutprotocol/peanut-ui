@@ -6,6 +6,7 @@ import {
     incidentReasonLabel,
     STATUS_GROUPS,
     type BucketState,
+    type StatusBucket,
     type StatusIncident,
     type StatusProvider,
     type StatusSummary,
@@ -120,6 +121,37 @@ export function OperationalDonut({
     )
 }
 
+/**
+ * The page's one-line verdict.
+ *
+ * Exported because the unreachable-feed fallback in page.tsx renders it too:
+ * a frontend that cannot reach the backend has learnt something real about
+ * the system's health, and it should say so in the same words and the same
+ * colour as an outage the feed reported itself.
+ *
+ * `unknown` is styled as an outage, not as a neutral third thing. Not knowing
+ * whether Peanut is up is a bad state to be in, and a status page that softens
+ * it into grey is the reason this page read green through 2026-09-03.
+ */
+const BANNER_STYLES: Record<BucketState, string> = {
+    operational: 'border-success-1 bg-white text-n-1',
+    degraded: 'border-secondary-1 bg-secondary-4 text-n-1',
+    down: 'border-border-error bg-error-1 text-n-1',
+    unknown: 'border-border-error bg-error-1 text-n-1',
+}
+
+export function StatusBanner({ state, title, detail }: { state: BucketState; title: string; detail?: string }) {
+    return (
+        <div className={`flex items-start gap-3 rounded-md border p-4 ${BANNER_STYLES[state]}`}>
+            <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${DOT_COLORS[state]}`} />
+            <div>
+                <p className="text-body-l font-bold">{title}</p>
+                {detail && <p className="mt-1 text-body-s text-grey-1">{detail}</p>}
+            </div>
+        </div>
+    )
+}
+
 function headline(state: BucketState, i18n: Translations): string {
     if (state === 'down') return i18n.statusSomeDown
     if (state === 'degraded') return i18n.statusSomeDegraded
@@ -143,6 +175,21 @@ function formatTime(iso: string, locale: string): string {
 }
 
 /**
+ * Why a bar is the colour it is.
+ *
+ * A red bar holding no checks is not a measured failure — it is an hour the
+ * collector could not write, which it can only be because the API it runs
+ * inside was down. Same colour, because the user lost the same thing;
+ * different words, because "0/0 failures" would read as a bug.
+ */
+function bucketDetail(bucket: StatusBucket, i18n: Translations): string {
+    if (bucket.checks === 0) {
+        return bucket.state === 'unknown' ? i18n.statusLegendNoData : i18n.statusBucketNotMonitored
+    }
+    return `${bucket.failures}/${bucket.checks}`
+}
+
+/**
  * One bar per hour. Bars carry a `title` rather than a custom tooltip so the
  * hour and its failure count stay reachable on a server-rendered page with no
  * client JS — this page has to work when everything else is on fire.
@@ -154,9 +201,7 @@ function UptimeBars({ provider, locale, i18n }: { provider: StatusProvider; loca
                 <span
                     key={bucket.hourStart}
                     className={`flex-1 rounded-[1px] ${BAR_COLORS[bucket.state]}`}
-                    title={`${formatTime(bucket.hourStart, locale)} — ${
-                        bucket.state === 'unknown' ? i18n.statusLegendNoData : `${bucket.failures}/${bucket.checks}`
-                    }`}
+                    title={`${formatTime(bucket.hourStart, locale)} — ${bucketDetail(bucket, i18n)}`}
                 />
             ))}
         </div>
@@ -221,6 +266,24 @@ export function StatusBoard({ summary, locale, i18n }: { summary: StatusSummary;
             <Hero title={i18n.statusPageTitle} subtitle={i18n.statusWindowLabel} />
 
             <div className="mx-auto w-full max-w-3xl px-6 pb-12">
+                {/* Only when something is wrong. A healthy page still opens
+                    straight at App & Account, as designed — but during an
+                    outage the only sign of it was the colour of a 2px dot some
+                    rows down, which is a lot to ask of someone who opened this
+                    page because their money is missing. */}
+                {summary.state !== 'operational' && (
+                    <div className="mb-8">
+                        <StatusBanner
+                            state={summary.state}
+                            title={headline(summary.state, i18n)}
+                            detail={t(i18n.statusServicesOperationalCount, {
+                                operational: String(operationalCount),
+                                total: String(summary.providers.length),
+                            })}
+                        />
+                    </div>
+                )}
+
                 {SHOW_SUMMARY_CARD && (
                     <div className="flex items-center gap-4 rounded-md border border-grey-2 bg-white p-4">
                         <OperationalDonut
