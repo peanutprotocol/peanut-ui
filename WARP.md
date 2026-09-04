@@ -1,1 +1,1 @@
-.cursorrules
+placeholder for local build

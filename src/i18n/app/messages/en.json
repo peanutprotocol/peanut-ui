@@ -185,7 +185,7 @@
                 },
                 "europe": {
                     "label": "Europe",
-                    "value": "SEPA transfers (+30 countries)"
+                    "value": "SEPA transfers"
                 },
                 "mexico": {
                     "label": "Mexico",
@@ -1706,7 +1706,6 @@
         },
         "howToDeposit": {
             "title": "How to Deposit",
-            "step": "Step {number}",
             "warning": "Sending to the wrong network or token will result in permanent loss.",
             "default": {
                 "step1": "Copy the deposit address above",
@@ -3004,7 +3003,7 @@
         "rails": {
             "europe": {
                 "label": "Europe",
-                "value": "SEPA transfers (+30 countries)"
+                "value": "SEPA transfers"
             },
             "uk": {
                 "label": "UK",

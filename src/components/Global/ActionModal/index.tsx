@@ -142,13 +142,17 @@ const ActionModal: React.FC<ActionModalProps> = ({
             {/* anatomy 17800:57224: p = XL/24, the icon and the head sit L/16
                 apart inside a "Top" group, and the head's own title and
                 description XS/4 apart.
-                The head carries M/12 beneath it as a MARGIN, not as a parent
-                gap: a gap collapses on the modals that have no `content`, and
-                those — a title, a line of copy, two buttons — are most of them.
-                Whatever follows the head is 12px from it; the ctas keep XL/24
-                from the body when there is one. */}
+                The M/12 under the head is the gap to the BODY, so it only
+                applies when there is one. The ctas own their XL/24 outright, so
+                a modal with no body keeps the board's 24px between its head and
+                its buttons instead of pulling them up under the copy.
+                Margins, not a parent gap: a gap collapses when the body is
+                absent, which silently left half these screens unchanged. */}
             <div className={twMerge('flex flex-col items-center p-6 text-center', contentContainerClassName)}>
-                <div className="mb-3 flex w-full flex-col items-center gap-4" data-testid="modal-head">
+                <div
+                    className={twMerge('flex w-full flex-col items-center gap-4', content && 'mb-3')}
+                    data-testid="modal-head"
+                >
                     {iconContent && (
                         <IconBubble
                             size="m"
@@ -180,7 +184,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
                 {content && <div className="w-full">{content}</div>}
 
                 {(checkbox || (ctas && ctas.length > 0)) && (
-                    <div className={twMerge('space-y-4 w-full', content && 'mt-6')}>
+                    <div className="space-y-4 mt-6 w-full">
                         {checkbox && (
                             <div className={twMerge('flex justify-center', checkbox.className)}>
                                 <Checkbox
@@ -255,9 +259,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
                     </div>
                 )}
                 {/* the head's own 12px governs when the footer is all that follows it */}
-                {footer && (
-                    <div className={twMerge('w-full', (content || checkbox || ctas?.length) && 'mt-6')}>{footer}</div>
-                )}
+                {footer && <div className="mt-6 w-full">{footer}</div>}
             </div>
         </BaseModal>
     )

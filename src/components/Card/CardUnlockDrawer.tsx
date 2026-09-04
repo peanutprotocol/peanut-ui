@@ -87,7 +87,7 @@ export const CardUnlockDrawer: FC<Props> = ({ isOpen, onClose, entry, username, 
                     <div className="mx-auto flex w-full max-w-md flex-col gap-2">
                         {/* Anti-dox toggle — hides the peanut.me/<handle> pill on the asset */}
                         <Checkbox
-                            className="self-center"
+                            className="self-start"
                             label={t('hideUsername')}
                             value={hideUsername}
                             onChange={(e) => setHideUsername(e.target.checked)}

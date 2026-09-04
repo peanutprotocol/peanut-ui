@@ -74,7 +74,7 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                                 setIsDetailOpen(true)
                             }}
                         >
-                            <div className="flex size-16 items-center justify-center rounded-full">
+                            <div className="flex size-8 items-center justify-center rounded-full">
                                 <BadgeImage
                                     src={displayIcon}
                                     alt={t('iconAlt', { name: displayName })}

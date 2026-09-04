@@ -31,8 +31,8 @@ const SupportedNetworksModal = ({ visible, onClose }: SupportedNetworksModalProp
                 },
             ]}
             content={
-                <div className="flex w-full flex-col gap-4 text-left">
-                    <div className="flex flex-wrap gap-2">
+                <div className="flex w-full flex-col gap-4">
+                    <div className="flex flex-wrap justify-center gap-2">
                         <EvmChainChips />
                     </div>
                     <Notification priority="attention">{t('warning')}</Notification>
