@@ -108,6 +108,13 @@ export const NATIVE_INPUTS = [
     // Native runtime config the JS half reads through the bridge.
     { kind: 'file', id: 'capacitor.config.ts' },
 
+    // The release workflow runs this after `cap sync`, and it pins native SDK
+    // versions the repo has no other record of — SUMSUB_VERSION and
+    // MPP_VERSION are string constants inside it, so bumping the MeaWallet SDK
+    // from 2.0.0 to 2.1.0 changes what the binary links and nothing else in
+    // this manifest moves.
+    { kind: 'file', id: 'scripts/native-ios-postsync.js' },
+
     // Android build surface: dependencies, SDK levels, permissions.
     { kind: 'file', id: 'android/build.gradle' },
     { kind: 'file', id: 'android/app/build.gradle' },

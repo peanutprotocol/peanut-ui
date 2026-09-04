@@ -12,6 +12,7 @@ const FIXTURE_FILES = [
     'package.json',
     'pnpm-lock.yaml',
     'capacitor.config.ts',
+    'scripts/native-ios-postsync.js',
     'android/capacitor.settings.gradle',
     'android/build.gradle',
     'android/variables.gradle',
@@ -181,6 +182,19 @@ describe('native-fingerprint', () => {
         withPatchedInput(
             'ios/App/App.xcodeproj/project.pbxproj',
             (content) => content.replace(/IPHONEOS_DEPLOYMENT_TARGET = [^;]*;/g, 'IPHONEOS_DEPLOYMENT_TARGET = 18.0;'),
+            () => expect(fingerprint()).not.toBe(before)
+        )
+    })
+
+    it('moves when the postsync script bumps a pinned native SDK', () => {
+        const before = fingerprint()
+
+        withPatchedInput(
+            // MPP_VERSION and SUMSUB_VERSION are string constants in here, and
+            // the release workflow runs it after cap sync to vendor those
+            // frameworks. Nothing else in the manifest records them.
+            'scripts/native-ios-postsync.js',
+            (content) => content.replace("const MPP_VERSION = '2.0.0'", "const MPP_VERSION = '2.1.0'"),
             () => expect(fingerprint()).not.toBe(before)
         )
     })
