@@ -110,6 +110,11 @@ describe('deriveGate — waiting-on-provider (kind: wait)', () => {
         ]
         const gate = deriveGate(state(rails, [waitAction, sumsubAction]), 'deposit', { channel: 'bank' })
         expect(gate.kind).toBe('fixable-rejection')
+        // The bank CTAs hand this key and the reason code to the shared router,
+        // which is what lets a residence park open the address step instead of the
+        // resubmit route that 404s for it. Dropping it here silently sends every
+        // one of those screens back to the generic path (TASK-22286).
+        expect(gate.kind === 'fixable-rejection' && gate.actionKey).toBe('sumsub:tax_identification_number')
     })
 
     test("priority: ready beats waiting-on-provider (don't block the user from a usable rail)", () => {

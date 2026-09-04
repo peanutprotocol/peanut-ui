@@ -864,6 +864,79 @@ describe('useSumsubKycFlow — handleFixableRejection routing', () => {
         expect(mockStartAction).not.toHaveBeenCalled()
     })
 
+    it('BRIDGE residence_unresolved goes to start-action — resubmit would 404 for it', async () => {
+        // The residence gate parks the rail before Bridge ever sees the user, so
+        // there is no rejectType and no remediation for /kyc/resubmit to find. It
+        // answers 404 and the CTA errors under copy that just asked for an
+        // address. This is the one Bridge code that must not take resubmit.
+        mockStartAction.mockResolvedValue({ data: { token: 'tok-address' } } as never)
+        const { result } = renderHook(() => useSumsubKycFlow())
+
+        await act(async () => {
+            await result.current.handleFixableRejection({
+                provider: 'BRIDGE',
+                actionKey: 'sumsub:address_of_residence',
+                reasonCode: 'residence_unresolved',
+            })
+        })
+
+        expect(mockStartAction).toHaveBeenCalledWith('sumsub:address_of_residence')
+        expect(mockResubmit).not.toHaveBeenCalled()
+    })
+
+    it('the same BRIDGE action key WITHOUT that reason code still takes resubmit', async () => {
+        // A genuine Bridge rejection asking for an address goes on using the route
+        // that resolves the level and stamps the externalActionId its webhook keys
+        // on. The narrow reason code is the discriminator, not the action key.
+        mockResubmit.mockResolvedValue({ data: { token: 'tok-bridge-addr' } } as never)
+        const { result } = renderHook(() => useSumsubKycFlow())
+
+        await act(async () => {
+            await result.current.handleFixableRejection({
+                provider: 'BRIDGE',
+                actionKey: 'sumsub:address_of_residence',
+                reasonCode: 'address_of_residence',
+            })
+        })
+
+        expect(mockResubmit).toHaveBeenCalledWith('BRIDGE', undefined)
+        expect(mockStartAction).not.toHaveBeenCalled()
+    })
+
+    it('handleFixableGate pulls BOTH values off the gate — a dropped code means a 404', async () => {
+        // The four bank surfaces used to build this argument by hand. A site that
+        // passed `gate.reason` instead of `gate.reason.code`, or omitted it, would
+        // fall back to resubmit and 404 for a residence park with every test still
+        // green, because the mistake lives in the argument rather than the router.
+        mockStartAction.mockResolvedValue({ data: { token: 'tok-address' } } as never)
+        const { result } = renderHook(() => useSumsubKycFlow())
+
+        await act(async () => {
+            await result.current.handleFixableGate('BRIDGE', {
+                actionKey: 'sumsub:address_of_residence',
+                reason: { code: 'residence_unresolved' },
+            })
+        })
+
+        expect(mockStartAction).toHaveBeenCalledWith('sumsub:address_of_residence')
+        expect(mockResubmit).not.toHaveBeenCalled()
+    })
+
+    it('handleFixableGate on any other Bridge gate still takes resubmit', async () => {
+        mockResubmit.mockResolvedValue({ data: { token: 'tok-bridge' } } as never)
+        const { result } = renderHook(() => useSumsubKycFlow())
+
+        await act(async () => {
+            await result.current.handleFixableGate('BRIDGE', {
+                actionKey: 'sumsub:proof_of_address',
+                reason: { code: 'proof_of_address' },
+            })
+        })
+
+        expect(mockResubmit).toHaveBeenCalledWith('BRIDGE', undefined)
+        expect(mockStartAction).not.toHaveBeenCalled()
+    })
+
     it('start-action failure surfaces an error and does not open the SDK', async () => {
         mockStartAction.mockResolvedValue({ error: 'Action not allowed for this user' })
         const { result } = renderHook(() => useSumsubKycFlow())

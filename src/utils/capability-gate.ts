@@ -66,7 +66,13 @@ export type GateState =
     | { kind: 'pending' }
     | { kind: 'waiting-on-provider'; userMessage: string | null; reason?: CapabilityReason }
     | { kind: 'accept-tos'; tosUrl?: string; userMessage: string | null; reason?: CapabilityReason }
-    | { kind: 'fixable-rejection'; userMessage: string | null; reason?: CapabilityReason }
+    /**
+     * `actionKey` is the Sumsub level the backend named for this fix. Call sites
+     * hand it to `handleFixableRejection` together with `reason.code`, which is
+     * what lets a residence park open the address step instead of the generic
+     * resubmit route that 404s for it (TASK-22286).
+     */
+    | { kind: 'fixable-rejection'; userMessage: string | null; reason?: CapabilityReason; actionKey?: string }
     | { kind: 'blocked-rejection'; userMessage: string | null; reason?: CapabilityReason }
     /**
      * Blocked rail with a self-fix path: re-verify Sumsub IDENTITY with a
@@ -333,6 +339,7 @@ export function deriveGate(state: CapabilityState, op: RailOperation, scope: Gat
             kind: 'fixable-rejection',
             userMessage: verdictMessage(actionableFixable),
             reason: actionableFixable.rail.reason,
+            actionKey: actionableFixable.verdict.nextAction?.key,
         }
     }
 

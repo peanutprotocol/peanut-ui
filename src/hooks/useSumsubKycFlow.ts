@@ -707,12 +707,36 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // ID-reupload action, which Sumsub opens on its "already verified" screen and
     // the user loops back to the same modal. Bridge stays on resubmit: that route
     // resolves the level itself and stamps the externalActionId its webhook keys on.
+    // "Bridge stays on resubmit" holds wherever a Bridge rejection actually
+    // exists, which is every case that route was built for. `residence_unresolved`
+    // is the one that is not: the residence gate parks the rail BEFORE Bridge ever
+    // sees the user, so there is no rejectType and no remediation for
+    // `/kyc/resubmit` to find. It answers 404 "No provider rejection found" and the
+    // CTA renders an error under copy that just asked for the user's address
+    // (TASK-22286). Route that one code to start-action, which resolves the level
+    // from RFI_LEVELS, and leave every rejection-shaped case exactly as it was.
     const handleFixableRejection = useCallback(
-        (rejection: { provider: 'BRIDGE' | 'MANTECA'; actionKey?: string | null }) =>
-            rejection.provider === 'MANTECA' && rejection.actionKey
+        (rejection: { provider: 'BRIDGE' | 'MANTECA'; actionKey?: string | null; reasonCode?: string | null }) =>
+            rejection.actionKey && (rejection.provider === 'MANTECA' || rejection.reasonCode === 'residence_unresolved')
                 ? handleStartAction(rejection.actionKey)
                 : handleSelfHealResubmit(rejection.provider),
         [handleStartAction, handleSelfHealResubmit]
+    )
+
+    /**
+     * The gate-shaped handoff, in one place.
+     *
+     * Four bank surfaces each built `{ provider, actionKey, reasonCode }` from a
+     * `fixable-rejection` gate by hand. A site that dropped `reasonCode`, or
+     * passed `gate.reason` instead of `gate.reason.code`, would silently fall
+     * back to the resubmit route that 404s for a residence park — with every
+     * test still green, because the mistake lives in the argument rather than in
+     * the router. One adapter makes that a single-site bug with a single test.
+     */
+    const handleFixableGate = useCallback(
+        (provider: 'BRIDGE' | 'MANTECA', gate: { actionKey?: string; reason?: { code?: string } }) =>
+            handleFixableRejection({ provider, actionKey: gate.actionKey, reasonCode: gate.reason?.code }),
+        [handleFixableRejection]
     )
 
     return {
@@ -728,6 +752,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         handleSelfHealResubmit,
         handleStartAction,
         handleFixableRejection,
+        handleFixableGate,
         handleSdkComplete,
         handleClose,
         refreshToken,
