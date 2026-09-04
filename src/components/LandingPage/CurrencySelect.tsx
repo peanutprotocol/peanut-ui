@@ -5,6 +5,7 @@ import { Icon } from '../Global/Icons/Icon'
 import { twMerge } from '@/utils/tw'
 import Image from 'next/image'
 import countryCurrencyMappings, { getFlagUrl } from '@/constants/countryCurrencyMapping'
+import { SUPPORTED_EXCHANGE_CURRENCIES } from '@/constants/exchange-currencies.consts'
 import StatusBadge from '../Global/Badges/StatusBadge'
 
 interface CurrencySelectProps {
@@ -13,11 +14,6 @@ interface CurrencySelectProps {
     trigger: React.ReactNode
     excludeCurrencies?: string[]
 }
-
-// The exchange-rate widget only supports the currencies backed by an actual
-// payment rail (ACH/wire, SEPA, Faster Payments, SPEI, Manteca) — kept in this
-// display order regardless of countryCurrencyMapping.ts's own ordering.
-const SUPPORTED_EXCHANGE_CURRENCIES = ['USD', 'EUR', 'GBP', 'MXN', 'ARS', 'BRL']
 
 // Transform the currency mappings into the format expected by the component
 const currencies = SUPPORTED_EXCHANGE_CURRENCIES.map((code) => {

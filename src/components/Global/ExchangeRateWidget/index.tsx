@@ -1,10 +1,11 @@
 import CurrencySelect from '@/components/LandingPage/CurrencySelect'
 import countryCurrencyMappings, { getFlagUrl } from '@/constants/countryCurrencyMapping'
+import { type SupportedExchangeCurrency, toSupportedExchangeCurrency } from '@/constants/exchange-currencies.consts'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { applyBridgeCrossCurrencyFee, reverseBridgeCrossCurrencyFee } from '@/utils/bridge.utils'
 import Image from 'next/image'
-import { parseAsFloat, parseAsString, useQueryStates } from 'nuqs'
+import { createParser, parseAsFloat, useQueryStates } from 'nuqs'
 import { type FC, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon, type IconName } from '../Icons/Icon'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -43,6 +44,16 @@ interface IExchangeRateWidgetProps {
     labels?: Partial<ExchangeRateWidgetLabels>
 }
 
+// The dropdown is not the only way a currency reaches this widget. `from` and
+// `to` also come from the URL, so a bookmark predating the supported list
+// (`?from=PLN`) would render PLN in the trigger, fetch a PLN quote and send the
+// CTA to the Poland flow. Returning null for anything unsupported makes nuqs
+// fall back to the default, so a stale link degrades to a working pair.
+const parseAsExchangeCurrency = createParser({
+    parse: (value) => toSupportedExchangeCurrency(value),
+    serialize: (value: SupportedExchangeCurrency) => value,
+})
+
 const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, ctaAction, labels }) => {
     const l = { ...DEFAULT_LABELS, ...labels }
     // shallow + history:'replace' uses window.history.replaceState — bypasses
@@ -50,8 +61,8 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
     // to the top through the parent Suspense boundary.
     const [query, setQuery] = useQueryStates(
         {
-            from: parseAsString.withDefault('USD'),
-            to: parseAsString.withDefault('EUR'),
+            from: parseAsExchangeCurrency.withDefault('USD'),
+            to: parseAsExchangeCurrency.withDefault('EUR'),
             amount: parseAsFloat.withDefault(10),
         },
         { shallow: true, history: 'replace', scroll: false }
@@ -99,7 +110,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
     }, [isEditingDestination, getDestinationDisplayValue, netDestinationAmount])
 
     const updateUrlParams = useCallback(
-        (params: { from?: string; to?: string; amount?: number }) => {
+        (params: { from?: SupportedExchangeCurrency; to?: SupportedExchangeCurrency; amount?: number }) => {
             setQuery(params)
         },
         [setQuery]
@@ -108,7 +119,12 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
     // Setter functions that update URL
     // USD must always be one of the two currencies in the pair
     const setSourceCurrency = useCallback(
-        (currency: string) => {
+        (raw: string) => {
+            // CurrencySelect only renders supported rows, so this is a type
+            // narrowing rather than a real filter — but it is the same door the
+            // URL comes through, and one of them had no guard at all.
+            const currency = toSupportedExchangeCurrency(raw)
+            if (!currency) return
             if (currency === 'USD') {
                 // If setting source to USD and destination is already USD, switch destination
                 if (destinationCurrency === 'USD') {
@@ -124,7 +140,9 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
     )
 
     const setDestinationCurrency = useCallback(
-        (currency: string) => {
+        (raw: string) => {
+            const currency = toSupportedExchangeCurrency(raw)
+            if (!currency) return
             if (currency === 'USD') {
                 if (sourceCurrency === 'USD') {
                     updateUrlParams({ from: 'EUR', to: currency }) // fallback to EUR
