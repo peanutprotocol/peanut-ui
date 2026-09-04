@@ -64,18 +64,25 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
     // Tracks the auto-dismiss timer per toast id so `dismiss(id)` can cancel it
     // (avoids a late timer firing after the toast was removed manually).
     const timersRef = useRef<Map<ToastId, ReturnType<typeof setTimeout>>>(new Map())
-    // Toasts created before the renderer arrived, holding the duration they
-    // will be armed with. ToastStack is next/dynamic and only STARTS loading
-    // on the first toast, so arming at creation raced the chunk: on a cold
-    // session where it took longer than the toast's lifetime, the timer
-    // removed the toast before anything was ever drawn and the user saw no
-    // feedback at all. A lifetime now starts when the toast can be seen.
+    // Toasts waiting to be shown, holding the duration they will be armed with.
+    // NOTHING is armed at creation: a lifetime starts when its own toast mounts.
+    // ToastStack is next/dynamic and only STARTS loading on the first toast, so
+    // arming at creation raced the chunk — on a cold session where it took
+    // longer than the toast's lifetime, the timer removed the toast before
+    // anything was drawn and the user saw no feedback at all. Gating on the
+    // stack alone fixed only the first toast; every later one still armed
+    // before React had committed it, so a delayed render shortened the toast and
+    // desynced it from the bar, which starts at insertion. Per-toast is the only
+    // version where the bar and the timeout measure the same interval.
     const pendingRef = useRef<Map<ToastId, number>>(new Map())
-    const stackReadyRef = useRef(false)
 
-    const armTimer = useCallback((id: ToastId, duration: number) => {
-        // one timer per toast — StrictMode mounts the stack twice
-        if (timersRef.current.has(id)) return
+    // Each toast reports its own mount here, and that is the only place a
+    // lifetime starts. Taking the duration out of `pending` makes this
+    // idempotent, so StrictMode's double mount cannot double-arm.
+    const handleToastShown = useCallback((id: ToastId) => {
+        const duration = pendingRef.current.get(id)
+        if (duration === undefined) return
+        pendingRef.current.delete(id)
         timersRef.current.set(
             id,
             setTimeout(() => {
@@ -84,14 +91,6 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
             }, duration)
         )
     }, [])
-
-    // ToastStack calls this once it is on screen. Everything queued while the
-    // chunk was in flight starts its lifetime here, together.
-    const handleStackReady = useCallback(() => {
-        stackReadyRef.current = true
-        pendingRef.current.forEach((duration, id) => armTimer(id, duration))
-        pendingRef.current.clear()
-    }, [armTimer])
 
     const dismiss = useCallback((id: ToastId) => {
         const t = timersRef.current.get(id)
@@ -103,39 +102,35 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
         setToasts((prev) => prev.filter((t) => t.id !== id))
     }, [])
 
-    const createToast = useCallback(
-        (options: ToastOptions | string): ToastId => {
-            const toastOptions = typeof options === 'string' ? { message: options } : options
+    const createToast = useCallback((options: ToastOptions | string): ToastId => {
+        const toastOptions = typeof options === 'string' ? { message: options } : options
 
-            const defaults: Partial<ToastOptions> = {
-                type: 'info',
-                duration: readingDuration(toastOptions.message),
+        const defaults: Partial<ToastOptions> = {
+            type: 'info',
+            duration: readingDuration(toastOptions.message),
+        }
+
+        const id: ToastId = toastOptions.id ?? Date.now()
+
+        // De-dupe: a persistent toast (or any explicitly-id'd toast) is a
+        // no-op if one with the same id is already showing. Stops a retry
+        // mid-cooldown from re-pushing the pill and re-animating it in.
+        let alreadyPresent = false
+        setToasts((prev) => {
+            if (prev.some((t) => t.id === id)) {
+                alreadyPresent = true
+                return prev
             }
+            return [...prev, { ...defaults, ...toastOptions, id }]
+        })
 
-            const id: ToastId = toastOptions.id ?? Date.now()
+        const duration = toastOptions.duration ?? defaults.duration
+        if (!alreadyPresent && duration !== 'persistent') {
+            pendingRef.current.set(id, duration as number)
+        }
 
-            // De-dupe: a persistent toast (or any explicitly-id'd toast) is a
-            // no-op if one with the same id is already showing. Stops a retry
-            // mid-cooldown from re-pushing the pill and re-animating it in.
-            let alreadyPresent = false
-            setToasts((prev) => {
-                if (prev.some((t) => t.id === id)) {
-                    alreadyPresent = true
-                    return prev
-                }
-                return [...prev, { ...defaults, ...toastOptions, id }]
-            })
-
-            const duration = toastOptions.duration ?? defaults.duration
-            if (!alreadyPresent && duration !== 'persistent') {
-                if (stackReadyRef.current) armTimer(id, duration as number)
-                else pendingRef.current.set(id, duration as number)
-            }
-
-            return id
-        },
-        [armTimer]
-    )
+        return id
+    }, [])
 
     // Memoized so consumers that include this in effect/callback dep arrays
     // don't re-fire on every render. createToast/dismiss are useCallback-stable.
@@ -160,7 +155,7 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
                     the notification board has no toast component, so placement was
                     never ruled; this one is (2026-09-04, slava). */}
                 <div className="fixed right-4 bottom-[calc(var(--safe-bottom)_+_1rem)] z-[99999] flex flex-col items-end gap-2">
-                    {toasts.length > 0 && <ToastStack toasts={toasts} dismiss={dismiss} onReady={handleStackReady} />}
+                    {toasts.length > 0 && <ToastStack toasts={toasts} dismiss={dismiss} onShow={handleToastShown} />}
                 </div>
                 {children}
             </ToastContext.Provider>

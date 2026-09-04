@@ -181,7 +181,12 @@ export const Notification = ({
                       // balances where an even 12/12 looks bottom-heavy. pr-4 + gap-4
                       // keep the close glyph well off the end of the message.
                       twMerge(
-                          'relative gap-4 overflow-hidden border border-border-default pr-4 pb-2 text-foreground-primary shadow-4',
+                          // no overflow-hidden: it clipped the dismiss button's
+                          // after:-inset-2.5 expansion where the 44px target runs past
+                          // the card, so taps near the top-right corner missed. The bar
+                          // rounds its own bottom corners instead of being clipped to
+                          // them, which is all the clipping was ever for.
+                          'relative gap-4 border border-border-default pr-4 pb-2 text-foreground-primary shadow-4',
                           // the tone whispers through the surface at 5% — opaque,
                           // so the card still covers the screen behind it
                           surface
@@ -266,7 +271,10 @@ export const Notification = ({
                 <span
                     aria-hidden
                     className={twMerge(
-                        'absolute inset-x-0 bottom-0 h-1 origin-left motion-safe:animate-toast-progress',
+                        // pointer-events-none: the bar paints after the dismiss
+                        // button and spans the full width, so on a one-line toast it
+                        // sat over the lower half of that button's 44px target
+                        'pointer-events-none absolute inset-x-0 bottom-0 h-1 origin-left rounded-b-sm motion-safe:animate-toast-progress',
                         bar
                     )}
                     style={{ animationDuration: `${progressMs}ms` }}

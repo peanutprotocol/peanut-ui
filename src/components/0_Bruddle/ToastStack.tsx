@@ -20,7 +20,8 @@ const TOAST_PRIORITY = {
     warning: 'attention',
 } as const
 
-const Toast: React.FC<ToastMessage & { onDismiss: () => void }> = ({
+const Toast: React.FC<ToastMessage & { onDismiss: () => void; onShow?: (id: ToastMessage['id']) => void }> = ({
+    id,
     type = 'info',
     message,
     content,
@@ -28,7 +29,14 @@ const Toast: React.FC<ToastMessage & { onDismiss: () => void }> = ({
     hideIcon,
     duration,
     onDismiss,
+    onShow,
 }) => {
+    // the provider starts this toast's lifetime here, so the countdown bar and
+    // the dismiss timeout measure the same interval from the same instant
+    useEffect(() => {
+        onShow?.(id)
+    }, [id, onShow])
+
     return (
         <motion.div
             // no opacity in any of the three states: a toast is an opaque card and
@@ -64,22 +72,18 @@ const Toast: React.FC<ToastMessage & { onDismiss: () => void }> = ({
 export default function ToastStack({
     toasts,
     dismiss,
-    onReady,
+    onShow,
 }: {
     toasts: ToastMessage[]
     dismiss: (id: ToastMessage['id']) => void
-    /** Fired once this chunk is on screen, so the provider can start the
-     *  lifetimes of anything created while it was still loading. */
-    onReady?: () => void
+    /** Fired per toast once it is on screen, so the provider can start that
+     *  toast's lifetime from the moment it can actually be read. */
+    onShow?: (id: ToastMessage['id']) => void
 }) {
-    useEffect(() => {
-        onReady?.()
-    }, [onReady])
-
     return (
         <AnimatePresence mode="sync">
             {toasts.map((toast) => (
-                <Toast key={toast.id} {...toast} onDismiss={() => dismiss(toast.id)} />
+                <Toast key={toast.id} {...toast} onDismiss={() => dismiss(toast.id)} onShow={onShow} />
             ))}
         </AnimatePresence>
     )

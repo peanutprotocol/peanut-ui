@@ -149,6 +149,23 @@ describe('Notification', () => {
         expect(container.querySelector('span[aria-hidden]')).not.toBeInTheDocument()
     })
 
+    // chip: overflow-hidden clipped the dismiss button's 44px expansion where it
+    // ran past the card, and the bar painted over the lower edge of that target
+    test('the floating card does not clip its dismiss target, and the bar cannot swallow taps', () => {
+        const onDismiss = jest.fn()
+        const { container } = render(
+            <Notification priority="success" variant="floating" progressMs={2000} onDismiss={onDismiss}>
+                Link cancelled successfully!
+            </Notification>
+        )
+        const card = container.firstElementChild as HTMLElement
+        // the 24px button reaches 44px through after:-inset-2.5; clipping the
+        // card cuts that expansion off at the corner
+        expect(card).not.toHaveClass('overflow-hidden')
+        expect(container.querySelector('span[aria-hidden]')).toHaveClass('pointer-events-none')
+        expect(screen.getByRole('button')).toHaveClass('after:-inset-2.5')
+    })
+
     test('the inline banner never draws a countdown, even if a duration is passed', () => {
         const { container } = render(
             <Notification priority="success" progressMs={2000}>

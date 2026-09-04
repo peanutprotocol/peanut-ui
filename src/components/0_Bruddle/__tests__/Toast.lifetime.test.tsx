@@ -11,6 +11,12 @@ import { ToastProvider, useToast } from '../Toast'
 // stack whenever the list empties, and that remount is not a fresh download.
 let mockChunkReady = false
 const mockListeners = new Set<() => void>()
+const stallRenderer = () =>
+    act(() => {
+        mockChunkReady = false
+        mockListeners.forEach((l) => l())
+    })
+
 const deliverChunk = () =>
     act(() => {
         mockChunkReady = true
@@ -19,9 +25,21 @@ const deliverChunk = () =>
 
 jest.mock('../ToastStack', () => {
     const react = require('react')
+    const MockToast = ({ id, onShow }: { id: string | number; onShow?: (id: string | number) => void }) => {
+        react.useEffect(() => {
+            onShow?.(id)
+        }, [id, onShow])
+        return react.createElement('div', { 'data-testid': 'toast' })
+    }
     return {
         __esModule: true,
-        default: ({ toasts, onReady }: { toasts: { id: string | number }[]; onReady?: () => void }) => {
+        default: ({
+            toasts,
+            onShow,
+        }: {
+            toasts: { id: string | number }[]
+            onShow?: (id: string | number) => void
+        }) => {
             const ready = react.useSyncExternalStore(
                 (cb: () => void) => {
                     mockListeners.add(cb)
@@ -30,14 +48,13 @@ jest.mock('../ToastStack', () => {
                 () => mockChunkReady,
                 () => false
             )
-            react.useEffect(() => {
-                if (ready) onReady?.()
-            }, [ready, onReady])
             if (!ready) return null
+            // one child per toast, each reporting its own mount — the same shape
+            // as the real ToastStack
             return react.createElement(
                 'div',
                 null,
-                toasts.map((t) => react.createElement('div', { key: t.id, 'data-testid': 'toast' }))
+                toasts.map((t) => react.createElement(MockToast, { key: t.id, id: t.id, onShow }))
             )
         },
     }
@@ -106,7 +123,10 @@ describe('toast lifetime', () => {
         expect(screen.queryByTestId('toast')).not.toBeInTheDocument()
     })
 
-    test('with the renderer already delivered, a toast is armed at creation', async () => {
+    // chip's second pass: gating on the stack alone still armed every LATER
+    // toast at creation, before React had committed it. A delayed render then
+    // shortened the toast and desynced it from the bar.
+    test('a later toast also starts at its own mount, not at creation', async () => {
         render(
             <ToastProvider>
                 <Trigger message="Link copied" />
@@ -118,9 +138,18 @@ describe('toast lifetime', () => {
         advance(2100)
         expect(screen.queryByTestId('toast')).not.toBeInTheDocument()
 
+        // renderer stalls before the next toast can be committed
+        stallRenderer()
         fire()
+        advance(5000)
+        expect(screen.queryByTestId('toast')).not.toBeInTheDocument()
+
+        // it appears, and only now does its 2s begin
+        deliverChunk()
         expect(screen.getByTestId('toast')).toBeInTheDocument()
-        advance(2100)
+        advance(1900)
+        expect(screen.getByTestId('toast')).toBeInTheDocument()
+        advance(200)
         expect(screen.queryByTestId('toast')).not.toBeInTheDocument()
     })
 
