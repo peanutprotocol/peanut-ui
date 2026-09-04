@@ -390,7 +390,7 @@
         "widget": {
             "youSend": "Vos enviás"
         },
-        "balanceNote": "Tu saldo de Peanut se mantiene en USD, pero podés enviar dinero en la moneda local que acepte tu banco."
+        "balanceNote": "Tu saldo de Peanut se mantiene en USD, pero podés retirar en la moneda local que acepte tu banco."
     },
     "setup": {
         "steps": {

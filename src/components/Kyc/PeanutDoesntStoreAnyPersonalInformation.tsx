@@ -19,7 +19,15 @@ export const PeanutDoesntStoreAnyPersonalInformation = ({ className }: { classNa
     return (
         <DocsLink
             href={DOCUMENTS_HELP_HREF}
-            className={twMerge('flex items-center gap-2 text-[11px] text-foreground-secondary', className)}
+            // min-h-11, not a pseudo-element hit area: an 11px footnote's own
+            // line box is nowhere near the 44px floor, so the after:-inset
+            // trick the Notification dismiss uses would have to guess at a
+            // height it cannot know. The row centres its content, so the text
+            // stays where it was and only the tappable box grows.
+            className={twMerge(
+                'flex min-h-11 items-center justify-center gap-2 rounded-sm text-[11px] text-foreground-secondary transition-opacity duration-instant focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60',
+                className
+            )}
         >
             <Icon name="info" className="h-3 w-3 shrink-0" />
             <span className="underline underline-offset-2">{t('doesntStoreDocuments')}</span>

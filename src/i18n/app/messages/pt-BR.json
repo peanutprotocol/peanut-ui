@@ -656,7 +656,7 @@
     },
     "exchangeRate": {
         "title": "Câmbio e taxas",
-        "balanceNote": "Seu saldo na Peanut fica em USD, mas você pode enviar dinheiro na moeda local que seu banco aceita.",
+        "balanceNote": "Seu saldo na Peanut fica em USD, mas você pode sacar na moeda local que seu banco aceita.",
         "tryIt": "Sacar agora",
         "widget": {
             "youSend": "Você envia",

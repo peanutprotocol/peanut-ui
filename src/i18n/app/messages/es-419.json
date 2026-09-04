@@ -656,7 +656,7 @@
     },
     "exchangeRate": {
         "title": "Tipo de cambio y comisiones",
-        "balanceNote": "Tu saldo de Peanut se mantiene en USD, pero puedes enviar dinero en la moneda local que acepte tu banco.",
+        "balanceNote": "Tu saldo de Peanut se mantiene en USD, pero puedes retirar en la moneda local que acepte tu banco.",
         "tryIt": "Retirar ahora",
         "widget": {
             "youSend": "Tú envías",
