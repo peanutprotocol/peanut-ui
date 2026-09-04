@@ -1,8 +1,7 @@
 'use client'
 
-import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import ActionModal from '@/components/Global/ActionModal'
 import { Notification } from '@/components/0_Bruddle/Notification'
-import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { useEffect, useMemo, useRef } from 'react'
 import { useTranslations } from 'next-intl'
@@ -89,18 +88,26 @@ export default function BalanceWarningModal({ visible, onCloseAction }: BalanceW
             posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.BALANCE_WARNING })
         }
     }, [visible])
-    // deliberate friction: the only way out is the slide — swipe, overlay tap
-    // and hardware back are all no-ops while dismissible is false. long copy
-    // scrolls in DrawerContent's built-in scroll area on small screens.
+    // deliberate friction: the only way out is the slide — preventClose and the
+    // hidden close button make the overlay tap and the X no-ops.
     return (
-        <Drawer open={visible} dismissible={false}>
-            <DrawerContent>
-                <div className="flex flex-col items-center gap-4 px-4 pt-1 pb-6 text-center">
-                    <IconBubble icon="alert" color="yellow" />
-                    <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
-                        <DrawerTitle>{t('balanceWarningModal.title')}</DrawerTitle>
-                        <DrawerDescription>{t('balanceWarningModal.congrats')}</DrawerDescription>
-                    </DrawerHeader>
+        <ActionModal
+            visible={visible}
+            onClose={onCloseAction}
+            preventClose
+            hideModalCloseButton
+            // this is good news, not an alert — pink wallet, not the yellow warning tone
+            icon="wallet"
+            iconContainerClassName="bg-action-primary"
+            iconProps={{ className: 'text-black' }}
+            title={t('balanceWarningModal.title')}
+            description={t('balanceWarningModal.congrats')}
+            ctas={[]}
+            content={
+                <div className="flex w-full flex-col items-start gap-2 text-left">
+                    <p className="text-label-m tracking-wide text-foreground-secondary uppercase">
+                        {t('balanceWarningModal.goodToKnow')}
+                    </p>
                     {/* the two self-custody facts read as a checklist, not flowing prose —
                         same structure the passkey-help surface uses for its fixes */}
                     <Notification
@@ -116,28 +123,29 @@ export default function BalanceWarningModal({ visible, onCloseAction }: BalanceW
                                     href={platformInfo.url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-blue-600 underline"
+                                    className="underline"
                                 >
                                     {chunks}
                                 </a>
                             ),
                         })}
                     </p>
-                    {/* data-vaul-no-drag: the horizontal slide gesture must not start a drawer drag */}
-                    <div className="w-full" data-vaul-no-drag>
-                        <SlideToConfirm
-                            onConfirm={() => {
-                                posthog.capture(ANALYTICS_EVENTS.MODAL_CTA_CLICKED, {
-                                    modal_type: MODAL_TYPES.BALANCE_WARNING,
-                                    cta: 'slide_to_continue',
-                                })
-                                onCloseAction()
-                            }}
-                            label={t('balanceWarningModal.slideToContinue')}
-                        />
-                    </div>
                 </div>
-            </DrawerContent>
-        </Drawer>
+            }
+            footer={
+                <div className="w-full">
+                    <SlideToConfirm
+                        onConfirm={() => {
+                            posthog.capture(ANALYTICS_EVENTS.MODAL_CTA_CLICKED, {
+                                modal_type: MODAL_TYPES.BALANCE_WARNING,
+                                cta: 'slide_to_continue',
+                            })
+                            onCloseAction()
+                        }}
+                        label={t('balanceWarningModal.slideToContinue')}
+                    />
+                </div>
+            }
+        />
     )
 }

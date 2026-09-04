@@ -1700,7 +1700,8 @@
         },
         "supportedNetworksModal": {
             "title": "Redes compatibles",
-            "description": "Una sola dirección para todas las redes EVM listadas abajo: envía desde cualquiera de ellas y tus fondos se enrutarán correctamente.",
+            "description": "Una sola dirección para todas las redes EVM de abajo. Envía desde cualquiera de ellas y tus fondos se enrutarán correctamente.",
+            "cta": "Listo, gracias",
             "warning": "Enviar a la red o el token equivocado provocará una pérdida permanente."
         },
         "howToDeposit": {
@@ -3249,6 +3250,7 @@
         "balanceWarningModal": {
             "title": "Saldo alto",
             "congrats": "¡Eres rico! Felicitaciones por tener un saldo alto.",
+            "goodToKnow": "Bueno saberlo",
             "selfCustody": "Con Peanut, eres el único que puede acceder a tus fondos. Ningún banco, ninguna empresa, ninguna agencia — ni siquiera nuestro equipo de soporte — puede acceder a ellos.",
             "passkey": "Tu passkey biométrica es tu llave al control total y a la seguridad. Si la pierdes, no se puede recuperar, porque solo tú tienes acceso.",
             "learnMore": "Aprende a mantener tu passkey segura en <link>{platform}</link>.",

@@ -12,16 +12,20 @@ interface SupportedNetworksModalProps {
 
 const SupportedNetworksModal = ({ visible, onClose }: SupportedNetworksModalProps) => {
     const t = useTranslations('addMoney.supportedNetworksModal')
-    const tCommon = useTranslations('common')
     return (
         <ActionModal
             visible={visible}
             onClose={onClose}
+            // same bright-yellow bubble as TokenAndNetworkConfirmationModal — the two
+            // screens carry the same permanent-loss warning and should read alike
+            icon="alert"
+            iconContainerClassName="bg-background-icon-bubble-yellow"
             title={t('title')}
             description={t('description')}
+            descriptionClassName="mt-3"
             ctas={[
                 {
-                    text: tCommon('close'),
+                    text: t('cta'),
                     shadowSize: '4',
                     onClick: onClose,
                 },
