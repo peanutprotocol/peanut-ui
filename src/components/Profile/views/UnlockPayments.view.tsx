@@ -534,15 +534,18 @@ const UnlockPayments = () => {
                               text: tRegions('providerRejection.uploadDocument'),
                               onClick: () => {
                                   handleModalClose()
-                                  // Through the handler, not straight to resubmit. This
-                                  // modal already renders the residence copy from
-                                  // `reasonCode` above, so calling resubmit directly put
-                                  // "add your address and we will retry" over a button
-                                  // that 404s — the exact incoherence this fixes. The
-                                  // rejection object already carries the code and the
-                                  // action key, and every other state routes on as
-                                  // before.
-                                  void flow.handleFixableRejection(providerRejectionForRegion)
+                                  // Deliberately still the direct resubmit call. Routing
+                                  // this through `handleFixableRejection` would also
+                                  // divert every Manteca fixable rejection on this
+                                  // surface from resubmit to start-action, which is a
+                                  // behaviour change this PR has no reason to make and
+                                  // no test for. It is not needed for the residence
+                                  // cohort either: `hasFunctionalRail` counts a
+                                  // `requires-info` rail as functional, so their region
+                                  // reads Active and this modal never opens for them.
+                                  // Aligning this surface with the shared router is
+                                  // worth doing on its own (TASK-22286 follow-up).
+                                  flow.handleSelfHealResubmit(providerRejectionForRegion.provider)
                               },
                               variant: 'purple' as const,
                               shadowSize: '4' as const,
