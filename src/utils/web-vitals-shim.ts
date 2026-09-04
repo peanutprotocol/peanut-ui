@@ -41,8 +41,13 @@ export type WebVitalsReporter = { record: (metric: Metric) => void; flush: () =>
 export function createWebVitalsReporter(options: {
     capture: Capture
     currentUrl: () => string
-    /* Read at flush, not at start: remote config lands after init, and the
-       observers have to exist before the interactions they measure. */
+    /*
+     * Read at flush, never at start. The observers are installed regardless and
+     * suppressed here instead: enablement is only knowable once remote config
+     * lands, and a start-time check would read the value persisted by the last
+     * session — leaving a document that was re-enabled mid-flight blind for its
+     * whole 12-hour lifetime (useStaleDeploymentReload), not just a moment.
+     */
     settings: () => WebVitalsSettings
 }): WebVitalsReporter {
     const { capture, currentUrl, settings } = options
@@ -126,18 +131,6 @@ function performanceConfig(): PerformanceConfig {
     return (posthog.config as { capture_performance?: PerformanceConfig }).capture_performance
 }
 
-/**
- * Only an explicit "off" is worth skipping the observers for. An absent flag is
- * the first session on this device, before any remote config has been
- * persisted — starting there and letting the flush gate decide is what keeps a
- * first session measurable.
- */
-export function postHogWebVitalsExplicitlyDisabled(): boolean {
-    const fromClient = clientOptIn(performanceConfig())
-    if (typeof fromClient === 'boolean') return !fromClient
-    return posthog.get_property(WEB_VITALS_ENABLED_SERVER_SIDE) === false
-}
-
 export function postHogWebVitalsSettings(): WebVitalsSettings {
     const performance = performanceConfig()
     const clientAllowed = typeof performance === 'object' ? performance?.web_vitals_allowed_metrics : undefined
@@ -161,7 +154,6 @@ let started = false
 export function startWebVitalsShim(): void {
     if (started || typeof window === 'undefined') return
     if (postHogCapturesWebVitals(window.location.protocol)) return
-    if (postHogWebVitalsExplicitlyDisabled()) return
     started = true
 
     const { record, flush } = createWebVitalsReporter({

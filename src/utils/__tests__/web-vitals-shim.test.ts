@@ -10,7 +10,6 @@
 import {
     createWebVitalsReporter,
     postHogCapturesWebVitals,
-    postHogWebVitalsExplicitlyDisabled,
     postHogWebVitalsSettings,
     type WebVitalsReporter,
     type WebVitalsSettings,
@@ -81,32 +80,6 @@ describe('postHogWebVitalsSettings', () => {
 
         mockGetProperty.mockReturnValue(undefined)
         expect(postHogWebVitalsSettings().allowed).toEqual(['CLS', 'FCP', 'INP', 'LCP'])
-    })
-})
-
-describe('postHogWebVitalsExplicitlyDisabled', () => {
-    beforeEach(() => {
-        jest.clearAllMocks()
-        posthog.config = {} as typeof posthog.config
-    })
-
-    // An absent flag is a device that has never seen a remote config, not an
-    // opt-out — treating it as one would leave every first session unmeasured.
-    it('is false before any remote config has been persisted', () => {
-        mockGetProperty.mockReturnValue(undefined)
-        expect(postHogWebVitalsExplicitlyDisabled()).toBe(false)
-    })
-
-    it('is true once the remote config has switched vitals off', () => {
-        mockGetProperty.mockImplementation((key: string) =>
-            key === '$web_vitals_enabled_server_side' ? false : undefined
-        )
-        expect(postHogWebVitalsExplicitlyDisabled()).toBe(true)
-    })
-
-    it('is true when client config switches them off', () => {
-        posthog.config = { capture_performance: { web_vitals: false } } as unknown as typeof posthog.config
-        expect(postHogWebVitalsExplicitlyDisabled()).toBe(true)
     })
 })
 
