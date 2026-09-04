@@ -78,6 +78,7 @@
         "receipt": "Receipt",
         "supportUnread": "New support reply",
         "card": "Card",
+        "exchangeRates": "Exchange rates",
         "scanQr": "Scan QR"
     },
     "home": {

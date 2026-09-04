@@ -5,6 +5,7 @@ import IndicatorDot from '@/components/Global/IndicatorDot'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { isSameRoute } from '@/constants/routes'
 import { useModalsContext } from '@/context/ModalsContext'
+import { useCardSurfaceAccess } from '@/hooks/useCardSurfaceAccess'
 import { useSupportUnread } from '@/hooks/useSupportUnread'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -16,7 +17,9 @@ import { TAB_ORDER, type TabId } from './tab-order'
 /**
  * Bottom navigation from the figma navigation board (17802:61534, component
  * 17317:138477): a pill bar with home / card / support tabs plus the pink QR
- * circle button. Active tab = white pill. Every pressable area is 68x52px
+ * circle button. The middle slot falls back to exchange rates for users the
+ * card is not available to — see `middleTab` below and `useCardSurfaceAccess`.
+ * Active tab = white pill. Every pressable area is 68x52px
  * (24px/16px padding around a 20px icon) — over the 44px touch-target floor.
  *
  * The active pill is ONE element that lives in the bar for the whole session
@@ -66,6 +69,19 @@ export const BottomNav = () => {
     const { isSupportModalOpen, setIsSupportModalOpen, setIsQRScannerOpen } = useModalsContext()
     const { triggerHaptic } = useAppHaptic()
     const hasUnreadSupport = useSupportUnread()
+    // The middle slot is the card tab only while the card is attainable. A
+    // resident of a Rain-prohibited country who was released from the waitlist
+    // still has `hasCardAccess`, so gating on that shipped them a tab whose
+    // only destination is /card's geo-blocked screen — the exchange-rates page
+    // is the useful thing to put in a slot the card cannot fill.
+    // The destination follows the profile menu's rule: past the waitlist gate
+    // goes to /card, everyone else to /shhhhh — the canonical card door. The
+    // tab used to link at /card unconditionally, which notFound()s a user with
+    // no flowEarlyAccess stamp.
+    const { hasCardAccess, showCardSurface } = useCardSurfaceAccess()
+    const middleTab = showCardSurface
+        ? ({ href: hasCardAccess ? '/card' : '/shhhhh', icon: 'credit-card', label: t('card') } as const)
+        : ({ href: '/profile/exchange-rate', icon: 'exchange', label: t('exchangeRates') } as const)
 
     const barRef = useRef<HTMLDivElement>(null)
     const tabRefs = useRef<Partial<Record<TabId, HTMLElement | null>>>({})
@@ -108,8 +124,11 @@ export const BottomNav = () => {
     // tracks the ROUTE only — the support drawer is an overlay, not
     // navigation, so opening it must not move the pill (it used to slide over
     // and spring back / vanish on close).
-    const routeTab: TabId | null =
-        (pathname?.startsWith('/card') ?? false) ? 'card' : isSameRoute(pathname, '/home') ? 'home' : null
+    // `/card` stays a middle-slot route even when the slot shows exchange
+    // rates: a holder deep-linked there must still light the pill, and the
+    // /card gate is what decides whether they may be there at all.
+    const isMiddleRoute = (pathname?.startsWith('/card') ?? false) || isSameRoute(pathname, middleTab.href)
+    const routeTab: TabId | null = isMiddleRoute ? 'middle' : isSameRoute(pathname, '/home') ? 'home' : null
 
     // Optimistic: taps retarget the pill in the same tick (the Link onClick
     // below), and this effect only reconciles EXTERNAL navigation — deep
@@ -188,7 +207,7 @@ export const BottomNav = () => {
         const targetBox = boxes[nearest]
         if (targetBox) pillRef.current.style.transform = `translateX(${restingX(targetBox)}px)`
         setActiveTab(nearest)
-        router.push(nearest === 'home' ? '/home' : '/card')
+        router.push(nearest === 'home' ? '/home' : middleTab.href)
     }
 
     return (
@@ -219,19 +238,19 @@ export const BottomNav = () => {
                     <Icon name="home" size={20} className={iconClass} />
                 </Link>
                 <Link
-                    href="/card"
+                    href={middleTab.href}
                     draggable={false}
-                    aria-label={t('card')}
+                    aria-label={middleTab.label}
                     onClick={() => {
                         triggerHaptic()
-                        setActiveTab('card')
+                        setActiveTab('middle')
                     }}
                     className={tabClass}
                     ref={(el) => {
-                        tabRefs.current.card = el
+                        tabRefs.current.middle = el
                     }}
                 >
-                    <Icon name="credit-card" size={20} className={iconClass} />
+                    <Icon name={middleTab.icon} size={20} className={iconClass} />
                 </Link>
                 {/* while the drawer is open the tab shows a static pressed
                     state (white fill) instead of borrowing the route pill */}

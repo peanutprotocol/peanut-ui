@@ -21,6 +21,16 @@ jest.mock('@/context/ModalsContext', () => ({
     }),
 }))
 
+let mockShowCardSurface = true
+let mockHasCardAccess = true
+jest.mock('@/hooks/useCardSurfaceAccess', () => ({
+    useCardSurfaceAccess: () => ({
+        hasIssuedCard: mockShowCardSurface,
+        hasCardAccess: mockHasCardAccess,
+        showCardSurface: mockShowCardSurface,
+    }),
+}))
+
 /*
  * The pill's transform is written imperatively during a drag and handed back
  * to CSS on release. The regression these pin (chip P22): a NO-OP release —
@@ -34,6 +44,8 @@ jest.mock('@/context/ModalsContext', () => ({
 describe('BottomNav pill release', () => {
     beforeEach(() => {
         mockPathname = '/home'
+        mockShowCardSurface = true
+        mockHasCardAccess = true
         mockPush.mockReset()
     })
 
@@ -87,5 +99,92 @@ describe('BottomNav pill release', () => {
         mockPathname = '/profile'
         rerender(<BottomNav />)
         expect(screen.queryByTestId('bottom-nav-pill')).not.toBeInTheDocument()
+    })
+})
+
+/*
+ * The middle slot is the card tab only while the card is attainable. Gating it
+ * on `hasCardAccess` shipped a card tab to waitlist-released users resident in
+ * Rain-prohibited countries, whose only destination is /card's geo-blocked
+ * screen; they get the exchange-rates page in that slot instead.
+ */
+const stubRect = (el: HTMLElement, left: number) => {
+    el.getBoundingClientRect = () => ({ left, width: 68, right: left + 68, top: 0, bottom: 52, height: 52 }) as DOMRect
+}
+
+/*
+ * jsdom has no PointerEvent, so `fireEvent.pointerMove(el, { clientX })` drops
+ * clientX/pointerId and every drag reads as a zero-distance no-op (which is
+ * why the suite above can only assert no-op releases). A MouseEvent carries
+ * clientX for real; pointerId is defined on top of it.
+ */
+const pointer = (type: string, clientX: number) => {
+    const event = new MouseEvent(type, { bubbles: true, clientX })
+    Object.defineProperty(event, 'pointerId', { value: 1 })
+    return event
+}
+
+describe('BottomNav middle slot', () => {
+    beforeEach(() => {
+        mockPathname = '/home'
+        mockShowCardSurface = true
+        mockHasCardAccess = true
+        mockPush.mockReset()
+    })
+
+    it('links the middle tab to /card for a user past the waitlist gate', () => {
+        render(<BottomNav />)
+        expect(screen.getByLabelText('card')).toHaveAttribute('href', '/card')
+        expect(screen.queryByLabelText('exchangeRates')).not.toBeInTheDocument()
+    })
+
+    /*
+     * /card notFound()s a user with no flowEarlyAccess stamp, so the tab sends
+     * everyone short of the gate to the /shhhhh door instead — the same rule
+     * the profile menu row follows.
+     */
+    it('links the middle tab to /shhhhh for an eligible user not past the gate', () => {
+        mockHasCardAccess = false
+        render(<BottomNav />)
+        expect(screen.getByLabelText('card')).toHaveAttribute('href', '/shhhhh')
+    })
+
+    it('swaps the middle tab to exchange rates when the card is not available', () => {
+        mockShowCardSurface = false
+        render(<BottomNav />)
+        expect(screen.getByLabelText('exchangeRates')).toHaveAttribute('href', '/profile/exchange-rate')
+        expect(screen.queryByLabelText('card')).not.toBeInTheDocument()
+    })
+
+    it('lights the pill on the exchange-rates route', () => {
+        mockShowCardSurface = false
+        mockPathname = '/profile/exchange-rate'
+        render(<BottomNav />)
+        expect(screen.getByTestId('bottom-nav-pill')).toBeInTheDocument()
+    })
+
+    it('keeps the pill lit on /card for a holder deep-linked there', () => {
+        mockShowCardSurface = false
+        mockPathname = '/card'
+        render(<BottomNav />)
+        expect(screen.getByTestId('bottom-nav-pill')).toBeInTheDocument()
+    })
+
+    it('a drag release onto the middle tab navigates to its swapped href', () => {
+        mockShowCardSurface = false
+        render(<BottomNav />)
+        const pill = screen.getByTestId('bottom-nav-pill')
+
+        // jsdom measures every box as {left: 0, width: 0}, so the release
+        // would always snap to the first tab. Give the two tabs real centres
+        // so the nearest-centre search can actually resolve to the middle one.
+        stubRect(screen.getByLabelText('home'), 0)
+        stubRect(screen.getByLabelText('exchangeRates'), 150)
+
+        fireEvent(pill, pointer('pointerdown', 10))
+        fireEvent(pill, pointer('pointermove', 160))
+        fireEvent(pill, pointer('pointerup', 160))
+
+        expect(mockPush).toHaveBeenCalledWith('/profile/exchange-rate')
     })
 })

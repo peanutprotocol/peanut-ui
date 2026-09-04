@@ -14,8 +14,7 @@ import { LOCALE_LABELS } from '@/i18n/app/config'
 import { useAppLocale } from '@/i18n/app/locale-context'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
-import { useCardInfo } from '@/hooks/useCardInfo'
-import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
+import { useCardSurfaceAccess } from '@/hooks/useCardSurfaceAccess'
 import InviteFriendsModal from '../Global/InviteFriendsModal'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import Image from 'next/image'
@@ -40,14 +39,7 @@ export const Profile = () => {
     // Rain) to the provider-blind identityVerification projection, which today mirrors Sumsub
     // applicant state. Bridge/Manteca rail approval does NOT flip this badge.
     const { isVerified: isUserSumsubKycApproved } = useIdentityVerification()
-    const { hasCardAccess, isEligible } = useCardInfo()
-    const residenceRestrictions = useResidenceRestrictions()
-    // Card holders always see their card row; for everyone else the promo row
-    // only makes sense when the card is actually attainable — a restricted
-    // residence or a server "not eligible" hides it instead of advertising a
-    // closed door. Unknown (still loading) keeps the row: the /shhhhh
-    // explainer is a safe landing either way.
-    const showCardMenuItem = hasCardAccess || (!residenceRestrictions.card && isEligible !== false)
+    const { hasCardAccess, showCardSurface: showCardMenuItem } = useCardSurfaceAccess()
     const t = useAppTranslations('profile')
     const { locale } = useAppLocale()
     const { pendingBundle, storeUpdateRequired } = useOtaUpdate()
@@ -101,11 +93,13 @@ export const Profile = () => {
                             // one screen.
                             badge={isUserSumsubKycApproved ? undefined : t('menu.unlockBadge')}
                         />
-                        {/* Card row shows for everyone eligible. Holders go straight to
-                            /card; everyone else lands on /shhhhh — the waitlist/explainer
-                            door, the canonical card entry point — whose CTA forwards on to
-                            /card post-launch. We deliberately DON'T send non-holders to
-                            /card: it notFound()s users without card access. */}
+                        {/* Card row shows for holders and for everyone the card is
+                            still attainable by (see useCardSurfaceAccess). Past the
+                            waitlist gate goes straight to /card; everyone else lands
+                            on /shhhhh — the waitlist/explainer door, the canonical
+                            card entry point — whose CTA forwards on to /card
+                            post-launch. We deliberately DON'T send users without that
+                            gate to /card: it notFound()s them. */}
                         {showCardMenuItem && (
                             <ProfileMenuItem
                                 icon="credit-card"
