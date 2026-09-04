@@ -58,9 +58,13 @@ export default function ExchangeRatePage() {
     const goesToAddMoney = destination.startsWith('/add-money')
 
     const handleCtaAction = (sourceCurrency: string, destinationCurrency: string) => {
+        // The widget is rendered below with `restrictToRoutable`, so these
+        // arguments are already one of the six — clamped again here so the
+        // route can never drift from `destination`/`goesToAddMoney` above,
+        // which are computed from the same URL independently of the widget.
         const redirectRoute = getExchangeRateWidgetRedirectRoute(
-            sourceCurrency,
-            destinationCurrency,
+            toSupportedExchangeCurrency(sourceCurrency) ?? 'USD',
+            toSupportedExchangeCurrency(destinationCurrency) ?? 'EUR',
             formattedBalance,
             unlockedRegionPaths
         )
@@ -85,6 +89,7 @@ export default function ExchangeRatePage() {
                         ctaIcon="arrow-down"
                         ctaLabel={goesToAddMoney ? t('addMoneyCta') : t('tryIt')}
                         ctaAction={handleCtaAction}
+                        restrictToRoutable
                         labels={{
                             youSend: t('widget.youSend'),
                             recipientGets: t('widget.recipientGets'),
