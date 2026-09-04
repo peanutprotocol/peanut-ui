@@ -7,11 +7,22 @@
 import { renderHook } from '@testing-library/react'
 import { useZeroDev } from '../useZeroDev'
 
-const mockDispatch = jest.fn()
-jest.mock('@/redux/hooks', () => ({
-    useAppDispatch: () => mockDispatch,
-    useZerodevStore: () => ({ isSendingUserOp: false }),
-    useSetupStore: () => ({}),
+jest.mock('@/hooks/useZeroDevFlow', () => ({
+    useZeroDevFlow: () => ({
+        isKernelClientReady: true,
+        isRegistering: false,
+        isLoggingIn: false,
+        isSendingUserOp: false,
+        address: undefined,
+    }),
+    zeroDevFlowActions: {
+        reset: jest.fn(),
+        setIsKernelClientReady: jest.fn(),
+        setIsRegistering: jest.fn(),
+        setIsLoggingIn: jest.fn(),
+        setIsSendingUserOp: jest.fn(),
+        setAddress: jest.fn(),
+    },
 }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: null, fetchUser: jest.fn() }) }))
 const fakeClient: Record<string, jest.Mock | { encodeCalls: jest.Mock; signUserOperation: jest.Mock }> = {} as never
