@@ -1,12 +1,28 @@
 'use client'
 
 import dynamic from 'next/dynamic'
+import { clipboardWrittenWithin } from '@/utils/clipboard.utils'
+import { isAndroidNative } from '@/utils/capacitor'
+import { twMerge } from '@/utils/tw'
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
 
 type ToastType = 'success' | 'error' | 'info' | 'warning'
 type ToastId = string | number
 
 const ToastStack = dynamic(() => import('./ToastStack'), { ssr: false })
+
+/** How long after a clipboard write a toast is taken to be that copy's toast. */
+const CLIPBOARD_OVERLAY_GRACE_MS = 1500
+
+/**
+ * Bottom offset while Android's system clipboard preview is on screen. That
+ * preview is anchored bottom-left and grows with the copied text — a wrapped
+ * peanut.me link measured ~124px tall on a 2.5x device, and the stack's normal
+ * 16px sat inside it. Nothing in the WebView can measure the real overlay, so
+ * this clears the tallest case seen rather than guessing per copy.
+ */
+const RAISED_BOTTOM = 'bottom-[calc(var(--safe-bottom)_+_8.5rem)]'
+const NORMAL_BOTTOM = 'bottom-[calc(var(--safe-bottom)_+_1rem)]'
 
 /**
  * How long a toast stays up, from how much there is to read: 2s for anything
@@ -45,6 +61,9 @@ interface ToastOptions {
 
 export interface ToastMessage extends Omit<ToastOptions, 'id'> {
     id: ToastId
+    /** Set by the provider, never by callers: this toast followed a clipboard
+     *  write on Android, so the stack lifts clear of the system preview. */
+    raised?: boolean
 }
 
 interface ToastContextType {
@@ -111,6 +130,8 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         const id: ToastId = toastOptions.id ?? Date.now()
+        // only Android pops the clipboard preview, and only just after a write
+        const raised = isAndroidNative() && clipboardWrittenWithin(CLIPBOARD_OVERLAY_GRACE_MS)
 
         // De-dupe: a persistent toast (or any explicitly-id'd toast) is a
         // no-op if one with the same id is already showing. Stops a retry
@@ -121,7 +142,7 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
                 alreadyPresent = true
                 return prev
             }
-            return [...prev, { ...defaults, ...toastOptions, id }]
+            return [...prev, { ...defaults, ...toastOptions, id, raised }]
         })
 
         const duration = toastOptions.duration ?? defaults.duration
@@ -154,7 +175,12 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
                     bottom nav (z beats the nav's z-10) rather than clearing it —
                     the notification board has no toast component, so placement was
                     never ruled; this one is (2026-09-04, slava). */}
-                <div className="fixed right-4 bottom-[calc(var(--safe-bottom)_+_1rem)] z-[99999] flex flex-col items-end gap-2">
+                <div
+                    className={twMerge(
+                        'fixed right-4 z-[99999] flex flex-col items-end gap-2 transition-[bottom] duration-fast',
+                        toasts.some((t) => t.raised) ? RAISED_BOTTOM : NORMAL_BOTTOM
+                    )}
+                >
                     {toasts.length > 0 && <ToastStack toasts={toasts} dismiss={dismiss} onShow={handleToastShown} />}
                 </div>
                 {children}
