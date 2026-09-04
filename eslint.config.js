@@ -160,6 +160,17 @@ const RESTRICTED_SYNTAX_BASE = [
             'Never return a Capacitor plugin object across an await/then boundary — resolving a promise with it probes .then, which the plugin proxy turns into a native call that never settles the promise. Wrap it: `return { Plugin }` and destructure at the call site. See src/utils/crisp.ts and src/utils/auth-token.ts.',
     },
     {
+        // The import ban only stops the NAMED import. Capacitor 8 also exposes
+        // the same registrar as Capacitor.registerPlugin, and no-restricted-imports
+        // cannot see a dynamic import at all — either route reaches a raw plugin
+        // proxy with none of the platform/bridge/fallback handling the wrapper
+        // exists to make mandatory. Ban the CALL, however the function was
+        // obtained.
+        selector: "CallExpression[callee.name='registerPlugin'], CallExpression[callee.property.name='registerPlugin']",
+        message:
+            "Don't call registerPlugin — declare the plugin with nativeCapability() from '@/utils/native-capability' and reach it through .call(method, options, onUnavailable). This JS ships over the air onto binaries built months earlier, where the plugin does not exist and Capacitor answers a missing native method with a rejected promise, not a compile error. The wrapper also requires a live bridge and keeps the proxy inside the closure, so it can never be returned across an await.",
+    },
+    {
         // The --safe-* tokens (globals.css) are the only place the Android < 15
         // zeroing and Capacitor's native inset injection land; a raw env() read
         // paints the phantom status-bar band those exist to remove.
@@ -168,6 +179,14 @@ const RESTRICTED_SYNTAX_BASE = [
         message:
             "Don't read env(safe-area-inset-*) directly — use var(--safe-top|--safe-right|--safe-bottom|--safe-left) (or the pt-safe-top / pb-safe-bottom utilities) from globals.css. The tokens carry the Android < 15 zeroing and the native inset injection; env() bypasses both. The only legal raw read is the diagnostic at src/app/(mobile-ui)/dev/safe-area/page.tsx.",
     },
+]
+
+// Same shape as restrictedImportsExcept: an override names the selector it
+// lifts instead of switching the whole rule off, so an exemption for one bug
+// class cannot silently drop the registerPlugin ban (or anything added later).
+const restrictedSyntaxExcept = (...lifted) => [
+    'error',
+    ...RESTRICTED_SYNTAX_BASE.filter((rule) => !lifted.some((needle) => rule.selector.includes(needle))),
 ]
 
 const SAFE_AREA_ENV_SELECTOR = 'safe-area-inset'
@@ -261,15 +280,15 @@ module.exports = [
         },
     },
     {
-        // The hook itself wraps router.back() — exempt.
+        // The hook itself wraps router.back() — exempt from THAT selector only.
         files: ['src/hooks/useSafeBack.ts', 'src/hooks/__tests__/useSafeBack.test.ts'],
-        rules: { 'no-restricted-syntax': 'off' },
+        rules: { 'no-restricted-syntax': restrictedSyntaxExcept("callee.property.name='back'") },
     },
     {
         // The one module allowed to touch the Vibration API: it is the web
         // fallback behind the haptics helpers everything else must use.
         files: ['src/utils/haptics.ts'],
-        rules: { 'no-restricted-syntax': 'off' },
+        rules: { 'no-restricted-syntax': restrictedSyntaxExcept("callee.property.name='vibrate'") },
     },
     {
         // The wrapper itself (and its census test) are the only legal raw
@@ -282,12 +301,15 @@ module.exports = [
         // The wrapper itself is the one legal registerPlugin caller — it is
         // what every other call site is required to go through.
         files: ['src/utils/native-capability.ts'],
-        rules: { 'no-restricted-imports': restrictedImportsExcept(REGISTER_PLUGIN_IMPORT_RESTRICTION) },
+        rules: {
+            'no-restricted-imports': restrictedImportsExcept(REGISTER_PLUGIN_IMPORT_RESTRICTION),
+            'no-restricted-syntax': restrictedSyntaxExcept("callee.name='registerPlugin'"),
+        },
     },
     {
         // Capacitor hardware back: different bug class (canGoBack + minimizeApp).
         files: ['src/hooks/useNativePlugins.ts'],
-        rules: { 'no-restricted-syntax': 'off' },
+        rules: { 'no-restricted-syntax': restrictedSyntaxExcept("callee.property.name='back'") },
     },
     {
         // PublicProfile is the one place we intentionally keep an isInternalReferrer +
