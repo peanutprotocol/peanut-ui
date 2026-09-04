@@ -1,7 +1,11 @@
 // The exchange-rate widget takes `from`/`to` from the URL, so this allow-list
 // is what stands between a stale bookmark and a quote in a currency the
 // product does not support.
-import { SUPPORTED_EXCHANGE_CURRENCIES, toSupportedExchangeCurrency } from '../exchange-currencies.consts'
+import {
+    SUPPORTED_EXCHANGE_CURRENCIES,
+    toDisplayCurrency,
+    toSupportedExchangeCurrency,
+} from '../exchange-currencies.consts'
 
 describe('toSupportedExchangeCurrency', () => {
     it.each(SUPPORTED_EXCHANGE_CURRENCIES)('accepts %s', (currency) => {
@@ -43,5 +47,39 @@ describe('toSupportedExchangeCurrency', () => {
         // CurrencySelect imports this same constant, so the rows and the URL
         // filter cannot drift apart.
         expect([...SUPPORTED_EXCHANGE_CURRENCIES]).toEqual(['USD', 'EUR', 'GBP', 'MXN', 'ARS', 'BRL'])
+    })
+})
+
+describe('toDisplayCurrency', () => {
+    it('keeps the currencies the marketing send-to pages seed', () => {
+        // Marketing/mdx/ExchangeWidget.tsx seeds ?to=<destinationCurrency> from
+        // MDX frontmatter, and the published pages use ~20 codes the FX feed
+        // quotes but no rail supports. Filtering those to the routable six
+        // rendered a euro rate on a "send money to Thailand" page.
+        for (const currency of ['THB', 'PLN', 'JPY', 'TRY', 'IDR', 'MYR', 'ZAR', 'CAD', 'AUD', 'KES']) {
+            expect(toDisplayCurrency(currency)).toBe(currency)
+        }
+    })
+
+    it('still normalises case and whitespace', () => {
+        expect(toDisplayCurrency('  thb ')).toBe('THB')
+    })
+
+    it('rejects anything that is not a currency code', () => {
+        // Permissive about which currency, not about what a currency looks
+        // like: this value reaches an FX lookup and a URL.
+        expect(toDisplayCurrency('<script>')).toBeNull()
+        expect(toDisplayCurrency('USDT')).toBeNull()
+        expect(toDisplayCurrency('US')).toBeNull()
+        expect(toDisplayCurrency('12')).toBeNull()
+        expect(toDisplayCurrency('')).toBeNull()
+        expect(toDisplayCurrency(null)).toBeNull()
+    })
+
+    it('is broader than the routable list, which is the whole point', () => {
+        // Displaying a quote and offering a payment rail are different
+        // permissions. THB quotes; THB does not route.
+        expect(toDisplayCurrency('THB')).toBe('THB')
+        expect(toSupportedExchangeCurrency('THB')).toBeNull()
     })
 })

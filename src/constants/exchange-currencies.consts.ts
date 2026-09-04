@@ -22,3 +22,19 @@ export function toSupportedExchangeCurrency(value: string | null | undefined): S
     const normalized = value?.trim().toUpperCase()
     return SUPPORTED_EXCHANGE_CURRENCIES.find((currency) => currency === normalized) ?? null
 }
+
+// Any well-formed ISO-4217-shaped code, for the DISPLAY path only.
+//
+// The widget takes its pair from the URL and nothing else, and the marketing
+// send-to pages seed that URL from their MDX frontmatter — PLN, TRY, JPY, THB,
+// IDR, MYR, ZAR, CAD, AUD and a dozen more, across en/es-419/pt-BR. The FX feed
+// quotes all of them, so those pages showed a real rate; filtering the URL to
+// the six routable currencies would have rendered a euro rate on a "send money
+// to Thailand" page. Displaying a quote and offering a payment rail are
+// different permissions, so they get different lists.
+const CURRENCY_CODE = /^[A-Z]{3}$/
+
+export function toDisplayCurrency(value: string | null | undefined): string | null {
+    const normalized = value?.trim().toUpperCase()
+    return normalized && CURRENCY_CODE.test(normalized) ? normalized : null
+}

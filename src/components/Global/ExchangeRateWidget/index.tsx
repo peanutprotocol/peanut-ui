@@ -1,11 +1,11 @@
 import CurrencySelect from '@/components/LandingPage/CurrencySelect'
 import countryCurrencyMappings, { getFlagUrl } from '@/constants/countryCurrencyMapping'
-import { type SupportedExchangeCurrency, toSupportedExchangeCurrency } from '@/constants/exchange-currencies.consts'
+import { toDisplayCurrency, toSupportedExchangeCurrency } from '@/constants/exchange-currencies.consts'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { applyBridgeCrossCurrencyFee, reverseBridgeCrossCurrencyFee } from '@/utils/bridge.utils'
 import Image from 'next/image'
-import { createParser, parseAsFloat, useQueryStates } from 'nuqs'
+import { parseAsFloat, parseAsString, useQueryStates } from 'nuqs'
 import { type FC, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon, type IconName } from '../Icons/Icon'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -44,16 +44,6 @@ interface IExchangeRateWidgetProps {
     labels?: Partial<ExchangeRateWidgetLabels>
 }
 
-// The dropdown is not the only way a currency reaches this widget. `from` and
-// `to` also come from the URL, so a bookmark predating the supported list
-// (`?from=PLN`) would render PLN in the trigger, fetch a PLN quote and send the
-// CTA to the Poland flow. Returning null for anything unsupported makes nuqs
-// fall back to the default, so a stale link degrades to a working pair.
-const parseAsExchangeCurrency = createParser({
-    parse: (value) => toSupportedExchangeCurrency(value),
-    serialize: (value: SupportedExchangeCurrency) => value,
-})
-
 const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, ctaAction, labels }) => {
     const l = { ...DEFAULT_LABELS, ...labels }
     // shallow + history:'replace' uses window.history.replaceState — bypasses
@@ -61,15 +51,21 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
     // to the top through the parent Suspense boundary.
     const [query, setQuery] = useQueryStates(
         {
-            from: parseAsExchangeCurrency.withDefault('USD'),
-            to: parseAsExchangeCurrency.withDefault('EUR'),
+            from: parseAsString.withDefault('USD'),
+            to: parseAsString.withDefault('EUR'),
             amount: parseAsFloat.withDefault(10),
         },
         { shallow: true, history: 'replace', scroll: false }
     )
 
-    const sourceCurrency = query.from
-    const destinationCurrency = query.to
+    // Normalised, not filtered to the routable six. The marketing send-to pages
+    // seed this URL from their MDX frontmatter (Marketing/mdx/ExchangeWidget.tsx)
+    // with ~20 currencies the FX feed quotes but no rail supports — THB, PLN,
+    // JPY and the rest. Rejecting those would render a euro rate on a "send
+    // money to Thailand" page. Displaying a quote and offering a payment rail
+    // are different permissions; the routable check lives at the redirect.
+    const sourceCurrency = toDisplayCurrency(query.from) ?? 'USD'
+    const destinationCurrency = toDisplayCurrency(query.to) ?? 'EUR'
     const urlSourceAmount = query.amount > 0 ? query.amount : 10
 
     // Exchange rate hook handles all the conversion logic
@@ -110,7 +106,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
     }, [isEditingDestination, getDestinationDisplayValue, netDestinationAmount])
 
     const updateUrlParams = useCallback(
-        (params: { from?: SupportedExchangeCurrency; to?: SupportedExchangeCurrency; amount?: number }) => {
+        (params: { from?: string; to?: string; amount?: number }) => {
             setQuery(params)
         },
         [setQuery]
