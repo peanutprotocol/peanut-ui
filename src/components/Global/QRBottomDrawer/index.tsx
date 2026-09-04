@@ -110,7 +110,7 @@ const QRBottomDrawer = ({ url, title, text, buttonText, className }: QRBottomDra
                     scrollAreaRef={scrollAreaRef}
                     scrollAreaClassName={`overscroll-contain max-h-[calc(var(--qr-drawer-expanded)-3.3125rem)] ${activeSnapPoint === snapPoints[0] || !scrollable ? 'touch-none' : ''}`}
                 >
-                    <DrawerTitle className="space-y-2 mb-8">
+                    <DrawerTitle className="space-y-2 mb-3">
                         <h2 className="text-heading-card">{title}</h2>
                     </DrawerTitle>
                     {/* the button's shadow is offset 4px right AND 4px down, so the

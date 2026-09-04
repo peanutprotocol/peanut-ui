@@ -139,50 +139,48 @@ const ActionModal: React.FC<ActionModalProps> = ({
             classOverlay={classOverlay}
             hideOverlay={hideOverlay}
         >
-            {/* anatomy 17800:57224: p = XL/24, and the stack is nested — the icon
-                and the head sit L/16 apart inside a "Top" group, the head's own
-                title and description XS/4 apart, and the whole group is XL/24
-                from the ctas. It used to be one flat gap-4, so the description
-                sat as far from its title as the ctas did from the head. */}
-            <div className={twMerge('flex flex-col items-center gap-6 p-6 text-center', contentContainerClassName)}>
-                {/* head and body sit M/12 apart; the ctas keep the XL/24 of the outer stack */}
-                <div className="flex w-full flex-col items-center gap-3">
-                    <div className="flex w-full flex-col items-center gap-4">
-                        {iconContent && (
-                            <IconBubble
-                                size="m"
-                                icon={iconContent}
-                                color={toneStyle?.color}
-                                // custom classes AUGMENT the default (or the tone), never
-                                // bare-|| replace it — the IconBubble board forbids
-                                // resizing the bubble, and the ! overrides existed only
-                                // because of the old replace
-                                className={twMerge(
-                                    toneStyle ? undefined : defaultIconContainerClassName,
-                                    customIconContainerClassName
-                                )}
-                                data-testid="action-modal-icon"
-                            />
-                        )}
-
-                        <div className="flex w-full flex-col gap-1">
-                            {/* board head: Heading XS + Body S */}
-                            <h3 className={twMerge('text-heading-xs text-foreground-primary', titleClassName)}>
-                                {title}
-                            </h3>
-                            {description && (
-                                <div className={twMerge('text-body-s text-foreground-secondary', descriptionClassName)}>
-                                    {typeof description === 'string' ? <p>{description}</p> : description}
-                                </div>
+            {/* anatomy 17800:57224: p = XL/24, the icon and the head sit L/16
+                apart inside a "Top" group, and the head's own title and
+                description XS/4 apart.
+                The head carries M/12 beneath it as a MARGIN, not as a parent
+                gap: a gap collapses on the modals that have no `content`, and
+                those — a title, a line of copy, two buttons — are most of them.
+                Whatever follows the head is 12px from it; the ctas keep XL/24
+                from the body when there is one. */}
+            <div className={twMerge('flex flex-col items-center p-6 text-center', contentContainerClassName)}>
+                <div className="mb-3 flex w-full flex-col items-center gap-4">
+                    {iconContent && (
+                        <IconBubble
+                            size="m"
+                            icon={iconContent}
+                            color={toneStyle?.color}
+                            // custom classes AUGMENT the default (or the tone), never
+                            // bare-|| replace it — the IconBubble board forbids
+                            // resizing the bubble, and the ! overrides existed only
+                            // because of the old replace
+                            className={twMerge(
+                                toneStyle ? undefined : defaultIconContainerClassName,
+                                customIconContainerClassName
                             )}
-                        </div>
-                    </div>
+                            data-testid="action-modal-icon"
+                        />
+                    )}
 
-                    {content}
+                    <div className="flex w-full flex-col gap-1">
+                        {/* board head: Heading XS + Body S */}
+                        <h3 className={twMerge('text-heading-xs text-foreground-primary', titleClassName)}>{title}</h3>
+                        {description && (
+                            <div className={twMerge('text-body-s text-foreground-secondary', descriptionClassName)}>
+                                {typeof description === 'string' ? <p>{description}</p> : description}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
+                {content && <div className="w-full">{content}</div>}
+
                 {(checkbox || (ctas && ctas.length > 0)) && (
-                    <div className="space-y-4 w-full">
+                    <div className={twMerge('space-y-4 w-full', content && 'mt-6')}>
                         {checkbox && (
                             <div className={twMerge('flex justify-center', checkbox.className)}>
                                 <Checkbox
@@ -256,7 +254,10 @@ const ActionModal: React.FC<ActionModalProps> = ({
                         )}
                     </div>
                 )}
-                {footer}
+                {/* the head's own 12px governs when the footer is all that follows it */}
+                {footer && (
+                    <div className={twMerge('w-full', (content || checkbox || ctas?.length) && 'mt-6')}>{footer}</div>
+                )}
             </div>
         </BaseModal>
     )

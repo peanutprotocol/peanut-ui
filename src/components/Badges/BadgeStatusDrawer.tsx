@@ -61,14 +61,14 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                     py-4 + p-4 here stacked 32px of extra head room (PR #2813
                     review, Jota). */}
                 <DrawerContent className="pb-4">
-                    <div className="space-y-4 px-4">
+                    <div className="px-4">
                         {/* centered head per the TX Details chrome (board 17490:115877):
                             badge art → one-line title. Tapping it opens the detail
                             modal — close the unlock drawer (z-50) first so the modal
                             (z-20) isn't occluded. */}
                         <button
                             type="button"
-                            className="flex w-full cursor-pointer flex-col items-center gap-4 text-center"
+                            className="mb-3 flex w-full cursor-pointer flex-col items-center gap-4 text-center"
                             onClick={() => {
                                 onClose()
                                 setIsDetailOpen(true)
@@ -88,7 +88,7 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                             </DrawerTitle>
                         </button>
 
-                        <Card position="single" className="divide-y divide-dashed divide-border-default px-4 py-0">
+                        <Card position="single" className="mb-4 divide-y divide-dashed divide-border-default px-4 py-0">
                             <DataRow label={t('unlockedAtLabel')} value={dateStr} />
                             <DataRow label={t('reasonLabel')} value={displayDescription} />
                         </Card>

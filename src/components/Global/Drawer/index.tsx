@@ -132,8 +132,11 @@ const DrawerContent = React.forwardRef<React.ElementRef<typeof DrawerPrimitive.C
 )
 DrawerContent.displayName = 'DrawerContent'
 
+// mb-3: the head carries M/12 beneath it, the same rule ActionModal applies to
+// modals. A call site that puts the header in a gapped flex column has to zero
+// that gap, or the two stack.
 const DrawerHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-    <div className={twMerge('grid gap-1 p-4 text-center sm:text-left', className)} {...props} />
+    <div className={twMerge('mb-3 grid gap-1 p-4 text-center sm:text-left', className)} {...props} />
 )
 DrawerHeader.displayName = 'DrawerHeader'
 
