@@ -235,9 +235,10 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
 
     // no exchange-rate board exists in figma (checked 2026-08-20) — container
     // rebuilt on the DS Card primitive (board 17802:61536) as the conservative
-    // recipe; a dedicated board can restyle the internals later.
+    // recipe; a dedicated board can restyle the internals later. No shadow: not
+    // used anywhere else in the app (TASK-22121).
     return (
-        <Card shadowSize="4" className="mx-auto mt-12 h-fit w-full items-center justify-center gap-4 p-6 md:w-[420px]">
+        <Card className="mx-auto mt-12 h-fit w-full items-center justify-center gap-4 p-6 md:w-[420px]">
             <div className="w-full">
                 <h2 className="text-left text-body-s">{l.youSend}</h2>
                 <div className="mt-2 flex w-full items-center justify-center gap-4 rounded-sm border border-border-default bg-background-default p-4">
