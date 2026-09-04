@@ -229,21 +229,48 @@ jobs:
                   MEAWALLET_NEXUS_PASSWORD: ${{ secrets.MEAWALLET_NEXUS_PASSWORD_ANDROID }}
                   ANDROID_VERSION_NAME: ${{ steps.version.outputs.name }}
               run: |
-                  # Derived from the resolved version, NOT github.run_number: inside a
+                  # versionCode = <major><build><attempt>, base 10000000/10000.
+                  #
+                  # The BASE is the resolved version, NOT github.run_number: inside a
                   # workflow_call run_number is the CALLER's counter, so the first
                   # release-native.yml run numbered itself 1 and produced versionCode
                   # 10001 against the live 10048 — Play refused it ("does not allow any
-                  # existing users to upgrade"). The version is the only counter that is
-                  # monotonic across every entry point, and 1000/1000000 spacing leaves
-                  # 999 builds per major and 999 OTAs per build while clearing the legacy
-                  # codes on Play (small console codes, git-commit-count builds to ~8600,
-                  # and the run_number era up to 10048).
+                  # existing users to upgrade"). The version is the one counter that is
+                  # monotonic across every entry point.
+                  #
+                  # The ATTEMPT digits exist because the base alone is not unique. A run
+                  # that uploads to Play and then fails a later step (the Capgo publish,
+                  # or the sibling iOS job) leaves the tag unwritten ON PURPOSE, so the
+                  # recovery run resolves the SAME version — and Play rejects a
+                  # versionCode it has already seen, which would wedge the very release
+                  # the re-run is trying to repair. run_number covers a fresh dispatch
+                  # and run_attempt covers "Re-run failed jobs", where run_number does
+                  # not move. Both only ever increase, so every upload of one version
+                  # gets a strictly higher code than the last.
+                  #
+                  # Spacing: 10000 per build dominates any attempt value below it, so
+                  # codes stay ordered across builds; the guard below keeps it that way
+                  # rather than letting a wrap silently invert the ordering. It also
+                  # clears the legacy codes on Play (small console codes, git-commit-count
+                  # builds to ~8600, and the run_number era up to 10048).
+                  #
+                  # Caveat: run_number is per-workflow, so a break-glass dispatch of THIS
+                  # workflow numbers itself from its own counter (~49) rather than
+                  # release-native.yml's. Within one build that can order a later
+                  # break-glass upload above a subsequent release-native one; cut the next
+                  # build rather than re-uploading the same version if that ever bites.
                   IFS=. read -r V_MAJOR V_BUILD V_OTA <<< "$ANDROID_VERSION_NAME"
-                  export ANDROID_VERSION_CODE=$((V_MAJOR * 1000000 + V_BUILD * 1000 + V_OTA))
+                  ATTEMPT=$((GITHUB_RUN_NUMBER * 10 + GITHUB_RUN_ATTEMPT - 1))
+                  if [ "$ATTEMPT" -ge 10000 ]; then
+                      echo "::error::attempt component $ATTEMPT has outgrown its 4 digits and would collide with the next build — widen the versionCode spacing" >&2
+                      exit 1
+                  fi
+                  export ANDROID_VERSION_CODE=$((V_MAJOR * 10000000 + V_BUILD * 10000 + ATTEMPT))
                   if [ "$ANDROID_VERSION_CODE" -le 10048 ]; then
                       echo "::error::versionCode $ANDROID_VERSION_CODE does not clear the live 10048 — Play would refuse the upload" >&2
                       exit 1
                   fi
+                  echo "versionCode $ANDROID_VERSION_CODE (version $ANDROID_VERSION_NAME, run $GITHUB_RUN_NUMBER attempt $GITHUB_RUN_ATTEMPT)"
                   pnpm native:release
 
             - name: Upload to Google Play
