@@ -3,13 +3,13 @@
 // native app. android rides the Play Install Referrer; iOS rides a clipboard
 // hand-off written on the store-bounce tap and read once on first launch.
 // TASK-20772 — the download modal (TASK-20769) is the eventual web consumer.
-import { registerPlugin } from '@capacitor/core'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, DEFERRED_LINK_OUTCOMES, type DeferredLinkOutcome } from '@/constants/analytics.consts'
 import { PLAY_STORE_URL } from '@/constants/general.consts'
 import { isValidLocale } from '@/i18n/config'
 import { type AppLocale, resolveLocaleOrNull } from '@/i18n/app/config'
 import { isAndroidNative, isIOSNative } from './capacitor'
+import { nativeCapability } from './native-capability'
 import { getFromCookie, saveToCookie, sanitizeRedirectURL } from './cookie-url.utils'
 import { toInviteCode } from './invite-code.utils'
 import { deepLinkToNativePath } from './native-routes'
@@ -52,19 +52,20 @@ export interface DeferredPayload {
     dest?: string
 }
 
-// app-local android plugin (InstallReferrerPlugin.java); throws "not
-// implemented" on iOS/web and on older binaries running OTA'd JS — callers
-// catch and treat as null.
-const InstallReferrer = registerPlugin<{ getReferrer(): Promise<{ referrer: string | null }> }>('InstallReferrer')
+// app-local android plugin (InstallReferrerPlugin.java); absent on iOS/web and
+// on older binaries running OTA'd JS, which the capability turns into null.
+const InstallReferrer = nativeCapability<{ getReferrer(): Promise<{ referrer: string | null }> }>('InstallReferrer', {
+    platforms: ['android'],
+})
 
 /** raw play install referrer string, or null anywhere it can't be read. */
 export async function readInstallReferrer(): Promise<string | null> {
-    try {
-        return (await InstallReferrer.getReferrer()).referrer ?? null
-    } catch {
-        // older binary without the plugin, iOS/web, or referrer service unavailable
-        return null
-    }
+    // null covers all of: older binary without the plugin, iOS/web, and the
+    // referrer service being unavailable on a busy first boot.
+    return InstallReferrer.call(
+        async (plugin) => (await plugin.getReferrer()).referrer ?? null,
+        () => null
+    )
 }
 
 // ---------------------------------------------------------------------------

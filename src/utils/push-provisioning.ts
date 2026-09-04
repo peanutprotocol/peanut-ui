@@ -1,5 +1,4 @@
-import { registerPlugin } from '@capacitor/core'
-import { isAndroidNative, isIOSNative } from './capacitor'
+import { nativeCapability } from './native-capability'
 
 /**
  * PostHog launch gate for native wallet push provisioning (doctrine:
@@ -46,7 +45,9 @@ interface PushProvisioningPlugin {
 // src/meawallet/java). Binaries built without the MeaWallet SDK — and OTA'd JS
 // on older binaries — don't have it, so every caller treats "unavailable" as
 // false and falls back to the manual add-to-wallet carousel.
-const PushProvisioning = registerPlugin<PushProvisioningPlugin>('PushProvisioning')
+const PushProvisioning = nativeCapability<PushProvisioningPlugin>('PushProvisioning', {
+    platforms: ['ios', 'android'],
+})
 
 /**
  * Can this device do one-tap wallet provisioning for this card? False on web,
@@ -55,12 +56,10 @@ const PushProvisioning = registerPlugin<PushProvisioningPlugin>('PushProvisionin
  * where the UI should keep the manual carousel (or hide the row).
  */
 export async function getPushProvisioningAvailability(last4?: string): Promise<PushProvisioningAvailability> {
-    if (!isIOSNative() && !isAndroidNative()) return { available: false, alreadyInWallet: false }
-    try {
-        return await PushProvisioning.isAvailable({ last4 })
-    } catch {
-        return { available: false, alreadyInWallet: false }
-    }
+    return PushProvisioning.call(
+        (plugin) => plugin.isAvailable({ last4 }),
+        () => ({ available: false, alreadyInWallet: false })
+    )
 }
 
 /**
@@ -69,9 +68,8 @@ export async function getPushProvisioningAvailability(last4?: string): Promise<P
  * can toast + report without a try/catch at every call site.
  */
 export async function addCardToWallet(args: AddCardToWalletArgs): Promise<AddCardToWalletResult> {
-    try {
-        return await PushProvisioning.addCard(args)
-    } catch (e) {
-        return { added: false, error: e instanceof Error ? e.message : 'unavailable' }
-    }
+    return PushProvisioning.call(
+        (plugin) => plugin.addCard(args),
+        (error) => ({ added: false, error: error instanceof Error ? error.message : 'unavailable' })
+    )
 }

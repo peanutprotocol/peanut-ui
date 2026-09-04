@@ -44,6 +44,13 @@ const USE_SEARCH_PARAMS_IMPORT_RESTRICTION = {
         "Don't read query params with useSearchParams — use useQueryStates from 'nuqs' (typed parsers, URL as state). See CLAUDE.md 'URL as State'. DS 10 ratchet: existing files are allowlisted; new files must use nuqs.",
 }
 
+const REGISTER_PLUGIN_IMPORT_RESTRICTION = {
+    name: '@capacitor/core',
+    importNames: ['registerPlugin'],
+    message:
+        "Don't call registerPlugin directly — declare the plugin with nativeCapability() from '@/utils/native-capability' and reach it through .call(invoke, onUnavailable). This JS ships over the air onto binaries built months earlier, where the plugin simply does not exist and Capacitor answers a missing native method with a rejected promise, not a compile error: a forgotten try/catch is a crash on a user's device that no type and no test sees. The wrapper also gates on platform and keeps the proxy inside the closure, so it can never be returned across an await (the .then trap that shipped in 1.0.44 and 1.0.45–1.0.47).",
+}
+
 const QUERY_STRING_PUSH_MESSAGE =
     "Don't build a query string by hand for router.push/replace — write URL state with useQueryStates from 'nuqs' (its setter updates the params in place; pathname-only navigation is fine). See CLAUDE.md 'URL as State'. DS 10 ratchet: existing files are allowlisted; new files must use nuqs."
 
@@ -225,6 +232,7 @@ module.exports = [
                         ...RESTRICTED_IMPORT_PATHS,
                         USE_SEARCH_PARAMS_IMPORT_RESTRICTION,
                         TAILWIND_MERGE_IMPORT_RESTRICTION,
+                        REGISTER_PLUGIN_IMPORT_RESTRICTION,
                     ],
                 },
             ],
@@ -258,6 +266,12 @@ module.exports = [
         // The wrapper itself (and its census test) are the only legal raw
         // tailwind-merge importers.
         files: ['src/utils/tw.ts', 'src/utils/__tests__/tw.test.ts'],
+        rules: { 'no-restricted-imports': 'off' },
+    },
+    {
+        // The wrapper itself is the one legal registerPlugin caller — it is
+        // what every other call site is required to go through.
+        files: ['src/utils/native-capability.ts'],
         rules: { 'no-restricted-imports': 'off' },
     },
     {
