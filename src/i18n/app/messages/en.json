@@ -280,6 +280,10 @@
         }
     },
     "profile": {
+        "showFullNameConfirm": {
+            "title": "Show your full name?",
+            "description": "Your full name becomes public on your profile, next to your username. Anyone with your Peanut link can see it. You can turn this off at any time."
+        },
         "language": "Language",
         "menu": {
             "inviteFriends": "Invite friends to Peanut",

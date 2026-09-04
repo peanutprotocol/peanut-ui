@@ -280,6 +280,10 @@
         }
     },
     "profile": {
+        "showFullNameConfirm": {
+            "title": "Mostrar seu nome completo?",
+            "description": "Seu nome completo fica público no seu perfil, ao lado do seu nome de usuário. Qualquer pessoa com o seu link da Peanut pode ver. Você pode desativar quando quiser."
+        },
         "language": "Idioma",
         "menu": {
             "inviteFriends": "Convide amigos para o Peanut",

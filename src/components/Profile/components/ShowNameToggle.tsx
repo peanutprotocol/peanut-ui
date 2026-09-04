@@ -2,18 +2,25 @@
 
 import { updateUserById } from '@/app/actions/users'
 import { Toggle } from '@/components/0_Bruddle/Toggle'
+import ActionModal from '@/components/Global/ActionModal'
 import { useAuth } from '@/context/authContext'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
-const ShowNameToggle = () => {
-    const t = useTranslations('profile')
-    const { fetchUser, user } = useAuth()
-    const [showFullName, setShowFullName] = useState(user?.user.showFullName ?? false)
+interface ShowNameToggleProps {
+    checked: boolean
+    /** Called with the optimistic value, so the screen reflects the setting at once. */
+    onChange: (value: boolean) => void
+}
 
-    const handleToggleChange = async () => {
-        const newValue = !showFullName
-        setShowFullName(newValue)
+const ShowNameToggle = ({ checked, onChange }: ShowNameToggleProps) => {
+    const t = useTranslations('profile')
+    const tCommon = useTranslations('common')
+    const { fetchUser, user } = useAuth()
+    const [isConfirming, setIsConfirming] = useState(false)
+
+    const save = (newValue: boolean) => {
+        onChange(newValue)
 
         // Fire-and-forget: don't await fetchUser() to allow quick navigation
         updateUserById({
@@ -27,10 +34,43 @@ const ShowNameToggle = () => {
             .catch((error) => {
                 console.error('Failed to update preferences:', error)
                 // Revert on error
-                setShowFullName(!newValue)
+                onChange(!newValue)
             })
     }
-    return <Toggle checked={showFullName} onChange={handleToggleChange} aria-label={t('menu.showMyFullName')} />
+
+    // Turning it on publishes the legal name next to the username, so it asks
+    // first. Turning it off takes nothing away and needs no confirmation.
+    const handleToggleChange = () => (checked ? save(false) : setIsConfirming(true))
+
+    return (
+        <>
+            <Toggle checked={checked} onChange={handleToggleChange} aria-label={t('menu.showMyFullName')} />
+            <ActionModal
+                visible={isConfirming}
+                onClose={() => setIsConfirming(false)}
+                tone="warning"
+                icon="eye"
+                title={t('showFullNameConfirm.title')}
+                description={t('showFullNameConfirm.description')}
+                ctas={[
+                    {
+                        text: tCommon('confirm'),
+                        variant: 'purple',
+                        shadowSize: '4',
+                        onClick: () => {
+                            setIsConfirming(false)
+                            save(true)
+                        },
+                    },
+                    {
+                        text: tCommon('cancel'),
+                        variant: 'stroke',
+                        onClick: () => setIsConfirming(false),
+                    },
+                ]}
+            />
+        </>
+    )
 }
 
 export default ShowNameToggle
