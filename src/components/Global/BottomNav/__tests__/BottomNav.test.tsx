@@ -22,12 +22,14 @@ jest.mock('@/context/ModalsContext', () => ({
 }))
 
 let mockShowCardSurface = true
-let mockHasCardAccess = true
+let mockCardHref: '/card' | '/shhhhh' = '/card'
 jest.mock('@/hooks/useCardSurfaceAccess', () => ({
     useCardSurfaceAccess: () => ({
         hasIssuedCard: mockShowCardSurface,
-        hasCardAccess: mockHasCardAccess,
+        hasCardRelationship: mockShowCardSurface,
+        hasCardAccess: mockShowCardSurface,
         showCardSurface: mockShowCardSurface,
+        cardHref: mockCardHref,
     }),
 }))
 
@@ -45,7 +47,7 @@ describe('BottomNav pill release', () => {
     beforeEach(() => {
         mockPathname = '/home'
         mockShowCardSurface = true
-        mockHasCardAccess = true
+        mockCardHref = '/card'
         mockPush.mockReset()
     })
 
@@ -128,7 +130,7 @@ describe('BottomNav middle slot', () => {
     beforeEach(() => {
         mockPathname = '/home'
         mockShowCardSurface = true
-        mockHasCardAccess = true
+        mockCardHref = '/card'
         mockPush.mockReset()
     })
 
@@ -144,7 +146,7 @@ describe('BottomNav middle slot', () => {
      * the profile menu row follows.
      */
     it('links the middle tab to /shhhhh for an eligible user not past the gate', () => {
-        mockHasCardAccess = false
+        mockCardHref = '/shhhhh'
         render(<BottomNav />)
         expect(screen.getByLabelText('card')).toHaveAttribute('href', '/shhhhh')
     })

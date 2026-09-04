@@ -387,10 +387,12 @@
     },
     "exchangeRate": {
         "tryIt": "Retirar ahora",
+        "addMoneyCta": "Agregar dinero",
         "widget": {
-            "youSend": "Vos enviás"
+            "youSend": "Vos enviás",
+            "recipientGets": "Recibís"
         },
-        "balanceNote": "Tu saldo de Peanut se mantiene en USD, pero podés retirar en la moneda local que acepte tu banco."
+        "balanceNote": "Tu saldo de Peanut se mantiene en una sola moneda. Donde haya un canal bancario local disponible, podés retirar en esa moneda local."
     },
     "setup": {
         "steps": {

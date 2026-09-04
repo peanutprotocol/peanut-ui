@@ -37,6 +37,14 @@ jest.mock('@/utils/exchangeRateWidget.utils', () => ({
     getExchangeRateWidgetRedirectRoute: (...args: any[]) => mockGetRedirectRoute(...args),
 }))
 
+// The page reads the widget's currency pair out of the same nuqs query state
+// the widget writes, so the CTA label can name the flow the tap will open.
+const mockPair = { from: 'USD', to: 'EUR' }
+jest.mock('nuqs', () => ({
+    parseAsString: { withDefault: (defaultValue: string) => ({ defaultValue }) },
+    useQueryStates: () => [mockPair, jest.fn()],
+}))
+
 jest.mock('@/components/0_Bruddle/PageContainer', () => ({
     __esModule: true,
     default: ({ children }: any) => <div>{children}</div>,
@@ -53,9 +61,9 @@ jest.mock('@/components/Global/NavHeader', () => ({
 
 jest.mock('@/components/Global/ExchangeRateWidget', () => ({
     __esModule: true,
-    default: ({ ctaAction }: any) => (
+    default: ({ ctaAction, ctaLabel }: any) => (
         <button data-testid="widget-cta" onClick={() => ctaAction('USD', 'EUR')}>
-            Try it!
+            {ctaLabel}
         </button>
     ),
 }))
@@ -102,5 +110,25 @@ describe('exchange-rate CTA', () => {
 
         fireEvent.click(screen.getByTestId('widget-cta'))
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw?currencyCode=EUR&returnTo=%2Fprofile%2Fexchange-rate')
+    })
+
+    /*
+     * getExchangeRateWidgetRedirectRoute sends a zero balance, and any pair
+     * that is not USD → local, to /add-money. A fixed "Withdraw now" label
+     * therefore named the opposite flow for common inputs, so it is derived
+     * from the computed destination instead.
+     */
+    it('names add money when the pair and balance route there', () => {
+        mockGetRedirectRoute.mockReturnValue('/add-money')
+        renderPage()
+
+        expect(screen.getByTestId('widget-cta')).toHaveTextContent('Add money')
+    })
+
+    it('names the withdrawal when the destination is the withdraw flow', () => {
+        mockGetRedirectRoute.mockReturnValue('/withdraw?currencyCode=EUR')
+        renderPage()
+
+        expect(screen.getByTestId('widget-cta')).toHaveTextContent('Withdraw now')
     })
 })

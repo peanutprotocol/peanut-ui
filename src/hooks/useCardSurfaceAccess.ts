@@ -9,6 +9,14 @@ export interface CardSurfaceAccess {
     /** Rain has issued this user a card that is not canceled. */
     hasIssuedCard: boolean
     /**
+     * The user already has a card relationship — an issued card OR an
+     * application in flight. `/card` renders application state (rejected,
+     * requires-info, pending, manual-review) ABOVE its geo/eligibility gates,
+     * so these users must keep a way back to it however restricted their
+     * residence is.
+     */
+    hasCardRelationship: boolean
+    /**
      * `/card`'s inner gate — past the waitlist, NOT a card holder. Decides
      * which door the card surface opens (`/card` vs `/shhhhh`), never whether
      * the surface exists.
@@ -16,6 +24,12 @@ export interface CardSurfaceAccess {
     hasCardAccess: boolean | undefined
     /** Whether a card surface (profile row, bottom-nav tab) should be offered. */
     showCardSurface: boolean
+    /**
+     * Where a card surface points. `/card` notFound()s a user with no
+     * flowEarlyAccess stamp, so only an existing relationship or the waitlist
+     * gate goes there; everyone else lands on /shhhhh, the canonical door.
+     */
+    cardHref: '/card' | '/shhhhh'
 }
 
 /**
@@ -25,7 +39,7 @@ export interface CardSurfaceAccess {
  * when the card is attainable — a Rain-prohibited residence or a server "not
  * eligible" hides it instead of advertising a closed door.
  *
- * "Holder" is an ISSUED, non-canceled card, deliberately NOT `hasCardAccess`.
+ * "Holder" is an ISSUED card or an application in flight, deliberately NOT `hasCardAccess`.
  * That flag is the waitlist's inner gate (`cardAccessGrantedAt` or a
  * `skip:card-queue` badge), and `releaseUsersFromWaitlist` stamps the grant
  * with no geo or eligibility check — so every released user resident in a
@@ -51,10 +65,13 @@ export const useCardSurfaceAccess = (): CardSurfaceAccess => {
     const restrictions = useResidenceRestrictions()
 
     const hasIssuedCard = findActiveCard(overview) !== null
+    const hasCardRelationship = hasIssuedCard || overview?.status?.hasApplication === true
 
     return {
         hasIssuedCard,
+        hasCardRelationship,
         hasCardAccess,
-        showCardSurface: hasIssuedCard || (!restrictions.card && isEligible !== false),
+        showCardSurface: hasCardRelationship || (!restrictions.card && isEligible !== false),
+        cardHref: hasCardRelationship || hasCardAccess ? '/card' : '/shhhhh',
     }
 }

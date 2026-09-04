@@ -12,6 +12,7 @@ import { withReturnTo } from '@/utils/return-to.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { deriveRegionAccess } from '@/utils/regions.utils'
 import { useTranslations } from 'next-intl'
+import { parseAsString, useQueryStates } from 'nuqs'
 import { useRouter } from 'next/navigation'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useMemo } from 'react'
@@ -28,9 +29,19 @@ export default function ExchangeRatePage() {
         [rails]
     )
 
-    const handleCtaAction = (sourceCurrency: string, destinationCurrency: string) => {
-        const formattedBalance = parseFloat(printableUsdc(balance ?? 0n))
+    // The widget keeps its pair in the URL (nuqs, same keys and defaults), so
+    // the destination is derivable BEFORE the tap — the label has to be,
+    // because a zero balance or a local→USD pair routes to /add-money and a
+    // fixed "Withdraw now" would name the opposite flow.
+    const [{ from, to }] = useQueryStates(
+        { from: parseAsString.withDefault('USD'), to: parseAsString.withDefault('EUR') },
+        { shallow: true, history: 'replace', scroll: false }
+    )
+    const formattedBalance = parseFloat(printableUsdc(balance ?? 0n))
+    const destination = getExchangeRateWidgetRedirectRoute(from, to, formattedBalance, unlockedRegionPaths)
+    const goesToAddMoney = destination.startsWith('/add-money')
 
+    const handleCtaAction = (sourceCurrency: string, destinationCurrency: string) => {
         const redirectRoute = getExchangeRateWidgetRedirectRoute(
             sourceCurrency,
             destinationCurrency,
@@ -56,7 +67,7 @@ export default function ExchangeRatePage() {
                 <PageStack.Center>
                     <ExchangeRateWidget
                         ctaIcon="arrow-down"
-                        ctaLabel={t('tryIt')}
+                        ctaLabel={goesToAddMoney ? t('addMoneyCta') : t('tryIt')}
                         ctaAction={handleCtaAction}
                         labels={{
                             youSend: t('widget.youSend'),

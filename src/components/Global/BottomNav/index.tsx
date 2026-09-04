@@ -78,9 +78,9 @@ export const BottomNav = () => {
     // goes to /card, everyone else to /shhhhh — the canonical card door. The
     // tab used to link at /card unconditionally, which notFound()s a user with
     // no flowEarlyAccess stamp.
-    const { hasCardAccess, showCardSurface } = useCardSurfaceAccess()
+    const { showCardSurface, cardHref } = useCardSurfaceAccess()
     const middleTab = showCardSurface
-        ? ({ href: hasCardAccess ? '/card' : '/shhhhh', icon: 'credit-card', label: t('card') } as const)
+        ? ({ href: cardHref, icon: 'credit-card', label: t('card') } as const)
         : ({ href: '/profile/exchange-rate', icon: 'exchange', label: t('exchangeRates') } as const)
 
     const barRef = useRef<HTMLDivElement>(null)

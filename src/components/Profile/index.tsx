@@ -39,7 +39,7 @@ export const Profile = () => {
     // Rain) to the provider-blind identityVerification projection, which today mirrors Sumsub
     // applicant state. Bridge/Manteca rail approval does NOT flip this badge.
     const { isVerified: isUserSumsubKycApproved } = useIdentityVerification()
-    const { hasCardAccess, showCardSurface: showCardMenuItem } = useCardSurfaceAccess()
+    const { hasCardAccess, hasCardRelationship, showCardSurface: showCardMenuItem, cardHref } = useCardSurfaceAccess()
     const t = useAppTranslations('profile')
     const { locale } = useAppLocale()
     const { pendingBundle, storeUpdateRequired } = useOtaUpdate()
@@ -103,9 +103,9 @@ export const Profile = () => {
                         {showCardMenuItem && (
                             <ProfileMenuItem
                                 icon="credit-card"
-                                label={hasCardAccess ? t('menu.yourCard') : t('menu.peanutCard')}
-                                href={hasCardAccess ? '/card' : '/shhhhh'}
-                                badge={hasCardAccess ? undefined : t('menu.newBadge')}
+                                label={hasCardAccess || hasCardRelationship ? t('menu.yourCard') : t('menu.peanutCard')}
+                                href={cardHref}
+                                badge={hasCardAccess || hasCardRelationship ? undefined : t('menu.newBadge')}
                             />
                         )}
                         <ProfileMenuItem

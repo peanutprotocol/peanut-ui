@@ -656,8 +656,9 @@
     },
     "exchangeRate": {
         "title": "Exchange rate & fees",
-        "balanceNote": "Your Peanut balance is held in USD, but you can withdraw in the local currency your bank accepts.",
+        "balanceNote": "Your Peanut balance is held in a single currency. Where a local bank rail is supported, you can withdraw in that local currency.",
         "tryIt": "Withdraw now",
+        "addMoneyCta": "Add money",
         "widget": {
             "youSend": "You send",
             "recipientGets": "You get",
