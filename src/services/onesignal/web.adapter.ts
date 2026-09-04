@@ -1,5 +1,10 @@
 import OneSignal from 'react-onesignal'
-import type { NotificationClickInfo, NotificationPermissionState, OneSignalAdapter } from './types'
+import type {
+    NotificationClickInfo,
+    NotificationPermissionState,
+    OneSignalAdapter,
+    PushSubscriptionChange,
+} from './types'
 import { isOneSignalDebug } from './debug'
 
 function browserPermission(): NotificationPermissionState {
@@ -10,7 +15,7 @@ function browserPermission(): NotificationPermissionState {
 let initPromise: Promise<void> | null = null
 
 const permissionListeners = new Set<(state: NotificationPermissionState) => void>()
-const subscriptionListeners = new Set<(optedIn: boolean) => void>()
+const subscriptionListeners = new Set<(change: PushSubscriptionChange) => void>()
 const clickListeners = new Set<(info: NotificationClickInfo) => void>()
 let underlyingListenersAttached = false
 
@@ -23,10 +28,16 @@ function attachUnderlyingListeners() {
         permissionListeners.forEach((cb) => cb(state))
     })
 
-    type PushSubscriptionChangeEvent = { current?: { optedIn?: boolean } | null }
+    type PushSubscriptionChangeEvent = {
+        previous?: { optedIn?: boolean } | null
+        current?: { optedIn?: boolean } | null
+    }
     OneSignal.User.PushSubscription.addEventListener('change', (event: PushSubscriptionChangeEvent) => {
-        const optedIn = !!event.current?.optedIn
-        subscriptionListeners.forEach((cb) => cb(optedIn))
+        const change: PushSubscriptionChange = {
+            optedIn: !!event.current?.optedIn,
+            previousOptedIn: !!event.previous?.optedIn,
+        }
+        subscriptionListeners.forEach((cb) => cb(change))
     })
 
     OneSignal.Notifications.addEventListener('click', (event) => {

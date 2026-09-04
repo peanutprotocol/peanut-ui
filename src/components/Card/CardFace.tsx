@@ -33,14 +33,17 @@ interface Props {
      *  the retry affordance — no separate dismiss needed. */
     error?: string | null
     onToggleReveal?: () => void
-    onCopy?: (value: string, field: 'pan' | 'cvv') => void
+    onCopy?: (value: string, field: CopyableCardField) => void
     /** Pre-activation preview: PAN/cardholder/expiry rendered as `?`s.
      *  Used on AddCardEntryScreen before KYC + first spend. */
     locked?: boolean
     className?: string
 }
 
+export type CopyableCardField = 'pan' | 'expiry' | 'cvv'
+
 const formatPan = (pan: string) => pan.replace(/(.{4})/g, '$1 ').trim()
+const formatExpiry = (month: number, year: number) => `${String(month).padStart(2, '0')}/${String(year).slice(-2)}`
 
 const CardFace: FC<Props> = ({
     last4,
@@ -60,9 +63,9 @@ const CardFace: FC<Props> = ({
     // so it never covers the PAN / expiry / CVV (or the loading skeletons).
     // It slides back when the card is re-masked.
     const detailsShown = showingDetails || loading
-    const [copiedField, setCopiedField] = useState<'pan' | 'cvv' | null>(null)
+    const [copiedField, setCopiedField] = useState<CopyableCardField | null>(null)
 
-    const handleCopy = (value: string, field: 'pan' | 'cvv') => {
+    const handleCopy = (value: string, field: CopyableCardField) => {
         setCopiedField(field)
         // Clear only if still showing the same field — guards against an
         // earlier setTimeout overwriting a fresher copy on the other field.
@@ -160,13 +163,29 @@ const CardFace: FC<Props> = ({
                             )}
                             <div className="flex items-end justify-between">
                                 <div className="text-s flex gap-6">
-                                    <div>
-                                        {/* "Expiry" label dropped — value row stays one line so PAN/name clear the artwork */}
-                                        {/* ph-no-capture: expiry digits out of recordings. */}
-                                        <div className="ph-no-capture font-bold">
-                                            {String(revealed.expiryMonth).padStart(2, '0')}/
-                                            {String(revealed.expiryYear).slice(-2)}
+                                    <div className="flex items-end gap-1">
+                                        <div>
+                                            {/* "Expiry" label dropped — value row stays one line so PAN/name clear the artwork */}
+                                            {/* ph-no-capture: expiry digits out of recordings. */}
+                                            <div className="ph-no-capture font-bold">
+                                                {formatExpiry(revealed.expiryMonth, revealed.expiryYear)}
+                                            </div>
                                         </div>
+                                        {onCopy && (
+                                            <button
+                                                type="button"
+                                                aria-label={t('copyExpiry')}
+                                                onClick={() =>
+                                                    handleCopy(
+                                                        formatExpiry(revealed.expiryMonth, revealed.expiryYear),
+                                                        'expiry'
+                                                    )
+                                                }
+                                                className="relative p-1 transition-opacity duration-instant after:absolute after:-inset-3 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
+                                            >
+                                                <Icon name={copiedField === 'expiry' ? 'check' : 'copy'} size={16} />
+                                            </button>
+                                        )}
                                     </div>
                                     <div className="flex items-end gap-1">
                                         <div>
@@ -181,7 +200,7 @@ const CardFace: FC<Props> = ({
                                                 onClick={() => handleCopy(revealed.cvv, 'cvv')}
                                                 className="relative p-1 transition-opacity duration-instant after:absolute after:-inset-3 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
                                             >
-                                                <Icon name={copiedField === 'cvv' ? 'check' : 'copy'} size={14} />
+                                                <Icon name={copiedField === 'cvv' ? 'check' : 'copy'} size={16} />
                                             </button>
                                         )}
                                     </div>

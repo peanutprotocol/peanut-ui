@@ -281,6 +281,10 @@
         }
     },
     "profile": {
+        "showFullNameConfirm": {
+            "title": "Show your full name?",
+            "description": "Your full name becomes public on your profile, next to your username. Anyone with your Peanut link can see it. You can turn this off at any time."
+        },
         "language": "Language",
         "menu": {
             "inviteFriends": "Invite friends to Peanut",
@@ -1483,6 +1487,7 @@
             "valid": "Valid",
             "virtual": "Virtual",
             "copyCardNumber": "Copy card number",
+            "copyExpiry": "Copy expiry date",
             "copyCvv": "Copy CVV",
             "hideDetails": "Hide card details",
             "showDetails": "Show card details",
@@ -1584,6 +1589,7 @@
             "walletAddSuccess": "Card added to your wallet",
             "walletAddFailed": "Couldn't add the card to your wallet. Please try again.",
             "cardNumberCopied": "Card number copied",
+            "expiryCopied": "Expiry date copied",
             "cvvCopied": "CVV copied",
             "autoRenewTitle": "Card auto renews soon",
             "autoRenewBody": "Your card will automatically renew in {days, plural, one {# day} other {# days}}, expiration date will change.",

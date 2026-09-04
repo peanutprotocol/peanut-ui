@@ -281,6 +281,10 @@
         }
     },
     "profile": {
+        "showFullNameConfirm": {
+            "title": "Mostrar seu nome completo?",
+            "description": "Seu nome completo fica público no seu perfil, ao lado do seu nome de usuário. Qualquer pessoa com o seu link da Peanut pode ver. Você pode desativar quando quiser."
+        },
         "language": "Idioma",
         "menu": {
             "inviteFriends": "Convide amigos para o Peanut",
@@ -1483,6 +1487,7 @@
             "valid": "Válido",
             "virtual": "Virtual",
             "copyCardNumber": "Copiar número do cartão",
+            "copyExpiry": "Copiar data de validade",
             "copyCvv": "Copiar CVV",
             "hideDetails": "Ocultar dados do cartão",
             "showDetails": "Mostrar dados do cartão",
@@ -1584,6 +1589,7 @@
             "walletAddSuccess": "Cartão adicionado à sua carteira",
             "walletAddFailed": "Não foi possível adicionar o cartão à sua carteira. Tente novamente.",
             "cardNumberCopied": "Número do cartão copiado",
+            "expiryCopied": "Data de validade copiada",
             "cvvCopied": "CVV copiado",
             "autoRenewTitle": "Seu cartão renova em breve",
             "autoRenewBody": "Seu cartão vai renovar automaticamente em {days, plural, one {# dia} other {# dias}}, a data de validade vai mudar.",

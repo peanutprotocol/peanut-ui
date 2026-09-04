@@ -65,6 +65,9 @@ const getServerSnapshot = () => INITIAL_STATE
 
 let currentExternalId: string | null = null
 let lastLinkedExternalId: string | null = null
+// the login in flight, so a second sync for the same id joins it instead of
+// starting another login() (the double-record race behind TASK-22209)
+let loginInFlight: { id: string; token: object; promise: Promise<void> } | null = null
 let disableExternalIdLogin = false
 let hasTrackedModalShown = false
 let initStarted = false
@@ -100,14 +103,33 @@ async function syncExternalIdLink() {
     const id = currentExternalId
     if (id && lastLinkedExternalId !== id) {
         if (disableExternalIdLogin) return
-        try {
-            const adapter = await getOneSignalAdapter()
-            await adapter.login(id)
-            // commit only on success so transient failures retry on the next sync
-            lastLinkedExternalId = id
-        } catch (err: unknown) {
-            handleLoginError(err)
+        if (loginInFlight?.id === id) {
+            // join it rather than start a second login for the same id, then
+            // check the outcome: a joined caller that never retries would leave
+            // the device unlinked whenever the login it joined failed
+            await loginInFlight.promise
+            if (currentExternalId === id && lastLinkedExternalId !== id) return syncExternalIdLink()
+            return
         }
+        const token = {}
+        const promise = (async () => {
+            try {
+                const adapter = await getOneSignalAdapter()
+                await adapter.login(id)
+                // commit only on success so transient failures retry on the next
+                // sync, and only while this call still owns the tracker — an
+                // older login settling late must not name an account we left
+                if (loginInFlight?.token === token) lastLinkedExternalId = id
+            } catch (err: unknown) {
+                handleLoginError(err)
+            } finally {
+                // a switch to another external id may own the tracker by now —
+                // clearing it here would drop that newer login's guard
+                if (loginInFlight?.token === token) loginInFlight = null
+            }
+        })()
+        loginInFlight = { id, token, promise }
+        return promise
     } else if (!id && lastLinkedExternalId !== null) {
         lastLinkedExternalId = null
         try {
@@ -207,27 +229,30 @@ async function ensureInitialized() {
             }
         })
 
-        adapter.onSubscriptionChange(async (optedIn) => {
+        adapter.onSubscriptionChange(({ optedIn, previousOptedIn }) => {
             addBreadcrumb({ category: 'onesignal', message: 'subscription change', data: { optedIn } })
-            // link subscription to logged-in user if available
-            if (currentExternalId && !disableExternalIdLogin) {
-                try {
-                    await adapter.login(currentExternalId)
-                } catch (err: unknown) {
-                    handleLoginError(err)
-                }
-            }
-
             // mirror OneSignal subscription state so consumers that gate on
             // `isPushOptedIn` (e.g. the home carousel CTA) react without
             // waiting for the next permissionChange event.
             setState({ isPushOptedIn: optedIn })
 
-            // hide modal when user opts in
-            if (optedIn) {
-                posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_SUBSCRIBED)
-                setState({ showPermissionModal: false })
-            }
+            // OneSignal fires `change` for every field it settles on a new
+            // subscription — the opt-in, the push token, the server-assigned
+            // id — and again when a token refreshes on reload. Only the one
+            // false → true opt-in transition is a new subscription; every
+            // other event reports the same one.
+            const isNewOptIn = optedIn && !previousOptedIn
+            if (!isNewOptIn) return
+
+            // The user is already linked from init / setExternalId, so this is
+            // only a retry for a login that failed there. An unconditional
+            // login() on every change raced OneSignal's own subscription
+            // create and re-registered the half-created subscription under
+            // the user as a second record — and OneSignal sends its welcome
+            // notification once per record (TASK-22209).
+            void syncExternalIdLink()
+            posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_SUBSCRIBED)
+            setState({ showPermissionModal: false })
         })
 
         // Notification tap → PostHog. OneSignal delivers push clicks to its own
