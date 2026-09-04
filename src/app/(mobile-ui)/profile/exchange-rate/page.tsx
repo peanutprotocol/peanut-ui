@@ -2,7 +2,6 @@
 
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import { Notification } from '@/components/0_Bruddle/Notification'
 import ExchangeRateWidget from '@/components/Global/ExchangeRateWidget'
 import NavHeader from '@/components/Global/NavHeader'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -91,10 +90,10 @@ export default function ExchangeRatePage() {
         <PageContainer>
             <PageStack gap="6">
                 <NavHeader title={t('title')} onPrev={onBack} />
-                {/* The pair the widget shows is a conversion, not a wallet:
-                    people read "EUR" here as "my balance is in euros". */}
-                <Notification priority="info">{t('balanceNote')}</Notification>
-                <PageStack.Center>
+                <PageStack.Center className="gap-3">
+                    {/* The pair the widget shows is a conversion, not a wallet:
+                        people read "EUR" here as "my balance is in euros". */}
+                    <p className="text-center text-body-s text-foreground-secondary">{t('balanceNote')}</p>
                     <ExchangeRateWidget
                         ctaIcon="arrow-down"
                         ctaLabel={goesToAddMoney ? t('addMoneyCta') : t('tryIt')}
