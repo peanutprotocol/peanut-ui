@@ -144,3 +144,12 @@ export function useRainCooldown(): RainCooldownContextType {
     if (!ctx) throw new Error('useRainCooldown must be used within RainCooldownProvider')
     return ctx
 }
+
+/**
+ * Same state, but `null` outside the provider instead of a throw. For
+ * advisory surfaces (the pre-tap card-pull notice) that must never take a
+ * payment screen down because a layout or a test mounted them bare.
+ */
+export function useRainCooldownOptional(): RainCooldownContextType | null {
+    return useContext(RainCooldownContext) ?? null
+}

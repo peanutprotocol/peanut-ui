@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { useRainCooldown } from '@/context/RainCooldownContext'
+import { useRainCooldownOptional } from '@/context/RainCooldownContext'
 import { computeCollateralPull } from '@/utils/collateralPull.utils'
 import { useBalanceSplit } from './useBalanceSplit'
 
@@ -16,7 +16,8 @@ import { useBalanceSplit } from './useBalanceSplit'
  */
 export function useCollateralPullPreview(amountUsd: string | number | null | undefined) {
     const { hasActiveCard, offCardUnits, onCardCents } = useBalanceSplit()
-    const { cooldownEndsAt } = useRainCooldown()
+    // Advisory only: no provider (a bare layout or a view test) reads as "no lock".
+    const cooldownEndsAt = useRainCooldownOptional()?.cooldownEndsAt ?? null
 
     const pull = useMemo(
         () => (hasActiveCard ? computeCollateralPull({ amountUsd, offCardUnits, onCardCents }) : null),
