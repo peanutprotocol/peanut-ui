@@ -1,6 +1,10 @@
 import CurrencySelect from '@/components/LandingPage/CurrencySelect'
 import countryCurrencyMappings, { getFlagUrl } from '@/constants/countryCurrencyMapping'
-import { toDisplayCurrency, toSupportedExchangeCurrency } from '@/constants/exchange-currencies.consts'
+import {
+    resolveExchangeCurrencyPair,
+    toDisplayCurrency,
+    toSupportedExchangeCurrency,
+} from '@/constants/exchange-currencies.consts'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { applyBridgeCrossCurrencyFee, reverseBridgeCrossCurrencyFee } from '@/utils/bridge.utils'
@@ -80,14 +84,12 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
     // caller whose CTA routes into a country flow needs both to agree, so it
     // opts into the routable-only parse via `restrictToRoutable`.
     const resolveCurrency = restrictToRoutable ? toSupportedExchangeCurrency : toDisplayCurrency
-    const rawSourceCurrency = resolveCurrency(query.from)
-    const rawDestinationCurrency = resolveCurrency(query.to)
-    // Resolved together, not with independent 'USD'/'EUR' defaults: an invalid
-    // side falling back to 'USD' while the other side was already the
-    // explicit, valid 'USD' collapsed the pair to USD/USD — a currency
-    // "exchanged" with itself.
-    const sourceCurrency = rawSourceCurrency ?? (rawDestinationCurrency === 'USD' ? 'EUR' : 'USD')
-    const destinationCurrency = rawDestinationCurrency ?? (sourceCurrency === 'USD' ? 'EUR' : 'USD')
+    // Resolved as a pair, not two independently-defaulted sides — see
+    // resolveExchangeCurrencyPair. A page that derives its own label or
+    // redirect from this same URL before the widget mounts (currently just
+    // /profile/exchange-rate) must call this exact function too, or its
+    // fallback can disagree with what the widget ends up showing.
+    const [sourceCurrency, destinationCurrency] = resolveExchangeCurrencyPair(query.from, query.to, resolveCurrency)
     const urlSourceAmount = query.amount > 0 ? query.amount : 10
 
     // Exchange rate hook handles all the conversion logic

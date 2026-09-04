@@ -38,3 +38,27 @@ export function toDisplayCurrency(value: string | null | undefined): string | nu
     const normalized = value?.trim().toUpperCase()
     return normalized && CURRENCY_CODE.test(normalized) ? normalized : null
 }
+
+/**
+ * Resolves a `from`/`to` URL pair through the given resolver, falling back to
+ * USD/EUR — but as a pair, not two independent sides.
+ *
+ * Resolving each side on its own with its own default ('USD' for source,
+ * 'EUR' for destination) let an invalid side fall back onto whatever currency
+ * the *other*, valid side already held — an invalid source next to an
+ * explicit `to=USD` produced a USD/USD pair, a currency "exchanged" with
+ * itself. This is the one place that decision is made, so every caller
+ * (the widget, and any page that independently derives a label or a redirect
+ * from the same URL before the widget mounts) sees the same pair.
+ */
+export function resolveExchangeCurrencyPair(
+    rawSource: string | null | undefined,
+    rawDestination: string | null | undefined,
+    resolve: (value: string | null | undefined) => string | null
+): [string, string] {
+    const resolvedSource = resolve(rawSource)
+    const resolvedDestination = resolve(rawDestination)
+    const sourceCurrency = resolvedSource ?? (resolvedDestination === 'USD' ? 'EUR' : 'USD')
+    const destinationCurrency = resolvedDestination ?? (sourceCurrency === 'USD' ? 'EUR' : 'USD')
+    return [sourceCurrency, destinationCurrency]
+}

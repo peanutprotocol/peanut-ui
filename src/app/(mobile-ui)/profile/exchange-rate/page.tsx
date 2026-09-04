@@ -7,7 +7,7 @@ import ExchangeRateWidget from '@/components/Global/ExchangeRateWidget'
 import NavHeader from '@/components/Global/NavHeader'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { printableUsdc } from '@/utils/balance.utils'
-import { toSupportedExchangeCurrency } from '@/constants/exchange-currencies.consts'
+import { resolveExchangeCurrencyPair, toSupportedExchangeCurrency } from '@/constants/exchange-currencies.consts'
 import { getExchangeRateWidgetRedirectRoute } from '@/utils/exchangeRateWidget.utils'
 import { withReturnTo } from '@/utils/return-to.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
@@ -45,9 +45,13 @@ export default function ExchangeRatePage() {
     )
     // Redirects need a currency with an actual rail behind it; display does
     // not. A pair outside the six falls back to the default rather than
-    // routing into a country flow the product does not serve.
-    const routableFrom = toSupportedExchangeCurrency(from) ?? 'USD'
-    const routableTo = toSupportedExchangeCurrency(to) ?? 'EUR'
+    // routing into a country flow the product does not serve. Same
+    // pair-aware resolver the widget uses (resolveExchangeCurrencyPair) — an
+    // invalid side falling back to its own independent default could land on
+    // whatever currency the other, valid side already held, e.g. `?from=PLN
+    // &to=USD` used to resolve here to USD/USD while the widget (also
+    // restricted) resolved it to EUR/USD, so the label and the tap disagreed.
+    const [routableFrom, routableTo] = resolveExchangeCurrencyPair(from, to, toSupportedExchangeCurrency)
     const formattedBalance = parseFloat(printableUsdc(balance ?? 0n))
     const destination = getExchangeRateWidgetRedirectRoute(
         routableFrom,
@@ -59,12 +63,18 @@ export default function ExchangeRatePage() {
 
     const handleCtaAction = (sourceCurrency: string, destinationCurrency: string) => {
         // The widget is rendered below with `restrictToRoutable`, so these
-        // arguments are already one of the six — clamped again here so the
-        // route can never drift from `destination`/`goesToAddMoney` above,
-        // which are computed from the same URL independently of the widget.
+        // arguments are already a resolved, non-colliding pair — resolved
+        // again here, through the same function, so the route can never
+        // drift from `destination`/`goesToAddMoney` above, which come from
+        // the same URL independently of the widget.
+        const [clampedFrom, clampedTo] = resolveExchangeCurrencyPair(
+            sourceCurrency,
+            destinationCurrency,
+            toSupportedExchangeCurrency
+        )
         const redirectRoute = getExchangeRateWidgetRedirectRoute(
-            toSupportedExchangeCurrency(sourceCurrency) ?? 'USD',
-            toSupportedExchangeCurrency(destinationCurrency) ?? 'EUR',
+            clampedFrom,
+            clampedTo,
             formattedBalance,
             unlockedRegionPaths
         )

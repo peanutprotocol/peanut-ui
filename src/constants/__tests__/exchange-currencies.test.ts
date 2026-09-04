@@ -2,6 +2,7 @@
 // is what stands between a stale bookmark and a quote in a currency the
 // product does not support.
 import {
+    resolveExchangeCurrencyPair,
     SUPPORTED_EXCHANGE_CURRENCIES,
     toDisplayCurrency,
     toSupportedExchangeCurrency,
@@ -81,5 +82,36 @@ describe('toDisplayCurrency', () => {
         // permissions. THB quotes; THB does not route.
         expect(toDisplayCurrency('THB')).toBe('THB')
         expect(toSupportedExchangeCurrency('THB')).toBeNull()
+    })
+})
+
+describe('resolveExchangeCurrencyPair', () => {
+    it('passes through two valid, distinct currencies unchanged', () => {
+        expect(resolveExchangeCurrencyPair('GBP', 'ARS', toSupportedExchangeCurrency)).toEqual(['GBP', 'ARS'])
+    })
+
+    it('never collapses to USD/USD when an invalid source sits next to an explicit USD', () => {
+        // Resolving each side with its own independent default ('USD' for
+        // source, 'EUR' for destination) used to let PLN fall back onto the
+        // same 'USD' the other, valid side already held.
+        expect(resolveExchangeCurrencyPair('PLN', 'USD', toSupportedExchangeCurrency)).toEqual(['EUR', 'USD'])
+    })
+
+    it('never collapses to USD/USD when an invalid destination sits next to an explicit USD', () => {
+        expect(resolveExchangeCurrencyPair('USD', 'PLN', toSupportedExchangeCurrency)).toEqual(['USD', 'EUR'])
+    })
+
+    it('falls back to the USD/EUR default pair when both sides are invalid', () => {
+        expect(resolveExchangeCurrencyPair('PLN', 'CHF', toSupportedExchangeCurrency)).toEqual(['USD', 'EUR'])
+    })
+
+    it('lets a valid non-USD source pick USD as the default destination', () => {
+        expect(resolveExchangeCurrencyPair('EUR', 'PLN', toSupportedExchangeCurrency)).toEqual(['EUR', 'USD'])
+    })
+
+    it('works with the display resolver too, for a non-restricted caller', () => {
+        // THB is not routable but is a valid display currency, so it passes
+        // through untouched rather than triggering the USD/EUR fallback.
+        expect(resolveExchangeCurrencyPair('USD', 'THB', toDisplayCurrency)).toEqual(['USD', 'THB'])
     })
 })

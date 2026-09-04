@@ -163,4 +163,27 @@ describe('exchange-rate CTA', () => {
             expect(to).toBe('EUR')
         }
     })
+
+    /*
+     * `?from=PLN&to=USD` is the collision case: PLN is invalid and would
+     * independently default to 'USD', landing on the same currency as the
+     * other, explicit and valid 'USD' side. The page must resolve this pair
+     * through the same pair-aware function the widget uses (EUR/USD), not its
+     * own independent fallback (which used to produce USD/USD) — otherwise
+     * the label names one flow and the tap opens another.
+     */
+    it('resolves an invalid source next to an explicit USD to EUR, not USD/USD', () => {
+        mockPair.from = 'PLN'
+        mockPair.to = 'USD'
+        mockGetRedirectRoute.mockReturnValue('/withdraw?currencyCode=USD')
+        renderPage()
+
+        fireEvent.click(screen.getByTestId('widget-cta'))
+
+        expect(mockGetRedirectRoute.mock.calls.length).toBeGreaterThan(0)
+        for (const [from, to] of mockGetRedirectRoute.mock.calls) {
+            expect(from).toBe('EUR')
+            expect(to).toBe('USD')
+        }
+    })
 })
