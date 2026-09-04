@@ -42,6 +42,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     const { user: authenticatedUser } = useAuth()
     const tAvatar = useTranslations('avatar')
     const tGlobal = useTranslations('global')
+    const tKyc = useTranslations('kyc')
     const toast = useToast()
     // The self-profile verified badge means "this person's ID was confirmed" —
     // NOT "this person has an enabled payment rail." It reads identityVerification
@@ -113,15 +114,20 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                         </span>
                         <span className="truncate text-heading-card text-foreground-primary">{username}</span>
                         {isVerified && (
-                            <Icon name="check" size={16} className="ml-1 shrink-0 text-green-500" aria-hidden />
+                            <>
+                                <Icon name="check" size={16} className="ml-1 shrink-0 text-green-500" aria-hidden />
+                                <span className="sr-only">{tKyc('verified')}</span>
+                            </>
                         )}
                     </button>
+                    {/* the frame draws the chrome: no shadow of its own, no press translate */}
                     <ShareButton
                         url={profileUrl}
                         title=""
                         variant="transparent"
+                        shadowSize={null}
                         onSuccess={() => posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, REFERRAL_PILL_PROPS)}
-                        className="h-full w-auto shrink-0 pr-6 pl-4 shadow-none active:translate-x-0 active:translate-y-0"
+                        className="h-full w-auto shrink-0 pr-6 pl-4 active:translate-x-0 active:translate-y-0"
                     >
                         <span className="sr-only">{tGlobal('shareButton.share')}</span>
                     </ShareButton>

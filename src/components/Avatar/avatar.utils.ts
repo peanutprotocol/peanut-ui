@@ -40,10 +40,9 @@ const DEALT = 7
  * the hand so the selected state is on screen, and the rest is filled from
  * the basics plus the other unlocked badge avatars. Slots 2-8 are shuffled
  * together. Rolling deals again and never changes the pick (Split's
- * semantics: the die changes what is offered, not who you are).
- *
- * The fill pool is the basics first, then the earned avatars — the picker
- * tests pin `Math.random` and rely on that order.
+ * semantics: the die changes what is offered, not who you are). A pick this
+ * bundle's manifest does not know (a lagging native bundle after the API
+ * added a slug) is not dealt: it would render as a second initial tile.
  */
 export function dealHand(
     pick: string | null,
@@ -55,7 +54,7 @@ export function dealHand(
     const preferred = prefer ? earned.filter((key) => key.startsWith(`badge.${prefer}.`)) : []
     const hand: string[] = []
     if (earned.length) hand.push(draw(preferred.length ? [...preferred] : [...earned]))
-    if (pick) hand.push(pick)
+    if (pick && avatarSrc(pick)) hand.push(pick)
     const rest = [...basicAvatarKeys(), ...earned].filter((key) => !hand.includes(key))
     while (hand.length < DEALT && rest.length) hand.push(draw(rest))
     for (let i = hand.length - 1; i > 0; i--) {

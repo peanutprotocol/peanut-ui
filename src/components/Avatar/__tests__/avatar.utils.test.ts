@@ -1,6 +1,7 @@
 import { existsSync } from 'fs'
 import { join } from 'path'
 import badgeAssets from '@/types/badge-assets.json'
+import { AVATAR_CAST } from '../avatar.consts'
 import { avatarPool, avatarSrc, badgeAvatarKeys, basicAvatarKeys, dealHand, letterAvatarSrc } from '../avatar.utils'
 
 describe('avatar catalog', () => {
@@ -50,6 +51,13 @@ describe('avatar catalog', () => {
         expect(avatarPool(['OFFRAMP_USER'])).toHaveLength(23)
     })
 
+    // the cast name is a tile's accessible name; a basic without one would be
+    // announced by its slug, which does not match the drawing
+    it('names every basic in the cast table', () => {
+        for (const slug of badgeAssets.avatars.basics)
+            expect({ slug, name: AVATAR_CAST[slug] }).toEqual({ slug, name: expect.any(String) })
+    })
+
     it('maps keys to their art and rejects anything the manifest does not know', () => {
         expect(avatarSrc('basic.apple')).toBe('/avatars/basic/apple.webp')
         expect(avatarSrc('badge.OFFRAMP_USER.wink')).toBe('/avatars/badge/OFFRAMP_USER/wink.webp')
@@ -85,6 +93,12 @@ describe('dealHand', () => {
             // a worn badge avatar does not count: the guarantee is a second earned card
             expect(hand.filter((key) => isBadge(key) && key !== pick).length).toBeGreaterThan(0)
         }
+    })
+
+    it('does not deal a pick this manifest does not know', () => {
+        const hand = dealHand('basic.peanut', unlocked, { random: seeded(7) })
+        expect(hand).toHaveLength(8)
+        expect(hand).not.toContain('basic.peanut')
     })
 
     it('deals only basics to a user with no badges', () => {

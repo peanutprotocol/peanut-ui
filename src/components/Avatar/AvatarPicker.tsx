@@ -129,7 +129,8 @@ export function AvatarPicker({ open, onOpenChange, prefer }: AvatarPickerProps) 
                                 tabIndex={index === focusIndex ? 0 : -1}
                                 onClick={() => save(key)}
                                 className={twMerge(
-                                    'relative flex items-center justify-center rounded-sm border border-border-disabled bg-background-default p-4 focus-visible:outline-[3px] focus-visible:outline-action-focus',
+                                    // XL on top: the "Earned" chip sits in that band, clear of the sticker
+                                    'relative flex items-center justify-center rounded-sm border border-border-disabled bg-background-default px-4 pt-6 pb-4 focus-visible:outline-[3px] focus-visible:outline-action-focus',
                                     // yellow marks an earned avatar, as on the badge-earned toast
                                     earned && 'border-action-secondary',
                                     checked && 'border-2 border-border-default shadow-4'
