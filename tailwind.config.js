@@ -112,6 +112,12 @@ module.exports = {
                 white: '#FFFFFF',
                 red: '#FF0000',
                 'kyc-red': '#C80000',
+                // action-focus: the design-system focus-ring color (design/design.md
+                // law 8), landing ahead of the full feat/design-system token merge
+                // for LinkButton's focus-visible ring.
+                action: {
+                    focus: '#2563EB',
+                },
                 black: '#000000',
                 'kyc-green': '#00C800',
 
@@ -173,6 +179,8 @@ module.exports = {
             },
             transitionDuration: {
                 DEFAULT: '200ms',
+                // matches feat/design-system's --transition-duration-instant
+                instant: '100ms',
             },
             transitionTimingFunction: {
                 DEFAULT: 'linear',
