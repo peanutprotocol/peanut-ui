@@ -281,7 +281,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Log In. A signed-in native user who tapped a friend's invite App Link
         // has it set; leaving it through logout would strand them on Signup,
         // unable to log back in until the process dies (session cookie).
-        removeFromCookie('inviteCode')
+        clearInvite()
 
         // A cached step-up proof outliving the session would let the next user
         // of this device skip verification on card and withdrawal screens.

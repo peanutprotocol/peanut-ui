@@ -8,7 +8,7 @@ import { useSetupBackHandler } from '@/hooks/useSetupBackHandler'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
 import { useIosPwaInstallGate } from '@/hooks/useIosPwaInstallGate'
-import { readInviteCode } from '@/utils/invite-stash'
+import { readInviteCode, stashInvite } from '@/utils/invite-stash'
 import { Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { setupSteps as masterSetupSteps } from '../../../components/Setup/Setup.consts'
 import { hasKnownDeviceCredentials, resolveSetupEntryStep } from '@/components/Setup/setup-entry'
@@ -16,7 +16,7 @@ import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal
 import { isLikelyWebview, isDeviceOsSupported } from '@/components/Setup/Setup.utils'
 import { isCapacitor } from '@/utils/capacitor'
 import { isPwaSunsetOn } from '@/utils/migration.utils'
-import { saveToCookie, toInviteCode } from '@/utils/general.utils'
+import { toInviteCode } from '@/utils/general.utils'
 import { useSearchParams } from 'next/navigation'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useGeoLocation } from '@/hooks/useGeoLocation'
@@ -27,10 +27,11 @@ import { PeanutWavingHello } from '@/assets/mascot'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useTranslations } from 'next-intl'
+import { EInviteType } from '@/services/services.types'
 
 function SetupPageContent() {
     const t = useTranslations('setup')
-    const { steps, resetSetupFlow } = useSetupFlowContext()
+    const { steps, resetSetupFlow, setNoBackLockScreenId } = useSetupFlowContext()
     const { step, currentIndex: currentStepIndex, direction, handleNext, handleBack, setScreenId } = useSetupFlow()
     const { logoutUser, isLoggingOut, user, isFetchingUser } = useAuth()
     const { setShowIosPwaInstallScreen } = useIosPwaInstallGate()
@@ -71,6 +72,17 @@ function SetupPageContent() {
         !existingSessionUsername &&
         !showDeviceNotSupportedModal &&
         !showBrowserNotSupportedModal
+
+    // Arm the point of no return only for a step the user actually SEES —
+    // stepRendered excludes entry-resolution loading, the existing-session
+    // interstitial, and the unsupported modals. A stale terminal URL
+    // (?screen=sign-test-transaction in a fresh session) must stay unlockable
+    // so the entry resolver can replace it (Chip review round 2).
+    useEffect(() => {
+        if (stepRendered && step && step.showBackButton === false) {
+            setNoBackLockScreenId(step.screenId)
+        }
+    }, [stepRendered, step, setNoBackLockScreenId])
 
     useSetupStepAnalytics({
         enabled: stepRendered,
@@ -158,7 +170,7 @@ function SetupPageContent() {
              */
             const codeFromUrl = inviteCodeParam
             if (codeFromUrl && toInviteCode(codeFromUrl)) {
-                saveToCookie('inviteCode', toInviteCode(codeFromUrl))
+                stashInvite(toInviteCode(codeFromUrl), EInviteType.DIRECT)
             }
             const userInviteCode = readInviteCode()
             // pwa-sunset notice window: web signups are closed (Landing hides

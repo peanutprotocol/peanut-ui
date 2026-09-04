@@ -1,9 +1,16 @@
 import { act, renderHook } from '@testing-library/react'
-import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
+import { NuqsTestingAdapter, type OnUrlUpdateFunction } from 'nuqs/adapters/testing'
 import type { ReactNode } from 'react'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { SetupFlowProvider, useSetupFlowContext } from '../SetupFlowContext'
 import { setupSteps } from '@/components/Setup/Setup.consts'
+
+// native detection is mocked so the history-mode contract below can flip it
+let mockIsNativeBridge = false
+jest.mock('@/utils/capacitor', () => ({
+    ...jest.requireActual('@/utils/capacitor'),
+    isNativeBridge: () => mockIsNativeBridge,
+}))
 
 // The setup cursor is a named screen id in the URL driven by the shared
 // stepper (TASK-21460) — these pin the contracts that replaced the redux
@@ -97,16 +104,111 @@ describe('useSetupFlow (URL stepper)', () => {
         expect(result.current.context.direction).toBe(-1)
     })
 
-    it('point of no return: after a no-back step renders, earlier screens bounce back (history pop tampering)', async () => {
-        const { result, rerender } = renderFlow({ screen: 'sign-test-transaction' })
+    it('point of no return: once the page arms the lock for a VISIBLE no-back step, earlier screens bounce back', async () => {
+        const { result } = renderFlow({ screen: 'sign-test-transaction' })
         await seedSteps(result)
-        // the no-back step has rendered — its lock is derived from the render
         expect(result.current.flow.step?.screenId).toBe('sign-test-transaction')
-        rerender()
+        // the page arms the lock only when stepRendered confirms visibility
+        await act(async () => {
+            result.current.context.setNoBackLockScreenId('sign-test-transaction')
+        })
         // a backward URL move (browser back / hand edit) may not re-enter the forms
         await act(async () => {
             await result.current.flow.setScreenId('signup')
         })
         expect(result.current.flow.step?.screenId).toBe('sign-test-transaction')
+    })
+
+    it('a STALE terminal URL never locks: with no rendered lock, entry resolution can replace it (Chip round 2)', async () => {
+        // fresh logged-out session lands on /setup?screen=sign-test-transaction
+        // (a copied/reloaded stale URL) — the page is still on its loading
+        // screen, so no lock is armed and the entry resolver moves freely
+        const { result } = renderFlow({ screen: 'sign-test-transaction' })
+        await seedSteps(result)
+        expect(result.current.flow.step?.screenId).toBe('sign-test-transaction')
+        await act(async () => {
+            await result.current.flow.setScreenId('signup')
+        })
+        expect(result.current.flow.step?.screenId).toBe('signup')
+    })
+
+    it('resetSetupFlow disarms the lock (start-fresh on the existing-session interstitial)', async () => {
+        const { result } = renderFlow({ screen: 'sign-test-transaction' })
+        await seedSteps(result)
+        await act(async () => {
+            result.current.context.setNoBackLockScreenId('sign-test-transaction')
+        })
+        await act(async () => {
+            result.current.context.resetSetupFlow()
+        })
+        await act(async () => {
+            await result.current.flow.setScreenId('signup')
+        })
+        expect(result.current.flow.step?.screenId).toBe('signup')
+    })
+})
+
+// Native hardware Back is consumed by useSetupBackHandler (it calls handleBack
+// directly), so setup transitions must NOT mint WebView history entries there:
+// pushed entries are never consumed during the flow, and Back after completing
+// setup would pop through stale /setup screens back into onboarding — the
+// contract the deleted useSetupStepUrlSync mirror kept via replaceState (Chip
+// review, PR #2949). The browser keeps push so web Back walks the steps.
+describe('useSetupFlow — history mode per platform', () => {
+    // rateLimitFactor 0: handleNext fire-and-forgets the URL write (void
+    // goTo), so without it the assertion can outrun nuqs's throttle queue on
+    // a slow runner (this exact pair passed locally and failed in CI)
+    const renderWithUrlSpy = (onUrlUpdate: OnUrlUpdateFunction) =>
+        renderHook(
+            () => {
+                const context = useSetupFlowContext()
+                const flow = useSetupFlow()
+                return { context, flow }
+            },
+            {
+                wrapper: ({ children }: { children: ReactNode }) => (
+                    <NuqsTestingAdapter
+                        searchParams={{ screen: 'signup' }}
+                        onUrlUpdate={onUrlUpdate}
+                        rateLimitFactor={0}
+                    >
+                        <SetupFlowProvider>{children}</SetupFlowProvider>
+                    </NuqsTestingAdapter>
+                ),
+            }
+        )
+
+    afterEach(() => {
+        mockIsNativeBridge = false
+    })
+
+    it('web: transitions push, so browser Back walks the steps', async () => {
+        mockIsNativeBridge = false
+        const onUrlUpdate = jest.fn()
+        const { result } = renderWithUrlSpy(onUrlUpdate)
+        await seedSteps(result)
+        await act(async () => {
+            await result.current.flow.handleNext()
+            // one macrotask: let the (fire-and-forget) URL write flush
+            await new Promise((resolve) => setTimeout(resolve, 0))
+        })
+        const update = onUrlUpdate.mock.calls.at(-1)?.[0]
+        expect(update?.searchParams.get('screen')).toBe('residence')
+        expect(update?.options.history).toBe('push')
+    })
+
+    it('native: transitions replace — hardware Back is handled in-app, entries must not pile up', async () => {
+        mockIsNativeBridge = true
+        const onUrlUpdate = jest.fn()
+        const { result } = renderWithUrlSpy(onUrlUpdate)
+        await seedSteps(result)
+        await act(async () => {
+            await result.current.flow.handleNext()
+            // one macrotask: let the (fire-and-forget) URL write flush
+            await new Promise((resolve) => setTimeout(resolve, 0))
+        })
+        const update = onUrlUpdate.mock.calls.at(-1)?.[0]
+        expect(update?.searchParams.get('screen')).toBe('residence')
+        expect(update?.options.history).toBe('replace')
     })
 })
