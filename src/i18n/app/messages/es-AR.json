@@ -386,7 +386,7 @@
         }
     },
     "exchangeRate": {
-        "tryIt": "Enviar ahora",
+        "tryIt": "Retirar ahora",
         "widget": {
             "youSend": "Vos enviás"
         },
@@ -906,7 +906,7 @@
     "withdraw": {
         "howWouldYouLikeToWithdraw": "¿Cómo querés retirar?",
         "howWouldYouLikeToSend": "¿Cómo querés enviar?",
-        "chooseWithdrawingMethod": "Elegí el método de envío",
+        "chooseWithdrawingMethod": "Elegí el método de retiro",
         "noAccountsTitle": "Aún no tenés cuentas",
         "noAccountsDescription": "Agregá los datos de tus cuentas una vez<br></br>y retirá con un solo toque.",
         "initial": {

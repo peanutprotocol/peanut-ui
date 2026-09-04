@@ -985,7 +985,7 @@ function MantecaBankWithdrawFlow() {
                         disabled={(!!errorMessage && errorCode !== 'balanceSettling') || isLoading}
                         shadowSize="4"
                     >
-                        {isLoading ? tLoading(loadingStateKey(loadingState)) : tNav('send')}
+                        {isLoading ? tLoading(loadingStateKey(loadingState)) : tNav('withdraw')}
                     </Button>
                     {(errorMessage || sumsubFlow.error) && (
                         <Notification priority="error">{(errorMessage || sumsubFlow.error)!}</Notification>

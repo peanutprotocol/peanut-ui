@@ -232,13 +232,9 @@ export default function ConfirmWithdrawView({
                         loading={isProcessing}
                         className="w-full"
                     >
-                        {/* "Send", not "Withdraw", whatever the entry point: the
-                            action is money leaving for a destination, and the
-                            withdraw framing on the button read as a different
-                            operation from the one the user started (device
-                            feedback 2026-09-04). Surrounding titles keep the
-                            entry point's own framing. */}
-                        {isProcessing ? tLoading('sending') : tNav('send')}
+                        {isProcessing
+                            ? tLoading(isFromSendFlow ? 'sending' : 'withdrawing')
+                            : tNav(isFromSendFlow ? 'send' : 'withdraw')}
                     </Button>
                 )}
 

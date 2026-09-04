@@ -657,10 +657,10 @@
     "exchangeRate": {
         "title": "Tipo de cambio y comisiones",
         "balanceNote": "Tu saldo de Peanut se mantiene en USD, pero puedes enviar dinero en la moneda local que acepte tu banco.",
-        "tryIt": "Enviar ahora",
+        "tryIt": "Retirar ahora",
         "widget": {
             "youSend": "Tú envías",
-            "recipientGets": "El destinatario recibe",
+            "recipientGets": "Recibes",
             "swapCurrencies": "Intercambiar monedas",
             "rateUnavailable": "Tipo de cambio no disponible por ahora",
             "bankFee": "Comisión bancaria",
@@ -1815,7 +1815,7 @@
         "amountToSend": "Monto a enviar",
         "howWouldYouLikeToWithdraw": "¿Cómo quieres retirar?",
         "howWouldYouLikeToSend": "¿Cómo quieres enviar?",
-        "chooseWithdrawingMethod": "Elige el método de envío",
+        "chooseWithdrawingMethod": "Elige el método de retiro",
         "noAccountsTitle": "Aún no tienes cuentas",
         "noAccountsDescription": "Agrega los datos de tus cuentas una vez<br></br>y retira con un solo toque.",
         "addAccount": "Agregar cuenta",

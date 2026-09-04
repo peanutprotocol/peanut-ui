@@ -657,10 +657,10 @@
     "exchangeRate": {
         "title": "Exchange rate & fees",
         "balanceNote": "Your Peanut balance is held in USD, but you can send money in the local currency your bank accepts.",
-        "tryIt": "Send now",
+        "tryIt": "Withdraw now",
         "widget": {
             "youSend": "You send",
-            "recipientGets": "Recipient gets",
+            "recipientGets": "You get",
             "swapCurrencies": "Swap currencies",
             "rateUnavailable": "Rate currently unavailable",
             "bankFee": "Bank fee",
@@ -1815,7 +1815,7 @@
         "amountToSend": "Amount to send",
         "howWouldYouLikeToWithdraw": "How would you like to withdraw?",
         "howWouldYouLikeToSend": "How would you like to send?",
-        "chooseWithdrawingMethod": "Choose sending method",
+        "chooseWithdrawingMethod": "Choose withdrawing method",
         "noAccountsTitle": "No accounts yet",
         "noAccountsDescription": "Add your accounts details once<br></br>to withdraw in one tap.",
         "addAccount": "Add account",
