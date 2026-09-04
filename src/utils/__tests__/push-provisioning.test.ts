@@ -18,6 +18,7 @@ jest.mock('@capacitor/core', () => ({
 jest.mock('../capacitor', () => ({
     isIOSNative: jest.fn(() => false),
     isAndroidNative: jest.fn(() => false),
+    isNativeBridge: jest.fn(() => true),
 }))
 
 const mockIsIOSNative = isIOSNative as jest.MockedFunction<typeof isIOSNative>
@@ -62,7 +63,14 @@ describe('getPushProvisioningAvailability', () => {
 
 describe('addCardToWallet', () => {
     beforeEach(() => {
+        // Both platform answers reset AND a supported one enabled explicitly:
+        // clearAllMocks keeps mockReturnValue, so these tests used to pass only
+        // because the availability suite above happened to leave Android true.
+        // Run alone, each took the unsupported-platform fallback and never
+        // reached addCard at all.
         jest.clearAllMocks()
+        mockIsIOSNative.mockReturnValue(false)
+        mockIsAndroidNative.mockReturnValue(true)
     })
 
     it('passes through the native result', async () => {
@@ -71,6 +79,7 @@ describe('addCardToWallet', () => {
             added: true,
             last4: '1234',
         })
+        expect(addCard).toHaveBeenCalled()
     })
 
     it('never throws — plugin errors come back as { added: false, error }', async () => {
@@ -79,5 +88,16 @@ describe('addCardToWallet', () => {
             added: false,
             error: 'boom',
         })
+        expect(addCard).toHaveBeenCalled()
+    })
+
+    it('is unavailable on web without touching the plugin', async () => {
+        mockIsAndroidNative.mockReturnValue(false)
+
+        await expect(addCardToWallet({ cardId: 'c', cardSecret: 's' })).resolves.toEqual({
+            added: false,
+            error: 'PushProvisioning is not available on this platform',
+        })
+        expect(addCard).not.toHaveBeenCalled()
     })
 })
