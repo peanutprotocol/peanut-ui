@@ -229,10 +229,19 @@ jobs:
                   MEAWALLET_NEXUS_PASSWORD: ${{ secrets.MEAWALLET_NEXUS_PASSWORD_ANDROID }}
                   ANDROID_VERSION_NAME: ${{ steps.version.outputs.name }}
               run: |
-                  # Monotonic (run_number always increases). +10000 clears legacy
-                  # codes already on Play from earlier manual/local uploads (small
-                  # console codes plus git-commit-count builds up to ~8600).
-                  export ANDROID_VERSION_CODE=$((10000 + GITHUB_RUN_NUMBER))
+                  # versionCode must increase in UPLOAD order, which is not run
+                  # order: GitHub preserves run_number when you re-run an older
+                  # workflow and only bumps run_attempt, so any run-numbered or
+                  # version-derived code goes backwards when dispatch 1 is
+                  # re-run after dispatch 2 has already uploaded — and Play
+                  # refuses the recovery upload, leaving the retry wedged.
+                  # scripts/android-version-code.mjs uses wall-clock seconds,
+                  # the only value monotonic by construction rather than by an
+                  # argument about GitHub's numbering. See the header there for
+                  # the two schemes this replaces.
+                  ANDROID_VERSION_CODE="$(node scripts/android-version-code.mjs)"
+                  export ANDROID_VERSION_CODE
+                  echo "versionCode $ANDROID_VERSION_CODE (version $ANDROID_VERSION_NAME, run $GITHUB_RUN_NUMBER attempt $GITHUB_RUN_ATTEMPT)"
                   pnpm native:release
 
             - name: Upload to Google Play
