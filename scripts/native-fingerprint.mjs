@@ -42,6 +42,7 @@
 //   node scripts/native-fingerprint.mjs --ref v1.2.0    # hash at a git ref
 //   node scripts/native-fingerprint.mjs --manifest      # per-input hashes as JSON
 //   node scripts/native-fingerprint.mjs --diff v1.2.0   # what moved; exit 1 if anything did
+//   node scripts/native-fingerprint.mjs --root /tmp/repo # against another checkout (tests)
 
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
@@ -49,7 +50,12 @@ import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+// Overridable so the tests can run against a throwaway fixture repo instead of
+// mutating this checkout: the suite runs in parallel with others that read the
+// same tracked files (marketing-version.test.js reads project.pbxproj), and a
+// mutate-then-restore around a spawned CLI is a race, not an isolation.
+const defaultRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+let repoRoot = defaultRoot
 
 // Dependencies with a native half. Deliberately not a scope allowlist:
 // community plugins live outside the first-party scopes (@capacitor-community/…,
@@ -102,8 +108,24 @@ export const NATIVE_INPUTS = [
     // bundle calling a new method, or relying on corrected behaviour in one of
     // these, needs the binary that carries it — and none of the config files
     // above move when they change.
-    { kind: 'glob', id: 'android/app/src/**.{java,kt}', dirs: ['android/app/src'], extensions: ['.java', '.kt'] },
+    // src/main only, NOT every source set. `src/meawallet` is added to the
+    // build by android/app/build.gradle only when the MeaWallet Nexus
+    // credentials are present, so whether its bridge is in the binary depends
+    // on CI secrets rather than on the tree. Hashing it unconditionally made a
+    // release tag claim a bridge the binary may never have registered — worse
+    // than not claiming it, because a later OTA could rely on the claim.
+    {
+        kind: 'glob',
+        id: 'android/app/src/main/**.{java,kt}',
+        dirs: ['android/app/src/main'],
+        extensions: ['.java', '.kt'],
+    },
     { kind: 'glob', id: 'ios/App/**.swift', dirs: ['ios/App'], extensions: ['.swift'] },
+
+    // pnpm patches rewrite a package's JS wrapper AND its native sources with
+    // no version change, so neither the lockfile version nor the generated
+    // manifests move. The patch files are the only record.
+    { kind: 'glob', id: 'patches/**', dirs: ['patches'], extensions: [''] },
 
     // Resolved native plugin versions, from the lockfile rather than the
     // generated manifests, which the OTA workflow never regenerates.
@@ -238,8 +260,25 @@ function nativeDependencyVersions(ref) {
     )
     const names = [...new Set([...declared, ...generatedPluginNames(ref)])].sort()
 
-    return names
-        .map((name) => {
+    // Every dependency NAME, not just the native-looking ones. A plugin whose
+    // package name says nothing about being native (and whose generated
+    // manifests are stale, so Capacitor's own list cannot recover it either)
+    // would otherwise be invisible: package.json and the lockfile are not
+    // inputs on their own. Names, not versions, deliberately — adding or
+    // removing a dependency is rare and worth re-checking the native surface,
+    // while bumping a JS-only library is not, and a check that refuses an OTA
+    // on every lockfile churn gets switched off.
+    const allDependencies = Object.keys({ ...parsed.dependencies, ...parsed.devDependencies }).sort()
+
+    // pnpm patch identity: which packages are patched and by which file.
+    const patched = Object.entries(parsed.pnpm?.patchedDependencies ?? {})
+        .map(([name, file]) => `${name}=${file}`)
+        .sort()
+
+    return [
+        `dependencies:${sha(allDependencies.join('\n'))}`,
+        `patched:${patched.join(',')}`,
+        ...names.map((name) => {
             const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
             // Lockfile keys look like `'@capgo/capacitor-updater@8.51.14(@capacitor/core@8.2.0)':`,
             // so the same name also appears inside peer suffixes — collecting
@@ -249,8 +288,8 @@ function nativeDependencyVersions(ref) {
                 versions.add(match[1])
             }
             return `${name}@${[...versions].sort().join(',') || '<unresolved>'}`
-        })
-        .join('\n')
+        }),
+    ].join('\n')
 }
 
 export function manifest(ref) {
@@ -310,6 +349,11 @@ function flag(argv, name) {
 }
 
 function main(argv) {
+    const root = flag(argv, '--root')
+    if (argv.includes('--root')) {
+        if (!root) throw new Error('--root needs a directory')
+        repoRoot = resolve(root)
+    }
     const ref = flag(argv, '--ref')
 
     if (argv.includes('--manifest')) {

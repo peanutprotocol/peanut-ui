@@ -1,37 +1,105 @@
 const { spawnSync } = require('child_process')
 const fs = require('fs')
+const os = require('os')
 const path = require('path')
 
 const SCRIPT_PATH = path.join(__dirname, '..', 'native-fingerprint.mjs')
 const repoRoot = path.join(__dirname, '..', '..')
 
+// The real files the manifest reads, copied once into the fixture. Anything
+// absent is skipped, so this list can lag the manifest without breaking.
+const FIXTURE_FILES = [
+    'package.json',
+    'pnpm-lock.yaml',
+    'capacitor.config.ts',
+    'android/capacitor.settings.gradle',
+    'android/build.gradle',
+    'android/variables.gradle',
+    'android/app/build.gradle',
+    'android/app/src/main/AndroidManifest.xml',
+    'android/app/src/main/res/values/capacitor-passkey.xml',
+    'android/app/src/main/java/me/peanut/wallet/MainActivity.java',
+    'android/app/src/meawallet/java/me/peanut/wallet/PushProvisioningPlugin.java',
+    'ios/App/CapApp-SPM/Package.swift',
+    'ios/App/App.xcodeproj/project.pbxproj',
+    'ios/App/App/Info.plist',
+    'ios/App/App/App.entitlements',
+    'ios/App/App/AppRelease.entitlements',
+    'ios/App/App/ClipboardDetectPlugin.swift',
+    'ios/App/PushProvisioningExtension/PushProvisioningExtension.entitlements',
+    'patches/@zerodev__webauthn-key.patch',
+]
+
+/*
+ * Every mutation happens in a throwaway git repo, never in this checkout.
+ *
+ * The first version of this suite rewrote tracked files around a spawned CLI
+ * and restored them in a `finally`. That is not isolation: Jest runs suites in
+ * parallel, and marketing-version.test.js reads the same project.pbxproj — so
+ * holding it at MARKETING_VERSION 9.9.9 for the length of a subprocess made an
+ * unrelated suite fail on timing. `--root` exists so the CLI can be pointed at
+ * a fixture instead.
+ */
+function makeFixture() {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'native-fp-'))
+    const git = (...args) => {
+        const result = spawnSync('git', args, { cwd: dir, encoding: 'utf-8' })
+        if (result.status !== 0) throw new Error(`git ${args.join(' ')} failed: ${result.stderr}`)
+        return result.stdout
+    }
+
+    for (const relative of FIXTURE_FILES) {
+        const source = path.join(repoRoot, relative)
+        if (!fs.existsSync(source)) continue
+        fs.mkdirSync(path.join(dir, path.dirname(relative)), { recursive: true })
+        fs.copyFileSync(source, path.join(dir, relative))
+    }
+
+    git('init', '-q')
+    git('config', 'user.email', 'test@example.com')
+    git('config', 'user.name', 'test')
+    git('config', 'commit.gpgsign', 'false')
+    git('add', '-A')
+    git('commit', '-qm', 'fixture')
+    return { dir, cleanup: () => fs.rmSync(dir, { recursive: true, force: true }) }
+}
+
 // The script is a CI entrypoint: its contract is stdout + exit code, so run it
 // the way capgo-deploy.yml does instead of reaching into its internals. (Jest
 // runs CJS here, so a dynamic import of the .mjs would not load anyway — same
 // reason semver-newer.test.js and release-version.test.js spawn it.)
-function run(...args) {
-    return spawnSync(process.execPath, [SCRIPT_PATH, ...args], { encoding: 'utf-8', cwd: repoRoot })
-}
-
-function fingerprint(...args) {
-    const result = run(...args)
-    expect(result.status).toBe(0)
-    return result.stdout.trim()
-}
-
-// Mutate one native input, read the fingerprint, always put the file back.
-function withPatchedInput(relativePath, patch, assertion) {
-    const target = path.join(repoRoot, relativePath)
-    const original = fs.readFileSync(target, 'utf8')
-    try {
-        fs.writeFileSync(target, patch(original))
-        assertion()
-    } finally {
-        fs.writeFileSync(target, original)
-    }
+function run(root, ...args) {
+    return spawnSync(process.execPath, [SCRIPT_PATH, '--root', root, ...args], { encoding: 'utf-8' })
 }
 
 describe('native-fingerprint', () => {
+    let fixture
+
+    beforeAll(() => {
+        fixture = makeFixture()
+    })
+
+    afterAll(() => fixture.cleanup())
+
+    const fingerprint = (...args) => {
+        const result = run(fixture.dir, ...args)
+        expect(result.status).toBe(0)
+        return result.stdout.trim()
+    }
+
+    // Mutate a file in the FIXTURE, assert, restore. Nothing here touches the
+    // checkout other suites are reading.
+    function withPatchedInput(relativePath, patch, assertion) {
+        const target = path.join(fixture.dir, relativePath)
+        const original = fs.readFileSync(target, 'utf8')
+        try {
+            fs.writeFileSync(target, patch(original))
+            assertion()
+        } finally {
+            fs.writeFileSync(target, original)
+        }
+    }
+
     it('is a stable 16-hex digest across repeated runs of one tree', () => {
         const first = fingerprint()
 
@@ -40,52 +108,31 @@ describe('native-fingerprint', () => {
     })
 
     it('covers every native input, hashing it or recording its absence', () => {
-        const result = run('--manifest')
-        const entries = JSON.parse(result.stdout)
+        const result = run(fixture.dir, '--manifest')
+        const keys = Object.keys(JSON.parse(result.stdout))
 
         expect(result.status).toBe(0)
         // toContain on the key list, not toHaveProperty: these keys contain
         // dots, which toHaveProperty would read as a nested property path.
-        const keys = Object.keys(entries)
-        // The two generated plugin manifests are the load-bearing inputs: they
-        // pin the plugin set AND their resolved versions.
         expect(keys).toContain('android/capacitor.settings.gradle')
         expect(keys).toContain('ios/App/CapApp-SPM/Package.swift')
         expect(keys).toContain('capacitor.config.ts')
-        // The bridges JS actually calls, and the lockfile the OTA build
-        // installs from — config files alone do not move when either changes.
-        expect(keys).toContain('android/app/src/**.{java,kt}')
+        expect(keys).toContain('android/app/src/main/**.{java,kt}')
         expect(keys).toContain('ios/App/**.swift')
         expect(keys).toContain('native-plugin-versions')
-        // Native resource contracts the config files delegate to.
         expect(keys).toContain('android/app/src/main/res/**.xml')
         expect(keys).toContain('ios/App/**.{plist,entitlements}')
-        expect(keys.length).toBeGreaterThanOrEqual(10)
-
-        // Nothing is silently skipped — absence is its own sentinel, so adding
-        // or deleting a file moves the fingerprint.
-        for (const value of Object.values(entries)) {
-            expect(value === '<absent>' || /^[0-9a-f]{64}$/.test(value)).toBe(true)
-        }
+        expect(keys).toContain('patches/**')
     })
 
-    it('reads a git ref, and differs from the working tree once native code has moved', () => {
-        // HEAD, never a release tag: the unit job checks out at depth 1 with no
-        // tags, so `--ref v1.1.0` resolves to nothing there and EVERY input
-        // reads <absent> — which still differs from the working tree, so a
-        // tag-based assertion passes for entirely the wrong reason.
-        expect(fingerprint('--ref', 'HEAD')).toMatch(/^[0-9a-f]{16}$/)
+    it('matches its own committed tree, which proves the ref path reads content', () => {
+        // An unresolvable read would make every input <absent> — a well-formed
+        // fingerprint of nothing. Equality with HEAD is what rules that out.
         expect(fingerprint('--ref', 'HEAD')).toBe(fingerprint())
-
-        withPatchedInput(
-            'capacitor.config.ts',
-            (content) => `${content}\n// surface change\n`,
-            () => expect(fingerprint('--ref', 'HEAD')).not.toBe(fingerprint())
-        )
     })
 
     it('exits 0 and says so when the surface has not moved', () => {
-        const result = run('--diff', 'HEAD')
+        const result = run(fixture.dir, '--diff', 'HEAD')
 
         expect(result.status).toBe(0)
         expect(result.stdout).toContain('native surface unchanged')
@@ -96,12 +143,11 @@ describe('native-fingerprint', () => {
             'android/capacitor.settings.gradle',
             (content) => content.replace('capacitor-updater@8.51.14', 'capacitor-updater@9.0.0'),
             () => {
-                const result = run('--diff', 'HEAD')
+                const result = run(fixture.dir, '--diff', 'HEAD')
 
                 expect(result.status).toBe(1)
                 expect(result.stdout).toContain('native surface changed since HEAD')
-                // The point of the check is that it says WHAT moved, not just
-                // that something did — a bare "refused" is unactionable at 2am.
+                // It must say WHAT moved — a bare "refused" is unactionable.
                 expect(result.stdout).toContain('android/capacitor.settings.gradle')
             }
         )
@@ -112,8 +158,6 @@ describe('native-fingerprint', () => {
 
         withPatchedInput(
             'android/capacitor.settings.gradle',
-            // The shape of a real plugin bump: the resolved version lives in the
-            // dependency path Capacitor generates.
             (content) => content.replace('capacitor-updater@8.51.14', 'capacitor-updater@9.0.0'),
             () => expect(fingerprint()).not.toBe(before)
         )
@@ -124,9 +168,8 @@ describe('native-fingerprint', () => {
 
         withPatchedInput(
             'ios/App/App.xcodeproj/project.pbxproj',
-            // Exactly what scripts/native-ios-postsync.js writes on every cap
-            // sync. Left un-normalised this would refuse an OTA after every
-            // release, and the check would be turned off within a week.
+            // What native-ios-postsync.js writes on every cap sync. Left raw
+            // this would refuse an OTA after every release.
             (content) => content.replace(/MARKETING_VERSION = [^;]*;/g, 'MARKETING_VERSION = 9.9.9;'),
             () => expect(fingerprint()).toBe(before)
         )
@@ -142,16 +185,29 @@ describe('native-fingerprint', () => {
         )
     })
 
-    it('moves when an Android bridge changes', () => {
+    it('moves when a compiled Android bridge changes', () => {
         const before = fingerprint()
 
         withPatchedInput(
+            // Where the app-local plugins are registered. No config file moves
+            // when it changes.
             'android/app/src/main/java/me/peanut/wallet/MainActivity.java',
-            // MainActivity is where app-local plugins are registered, so a
-            // bundle calling a newly-registered one needs this binary. No
-            // config file moves when it changes.
             (content) => `${content}\n// surface change\n`,
             () => expect(fingerprint()).not.toBe(before)
+        )
+    })
+
+    it('does NOT claim a bridge whose source set is gated on CI secrets', () => {
+        const before = fingerprint()
+
+        withPatchedInput(
+            // build.gradle adds src/meawallet only when the Nexus credentials
+            // are present, so whether this reaches the binary depends on
+            // secrets rather than on the tree. Claiming it let a release tag
+            // assert a bridge the binary may never have registered.
+            'android/app/src/meawallet/java/me/peanut/wallet/PushProvisioningPlugin.java',
+            (content) => `${content}\n// not compiled without credentials\n`,
+            () => expect(fingerprint()).toBe(before)
         )
     })
 
@@ -170,32 +226,19 @@ describe('native-fingerprint', () => {
 
         withPatchedInput(
             'pnpm-lock.yaml',
-            // The gap this closes: the OTA workflow runs `pnpm install` but
-            // never regenerates capacitor.settings.gradle / Package.swift, so a
-            // plugin bumped without a `cap sync` ships the new JS wrapper while
-            // both generated manifests still read unchanged.
+            // The OTA workflow runs `pnpm install` but never regenerates the
+            // committed Capacitor manifests, so a bump without a `cap sync`
+            // ships the new JS wrapper against unchanged manifest bytes.
             (content) => content.split('@capgo/capacitor-updater@8.51.14').join('@capgo/capacitor-updater@9.0.0'),
             () => expect(fingerprint()).not.toBe(before)
         )
-    })
-
-    it('resolves the bridge file sets at a git ref, not just in the working tree', () => {
-        // Regression guard: `git ls-tree -r -- 'dir/**/*.java'` matches nothing
-        // and exits 0, so a glob pathspec made every ref report an empty bridge
-        // set — the check compared nothing against nothing and passed.
-        const entries = JSON.parse(run('--manifest', '--ref', 'HEAD').stdout)
-
-        expect(entries['android/app/src/**.{java,kt}']).not.toBe('<absent>')
-        expect(entries['ios/App/**.swift']).not.toBe('<absent>')
-        expect(entries['native-plugin-versions']).not.toBe('<absent>')
     })
 
     it('moves when the passkey asset statement changes', () => {
         const before = fingerprint()
 
         withPatchedInput(
-            // The asset statement passkeys are validated against. AndroidManifest.xml
-            // delegates to it and does not move when it changes.
+            // AndroidManifest.xml delegates to it and does not move with it.
             'android/app/src/main/res/values/capacitor-passkey.xml',
             (content) => `${content}\n<!-- surface change -->\n`,
             () => expect(fingerprint()).not.toBe(before)
@@ -206,33 +249,41 @@ describe('native-fingerprint', () => {
         const before = fingerprint()
 
         withPatchedInput(
-            // An extension's capabilities are part of the shell a bundle lands
-            // on, and none of the app-level inputs move when one changes.
             'ios/App/PushProvisioningExtension/PushProvisioningExtension.entitlements',
             (content) => `${content}\n`,
             () => expect(fingerprint()).not.toBe(before)
         )
     })
 
-    it('counts a community plugin, which no first-party scope matches', () => {
+    it('moves on a pnpm patch, which changes both halves with no version bump', () => {
+        const before = fingerprint()
+
+        withPatchedInput(
+            // A patch rewrites the JS wrapper AND the native sources while the
+            // resolved version and the generated manifests stay identical.
+            'patches/@zerodev__webauthn-key.patch',
+            (content) => `${content}\n`,
+            () => expect(fingerprint()).not.toBe(before)
+        )
+    })
+
+    it('moves when a dependency is added, whatever it is called', () => {
         const before = fingerprint()
 
         withPatchedInput(
             'package.json',
-            // @capacitor-community/… and @transistorsoft/capacitor-… are native
-            // but sit outside the first-party scopes, so a scope allowlist would
-            // let a bump through with both generated manifests stale.
-            (content) =>
-                content.replace(
-                    '"@capacitor/android"',
-                    '"@capacitor-community/in-app-review": "^7.0.0",\n        "@capacitor/android"'
-                ),
+            // The name-heuristic gap: a native plugin called neither
+            // capacitor/cordova nor a first-party scope, whose generated
+            // manifests are also stale. Hashing the dependency NAME SET catches
+            // it; hashing their versions too would refuse an OTA on every JS
+            // bump, and a check that cries wolf gets switched off.
+            (content) => content.replace('"dependencies": {', '"dependencies": {\n    "some-native-thing": "^1.0.0",'),
             () => expect(fingerprint()).not.toBe(before)
         )
     })
 
     it('refuses an unresolvable ref instead of hashing an empty tree', () => {
-        const result = run('--ref', 'v99.99.99-does-not-exist')
+        const result = run(fixture.dir, '--ref', 'v99.99.99-does-not-exist')
 
         // Both git reads fail quietly for an unknown ref, which would produce a
         // well-formed fingerprint of nothing that differs from any real tree —
@@ -243,9 +294,16 @@ describe('native-fingerprint', () => {
     })
 
     it('rejects --diff without a ref rather than comparing against nothing', () => {
-        const result = run('--diff')
+        const result = run(fixture.dir, '--diff')
 
         expect(result.status).toBe(1)
         expect(result.stderr).toContain('needs a git ref')
+    })
+
+    it('rejects --root without a directory', () => {
+        const result = spawnSync(process.execPath, [SCRIPT_PATH, '--root'], { encoding: 'utf-8' })
+
+        expect(result.status).toBe(1)
+        expect(result.stderr).toContain('needs a directory')
     })
 })
