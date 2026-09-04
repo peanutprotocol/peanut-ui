@@ -245,7 +245,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     /**
-     * Clears all client-side auth state (cookies, localStorage, redux, caches)
+     * Clears all client-side auth state (cookies, localStorage, query cache, zerodev flags)
      * Used by both normal logout and force logout (when backend is down)
      */
     const clearLocalAuthState = useCallback(async () => {
