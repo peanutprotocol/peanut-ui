@@ -112,15 +112,25 @@ describe('nativeCapability', () => {
         // runtime guard for it — the hang happens before any code of ours runs
         // again — so the invariant has to hold at the type level, and typecheck
         // is a CI job. If this stops erroring, the hole is back.
-        // @ts-expect-error a callback is not a method name
-        expect(() =>
-            capability.call(
-                async (plugin: TestPlugin) => plugin,
-                () => undefined
-            )
-        ).toBeDefined()
-        // @ts-expect-error 'notAMethod' is not on TestPlugin
-        expect(() => capability.call('notAMethod', undefined, () => undefined)).toBeDefined()
+        const callback = async (plugin: TestPlugin) => plugin
+        const fallback = () => undefined
+
+        // Declared and never invoked. TypeScript still checks the body, which
+        // is the whole assertion — running it would crash: the two-argument
+        // call leaves onUnavailable undefined, and the point is precisely that
+        // this does not compile.
+        //
+        // Each directive sits directly above its CALL because it binds to the
+        // next LINE, and prettier wraps a long argument list — which parks the
+        // error below the comment and reports the directive itself as unused.
+        const rejectedByTheCompiler = () => {
+            // @ts-expect-error a callback is not a method name
+            void capability.call(callback, fallback)
+            // @ts-expect-error 'notAMethod' is not a method on TestPlugin
+            void capability.call('notAMethod', undefined, fallback)
+        }
+
+        expect(typeof rejectedByTheCompiler).toBe('function')
     })
 
     it('reports platform support from the declared platforms', () => {
