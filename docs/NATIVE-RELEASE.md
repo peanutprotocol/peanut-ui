@@ -352,8 +352,10 @@ own `out/` under the binary's versionName, then assert the channel serves it.
   Capacitor generated and an explicit `NATIVE_DEPENDENCIES` list — three sources, because
   a package name cannot be trusted and the generated manifests only cover plugins that
   have been synced; a test asserts every generated plugin appears in the list so it cannot
-  drift. Plus the full dependency NAME set, and `patches/` with the `patchedDependencies`
-  map, since a pnpm patch rewrites both halves of a package with no version change).
+  drift. Plus `patches/` with the `patchedDependencies` map, since a pnpm patch rewrites
+  both halves of a package with no version change. Deliberately **not** every dependency:
+  hashing the whole name set was tried and reverted after `web-vitals`, a pure-JS library,
+  would have refused every staging OTA until a native release was cut).
   Every Android source set is hashed, including the credential-gated `src/meawallet`:
   whether it reaches a binary is not knowable from the tree, and of the two unsound
   choices, over-claiming only forces an unnecessary native release while under-claiming

@@ -320,17 +320,26 @@ describe('native-fingerprint', () => {
         )
     })
 
-    it('moves when a dependency is added, whatever it is called', () => {
+    it('ignores a JS-only dependency, which is what kept the guard usable', () => {
         const before = fingerprint()
 
         withPatchedInput(
             'package.json',
-            // The name-heuristic gap: a native plugin called neither
-            // capacitor/cordova nor a first-party scope, whose generated
-            // manifests are also stale. Hashing the dependency NAME SET catches
-            // it; hashing their versions too would refuse an OTA on every JS
-            // bump, and a check that cries wolf gets switched off.
-            (content) => content.replace('"dependencies": {', '"dependencies": {\n    "some-native-thing": "^1.0.0",'),
+            // web-vitals landed on dev the day after v1.2.0. Hashing the whole
+            // dependency name set — the previous approach — refused every
+            // staging OTA for it until a native release was cut. Additions are
+            // routine here; a guard that blocks the normal path gets deleted.
+            (content) => content.replace('"dependencies": {', '"dependencies": {\n    "web-vitals": "6.1.1",'),
+            () => expect(fingerprint()).toBe(before)
+        )
+    })
+
+    it('still moves when a declared native dependency is bumped', () => {
+        const before = fingerprint()
+
+        withPatchedInput(
+            'pnpm-lock.yaml',
+            (content) => content.split('@capgo/capacitor-updater@8.51.14').join('@capgo/capacitor-updater@9.0.0'),
             () => expect(fingerprint()).not.toBe(before)
         )
     })

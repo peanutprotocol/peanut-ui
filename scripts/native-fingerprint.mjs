@@ -59,6 +59,22 @@ let repoRoot = defaultRoot
 
 // Packages with a native half, named explicitly.
 //
+// Discovery is three sources — this list, the name heuristic below, and the
+// plugin names Capacitor generated — and deliberately NOT "every dependency".
+// Hashing the whole dependency name set was tried and reverted: `web-vitals`,
+// a pure-JS library, was added to dev the day after v1.2.0 and would have
+// refused every staging OTA until someone cut a native release. Additions are
+// routine here (73 package.json commits in 60 days against 4 releases), so
+// that component turned a precise guard into one that blocks the normal path,
+// and a guard that blocks the normal path gets deleted.
+//
+// The residue this leaves is narrow and documented: a native plugin named
+// after neither capacitor/cordova nor a first-party scope, added while the
+// committed Capacitor manifests are stale, so neither this list nor the
+// generated names catch it. Closing it properly needs an authoritative
+// native/JS classification of every dependency — a policy decision for this
+// repo, tracked separately.
+//
 // A package NAME cannot be trusted to say whether it is native, and the
 // generated manifests only list plugins that have been synced — so a
 // generically-named plugin released while the committed manifests were stale is
@@ -303,23 +319,12 @@ function nativeDependencyVersions(ref) {
     )
     const names = [...new Set([...NATIVE_DEPENDENCIES, ...declared, ...generatedPluginNames(ref)])].sort()
 
-    // Every dependency NAME, not just the native-looking ones. A plugin whose
-    // package name says nothing about being native (and whose generated
-    // manifests are stale, so Capacitor's own list cannot recover it either)
-    // would otherwise be invisible: package.json and the lockfile are not
-    // inputs on their own. Names, not versions, deliberately — adding or
-    // removing a dependency is rare and worth re-checking the native surface,
-    // while bumping a JS-only library is not, and a check that refuses an OTA
-    // on every lockfile churn gets switched off.
-    const allDependencies = Object.keys({ ...parsed.dependencies, ...parsed.devDependencies }).sort()
-
     // pnpm patch identity: which packages are patched and by which file.
     const patched = Object.entries(parsed.pnpm?.patchedDependencies ?? {})
         .map(([name, file]) => `${name}=${file}`)
         .sort()
 
     return [
-        `dependencies:${sha(allDependencies.join('\n'))}`,
         `patched:${patched.join(',')}`,
         ...names.map((name) => {
             const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
