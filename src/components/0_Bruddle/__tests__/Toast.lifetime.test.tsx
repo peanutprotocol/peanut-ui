@@ -53,7 +53,7 @@ jest.mock('../ToastStack', () => {
             // as the real ToastStack
             return react.createElement(
                 'div',
-                null,
+                { 'data-testid': 'stack' },
                 toasts.map((t) => react.createElement(MockToast, { key: t.id, id: t.id, onShow }))
             )
         },
@@ -184,5 +184,28 @@ describe('toast lifetime', () => {
         // nothing left behind to fire later
         advance(5000)
         expect(screen.queryByTestId('toast')).not.toBeInTheDocument()
+    })
+
+    // chip: the provider used to drop ToastStack the moment the list emptied,
+    // which took AnimatePresence down with it — so in the common one-toast case
+    // the last card vanished instead of playing its exit.
+    test('the renderer outlives the last toast, so the exit has an owner', async () => {
+        render(
+            <ToastProvider>
+                <Trigger message="Link copied" />
+            </ToastProvider>
+        )
+        // nothing asked for it yet, so the chunk is not fetched on a quiet route
+        expect(screen.queryByTestId('stack')).not.toBeInTheDocument()
+
+        fire()
+        await settleDynamicImport()
+        deliverChunk()
+        expect(screen.getByTestId('toast')).toBeInTheDocument()
+
+        advance(2100)
+        expect(screen.queryByTestId('toast')).not.toBeInTheDocument()
+        // the presence owner stays mounted with an empty list
+        expect(screen.getByTestId('stack')).toBeInTheDocument()
     })
 })

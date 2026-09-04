@@ -80,6 +80,13 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined)
 
 export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
     const [toasts, setToasts] = useState<ToastMessage[]>([])
+    // Once the renderer has been asked for, it stays. Unmounting it when the
+    // list empties took AnimatePresence down with it, so in the common
+    // one-toast case the last card vanished instead of playing its exit — the
+    // presence owner has to outlive the child whose departure it animates.
+    // Before the first toast it is still absent, so the chunk is never fetched
+    // on a route that shows none.
+    const [rendererWanted, setRendererWanted] = useState(false)
     // Tracks the auto-dismiss timer per toast id so `dismiss(id)` can cancel it
     // (avoids a late timer firing after the toast was removed manually).
     const timersRef = useRef<Map<ToastId, ReturnType<typeof setTimeout>>>(new Map())
@@ -130,6 +137,7 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         const id: ToastId = toastOptions.id ?? Date.now()
+        setRendererWanted(true)
         // only Android pops the clipboard preview, and only just after a write
         const raised = isAndroidNative() && clipboardWrittenWithin(CLIPBOARD_OVERLAY_GRACE_MS)
 
@@ -181,7 +189,7 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
                         toasts.some((t) => t.raised) ? RAISED_BOTTOM : NORMAL_BOTTOM
                     )}
                 >
-                    {toasts.length > 0 && <ToastStack toasts={toasts} dismiss={dismiss} onShow={handleToastShown} />}
+                    {rendererWanted && <ToastStack toasts={toasts} dismiss={dismiss} onShow={handleToastShown} />}
                 </div>
                 {children}
             </ToastContext.Provider>
