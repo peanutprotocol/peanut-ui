@@ -80,7 +80,7 @@ const DEFAULT_WITHDRAW_METHODS: SpecificPaymentMethod[] = [
         id: 'crypto-withdraw',
         icon: 'wallet-outline' as IconName,
         title: 'Crypto',
-        description: 'Withdraw to a wallet address',
+        description: 'Send to a wallet address',
         isSoon: false,
         path: '/withdraw/crypto',
     },

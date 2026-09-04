@@ -54,13 +54,16 @@ const KycPrepChecklist = ({ path }: { path: KycPrepPath }) => {
                     <span className="text-body-s">{t('singleSession.body')}</span>
                 </Notification>
             )}
+            {/* Above "how long": the note is about WHAT may still be asked for,
+                so it belongs with the requirements list it qualifies. Duration
+                reads last, as the closing fact. */}
+            {!isHosted && <p className="text-body-xs text-foreground-secondary">{t('extraDocNote')}</p>}
             {/* Plain prose, not a card: the framed box read as one more
                 requirement alongside the list above it, when it is only a note. */}
             <div className="flex flex-col gap-0.5">
                 <span className="text-label-m tracking-wide uppercase">{t('howLongLabel')}</span>
                 <span className="text-body-xs text-foreground-secondary">{t(`howLong.${path}`)}</span>
             </div>
-            {!isHosted && <p className="text-body-xs text-foreground-secondary">{t('extraDocNote')}</p>}
         </div>
     )
 }
