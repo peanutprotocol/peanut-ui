@@ -1299,7 +1299,7 @@
             "drawerTitle": "Elegí token y red",
             "crossChainUnavailable": "Las transacciones entre cadenas no están disponibles temporalmente. Podés usar USDC en Arbitrum.",
             "selectANetwork": "Elegí una red",
-            "searchTokenPlaceholder": "Buscá un token o pegá una dirección",
+            "searchTokenPlaceholder": "Buscá un token",
             "noMatchingTokensDescription": "Intentá buscar otro token",
             "searchNetworkPlaceholder": "Buscá una red",
             "noNetworksFoundDescription": "Intentá buscar otra red"

@@ -2,7 +2,6 @@
 
 import { useAuth } from '@/context/authContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
-import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useActivationStatus } from '@/hooks/useActivationStatus'
 import { useCardInfo } from '@/hooks/useCardInfo'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -21,7 +20,6 @@ export function useHomeFlow() {
     const { isFetchingUser, fetchUser } = useAuth()
     const { isActivated, activationStep, dismissCardStep } = useActivationStatus()
     const { resetFlow: resetClaimBankFlow } = useClaimBankFlow()
-    const { resetWithdrawFlow } = useWithdrawFlow()
     const { isConnected: isWagmiConnected } = useAccount()
     const { disconnect: disconnectWagmi } = useDisconnect()
 
@@ -38,11 +36,12 @@ export function useHomeFlow() {
         fetchUser()
     }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-    // landing on home resets any in-progress money flows
+    // landing on home resets any in-progress money flows. (The withdraw flow
+    // no longer needs a reset here: its provider is scoped to /withdraw and
+    // unmounts on exit — TASK-21816.)
     useEffect(() => {
         resetClaimBankFlow()
-        resetWithdrawFlow()
-    }, [resetClaimBankFlow, resetWithdrawFlow])
+    }, [resetClaimBankFlow])
 
     // always reset external wallet connection on home page
     useEffect(() => {

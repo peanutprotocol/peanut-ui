@@ -163,6 +163,20 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Withdraw with two saved bank accounts (a Spanish IBAN and a US account).',
         responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] } },
     },
+    // ?method=crypto is send's hand-off: the flow commits the crypto method and
+    // lands straight on the shared amount step (TASK-21816 URL stepper).
+    'withdraw-amount': {
+        route: '/withdraw?method=crypto',
+        about: 'Withdraw amount step (crypto): USD amount entry with balance and Continue.',
+        responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] } },
+    },
+    // ?amount= arrives from the shared amount step and opens the bank-details
+    // form directly — the first Field-composed form (TASK-21454).
+    'withdraw-bank-form': {
+        route: '/withdraw/spain?amount=50',
+        about: 'Bridge bank-account form for Spain, amount pre-entered — Field label/error chrome.',
+        responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] } },
+    },
     limits: { route: '/limits', about: 'Payment limits: the unlocked regions and the crypto note.' },
     send: { route: '/send', about: 'Send: the method picker — link, contacts, bank or Mercado Pago.' },
     request: { route: '/request', about: 'Request money: amount entry.' },

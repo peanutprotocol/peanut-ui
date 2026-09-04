@@ -27,8 +27,6 @@ import { ConfirmBankClaimView } from './Confirm.bank-claim.view'
 import { CountryListRouter } from '@/components/Common/CountryListRouter'
 import NavHeader from '@/components/Global/NavHeader'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
-import { useAppDispatch } from '@/redux/hooks'
-import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import { sendLinksApi } from '@/services/sendLinks'
 import { useSearchParams } from 'next/navigation'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
@@ -81,7 +79,6 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     const savedAccounts = useSavedAccounts()
     const { isLoading, setLoadingState } = useContext(loadingStateContext)
     const { claimLink } = useClaimLink()
-    const dispatch = useAppDispatch()
     // Provider-blind bank-rail gate via the canonical `useCapabilities().gateFor`
     // primitive. The bank-claim gate only fires for logged-in users (guest claims
     // leverage the sender's KYC and bypass `gate` entirely below), so this reads
@@ -547,7 +544,6 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                         <NavHeader
                             title={t('receive')}
                             onPrev={() => {
-                                dispatch(bankFormActions.clearFormData()) // clear DynamicBankAccountForm data
                                 if (savedAccounts.length > 0) {
                                     setClaimBankFlowStep(ClaimBankFlowStep.SavedAccountsList)
                                 } else {

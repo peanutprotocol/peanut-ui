@@ -3000,7 +3000,7 @@
             "crossChainUnavailable": "Cross-chain transactions are temporarily unavailable. You can use USDC on Arbitrum.",
             "selectANetwork": "Select a network",
             "moreNetworksButton": "more",
-            "searchTokenPlaceholder": "Search for a token or paste address",
+            "searchTokenPlaceholder": "Search for a token",
             "sponsoredHint": "Transactions using USDC on Arbitrum are sponsored",
             "availableToken": "Available token",
             "searchResults": "Search Results",

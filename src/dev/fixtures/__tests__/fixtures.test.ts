@@ -7,9 +7,12 @@ const names = Object.keys(FIXTURES)
 const APP_DIR = join(process.cwd(), 'src', 'app', '(mobile-ui)')
 
 // A dynamic segment is a real route: /limits/manteca is served by limits/[provider].
+// A fixture route may carry a query string (deep-linked flow steps) — only the
+// pathname resolves against the filesystem.
 function routeExists(route: string): boolean {
     let dir = APP_DIR
-    for (const segment of route.split('/').filter(Boolean)) {
+    const pathname = route.split('?')[0]
+    for (const segment of pathname.split('/').filter(Boolean)) {
         if (existsSync(join(dir, segment))) {
             dir = join(dir, segment)
             continue
