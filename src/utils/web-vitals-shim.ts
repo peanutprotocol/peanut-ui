@@ -68,12 +68,12 @@ export function createWebVitalsReporter(options: {
             $current_url: pending.url,
             ...pathnameOf(pending.url),
             ...metrics.reduce<Record<string, unknown>>(
-                (acc, { name, value, rating, delta, id, navigationType }) => ({
+                (acc, { name, value, rating, delta, id, navigationType, navigationURL }) => ({
                     ...acc,
                     // `entries` is dropped: PostHog keeps the whole metric here,
                     // but the raw PerformanceEntry list is the bulk of the
                     // payload and nothing reads it.
-                    [`$web_vitals_${name}_event`]: { name, value, rating, delta, id, navigationType },
+                    [`$web_vitals_${name}_event`]: { name, value, rating, delta, id, navigationType, navigationURL },
                     [`$web_vitals_${name}_value`]: value,
                 }),
                 {}
@@ -84,7 +84,10 @@ export function createWebVitalsReporter(options: {
     const record = (metric: Metric): void => {
         if (metric.value >= MAX_PLAUSIBLE_VALUE_MS) return
 
-        const url = currentUrl()
+        // The metric's own navigation URL, not wherever the app is now: LCP and
+        // INP are reported well after the navigation they belong to, so on a
+        // soft navigation `location.href` already names the next screen.
+        const url = metric.navigationURL ?? currentUrl()
         // One event per URL, so an SPA route change closes the previous screen's
         // batch instead of mixing two screens' metrics into one row.
         if (buffered && buffered.url !== url) flush()
@@ -115,15 +118,36 @@ function pathnameOf(url: string): { $pathname?: string } {
  */
 type PerformanceConfig = boolean | { web_vitals?: boolean; web_vitals_allowed_metrics?: string[] } | undefined
 
+function clientOptIn(performance: PerformanceConfig): boolean | undefined {
+    return typeof performance === 'object' ? performance?.web_vitals : performance
+}
+
+function performanceConfig(): PerformanceConfig {
+    return (posthog.config as { capture_performance?: PerformanceConfig }).capture_performance
+}
+
+/**
+ * Only an explicit "off" is worth skipping the observers for. An absent flag is
+ * the first session on this device, before any remote config has been
+ * persisted — starting there and letting the flush gate decide is what keeps a
+ * first session measurable.
+ */
+export function postHogWebVitalsExplicitlyDisabled(): boolean {
+    const fromClient = clientOptIn(performanceConfig())
+    if (typeof fromClient === 'boolean') return !fromClient
+    return posthog.get_property(WEB_VITALS_ENABLED_SERVER_SIDE) === false
+}
+
 export function postHogWebVitalsSettings(): WebVitalsSettings {
-    const performance = (posthog.config as { capture_performance?: PerformanceConfig }).capture_performance
-    const clientOptIn = typeof performance === 'object' ? performance?.web_vitals : performance
+    const performance = performanceConfig()
     const clientAllowed = typeof performance === 'object' ? performance?.web_vitals_allowed_metrics : undefined
+
+    const fromClient = clientOptIn(performance)
 
     return {
         enabled:
-            typeof clientOptIn === 'boolean'
-                ? clientOptIn
+            typeof fromClient === 'boolean'
+                ? fromClient
                 : posthog.get_property(WEB_VITALS_ENABLED_SERVER_SIDE) === true,
         allowed:
             clientAllowed ??
@@ -137,6 +161,7 @@ let started = false
 export function startWebVitalsShim(): void {
     if (started || typeof window === 'undefined') return
     if (postHogCapturesWebVitals(window.location.protocol)) return
+    if (postHogWebVitalsExplicitlyDisabled()) return
     started = true
 
     const { record, flush } = createWebVitalsReporter({

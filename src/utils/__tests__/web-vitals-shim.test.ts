@@ -10,6 +10,7 @@
 import {
     createWebVitalsReporter,
     postHogCapturesWebVitals,
+    postHogWebVitalsExplicitlyDisabled,
     postHogWebVitalsSettings,
     type WebVitalsReporter,
     type WebVitalsSettings,
@@ -24,7 +25,7 @@ jest.mock('posthog-js', () => ({
 
 const mockGetProperty = posthog.get_property as jest.Mock
 
-const metric = (name: string, value: number): Metric =>
+const metric = (name: string, value: number, navigationURL?: string): Metric =>
     ({
         name,
         value,
@@ -33,6 +34,7 @@ const metric = (name: string, value: number): Metric =>
         id: `v1-${name}`,
         navigationType: 'navigate',
         navigationId: 1,
+        navigationURL,
         entries: [],
     }) as Metric
 
@@ -79,6 +81,32 @@ describe('postHogWebVitalsSettings', () => {
 
         mockGetProperty.mockReturnValue(undefined)
         expect(postHogWebVitalsSettings().allowed).toEqual(['CLS', 'FCP', 'INP', 'LCP'])
+    })
+})
+
+describe('postHogWebVitalsExplicitlyDisabled', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        posthog.config = {} as typeof posthog.config
+    })
+
+    // An absent flag is a device that has never seen a remote config, not an
+    // opt-out — treating it as one would leave every first session unmeasured.
+    it('is false before any remote config has been persisted', () => {
+        mockGetProperty.mockReturnValue(undefined)
+        expect(postHogWebVitalsExplicitlyDisabled()).toBe(false)
+    })
+
+    it('is true once the remote config has switched vitals off', () => {
+        mockGetProperty.mockImplementation((key: string) =>
+            key === '$web_vitals_enabled_server_side' ? false : undefined
+        )
+        expect(postHogWebVitalsExplicitlyDisabled()).toBe(true)
+    })
+
+    it('is true when client config switches them off', () => {
+        posthog.config = { capture_performance: { web_vitals: false } } as unknown as typeof posthog.config
+        expect(postHogWebVitalsExplicitlyDisabled()).toBe(true)
     })
 })
 
@@ -149,6 +177,26 @@ describe('createWebVitalsReporter', () => {
 
         expect(capture.mock.calls[0][1]).toEqual(
             expect.objectContaining({ $current_url: 'capacitor://localhost/home', $pathname: '/home' })
+        )
+    })
+
+    /*
+     * LCP and INP are reported well after the navigation they belong to, so on a
+     * soft navigation the callback fires when location.href already names the
+     * next screen. web-vitals carries the navigation the metric actually
+     * belongs to; reading location at callback time misfiles it.
+     */
+    it('uses the metric’s own navigation URL when the app has already moved on', () => {
+        url = 'capacitor://localhost/send'
+        reporter.record(metric('LCP', 2400, 'capacitor://localhost/home'))
+        jest.advanceTimersByTime(5000)
+
+        const [, properties] = capture.mock.calls[0]
+        expect(properties).toEqual(
+            expect.objectContaining({ $current_url: 'capacitor://localhost/home', $pathname: '/home' })
+        )
+        expect(properties.$web_vitals_LCP_event).toEqual(
+            expect.objectContaining({ navigationURL: 'capacitor://localhost/home' })
         )
     })
 
