@@ -352,6 +352,9 @@
                 "revealed": "El interruptor de actualizaciones beta ya está visible abajo.",
                 "appOnly": "Las actualizaciones beta solo están disponibles en la app de Peanut."
             }
+        },
+        "showFullNameConfirm": {
+            "description": "Tu nombre completo se vuelve público en tu perfil, junto a tu nombre de usuario. Cualquier persona con tu enlace de Peanut puede verlo. Podés desactivarlo cuando quieras."
         }
     },
     "settings": {

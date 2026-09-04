@@ -2,6 +2,7 @@
 
 import { updateUserById } from '@/app/actions/users'
 import { Toggle } from '@/components/0_Bruddle/Toggle'
+import { useToast } from '@/components/0_Bruddle/Toast'
 import ActionModal from '@/components/Global/ActionModal'
 import { useAuth } from '@/context/authContext'
 import { useTranslations } from 'next-intl'
@@ -17,30 +18,31 @@ const ShowNameToggle = ({ checked, onChange }: ShowNameToggleProps) => {
     const t = useTranslations('profile')
     const tCommon = useTranslations('common')
     const { fetchUser, user } = useAuth()
+    const toast = useToast()
     const [isConfirming, setIsConfirming] = useState(false)
 
-    const save = (newValue: boolean) => {
+    const save = async (newValue: boolean) => {
         onChange(newValue)
 
-        // Fire-and-forget: don't await fetchUser() to allow quick navigation
-        updateUserById({
+        // updateUserById RESOLVES { error } for a non-2xx or a network failure —
+        // it never rejects, so a catch block would let a failed save stand and
+        // this screen would claim the legal name is hidden while it is public.
+        const { error } = await updateUserById({
             userId: user?.user.userId,
             showFullName: newValue,
         })
-            .then(() => {
-                // Refetch user data in background without blocking
-                fetchUser()
-            })
-            .catch((error) => {
-                console.error('Failed to update preferences:', error)
-                // Revert on error
-                onChange(!newValue)
-            })
+        if (error) {
+            onChange(!newValue)
+            toast.error(tCommon('genericError'))
+            return
+        }
+        // Refetch user data in background without blocking
+        fetchUser()
     }
 
     // Turning it on publishes the legal name next to the username, so it asks
     // first. Turning it off takes nothing away and needs no confirmation.
-    const handleToggleChange = () => (checked ? save(false) : setIsConfirming(true))
+    const handleToggleChange = () => (checked ? void save(false) : setIsConfirming(true))
 
     return (
         <>
@@ -59,7 +61,7 @@ const ShowNameToggle = ({ checked, onChange }: ShowNameToggleProps) => {
                         shadowSize: '4',
                         onClick: () => {
                             setIsConfirming(false)
-                            save(true)
+                            void save(true)
                         },
                     },
                     {

@@ -283,7 +283,7 @@
     "profile": {
         "showFullNameConfirm": {
             "title": "¿Mostrar tu nombre completo?",
-            "description": "Tu nombre completo se vuelve público en tu perfil, junto a tu nombre de usuario. Cualquier persona con tu enlace de Peanut puede verlo. Podés desactivarlo cuando quieras."
+            "description": "Tu nombre completo se vuelve público en tu perfil, junto a tu nombre de usuario. Cualquier persona con tu enlace de Peanut puede verlo. Puedes desactivarlo cuando quieras."
         },
         "language": "Idioma",
         "menu": {

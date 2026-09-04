@@ -67,7 +67,7 @@ let currentExternalId: string | null = null
 let lastLinkedExternalId: string | null = null
 // the login in flight, so a second sync for the same id joins it instead of
 // starting another login() (the double-record race behind TASK-22209)
-let loginInFlight: { id: string; promise: Promise<void> } | null = null
+let loginInFlight: { id: string; token: object; promise: Promise<void> } | null = null
 let disableExternalIdLogin = false
 let hasTrackedModalShown = false
 let initStarted = false
@@ -104,6 +104,7 @@ async function syncExternalIdLink() {
     if (id && lastLinkedExternalId !== id) {
         if (disableExternalIdLogin) return
         if (loginInFlight?.id === id) return loginInFlight.promise
+        const token = {}
         const promise = (async () => {
             try {
                 const adapter = await getOneSignalAdapter()
@@ -113,10 +114,12 @@ async function syncExternalIdLink() {
             } catch (err: unknown) {
                 handleLoginError(err)
             } finally {
-                loginInFlight = null
+                // a switch to another external id may own the tracker by now —
+                // clearing it here would drop that newer login's guard
+                if (loginInFlight?.token === token) loginInFlight = null
             }
         })()
-        loginInFlight = { id, promise }
+        loginInFlight = { id, token, promise }
         return promise
     } else if (!id && lastLinkedExternalId !== null) {
         lastLinkedExternalId = null

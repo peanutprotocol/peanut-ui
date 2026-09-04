@@ -4,6 +4,19 @@ import { useCardReveal } from '@/hooks/useCardReveal'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { rainApi, RainCardRateLimitError, type RainCardDetailsResponse } from '@/services/rain'
 
+let nativeListener: ((state: { isActive: boolean }) => void) | undefined
+const removeNativeListener = jest.fn()
+jest.mock('@capacitor/app', () => ({
+    App: {
+        addListener: (_event: string, cb: (state: { isActive: boolean }) => void) => {
+            nativeListener = cb
+            return Promise.resolve({ remove: removeNativeListener })
+        },
+    },
+}))
+let onNative = false
+jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => onNative }))
+
 jest.mock('@/services/rain', () => {
     const actual = jest.requireActual('@/services/rain')
     return {
@@ -26,6 +39,8 @@ const details: RainCardDetailsResponse = {
 describe('useCardReveal', () => {
     beforeEach(() => {
         mockedGetCardDetails.mockReset()
+        onNative = false
+        nativeListener = undefined
     })
 
     it('fetches and stores card details on reveal', async () => {
@@ -161,6 +176,24 @@ describe('useCardReveal', () => {
         })
         act(() => window.dispatchEvent(new Event('blur')))
         expect(result.current.revealed).toEqual(details)
+    })
+
+    it('covers details from the native lifecycle, which Android reports instead of visibilitychange', async () => {
+        onNative = true
+        mockedGetCardDetails.mockResolvedValueOnce(details)
+        const { result } = renderHook(() => useCardReveal({ cardId: 'c1', autoMaskMs: 0 }))
+        await act(async () => {
+            await result.current.reveal()
+        })
+        await waitFor(() => expect(nativeListener).toBeDefined())
+
+        // no visibilitychange on this path — the app lifecycle is the only signal
+        act(() => nativeListener!({ isActive: false }))
+        expect(result.current.revealed).toBeNull()
+
+        act(() => nativeListener!({ isActive: true }))
+        expect(result.current.revealed).toEqual(details)
+        expect(mockedGetCardDetails).toHaveBeenCalledTimes(1)
     })
 
     it('auto-masks after the configured timeout', async () => {

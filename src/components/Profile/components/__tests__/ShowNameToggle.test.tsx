@@ -14,6 +14,8 @@ const mockUpdateUserById = jest.fn()
 const mockFetchUser = jest.fn()
 
 jest.mock('@/app/actions/users', () => ({ updateUserById: (...a: unknown[]) => mockUpdateUserById(...a) }))
+const mockToastError = jest.fn()
+jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: mockToastError }) }))
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ fetchUser: mockFetchUser, user: { user: { userId: 'u1' } } }),
 }))
@@ -34,7 +36,7 @@ jest.mock('@/components/Global/ActionModal', () => ({
 
 beforeEach(() => {
     jest.clearAllMocks()
-    mockUpdateUserById.mockResolvedValue(undefined)
+    mockUpdateUserById.mockResolvedValue({ data: {} })
 })
 
 describe('ShowNameToggle', () => {
@@ -75,14 +77,18 @@ describe('ShowNameToggle', () => {
         await waitFor(() => expect(mockUpdateUserById).toHaveBeenCalledWith({ userId: 'u1', showFullName: false }))
     })
 
-    it('reverts the optimistic value when the save fails', async () => {
-        mockUpdateUserById.mockRejectedValueOnce(new Error('nope'))
+    it('reverts the optimistic value when the save resolves an error', async () => {
+        // updateUserById resolves { error } for a non-2xx or a network failure;
+        // it never rejects. Treating that as success left this screen claiming
+        // the legal name was hidden while the server still published it.
+        mockUpdateUserById.mockResolvedValueOnce({ error: 'nope' })
         const onChange = jest.fn()
-        jest.spyOn(console, 'error').mockImplementation(() => {})
         render(<ShowNameToggle checked onChange={onChange} />)
 
         fireEvent.click(screen.getByRole('switch'))
 
         await waitFor(() => expect(onChange).toHaveBeenLastCalledWith(true))
+        expect(mockToastError).toHaveBeenCalled()
+        expect(mockFetchUser).not.toHaveBeenCalled()
     })
 })

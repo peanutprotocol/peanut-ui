@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { rainApi, RainCardRateLimitError, type RainCardDetailsResponse } from '@/services/rain'
+import { isCapacitor } from '@/utils/capacitor'
 
 interface UseCardRevealArgs {
     cardId: string
@@ -110,7 +111,27 @@ export function useCardReveal({ cardId, autoMaskMs = DEFAULT_AUTO_MASK_MS }: Use
     useEffect(() => {
         const sync = () => setObscured(document.visibilityState === 'hidden')
         document.addEventListener('visibilitychange', sync)
+
+        // Android WebViews do not reliably fire visibilitychange, so the native
+        // lifecycle is the authority there — the same appStateChange listener
+        // AppLock uses to know it was backgrounded.
+        let removeNative: (() => void) | undefined
+        let cancelled = false
+        if (isCapacitor()) {
+            import('@capacitor/app')
+                .then(({ App }) => App.addListener('appStateChange', ({ isActive }) => setObscured(!isActive)))
+                .then((handle) => {
+                    if (cancelled) handle.remove()
+                    else removeNative = () => handle.remove()
+                })
+                .catch(() => {
+                    // no bridge (web bundle, old native shell) — the DOM event covers it
+                })
+        }
+
         return () => {
+            cancelled = true
+            removeNative?.()
             document.removeEventListener('visibilitychange', sync)
             if (timeoutRef.current) clearTimeout(timeoutRef.current)
         }
