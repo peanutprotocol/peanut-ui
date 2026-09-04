@@ -103,14 +103,23 @@ async function syncExternalIdLink() {
     const id = currentExternalId
     if (id && lastLinkedExternalId !== id) {
         if (disableExternalIdLogin) return
-        if (loginInFlight?.id === id) return loginInFlight.promise
+        if (loginInFlight?.id === id) {
+            // join it rather than start a second login for the same id, then
+            // check the outcome: a joined caller that never retries would leave
+            // the device unlinked whenever the login it joined failed
+            await loginInFlight.promise
+            if (currentExternalId === id && lastLinkedExternalId !== id) return syncExternalIdLink()
+            return
+        }
         const token = {}
         const promise = (async () => {
             try {
                 const adapter = await getOneSignalAdapter()
                 await adapter.login(id)
-                // commit only on success so transient failures retry on the next sync
-                lastLinkedExternalId = id
+                // commit only on success so transient failures retry on the next
+                // sync, and only while this call still owns the tracker — an
+                // older login settling late must not name an account we left
+                if (loginInFlight?.token === token) lastLinkedExternalId = id
             } catch (err: unknown) {
                 handleLoginError(err)
             } finally {

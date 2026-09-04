@@ -7,13 +7,13 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 // listener. Pin: a sync for an id whose login is in flight joins it.
 
 let userId = 'user-1'
-const pendingLogins = new Map<string, () => void>()
+const pendingLogins = new Map<string, { resolve: () => void; reject: (e: Error) => void }>()
 const mockAdapter = {
     init: jest.fn().mockResolvedValue(undefined),
     login: jest.fn(
         (id: string) =>
-            new Promise<void>((resolve) => {
-                pendingLogins.set(id, resolve)
+            new Promise<void>((resolve, reject) => {
+                pendingLogins.set(id, { resolve, reject })
             })
     ),
     logout: jest.fn().mockResolvedValue(undefined),
@@ -65,14 +65,40 @@ describe('useNotifications initial login', () => {
         await waitFor(() => expect(mockAdapter.login).toHaveBeenCalledWith('user-2'))
         expect(mockAdapter.login).toHaveBeenCalledTimes(2)
 
-        // the older login settles last — it must not clear the new id's guard
+        // the newer login lands first, then the older one settles: neither the
+        // guard nor the bookkeeping may end up naming the account we left
         await act(async () => {
-            pendingLogins.get('user-1')!()
+            pendingLogins.get('user-2')!.resolve()
+        })
+        await act(async () => {
+            pendingLogins.get('user-1')!.resolve()
         })
         await act(async () => {
             onSubscriptionChange({ optedIn: false, previousOptedIn: true })
             onSubscriptionChange({ optedIn: true, previousOptedIn: false })
         })
         expect(mockAdapter.login).toHaveBeenCalledTimes(2)
+    })
+
+    it('retries once when the login it joined fails', async () => {
+        // a joined caller sees no error of its own: without a re-check the
+        // device stays unlinked and every push for it reaches nobody
+        userId = 'user-3'
+        renderHook(() => useNotifications())
+        await waitFor(() => expect(mockAdapter.login).toHaveBeenCalledWith('user-3'))
+        const callsAfterFirst = mockAdapter.login.mock.calls.length
+        const onSubscriptionChange = mockAdapter.onSubscriptionChange.mock.calls[0][0]
+
+        // the opt-in joins that pending login, which then fails
+        await act(async () => {
+            onSubscriptionChange({ optedIn: true, previousOptedIn: false })
+        })
+        expect(mockAdapter.login).toHaveBeenCalledTimes(callsAfterFirst)
+
+        await act(async () => {
+            pendingLogins.get('user-3')!.reject(new Error('network down'))
+        })
+        await waitFor(() => expect(mockAdapter.login).toHaveBeenCalledTimes(callsAfterFirst + 1))
+        expect(mockAdapter.login).toHaveBeenLastCalledWith('user-3')
     })
 })
