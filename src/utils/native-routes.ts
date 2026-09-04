@@ -305,9 +305,12 @@ const TELEMETRY_SAFE_SEGMENTS = new Set(['success', 'bank', 'manteca', 'crypto',
 export function redactNativePath(value: string): string {
     const beforeQuery = value.split('#')[0].split('?')[0]
     // Keep scheme://host so a peanut.me universal link stays distinguishable
-    // from a custom-scheme launch — neither carries an identifier.
-    const prefix = beforeQuery.match(/^[a-z][a-z0-9+.-]*:\/\/[^/]*/i)?.[0] ?? ''
-    const path = beforeQuery.slice(prefix.length)
+    // from a custom-scheme launch — neither carries an identifier. Userinfo
+    // (`https://secret@peanut.me/…`) is dropped: it is attacker-controlled
+    // input on a link and would otherwise ride into telemetry intact.
+    const authority = beforeQuery.match(/^[a-z][a-z0-9+.-]*:\/\/[^/]*/i)?.[0] ?? ''
+    const prefix = authority.replace(/\/\/[^/]*@/, '//')
+    const path = beforeQuery.slice(authority.length)
     const redacted = path
         .split('/')
         .map((segment) => {
