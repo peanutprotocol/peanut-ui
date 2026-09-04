@@ -167,7 +167,7 @@ export const Profile = () => {
                     </ListGroup>
 
                     {/* Logout + Delete account */}
-                    <div className="space-y-6 w-full pb-10">
+                    <div className="w-full pb-2">
                         <Button
                             loading={isLoggingOut}
                             disabled={isLoggingOut}
