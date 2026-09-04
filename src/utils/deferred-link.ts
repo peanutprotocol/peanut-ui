@@ -54,18 +54,16 @@ export interface DeferredPayload {
 
 // app-local android plugin (InstallReferrerPlugin.java); absent on iOS/web and
 // on older binaries running OTA'd JS, which the capability turns into null.
-const InstallReferrer = nativeCapability<{ getReferrer(): Promise<{ referrer: string | null }> }>('InstallReferrer', {
-    platforms: ['android'],
-})
+const InstallReferrer = nativeCapability<{ getReferrer(options?: undefined): Promise<{ referrer: string | null }> }>(
+    'InstallReferrer',
+    { platforms: ['android'] }
+)
 
 /** raw play install referrer string, or null anywhere it can't be read. */
 export async function readInstallReferrer(): Promise<string | null> {
     // null covers all of: older binary without the plugin, iOS/web, and the
     // referrer service being unavailable on a busy first boot.
-    return InstallReferrer.call(
-        async (plugin) => (await plugin.getReferrer()).referrer ?? null,
-        () => null
-    )
+    return (await InstallReferrer.call('getReferrer', undefined, () => ({ referrer: null }))).referrer ?? null
 }
 
 // ---------------------------------------------------------------------------

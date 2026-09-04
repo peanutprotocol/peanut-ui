@@ -1,8 +1,8 @@
 import { nativeCapability } from './native-capability'
 
 interface ClipboardDetectPlugin {
-    hasStrings(): Promise<{ value: boolean }>
-    hasProbableWebUrl(): Promise<{ value: boolean }>
+    hasStrings(options?: undefined): Promise<{ value: boolean }>
+    hasProbableWebUrl(options?: undefined): Promise<{ value: boolean }>
 }
 
 // App-local iOS plugin (ios/App/App/ClipboardDetectPlugin.swift); no web/Android
@@ -17,10 +17,7 @@ const ClipboardDetect = nativeCapability<ClipboardDetectPlugin>('ClipboardDetect
  * (OTA'd JS), so the caller simply doesn't offer the paste shortcut there.
  */
 export async function clipboardHasStrings(): Promise<boolean> {
-    return ClipboardDetect.call(
-        async (plugin) => (await plugin.hasStrings()).value,
-        () => false
-    )
+    return (await ClipboardDetect.call('hasStrings', undefined, () => ({ value: false }))).value
 }
 
 /**
@@ -31,8 +28,5 @@ export async function clipboardHasStrings(): Promise<boolean> {
  * the prompt. False on other platforms and binaries without the method.
  */
 export async function clipboardHasProbableWebUrl(): Promise<boolean> {
-    return ClipboardDetect.call(
-        async (plugin) => (await plugin.hasProbableWebUrl()).value,
-        () => false
-    )
+    return (await ClipboardDetect.call('hasProbableWebUrl', undefined, () => ({ value: false }))).value
 }

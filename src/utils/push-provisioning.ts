@@ -56,10 +56,7 @@ const PushProvisioning = nativeCapability<PushProvisioningPlugin>('PushProvision
  * where the UI should keep the manual carousel (or hide the row).
  */
 export async function getPushProvisioningAvailability(last4?: string): Promise<PushProvisioningAvailability> {
-    return PushProvisioning.call(
-        (plugin) => plugin.isAvailable({ last4 }),
-        () => ({ available: false, alreadyInWallet: false })
-    )
+    return PushProvisioning.call('isAvailable', { last4 }, () => ({ available: false, alreadyInWallet: false }))
 }
 
 /**
@@ -68,8 +65,8 @@ export async function getPushProvisioningAvailability(last4?: string): Promise<P
  * can toast + report without a try/catch at every call site.
  */
 export async function addCardToWallet(args: AddCardToWalletArgs): Promise<AddCardToWalletResult> {
-    return PushProvisioning.call(
-        (plugin) => plugin.addCard(args),
-        (error) => ({ added: false, error: error instanceof Error ? error.message : 'unavailable' })
-    )
+    return PushProvisioning.call('addCard', args, (error) => ({
+        added: false,
+        error: error instanceof Error ? error.message : 'unavailable',
+    }))
 }

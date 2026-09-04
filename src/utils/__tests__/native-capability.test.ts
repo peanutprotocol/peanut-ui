@@ -25,7 +25,7 @@ const mockIsIOSNative = isIOSNative as jest.MockedFunction<typeof isIOSNative>
 const mockIsAndroidNative = isAndroidNative as jest.MockedFunction<typeof isAndroidNative>
 
 interface TestPlugin {
-    doThing(): Promise<{ value: string }>
+    doThing(options?: undefined): Promise<{ value: string }>
 }
 
 describe('nativeCapability', () => {
@@ -42,12 +42,9 @@ describe('nativeCapability', () => {
 
         const capability = nativeCapability<TestPlugin>('TestPlugin', { platforms: ['ios'] })
 
-        await expect(
-            capability.call(
-                async (p) => (await p.doThing()).value,
-                () => 'fallback'
-            )
-        ).resolves.toBe('native')
+        await expect(capability.call('doThing', undefined, () => ({ value: 'fallback' }))).resolves.toEqual({
+            value: 'native',
+        })
     })
 
     it('falls back without touching the plugin on an unsupported platform', async () => {
@@ -57,12 +54,9 @@ describe('nativeCapability', () => {
 
         const capability = nativeCapability<TestPlugin>('TestPlugin', { platforms: ['ios'] })
 
-        await expect(
-            capability.call(
-                async (p) => (await p.doThing()).value,
-                () => 'fallback'
-            )
-        ).resolves.toBe('fallback')
+        await expect(capability.call('doThing', undefined, () => ({ value: 'fallback' }))).resolves.toEqual({
+            value: 'fallback',
+        })
         // Not merely "answered fallback": on web the proxy exists and invoking
         // it rejects, so the gate has to stop the call, not catch it.
         expect(doThing).not.toHaveBeenCalled()
@@ -75,12 +69,9 @@ describe('nativeCapability', () => {
 
         const capability = nativeCapability<TestPlugin>('TestPlugin', { platforms: ['ios'] })
 
-        await expect(
-            capability.call(
-                async (p) => (await p.doThing()).value,
-                () => 'fallback'
-            )
-        ).resolves.toBe('fallback')
+        await expect(capability.call('doThing', undefined, () => ({ value: 'fallback' }))).resolves.toEqual({
+            value: 'fallback',
+        })
     })
 
     it('hands the rejection to the fallback, for callers that report it', async () => {
@@ -90,12 +81,11 @@ describe('nativeCapability', () => {
         })
 
         const capability = nativeCapability<TestPlugin>('TestPlugin', { platforms: ['ios'] })
-        const result = await capability.call(
-            async (p) => (await p.doThing()).value,
-            (error) => (error instanceof Error ? error.message : 'unknown')
-        )
+        const result = await capability.call('doThing', undefined, (error) => ({
+            value: error instanceof Error ? error.message : 'unknown',
+        }))
 
-        expect(result).toBe('user cancelled')
+        expect(result).toEqual({ value: 'user cancelled' })
     })
 
     it('settles rather than hanging, even though the plugin is a proxy', async () => {
@@ -106,18 +96,31 @@ describe('nativeCapability', () => {
 
         // The trap this closes: resolving a promise WITH the plugin makes the
         // runtime probe proxy.then, which dispatches a native call that never
-        // invokes either callback — the promise stays pending forever. The
-        // proxy cannot escape `call`, so the result is always a plain value.
+        // invokes either callback — the promise stays pending forever.
         await expect(
-            expectToSettle(
-                capability.call(
-                    (p) => p.doThing(),
-                    () => ({ value: 'fallback' })
-                )
+            expectToSettle(capability.call('doThing', undefined, () => ({ value: 'fallback' })))
+        ).resolves.toEqual({ value: 'native' })
+    })
+
+    it('gives callers no way to get the proxy back out', () => {
+        const capability = nativeCapability<TestPlugin>('TestPlugin', { platforms: ['ios'] })
+
+        // The reason `call` takes a method NAME. With a callback signature,
+        // `call(async (plugin) => plugin, fallback)` type-checks and then hangs
+        // forever: the async function assimilates the proxy's .then while
+        // resolving, so it never reaches the catch or the fallback. There is no
+        // runtime guard for it — the hang happens before any code of ours runs
+        // again — so the invariant has to hold at the type level, and typecheck
+        // is a CI job. If this stops erroring, the hole is back.
+        // @ts-expect-error a callback is not a method name
+        expect(() =>
+            capability.call(
+                async (plugin: TestPlugin) => plugin,
+                () => undefined
             )
-        ).resolves.toEqual({
-            value: 'native',
-        })
+        ).toBeDefined()
+        // @ts-expect-error 'notAMethod' is not on TestPlugin
+        expect(() => capability.call('notAMethod', undefined, () => undefined)).toBeDefined()
     })
 
     it('reports platform support from the declared platforms', () => {
