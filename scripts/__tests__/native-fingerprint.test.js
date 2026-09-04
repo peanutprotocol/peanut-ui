@@ -67,9 +67,18 @@ describe('native-fingerprint', () => {
     })
 
     it('reads a git ref, and differs from the working tree once native code has moved', () => {
-        // v1.1.0 predates the 8.51.14 updater bump and the iOS 16.4 floor.
-        expect(fingerprint('--ref', 'v1.1.0')).toMatch(/^[0-9a-f]{16}$/)
-        expect(fingerprint('--ref', 'v1.1.0')).not.toBe(fingerprint())
+        // HEAD, never a release tag: the unit job checks out at depth 1 with no
+        // tags, so `--ref v1.1.0` resolves to nothing there and EVERY input
+        // reads <absent> — which still differs from the working tree, so a
+        // tag-based assertion passes for entirely the wrong reason.
+        expect(fingerprint('--ref', 'HEAD')).toMatch(/^[0-9a-f]{16}$/)
+        expect(fingerprint('--ref', 'HEAD')).toBe(fingerprint())
+
+        withPatchedInput(
+            'capacitor.config.ts',
+            (content) => `${content}\n// surface change\n`,
+            () => expect(fingerprint('--ref', 'HEAD')).not.toBe(fingerprint())
+        )
     })
 
     it('exits 0 and says so when the surface has not moved', () => {
@@ -80,13 +89,19 @@ describe('native-fingerprint', () => {
     })
 
     it('exits 1 naming the culprit when the surface moved', () => {
-        const result = run('--diff', 'v1.1.0')
+        withPatchedInput(
+            'android/capacitor.settings.gradle',
+            (content) => content.replace('capacitor-updater@8.51.14', 'capacitor-updater@9.0.0'),
+            () => {
+                const result = run('--diff', 'HEAD')
 
-        expect(result.status).toBe(1)
-        expect(result.stdout).toContain('native surface changed since v1.1.0')
-        // The point of the check is that it says WHAT moved, not just that
-        // something did — a bare "refused" is unactionable at 2am.
-        expect(result.stdout).toContain('android/capacitor.settings.gradle')
+                expect(result.status).toBe(1)
+                expect(result.stdout).toContain('native surface changed since HEAD')
+                // The point of the check is that it says WHAT moved, not just
+                // that something did — a bare "refused" is unactionable at 2am.
+                expect(result.stdout).toContain('android/capacitor.settings.gradle')
+            }
+        )
     })
 
     it('moves when a plugin version changes', () => {
@@ -165,7 +180,7 @@ describe('native-fingerprint', () => {
         // Regression guard: `git ls-tree -r -- 'dir/**/*.java'` matches nothing
         // and exits 0, so a glob pathspec made every ref report an empty bridge
         // set — the check compared nothing against nothing and passed.
-        const entries = JSON.parse(run('--manifest', '--ref', 'v1.1.0').stdout)
+        const entries = JSON.parse(run('--manifest', '--ref', 'HEAD').stdout)
 
         expect(entries['android/app/src/**.{java,kt}']).not.toBe('<absent>')
         expect(entries['ios/App/**.swift']).not.toBe('<absent>')
