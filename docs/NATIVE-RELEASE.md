@@ -336,6 +336,42 @@ own `out/` under the binary's versionName, then assert the channel serves it.
   the floor when the channel's "disable auto update" strategy is set to *version number*.
   **Bump the native version whenever you change plugins/native code**, then ship that via
   Play — OTA can't.
+- **Native fingerprint (the check behind that rule):** `scripts/native-fingerprint.mjs`
+  hashes the JS↔native contract in three parts: the **config** (Capacitor's two generated
+  plugin manifests, `capacitor.config.ts`, the gradle files, `AndroidManifest.xml`,
+  `project.pbxproj`, `Info.plist`, both entitlements files), the **bridges** JS actually
+  calls (`android/app/src/main/**.{java,kt}`, `ios/App/**.swift` — a bundle calling a new
+  method on `PushProvisioningPlugin` needs the binary that has it, and no config file
+  moves when that changes), the **resource contracts** those config files delegate to
+  (`android/app/src/main/res/**.xml`, including the `capacitor-passkey.xml` asset
+  statement, and every `Info.plist`/`.entitlements` under `ios/App` — the extensions'
+  as well as the app's), and the **resolved plugin versions from `pnpm-lock.yaml`**
+  (the OTA workflow runs `pnpm install` but never regenerates the committed manifests, so
+  a plugin bumped without a `cap sync` would ship the new JS wrapper against unchanged
+  manifest bytes; the plugin set is the union of the declared dependencies and the names
+  Capacitor generated and an explicit `NATIVE_DEPENDENCIES` list — three sources, because
+  a package name cannot be trusted and the generated manifests only cover plugins that
+  have been synced; a test asserts every generated plugin appears in the list so it cannot
+  drift. Plus `patches/` with the `patchedDependencies` map, since a pnpm patch rewrites
+  both halves of a package with no version change. Deliberately **not** every dependency:
+  hashing the whole name set was tried and reverted after `web-vitals`, a pure-JS library,
+  would have refused every staging OTA until a native release was cut).
+  Every Android source set is hashed, including the credential-gated `src/meawallet`:
+  whether it reaches a binary is not knowable from the tree, and of the two unsound
+  choices, over-claiming only forces an unnecessary native release while under-claiming
+  fails silently. **The real fix is for that variant to stop depending on a CI secret.**
+  An unresolvable ref is an error, never an empty read, and `--root` points the CLI at
+  another checkout so its tests never mutate this one. `capgo-deploy.yml` recomputes it and compares against the
+  `v<major>.<build>.0` tag the bundle's floor targets; a mismatch **fails the OTA** and
+  names the file that moved. It is a pure function of the tree, so nothing is stored and
+  any tag can be fingerprinted retroactively (`--ref v1.2.0`). `MARKETING_VERSION` and
+  `CURRENT_PROJECT_VERSION` are normalised out — `native-ios-postsync.js` stamps them on
+  every sync, and leaving them in would refuse an OTA after every release.
+  **Why it exists:** `min_update_version` only blocks *delivery*, only under the
+  `metadata` channel strategy, and lives in a dashboard CI cannot read, so nothing
+  previously reported that an incompatible bundle had been *built* — the mismatch first
+  appeared on a user's device. The remedy for a failure is always to cut a native
+  release, never to widen or skip the check.
 - **Staged rollout:** roll production OTA to ~10% → watch Sentry/crash + error rates →
   100%. Don't 100% every merge.
 - **Rollback** is configured in `capacitor.config.ts` (`appReadyTimeout: 15000` +
