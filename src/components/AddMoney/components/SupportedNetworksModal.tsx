@@ -22,7 +22,6 @@ const SupportedNetworksModal = ({ visible, onClose }: SupportedNetworksModalProp
             iconContainerClassName="bg-background-icon-bubble-yellow"
             title={t('title')}
             description={t('description')}
-            descriptionClassName="mt-3"
             ctas={[
                 {
                     text: t('cta'),

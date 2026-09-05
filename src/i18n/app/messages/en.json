@@ -2322,7 +2322,7 @@
         "collectionLabel": "Badge collection",
         "showNext": "Show next badges",
         "showPrevious": "Show previous badges",
-        "unlocked": "Badge unlocked: {name}",
+        "unlocked": "Badge unlocked!",
         "unlockedAtLabel": "Unlocked",
         "reasonLabel": "Why",
         "iconAlt": "{name} icon",

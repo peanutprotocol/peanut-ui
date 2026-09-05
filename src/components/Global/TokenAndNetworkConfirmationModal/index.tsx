@@ -29,7 +29,6 @@ export default function TokenAndNetworkConfirmationModal({
             iconContainerClassName="bg-background-icon-bubble-yellow"
             modalClassName="z-[9999]"
             title={t('tokenAndNetworkConfirmationModal.title')}
-            descriptionClassName="mt-3"
             description={
                 <div className="flex flex-col items-center gap-2">
                     <span className="text-body-s">{t('tokenAndNetworkConfirmationModal.warning')}</span>

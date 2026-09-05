@@ -83,8 +83,11 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                                     height={160}
                                 />
                             </div>
+                            {/* the same sentence the unlock toast uses — `unlocked`
+                                is the bare eyebrow BadgeStatusItem needs, where the
+                                badge name is already the row's title */}
                             <DrawerTitle className="text-heading-s text-foreground-primary">
-                                {t('unlocked', { name: displayName })}
+                                {t('toastSingle', { name: displayName })}
                             </DrawerTitle>
                         </button>
 
