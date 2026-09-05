@@ -2,6 +2,7 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import type { ComponentProps, ReactNode } from 'react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { AvatarPicker } from '../AvatarPicker'
+import { readLetterAvatar, resetLetterAvatarCache } from '../avatar-letter.storage'
 
 jest.mock('next/image', () => ({
     __esModule: true,
@@ -66,6 +67,8 @@ function fakeServer() {
 
 beforeEach(() => {
     jest.clearAllMocks()
+    window.localStorage.clear()
+    resetLetterAvatarCache()
     mockUpdateUserById.mockResolvedValue({ data: {} })
     mockFetchUser.mockResolvedValue(null)
     mockUser = {
@@ -232,6 +235,46 @@ describe('AvatarPicker', () => {
         expect(screen.getByRole('radiogroup', { name: 'Initials' }).querySelectorAll('[role="radio"]')).toHaveLength(26)
         expect(screen.getByRole('radio', { name: 'A' })).toBeInTheDocument()
         expect(screen.getByRole('radio', { name: 'Z' })).toBeInTheDocument()
+    })
+
+    it('keeps a letter this API build still rejects, on the device, without an error toast', async () => {
+        const server = fakeServer()
+        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        fireEvent.click(screen.getByRole('radio', { name: 'K' }))
+        await server.settle(0, { error: 'body/avatarKey must match pattern' })
+
+        // the pick survives the rejection and the user is not told off for it
+        await waitFor(() => expect(readLetterAvatar('u1')).toBe('letter.k'))
+        expect(mockToast).not.toHaveBeenCalled()
+        await waitFor(() => expect(radio('K')).toHaveAttribute('aria-checked', 'true'))
+    })
+
+    it('still reports a rejected sticker — those have no device-local fallback', async () => {
+        const server = fakeServer()
+        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        fireEvent.click(radio(A))
+        await server.settle(0, { error: 'Avatar not unlocked' })
+
+        expect(mockToast).toHaveBeenCalledWith({ type: 'error', message: 'Could not save your avatar. Try again.' })
+        expect(readLetterAvatar('u1')).toBeNull()
+    })
+
+    it('a server write that lands drops the mirror, so the durable copy wins', async () => {
+        const server = fakeServer()
+        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        fireEvent.click(screen.getByRole('radio', { name: 'K' }))
+        await server.settle(0, { error: 'body/avatarKey must match pattern' })
+        await waitFor(() => expect(readLetterAvatar('u1')).toBe('letter.k'))
+
+        // the API now accepts it (peanut-api-ts#1529 deployed)
+        fireEvent.click(screen.getByRole('radio', { name: 'M' }))
+        await server.settle(1)
+
+        await waitFor(() => expect(readLetterAvatar('u1')).toBeNull())
+        expect(server.committed()).toBe('letter.m')
     })
 
     it('a letter is a real pick, not a clear back to the username initial', () => {

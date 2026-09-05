@@ -9,6 +9,8 @@ import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } f
 import { useAuth } from '@/context/authContext'
 import { twMerge } from '@/utils/tw'
 import { badgeAvatarKeys, letterAvatarKeys, offerBasics } from './avatar.utils'
+import { isLetterAvatarKey, storeLetterAvatar } from './avatar-letter.storage'
+import { useAvatarKey } from './useAvatarKey'
 import { AVATAR_PICKER_COLUMNS, AVATAR_PICKER_LETTER_COLUMNS, roveAvatarTiles } from './avatarPicker.utils'
 import { UserAvatar } from './UserAvatar'
 
@@ -28,6 +30,10 @@ interface AvatarPickerProps {
  * button wrote `avatarKey: null`, which renders the first letter of the
  * USERNAME and follows it on rename; a `letter.<a-z>` pick is a real pick and
  * stays put. `null` remains the day-0 state of someone who never opened this.
+ *
+ * A letter the API still rejects (until peanut-api-ts#1529 ships) falls back to
+ * a device-local mirror rather than an error toast — see avatar-letter.storage.
+ * Sticker picks have no fallback by design: their unlock is enforced server-side.
  */
 export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
     const t = useTranslations('avatar')
@@ -37,7 +43,8 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
 
     const userId = user?.user.userId
     const username = user?.user.username ?? undefined
-    const saved = user?.user.avatarKey ?? null
+    // the effective pick: the server's, or the device-local letter fallback
+    const saved = useAvatarKey(user?.user.avatarKey, userId)
     const badges = user?.user.badges ?? []
     const held = badges.map((badge) => badge.code)
     const badgeName = Object.fromEntries(badges.map((badge) => [badge.code, badge.name]))
@@ -64,9 +71,13 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                     wanted.current = undefined
                     try {
                         const { error } = await updateUserById({ userId, avatarKey: key })
-                        if (error) toast({ type: 'error', message: t('saveFailed') })
+                        if (error) rememberOrReport(key)
+                        // the server now holds the pick, so a mirror could only
+                        // shadow it — this is also what promotes a letter to the
+                        // durable copy the day the API starts accepting one
+                        else storeLetterAvatar(userId, null)
                     } catch {
-                        toast({ type: 'error', message: t('saveFailed') })
+                        rememberOrReport(key)
                     }
                 }
                 await fetchUser()
@@ -75,6 +86,16 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
             draining.current = false
             setPending(undefined)
         }
+    }
+
+    /**
+     * A rejected letter is not a user-facing failure: the pick is kept on this
+     * device and upgrades itself on the next write the server does accept. A
+     * rejected sticker has nowhere to go, so it still reports.
+     */
+    const rememberOrReport = (key: string | null) => {
+        if (isLetterAvatarKey(key)) storeLetterAvatar(userId, key)
+        else toast({ type: 'error', message: t('saveFailed') })
     }
 
     const save = (key: string | null) => {

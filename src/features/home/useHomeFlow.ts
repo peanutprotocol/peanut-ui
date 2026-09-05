@@ -1,5 +1,6 @@
 'use client'
 
+import { useAvatarKey } from '@/components/Avatar/useAvatarKey'
 import { useAuth } from '@/context/authContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
@@ -53,7 +54,7 @@ export function useHomeFlow() {
 
     // the picked avatar (TASK-22142); null keeps the first-letter fallback,
     // which the top nav seeds from the username, never the display name
-    const avatarKey = user?.user.avatarKey ?? null
+    const avatarKey = useAvatarKey(user?.user.avatarKey, user?.user.userId)
 
     return {
         isPageLoading: isFetchingUser && !username,

@@ -6,6 +6,7 @@ import posthog from 'posthog-js'
 import React, { useEffect, useRef } from 'react'
 import { twMerge } from '@/utils/tw'
 import AvatarWithBadge from '../AvatarWithBadge'
+import { useAvatarKey } from '@/components/Avatar/useAvatarKey'
 import { UserAvatar } from '@/components/Avatar/UserAvatar'
 import { useTranslations } from 'next-intl'
 import { VerifiedUserLabel } from '@/components/UserHeader'
@@ -41,9 +42,10 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     // (Sumsub-cleared), matching the counterparty badge logic (`isVerified` on
     // /users/:userId). Rail-approval is unrelated.
     const { isVerified: selfIsIdentityVerified } = useIdentityVerification()
+    const ownAvatarKey = useAvatarKey(authenticatedUser?.user.avatarKey, authenticatedUser?.user.userId)
     const isAuthenticatedUserVerified = selfIsIdentityVerified && authenticatedUser?.user.username === username
     const isSelfProfile = authenticatedUser?.user.username?.toLowerCase() === username.toLowerCase()
-    const ownAvatar = <UserAvatar name={username} avatarKey={authenticatedUser?.user.avatarKey} size="large" />
+    const ownAvatar = <UserAvatar name={username} avatarKey={ownAvatarKey} size="large" />
 
     // `shareableUrl` reads the live origin, so preview and staging share
     // themselves — the old BASE_URL import is non-null-asserted with no fallback.
