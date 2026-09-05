@@ -29,6 +29,7 @@ import { SessionKeyGrantRequiredError } from '@/hooks/wallet/spendPreflight'
 import { friendlyError } from '@/utils/friendly-error.utils'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
+import { pickMantecaDepositAddress } from '@/utils/manteca.utils'
 import { rainCentsToUsdcUnits, isAmountWithinBalance } from '@/utils/balance.utils'
 import { formatNumberForDisplay } from '@/utils/general.utils'
 import { getShakeClass, type ShakeIntensity } from '@/utils/perk.utils'
@@ -888,9 +889,15 @@ export default function QRPayPage() {
             const requiredUsdcAmount = parseUnits(finalPaymentLock.paymentAgainstAmount, PEANUT_WALLET_TOKEN_DECIMALS)
             signedArtifact = await signSpend({
                 requiredUsdcAmount,
-                // Per-rail Manteca QR funding wallet: Pix → non-AR, everything else → AR
-                // (same binary heuristic as the backend's getQrReceiveAddress).
-                recipient: qrType === EQrType.PIX ? MANTECA_QR_DEPOSIT_ADDRESS_NON_AR : MANTECA_QR_DEPOSIT_ADDRESS_AR,
+                // Entity-aware deposit address served by the API (per-entity
+                // balances from 2026-09-14) — the backend resolves the entity
+                // from the QR and the paying Manteca account. The per-rail
+                // constants remain only as a fallback for an older API that
+                // does not return the field yet.
+                recipient: pickMantecaDepositAddress(
+                    finalPaymentLock.depositAddress,
+                    qrType === EQrType.PIX ? MANTECA_QR_DEPOSIT_ADDRESS_NON_AR : MANTECA_QR_DEPOSIT_ADDRESS_AR
+                ),
                 rainSpendingPower: rainCentsToUsdcUnits(rainCardOverview?.balance?.spendingPower),
                 kind: 'QR_PAY',
             })
