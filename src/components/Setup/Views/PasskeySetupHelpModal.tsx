@@ -3,6 +3,8 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import ActionModal from '@/components/Global/ActionModal'
 import { Notification } from '@/components/0_Bruddle/Notification'
+import { NumberedList } from '@/components/0_Bruddle/NumberedList'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { PASSKEY_TROUBLESHOOTING_STEPS, PASSKEY_WARNINGS, WebAuthnErrorName } from '@/utils/webauthn.utils'
 import { useTranslations } from 'next-intl'
 
@@ -77,32 +79,31 @@ export const PasskeySetupHelpModal = ({
             iconProps={{ className: 'text-foreground-primary' }}
             title={title}
             footer={
-                <Button icon="retry" shadowSize="4" onClick={onRetry}>
-                    {tCommon('retry')}
-                </Button>
+                <div className="flex w-full flex-col items-center gap-3">
+                    <Button icon="retry" shadowSize="4" onClick={onRetry} className="w-full justify-center">
+                        {tCommon('retry')}
+                    </Button>
+                    {/* support leaves the tinted box: it is a secondary action, not a caveat */}
+                    <LinkButton href="https://peanut.me/support">{t('stillHavingIssues')}</LinkButton>
+                </div>
             }
             content={
-                <div className="flex w-full flex-col gap-4">
-                    <h2 className="mr-auto text-body-s text-foreground-secondary">{description}</h2>
+                /* One Notification on the screen, and it is the device-security
+                   caveat — the only line here that is a real warning. The fixes
+                   are a sequence, so they read as a numbered list (the same
+                   shape CameraPermissionModal uses for the same job), and their
+                   heading is the grey mini-header, not a raw bold h3. */
+                <div className="flex w-full flex-col gap-4 text-left">
+                    <p className="text-body-s text-foreground-secondary">{description}</p>
 
-                    <h3 className="mr-auto font-bold">{t('tryTheseFixes')}</h3>
-                    <Notification priority="info" className="w-full" items={troubleshootingSteps} />
+                    <div className="flex flex-col gap-2">
+                        <h2 className="text-label-m tracking-wide text-foreground-secondary uppercase">
+                            {t('tryTheseFixes')}
+                        </h2>
+                        <NumberedList items={troubleshootingSteps} />
+                    </div>
 
-                    {warning && (
-                        <Notification priority="error" title={t('importantNote')}>
-                            {warning}
-                        </Notification>
-                    )}
-
-                    <Notification priority="info" hideIcon title={t('stillHavingIssues')}>
-                        {t.rich('contactSupport', {
-                            link: (chunks) => (
-                                <a href="https://peanut.me/support" className="underline">
-                                    {chunks}
-                                </a>
-                            ),
-                        })}
-                    </Notification>
+                    {warning && <Notification priority="attention">{warning}</Notification>}
                 </div>
             }
             preventClose={false}

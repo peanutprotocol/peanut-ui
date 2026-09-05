@@ -6,6 +6,9 @@ import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { useTranslations } from 'next-intl'
 
+// grey uppercase mini-header, the same shape the account-ready screen uses
+const MINI_HEADER = 'text-label-m uppercase tracking-wide text-foreground-secondary'
+
 interface OnrampConfirmationModalProps {
     visible: boolean
     onClose: () => void
@@ -37,28 +40,29 @@ export const OnrampConfirmationModal = ({
                         <IconBubble icon="alert" color="yellow" />
                         <DrawerTitle>{t('title')}</DrawerTitle>
                     </div>
+                    {/* Two topics, two grey mini-headers, plain text under each —
+                        neither was ever a warning. That leaves the mismatch block
+                        as the one Notification, and the only coloured thing on a
+                        screen that confirms an irreversible transfer. */}
                     <div className="flex w-full flex-col gap-4 text-left">
-                        <h2 className="mr-auto text-label-m">{t('nextStep')}</h2>
-                        <Notification priority="helper" hideIcon className="w-full">
-                            <ul className="list-inside list-disc text-start">
-                                <li>{t('bankDetailsItem')}</li>
-                                <li>{t('referenceCodeItem')}</li>
-                            </ul>
-                        </Notification>
-                        <h2 className="mr-auto text-label-m">{t('youMust')}</h2>
-                        <Notification
-                            priority="info"
-                            className="w-full"
-                            items={[
-                                t.rich('sendExactly', {
+                        <div className="flex flex-col gap-1">
+                            <h2 className={MINI_HEADER}>{t('nextStep')}</h2>
+                            <p className="text-body-s text-foreground-primary">{t('bankDetailsItem')}</p>
+                            <p className="text-body-s text-foreground-primary">{t('referenceCodeItem')}</p>
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                            <h2 className={MINI_HEADER}>{t('youMust')}</h2>
+                            <p className="text-body-s text-foreground-primary">
+                                {t.rich('sendExactly', {
                                     currency,
                                     amount,
                                     b: (chunks) => <b>{chunks}</b>,
-                                }),
-                                t('copyReferenceCode'),
-                                t('pasteReference'),
-                            ]}
-                        />
+                                })}
+                            </p>
+                            <p className="text-body-s text-foreground-primary">{t('copyReferenceCode')}</p>
+                            <p className="text-body-s text-foreground-primary">{t('pasteReference')}</p>
+                        </div>
 
                         <Notification priority="error" title={t('mismatchTitle')}>
                             {t('mismatchDescription')}
