@@ -17,18 +17,21 @@ interface StartVerificationModalProps {
     isLoading?: boolean
 }
 
-type RailKey = 'europe' | 'uk' | 'us' | 'mexico' | 'qr' | 'latamBank' | 'fallback'
+type RailKey = 'europe' | 'uk' | 'us' | 'mexico' | 'qr' | 'fallback'
 
 // region → rail pairs, so they render as label/value DataRows rather than a checklist
 const BRIDGE_RAILS: RailKey[] = ['europe', 'uk', 'us', 'mexico', 'qr']
 const REGION_RAILS: Record<string, RailKey[]> = {
-    // Generic LATAM covers more countries than the local bank rails do — those
-    // are Argentina and Brazil only — so the region preview promises just the
-    // QR payments that hold across the whole intent. Picking either country
-    // outright does preview its own-account transfers.
+    // Every LATAM path previews QR payments only. The `argentina` and `brazil`
+    // paths are MANTECA_QR_ONLY_REGIONS — the Bridge-KYC route that grants QR
+    // in those countries WITHOUT the per-user Manteca account that bank
+    // transfers need, which is why their own descriptions read "Only Mercado
+    // Pago QR payments" and "Only PIX QR payments". Generic LATAM spans
+    // countries with no local rails at all. Promising own-account transfers on
+    // any of them is a benefit verification cannot enable.
     latam: ['qr'],
-    argentina: ['latamBank', 'qr'],
-    brazil: ['latamBank', 'qr'],
+    argentina: ['qr'],
+    brazil: ['qr'],
     europe: BRIDGE_RAILS,
     'north-america': BRIDGE_RAILS,
     'rest-of-the-world': ['qr'],
@@ -54,7 +57,6 @@ const UnlockRegionModal = ({
         us: { label: t('rails.us.label'), value: t('rails.us.value') },
         mexico: { label: t('rails.mexico.label'), value: t('rails.mexico.value') },
         qr: { label: t('rails.qr.label'), value: t('rails.qr.value') },
-        latamBank: { label: t('rails.latamBank.label'), value: t('rails.latamBank.value') },
         fallback: { label: t('rails.fallback.label'), value: t('rails.fallback.value') },
     }
 

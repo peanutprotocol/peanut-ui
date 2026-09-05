@@ -3026,10 +3026,6 @@
                 "label": "Argentina e Brasil",
                 "value": "Pagamentos QR"
             },
-            "latamBank": {
-                "label": "América Latina",
-                "value": "Transferências para suas próprias contas"
-            },
             "fallback": {
                 "label": "Sua região",
                 "value": "Transferências bancárias e formas de pagamento locais"

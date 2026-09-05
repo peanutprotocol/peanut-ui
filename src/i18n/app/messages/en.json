@@ -3026,10 +3026,6 @@
                 "label": "Argentina & Brazil",
                 "value": "QR payments"
             },
-            "latamBank": {
-                "label": "LATAM",
-                "value": "Bank transfers to your own accounts"
-            },
             "fallback": {
                 "label": "Your region",
                 "value": "Bank transfers and local payment methods"
