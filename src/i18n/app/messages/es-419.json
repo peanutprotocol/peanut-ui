@@ -3028,7 +3028,7 @@
             },
             "fallback": {
                 "label": "Tu región",
-                "value": "Transferencias bancarias y métodos de pago locales"
+                "value": "Transferencias bancarias donde haya soporte"
             }
         },
         "reasons": {

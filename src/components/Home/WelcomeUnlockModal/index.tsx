@@ -67,26 +67,29 @@ const WelcomeUnlockModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () 
                 id: 'ownCountry',
                 label: approvedCountryData?.title || t('yourCountry'),
                 value: t('items.ownCountry.value'),
-                channels: ['qr'],
+                // bank, not qr: this row promises own-account transfers, and a
+                // qr-only rail is by definition the channel that does not grant
+                // them. It shows only when a BANK rail is enabled in that country.
+                channels: ['bank'],
             },
         ],
         [t, approvedCountryData?.title]
     )
 
-    // Personalize the "Bank transfers to your own accounts" row's country label
-    // off the user's first enabled qr-only-or-pay-capable LATAM rail. Provider-
-    // blind via the channel classifier — the qr-only channel today is exactly
-    // the set that drives this row ("approved in country X for QR + bank
-    // transfers"). NOTE: if multiple enabled qr-pay rails exist, this picks the
-    // last (matches the old forEach behavior).
-    const qrCapableRails = useMemo(
-        () => rails.filter((rail) => rail.status === 'enabled' && channelOf(rail) === 'qr-only'),
+    // Personalize the "Bank transfers to your own accounts" row off an enabled
+    // BANK rail in a Manteca-supported country. It used to read the qr-only
+    // rails, which is the channel that explicitly does not carry transfers, so
+    // a pool-tier user was promised own-account transfers they cannot get.
+    // Provider-blind via the channel classifier. NOTE: if multiple enabled bank
+    // rails exist, this picks the last (matches the old forEach behavior).
+    const localBankRails = useMemo(
+        () => rails.filter((rail) => rail.status === 'enabled' && channelOf(rail) === 'bank'),
         [rails, channelOf]
     )
     useEffect(() => {
-        if (!hasQrUnlock) return
+        if (!hasBankUnlock) return
         let approvedCountry: string | undefined | null
-        qrCapableRails.forEach((rail) => {
+        localBankRails.forEach((rail) => {
             if (isMantecaSupportedCountryCode(rail.country)) {
                 approvedCountry = rail.country
             }
@@ -97,7 +100,7 @@ const WelcomeUnlockModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () 
             )
             setApprovedCountryData(_approvedCountryData || null)
         }
-    }, [hasQrUnlock, qrCapableRails])
+    }, [hasBankUnlock, localBankRails])
 
     return (
         <ActionModal

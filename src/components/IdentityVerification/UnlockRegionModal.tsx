@@ -34,6 +34,10 @@ const REGION_RAILS: Record<string, RailKey[]> = {
     brazil: ['qr'],
     europe: BRIDGE_RAILS,
     'north-america': BRIDGE_RAILS,
+    // Mexico rides the same single Bridge verification as the US — ACH/Wire and
+    // SPEI unlock together (unlock-payments.utils.ts). Unmapped, it fell through
+    // to the `fallback` row, which names no rail the region actually has.
+    mexico: BRIDGE_RAILS,
     'rest-of-the-world': ['qr'],
 }
 

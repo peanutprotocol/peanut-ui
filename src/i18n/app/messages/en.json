@@ -3028,7 +3028,7 @@
             },
             "fallback": {
                 "label": "Your region",
-                "value": "Bank transfers and local payment methods"
+                "value": "Bank transfers where supported"
             }
         },
         "reasons": {
