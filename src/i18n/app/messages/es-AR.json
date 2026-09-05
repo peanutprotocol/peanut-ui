@@ -778,7 +778,7 @@
         "cancel": {
             "body": "No vas a poder volver a usarla.",
             "slideToCancel": "Deslizá para cancelar",
-            "canceledBody": "Ya no se puede usar para pagos.",
+            "canceledBody": "Ya no se puede usar para pagos. Podés pedir una tarjeta nueva, según tu elegibilidad.",
             "feedbackLabel": "Ayudanos a mejorar nuestro producto para vos"
         },
         "lockModal": {

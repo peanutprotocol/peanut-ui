@@ -22,7 +22,13 @@ type RailKey = 'europe' | 'uk' | 'us' | 'mexico' | 'qr' | 'latamBank' | 'fallbac
 // region → rail pairs, so they render as label/value DataRows rather than a checklist
 const BRIDGE_RAILS: RailKey[] = ['europe', 'uk', 'us', 'mexico', 'qr']
 const REGION_RAILS: Record<string, RailKey[]> = {
-    latam: ['latamBank', 'qr'],
+    // Generic LATAM covers more countries than the local bank rails do — those
+    // are Argentina and Brazil only — so the region preview promises just the
+    // QR payments that hold across the whole intent. Picking either country
+    // outright does preview its own-account transfers.
+    latam: ['qr'],
+    argentina: ['latamBank', 'qr'],
+    brazil: ['latamBank', 'qr'],
     europe: BRIDGE_RAILS,
     'north-america': BRIDGE_RAILS,
     'rest-of-the-world': ['qr'],

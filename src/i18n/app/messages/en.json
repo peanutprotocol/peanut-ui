@@ -1451,7 +1451,7 @@
             "canceling": "Canceling…",
             "slideToCancel": "Slide to Cancel",
             "canceledTitle": "Card canceled",
-            "canceledBody": "It can no longer be used for payments.",
+            "canceledBody": "It can no longer be used for payments. You can request a new card, subject to eligibility.",
             "feedbackLabel": "Help us improve our product for you",
             "feedbackPlaceholder": "Why did you cancel the card?",
             "submit": "Submit",

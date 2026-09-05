@@ -1451,7 +1451,7 @@
             "canceling": "Cancelando…",
             "slideToCancel": "Desliza para cancelar",
             "canceledTitle": "Tarjeta cancelada",
-            "canceledBody": "Ya no se puede usar para pagos.",
+            "canceledBody": "Ya no se puede usar para pagos. Puedes pedir una tarjeta nueva, según tu elegibilidad.",
             "feedbackLabel": "Ayúdanos a mejorar nuestro producto para ti",
             "feedbackPlaceholder": "¿Por qué cancelaste la tarjeta?",
             "submit": "Enviar",
