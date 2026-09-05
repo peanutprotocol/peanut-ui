@@ -3140,7 +3140,15 @@
                 "iosChrome2": "Step 2: enable Camera",
                 "iosSafari1": "Step 1: tap “aA” in the address bar",
                 "iosSafari2": "Step 2: tap “Website Settings”",
-                "iosSafari3": "Step 3: set Camera to “Allow”"
+                "iosSafari3": "Step 3: set Camera to “Allow”",
+                "native": {
+                    "hint": "Peanut needs the camera to scan a QR code. Turn on Camera for Peanut in your device settings.",
+                    "openSettings": "Open Settings",
+                    "step1": "Open Settings and find Peanut",
+                    "iosStep2": "Turn on Camera",
+                    "androidStep2": "Tap Permissions",
+                    "androidStep3": "Set Camera to Allow"
+                }
             },
             "useCopiedCode": "Use copied code",
             "paymentMethods": {

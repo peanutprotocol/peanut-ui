@@ -46,3 +46,6 @@ project(':capgo-capacitor-updater').projectDir = new File('../node_modules/.pnpm
 
 include ':onesignal-capacitor-plugin'
 project(':onesignal-capacitor-plugin').projectDir = new File('../node_modules/@onesignal/capacitor-plugin/android')
+
+include ':capacitor-native-settings'
+project(':capacitor-native-settings').projectDir = new File('../node_modules/.pnpm/capacitor-native-settings@8.2.0_@capacitor+core@8.2.0/node_modules/capacitor-native-settings/android')
