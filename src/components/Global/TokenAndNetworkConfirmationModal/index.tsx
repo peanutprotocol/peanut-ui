@@ -3,10 +3,18 @@ import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { useTranslations } from 'next-intl'
 import ChainChip from '@/components/AddMoney/components/ChainChip'
 import EvmChainChips from '@/components/AddMoney/components/EvmChainChips'
-import { RHINO_SUPPORTED_OTHER_CHAINS, RHINO_SUPPORTED_TOKENS } from '@/constants/rhino.consts'
+import { getSupportedTokens, RHINO_SUPPORTED_OTHER_CHAINS, RHINO_SUPPORTED_TOKENS } from '@/constants/rhino.consts'
+import type { RhinoChainType } from '@/services/services.types'
 
 // grey uppercase mini-header, the same shape the account-ready screen uses
 const MINI_HEADER = 'text-label-m uppercase tracking-wide text-foreground-secondary'
+
+// SOLANA and TRON are the non-EVM deposit chains. Rhino takes fewer tokens on
+// them than the flat list below advertises — TRON is USDT-only — so each is
+// labelled with what it actually accepts, the way EvmChainChips labels its own
+// exceptions. A token sent to an address the chain does not accept is lost:
+// no config, so no webhook and no intent.
+const NON_EVM_NETWORK: Record<string, RhinoChainType> = { SOLANA: 'SOL', TRON: 'TRON' }
 
 export default function TokenAndNetworkConfirmationModal({
     onClose,
@@ -18,6 +26,7 @@ export default function TokenAndNetworkConfirmationModal({
     isVisible?: boolean
 }) {
     const t = useTranslations('global')
+    const tAddMoney = useTranslations('addMoney')
     return (
         <ActionModal
             visible={isVisible}
@@ -39,9 +48,14 @@ export default function TokenAndNetworkConfirmationModal({
                         <h2 className={MINI_HEADER}>{t('tokenAndNetworkConfirmationModal.supportedNetworks')}</h2>
 
                         <div className="flex flex-wrap justify-center gap-2">
-                            {RHINO_SUPPORTED_OTHER_CHAINS.map((chain) => (
-                                <ChainChip key={chain.name} chainName={chain.name} chainSymbol={chain.logoUrl} />
-                            ))}
+                            {RHINO_SUPPORTED_OTHER_CHAINS.map((chain) => {
+                                const network = NON_EVM_NETWORK[chain.name]
+                                const tokens = network ? getSupportedTokens(network).map((token) => token.name) : []
+                                const label = tokens.length
+                                    ? tAddMoney('chainTokenOnly', { chain: chain.name, tokens: tokens.join('/') })
+                                    : chain.name
+                                return <ChainChip key={chain.name} chainName={label} chainSymbol={chain.logoUrl} />
+                            })}
                             <EvmChainChips />
                         </div>
                     </div>

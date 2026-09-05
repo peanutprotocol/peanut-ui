@@ -1,3 +1,11 @@
+// Mirrors DEV_TOOLS_ENABLED in src/constants/dev-tools.consts.ts — the native
+// export can never answer a /dev route, so the surfaces registry is stubbed out
+// rather than compiled into the bundle.
+const path = require('path')
+const devToolsEnabled =
+    process.env.NODE_ENV === 'development' ||
+    (process.env.NEXT_PUBLIC_VERCEL_ENV ?? process.env.VERCEL_ENV ?? '') === 'preview'
+
 const os = require('os')
 const { execSync } = require('child_process')
 const withBundleAnalyzer = require('@next/bundle-analyzer')({
@@ -67,7 +75,23 @@ let nextConfig = {
         ],
     },
 
-    webpack: (config, { isServer, dev }) => {
+    webpack: (config, { isServer, dev, webpack }) => {
+        // `pnpm build` is `next build --webpack`, and the native builder runs the
+        // same webpack path — so a turbopack resolveAlias alone never reaches a
+        // build the repo actually runs. A resolve.alias does not work either:
+        // Next maps the `@/*` tsconfig path itself, before this alias is
+        // consulted. NormalModuleReplacementPlugin rewrites the resolved
+        // request, which is the one hook that survives both. Without it,
+        // production and the native export emit a chunk for the dev-surfaces
+        // registry and its ~50 component imports on a route that cannot answer.
+        if (!devToolsEnabled) {
+            config.plugins.push(
+                new webpack.NormalModuleReplacementPlugin(
+                    /dev[\\/]surfaces[\\/]registry$/,
+                    path.resolve(__dirname, 'src/dev/surfaces/registry.prod-stub.ts')
+                )
+            )
+        }
         if (!dev) {
             if (isServer) {
                 config.ignoreWarnings = [{ module: /@opentelemetry\/instrumentation/, message: /Critical dependency/ }]
