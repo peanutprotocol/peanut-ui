@@ -103,6 +103,9 @@ const noop = () => {}
 const asyncNoop = async () => {}
 
 import { SURFACE_META, type SurfaceMeta } from './list'
+import { PasskeyHelpA, PasskeyHelpB, PasskeyHelpC, PasskeyHelpD } from './options/PasskeyHelpOptions'
+import { OnrampA, OnrampB, OnrampC, OnrampD } from './options/OnrampOptions'
+import { KycChecklistA, KycChecklistB } from './options/KycChecklistOptions'
 
 export type Surface = SurfaceMeta & {
     /** Mounted open. Absent when `blocked` explains why it cannot be. */
@@ -589,6 +592,20 @@ export const SURFACES: Record<string, Surface> = {
             </div>
         ),
     },
+}
+
+/** The open reworks, one render per option, so a choice can be made by eye. */
+export const OPTION_SURFACES: Record<string, { name: string; render: () => React.ReactNode }> = {
+    'opt-passkey-a': { name: 'PasskeySetupHelpModal — A', render: () => <PasskeyHelpA /> },
+    'opt-passkey-b': { name: 'PasskeySetupHelpModal — B', render: () => <PasskeyHelpB /> },
+    'opt-passkey-c': { name: 'PasskeySetupHelpModal — C', render: () => <PasskeyHelpC /> },
+    'opt-passkey-d': { name: 'PasskeySetupHelpModal — D', render: () => <PasskeyHelpD /> },
+    'opt-onramp-a': { name: 'OnrampConfirmationModal — A', render: () => <OnrampA /> },
+    'opt-onramp-b': { name: 'OnrampConfirmationModal — B', render: () => <OnrampB /> },
+    'opt-onramp-c': { name: 'OnrampConfirmationModal — C', render: () => <OnrampC /> },
+    'opt-onramp-d': { name: 'OnrampConfirmationModal — D', render: () => <OnrampD /> },
+    'opt-kyc-a': { name: 'KycPrepChecklist — A (bullets)', render: () => <KycChecklistA /> },
+    'opt-kyc-b': { name: 'KycPrepChecklist — B (DataRow)', render: () => <KycChecklistB /> },
 }
 
 export const SURFACE_IDS = Object.keys(SURFACE_META).sort()

@@ -14,7 +14,7 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useEffect } from 'react'
 import { DEV_TOOLS_ENABLED } from '@/constants/dev-tools.consts'
-import { SURFACES, SURFACE_IDS } from '@/dev/surfaces/registry'
+import { OPTION_SURFACES, SURFACES, SURFACE_IDS } from '@/dev/surfaces/registry'
 import { useModalsContext } from '@/context/ModalsContext'
 
 function SurfaceHost({ id }: { id: string }) {
@@ -29,6 +29,8 @@ function SurfaceHost({ id }: { id: string }) {
         if (surface?.modalsContextFlag === 'iosPwaInstall') setIsIosPwaInstallModalOpen(true)
     }, [surface, setIsSignInModalOpen, setIsSupportModalOpen, setIsIosPwaInstallModalOpen])
 
+    const option = OPTION_SURFACES[id]
+    if (option) return <>{option.render()}</>
     if (!surface) return <p className="p-4 text-body-s">Unknown surface: {id}</p>
     if (surface.blocked) {
         return (
