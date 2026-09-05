@@ -419,8 +419,8 @@
                 "description": "Tu @usuario es la forma en que tus amigos te envían dinero. Pensalo como un número de cuenta que podés decir en voz alta."
             },
             "residence": {
-                "title": "¿Dónde sos residente?",
-                "description": "El país donde vivís legalmente: el que muestran tus documentos, no donde estás de viaje ahora. Define qué métodos de pago podemos activar para vos."
+                "title": "¿Dónde vivís legalmente?",
+                "description": "El país donde vivís legalmente y tenés tu domicilio, no donde estás de viaje. Esto define qué métodos de pago podés desbloquear."
             },
             "passkey-permission": {
                 "description": "Usá tu cara o tu huella para iniciar sesión. Sin contraseñas ni complicaciones. Solo vos."
@@ -523,12 +523,12 @@
             "help": {
                 "descriptions": {
                     "notReadable": "Hay un problema con la configuración de passkeys de tu dispositivo. Intentalo de nuevo.",
-                    "notAllowedAndroid": "No pudimos crear una passkey. Esto suele pasar cuando no iniciaste sesión en una cuenta de Google, Google Play Services está desactualizado o no tenés bloqueo de pantalla configurado. Corregí uno de estos puntos y reintentá, o puede que se haya cancelado.",
+                    "notAllowedAndroid": "No pudimos crear una passkey. Iniciá sesión en una cuenta de Google, actualizá Google Play Services o configurá el bloqueo de pantalla, y reintentá.",
                     "notAllowed": "Las passkeys no están habilitadas en tu dispositivo. Revisá la configuración de tu dispositivo para habilitarlas"
                 },
                 "tryTheseFixes": "Probá estas soluciones:",
-                "stillHavingIssues": "¿Seguís con problemas?",
-                "contactSupport": "Contactá a nuestro equipo de soporte en <link>peanut.me/support</link>",
+                "stillHavingIssues": "¿Seguís atascado?",
+                "contactSupport": "Escribí a soporte en <link>peanut.me/support</link>",
                 "steps": {
                     "signInGoogle": "Iniciá sesión en una cuenta de Google en este dispositivo",
                     "ensureSignedInGoogle": "Asegurate de haber iniciado sesión en una cuenta de Google en este dispositivo",
@@ -549,9 +549,9 @@
             },
             "info": {
                 "title": "¿Qué es una passkey?",
-                "what": "Una passkey es una llave digital que tu dispositivo crea para esta app. La aprobás con la huella, el rostro o el bloqueo de pantalla que ya usás. No hay contraseña que recordar ni nada que escribir.",
-                "backup": "Tu gestor de contraseñas (iCloud Keychain, Administrador de contraseñas de Google o similar) la respalda y la sincroniza, así te acompaña en un teléfono nuevo.",
-                "privacy": "Peanut nunca ve tu huella ni tu rostro. Tu dispositivo solo nos dice que aprobaste.",
+                "what": "Una passkey es una llave digital que tu dispositivo crea para esta app. La aprobás con huella, rostro o el bloqueo de pantalla: sin contraseñas ni nada que escribir.",
+                "backup": "Tu gestor de contraseñas (iCloud Keychain, Administrador de contraseñas de Google u otro) la respalda y la sincroniza con tu próximo teléfono.",
+                "privacy": "Peanut nunca ve tu huella ni tu rostro: tu dispositivo solo nos dice que aprobaste.",
                 "fullGuide": "Leer la guía completa"
             },
             "unsupported": "Las passkeys todavía no están disponibles en este dispositivo. Iniciá sesión con una cuenta de Google, actualizá Google Play Services e intentalo de nuevo.",
@@ -572,9 +572,9 @@
         },
         "accountReady": {
             "worksNowTitle": "Funciona desde ya",
-            "worksNowBody": "Recibí dólares, enviá a cualquier @usuario y guardá tu saldo. Nada de eso necesita identificación.",
-            "laterTitle": "Cuando quieras pagos bancarios o la tarjeta",
-            "laterBody": "Una sola verificación de identidad, unos 10 minutos para la mayoría. Si un revisor debe verla, de 1 a 3 días hábiles. Te mostraremos exactamente qué necesitás antes de empezar.",
+            "worksNowBody": "Recibí dólares, enviá a cualquier @usuario y guardá tu saldo: sin verificar tu identidad.",
+            "laterTitle": "Cuando quieras pagos bancarios o una tarjeta",
+            "laterBody": "Vas a necesitar una verificación de identidad: unos minutos, o de 1 a 3 días hábiles si alguien la revisa a fondo.",
             "cta": "Ir a mi cuenta"
         }
     },
@@ -660,7 +660,7 @@
             "claimToPeanut": "¿No estás seguro? Reclamá en Peanut"
         },
         "guestVerification": {
-            "senderUnverifiedDescription": "Quien envió todavía no puede enviar a un banco. Podés reclamar con otro método, o crear una cuenta y verificar tu identidad para recibirlo en tu banco.",
+            "senderUnverifiedDescription": "Quien te envía todavía no puede enviar a un banco. Reclamá de otra forma, o creá y verificá una cuenta para recibirlo en tu banco.",
             "accountRequiredDescription": "Necesitás una cuenta de Peanut para reclamar con este método. Creá una y verificá tu identidad, y tus fondos se depositarán en tu banco."
         },
         "actions": {
@@ -776,9 +776,9 @@
             "sublineBadge": "Tenés una insignia que se salta la fila de la beta cerrada. La tarjeta es tuya."
         },
         "cancel": {
-            "body": "Esto cancelará tu tarjeta de forma permanente. No servirá para ninguna transacción. Tendrás que pedir una nueva si cambiás de opinión.",
+            "body": "No vas a poder volver a usarla.",
             "slideToCancel": "Deslizá para cancelar",
-            "canceledBody": "Si cambiás de opinión más adelante, podés pedir otra tarjeta.",
+            "canceledBody": "Ya no se puede usar para pagos. Podés pedir una tarjeta nueva, según tu elegibilidad.",
             "feedbackLabel": "Ayudanos a mejorar nuestro producto para vos"
         },
         "lockModal": {
@@ -862,10 +862,10 @@
         },
         "howToDeposit": {
             "default": {
-                "step1": "Copiá tu dirección de depósito de arriba",
-                "step2": "Abrí tu billetera o exchange e iniciá un retiro",
-                "step3": "Pegá la dirección y elegí una de las redes compatibles",
-                "step4": "Confirmá y enviá: los fondos llegan en pocos minutos"
+                "step1": "Copiá la dirección de depósito de arriba",
+                "step2": "Iniciá un retiro desde tu billetera o exchange",
+                "step3": "Pegá la dirección y elegí una red compatible",
+                "step4": "Confirmá: los fondos llegan en minutos"
             }
         },
         "crypto": {
@@ -885,7 +885,7 @@
             "scanWithBankApp": "Escaneá con la app de tu banco o copiá el código PIX."
         },
         "confirmationModal": {
-            "youMust": "DEBÉS:"
+            "youMust": "Debés:"
         },
         "bankDetails": {
             "sendExactAmount": "¡Enviá exactamente este monto!",

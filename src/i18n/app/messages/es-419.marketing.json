@@ -111,7 +111,7 @@
     "migration": {
         "downloadPrompt": {
             "earlyTitle": "¡La app de Peanut ya está aquí!",
-            "earlyDescription": "Peanut ya vive en el App Store y Google Play. Más rápida, más fluida y te avisa al instante cuando llega tu dinero. Tu cuenta va contigo, sin configurar nada.",
+            "earlyDescription": "Peanut ahora es una app, en la App Store y Google Play. La misma cuenta, más rápida, y avisos al instante cuando llega dinero.",
             "maybeLater": "La descargo más tarde",
             "title": "Peanut será solo app",
             "description": "En {days, plural, one {# día} other {# días}} Peanut se muda por completo a la app. Descárgala ahora y continúa justo donde quedaste. Tu cuenta y tu dinero se mudan contigo automáticamente.",

@@ -56,6 +56,10 @@ export interface ActionModalProps {
     descriptionClassName?: string
     buttonProps?: ButtonProps
     footer?: React.ReactNode
+    /** The footer is decoration (an absolutely positioned mascot), not an
+     *  action. It renders outside the in-flow wrapper, so it adds no row of
+     *  its own beneath the ctas. */
+    footerIsDecorative?: boolean
     content?: React.ReactNode
     classOverlay?: string
     hideOverlay?: boolean
@@ -84,6 +88,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
     descriptionClassName,
     buttonProps,
     footer,
+    footerIsDecorative = false,
     content,
     classOverlay,
     hideOverlay,
@@ -139,13 +144,20 @@ const ActionModal: React.FC<ActionModalProps> = ({
             classOverlay={classOverlay}
             hideOverlay={hideOverlay}
         >
-            {/* anatomy 17800:57224: p = XL/24, and the stack is nested — the icon
-                and the head sit L/16 apart inside a "Top" group, the head's own
-                title and description XS/4 apart, and the whole group is XL/24
-                from the ctas. It used to be one flat gap-4, so the description
-                sat as far from its title as the ctas did from the head. */}
-            <div className={twMerge('flex flex-col items-center gap-6 p-6 text-center', contentContainerClassName)}>
-                <div className="flex w-full flex-col items-center gap-4">
+            {/* anatomy 17800:57224: p = XL/24, the icon and the head sit L/16
+                apart inside a "Top" group, and the head's own title and
+                description XS/4 apart.
+                The M/12 under the head is the gap to the BODY, so it only
+                applies when there is one. The ctas own their XL/24 outright, so
+                a modal with no body keeps the board's 24px between its head and
+                its buttons instead of pulling them up under the copy.
+                Margins, not a parent gap: a gap collapses when the body is
+                absent, which silently left half these screens unchanged. */}
+            <div className={twMerge('flex flex-col items-center p-6 text-center', contentContainerClassName)}>
+                <div
+                    className={twMerge('flex w-full flex-col items-center gap-4', content && 'mb-3')}
+                    data-testid="modal-head"
+                >
                     {iconContent && (
                         <IconBubble
                             size="m"
@@ -174,10 +186,10 @@ const ActionModal: React.FC<ActionModalProps> = ({
                     </div>
                 </div>
 
-                {content}
+                {content && <div className="w-full">{content}</div>}
 
                 {(checkbox || (ctas && ctas.length > 0)) && (
-                    <div className="space-y-4 w-full">
+                    <div className="space-y-4 mt-6 w-full">
                         {checkbox && (
                             <div className={twMerge('flex justify-center', checkbox.className)}>
                                 <Checkbox
@@ -192,7 +204,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
                         {ctas && ctas.length > 0 && (
                             <div
                                 className={twMerge(
-                                    'flex w-full gap-3',
+                                    'flex w-full gap-4',
                                     ctas.length > 1 ? 'flex-col sm:flex-row' : 'flex-col',
                                     ctaClassName
                                 )}
@@ -251,7 +263,10 @@ const ActionModal: React.FC<ActionModalProps> = ({
                         )}
                     </div>
                 )}
-                {footer}
+                {/* An action footer is a row and gets the XL/24 above it. A
+                    decorative one is absolutely positioned, so wrapping it would
+                    leave an empty 24px row under the ctas and grow the panel. */}
+                {footer && (footerIsDecorative ? footer : <div className="mt-6 w-full">{footer}</div>)}
             </div>
         </BaseModal>
     )

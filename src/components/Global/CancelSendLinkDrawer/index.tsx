@@ -39,13 +39,14 @@ const CancelSendLinkDrawer = ({
             }}
         >
             <DrawerContent>
-                <div className="flex flex-col items-center gap-4 px-4 pt-1 pb-6 text-center">
+                <div className="flex flex-col items-center px-4 pt-1 pb-6 text-center">
                     {/* destructive-confirm anatomy: red icon bubble (design.md nested-drawer recipe) */}
-                    <IconBubble icon="link-slash" color="red" />
+                    <IconBubble icon="link-slash" color="red" className="mb-4" />
 
                     <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                         <DrawerTitle>{t('cancelSendLinkModal.title')}</DrawerTitle>
-                        <DrawerDescription className="space-y-2">
+                        {/* two paragraphs under the head → body reads left-aligned, not centered */}
+                        <DrawerDescription className="space-y-2 text-left">
                             <span className="block">
                                 {t.rich('cancelSendLinkModal.amountReturned', {
                                     amount,
@@ -61,7 +62,7 @@ const CancelSendLinkDrawer = ({
                         loading={isLoading}
                         disabled={isLoading}
                         shadowSize="4"
-                        className="w-full justify-center"
+                        className="mt-6 w-full justify-center"
                     >
                         {t('cancelSendLinkModal.cancelCta')}
                     </Button>

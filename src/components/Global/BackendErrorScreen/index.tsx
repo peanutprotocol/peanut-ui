@@ -93,7 +93,7 @@ export default function BackendErrorScreen() {
                 <h1 className="text-heading-s">{t('backendErrorScreen.title')}</h1>
                 <p className="max-w-md text-body-s">{t('backendErrorScreen.description')}</p>
             </div>
-            <div className="flex flex-col items-center gap-6">
+            <div className="flex flex-col items-center gap-4">
                 <Button shadowSize="4" icon="retry" size="medium" className="w-fit rounded-full" onClick={handleRetry}>
                     {t('backendErrorScreen.tryAgain')}
                 </Button>

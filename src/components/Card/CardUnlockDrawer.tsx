@@ -63,7 +63,7 @@ export const CardUnlockDrawer: FC<Props> = ({ isOpen, onClose, entry, username, 
             <DrawerContent>
                 {/* DrawerTitle has no built-in padding — must be wrapped in
                     DrawerHeader (mono Drawer pattern). */}
-                <DrawerHeader>
+                <DrawerHeader className="mb-3">
                     <DrawerTitle className="text-heading-s">
                         {entry.via === 'badge' ? t('drawerTitleBadge') : t('drawerTitleUnlocked')}
                     </DrawerTitle>
@@ -84,10 +84,10 @@ export const CardUnlockDrawer: FC<Props> = ({ isOpen, onClose, entry, username, 
                             onReady={() => setAssetReady(true)}
                         />
                     </div>
-                    <div className="mx-auto flex w-full max-w-md flex-col gap-2">
+                    <div className="mx-auto flex w-full max-w-md flex-col gap-4">
                         {/* Anti-dox toggle — hides the peanut.me/<handle> pill on the asset */}
                         <Checkbox
-                            className="self-center"
+                            className="self-start"
                             label={t('hideUsername')}
                             value={hideUsername}
                             onChange={(e) => setHideUsername(e.target.checked)}

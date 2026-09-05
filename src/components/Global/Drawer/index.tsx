@@ -132,8 +132,16 @@ const DrawerContent = React.forwardRef<React.ElementRef<typeof DrawerPrimitive.C
 )
 DrawerContent.displayName = 'DrawerContent'
 
+// No margin here on purpose. Most callers place the header in their own gapped
+// flex column, so a margin on the shared primitive stacks with that gap (16 + 12
+// = 28px) on every screen nobody touched. Each drawer owns the M/12 under its
+// own head instead — see CancelSendLinkDrawer and KycRegionRestrictedModal.
 const DrawerHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-    <div className={twMerge('grid gap-1 p-4 text-center sm:text-left', className)} {...props} />
+    <div
+        className={twMerge('grid gap-1 p-4 text-center sm:text-left', className)}
+        data-testid="drawer-header"
+        {...props}
+    />
 )
 DrawerHeader.displayName = 'DrawerHeader'
 
