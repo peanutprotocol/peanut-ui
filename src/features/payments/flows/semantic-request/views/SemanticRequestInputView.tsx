@@ -184,7 +184,9 @@ export function SemanticRequestInputView() {
                         disabled={isAmountFromUrl || !!chargeIdFromUrl}
                     />
                     {isInsufficientBalance && <FieldError>{t('errors.insufficientPayment')}</FieldError>}
-                    {!isInsufficientBalance && (
+                    {/* a token-denominated request holds `amount` in token units; its USD debit is
+                        only known once the route prices it, so the confirm step previews that one */}
+                    {!isInsufficientBalance && !isTokenDenominated && (
                         <CollateralPullNotice amountUsd={amount} collateralOnlyAllowed={!(isXChain || isDiffToken)} />
                     )}
                 </div>
