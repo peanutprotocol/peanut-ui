@@ -84,6 +84,7 @@ let repoRoot = defaultRoot
 export const NATIVE_DEPENDENCIES = [
     '@capacitor/android',
     '@capacitor/app',
+    '@capacitor/app-launcher',
     '@capacitor/browser',
     '@capacitor/camera',
     '@capacitor/clipboard',
@@ -96,6 +97,7 @@ export const NATIVE_DEPENDENCIES = [
     '@capacitor/splash-screen',
     '@capacitor/status-bar',
     '@capgo/capacitor-crisp',
+    '@capgo/capacitor-in-app-review',
     '@capgo/capacitor-native-biometric',
     '@capgo/capacitor-passkey',
     '@capgo/capacitor-updater',

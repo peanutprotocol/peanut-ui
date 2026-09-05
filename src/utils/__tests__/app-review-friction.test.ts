@@ -12,14 +12,25 @@ describe('app-review friction', () => {
         expect(hadRecentFriction()).toBe(false)
     })
 
-    it.each(['send_failed', 'withdraw_failed', 'claim_link_failed', 'backend_error_shown', 'kyc_rejected'])(
-        'records %s as friction',
-        (event) => {
-            noteAppReviewFriction(event)
+    it.each([
+        'send_failed',
+        'withdraw_failed',
+        'card_withdraw_failed',
+        'claim_link_failed',
+        'backend_error_shown',
+        'kyc_rejected',
+    ])('records %s as friction', (event) => {
+        noteAppReviewFriction(event)
 
-            expect(hadRecentFriction()).toBe(true)
-        }
-    )
+        expect(hadRecentFriction()).toBe(true)
+    })
+
+    it('keeps the stamp from a failed collateral spend that then succeeds on retry', () => {
+        noteAppReviewFriction('card_withdraw_failed')
+        noteAppReviewFriction('qr_payment_completed')
+
+        expect(hadRecentFriction()).toBe(true)
+    })
 
     it('ignores events that are not failures', () => {
         noteAppReviewFriction('send_link_created')

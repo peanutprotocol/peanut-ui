@@ -12,7 +12,7 @@ import { claimPeanutTeamBadge } from '@/services/peanut-team-badge'
 import { useAppVersion } from '@/hooks/useAppVersion'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { openStoreReviewPage } from '@/utils/app-review'
-import { isCapacitor } from '@/utils/capacitor'
+import { isNativeBridge } from '@/utils/capacitor'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useTranslations } from 'next-intl'
 import { useEffect, useRef, useState } from 'react'
@@ -37,10 +37,10 @@ export const AboutView = ({ appVersion }: { appVersion: string }) => {
     const { fetchUser } = useAuth()
     const { deviceType } = useDeviceType()
     const store = deviceType === DeviceType.ANDROID ? 'android' : 'ios'
-    // false through SSR and the first client render — a render-time isCapacitor()
+    // false through SSR and the first client render — a render-time bridge check
     // disagrees with the prerendered html and hard-fails hydration in the WebView
     const [isNative, setIsNative] = useState(false)
-    useEffect(() => setIsNative(isCapacitor()), [])
+    useEffect(() => setIsNative(isNativeBridge()), [])
 
     useEffect(() => {
         if (betaRevealed) betaCardRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' })

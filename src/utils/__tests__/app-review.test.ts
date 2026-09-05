@@ -3,7 +3,7 @@
 
 import { requestAppReview } from '../app-review'
 import { getUserPreferences, updateUserPreferences } from '../general.utils'
-import { isCapacitor } from '../capacitor'
+import { isNativeBridge } from '../capacitor'
 import { isDemoMode } from '../demo'
 import { hadRecentFriction } from '../app-review-friction'
 import posthog from 'posthog-js'
@@ -13,7 +13,7 @@ const requestReview = jest.fn<Promise<void>, []>()
 jest.mock('@capgo/capacitor-in-app-review', () => ({
     CapgoInAppReview: { requestReview: () => requestReview() },
 }))
-jest.mock('../capacitor', () => ({ isCapacitor: jest.fn(), openExternalUrl: jest.fn() }))
+jest.mock('../capacitor', () => ({ isNativeBridge: jest.fn(), openExternalUrl: jest.fn() }))
 jest.mock('../demo', () => ({ isDemoMode: jest.fn() }))
 jest.mock('../app-review-friction', () => ({ hadRecentFriction: jest.fn() }))
 jest.mock('../general.utils', () => ({ getUserPreferences: jest.fn(), updateUserPreferences: jest.fn() }))
@@ -34,7 +34,7 @@ describe('requestAppReview', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         requestReview.mockResolvedValue(undefined)
-        ;(isCapacitor as jest.Mock).mockReturnValue(true)
+        ;(isNativeBridge as jest.Mock).mockReturnValue(true)
         ;(isDemoMode as jest.Mock).mockReturnValue(false)
         ;(hadRecentFriction as jest.Mock).mockReturnValue(false)
         given(1)
@@ -117,7 +117,10 @@ describe('requestAppReview', () => {
     })
 
     it.each([
-        ['on the web', () => (isCapacitor as jest.Mock).mockReturnValue(false)],
+        [
+            'without a native bridge (web, or a capacitor-flavoured preview)',
+            () => (isNativeBridge as jest.Mock).mockReturnValue(false),
+        ],
         ['in demo mode', () => (isDemoMode as jest.Mock).mockReturnValue(true)],
     ])('never asks %s', async (_label, arrange) => {
         arrange()

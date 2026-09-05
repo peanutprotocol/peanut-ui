@@ -1,7 +1,7 @@
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { REVIEW_URL } from '@/constants/migration.consts'
-import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
+import { isNativeBridge, openExternalUrl } from '@/utils/capacitor'
 import { hadRecentFriction } from '@/utils/app-review-friction'
 import { isDemoMode } from '@/utils/demo'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
@@ -66,7 +66,10 @@ export type AppReviewTrigger = 'reward_claimed' | 'payment_completed' | 'money_r
  * should not await it for anything user-visible.
  */
 export async function requestAppReview(userId: string | undefined, trigger: AppReviewTrigger): Promise<void> {
-    if (!userId || !isCapacitor() || isDemoMode()) return
+    // isNativeBridge, not isCapacitor: a capacitor-flavoured web preview has the
+    // plugin's web adapter, which resolves without showing anything — and would
+    // still spend a request from the budget
+    if (!userId || !isNativeBridge() || isDemoMode()) return
 
     const nudge = getUserPreferences(userId)?.reviewNudge
     const moments = (nudge?.moments ?? 0) + 1
