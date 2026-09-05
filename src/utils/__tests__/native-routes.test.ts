@@ -856,6 +856,17 @@ describe('redactNativePath (deep-link telemetry)', () => {
         expect(redactNativePath('/not-a-declared-route/secret-value')).toBe('/:id/:id')
     })
 
+    // The API allows usernames such as `bank` or `crypto`, and `/<username>` is
+    // a profile link — a safe sub-view token must not leak one from the
+    // identifier position.
+    it('keeps safe sub-view tokens only in the sub-view position', () => {
+        expect(redactNativePath('https://peanut.me/bank')).toBe('https://peanut.me/:id')
+        expect(redactNativePath('/profile/crypto')).toBe('/profile/:id')
+        expect(redactNativePath('/manteca/success')).toBe('/:id/:id')
+        expect(redactNativePath('/add-money/us/bank')).toBe('/add-money/:id/bank')
+        expect(redactNativePath('/withdraw/manteca')).toBe('/withdraw/:id')
+    })
+
     // The authority can carry userinfo, which is attacker-controlled on a link
     // and would otherwise survive into `raw` next to the redacted path.
     it('drops userinfo from the authority', () => {
