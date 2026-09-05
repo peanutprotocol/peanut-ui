@@ -1,3 +1,4 @@
+import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
 import ActionModal from '@/components/Global/ActionModal'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { useTranslations } from 'next-intl'
@@ -5,9 +6,6 @@ import ChainChip from '@/components/AddMoney/components/ChainChip'
 import EvmChainChips from '@/components/AddMoney/components/EvmChainChips'
 import { getSupportedTokens, RHINO_SUPPORTED_OTHER_CHAINS, RHINO_SUPPORTED_TOKENS } from '@/constants/rhino.consts'
 import type { RhinoChainType } from '@/services/services.types'
-
-// grey uppercase mini-header, the same shape the account-ready screen uses
-const MINI_HEADER = 'text-label-m uppercase tracking-wide text-foreground-secondary'
 
 // SOLANA and TRON are the non-EVM deposit chains. Rhino takes fewer tokens on
 // them than the flat list below advertises — TRON is USDT-only — so each is
@@ -45,7 +43,7 @@ export default function TokenAndNetworkConfirmationModal({
                         screen that warns about permanent loss would promise a
                         USDC deposit those chains cannot take. */}
                     <div className="mt-2 flex w-full flex-col items-center gap-2">
-                        <h2 className={MINI_HEADER}>{t('tokenAndNetworkConfirmationModal.supportedNetworks')}</h2>
+                        <MiniHeader>{t('tokenAndNetworkConfirmationModal.supportedNetworks')}</MiniHeader>
 
                         <div className="flex flex-wrap justify-center gap-2">
                             {RHINO_SUPPORTED_OTHER_CHAINS.map((chain) => {
@@ -61,7 +59,7 @@ export default function TokenAndNetworkConfirmationModal({
                     </div>
 
                     <div className="mt-2 flex w-full flex-col items-center gap-2">
-                        <h2 className={MINI_HEADER}>{t('tokenAndNetworkConfirmationModal.supportedTokens')}</h2>
+                        <MiniHeader>{t('tokenAndNetworkConfirmationModal.supportedTokens')}</MiniHeader>
 
                         <div className="flex flex-wrap justify-center gap-2">
                             {RHINO_SUPPORTED_TOKENS.map((token) => (

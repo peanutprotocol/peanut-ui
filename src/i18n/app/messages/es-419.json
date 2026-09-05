@@ -807,6 +807,8 @@
                 "title": "Buenas noticias",
                 "description": "No hay restricciones donde vives. Los dólares digitales y los envíos a cualquier @usuario funcionan de inmediato, y una verificación rápida de identidad desbloquea {rail}.",
                 "descriptionNoRail": "No hay restricciones donde vives. Los dólares digitales y los envíos a cualquier @usuario funcionan de inmediato.",
+                "cardClause": "La tarjeta Peanut también está disponible en tu país: la misma verificación de identidad, y te unes a una lista de espera para acceder.",
+                "cardClauseNoRail": "La tarjeta Peanut también está disponible en tu país: necesita una verificación de identidad, y te unes a una lista de espera para acceder.",
                 "rails": {
                     "pix": "transferencias PIX",
                     "arQr": "pagos y transferencias con QR",

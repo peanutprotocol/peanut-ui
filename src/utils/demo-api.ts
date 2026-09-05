@@ -501,6 +501,22 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     // fetchWalletBalances reads.
     { method: 'GET', pattern: '/tokens/wallet-portfolio', handler: () => ({ balances: [], totalBalance: 0 }) },
 
+    // Without a handler this landed on defaultShape ({}), and the recovery page
+    // called BigInt(undefined) during render.
+    {
+        method: 'GET',
+        pattern: '/rain/cards/recover-funds/preview',
+        handler: () => ({
+            collateralProxy: '0x0000000000000000000000000000000000000000',
+            recipient: '0x1111111111111111111111111111111111111111',
+            amountWei: '0',
+            amountCents: '0',
+            dustWei: '0',
+            autoBalanceEnabled: false,
+            hasRecoverableCard: false,
+        }),
+    },
+
     // bridge on/off-ramp
     {
         method: 'GET',

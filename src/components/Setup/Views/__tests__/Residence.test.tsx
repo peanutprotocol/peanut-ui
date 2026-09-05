@@ -148,11 +148,12 @@ describe('ResidenceStep', () => {
         // the screen itself never names a country
         expect(screen.queryByText(/Brazil/)).not.toBeInTheDocument()
         // gates stay separated in prose: no-ID features first, the bank rail
-        // behind the ID check (named per country); the card is deliberately
-        // absent — its beta stays unnamed in onboarding, and any mention
-        // would have to state every access gate
+        // behind the ID check (named per country), then the card behind BOTH
+        // of its remaining gates. Naming the card without the waitlist is the
+        // regression this guards (2026-09-05 policy change).
         expect(screen.getByText(/work right away, and a quick ID check unlocks PIX transfers/)).toBeInTheDocument()
-        expect(screen.queryByText(/Peanut card/)).not.toBeInTheDocument()
+        expect(screen.getByText(/The Peanut card is available in your country too/)).toBeInTheDocument()
+        expect(screen.getByText(/same ID check, and you join a waitlist for access/)).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
         expect(mockHandleNext).toHaveBeenCalled()
     })
@@ -164,8 +165,10 @@ describe('ResidenceStep', () => {
         mockSetupState.residenceCountry = 'NG'
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: 'Next' }))
-        expect(screen.getByText(/work right away\.$/)).toBeInTheDocument()
-        expect(screen.queryByText(/Peanut card/)).not.toBeInTheDocument()
+        // the rail clause disappears, but the card clause still has to carry its
+        // own ID check — "same ID check" would dangle with no rail sentence above it
+        expect(screen.getByText(/work right away\./)).toBeInTheDocument()
+        expect(screen.getByText(/it needs an ID check, and you join a waitlist for access/)).toBeInTheDocument()
         expect(screen.queryByText(/unlocks/)).not.toBeInTheDocument()
         expect(screen.queryByText(/bank transfers/i)).not.toBeInTheDocument()
     })

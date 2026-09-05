@@ -188,20 +188,24 @@ const ResidenceStep = () => {
 
     if (view === 'congrats') {
         /* One paragraph, gates kept honest: dollars and @username sends need
-           no ID check; the bank rail unlocks with verification. The card is
-           deliberately NOT mentioned: its closed beta must stay unnamed in
-           onboarding (product direction), and any card mention must state
-           every access gate (compliance) — no sentence satisfies both, and
-           the compare cards already state card availability per residence.
+           no ID check; the bank rail unlocks with verification. The card IS
+           named here as of 2026-09-05 (slava's call, reversing the earlier
+           product direction that kept the closed beta unnamed in onboarding):
+           the clause states both remaining gates — the ID check and the
+           waitlist — so the compliance half of that rule still holds. It is
+           gated on the restriction sets, never on reaching this view.
            The rail phrase
            comes from the same per-country map the compare cards render and is
            named ONLY where a fiat rail exists (PIX, AR, SPEI, ACH, SEPA); for
            the rest of the world the map falls back to 'bank', which here means
            blockchain-only — so the ID-check clause is dropped entirely rather
            than promising a rail verification cannot deliver. */
-        const railItem = residenceAvailability(restrictionSets, residenceCountry).available.find(
-            (item) => item !== 'p2p' && item !== 'card' && item !== 'bank'
-        )
+        const availability = residenceAvailability(restrictionSets, residenceCountry)
+        const railItem = availability.available.find((item) => item !== 'p2p' && item !== 'card' && item !== 'bank')
+        // Read off the same restriction sets the compare cards use rather than
+        // trusting that reaching this view implies an unrestricted card: a
+        // routing change upstream must not turn this into a false claim.
+        const hasCard = availability.available.includes('card')
         return (
             <div className="flex h-full w-full flex-col justify-between gap-6">
                 <div className="flex flex-col gap-2">
@@ -214,6 +218,8 @@ const ResidenceStep = () => {
                                   rail: t(`residenceStep.congrats.rails.${railItem}`),
                               })
                             : t('residenceStep.congrats.descriptionNoRail')}
+                        {hasCard &&
+                            ` ${railItem ? t('residenceStep.congrats.cardClause') : t('residenceStep.congrats.cardClauseNoRail')}`}
                     </p>
                 </div>
                 <div className="flex w-full flex-col gap-4">

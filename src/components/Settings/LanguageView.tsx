@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
@@ -42,32 +43,36 @@ export const LanguageView = () => {
     }
 
     return (
-        <div className="h-full w-full bg-background">
+        <PageStack gap="6" className="h-full bg-background">
             <NavHeader title={t('title')} onPrev={onBack} />
-            <div className="pt-4">
-                {APP_LOCALES.map((appLocale, index) => (
-                    <ListItem
-                        key={appLocale}
-                        position={getCardPosition(index, APP_LOCALES.length)}
-                        onClick={() => select(appLocale)}
-                        leading={
-                            <Image
-                                src={getFlagUrl(LOCALE_FLAG_CODES[appLocale])}
-                                alt=""
-                                width={80}
-                                height={80}
-                                className="size-6 rounded-full object-cover"
-                            />
-                        }
-                        title={
-                            <span className="text-body-m text-foreground-primary" lang={appLocale}>
-                                {LOCALE_LABELS[appLocale]}
-                            </span>
-                        }
-                        trailing={appLocale === locale ? <Icon name="check" size={20} /> : undefined}
-                    />
-                ))}
-            </div>
-        </div>
+            <PageStack.Center>
+                {/* one child, not one per row: Center's gap-6 would otherwise land
+                    between the rows and break the joined list geometry */}
+                <div>
+                    {APP_LOCALES.map((appLocale, index) => (
+                        <ListItem
+                            key={appLocale}
+                            position={getCardPosition(index, APP_LOCALES.length)}
+                            onClick={() => select(appLocale)}
+                            leading={
+                                <Image
+                                    src={getFlagUrl(LOCALE_FLAG_CODES[appLocale])}
+                                    alt=""
+                                    width={80}
+                                    height={80}
+                                    className="size-6 rounded-full object-cover"
+                                />
+                            }
+                            title={
+                                <span className="text-body-m text-foreground-primary" lang={appLocale}>
+                                    {LOCALE_LABELS[appLocale]}
+                                </span>
+                            }
+                            trailing={appLocale === locale ? <Icon name="check" size={20} /> : undefined}
+                        />
+                    ))}
+                </div>
+            </PageStack.Center>
+        </PageStack>
     )
 }

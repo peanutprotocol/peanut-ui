@@ -1,4 +1,5 @@
 'use client'
+import { ScreenMark } from '@/components/0_Bruddle/ScreenMark'
 import { Button } from '@/components/0_Bruddle/Button'
 import { type DepositMethod, DepositMethodList } from '@/components/AddMoney/components/DepositMethodList'
 import { countryData } from '@/components/AddMoney/consts'
@@ -302,6 +303,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
         return (
             <div className="flex min-h-inherit flex-col justify-normal gap-6">
                 <NavHeader title={pageTitle} onPrev={onBackClick || defaultBackNavigation} />
+                <ScreenMark icon="plus" />
                 <div className="space-y-2 flex h-full flex-col justify-center">
                     <h2 className="text-heading-card text-foreground-primary">{tAddMoney('recentMethods')}</h2>
                     <DepositMethodList
@@ -358,6 +360,8 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                     }
                 }}
             />
+
+            {flow === 'add' && <ScreenMark icon="plus" />}
 
             {isBankRestricted && <Notification priority="helper">{tAddMoney('bankNotAvailableNote')}</Notification>}
 

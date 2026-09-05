@@ -39,7 +39,7 @@ export const KycActionRequired = ({
             <KYCStatusDrawerItem status="pending" customText={t('actionNeeded')} />
 
             {isGenericAction ? (
-                <Notification priority="info">{t('actionMessageActionRequired')}</Notification>
+                <Notification priority="error">{t('actionMessageActionRequired')}</Notification>
             ) : (
                 <RejectLabelsList rejectLabels={rejectLabels} />
             )}

@@ -475,7 +475,9 @@
             },
             "congrats": {
                 "description": "No hay restricciones donde vivís. Los dólares digitales y los envíos a cualquier @usuario funcionan de inmediato, y una verificación rápida de identidad desbloquea {rail}.",
-                "descriptionNoRail": "No hay restricciones donde vivís. Los dólares digitales y los envíos a cualquier @usuario funcionan de inmediato."
+                "descriptionNoRail": "No hay restricciones donde vivís. Los dólares digitales y los envíos a cualquier @usuario funcionan de inmediato.",
+                "cardClause": "La tarjeta Peanut también está disponible en tu país: la misma verificación de identidad, y te sumás a una lista de espera para acceder.",
+                "cardClauseNoRail": "La tarjeta Peanut también está disponible en tu país: necesita una verificación de identidad, y te sumás a una lista de espera para acceder."
             },
             "restricted": {
                 "title": "Atención",

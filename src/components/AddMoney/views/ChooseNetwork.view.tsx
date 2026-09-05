@@ -1,5 +1,6 @@
 'use client'
 
+import { ScreenMark } from '@/components/0_Bruddle/ScreenMark'
 import NavHeader from '@/components/Global/NavHeader'
 import { Section } from '@/components/0_Bruddle/Section'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
@@ -22,6 +23,7 @@ const ChooseNetworkView = ({ onSelect, onBack }: ChooseNetworkViewProps) => {
     return (
         <PageStack>
             <NavHeader title={t('addCryptoTitle')} onPrev={onBack} />
+            <ScreenMark icon="plus" />
             <Section title={t('networkDrawer.title')} className="gap-4">
                 <NetworkList onSelect={onSelect} />
             </Section>
