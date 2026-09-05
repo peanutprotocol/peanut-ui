@@ -165,6 +165,9 @@ export const Claim = ({}) => {
 
         // find the claimed event for timestamp
         const claimedEvent = claimLinkData.events?.find((e) => e.status === 'CLAIMED')
+        // the sender's cancel/reclaim stamp; the events fallback only carries a
+        // date when a claim attempt was recorded against the link
+        const cancelledStamp = claimLinkData.cancelledAt ?? claimLinkData.events?.[0]?.timestamp
 
         let details: Partial<TransactionDetails> = {
             id: claimLinkData.pubKey,
@@ -179,10 +182,7 @@ export const Claim = ({}) => {
             initials: getInitialsFromName(recipientName),
             memo: claimLinkData.textContent,
             attachmentUrl: claimLinkData.fileUrl,
-            cancelledDate:
-                status === 'cancelled' && claimLinkData.events?.[0]
-                    ? new Date(claimLinkData.events[0].timestamp)
-                    : undefined,
+            cancelledDate: status === 'cancelled' && cancelledStamp ? new Date(cancelledStamp) : undefined,
             txHash: claimLinkData.claim?.txHash,
             extraDataForDrawer: {
                 isLinkTransaction: true,

@@ -856,6 +856,13 @@ describe('redactNativePath (deep-link telemetry)', () => {
         expect(redactNativePath('/not-a-declared-route/secret-value')).toBe('/:id/:id')
     })
 
+    // The authority can carry userinfo, which is attacker-controlled on a link
+    // and would otherwise survive into `raw` next to the redacted path.
+    it('drops userinfo from the authority', () => {
+        expect(redactNativePath('https://CLAIM_SECRET@peanut.me/qr/aB3xK9mQ2pL7vN4z')).toBe('https://peanut.me/qr/:id')
+        expect(redactNativePath('https://user:pass@peanut.me/home')).toBe('https://peanut.me/home')
+    })
+
     // A locale or other prefix must not shift the root out of a positional
     // window and turn the whole path into placeholders.
     it('finds the route family behind a prefix segment', () => {
