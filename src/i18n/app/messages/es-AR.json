@@ -420,7 +420,7 @@
             },
             "residence": {
                 "title": "¿Dónde vivís legalmente?",
-                "description": "El país que muestran tus documentos, no donde estás de viaje. Esto define qué métodos de pago podés desbloquear."
+                "description": "El país donde vivís legalmente y tenés tu domicilio, no donde estás de viaje. Esto define qué métodos de pago podés desbloquear."
             },
             "passkey-permission": {
                 "description": "Usá tu cara o tu huella para iniciar sesión. Sin contraseñas ni complicaciones. Solo vos."

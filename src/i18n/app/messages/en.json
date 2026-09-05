@@ -720,7 +720,7 @@
             },
             "residence": {
                 "title": "Where do you legally live?",
-                "description": "The country your documents show — not where you're travelling. This decides which payment methods you can unlock."
+                "description": "The country where you legally live and have your address — not where you're travelling. This decides which payment methods you can unlock."
             },
             "passkey-permission": {
                 "title": "Let's set up your passkey",
