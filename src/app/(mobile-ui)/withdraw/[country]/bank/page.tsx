@@ -57,6 +57,7 @@ import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { useLocale, useTranslations } from 'next-intl'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 import { resolveSettledTxHash } from '@/utils/settled-tx-hash.utils'
+import { CollateralPullNotice } from '@/components/Global/CollateralPullNotice'
 
 type View = 'INITIAL' | 'SUCCESS'
 
@@ -514,6 +515,10 @@ export default function WithdrawBankPage() {
                         />
                         <PaymentInfoRow hideBottomBorder label={t('bank.fee')} value={`$ 0.00`} />
                     </Card>
+
+                    {!submittedTxHash && !balanceErrorMessage && (
+                        <CollateralPullNotice amountUsd={amountToWithdraw} collateralOnlyAllowed />
+                    )}
 
                     {submittedTxHash ? (
                         // On-chain leg already fired. Even if confirmOfframp failed

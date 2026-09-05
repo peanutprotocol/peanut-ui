@@ -6,8 +6,10 @@ import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { useActivationStatus } from '@/hooks/useActivationStatus'
 import { useCardInfo } from '@/hooks/useCardInfo'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { useRainCardOverview } from '@/hooks/useRainCardOverview'
+import { computeBalanceSplit } from '@/hooks/wallet/useBalanceSplit'
 import { useUserStore } from '@/redux/hooks'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useAccount, useDisconnect } from 'wagmi'
 import { useBalanceVisibility } from './useBalanceVisibility'
 
@@ -16,7 +18,8 @@ import { useBalanceVisibility } from './useBalanceVisibility'
  * stay dumb (same model as features/payments/flows/semantic-request).
  */
 export function useHomeFlow() {
-    const { spendableBalance, isFetchingSpendableBalance, isSpendableBalanceStale } = useWallet()
+    const { spendableBalance, isFetchingSpendableBalance, isSpendableBalanceStale, balance } = useWallet()
+    const { overview: rainOverview } = useRainCardOverview()
     const { user } = useUserStore()
     const { isFetchingUser, fetchUser } = useAuth()
     const { isActivated, activationStep, dismissCardStep } = useActivationStatus()
@@ -55,6 +58,10 @@ export function useHomeFlow() {
     // which the top nav seeds from the username, never the display name
     const avatarKey = user?.user.avatarKey ?? null
 
+    // "$100 on card · $28 off card" under the total — only for card holders,
+    // and only once both halves are known (TASK-22293)
+    const balanceSplit = useMemo(() => computeBalanceSplit(balance, rainOverview), [balance, rainOverview])
+
     return {
         isPageLoading: isFetchingUser && !username,
         username,
@@ -65,6 +72,7 @@ export function useHomeFlow() {
         spendableBalance,
         isFetchingSpendableBalance,
         isSpendableBalanceStale,
+        balanceSplit,
         isBalanceHidden,
         toggleBalanceVisibility,
     }

@@ -12416,6 +12416,44 @@
                                         "cards": {
                                             "items": {
                                                 "properties": {
+                                                    "collateral": {
+                                                        "properties": {
+                                                            "autoBalanceEnabled": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "cardLimitCents": {
+                                                                "anyOf": [
+                                                                    {
+                                                                        "type": "null"
+                                                                    },
+                                                                    {
+                                                                        "type": "number"
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "loadAllToCard": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "targetCents": {
+                                                                "type": "number"
+                                                            },
+                                                            "targetPinned": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "walletFloorCents": {
+                                                                "type": "number"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "targetCents",
+                                                            "targetPinned",
+                                                            "walletFloorCents",
+                                                            "loadAllToCard",
+                                                            "cardLimitCents",
+                                                            "autoBalanceEnabled"
+                                                        ],
+                                                        "type": "object"
+                                                    },
                                                     "expiryMonth": {
                                                         "type": "number"
                                                     },
@@ -12453,7 +12491,8 @@
                                                     "status",
                                                     "network",
                                                     "issuedAt",
-                                                    "hasWithdrawApproval"
+                                                    "hasWithdrawApproval",
+                                                    "collateral"
                                                 ],
                                                 "type": "object"
                                             },
@@ -13752,12 +13791,37 @@
                             "application/json": {
                                 "schema": {
                                     "properties": {
+                                        "cooldownSec": {
+                                            "type": "number"
+                                        },
                                         "ok": {
                                             "type": "boolean"
                                         }
                                     },
                                     "required": [
-                                        "ok"
+                                        "ok",
+                                        "cooldownSec"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
                                     ],
                                     "type": "object"
                                 }
@@ -13880,12 +13944,16 @@
                             "application/json": {
                                 "schema": {
                                     "properties": {
+                                        "cooldownSec": {
+                                            "type": "number"
+                                        },
                                         "txHash": {
                                             "type": "string"
                                         }
                                     },
                                     "required": [
-                                        "txHash"
+                                        "txHash",
+                                        "cooldownSec"
                                     ],
                                     "type": "object"
                                 }
@@ -14029,6 +14097,11 @@
                                         "minimum": 0,
                                         "type": "number"
                                     },
+                                    "collateralTargetCents": {
+                                        "maximum": 10000000,
+                                        "minimum": 0,
+                                        "type": "integer"
+                                    },
                                     "limits": {
                                         "items": {
                                             "properties": {
@@ -14072,6 +14145,18 @@
                                             "type": "object"
                                         },
                                         "type": "array"
+                                    },
+                                    "loadAllToCard": {
+                                        "type": "boolean"
+                                    },
+                                    "pinTarget": {
+                                        "description": "Default true. False lowers collateralTargetCents without pinning it (a move off the card), so the nightly tuner keeps sizing the card.",
+                                        "type": "boolean"
+                                    },
+                                    "walletFloorCents": {
+                                        "maximum": 1000000,
+                                        "minimum": 0,
+                                        "type": "integer"
                                     }
                                 },
                                 "type": "object"
@@ -18474,6 +18559,138 @@
                 ],
                 "responses": {
                     "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/rain/cards/{cardId}/move-to-card": {
+            "post": {
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "cardId",
+                        "required": true,
+                        "schema": {
+                            "format": "uuid",
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "amountCents": {
+                                        "maximum": 10000000,
+                                        "minimum": 100,
+                                        "type": "integer"
+                                    },
+                                    "idempotencyKey": {
+                                        "maxLength": 100,
+                                        "minLength": 8,
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "amountCents",
+                                    "idempotencyKey"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "amountCents": {
+                                            "type": "number"
+                                        },
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "userOpHash": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "ok",
+                                        "amountCents",
+                                        "userOpHash"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "502": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
                         "description": "Default Response"
                     }
                 }

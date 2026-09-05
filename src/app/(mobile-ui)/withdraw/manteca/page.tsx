@@ -22,6 +22,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'
 import RateGateScreen from '@/components/Global/RateUnavailable/RateGateScreen'
 import { mantecaApi, type WithdrawPriceLock } from '@/services/manteca'
+import { armRainCooldownFromSuccess } from '@/services/rain'
 import { useCurrency } from '@/hooks/useCurrency'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { countryData } from '@/components/AddMoney/consts'
@@ -77,6 +78,7 @@ import { MantecaTransfersMaintenanceView } from '@/components/Global/Banner/Mant
 import { useLocale, useTranslations } from 'next-intl'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 import { loadingStateKey } from '@/i18n/app/loading-states'
+import { CollateralPullNotice } from '@/components/Global/CollateralPullNotice'
 
 type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success' | 'failure'
 
@@ -491,6 +493,8 @@ function MantecaBankWithdrawFlow() {
                 return
             }
 
+            // a card pull consumed the withdrawal signature: start the countdown
+            armRainCooldownFromSuccess(result.data?.cooldownSec)
             setStep('success')
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_COMPLETED, {
                 amount_usd: usdAmount,
@@ -790,6 +794,8 @@ function MantecaBankWithdrawFlow() {
                             />
                         )
                     })()}
+
+                    {!balanceErrorMessage && <CollateralPullNotice amountUsd={usdAmount} collateralOnlyAllowed />}
 
                     <Button
                         variant="purple"

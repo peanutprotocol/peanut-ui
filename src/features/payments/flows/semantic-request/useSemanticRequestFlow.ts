@@ -616,6 +616,8 @@ export function useSemanticRequestFlow() {
         // state
         amount,
         usdAmount,
+        /** Cross-chain: principal + Rhino fee — the amount the kernel actually spends. */
+        payAmount: calculatedPayAmount,
         currentView,
         parsedUrl,
         recipient,

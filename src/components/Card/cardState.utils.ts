@@ -8,7 +8,9 @@ import type { RainCardOverview, RainCardSummary } from '@/services/rain'
  * target a CANCELED card's id. Returns the newest non-canceled card, or null.
  */
 export function findActiveCard(overview: RainCardOverview | undefined): RainCardSummary | null {
-    return overview?.cards.find((c) => c.status !== 'CANCELED') ?? null
+    // `cards` is optional at runtime: a partial or older cached overview
+    // (and several test fixtures) carry only `balance`.
+    return overview?.cards?.find((c) => c.status !== 'CANCELED') ?? null
 }
 
 /**

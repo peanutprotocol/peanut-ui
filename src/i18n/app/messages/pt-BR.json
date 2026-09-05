@@ -278,7 +278,11 @@
             "sendToFriendsDescription": "Link, contatos, banco, cripto",
             "withdrawToOwnAccounts": "Sacar para suas contas",
             "withdrawToOwnAccountsDescription": "Banco, Mercado, cripto"
-        }
+        },
+        "split": "{onCard} no cartão · {offCard} fora do cartão",
+        "splitHidden": "**** no cartão · **** fora do cartão",
+        "splitPending": "{amount} a caminho do cartão",
+        "splitPendingHidden": "**** a caminho do cartão"
     },
     "profile": {
         "showFullNameConfirm": {
@@ -1494,13 +1498,13 @@
             "retryDetails": "Tentar mostrar os dados do cartão de novo"
         },
         "limits": {
-            "navTitle": "Limite do cartão",
-            "subtitle": "Defina seu limite de gasto por transação.",
-            "perTransaction": "Por transação",
+            "navTitle": "Limite por compra",
+            "subtitle": "O máximo de uma única compra com o cartão. Não muda quanto fica no cartão.",
+            "perTransaction": "Por compra",
             "loadFailed": "Não foi possível carregar o limite do cartão.",
             "noLimitSet": "Nenhum limite definido",
             "edit": "Editar",
-            "editTitle": "Alterar limite",
+            "editTitle": "Alterar limite por compra",
             "invalidAmount": "Informe um valor válido",
             "saveFailed": "Não foi possível salvar o limite",
             "saveChanges": "Salvar alterações",
@@ -1600,12 +1604,13 @@
             "payAsCreditBody": "Quando a maquininha perguntar débito ou crédito, escolha crédito — seu cartão Peanut roda na rede de crédito.",
             "managementTitle": "Gerenciar cartão",
             "pin": "Pin",
-            "spendingLimit": "Limite de gasto",
+            "spendingLimit": "Limite por compra",
             "physicalCard": "Cartão físico",
             "redZone": "Zona vermelha",
             "lockCard": "Bloquear cartão",
             "unlockCard": "Desbloquear cartão",
-            "cancelCard": "Cancelar cartão"
+            "cancelCard": "Cancelar cartão",
+            "onCard": "No cartão"
         },
         "page": {
             "loadFailed": "Não foi possível carregar as informações do cartão. Tente de novo.",
@@ -1657,6 +1662,46 @@
             "noActiveCard": "Nenhum cartão ativo encontrado nesta conta — entre em contato com o suporte.",
             "regrantFailed": "A reativação não foi concluída — tente novamente ou entre em contato com o suporte.",
             "diagnostics": "Diagnóstico: nonce {nonce} / piso {floor}"
+        },
+        "onCard": {
+            "navTitle": "No cartão",
+            "noActiveCard": "Nenhum cartão ativo para gerenciar.",
+            "onCard": "No cartão",
+            "offCard": "Fora do cartão",
+            "summary": "Pagamentos com cartão usam o que está no cartão. Tudo que está fora do cartão é instantâneo para envios, pagamentos QR e saques, e nunca espera o bloqueio do cartão.",
+            "autoTitle": "Recargas automáticas",
+            "keepOnCard": "Manter no cartão",
+            "keepOnCardHint": "Recarregado do seu saldo fora do cartão sempre que o cartão ficar abaixo deste valor. Uma compra maior é recusada uma vez: o cartão se recarrega e, se você tentar de novo em um ou dois minutos, normalmente passa.",
+            "keepOffCard": "Manter fora do cartão",
+            "keepOffCardHint": "Nunca vai para o cartão automaticamente, então está sempre pronto para enviar.",
+            "loadAll": "Carregar tudo no cartão",
+            "loadAllHint": "Move todo o seu saldo para o cartão. Envios e pagamentos QR passarão a usar o cartão e esperar o breve bloqueio entre saques.",
+            "loadAllActive": "Tudo vai para o cartão",
+            "pinned": "Definido por você",
+            "tuned": "Ajustado pelas suas compras recentes com o cartão",
+            "moveTitle": "Mover dinheiro",
+            "moveToCard": "Mover para o cartão",
+            "moveOffCard": "Tirar do cartão",
+            "moveToCardTitle": "Mover para o cartão",
+            "moveOffCardTitle": "Tirar do cartão",
+            "moveToCardHint": "Chega ao cartão em cerca de um minuto. Não precisa de passkey.",
+            "moveOffCardHint": "Precisa da sua passkey. O cartão permite um saque a cada poucos minutos.",
+            "amountLabel": "Valor (USD)",
+            "max": "Máx.",
+            "editTargetTitle": "Manter no cartão",
+            "editFloorTitle": "Manter fora do cartão",
+            "save": "Salvar",
+            "invalidAmount": "Informe um valor válido",
+            "minAmount": "O mínimo é {amount}",
+            "maxAmount": "O máximo é {amount}",
+            "saveFailed": "Não foi possível salvar. Tente de novo.",
+            "moveFailed": "Não foi possível mover o dinheiro. Tente de novo.",
+            "moveToCardDone": "{amount} está a caminho do seu cartão",
+            "moveOffCardDone": "{amount} saiu do cartão",
+            "setupRequired": "Termine de configurar seu cartão para mover dinheiro para ele.",
+            "autoBalanceOff": "As recargas automáticas estão desligadas para este cartão. Mova dinheiro para o cartão manualmente antes de pagar.",
+            "lockNote": "O dinheiro no cartão é instantâneo para pagamentos com cartão. Tirá-lo do cartão precisa da sua passkey e é limitado a um saque a cada poucos minutos.",
+            "pending": "{amount} a caminho do cartão"
         }
     },
     "addMoney": {
@@ -3254,7 +3299,7 @@
         },
         "rainCooldownIntroModal": {
             "title": "Aguarde um momento",
-            "description": "Seu cartão precisa de um breve intervalo entre gastos seguidos. Para evitar isso no futuro, você pode baixar o limite do cartão para menos que o saldo da sua wallet; o restante fica sempre disponível.",
+            "description": "Seu cartão permite um saque a cada poucos minutos. O dinheiro fora do cartão é enviado na hora; mude quanto fica no cartão na tela do cartão.",
             "readMore": "Leia mais"
         },
         "staleCardApprovalModal": {
@@ -3451,6 +3496,10 @@
         "countryCombobox": {
             "noResults": "Nenhum país encontrado",
             "clear": "Limpar busca"
+        },
+        "collateralPull": {
+            "fromCard": "{amount} deste pagamento sai do seu saldo no cartão.",
+            "lockActive": "O cartão fica bloqueado por {time} após o último saque: você poderá pagar quando terminar."
         }
     },
     "errors": {

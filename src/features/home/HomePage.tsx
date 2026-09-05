@@ -34,6 +34,7 @@ export function HomePage() {
         spendableBalance,
         isFetchingSpendableBalance,
         isSpendableBalanceStale,
+        balanceSplit,
         isBalanceHidden,
         toggleBalanceVisibility,
     } = useHomeFlow()
@@ -50,6 +51,7 @@ export function HomePage() {
                     balance={spendableBalance}
                     isFetching={isFetchingSpendableBalance}
                     isStale={isSpendableBalanceStale}
+                    split={balanceSplit}
                     isHidden={isBalanceHidden}
                     onToggleVisibility={toggleBalanceVisibility}
                 />

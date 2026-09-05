@@ -11,6 +11,12 @@ function fireCooldown(retryAfterSec: number, message = 'cooling down') {
     window.dispatchEvent(new CustomEvent('rain:cooldown', { detail: { retryAfterSec, message } }))
 }
 
+// The event `armRainCooldownFromSuccess` dispatches after a successful pull:
+// a server-confirmed lock the user did not run into.
+function fireSilentCooldown(retryAfterSec: number) {
+    window.dispatchEvent(new CustomEvent('rain:cooldown', { detail: { retryAfterSec, message: '', silent: true } }))
+}
+
 // The countdown pill renders localized copy, so the provider is required.
 const wrapper = ({ children }: { children: React.ReactNode }) => (
     <IntlWrapper>
@@ -80,6 +86,26 @@ describe('RainCooldownContext', () => {
         // Simulate the user retrying during the existing cooldown.
         act(() => fireCooldown(280))
         expect(result.current.showIntroModal).toBe(false)
+    })
+
+    it('a silent (success-armed) event starts the countdown without the intro modal', () => {
+        const { result } = renderHook(() => useRainCooldown(), { wrapper })
+        act(() => fireSilentCooldown(150))
+        expect(result.current.cooldownEndsAt).not.toBeNull()
+        expect(result.current.cooldownEndsAt! - Date.now()).toBeGreaterThan(140_000)
+        expect(result.current.showIntroModal).toBe(false)
+    })
+
+    it('a silent event mid-cooldown keeps the countdown and still does not pop the modal', () => {
+        const { result } = renderHook(() => useRainCooldown(), { wrapper })
+        act(() => fireSilentCooldown(300))
+        const firstEnd = result.current.cooldownEndsAt!
+        act(() => fireSilentCooldown(120))
+        expect(result.current.cooldownEndsAt).toBeGreaterThanOrEqual(firstEnd - 5)
+        expect(result.current.showIntroModal).toBe(false)
+        // the user then hits the wall for real: that is the moment the modal is for
+        act(() => fireCooldown(100))
+        expect(result.current.showIntroModal).toBe(false) // still mid-cooldown, not a fresh one
     })
 
     it('re-pops the intro modal for a brand-new cooldown after the previous one cleared', () => {

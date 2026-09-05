@@ -7348,6 +7348,14 @@ export interface paths {
                             };
                             balanceUnavailable: boolean;
                             cards: {
+                                collateral: {
+                                    autoBalanceEnabled: boolean;
+                                    cardLimitCents: null | number;
+                                    loadAllToCard: boolean;
+                                    targetCents: number;
+                                    targetPinned: boolean;
+                                    walletFloorCents: number;
+                                };
                                 expiryMonth: number;
                                 expiryYear: number;
                                 hasWithdrawApproval: boolean;
@@ -8134,7 +8142,20 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            cooldownSec: number;
                             ok: boolean;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -8210,6 +8231,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            cooldownSec: number;
                             txHash: string;
                         };
                     };
@@ -8310,10 +8332,15 @@ export interface paths {
                     "application/json": {
                         autoBalanceEnabled?: boolean;
                         cardLimit?: number;
+                        collateralTargetCents?: number;
                         limits?: {
                             amount: number;
                             frequency: "perAuthorization" | "per24HourPeriod" | "per30DayPeriod" | "perAllTime";
                         }[];
+                        loadAllToCard?: boolean;
+                        /** @description Default true. False lowers collateralTargetCents without pinning it (a move off the card), so the nightly tuner keeps sizing the card. */
+                        pinTarget?: boolean;
+                        walletFloorCents?: number;
                     };
                 };
             };
@@ -11430,6 +11457,90 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rain/cards/{cardId}/move-to-card": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    cardId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        amountCents: number;
+                        idempotencyKey: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            amountCents: number;
+                            ok: boolean;
+                            userOpHash: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;

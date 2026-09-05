@@ -15,6 +15,7 @@ import type { ChainWithTokens } from '@/interfaces/chain-meta'
 import { useMemo } from 'react'
 import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
 import { useTranslations } from 'next-intl'
+import { CollateralPullNotice } from '@/components/Global/CollateralPullNotice'
 
 interface WithdrawConfirmViewProps {
     amount: string
@@ -204,6 +205,10 @@ export default function ConfirmWithdrawView({
                 </Card>
 
                 {showHighFeeWarning && <Notification priority="info">{t('confirm.highFeeWarning')}</Notification>}
+
+                {!insufficientBalance && !error && (
+                    <CollateralPullNotice amountUsd={payAmount ?? amount} collateralOnlyAllowed={!isCrossChain} />
+                )}
 
                 {error ? (
                     <Button

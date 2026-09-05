@@ -31,6 +31,7 @@ import PeanutActionDetailsCard, {
 import { useSearchParams, useRouter } from 'next/navigation'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
 import { useTranslations } from 'next-intl'
+import { CollateralPullNotice } from '@/components/Global/CollateralPullNotice'
 
 export function SemanticRequestConfirmView() {
     const router = useRouter()
@@ -42,6 +43,7 @@ export function SemanticRequestConfirmView() {
     const {
         amount,
         usdAmount,
+        payAmount,
         recipient,
         charge,
         attachment,
@@ -251,6 +253,13 @@ export function SemanticRequestConfirmView() {
 
                     {!isCardPioneer && <PaymentInfoRow hideBottomBorder label={tCommon('peanutFee')} value="$ 0.00" />}
                 </Card>
+
+                {/* cross-chain pays `payAmount` (principal + Rhino fee) through
+                    a multi-call userOp, so only the shortfall can leave the card */}
+                <CollateralPullNotice
+                    amountUsd={isCrossChainPayment ? (payAmount ?? usdAmount ?? amount) : usdAmount || amount}
+                    collateralOnlyAllowed={!isCrossChainPayment}
+                />
 
                 {/* buttons and error */}
                 <div className="flex flex-col gap-4">

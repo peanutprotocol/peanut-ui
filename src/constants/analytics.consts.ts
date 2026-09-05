@@ -279,6 +279,17 @@ export const ANALYTICS_EVENTS = {
     // (useReturnExcessCollateral). FAILED is non-fatal — limit change stuck.
     CARD_LIMIT_EXCESS_RETURNED: 'card_limit_excess_returned',
     CARD_LIMIT_EXCESS_RETURN_FAILED: 'card_limit_excess_return_failed',
+    // On card / off card (TASK-22293): the target the balancer keeps on the
+    // card, the floor it leaves off, manual moves, and the pre-tap notice that
+    // a spend will pull from the card.
+    CARD_ON_CARD_VIEWED: 'card_on_card_viewed',
+    CARD_COLLATERAL_TARGET_CHANGED: 'card_collateral_target_changed',
+    CARD_WALLET_FLOOR_CHANGED: 'card_wallet_floor_changed',
+    CARD_LOAD_ALL_TOGGLED: 'card_load_all_toggled',
+    CARD_MOVE_TO_CARD: 'card_move_to_card',
+    CARD_MOVE_OFF_CARD: 'card_move_off_card',
+    CARD_COLLATERAL_SETTING_FAILED: 'card_collateral_setting_failed',
+    COLLATERAL_PULL_NOTICE_SHOWN: 'collateral_pull_notice_shown',
     CARD_LOCK_OPENED: 'card_lock_opened',
     CARD_LOCKED: 'card_locked',
     CARD_UNLOCKED: 'card_unlocked',
