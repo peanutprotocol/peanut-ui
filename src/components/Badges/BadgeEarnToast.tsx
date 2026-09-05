@@ -28,7 +28,7 @@ import { useBadgeEarnToast } from '@/components/Badges/useBadgeEarnToast'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { BadgeImage } from '@/components/Badges/BadgeImage'
 import { badgeAvatarKeys } from '@/components/Avatar/avatar.utils'
-import { AVATAR_PICKER_PATH } from '@/components/Avatar/avatar.consts'
+import { avatarPickerPath } from '@/components/Avatar/avatar.consts'
 
 const HOME_PATH = '/home'
 
@@ -84,14 +84,15 @@ export default function BadgeEarnToast() {
         const label = count === 1 ? t('toastSingle', { name: newestName }) : t('toastMultiple', { count })
 
         // A badge that ships avatars (TASK-22142) announces the unlock and
-        // links to the picker. The badge tap keeps its detail view, so these
-        // are two controls.
+        // links to the picker, naming the newest such badge so its art is in
+        // the first hand. The badge tap keeps its detail view, so these are
+        // two controls.
         const avatarCount = badgeAvatarKeys(codes).length
         const chooseAvatar = () => {
             dismiss(toastId)
             liveToastIdRef.current = null
             posthog.capture(ANALYTICS_EVENTS.BADGE_EARN_TOAST_TAPPED, { count, target: 'avatar_picker' })
-            router.push(AVATAR_PICKER_PATH)
+            router.push(avatarPickerPath(codes.find((code) => badgeAvatarKeys([code]).length > 0)))
         }
 
         toast({

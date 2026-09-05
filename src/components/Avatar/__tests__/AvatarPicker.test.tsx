@@ -2,6 +2,7 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import type { ComponentProps, ReactNode } from 'react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { AvatarPicker } from '../AvatarPicker'
+import { badgeAvatarKeys } from '../avatar.utils'
 
 jest.mock('next/image', () => ({
     __esModule: true,
@@ -9,16 +10,18 @@ jest.mock('next/image', () => ({
 }))
 
 // vaul needs a real layout; the picker's own logic is what is under test
-jest.mock('@/components/Global/Drawer', () => {
-    const Passthrough = ({ children }: { children?: ReactNode }) => <div>{children}</div>
-    return {
-        Drawer: ({ open, children }: { open: boolean; children?: ReactNode }) => (open ? <div>{children}</div> : null),
-        DrawerContent: Passthrough,
-        DrawerHeader: Passthrough,
-        DrawerTitle: Passthrough,
-        DrawerDescription: Passthrough,
-    }
-})
+jest.mock('@/components/Global/Drawer', () => ({
+    Drawer: ({ open, children }: { open: boolean; children?: ReactNode }) => (open ? <div>{children}</div> : null),
+    DrawerContent: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+}))
+
+// the deal is random and has its own suite (avatar.utils.test); here the hand
+// is fixed so every test knows what is on the table
+const mockDealHand = jest.fn()
+jest.mock('../avatar.utils', () => ({
+    ...jest.requireActual('../avatar.utils'),
+    dealHand: (...args: unknown[]) => mockDealHand(...args),
+}))
 
 const mockToast = jest.fn()
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ toast: mockToast }) }))
@@ -33,10 +36,16 @@ let mockUser: {
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser, fetchUser: mockFetchUser }) }))
 
 const radio = (key: string) => screen.getByRole('radio', { name: key })
+const handOf = () => screen.getAllByRole('radio').map((el) => el.getAttribute('aria-label'))
+const rollDie = () => screen.getByRole('button', { name: 'Roll the die' })
 const A = 'Bug Whisperer · beetle'
 const B = 'Bug Whisperer · shell'
 const KEY_A = 'badge.BUG_WHISPERER.beetle'
 const KEY_B = 'badge.BUG_WHISPERER.shell'
+const KEY_C = 'badge.BUG_WHISPERER.peek'
+const UNLOCKED = badgeAvatarKeys(['BUG_WHISPERER'])
+const HAND = [null, KEY_C, KEY_B, KEY_A, 'basic.sun', 'basic.star', 'basic.planet', 'basic.mushroom']
+const HAND_WITH_APPLE = [null, KEY_C, 'basic.apple', KEY_B, KEY_A, 'basic.sun', 'basic.star', 'basic.planet']
 
 // A server model: every POST is recorded in order and settled by hand, in any
 // order; the last write the server COMMITS is what the refetch hands back.
@@ -66,6 +75,7 @@ function fakeServer() {
 
 beforeEach(() => {
     jest.clearAllMocks()
+    mockDealHand.mockReturnValue(HAND)
     mockUpdateUserById.mockResolvedValue({ data: {} })
     mockFetchUser.mockResolvedValue(null)
     mockUser = {
@@ -79,23 +89,41 @@ beforeEach(() => {
 })
 
 describe('AvatarPicker', () => {
-    it('lists one row of five basics and only the avatars of badges the user holds', () => {
+    it('deals one hand of eight behind the initial, earned avatars marked, the die ninth', () => {
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        expect(screen.getAllByRole('radio')).toHaveLength(8)
-        // human labels, not keys: badge name + slug, or the slug alone
+        expect(mockDealHand).toHaveBeenCalledWith(null, UNLOCKED, { prefer: undefined })
+        const group = screen.getByRole('radiogroup', { name: 'Your avatar' })
+        expect(group.querySelectorAll('[role="radio"]')).toHaveLength(8)
+        expect(handOf()[0]).toBe('Your initial')
+        expect(radio('Your initial')).toHaveAttribute('aria-checked', 'true')
+        // the three Bug Whisperer avatars, each tagged
+        expect(screen.getAllByText('Earned')).toHaveLength(3)
         expect(radio(A)).toBeInTheDocument()
-        expect(screen.getByRole('radiogroup', { name: 'Basics' }).querySelectorAll('[role="radio"]')).toHaveLength(5)
-        expect(screen.queryByRole('radio', { name: /Offramp/ })).not.toBeInTheDocument()
-        expect(screen.getByRole('radiogroup', { name: 'From your badges' })).toBeInTheDocument()
+        // basics carry their cast name, not their slug
+        expect(radio('Bossy Goose')).toBeInTheDocument()
+        expect(rollDie()).toBeInTheDocument()
+        // no title, no description, no button besides the die (tiles are radios)
+        expect(screen.getAllByRole('button')).toHaveLength(1)
     })
 
-    it('tells a user with no badges where avatars come from', () => {
+    it('deals nothing earned to a user with no badges', () => {
         mockUser.user.badges = []
+        mockDealHand.mockReturnValue([
+            null,
+            ...['sun', 'star', 'planet', 'moon', 'leaf', 'gem', 'frog'].map((s) => `basic.${s}`),
+        ])
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        expect(screen.getAllByRole('radio')).toHaveLength(5)
-        expect(screen.getByText('Earn a badge and its avatars appear here.')).toBeInTheDocument()
+        expect(mockDealHand).toHaveBeenCalledWith(null, [], { prefer: undefined })
+        expect(screen.getAllByRole('radio')).toHaveLength(8)
+        expect(screen.queryByText('Earned')).not.toBeInTheDocument()
+    })
+
+    it('deals the first hand from the badge the deep link names', () => {
+        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} prefer="BUG_WHISPERER" />)
+
+        expect(mockDealHand).toHaveBeenCalledWith(null, UNLOCKED, { prefer: 'BUG_WHISPERER' })
     })
 
     it('saves a tap at once and refreshes the user', async () => {
@@ -179,6 +207,28 @@ describe('AvatarPicker', () => {
         expect(radio(B)).toHaveAttribute('aria-checked', 'true')
     })
 
+    // Chip (#2989): the pill already shows the new avatar while the save
+    // drains, so a close/reopen in that window must deal from the pending pick
+    // — dealing from `saved` can drop it and leave no tile checked.
+    it('deals from the pending pick when reopened during an in-flight save', async () => {
+        const server = fakeServer()
+        const { rerender } = renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        fireEvent.click(radio(B))
+        expect(server.posts.map((post) => post.key)).toEqual([KEY_B])
+
+        rerender(<AvatarPicker open={false} onOpenChange={jest.fn()} />)
+        rerender(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        expect(mockDealHand).toHaveBeenLastCalledWith(KEY_B, UNLOCKED, { prefer: undefined })
+        expect(radio(B)).toHaveAttribute('aria-checked', 'true')
+
+        await server.settle(0)
+        await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
+        expect(server.committed()).toBe(KEY_B)
+        expect(radio(B)).toHaveAttribute('aria-checked', 'true')
+    })
+
     it('a rejected first save still lets the second go through and clears pending', async () => {
         const server = fakeServer()
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
@@ -197,45 +247,45 @@ describe('AvatarPicker', () => {
         expect(radio(B)).toHaveAttribute('aria-checked', 'true')
         // pending is cleared: a later refetch that says otherwise wins
         mockUser.user.avatarKey = KEY_A
-        fireEvent.click(screen.getByRole('button', { name: 'Roll the dice' }))
+        fireEvent.click(rollDie())
         expect(radio(A)).toHaveAttribute('aria-checked', 'true')
     })
 
-    it('the dice redeals the basics row and never changes the pick', () => {
+    it('the die deals a new hand and never changes the pick or the initial', () => {
         mockUser.user.avatarKey = 'basic.apple'
-        const random = jest.spyOn(Math, 'random').mockReturnValue(0)
+        const rolled = [
+            null,
+            'basic.apple',
+            KEY_A,
+            'basic.avocado',
+            'basic.cactus',
+            'basic.cloud',
+            'basic.cube',
+            'basic.donut',
+        ]
+        mockDealHand.mockReturnValueOnce(HAND_WITH_APPLE).mockReturnValueOnce(rolled)
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
-        const rowOf = () =>
-            Array.from(screen.getByRole('radiogroup', { name: 'Basics' }).querySelectorAll('[role="radio"]')).map(
-                (el) => el.getAttribute('aria-label')
-            )
-        const before = rowOf()
+        const before = handOf()
+        expect(radio('Jackpot Cherry')).toHaveAttribute('aria-checked', 'true')
 
-        random.mockReturnValue(0.99)
-        act(() => fireEvent.click(screen.getByRole('button', { name: 'Roll the dice' })))
+        act(() => fireEvent.click(rollDie()))
 
-        expect(rowOf()).not.toEqual(before)
-        expect(rowOf()).toContain('apple')
-        expect(radio('apple')).toHaveAttribute('aria-checked', 'true')
+        // the roll deals from the pick, with no preference
+        expect(mockDealHand).toHaveBeenLastCalledWith('basic.apple', UNLOCKED)
+        expect(handOf()).not.toEqual(before)
+        expect(handOf()[0]).toBe('Your initial')
+        expect(radio('Jackpot Cherry')).toHaveAttribute('aria-checked', 'true')
         expect(mockUpdateUserById).not.toHaveBeenCalled()
-        random.mockRestore()
     })
 
-    it('clears the pick back to the initial', () => {
+    it('tapping the initial clears the pick', () => {
         mockUser.user.avatarKey = 'basic.apple'
+        mockDealHand.mockReturnValue(HAND_WITH_APPLE)
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        fireEvent.click(screen.getByRole('button', { name: 'Use my initial instead' }))
+        fireEvent.click(radio('Your initial'))
 
+        expect(radio('Your initial')).toHaveAttribute('aria-checked', 'true')
         expect(mockUpdateUserById).toHaveBeenCalledWith({ userId: 'u1', avatarKey: null })
-    })
-
-    it('closes on done', () => {
-        const onOpenChange = jest.fn()
-        renderWithIntl(<AvatarPicker open onOpenChange={onOpenChange} />)
-
-        fireEvent.click(screen.getByRole('button', { name: 'Done' }))
-
-        expect(onOpenChange).toHaveBeenCalledWith(false)
     })
 })

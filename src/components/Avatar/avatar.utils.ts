@@ -29,20 +29,39 @@ export const avatarPool = (heldCodes: readonly string[]): string[] => [
     ...badgeAvatarKeys(heldCodes),
 ]
 
+// slots 2-8 of the hand; slot 1 is the initial and slot 9 is the die
+const DEALT = 7
+
 /**
- * The basics row the picker offers: the current pick if it is a basic, then
- * random basics to fill `n`. The dice rerolls this row and never the pick
- * (Split's semantics: the dice changes what is offered, not who you are).
+ * The hand the picker deals: index 0 is always the initial (null) and never
+ * re-deals, then seven keys. One is guaranteed to be an earned badge avatar
+ * whenever the user holds a badge with art (`prefer` narrows that draw to one
+ * badge, for the badge-earned toast's deep link), the current pick stays in
+ * the hand so the selected state is on screen, and the rest is filled from
+ * the basics plus the other unlocked badge avatars. Slots 2-8 are shuffled
+ * together. Rolling deals again and never changes the pick (Split's
+ * semantics: the die changes what is offered, not who you are). A pick this
+ * bundle's manifest does not know (a lagging native bundle after the API
+ * added a slug) is not dealt: it would render as a second initial tile.
  */
-export function offerBasics(pick: string | null, n = 5, random: () => number = Math.random): string[] {
-    const basics = basicAvatarKeys()
-    const keep = pick && basics.includes(pick) ? [pick] : []
-    const rest = basics.filter((key) => key !== pick)
-    for (let i = rest.length - 1; i > 0; i--) {
+export function dealHand(
+    pick: string | null,
+    unlocked: readonly string[],
+    { prefer, random = Math.random }: { prefer?: string; random?: () => number } = {}
+): (string | null)[] {
+    const draw = (pool: string[]) => pool.splice(Math.floor(random() * pool.length), 1)[0]
+    const earned = unlocked.filter((key) => key !== pick)
+    const preferred = prefer ? earned.filter((key) => key.startsWith(`badge.${prefer}.`)) : []
+    const hand: string[] = []
+    if (earned.length) hand.push(draw(preferred.length ? [...preferred] : [...earned]))
+    if (pick && avatarSrc(pick)) hand.push(pick)
+    const rest = [...basicAvatarKeys(), ...earned].filter((key) => !hand.includes(key))
+    while (hand.length < DEALT && rest.length) hand.push(draw(rest))
+    for (let i = hand.length - 1; i > 0; i--) {
         const j = Math.floor(random() * (i + 1))
-        ;[rest[i], rest[j]] = [rest[j], rest[i]]
+        ;[hand[i], hand[j]] = [hand[j], hand[i]]
     }
-    return [...keep, ...rest].slice(0, n)
+    return [null, ...hand]
 }
 
 /** Public path of the avatar art, or null for a key the manifest does not know. */

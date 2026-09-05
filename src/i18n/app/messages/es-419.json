@@ -3352,6 +3352,7 @@
         },
         "copyToClipboard": {
             "copyCode": "Copiar código",
+            "copyProfileLink": "Copiar enlace del perfil",
             "copyFailed": "No se pudo copiar"
         },
         "copyField": {
@@ -3684,13 +3685,9 @@
     },
     "avatar": {
         "title": "Tu avatar",
-        "description": "Elige uno o tira los dados para ver otros básicos.",
-        "fromBadges": "De tus insignias",
-        "basics": "Básicos",
-        "unlocked": "{count} desbloqueados",
-        "noBadgeAvatars": "Gana una insignia y sus avatares aparecen aquí.",
-        "rollDice": "Tirar los dados",
-        "useInitial": "Usar mi inicial",
+        "initial": "Tu inicial",
+        "earned": "Ganado",
+        "rollDie": "Tirar el dado",
         "change": "Cambiar avatar",
         "saveFailed": "No pudimos guardar tu avatar. Inténtalo de nuevo."
     }

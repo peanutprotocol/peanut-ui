@@ -18,6 +18,8 @@ type ShareButtonProps = {
     variant?: ButtonVariant
     iconPosition?: 'left' | 'right'
     showIcon?: boolean
+    /** Button shadow; `null` for a share control whose container draws the chrome (the profile pill). */
+    shadowSize?: React.ComponentProps<typeof Button>['shadowSize'] | null
 } & (
     | { url: string; generateUrl?: undefined; generateText?: undefined }
     | { generateUrl: () => Promise<string>; url?: undefined; generateText?: undefined }
@@ -40,6 +42,7 @@ const ShareButton = ({
     variant = 'purple',
     iconPosition = 'left',
     showIcon = true,
+    shadowSize = '4',
 }: ShareButtonProps) => {
     const t = useTranslations('global')
     const toast = useToast()
@@ -128,7 +131,7 @@ const ShareButton = ({
             className={`flex items-center justify-center gap-1 ${className}`}
             onClick={handleShare}
             shadowType="primary"
-            shadowSize="4"
+            shadowSize={shadowSize ?? undefined}
         >
             <span className="flex items-center gap-2">
                 {showIcon && iconPosition === 'left' && <Icon name="share" size={20} />}

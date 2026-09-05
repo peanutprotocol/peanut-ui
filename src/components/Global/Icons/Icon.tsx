@@ -29,6 +29,7 @@ import {
     ChevronDown,
     ChevronRight,
     ChevronUp,
+    Dices,
     DollarSign,
     Download,
     ExternalLink,
@@ -102,6 +103,7 @@ export type IconName =
     | 'meter'
     | 'cancel'
     | 'ban'
+    | 'dice'
     | 'download'
     | 'double-check'
     | 'eye'
@@ -286,6 +288,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     star: (props) => <LucideWrapper Icon={Star} {...props} />,
     'user-plus': (props) => <LucideWrapper Icon={UserPlus} {...props} />,
     copy: (props) => <LucideWrapper Icon={Copy} {...props} />,
+    dice: (props) => <LucideWrapper Icon={Dices} {...props} />,
     cancel: (props) => <LucideWrapper Icon={X} {...props} />,
     ban: (props) => <LucideWrapper Icon={Ban} {...props} />,
     'qr-code': (props) => <LucideWrapper Icon={QrCode} boostKey="qr-code" {...props} />,
