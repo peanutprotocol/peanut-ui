@@ -399,11 +399,6 @@ export const SURFACES: Record<string, Surface> = {
         path: 'Migration/MigrationDownloadModal.tsx',
         blocked: 'Opens itself off the sunset countdown and a stored dismissal — no visible prop.',
     },
-    '42-c-reviewpromptmodal': {
-        name: 'ReviewPromptModal',
-        path: 'Migration/ReviewPromptModal.tsx',
-        blocked: 'Opens itself after a happy-moment event and a stored cooldown — no visible prop.',
-    },
     '43-c-scantodownloadmodal': {
         name: 'ScanToDownloadModal',
         path: 'Migration/ScanToDownloadModal.tsx',
