@@ -199,7 +199,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
                         {ctas && ctas.length > 0 && (
                             <div
                                 className={twMerge(
-                                    'flex w-full gap-3',
+                                    'flex w-full gap-4',
                                     ctas.length > 1 ? 'flex-col sm:flex-row' : 'flex-col',
                                     ctaClassName
                                 )}

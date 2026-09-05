@@ -79,7 +79,7 @@ export const PasskeySetupHelpModal = ({
             iconProps={{ className: 'text-foreground-primary' }}
             title={title}
             footer={
-                <div className="flex w-full flex-col items-center gap-3">
+                <div className="flex w-full flex-col items-center gap-4">
                     <Button icon="retry" shadowSize="4" onClick={onRetry} className="w-full justify-center">
                         {tCommon('retry')}
                     </Button>
