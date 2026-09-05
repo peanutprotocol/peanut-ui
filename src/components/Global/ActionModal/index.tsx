@@ -56,6 +56,10 @@ export interface ActionModalProps {
     descriptionClassName?: string
     buttonProps?: ButtonProps
     footer?: React.ReactNode
+    /** The footer is decoration (an absolutely positioned mascot), not an
+     *  action. It renders outside the in-flow wrapper, so it adds no row of
+     *  its own beneath the ctas. */
+    footerIsDecorative?: boolean
     content?: React.ReactNode
     classOverlay?: string
     hideOverlay?: boolean
@@ -84,6 +88,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
     descriptionClassName,
     buttonProps,
     footer,
+    footerIsDecorative = false,
     content,
     classOverlay,
     hideOverlay,
@@ -258,8 +263,10 @@ const ActionModal: React.FC<ActionModalProps> = ({
                         )}
                     </div>
                 )}
-                {/* the head's own 12px governs when the footer is all that follows it */}
-                {footer && <div className="mt-6 w-full">{footer}</div>}
+                {/* An action footer is a row and gets the XL/24 above it. A
+                    decorative one is absolutely positioned, so wrapping it would
+                    leave an empty 24px row under the ctas and grow the panel. */}
+                {footer && (footerIsDecorative ? footer : <div className="mt-6 w-full">{footer}</div>)}
             </div>
         </BaseModal>
     )
