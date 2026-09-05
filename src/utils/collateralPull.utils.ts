@@ -1,4 +1,5 @@
 import { parseUsdAmountToUnits, usdcUnitsToRainCents } from './balance.utils'
+import { usdcUnitsToDisplayCents } from '@/hooks/wallet/useBalanceSplit'
 
 export interface CollateralPull {
     /** The spend cannot be covered off card and will pull from the card balance. */
@@ -22,7 +23,16 @@ const NONE: CollateralPull = { pullsFromCard: false, fromCardCents: 0 }
 export function computeCollateralPull(input: {
     amountUsd: string | number | null | undefined
     offCardUnits: bigint | undefined
+    /** Landed spending power only — in-transit top-ups cannot be pulled. */
     onCardCents: number | null
+    /**
+     * Whether the flow can execute collateral-only (a single direct transfer
+     * with no follow-up kernel calls). Multi-call flows — cross-chain
+     * withdrawals and cross-chain request payments through
+     * `sendTransactions` — can only go mixed, so only the shortfall leaves
+     * the card. Defaults to the single-recipient case.
+     */
+    collateralOnlyAllowed?: boolean
 }): CollateralPull {
     if (input.amountUsd == null || input.offCardUnits === undefined || input.onCardCents === null) return NONE
     const units = parseUsdAmountToUnits(input.amountUsd)
@@ -30,9 +40,10 @@ export function computeCollateralPull(input: {
     if (units <= input.offCardUnits) return NONE
 
     const amountCents = Number(usdcUnitsToRainCents(units))
-    const offCardCents = Number(usdcUnitsToRainCents(input.offCardUnits))
+    const offCardCents = usdcUnitsToDisplayCents(input.offCardUnits)
     const onCardCents = Math.max(0, Math.floor(input.onCardCents))
-    if (onCardCents >= amountCents) return { pullsFromCard: true, fromCardCents: amountCents }
+    const collateralOnlyAllowed = input.collateralOnlyAllowed ?? true
+    if (collateralOnlyAllowed && onCardCents >= amountCents) return { pullsFromCard: true, fromCardCents: amountCents }
 
     const shortfallCents = amountCents - offCardCents
     if (shortfallCents <= 0 || offCardCents + onCardCents < amountCents) return NONE

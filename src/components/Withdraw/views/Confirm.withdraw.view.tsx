@@ -206,7 +206,9 @@ export default function ConfirmWithdrawView({
 
                 {showHighFeeWarning && <Notification priority="info">{t('confirm.highFeeWarning')}</Notification>}
 
-                {!insufficientBalance && !error && <CollateralPullNotice amountUsd={payAmount ?? amount} />}
+                {!insufficientBalance && !error && (
+                    <CollateralPullNotice amountUsd={payAmount ?? amount} collateralOnlyAllowed={!isCrossChain} />
+                )}
 
                 {error ? (
                     <Button

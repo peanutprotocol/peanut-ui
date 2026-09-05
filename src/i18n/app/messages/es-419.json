@@ -280,7 +280,9 @@
             "withdrawToOwnAccountsDescription": "Banco, Mercado, cripto"
         },
         "split": "{onCard} en la tarjeta · {offCard} fuera de la tarjeta",
-        "splitHidden": "**** en la tarjeta · **** fuera de la tarjeta"
+        "splitHidden": "**** en la tarjeta · **** fuera de la tarjeta",
+        "splitPending": "{amount} en camino a la tarjeta",
+        "splitPendingHidden": "**** en camino a la tarjeta"
     },
     "profile": {
         "showFullNameConfirm": {
@@ -1684,7 +1686,7 @@
             "moveOffCardTitle": "Sacar de la tarjeta",
             "moveToCardHint": "Llega a la tarjeta en aproximadamente un minuto. No necesita passkey.",
             "moveOffCardHint": "Necesita tu passkey. La tarjeta permite un retiro cada pocos minutos.",
-            "amountLabel": "Monto",
+            "amountLabel": "Monto (USD)",
             "max": "Máx.",
             "editTargetTitle": "Mantener en la tarjeta",
             "editFloorTitle": "Mantener fuera de la tarjeta",
@@ -1698,7 +1700,8 @@
             "moveOffCardDone": "{amount} salió de la tarjeta",
             "setupRequired": "Termina de configurar tu tarjeta para mover dinero a ella.",
             "autoBalanceOff": "Las recargas automáticas están desactivadas para esta tarjeta. Mueve dinero a la tarjeta manualmente antes de pagar.",
-            "lockNote": "El dinero en la tarjeta es instantáneo para pagos con tarjeta. Sacarlo necesita tu passkey y está limitado a un retiro cada pocos minutos."
+            "lockNote": "El dinero en la tarjeta es instantáneo para pagos con tarjeta. Sacarlo necesita tu passkey y está limitado a un retiro cada pocos minutos.",
+            "pending": "{amount} en camino a la tarjeta"
         }
     },
     "addMoney": {
@@ -3496,7 +3499,7 @@
         },
         "collateralPull": {
             "fromCard": "{amount} de este pago sale de tu saldo en la tarjeta.",
-            "lockActive": "La tarjeta queda bloqueada {time} después de su último retiro: este pago esperará."
+            "lockActive": "La tarjeta queda bloqueada {time} después de su último retiro: podrás pagar cuando termine."
         }
     },
     "errors": {

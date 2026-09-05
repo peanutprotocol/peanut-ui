@@ -14,14 +14,25 @@ import { useBalanceSplit } from './useBalanceSplit'
  * tap; `RainCooldownContext` already knows `cooldownEndsAt`, this reads it
  * ahead of time. Captures one analytics event per notice appearance.
  */
-export function useCollateralPullPreview(amountUsd: string | number | null | undefined) {
+export function useCollateralPullPreview(
+    amountUsd: string | number | null | undefined,
+    options: { collateralOnlyAllowed?: boolean } = {}
+) {
     const { hasActiveCard, offCardUnits, onCardCents } = useBalanceSplit()
     // Advisory only: no provider (a bare layout or a view test) reads as "no lock".
     const cooldownEndsAt = useRainCooldownOptional()?.cooldownEndsAt ?? null
 
     const pull = useMemo(
-        () => (hasActiveCard ? computeCollateralPull({ amountUsd, offCardUnits, onCardCents }) : null),
-        [hasActiveCard, amountUsd, offCardUnits, onCardCents]
+        () =>
+            hasActiveCard
+                ? computeCollateralPull({
+                      amountUsd,
+                      offCardUnits,
+                      onCardCents,
+                      collateralOnlyAllowed: options.collateralOnlyAllowed,
+                  })
+                : null,
+        [hasActiveCard, amountUsd, offCardUnits, onCardCents, options.collateralOnlyAllowed]
     )
     const visible = !!pull?.pullsFromCard
     const lockActive = visible && cooldownEndsAt !== null && cooldownEndsAt > Date.now()

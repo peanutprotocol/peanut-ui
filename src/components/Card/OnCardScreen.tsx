@@ -11,6 +11,9 @@ import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Toggle } from '@/components/0_Bruddle/Toggle'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
+import { BaseInput } from '@/components/0_Bruddle/BaseInput'
+import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import ActionModal from '@/components/Global/ActionModal'
@@ -34,6 +37,12 @@ const MAX_TARGET_CENTS = 10_000_000
 const MAX_FLOOR_CENTS = 1_000_000
 /** Server-side floor for a move-to-card. */
 const MIN_MOVE_CENTS = 100
+
+/** `crypto.randomUUID` needs a secure context and is missing on older WebViews and jsdom. */
+const randomKey = () =>
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`
 
 const formatDollars = (cents: number) => `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
 
@@ -115,32 +124,28 @@ const AmountModal: FC<AmountModalProps> = ({
                     <label htmlFor="on-card-amount-input" className="text-label-l">
                         {label}
                     </label>
-                    <Card className="flex-row items-center gap-2 px-3 py-2">
-                        <span className="text-foreground-secondary">$</span>
-                        <input
+                    <FieldColumn error={error}>
+                        <BaseInput
                             id="on-card-amount-input"
                             type="number"
                             inputMode="decimal"
                             value={value}
                             onChange={(e) => setValue(e.target.value)}
-                            className="w-full bg-transparent text-body-m focus:outline-none"
                             min={0}
                             step="0.01"
+                            placeholder="0.00"
                             disabled={saving}
+                            state={error ? 'error' : 'default'}
+                            rightContent={
+                                maxCents != null ? (
+                                    <LinkButton onClick={() => setValue((maxCents / 100).toFixed(2))} disabled={saving}>
+                                        {t('max')}
+                                    </LinkButton>
+                                ) : undefined
+                            }
                         />
-                        {maxCents != null && (
-                            <button
-                                type="button"
-                                className="text-label-l text-foreground-secondary"
-                                onClick={() => setValue((maxCents / 100).toFixed(2))}
-                                disabled={saving}
-                            >
-                                {t('max')}
-                            </button>
-                        )}
-                    </Card>
+                    </FieldColumn>
                     {hint && <p className="text-body-s text-foreground-secondary">{hint}</p>}
-                    {error && <p className="text-body-s text-foreground-error">{error}</p>}
                 </div>
             }
             ctas={[
@@ -168,7 +173,10 @@ const OnCardScreen: FC<Props> = ({ cardId, onPrev }) => {
     const t = useTranslations('card.onCard')
     const queryClient = useQueryClient()
     const toast = useToast()
-    const { card, policy, onCardCents, offCardCents, isLoading } = useBalanceSplit()
+    // `onCardCents` is LANDED spending power: what the card can spend and what
+    // can be moved off it. In-transit top-ups are shown as pending, never
+    // offered as movable.
+    const { card, policy, onCardCents, pendingToCardCents, offCardCents, isLoading } = useBalanceSplit()
     const { moveOffCard } = useMoveOffCard()
     const [modal, setModal] = useState<Modal | null>(null)
     const [togglingLoadAll, setTogglingLoadAll] = useState(false)
@@ -250,12 +258,15 @@ const OnCardScreen: FC<Props> = ({ cardId, onPrev }) => {
         }
     }
 
-    // One key per tap, kept until the attempt settles: a retry after a lost
-    // response replays the first move server-side instead of moving twice.
-    const moveKeyRef = useRef<string | null>(null)
+    // One key per (tap, amount), kept until the attempt succeeds: an exact
+    // retry after a lost response replays the first move server-side instead
+    // of moving twice, while an edited amount is a new request with its own
+    // key — the old key must never carry a different amount.
+    const moveKeyRef = useRef<{ key: string; cents: number } | null>(null)
     const moveToCard = async (cents: number) => {
-        const idempotencyKey = moveKeyRef.current ?? `${cardId.slice(0, 8)}-${cents}-${crypto.randomUUID()}`
-        moveKeyRef.current = idempotencyKey
+        const reuse = moveKeyRef.current?.cents === cents ? moveKeyRef.current.key : null
+        const idempotencyKey = reuse ?? `${cardId.slice(0, 8)}-${cents}-${randomKey()}`
+        moveKeyRef.current = { key: idempotencyKey, cents }
         try {
             const res = await rainApi.moveToCard(cardId, { amountCents: cents, idempotencyKey })
             moveKeyRef.current = null
@@ -272,16 +283,25 @@ const OnCardScreen: FC<Props> = ({ cardId, onPrev }) => {
     }
 
     const moveOff = async (cents: number) => {
-        // Pin the target below what stays on the card FIRST, or the balancer
-        // tops the card straight back up. The inflow debounce also holds the
+        // Pin the target below what stays on the card FIRST — and switch
+        // load-everything off, which ignores the target — or the balancer
+        // sweeps the returned money straight back. One awaited PATCH; if it
+        // fails nothing is withdrawn. The inflow debounce also holds the
         // returned money off the card for a few minutes.
         const remaining = Math.max(0, (onCardCents ?? 0) - cents)
-        if (policy && remaining < policy.targetCents) {
-            await patch({ collateralTargetCents: remaining }, 'target')
+        if (policy && (policy.loadAllToCard || remaining < policy.targetCents)) {
+            await patch(
+                {
+                    collateralTargetCents: Math.min(remaining, policy.targetCents),
+                    ...(policy.loadAllToCard ? { loadAllToCard: false } : {}),
+                },
+                'target'
+            )
             posthog.capture(ANALYTICS_EVENTS.CARD_COLLATERAL_TARGET_CHANGED, {
                 old_cents: policy.targetCents,
-                new_cents: remaining,
+                new_cents: Math.min(remaining, policy.targetCents),
                 reason: 'move_off_card',
+                load_all_disabled: policy.loadAllToCard,
             })
         }
         const moved = await moveOffCard(cents)
@@ -307,7 +327,15 @@ const OnCardScreen: FC<Props> = ({ cardId, onPrev }) => {
             ) : (
                 <>
                     <div className="grid grid-cols-2 gap-3">
-                        <BalanceTile label={t('onCard')} cents={onCardCents} />
+                        <BalanceTile
+                            label={t('onCard')}
+                            cents={onCardCents}
+                            note={
+                                pendingToCardCents > 0
+                                    ? t('pending', { amount: formatDollars(pendingToCardCents) })
+                                    : undefined
+                            }
+                        />
                         <BalanceTile label={t('offCard')} cents={offCardCents} />
                     </div>
                     <p className="text-body-s text-foreground-secondary">{t('summary')}</p>
@@ -432,12 +460,13 @@ const OnCardScreen: FC<Props> = ({ cardId, onPrev }) => {
     )
 }
 
-const BalanceTile: FC<{ label: string; cents: number | null }> = ({ label, cents }) => (
+const BalanceTile: FC<{ label: string; cents: number | null; note?: string }> = ({ label, cents, note }) => (
     <Card className="px-4 py-3">
         <div className="text-body-s text-foreground-secondary">{label}</div>
         <div className="text-heading-s text-foreground-primary tabular-nums">
             {cents === null ? '—' : formatDollars(cents)}
         </div>
+        {note && <div className="text-body-s text-foreground-secondary">{note}</div>}
     </Card>
 )
 

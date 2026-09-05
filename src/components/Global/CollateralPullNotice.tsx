@@ -8,6 +8,8 @@ import { formatLockRemaining } from '@/utils/collateralPull.utils'
 
 interface Props {
     amountUsd: string | number | null | undefined
+    /** False for multi-call flows (cross-chain), which can only pull the shortfall. */
+    collateralOnlyAllowed?: boolean
     className?: string
 }
 
@@ -32,9 +34,9 @@ function LockCountdown({ endsAt }: { endsAt: number }) {
  * card, for amounts the off-card balance covers, and for true shortfalls
  * (the insufficient-balance error owns those).
  */
-export function CollateralPullNotice({ amountUsd, className }: Props) {
+export function CollateralPullNotice({ amountUsd, collateralOnlyAllowed, className }: Props) {
     const t = useTranslations('global.collateralPull')
-    const { visible, fromCardCents, cooldownEndsAt } = useCollateralPullPreview(amountUsd)
+    const { visible, fromCardCents, cooldownEndsAt } = useCollateralPullPreview(amountUsd, { collateralOnlyAllowed })
     if (!visible) return null
     return (
         <div className={className} data-testid="collateral-pull-notice">

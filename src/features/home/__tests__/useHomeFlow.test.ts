@@ -125,7 +125,7 @@ describe('useHomeFlow', () => {
             cards: [{ id: 'c1', status: 'ACTIVE', hasWithdrawApproval: true }],
         }
         const { result } = renderHook(() => useHomeFlow())
-        // $102.50 on card (landed + in transit), $2.84 off card (smart wallet)
-        expect(result.current.balanceSplit).toEqual({ onCardCents: 10_250, offCardCents: 284 })
+        // $100 landed on card, $2.50 still moving to it, $2.84 off card (smart wallet, floored)
+        expect(result.current.balanceSplit).toEqual({ onCardCents: 10_000, pendingToCardCents: 250, offCardCents: 284 })
     })
 })

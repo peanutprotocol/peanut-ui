@@ -178,6 +178,8 @@ export interface SubmitRainWithdrawalInput {
 
 export interface SubmitRainWithdrawalResponse {
     txHash: string
+    /** Rain's post-consumption withdrawal-signature lock, in seconds. */
+    cooldownSec?: number
 }
 
 // ─── Funds-recovery types ────────────────────────────────────────────────────
@@ -290,6 +292,20 @@ export class RainCooldownError extends Error {
 export interface RainCooldownEventDetail {
     retryAfterSec: number
     message: string
+    /** Armed from a successful pull (server-confirmed lock), not from a 425:
+     *  show the countdown, skip the "please wait" intro modal. */
+    silent?: boolean
+}
+
+/** Arm the shared cooldown from a server-confirmed lock duration. */
+function armCooldownFromSuccess(cooldownSec: unknown) {
+    if (typeof window === 'undefined') return
+    if (typeof cooldownSec !== 'number' || !Number.isFinite(cooldownSec) || cooldownSec <= 0) return
+    window.dispatchEvent(
+        new CustomEvent<RainCooldownEventDetail>('rain:cooldown', {
+            detail: { retryAfterSec: cooldownSec, message: '', silent: true },
+        })
+    )
 }
 
 /**
@@ -555,12 +571,16 @@ export const rainApi = {
      * request payments through this path for the first time → the regression.)
      */
     submitWithdrawal: async (input: SubmitRainWithdrawalInput): Promise<SubmitRainWithdrawalResponse> => {
-        return rainRequest<SubmitRainWithdrawalResponse>({
+        const res = await rainRequest<SubmitRainWithdrawalResponse>({
             method: 'POST',
             path: '/rain/cards/withdraw/submit',
             body: input,
             timeoutMs: 120_000,
         })
+        // The pull just consumed a signature: the lock is running now, so the
+        // next review step can show its countdown before the passkey.
+        armCooldownFromSuccess(res.cooldownSec)
+        return res
     },
 
     /**
@@ -601,11 +621,13 @@ export const rainApi = {
      */
     stampWithdrawal: async (input: { preparationId: string; txHash: string }): Promise<void> => {
         try {
-            await rainRequest<{ ok: boolean }>({
+            const res = await rainRequest<{ ok: boolean; cooldownSec?: number }>({
                 method: 'POST',
                 path: '/rain/cards/withdraw/stamp',
                 body: input,
             })
+            // The mixed userOp consumed a signature too: same lock, same countdown.
+            armCooldownFromSuccess(res.cooldownSec)
         } catch (e) {
             // Non-fatal: intent stays PENDING until expiry, no history
             // categorization until then. Log loudly but don't block the user.

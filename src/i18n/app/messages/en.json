@@ -280,7 +280,9 @@
             "withdrawToOwnAccountsDescription": "Bank, Mercado, Crypto"
         },
         "split": "{onCard} on card · {offCard} off card",
-        "splitHidden": "**** on card · **** off card"
+        "splitHidden": "**** on card · **** off card",
+        "splitPending": "{amount} moving to card",
+        "splitPendingHidden": "**** moving to card"
     },
     "profile": {
         "showFullNameConfirm": {
@@ -1684,7 +1686,7 @@
             "moveOffCardTitle": "Move off card",
             "moveToCardHint": "Arrives on the card in about a minute. No passkey needed.",
             "moveOffCardHint": "Needs your passkey. The card allows one move off it every few minutes.",
-            "amountLabel": "Amount",
+            "amountLabel": "Amount (USD)",
             "max": "Max",
             "editTargetTitle": "Keep on card",
             "editFloorTitle": "Keep off card",
@@ -1698,7 +1700,8 @@
             "moveOffCardDone": "{amount} moved off the card",
             "setupRequired": "Finish setting up your card to move money to it.",
             "autoBalanceOff": "Automatic top-ups are off for this card. Move money to the card by hand before paying.",
-            "lockNote": "Money on the card is instant for card payments. Moving it off the card needs your passkey and is limited to one move every few minutes."
+            "lockNote": "Money on the card is instant for card payments. Moving it off the card needs your passkey and is limited to one move every few minutes.",
+            "pending": "{amount} on its way to the card"
         }
     },
     "addMoney": {
@@ -3496,7 +3499,7 @@
         },
         "collateralPull": {
             "fromCard": "{amount} of this comes off your card balance.",
-            "lockActive": "The card is locked for {time} after its last pull — this payment will wait for it."
+            "lockActive": "The card is locked for {time} after its last pull — you can pay once it clears."
         }
     },
     "errors": {

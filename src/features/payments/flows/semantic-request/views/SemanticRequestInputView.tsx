@@ -30,6 +30,7 @@ import { printableAddress, areEvmAddressesEqual } from '@/utils/general.utils'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { useTranslations } from 'next-intl'
+import { CollateralPullNotice } from '@/components/Global/CollateralPullNotice'
 
 export function SemanticRequestInputView() {
     const onBack = useSafeBack('/')
@@ -181,6 +182,7 @@ export function SemanticRequestInputView() {
                         disabled={isAmountFromUrl || !!chargeIdFromUrl}
                     />
                     {isInsufficientBalance && <FieldError>{t('errors.insufficientPayment')}</FieldError>}
+                    {!isInsufficientBalance && <CollateralPullNotice amountUsd={amount} />}
                 </div>
 
                 {/* token selector for chain/token selection (not for USERNAME) */}

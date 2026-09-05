@@ -280,7 +280,9 @@
             "withdrawToOwnAccountsDescription": "Banco, Mercado, cripto"
         },
         "split": "{onCard} no cartão · {offCard} fora do cartão",
-        "splitHidden": "**** no cartão · **** fora do cartão"
+        "splitHidden": "**** no cartão · **** fora do cartão",
+        "splitPending": "{amount} a caminho do cartão",
+        "splitPendingHidden": "**** a caminho do cartão"
     },
     "profile": {
         "showFullNameConfirm": {
@@ -1684,7 +1686,7 @@
             "moveOffCardTitle": "Tirar do cartão",
             "moveToCardHint": "Chega ao cartão em cerca de um minuto. Não precisa de passkey.",
             "moveOffCardHint": "Precisa da sua passkey. O cartão permite um saque a cada poucos minutos.",
-            "amountLabel": "Valor",
+            "amountLabel": "Valor (USD)",
             "max": "Máx.",
             "editTargetTitle": "Manter no cartão",
             "editFloorTitle": "Manter fora do cartão",
@@ -1698,7 +1700,8 @@
             "moveOffCardDone": "{amount} saiu do cartão",
             "setupRequired": "Termine de configurar seu cartão para mover dinheiro para ele.",
             "autoBalanceOff": "As recargas automáticas estão desligadas para este cartão. Mova dinheiro para o cartão manualmente antes de pagar.",
-            "lockNote": "O dinheiro no cartão é instantâneo para pagamentos com cartão. Tirá-lo do cartão precisa da sua passkey e é limitado a um saque a cada poucos minutos."
+            "lockNote": "O dinheiro no cartão é instantâneo para pagamentos com cartão. Tirá-lo do cartão precisa da sua passkey e é limitado a um saque a cada poucos minutos.",
+            "pending": "{amount} a caminho do cartão"
         }
     },
     "addMoney": {
@@ -3496,7 +3499,7 @@
         },
         "collateralPull": {
             "fromCard": "{amount} deste pagamento sai do seu saldo no cartão.",
-            "lockActive": "O cartão fica bloqueado por {time} após o último saque: este pagamento vai esperar."
+            "lockActive": "O cartão fica bloqueado por {time} após o último saque: você poderá pagar quando terminar."
         }
     },
     "errors": {

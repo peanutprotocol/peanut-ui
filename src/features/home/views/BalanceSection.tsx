@@ -102,6 +102,14 @@ export function BalanceSection({
                               onCard: formatCents(split.onCardCents),
                               offCard: formatCents(split.offCardCents),
                           })}
+                    {split.pendingToCardCents > 0 && (
+                        <>
+                            {' · '}
+                            {isHidden
+                                ? t('splitPendingHidden')
+                                : t('splitPending', { amount: formatCents(split.pendingToCardCents) })}
+                        </>
+                    )}
                 </Link>
             )}
             <div className="flex items-start justify-between px-10">

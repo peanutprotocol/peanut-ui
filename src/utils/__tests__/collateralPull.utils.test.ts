@@ -49,6 +49,30 @@ describe('computeCollateralPull', () => {
         }
     })
 
+    it('a multi-call flow (cross-chain) can only pull the shortfall, never the whole amount', () => {
+        // $28.40 off card, $100 on card, $50 cross-chain: execution goes mixed
+        // through sendTransactions, so $21.60 leaves the card — not $50.
+        expect(
+            computeCollateralPull({
+                amountUsd: '50',
+                offCardUnits: usdc(28.4),
+                onCardCents: 10_000,
+                collateralOnlyAllowed: false,
+            })
+        ).toEqual({ pullsFromCard: true, fromCardCents: 2_160 })
+    })
+
+    it('floors the off-card balance to the cent so a sub-cent dust never reads as a whole cent', () => {
+        // 1.000001 USDC off card is $1.00 for routing purposes, so a $1.00
+        // spend stays off card; $1.01 pulls the 1-cent shortfall.
+        expect(
+            computeCollateralPull({ amountUsd: '1.00', offCardUnits: 1_000_001n, onCardCents: 10_000 }).pullsFromCard
+        ).toBe(false)
+        expect(
+            computeCollateralPull({ amountUsd: '1.01', offCardUnits: 1_000_001n, onCardCents: 0 }).pullsFromCard
+        ).toBe(false)
+    })
+
     it('an empty off-card balance sends the whole amount through the card', () => {
         expect(computeCollateralPull({ amountUsd: '6.11', offCardUnits: 0n, onCardCents: 2_489 })).toEqual({
             pullsFromCard: true,

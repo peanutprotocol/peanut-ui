@@ -4,7 +4,11 @@ import { useMemo } from 'react'
 import { useWallet } from './useWallet'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { findActiveCard } from '@/components/Card/cardState.utils'
-import { isRainBalanceKnown, usdcUnitsToRainCents } from '@/utils/balance.utils'
+import { isRainBalanceKnown } from '@/utils/balance.utils'
+
+/** Display / bound conversion: floor to the cent. `usdcUnitsToRainCents` rounds
+ *  UP for Rain withdrawal inputs and must not size a Max the wallet cannot fund. */
+export const usdcUnitsToDisplayCents = (units: bigint): number => Number(units / 10_000n)
 
 /**
  * The two halves of the unified balance (TASK-22293): what sits ON the card
@@ -13,7 +17,10 @@ import { isRainBalanceKnown, usdcUnitsToRainCents } from '@/utils/balance.utils'
  * side is not known yet, so a missing Rain read never paints as $0 on card.
  */
 export interface BalanceSplit {
+    /** Landed Rain spending power — what the card can spend right now. */
     onCardCents: number
+    /** Top-ups that left the wallet but Rain has not credited yet. */
+    pendingToCardCents: number
     offCardCents: number
 }
 
@@ -30,8 +37,9 @@ export function computeBalanceSplit(
     if (balance === undefined || !isRainBalanceKnown(overview)) return null
     const b = overview?.balance
     return {
-        onCardCents: Math.max(0, (b?.spendingPower ?? 0) + (b?.inTransitToCollateralCents ?? 0)),
-        offCardCents: Number(usdcUnitsToRainCents(balance)),
+        onCardCents: Math.max(0, Math.floor(b?.spendingPower ?? 0)),
+        pendingToCardCents: Math.max(0, Math.floor(b?.inTransitToCollateralCents ?? 0)),
+        offCardCents: usdcUnitsToDisplayCents(balance),
     }
 }
 
@@ -40,22 +48,26 @@ export function useBalanceSplit() {
     const { overview, isLoading } = useRainCardOverview()
     const card = findActiveCard(overview)
 
+    // Landed only: what the card can spend and what can be moved off it.
+    // In-transit top-ups are reported separately — they are neither spendable
+    // by the card nor withdrawable until Rain credits them.
     const onCardCents = useMemo(() => {
         if (!isRainBalanceKnown(overview)) return null
-        const b = overview?.balance
-        return Math.max(0, (b?.spendingPower ?? 0) + (b?.inTransitToCollateralCents ?? 0))
+        return Math.max(0, Math.floor(overview?.balance?.spendingPower ?? 0))
     }, [overview])
-
-    const offCardCents = useMemo(
-        () => (balance === undefined ? null : Number(usdcUnitsToRainCents(balance))),
-        [balance]
+    const pendingToCardCents = useMemo(
+        () => (isRainBalanceKnown(overview) ? Math.max(0, Math.floor(overview?.balance?.inTransitToCollateralCents ?? 0)) : 0),
+        [overview]
     )
+
+    const offCardCents = useMemo(() => (balance === undefined ? null : usdcUnitsToDisplayCents(balance)), [balance])
 
     return {
         card,
         hasActiveCard: !!card,
         policy: card?.collateral ?? null,
         onCardCents,
+        pendingToCardCents,
         offCardCents,
         offCardUnits: balance,
         isLoading: isLoading || balance === undefined,
