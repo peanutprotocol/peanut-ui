@@ -1,5 +1,5 @@
 'use client'
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
 import { type IconName } from '@/components/Global/Icons/Icon'
@@ -8,6 +8,7 @@ import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { countryData, type CountryData } from '@/components/AddMoney/consts'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import type { RailCapability, RailOperation } from '@/types/capabilities'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 
@@ -16,21 +17,34 @@ type UnlockItem = {
     id: string
     label: string
     value: string
-    /** `bank` = shown when bank rails are enabled (US/EU/MX users). `qr` = shown
-     * when QR-pay is enabled (LATAM users). A rail listed in both shows once. */
+    /** `bank` = shown when a bank rail grants first-party transfers (US/EU/MX
+     * users). `qr` = shown when QR-pay is enabled (LATAM users). Listed in both
+     * → shows once. */
     channels: Array<'bank' | 'qr'>
 }
 
+/**
+ * First-party bank movement, as opposed to paying a merchant. A rail whose
+ * top-level status is `enabled` can still have these at `requires-info`:
+ * Manteca's pool tier pays QR through `pix_br`, which is channel `bank`, without
+ * the per-user account that transfers need. The capability contract says to read
+ * the operation and fall back to the rail — `operations?.[op] ?? status`.
+ */
+const TRANSFER_OPS: RailOperation[] = ['deposit', 'withdraw']
+
+const grantsTransfers = (rail: RailCapability): boolean =>
+    TRANSFER_OPS.some((op) => (rail.operations?.[op] ?? rail.status) === 'enabled')
+
 const WelcomeUnlockModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
     const t = useTranslations('home.welcomeUnlock')
-    const [approvedCountryData, setApprovedCountryData] = useState<CountryData | null>(null)
 
     // Provider-blind: the celebration modal splits its rows by what CHANNEL the
     // user just unlocked, not which provider's rail enabled. Bank-channel = the
     // "transfers" rows; qr-only OR a Manteca rail's `pay` op = the "QR" rows.
     // (Manteca's pool tier shows up via canDo('pay') without naming the provider.)
-    const { canDo, rails, bankRails, channelOf } = useCapabilities()
-    const hasBankUnlock = bankRails().some((rail) => rail.status === 'enabled')
+    const { canDo, bankRails } = useCapabilities()
+    const transferRails = useMemo(() => bankRails().filter(grantsTransfers), [bankRails])
+    const hasBankUnlock = transferRails.length > 0
     const hasQrUnlock = canDo('pay')
 
     const hasTrackedShow = useRef(false)
@@ -52,55 +66,41 @@ const WelcomeUnlockModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () 
     }, [hasBankUnlock, hasQrUnlock])
 
     /**
-     * Unlocked rails, as region → rail rows. The verified-ID country personalizes
-     * the LATAM bank-transfer row — the user's verified ID country, not their selected
-     * country. Example: user picks Argentina but has Brazil ID → they get QR in
+     * The verified-ID country personalises the own-country transfer row. It
+     * resolves only for AR/BR, the two countries with a per-country transfer
+     * rail to name — so the row is dropped, not defaulted, everywhere else.
+     * Example: user picks Argentina but has Brazil ID → they get QR in
      * Argentina but bank transfers only work in Brazil (their verified country).
+     * NOTE: if several qualify, the last wins (matches the old forEach).
      */
+    const approvedCountryData: CountryData | null = useMemo(() => {
+        const country = transferRails.filter((rail) => isMantecaSupportedCountryCode(rail.country)).at(-1)?.country
+        if (!country) return null
+        return countryData.find((entry) => entry.iso2?.toUpperCase() === country.toUpperCase()) ?? null
+    }, [transferRails])
+
     const items = useMemo(
         (): UnlockItem[] => [
             { id: 'qr', label: t('items.qr.label'), value: t('items.qr.value'), channels: ['bank', 'qr'] },
             { id: 'us', label: t('items.us.label'), value: t('items.us.value'), channels: ['bank'] },
             { id: 'europe', label: t('items.europe.label'), value: t('items.europe.value'), channels: ['bank'] },
             { id: 'mexico', label: t('items.mexico.label'), value: t('items.mexico.value'), channels: ['bank'] },
-            {
-                id: 'ownCountry',
-                label: approvedCountryData?.title || t('yourCountry'),
-                value: t('items.ownCountry.value'),
-                // bank, not qr: this row promises own-account transfers, and a
-                // qr-only rail is by definition the channel that does not grant
-                // them. It shows only when a BANK rail is enabled in that country.
-                channels: ['bank'],
-            },
+            // Only when a country actually resolved. Rendering it unconditionally
+            // for the bank cohort labelled it "your country" for every Bridge user
+            // — promising own-account transfers in a country with no rail at all.
+            ...(approvedCountryData
+                ? [
+                      {
+                          id: 'ownCountry',
+                          label: approvedCountryData.title,
+                          value: t('items.ownCountry.value'),
+                          channels: ['bank'] as UnlockItem['channels'],
+                      },
+                  ]
+                : []),
         ],
-        [t, approvedCountryData?.title]
+        [t, approvedCountryData]
     )
-
-    // Personalize the "Bank transfers to your own accounts" row off an enabled
-    // BANK rail in a Manteca-supported country. It used to read the qr-only
-    // rails, which is the channel that explicitly does not carry transfers, so
-    // a pool-tier user was promised own-account transfers they cannot get.
-    // Provider-blind via the channel classifier. NOTE: if multiple enabled bank
-    // rails exist, this picks the last (matches the old forEach behavior).
-    const localBankRails = useMemo(
-        () => rails.filter((rail) => rail.status === 'enabled' && channelOf(rail) === 'bank'),
-        [rails, channelOf]
-    )
-    useEffect(() => {
-        if (!hasBankUnlock) return
-        let approvedCountry: string | undefined | null
-        localBankRails.forEach((rail) => {
-            if (isMantecaSupportedCountryCode(rail.country)) {
-                approvedCountry = rail.country
-            }
-        })
-        if (approvedCountry) {
-            const _approvedCountryData = countryData.find(
-                (c) => c.iso2?.toUpperCase() === approvedCountry?.toUpperCase()
-            )
-            setApprovedCountryData(_approvedCountryData || null)
-        }
-    }, [hasBankUnlock, localBankRails])
 
     return (
         <ActionModal
