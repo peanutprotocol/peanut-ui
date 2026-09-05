@@ -101,6 +101,7 @@ export const NATIVE_DEPENDENCIES = [
     '@capgo/capacitor-updater',
     '@onesignal/capacitor-plugin',
     '@sumsub/cordova-idensic-mobile-sdk-plugin',
+    'capacitor-native-settings',
 ]
 
 // Backstop for anything not yet in the list above. Deliberately not a scope allowlist:
