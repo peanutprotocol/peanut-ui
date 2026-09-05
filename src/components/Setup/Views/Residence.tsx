@@ -193,26 +193,19 @@ const ResidenceStep = () => {
            product direction that kept it unnamed in onboarding), and the
            clause states both of its gates — the ID check and the waitlist.
 
-           On the per-country phrasing, which Rain's §7 forbids in MARKETING
-           copy (content/_system/guidelines/partners/rain/marketing-compliance.md
-           — acceptance framing only, never availability or issuance): that
-           guide scopes itself to content that is "public, persistent, and
-           discoverable", and this screen is none of those. `residence` is
-           setup step 4, AFTER `signup` (Setup.consts), so it renders only for
-           a user who already has an account; it is not on the website and not
-           indexable. It also states nothing Peanut discovered — it answers
-           back the residence the user just typed. Slava's ruling, 2026-09-05.
-           Two things that would change the answer: putting this screen in
-           app-store or marketing screenshots (§3 counts UI visuals as
-           marketing), or moving the step ahead of signup.
+           The clause carries no country framing, which is what Rain's
+           §7 forbids (content/_system/guidelines/partners/rain/marketing-compliance.md:
+           acceptance framing only, never availability or issuance keyed to a
+           place). Naming the card at all is still gated on the restriction
+           sets — a residence Rain prohibits, or GB, never reaches this branch.
 
-           The claim tracks the DECLARED residence. The card gate reads the
-           KYC-time residence geo (product/card.md), which can differ, so a
+           The gate itself reads the KYC-time residence geo
+           (product/card.md), not the residence declared here, so a
            declaration that does not survive verification can still be
-           refused later. Still gated on the restriction sets, never on
-           reaching this view.
-           The rail phrase
-           comes from the same per-country map the compare cards render and is
+           refused later — which is why this sentence promises a process, not
+           an entitlement.
+
+           The rail phrase comes from the same per-country map the compare cards render and is
            named ONLY where a fiat rail exists (PIX, AR, SPEI, ACH, SEPA); for
            the rest of the world the map falls back to 'bank', which here means
            blockchain-only — so the ID-check clause is dropped entirely rather
@@ -235,8 +228,7 @@ const ResidenceStep = () => {
                                   rail: t(`residenceStep.congrats.rails.${railItem}`),
                               })
                             : t('residenceStep.congrats.descriptionNoRail')}
-                        {hasCard &&
-                            ` ${railItem ? t('residenceStep.congrats.cardClause') : t('residenceStep.congrats.cardClauseNoRail')}`}
+                        {hasCard && ` ${t('residenceStep.congrats.cardClause')}`}
                     </p>
                 </div>
                 <div className="flex w-full flex-col gap-4">

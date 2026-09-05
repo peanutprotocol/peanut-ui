@@ -807,8 +807,7 @@
                 "title": "Good news",
                 "description": "Nothing is restricted where you live. Digital dollars and sending to any @username work right away, and a quick ID check unlocks {rail}.",
                 "descriptionNoRail": "Nothing is restricted where you live. Digital dollars and sending to any @username work right away.",
-                "cardClause": "The Peanut card is available in your country too — same ID check, and you join a waitlist for access.",
-                "cardClauseNoRail": "The Peanut card is available in your country too — it needs an ID check, and you join a waitlist for access.",
+                "cardClause": "The Peanut card is also available — it needs an ID check, and you'll join a waitlist.",
                 "rails": {
                     "pix": "PIX transfers",
                     "arQr": "QR payments and transfers",

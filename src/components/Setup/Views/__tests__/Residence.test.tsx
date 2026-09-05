@@ -152,8 +152,10 @@ describe('ResidenceStep', () => {
         // of its remaining gates. Naming the card without the waitlist is the
         // regression this guards (2026-09-05 policy change).
         expect(screen.getByText(/work right away, and a quick ID check unlocks PIX transfers/)).toBeInTheDocument()
-        expect(screen.getByText(/The Peanut card is available in your country too/)).toBeInTheDocument()
-        expect(screen.getByText(/same ID check, and you join a waitlist for access/)).toBeInTheDocument()
+        expect(screen.getByText(/The Peanut card is also available/)).toBeInTheDocument()
+        expect(screen.getByText(/it needs an ID check, and you'll join a waitlist/)).toBeInTheDocument()
+        // Rain §7 bans availability framing keyed to a place — no country here
+        expect(screen.queryByText(/in your country/)).not.toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
         expect(mockHandleNext).toHaveBeenCalled()
     })
@@ -165,10 +167,11 @@ describe('ResidenceStep', () => {
         mockSetupState.residenceCountry = 'NG'
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: 'Next' }))
-        // the rail clause disappears, but the card clause still has to carry its
-        // own ID check — "same ID check" would dangle with no rail sentence above it
+        // the rail clause disappears; the card clause is self-contained, so the
+        // same string serves both branches
         expect(screen.getByText(/work right away\./)).toBeInTheDocument()
-        expect(screen.getByText(/it needs an ID check, and you join a waitlist for access/)).toBeInTheDocument()
+        expect(screen.getByText(/it needs an ID check, and you'll join a waitlist/)).toBeInTheDocument()
+        expect(screen.queryByText(/in your country/)).not.toBeInTheDocument()
         expect(screen.queryByText(/unlocks/)).not.toBeInTheDocument()
         expect(screen.queryByText(/bank transfers/i)).not.toBeInTheDocument()
     })
