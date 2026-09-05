@@ -132,11 +132,25 @@ function mapDeepLinkPath(parsed: URL): string | null {
     if (segments[0] === 'send' && segments[1]) {
         return appendParams(sendUrl(decodeURIComponent(segments.slice(1).join('/'))), extraParams)
     }
-    // `/pay/<recipient>` — every user's "My QR" payload. The web page is a pure
-    // client redirect to sendUrl(recipient) and is stripped from the native
-    // export, so both platforms funnel straight to the send dispatcher here.
+    /*
+     * `/pay/<recipient>[/<amount><token>]` — every user's "My QR" payload AND the
+     * shape payLinkUrl() prints into a shared request link. A bare recipient is a
+     * send, on both platforms (the web page redirects to the same place). Anything
+     * carrying payment context renders on the web `/pay` catch-all; the native
+     * export ships no catch-all page, so it dispatches through /pay-request and
+     * the send dispatcher exactly as the root recipient branch below does.
+     */
     if (segments[0] === 'pay' && segments[1]) {
-        return appendParams(sendUrl(decodeURIComponent(segments.slice(1).join('/'))), extraParams)
+        const rest = segments.slice(1)
+        const chargeId = parsed.searchParams.get('chargeId')
+        const requestId = parsed.searchParams.get('id')
+        if (!chargeId && !requestId && rest.length === 1) {
+            return appendParams(sendUrl(decodeURIComponent(rest[0])), extraParams)
+        }
+        if (!isCapacitor()) return appendParams(path, extraParams)
+        if (chargeId) return chargePayUrl(chargeId, parsed.searchParams.get('context') ?? undefined)
+        if (requestId) return requestPotUrl(requestId)
+        return appendParams(recipientPayUrl(rest.map(decodeURIComponent).join('/')), extraParams)
     }
     /*
      * Legacy `/request/pay?id=<chargeUuid>` — printed into old shared links.

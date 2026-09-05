@@ -532,6 +532,31 @@ describe('native-routes', () => {
                 expect(deepLinkToNativePath('https://peanut.me/pay/alice')).toBe('/send?recipient=alice')
             })
 
+            // payLinkUrl() shape: /pay/<recipient>[/<amount><token>]?id=|?chargeId=.
+            // The root catch-all that used to serve these is claimed by neither the
+            // AASA nor the Android filter, so shared links now ride the /pay prefix.
+            it('maps a /pay request link onto the pay-request stand-in', () => {
+                expect(deepLinkToNativePath('https://peanut.me/pay/alice/10USDC?id=req-123')).toBe(
+                    '/pay-request?id=req-123'
+                )
+                expect(deepLinkToNativePath('https://peanut.me/pay/alice?id=req-123')).toBe('/pay-request?id=req-123')
+                expect(deepLinkToNativePath('https://peanut.me/pay/alice/10USDC?chargeId=charge-123')).toBe(
+                    '/pay-request?chargeId=charge-123'
+                )
+            })
+
+            it('carries the charge context param through a /pay link', () => {
+                expect(
+                    deepLinkToNativePath('https://peanut.me/pay/alice?chargeId=charge-123&context=card-pioneer')
+                ).toBe('/pay-request?chargeId=charge-123&context=card-pioneer')
+            })
+
+            it('funnels an amount-shaped /pay link with no charge into the send dispatcher', () => {
+                expect(deepLinkToNativePath('https://peanut.me/pay/alice/10USDC')).toBe(
+                    '/send?recipient=alice%2F10USDC'
+                )
+            })
+
             it('maps legacy /request/pay?id=<chargeUuid> as a CHARGE, not user "pay"', () => {
                 expect(deepLinkToNativePath('https://peanut.me/request/pay?id=charge-123')).toBe(
                     '/pay-request?chargeId=charge-123'
@@ -587,6 +612,16 @@ describe('native-routes', () => {
 
             it('maps /pay/<user> to the send route (mirror of the web page redirect)', () => {
                 expect(deepLinkToNativePath('https://peanut.me/pay/alice')).toBe('/send/alice')
+            })
+
+            // On web the /pay catch-all renders the payment page itself, so a link
+            // carrying payment context must reach it rather than be rewritten away
+            // — /send/<user>/<amount> drops the amount segment.
+            it('leaves a /pay payment link alone on web', () => {
+                expect(deepLinkToNativePath('https://peanut.me/pay/alice/10USDC?id=req-123')).toBe(
+                    '/pay/alice/10USDC?id=req-123'
+                )
+                expect(deepLinkToNativePath('https://peanut.me/pay/alice/10USDC')).toBe('/pay/alice/10USDC')
             })
 
             it('maps legacy /request/pay?id= to pay-request on web too', () => {

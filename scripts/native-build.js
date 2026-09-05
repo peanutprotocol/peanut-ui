@@ -52,7 +52,8 @@ const ITEMS_TO_DISABLE = [
     { path: '(mobile-ui)/withdraw/[country]', type: 'dir' },
     { path: '(mobile-ui)/qr/[code]/page.tsx', type: 'file' },
     { path: '(mobile-ui)/qr/[code]/success/page.tsx', type: 'file' },
-    { path: '(mobile-ui)/pay/[...username]/page.tsx', type: 'file' },
+    { path: 'pay/[...recipient]/page.tsx', type: 'file' },
+    { path: 'pay/[...recipient]/layout.tsx', type: 'file' },
     // Team-only desktop web tool. force-dynamic cannot be statically exported, and
     // pruneExportedAssets() deletes /dev from the export anyway, so building it is waste.
     { path: '(mobile-ui)/dev/payment-graph', type: 'dir' },
