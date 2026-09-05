@@ -120,6 +120,8 @@ const CAPTURES: Capture[] = [
     },
     { id: 'p39-language', name: 'Language', route: '/settings/language', fixture: 'settings-language' },
     { id: 'p40-withdraw', name: 'Withdraw — saved accounts', route: '/withdraw', fixture: 'withdraw' },
+    { id: 'p41-home-add-drawer', name: 'Home — Add money drawer', route: '/home?drawer=add' },
+    { id: 'p42-home-send-drawer', name: 'Home — Send drawer (no mark)', route: '/home?drawer=send' },
 ]
 
 function seenOnceModals(): void {

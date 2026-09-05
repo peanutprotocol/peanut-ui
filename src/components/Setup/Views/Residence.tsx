@@ -190,10 +190,27 @@ const ResidenceStep = () => {
         /* One paragraph, gates kept honest: dollars and @username sends need
            no ID check; the bank rail unlocks with verification. The card IS
            named here as of 2026-09-05 (slava's call, reversing the earlier
-           product direction that kept the closed beta unnamed in onboarding):
-           the clause states both remaining gates — the ID check and the
-           waitlist — so the compliance half of that rule still holds. It is
-           gated on the restriction sets, never on reaching this view.
+           product direction that kept it unnamed in onboarding), and the
+           clause states both of its gates — the ID check and the waitlist.
+
+           On the per-country phrasing, which Rain's §7 forbids in MARKETING
+           copy (content/_system/guidelines/partners/rain/marketing-compliance.md
+           — acceptance framing only, never availability or issuance): that
+           guide scopes itself to content that is "public, persistent, and
+           discoverable", and this screen is none of those. `residence` is
+           setup step 4, AFTER `signup` (Setup.consts), so it renders only for
+           a user who already has an account; it is not on the website and not
+           indexable. It also states nothing Peanut discovered — it answers
+           back the residence the user just typed. Slava's ruling, 2026-09-05.
+           Two things that would change the answer: putting this screen in
+           app-store or marketing screenshots (§3 counts UI visuals as
+           marketing), or moving the step ahead of signup.
+
+           The claim tracks the DECLARED residence. The card gate reads the
+           KYC-time residence geo (product/card.md), which can differ, so a
+           declaration that does not survive verification can still be
+           refused later. Still gated on the restriction sets, never on
+           reaching this view.
            The rail phrase
            comes from the same per-country map the compare cards render and is
            named ONLY where a fiat rail exists (PIX, AR, SPEI, ACH, SEPA); for

@@ -1630,7 +1630,7 @@
             "verificationSlow": "La verificación está tardando más de lo esperado. Inténtalo de nuevo."
         },
         "recovery": {
-            "navTitle": "Recuperar fondos de la tarjeta",
+            "navTitle": "Recuperar fondos",
             "previewFailed": "No se pudo cargar la vista previa de recuperación",
             "failed": "Falló la recuperación — inténtalo de nuevo",
             "doneTitle": "Fondos enviados a tu billetera.",

@@ -1630,7 +1630,7 @@
             "verificationSlow": "A verificação está demorando mais que o esperado. Tente de novo."
         },
         "recovery": {
-            "navTitle": "Recuperar fundos do cartão",
+            "navTitle": "Recuperar fundos",
             "previewFailed": "Não foi possível carregar a prévia da recuperação",
             "failed": "A recuperação falhou — tente de novo",
             "doneTitle": "Fundos enviados para sua carteira.",

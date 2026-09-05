@@ -1,6 +1,5 @@
 'use client'
 
-import { ScreenMark } from '@/components/0_Bruddle/ScreenMark'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import AddWithdrawCountriesList from '@/components/AddWithdraw/AddWithdrawCountriesList'
 import dynamic from 'next/dynamic'
@@ -140,7 +139,6 @@ export default function AddMoneyPage() {
     return (
         <PageStack>
             <NavHeader title={t('methods.bankTransfer')} onPrev={handleBack} />
-            <ScreenMark icon="plus" />
             <CountryList
                 inputTitle={t('selectYourCountry')}
                 viewMode="add-withdraw"

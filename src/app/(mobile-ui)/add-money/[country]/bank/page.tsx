@@ -1,6 +1,5 @@
 'use client'
 
-import { ScreenMark } from '@/components/0_Bruddle/ScreenMark'
 import { Button } from '@/components/0_Bruddle/Button'
 import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
 import { Notification } from '@/components/0_Bruddle/Notification'
@@ -479,7 +478,6 @@ function BridgeBankOnrampPage() {
         return (
             <div className="space-y-8 flex flex-col justify-start">
                 <NavHeader title={t('title')} onPrev={onBack} />
-                <ScreenMark icon="plus" />
                 <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                     <div className="text-label-l">{t('howMuchToAdd')}</div>
                     {/* only show the field error if limits blocking card is not displayed (warnings can coexist) */}

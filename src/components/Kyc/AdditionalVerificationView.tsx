@@ -64,13 +64,16 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
                         <IconBubble icon="check-circle" size="l" color="green" />
                         <p className="text-body-m-semibold">{t('done.title')}</p>
                         <p className="text-body-s text-foreground-secondary">{t('done.description')}</p>
+                        <Button
+                            variant="purple"
+                            shadowSize="4"
+                            className="mt-1"
+                            onClick={() => router.replace(IDENTITY_ROUTE)}
+                        >
+                            {t('done.cta')}
+                        </Button>
                     </Card>
                 </PageStack.Center>
-                <PageStack.Footer>
-                    <Button variant="purple" shadowSize="4" onClick={() => router.replace(IDENTITY_ROUTE)}>
-                        {t('done.cta')}
-                    </Button>
-                </PageStack.Footer>
             </PageStack>
         )
     }
@@ -89,28 +92,28 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
                         {isAdvisory ? t('descriptionAdvisory') : t('description')}
                     </p>
                     <KycPrepChecklist path="hosted" />
+                    {/* Notification, not a bare <p>: it carries role="alert", so a
+                        screen reader hears the failure instead of leaving focus on
+                        a CTA that silently did nothing. */}
+                    {error && (
+                        <Notification priority="error" data-testid="hosted-start-error">
+                            {error}
+                        </Notification>
+                    )}
+                    <Button
+                        variant="purple"
+                        shadowSize="4"
+                        icon="check-circle"
+                        iconPosition="left"
+                        disabled={isStarting}
+                        onClick={start}
+                    >
+                        {isStarting ? tCommon('loading') : tPrep('startCta')}
+                    </Button>
                 </Card>
             </PageStack.Center>
 
             <PageStack.Footer>
-                {/* Notification, not a bare <p>: it carries role="alert", so a
-                    screen reader hears the failure instead of leaving focus on
-                    a CTA that silently did nothing. */}
-                {error && (
-                    <Notification priority="error" data-testid="hosted-start-error">
-                        {error}
-                    </Notification>
-                )}
-                <Button
-                    variant="purple"
-                    shadowSize="4"
-                    icon="check-circle"
-                    iconPosition="left"
-                    disabled={isStarting}
-                    onClick={start}
-                >
-                    {isStarting ? tCommon('loading') : tPrep('startCta')}
-                </Button>
                 <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />
             </PageStack.Footer>
         </PageStack>

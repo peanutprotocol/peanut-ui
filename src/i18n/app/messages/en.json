@@ -1630,7 +1630,7 @@
             "verificationSlow": "Verification is taking longer than expected. Please try again."
         },
         "recovery": {
-            "navTitle": "Recover card funds",
+            "navTitle": "Card recovery",
             "previewFailed": "Could not load recovery preview",
             "failed": "Recovery failed — please try again",
             "doneTitle": "Funds sent to your wallet.",
