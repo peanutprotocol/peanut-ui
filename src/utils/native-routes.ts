@@ -333,6 +333,10 @@ function baseOrigin(): string | null {
 /**
  * Static sub-view segments that carry diagnostic value and no identifier.
  * Everything NOT here and not a route root is treated as an identifier.
+ *
+ * Honoured only in the sub-view position — `/<root>/<id>/<sub-view>` — so a
+ * user whose username collides with one of these (`/bank` is a valid profile
+ * link) is still redacted at the identifier position.
  */
 const TELEMETRY_SAFE_SEGMENTS = new Set(['success', 'bank', 'manteca', 'crypto', 'us'])
 
@@ -376,11 +380,14 @@ export function redactNativePath(value: string): string {
     const authority = beforeQuery.match(/^[a-z][a-z0-9+.-]*:\/\/[^/]*/i)?.[0] ?? ''
     const prefix = authority.replace(/\/\/[^/]*@/, '//')
     const path = beforeQuery.slice(authority.length)
-    const redacted = path
-        .split('/')
-        .map((segment) => {
+    const segments = path.split('/')
+    const redacted = segments
+        .map((segment, i) => {
             if (segment === '') return segment
-            if (NATIVE_EXPORT_ROOTS.has(segment) || TELEMETRY_SAFE_SEGMENTS.has(segment)) return segment
+            if (NATIVE_EXPORT_ROOTS.has(segment)) return segment
+            // sub-view position only: two after a root, `/qr/<code>/success`
+            const underRoot = i >= 2 && NATIVE_EXPORT_ROOTS.has(segments[i - 2])
+            if (underRoot && TELEMETRY_SAFE_SEGMENTS.has(segment)) return segment
             return ':id'
         })
         .join('/')
