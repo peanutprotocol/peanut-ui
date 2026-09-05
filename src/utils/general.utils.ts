@@ -3,7 +3,7 @@ import { supportedPeanutChains, peanutTokenDetails } from '@/constants/token-reg
 import { toInviteCode } from '@/utils/invite-code.utils'
 import { jsonStringify, jsonParse, saveToCookie, getFromCookie, sanitizeRedirectURL } from '@/utils/cookie-url.utils'
 import { STABLE_COINS, ENS_NAME_REGEX } from '@/constants/general.consts'
-import { shareableUrl } from '@/utils/url.utils'
+import { payLinkUrl, shareableUrl } from '@/utils/url.utils'
 import { isCapacitor } from '@/utils/capacitor'
 import * as Sentry from '@/utils/sentry-lazy'
 import type { Address, TransactionReceipt } from 'viem'
@@ -680,7 +680,7 @@ export function getRequestLink(
     const recipient = username || recipientAddress
     const chain = !username && chainId ? `@${chainId}` : ''
 
-    let link = shareableUrl(`/${recipient}${chain}/`)
+    let link = payLinkUrl(`/${recipient}${chain}/`)
     if (tokenAmount) {
         link += `${formatAmount(tokenAmount)}`
     }

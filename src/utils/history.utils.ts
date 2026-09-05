@@ -7,7 +7,7 @@ import { getTokenDetails } from '@/utils/general.utils'
 import { getCachedCurrencyPrice } from '@/app/actions/currency'
 import { type ChargeEntry } from '@/services/services.types'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
-import { shareableUrl } from '@/utils/url.utils'
+import { payLinkUrl, shareableUrl } from '@/utils/url.utils'
 import { type StatusPillType } from '@/components/Global/StatusPill'
 import { type TransactionDirection } from '@/components/TransactionDetails/transaction-types'
 import { hasReceiptPage } from '@/components/TransactionDetails/transaction-predicates'
@@ -389,11 +389,11 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
             if (entry.isRequestLink) {
                 const tokenCurrency = entry.tokenSymbol
                 const tokenAmount = entry.amount
-                link = shareableUrl(
+                link = payLinkUrl(
                     `/${entry.recipientAccount.username || entry.recipientAccount.identifier}/${tokenAmount}${tokenCurrency}?id=${entry.uuid}`
                 )
             } else {
-                link = shareableUrl(
+                link = payLinkUrl(
                     `/${entry.recipientAccount.username || entry.recipientAccount.identifier}?chargeId=${entry.uuid}`
                 )
             }
@@ -402,7 +402,7 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
             break
         }
         case 'DIRECT_TRANSFER': {
-            link = shareableUrl(
+            link = payLinkUrl(
                 `/${entry.recipientAccount.username || entry.recipientAccount.identifier}?chargeId=${entry.uuid}`
             )
             tokenSymbol = entry.tokenSymbol

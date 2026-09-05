@@ -44,9 +44,9 @@ import { useAppHaptic } from '@/hooks/useAppHaptic'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import PointsCard from '@/components/Common/PointsCard'
-import { BASE_URL } from '@/constants/general.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import type { ParsedURL } from '@/lib/url-parser/types/payment'
+import { payLinkUrl } from '@/utils/url.utils'
 
 // minimal user info needed for display
 type UserDisplayInfo = {
@@ -159,7 +159,7 @@ const PaymentSuccessView = ({
 
         const recipientIdentifier = user?.username || parsedPaymentData?.recipient?.identifier
         const receiptLink = recipientIdentifier
-            ? `${BASE_URL}/${recipientIdentifier}?chargeId=${chargeDetails.uuid}`
+            ? payLinkUrl(`/${recipientIdentifier}?chargeId=${chargeDetails.uuid}`)
             : undefined
 
         let details: Partial<TransactionDetails> = {
