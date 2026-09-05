@@ -1447,11 +1447,11 @@
         },
         "cancel": {
             "title": "¿Cancelar tu tarjeta?",
-            "body": "No vas a poder volver a usarla. Puedes pedir una nueva.",
+            "body": "No vas a poder volver a usarla.",
             "canceling": "Cancelando…",
             "slideToCancel": "Desliza para cancelar",
             "canceledTitle": "Tarjeta cancelada",
-            "canceledBody": "Si cambias de opinión más adelante, puedes pedir otra tarjeta.",
+            "canceledBody": "Ya no se puede usar para pagos.",
             "feedbackLabel": "Ayúdanos a mejorar nuestro producto para ti",
             "feedbackPlaceholder": "¿Por qué cancelaste la tarjeta?",
             "submit": "Enviar",

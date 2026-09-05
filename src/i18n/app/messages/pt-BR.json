@@ -1447,11 +1447,11 @@
         },
         "cancel": {
             "title": "Cancelar seu cartão?",
-            "body": "Você não vai poder usar de novo. Você pode pedir um novo.",
+            "body": "Você não vai poder usar de novo.",
             "canceling": "Cancelando…",
             "slideToCancel": "Deslize para cancelar",
             "canceledTitle": "Cartão cancelado",
-            "canceledBody": "Se mudar de ideia depois, você pode pedir outro cartão.",
+            "canceledBody": "Ele não pode mais ser usado para pagamentos.",
             "feedbackLabel": "Ajude a gente a melhorar nosso produto para você",
             "feedbackPlaceholder": "Por que você cancelou o cartão?",
             "submit": "Enviar",

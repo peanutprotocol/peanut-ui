@@ -776,9 +776,9 @@
             "sublineBadge": "Tenés una insignia que se salta la fila de la beta cerrada. La tarjeta es tuya."
         },
         "cancel": {
-            "body": "No vas a poder volver a usarla. Podés pedir una nueva.",
+            "body": "No vas a poder volver a usarla.",
             "slideToCancel": "Deslizá para cancelar",
-            "canceledBody": "Si cambiás de opinión más adelante, podés pedir otra tarjeta.",
+            "canceledBody": "Ya no se puede usar para pagos.",
             "feedbackLabel": "Ayudanos a mejorar nuestro producto para vos"
         },
         "lockModal": {

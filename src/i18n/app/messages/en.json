@@ -1447,11 +1447,11 @@
         },
         "cancel": {
             "title": "Cancel your card?",
-            "body": "You won't be able to use it again. You can request a new one.",
+            "body": "You won't be able to use it again.",
             "canceling": "Canceling…",
             "slideToCancel": "Slide to Cancel",
             "canceledTitle": "Card canceled",
-            "canceledBody": "If you change your mind later, you can request another card.",
+            "canceledBody": "It can no longer be used for payments.",
             "feedbackLabel": "Help us improve our product for you",
             "feedbackPlaceholder": "Why did you cancel the card?",
             "submit": "Submit",
