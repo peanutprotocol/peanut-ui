@@ -245,7 +245,15 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
     // typed amount alone promised fulfilment on corridors with neither a rate
     // nor a route — including while loading and alongside "rate unavailable".
     const hasAmount = typeof sourceAmount === 'number' && sourceAmount > 0
-    const hasQuote = typeof destinationAmount === 'number' && destinationAmount > 0 && !isError
+    // A quote is not a route. The FX feed prices ~20 currencies no rail serves,
+    // so a marketing page can land a positive destinationAmount for a corridor
+    // Peanut cannot fulfil — checked here rather than via `restrictToRoutable`,
+    // which only says whether the CALLER clamps its URL, not whether this
+    // particular pair is servable.
+    const isRoutablePair =
+        toSupportedExchangeCurrency(sourceCurrency) !== null &&
+        toSupportedExchangeCurrency(destinationCurrency) !== null
+    const hasQuote = typeof destinationAmount === 'number' && destinationAmount > 0 && !isError && isRoutablePair
 
     // no exchange-rate board exists in figma (checked 2026-08-20) — container
     // rebuilt on the DS Card primitive (board 17802:61536) as the conservative
