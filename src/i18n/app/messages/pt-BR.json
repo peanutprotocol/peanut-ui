@@ -2949,22 +2949,27 @@
             },
             "items": {
                 "id": {
+                    "label": "Documento",
                     "title": "Um documento de identidade válido",
                     "body": "Passaporte, documento nacional, autorização de residência ou a maioria das carteiras de motorista. Tire fotos ao vivo com a câmera; capturas de tela e digitalizações não são aceitas."
                 },
                 "selfie": {
+                    "label": "Selfie",
                     "title": "Seu rosto",
                     "body": "Uma selfie rápida no app. Boa iluminação ajuda."
                 },
                 "taxId": {
+                    "label": "ID fiscal",
                     "title": "Seu documento fiscal",
                     "body": "CPF no Brasil, CUIT ou CUIL na Argentina. Necessário para enviar e receber pelos trilhos bancários locais."
                 },
                 "questions": {
+                    "label": "Perguntas",
                     "title": "Algumas perguntas rápidas",
                     "body": "Declarações regulatórias que somos obrigados a pedir."
                 },
                 "proofOfAddress": {
+                    "label": "Endereço",
                     "title": "Um comprovante de residência, se você tiver",
                     "body": "Uma conta de consumo, um extrato bancário ou uma carta oficial dos últimos 3 meses com seu nome e seu endereço. Nem todo mundo precisa enviar, e depois não dá para adicionar."
                 }

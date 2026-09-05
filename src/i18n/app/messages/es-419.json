@@ -2949,22 +2949,27 @@
             },
             "items": {
                 "id": {
+                    "label": "Documento",
                     "title": "Un documento de identidad vigente",
                     "body": "Pasaporte, documento nacional, permiso de residencia o la mayoría de las licencias de conducir. Toma fotos en vivo con tu cámara; no se aceptan capturas de pantalla ni escaneos."
                 },
                 "selfie": {
+                    "label": "Selfie",
                     "title": "Tu rostro",
                     "body": "Una selfie corta en la app. Con buena luz es más fácil."
                 },
                 "taxId": {
+                    "label": "ID fiscal",
                     "title": "Tu identificación fiscal",
                     "body": "CPF en Brasil, CUIT o CUIL en Argentina. Se necesita para enviar y recibir por los rieles bancarios locales."
                 },
                 "questions": {
+                    "label": "Preguntas",
                     "title": "Unas preguntas breves",
                     "body": "Declaraciones regulatorias que estamos obligados a pedir."
                 },
                 "proofOfAddress": {
+                    "label": "Dirección",
                     "title": "Un comprobante de domicilio, si tienes uno",
                     "body": "Una factura de servicios, un estado de cuenta bancario o una carta oficial de los últimos 3 meses con tu nombre y tu domicilio. No se lo piden a todo el mundo, y después no hay forma de agregarlo."
                 }

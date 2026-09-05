@@ -63,7 +63,7 @@ export const CardUnlockDrawer: FC<Props> = ({ isOpen, onClose, entry, username, 
             <DrawerContent>
                 {/* DrawerTitle has no built-in padding — must be wrapped in
                     DrawerHeader (mono Drawer pattern). */}
-                <DrawerHeader>
+                <DrawerHeader className="mb-3">
                     <DrawerTitle className="text-heading-s">
                         {entry.via === 'badge' ? t('drawerTitleBadge') : t('drawerTitleUnlocked')}
                     </DrawerTitle>

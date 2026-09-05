@@ -62,7 +62,7 @@ const CancelSendLinkDrawer = ({
                         loading={isLoading}
                         disabled={isLoading}
                         shadowSize="4"
-                        className="mt-4 w-full justify-center"
+                        className="mt-6 w-full justify-center"
                     >
                         {t('cancelSendLinkModal.cancelCta')}
                     </Button>

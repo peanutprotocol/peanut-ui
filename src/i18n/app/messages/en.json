@@ -2949,22 +2949,27 @@
             },
             "items": {
                 "id": {
+                    "label": "ID",
                     "title": "A government ID that has not expired",
                     "body": "Passport, national ID, residence permit, or most driver's licenses. Take live photos with your camera; screenshots and scans are not accepted."
                 },
                 "selfie": {
+                    "label": "Selfie",
                     "title": "Your face",
                     "body": "A short selfie in the app. Good light helps."
                 },
                 "taxId": {
+                    "label": "Tax ID",
                     "title": "Your tax ID",
                     "body": "CPF in Brazil, CUIT or CUIL in Argentina. Needed to send and receive on local bank rails."
                 },
                 "questions": {
+                    "label": "Questions",
                     "title": "A few short questions",
                     "body": "Regulatory declarations we are required to ask for."
                 },
                 "proofOfAddress": {
+                    "label": "Address",
                     "title": "Proof of your address, if you have one",
                     "body": "A utility bill, bank statement, or official letter from the last 3 months showing your name and address. Not everyone is asked for it, and there is no way to add it later."
                 }

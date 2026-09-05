@@ -1,6 +1,8 @@
 'use client'
 
 import { Notification } from '@/components/0_Bruddle/Notification'
+import Card from '@/components/Global/Card'
+import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { useTranslations } from 'next-intl'
 
 export type KycPrepPath = 'standard' | 'extended' | 'hosted'
@@ -33,16 +35,20 @@ const KycPrepChecklist = ({ path }: { path: KycPrepPath }) => {
     return (
         <div className="flex w-full flex-col gap-3 text-left" data-testid="kyc-prep-checklist">
             {!isHosted && <p className="text-body-s">{t(`intro.${path}`)}</p>}
-            <Notification
-                priority="info"
-                hideIcon
-                items={items.map((item) => (
-                    <span key={item}>
-                        <span className="block text-label-l">{t(`items.${item}.title`)}</span>
-                        <span className="block text-body-xs text-foreground-secondary">{t(`items.${item}.body`)}</span>
-                    </span>
+            {/* The requirements are label + value pairs, not claims, so they read
+                as DataRows in a card rather than a tinted checklist. The label is
+                the short document name so the value has room; what counts as that
+                document hangs off the row's own info tooltip. */}
+            <Card position="single" className="divide-y divide-dashed divide-border-default px-4 py-0">
+                {items.map((item) => (
+                    <DataRow
+                        key={item}
+                        label={t(`items.${item}.label`)}
+                        value={t(`items.${item}.title`)}
+                        moreInfoText={t(`items.${item}.body`)}
+                    />
                 ))}
-            />
+            </Card>
             {isHosted && (
                 <Notification
                     priority="attention"
