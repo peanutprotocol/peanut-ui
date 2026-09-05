@@ -5,6 +5,7 @@ import { Notification } from '@/components/0_Bruddle/Notification'
 import Card from '@/components/Global/Card'
 import DisplayIcon from '@/components/Global/DisplayIcon'
 import NavHeader from '@/components/Global/NavHeader'
+import NetworkFeeRow from '@/components/Global/NetworkFeeRow'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { loadingStateContext } from '@/context/loadingStates.context'
@@ -28,6 +29,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import underMaintenanceConfig, { CROSS_CHAIN_DISABLED_MESSAGE } from '@/config/underMaintenance.config'
 import { useTranslations, useFormatter } from 'next-intl'
 import { badgeCampaignForLegacyWire } from '@/components/Invites/badge-campaign-context'
+import { isQuoteNearExpiry } from '@/services/rhino-bridge'
 
 export const ConfirmClaimLinkView = ({
     onNext,
@@ -39,6 +41,8 @@ export const ConfirmClaimLinkView = ({
     setTransactionHash,
     attachment,
     selectedRoute,
+    setSelectedRoute,
+    setHasFetchedRoute,
 }: _consts.IClaimScreenProps) => {
     const t = useTranslations('claim')
     const format = useFormatter()
@@ -80,11 +84,19 @@ export const ConfirmClaimLinkView = ({
         return isStableCoin(resolvedTokenSymbol) ? `$ ${amount}` : `${amount} ${resolvedTokenSymbol}`
     }, [selectedRoute, resolvedTokenSymbol])
 
-    // Network fee display – always sponsored in this flow
-    const networkFeeDisplay: string = tCommon('sponsoredByPeanut')
-
     const handleOnClaim = async () => {
         if (!recipient) {
+            return
+        }
+
+        // The route's fee and receive amount are Rhino's quote only until it
+        // expires. Decided at the tap: past expiry, drop the route and return
+        // to the initial view, which re-quotes for the same selection — never
+        // execute against numbers Rhino no longer stands behind.
+        if (selectedRoute && isQuoteNearExpiry(selectedRoute.expiresAt)) {
+            setSelectedRoute(undefined)
+            setHasFetchedRoute(false)
+            onPrev()
             return
         }
 
@@ -263,8 +275,12 @@ export const ConfirmClaimLinkView = ({
                             />
                         }
 
-                        {/* Max network fee row */}
-                        <PaymentInfoRow label={t('confirm.maxNetworkFee')} value={networkFeeDisplay} />
+                        {/* Max network fee row — the route preview's quoted fee, verbatim */}
+                        <NetworkFeeRow
+                            label={t('confirm.maxNetworkFee')}
+                            feeUsd={selectedRoute?.feeUsd}
+                            isCrossChain={!!selectedRoute}
+                        />
 
                         {/* Peanut fee row */}
                         <PaymentInfoRow label={tCommon('peanutFee')} value={'$ 0.00'} hideBottomBorder />

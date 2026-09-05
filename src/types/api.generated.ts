@@ -9693,6 +9693,8 @@ export interface paths {
                         chainOut: string;
                         mode: "pay" | "receive";
                         token: string;
+                        depositor: string;
+                        recipient: string;
                     };
                 };
             };

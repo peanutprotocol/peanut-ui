@@ -15988,6 +15988,14 @@
                                     "token": {
                                         "minLength": 1,
                                         "type": "string"
+                                    },
+                                    "depositor": {
+                                        "minLength": 1,
+                                        "type": "string"
+                                    },
+                                    "recipient": {
+                                        "minLength": 1,
+                                        "type": "string"
                                     }
                                 },
                                 "required": [
@@ -15995,7 +16003,9 @@
                                     "chainOut",
                                     "token",
                                     "amount",
-                                    "mode"
+                                    "mode",
+                                    "depositor",
+                                    "recipient"
                                 ],
                                 "type": "object"
                             }

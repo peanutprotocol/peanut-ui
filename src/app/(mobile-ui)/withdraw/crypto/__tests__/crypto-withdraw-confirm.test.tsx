@@ -239,6 +239,8 @@ const mockCrossChainTransfer = {
     isCalculating: false,
     isXChain: false,
     isDiffToken: false,
+    isFeeEstimationError: false,
+    quoteExpiresAt: null as string | null,
     error: null,
     calculate: jest.fn(),
     reset: jest.fn(),
@@ -274,7 +276,71 @@ const confirm = async () => {
 beforeEach(() => {
     jest.clearAllMocks()
     mockRecordPayment.mockResolvedValue(PAYMENT_RESULT)
-    Object.assign(mockCrossChainTransfer, { isXChain: false, isDiffToken: false })
+    Object.assign(mockCrossChainTransfer, { isXChain: false, isDiffToken: false, quoteExpiresAt: null })
+})
+
+describe('crypto withdraw confirm — expired Rhino quote', () => {
+    afterEach(() => jest.useRealTimers())
+
+    it('re-quotes instead of signing when the quote aged out while the screen sat open', async () => {
+        jest.useFakeTimers({ now: new Date('2026-09-01T12:00:00Z') })
+        // Fresh at render: expires in 60s.
+        Object.assign(mockCrossChainTransfer, {
+            isXChain: true,
+            quoteExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+        })
+        render(<WithdrawCryptoPage />)
+
+        const quotesBeforeTap = mockCrossChainTransfer.calculate.mock.calls.length
+
+        // …then the user waits past it. No render happens in between.
+        jest.setSystemTime(Date.now() + 120_000)
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+
+        await waitFor(() => expect(mockCrossChainTransfer.calculate).toHaveBeenCalledTimes(quotesBeforeTap + 1))
+        expect(mockSendTransactions).not.toHaveBeenCalled()
+        expect(mockSendMoney).not.toHaveBeenCalled()
+        expect(mockSetCurrentView).not.toHaveBeenCalledWith('STATUS')
+    })
+
+    it('a tap with nothing prepared (an expiry refresh that failed) re-quotes instead of dead-ending', async () => {
+        Object.assign(mockCrossChainTransfer, { isXChain: true, transactions: null, quoteExpiresAt: null })
+        try {
+            render(<WithdrawCryptoPage />)
+            const quotesBeforeTap = mockCrossChainTransfer.calculate.mock.calls.length
+
+            fireEvent.click(screen.getByTestId('confirm-withdraw'))
+
+            await waitFor(() => expect(mockCrossChainTransfer.calculate).toHaveBeenCalledTimes(quotesBeforeTap + 1))
+            expect(mockSendTransactions).not.toHaveBeenCalled()
+            expect(mockSetWithdrawError).not.toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+        } finally {
+            Object.assign(mockCrossChainTransfer, { transactions: [{ to: RECIPIENT, value: 0n, data: '0x' }] })
+        }
+    })
+
+    it('signs while the quote is still fresh', async () => {
+        jest.useFakeTimers({ now: new Date('2026-09-01T12:00:00Z') })
+        Object.assign(mockCrossChainTransfer, {
+            isXChain: true,
+            quoteExpiresAt: new Date(Date.now() + 120_000).toISOString(),
+        })
+        mockSendTransactions.mockResolvedValue({
+            userOpHash: '0xuserop',
+            receipt: { transactionHash: '0xmined', status: 'success' },
+            strategy: 'mixed',
+            intentId: 'prep-intent-9',
+        })
+        render(<WithdrawCryptoPage />)
+        // Entering the confirm view quotes once; the tap must not quote again.
+        const quotesBeforeTap = mockCrossChainTransfer.calculate.mock.calls.length
+
+        jest.setSystemTime(Date.now() + 10_000)
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+
+        await waitFor(() => expect(mockSendTransactions).toHaveBeenCalled())
+        expect(mockCrossChainTransfer.calculate).toHaveBeenCalledTimes(quotesBeforeTap)
+    })
 })
 
 // ---------- tests ----------

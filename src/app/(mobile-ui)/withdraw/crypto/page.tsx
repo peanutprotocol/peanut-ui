@@ -35,6 +35,7 @@ import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useCrossChainTransfer } from '@/features/payments/shared/hooks/useCrossChainTransfer'
+import { isQuoteNearExpiry } from '@/services/rhino-bridge'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
 import { isTxReverted, printableAddress, validateEnsName } from '@/utils/general.utils'
 import { appBaseUrl } from '@/utils/url.utils'
@@ -96,6 +97,8 @@ export default function WithdrawCryptoPage() {
         isXChain,
         isDiffToken,
         error: routeError,
+        isFeeEstimationError,
+        quoteExpiresAt,
         calculate: calculateRoute,
         reset: resetRouteCalculation,
     } = useCrossChainTransfer()
@@ -164,33 +167,39 @@ export default function WithdrawCryptoPage() {
         }
     }, [routeError, recordError, setPaymentError])
 
+    // Quote the route (Rhino preview + SDA / bridge quote, or the same-chain
+    // tx). Runs on entering the confirm view and again before signing when the
+    // quote on screen has expired.
+    const quoteRoute = useCallback(() => {
+        if (!chargeDetails || !withdrawData || !address) return Promise.resolve()
+        return calculateRoute({
+            source: {
+                address: address as Address,
+                tokenAddress: PEANUT_WALLET_TOKEN as Address,
+                chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                // amountToWithdraw is USD-denominated; source token is USDC (1:1).
+                // Required for the bridge path's 'pay' mode (cross-chain ETH/etc).
+                tokenAmount: amountToWithdraw,
+            },
+            destination: {
+                recipientAddress: chargeDetails.requestLink.recipientAddress as Address,
+                tokenAddress: chargeDetails.tokenAddress as Address,
+                tokenAmount: chargeDetails.tokenAmount,
+                tokenDecimals: chargeDetails.tokenDecimals,
+                tokenType: Number(chargeDetails.tokenType),
+                chainId: chargeDetails.chainId,
+            },
+            context: 'withdraw',
+            contextId: chargeDetails.uuid,
+            senderPeanutWalletAddress: address as Address,
+            skipGasEstimate: true, // peanut wallet handles gas
+        })
+    }, [chargeDetails, withdrawData, calculateRoute, address, amountToWithdraw])
+
     // prepare transaction when entering confirm view
     useEffect(() => {
-        if (currentView === 'CONFIRM' && chargeDetails && withdrawData && address) {
-            calculateRoute({
-                source: {
-                    address: address as Address,
-                    tokenAddress: PEANUT_WALLET_TOKEN as Address,
-                    chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                    // amountToWithdraw is USD-denominated; source token is USDC (1:1).
-                    // Required for the bridge path's 'pay' mode (cross-chain ETH/etc).
-                    tokenAmount: amountToWithdraw,
-                },
-                destination: {
-                    recipientAddress: chargeDetails.requestLink.recipientAddress as Address,
-                    tokenAddress: chargeDetails.tokenAddress as Address,
-                    tokenAmount: chargeDetails.tokenAmount,
-                    tokenDecimals: chargeDetails.tokenDecimals,
-                    tokenType: Number(chargeDetails.tokenType),
-                    chainId: chargeDetails.chainId,
-                },
-                context: 'withdraw',
-                contextId: chargeDetails.uuid,
-                senderPeanutWalletAddress: address as Address,
-                skipGasEstimate: true, // peanut wallet handles gas
-            })
-        }
-    }, [currentView, chargeDetails, withdrawData, calculateRoute, address, amountToWithdraw])
+        if (currentView === 'CONFIRM') void quoteRoute()
+    }, [currentView, quoteRoute])
 
     const handleSetupReview = useCallback(
         async (data: Omit<WithdrawData, 'amount'>) => {
@@ -338,8 +347,23 @@ export default function WithdrawCryptoPage() {
         }
 
         if (!transactions || transactions.length === 0) {
-            console.error('No transactions prepared for withdrawal')
-            setError(t('errors.txNotPrepared'))
+            // Nothing prepared — the route never resolved, or an expiry refresh
+            // just failed. Quote again instead of dead-ending on "not prepared";
+            // a persistent failure keeps surfacing through routeError.
+            await quoteRoute()
+            return
+        }
+
+        // The numbers on screen are Rhino's quote only until it expires. Decide
+        // that NOW, at the tap — a render-time flag goes stale on a screen left
+        // open — with the signing lead time the bridge path uses. Past expiry,
+        // refresh and let the user confirm the fresh numbers instead of signing
+        // a stale pay amount — unless funds already moved for this charge (the
+        // record-only retry below must never re-quote).
+        const alreadySpent = executedSpendRef.current?.chargeId === chargeDetails.uuid
+        const quoteExpired = quoteExpiresAt ? isQuoteNearExpiry(quoteExpiresAt) : false
+        if (quoteExpired && !alreadySpent) {
+            await quoteRoute()
             return
         }
 
@@ -530,6 +554,8 @@ export default function WithdrawCryptoPage() {
         address,
         transactions,
         payAmount,
+        quoteExpiresAt,
+        quoteRoute,
         usdAmount,
         sendTransactions,
         sendMoney,
@@ -648,6 +674,7 @@ export default function WithdrawCryptoPage() {
                     networkFee={networkFee}
                     isCrossChain={isCrossChainWithdrawal}
                     isCalculating={isCalculating}
+                    quoteFailed={isFeeEstimationError}
                     receiveAmount={receiveAmount}
                     payAmount={payAmount}
                     showHighFeeWarning={showHighFeeWarning}
