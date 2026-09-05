@@ -7,7 +7,6 @@ import { getBadgeIcon } from './badge.utils'
 import { useBadgeCopy } from './useBadgeCopy'
 import { getCardPosition } from '../Global/Card/card.utils'
 import EmptyState from '../Global/EmptyStates/EmptyState'
-import { Icon } from '../Global/Icons/Icon'
 import { BadgeDetailModal } from './BadgeDetailModal'
 import { useMemo, useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
@@ -96,7 +95,6 @@ export const Badges = () => {
                 </div>
 
                 <div className="flex items-center justify-center gap-2 text-body-xs text-foreground-secondary">
-                    <Icon name="info" width={16} height={16} />
                     <span>{t('publicProfileNote')}</span>
                 </div>
             </div>

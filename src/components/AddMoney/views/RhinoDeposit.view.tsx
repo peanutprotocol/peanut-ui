@@ -3,7 +3,6 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import Card from '@/components/Global/Card'
 import CopyToClipboard, { type CopyToClipboardRef } from '@/components/Global/CopyToClipboard'
-import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ChainChip from '../components/ChainChip'
@@ -191,7 +190,6 @@ const RhinoDepositView = ({
                             <div className="flex w-full flex-col gap-1">
                                 <div className="flex w-full items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <Icon name="info" size={16} className="text-foreground-secondary" />
                                         <p className="text-body-s text-foreground-secondary">
                                             {t('minDepositForLabel', { network: amountLimitsTitle })}
                                         </p>
@@ -204,7 +202,6 @@ const RhinoDepositView = ({
 
                                 <div className="flex w-full items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <Icon name="info" size={16} className="text-foreground-secondary" />
                                         <p className="text-body-s text-foreground-secondary">
                                             {t('maxDepositForLabel', { network: amountLimitsTitle })}
                                         </p>

@@ -495,7 +495,6 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                 {/* Info banner when cross-chain is disabled */}
                                 {isCrossChainDisabled && (
                                     <div className="flex items-center gap-2 rounded-sm bg-background-badge-attention p-3 text-body-s text-foreground-primary">
-                                        <Icon name="info" size={16} className="flex-shrink-0" />
                                         <span>{t('tokenSelector.crossChainUnavailable')}</span>
                                     </div>
                                 )}
@@ -543,7 +542,6 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                             placeholder={t('tokenSelector.searchTokenPlaceholder')}
                                         />
                                         <div className="flex items-center justify-center gap-2">
-                                            <Icon name="info" size={10} className="text-foreground-secondary" />
                                             <span className="text-body-xs text-foreground-secondary">
                                                 {t('tokenSelector.sponsoredHint')}
                                             </span>
