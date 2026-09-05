@@ -225,6 +225,14 @@ try {
     console.error('Error getting IP address:', error)
 }
 
+// Mirrors DEV_TOOLS_ENABLED in src/constants/dev-tools.consts.ts. Kept in sync
+// by hand: the constant cannot be imported here (this file is CommonJS and runs
+// before the TS pipeline), and the two disagreeing would ship a dev chunk or
+// break the ds-shots preview build.
+const devToolsEnabled =
+    process.env.NODE_ENV === 'development' ||
+    (process.env.NEXT_PUBLIC_VERCEL_ENV ?? process.env.VERCEL_ENV ?? '') === 'preview'
+
 /** @type {import('next').NextConfig} */
 let nextConfig = {
     env: {
@@ -279,6 +287,13 @@ let nextConfig = {
         resolveAlias: {
             // Optimize common aliases
             '@': './src',
+            // The /dev/surfaces gallery mounts ~50 app components. Its route
+            // gate keeps it from answering outside dev/preview, and its dynamic
+            // import keeps it out of the eager graph — but a chunk is still
+            // emitted for every import() in source. Swap the registry for an
+            // empty stub on the builds that can never render it, so production
+            // and the native export stop carrying it.
+            ...(devToolsEnabled ? {} : { '@/dev/surfaces/registry': './src/dev/surfaces/registry.prod-stub.ts' }),
         },
     },
 

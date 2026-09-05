@@ -2,11 +2,8 @@ import ActionModal from '@/components/Global/ActionModal'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { useTranslations } from 'next-intl'
 import ChainChip from '@/components/AddMoney/components/ChainChip'
-import {
-    RHINO_SUPPORTED_EVM_CHAINS,
-    RHINO_SUPPORTED_OTHER_CHAINS,
-    RHINO_SUPPORTED_TOKENS,
-} from '@/constants/rhino.consts'
+import EvmChainChips from '@/components/AddMoney/components/EvmChainChips'
+import { RHINO_SUPPORTED_OTHER_CHAINS, RHINO_SUPPORTED_TOKENS } from '@/constants/rhino.consts'
 
 // grey uppercase mini-header, the same shape the account-ready screen uses
 const MINI_HEADER = 'text-label-m uppercase tracking-wide text-foreground-secondary'
@@ -33,8 +30,11 @@ export default function TokenAndNetworkConfirmationModal({
                 <div className="flex flex-col items-center gap-2">
                     <span className="text-body-s">{t('tokenAndNetworkConfirmationModal.warning')}</span>
 
-                    {/* the full lists, not a truncated "+N" — a chain missing from the
-                        visible set is exactly the mistake this screen exists to prevent */}
+                    {/* EvmChainChips, not a raw map of the chain list: it is
+                        rollout-gated and annotates the USDT-only chains. Naming
+                        PLASMA or KAIA beside a flat USDT/USDC/ETH list on the
+                        screen that warns about permanent loss would promise a
+                        USDC deposit those chains cannot take. */}
                     <div className="mt-2 flex w-full flex-col items-center gap-2">
                         <h2 className={MINI_HEADER}>{t('tokenAndNetworkConfirmationModal.supportedNetworks')}</h2>
 
@@ -42,9 +42,7 @@ export default function TokenAndNetworkConfirmationModal({
                             {RHINO_SUPPORTED_OTHER_CHAINS.map((chain) => (
                                 <ChainChip key={chain.name} chainName={chain.name} chainSymbol={chain.logoUrl} />
                             ))}
-                            {RHINO_SUPPORTED_EVM_CHAINS.map((chain) => (
-                                <ChainChip key={chain.name} chainName={chain.name} chainSymbol={chain.logoUrl} />
-                            ))}
+                            <EvmChainChips />
                         </div>
                     </div>
 
