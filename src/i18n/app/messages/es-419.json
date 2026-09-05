@@ -398,7 +398,6 @@
                 "notAvailable": "No disponible"
             },
             "bankNotAvailableNote": "Las transferencias bancarias y la emisión de tarjetas no están disponibles para residentes de tu país.",
-            "cardNotAvailableNote": "La tarjeta no está disponible para residentes de tu país.",
             "unlockModal": {
                 "title": "Desbloquear {method}",
                 "titleGeneric": "Desbloquea este método de pago",
@@ -3688,12 +3687,12 @@
     "avatar": {
         "title": "Tu avatar",
         "description": "Elige uno o tira los dados para ver otros básicos.",
+        "initials": "Iniciales",
         "fromBadges": "De tus insignias",
         "basics": "Básicos",
         "unlocked": "{count} desbloqueados",
         "noBadgeAvatars": "Gana una insignia y sus avatares aparecen aquí.",
         "rollDice": "Tirar los dados",
-        "useInitial": "Usar mi inicial",
         "change": "Cambiar avatar",
         "saveFailed": "No pudimos guardar tu avatar. Inténtalo de nuevo."
     }

@@ -4,9 +4,12 @@
  * in peanut-api-ts and never hand-edited. `avatars.basics` is the set every
  * user gets; `avatars.badges[CODE]` lists the slugs holding that badge unlocks.
  *
- * Keys are `basic.<slug>` and `badge.<CODE>.<slug>`. The API validates a
- * pick against the same pool. This file only mirrors the manifest into
- * paths and palettes; it never decides who may wear what.
+ * Keys are `basic.<slug>`, `badge.<CODE>.<slug>` and `letter.<a-z>`. The API
+ * validates a pick against the same pool. This file only mirrors the manifest
+ * into paths and palettes; it never decides who may wear what.
+ *
+ * The letters are not in the manifest — they are art everyone has
+ * (`public/avatars/letter/`), so they are listed here and unlocked for all.
  */
 import badgeAssets from '@/types/badge-assets.json'
 
@@ -19,12 +22,18 @@ const slugsOf = (code: string): readonly string[] => (Object.hasOwn(BADGE_AVATAR
 
 export const basicAvatarKeys = (): string[] => BASICS.map((slug) => `basic.${slug}`)
 
+/** a-z, the letter stickers every user may wear regardless of their name. */
+export const LETTERS: readonly string[] = Array.from({ length: 26 }, (_, i) => String.fromCharCode(97 + i))
+
+export const letterAvatarKeys = (): string[] => LETTERS.map((letter) => `letter.${letter}`)
+
 /** Avatar keys unlocked by holding these badge codes, in badge order. */
 export const badgeAvatarKeys = (heldCodes: readonly string[]): string[] =>
     heldCodes.flatMap((code) => slugsOf(code).map((slug) => `badge.${code}.${slug}`))
 
 /** Everything the user may pick: the basics plus what their badges unlock. */
 export const avatarPool = (heldCodes: readonly string[]): string[] => [
+    ...letterAvatarKeys(),
     ...basicAvatarKeys(),
     ...badgeAvatarKeys(heldCodes),
 ]
@@ -53,13 +62,15 @@ export function avatarSrc(key: string | null | undefined): string | null {
     if (kind === 'badge' && rest.length === 2 && slugsOf(rest[0]).includes(rest[1])) {
         return `/avatars/badge/${rest[0]}/${rest[1]}.webp`
     }
+    if (kind === 'letter' && rest.length === 1 && LETTERS.includes(rest[0])) return `/avatars/letter/${rest[0]}.webp`
     return null
 }
 
 /**
  * Sticker art for the first letter of a name, or null when the first character
- * is not a-z. The letter set is art in `public/avatars/letter/`, not a manifest
- * entry: it is never a pick, only the day-0 look of a user who has not picked.
+ * is not a-z. This is the day-0 look of a user who has not picked; the same art
+ * is also pickable outright as `letter.<a-z>`, which is how someone wears an
+ * initial that is not the one their username starts with.
  */
 export function letterAvatarSrc(name: string | null | undefined): string | null {
     const ch = name?.trim().charAt(0).toLowerCase()

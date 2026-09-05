@@ -345,8 +345,11 @@ const UnlockPayments = () => {
     const reviewEscalation =
         Number.isFinite(reviewSubmittedAtMs) && Date.now() - reviewSubmittedAtMs > 7 * 24 * 60 * 60 * 1000
 
+    // No card-only note: a card-restricted user already reads "Not available"
+    // on the card row itself (unlock-payments.utils), so the footer line only
+    // repeated it. The banking note stays — it covers rails whose rows are
+    // absent from the list entirely.
     const showBankRestrictionNote = restrictions.banking
-    const showCardRestrictionNote = !restrictions.banking && restrictions.card
 
     const residenceTrailing = !residenceIso2 ? undefined : residence?.verified ? (
         <StatusBadge status="completed" customText={t('residence.verified')} />
@@ -439,9 +442,6 @@ const UnlockPayments = () => {
 
             {showBankRestrictionNote && (
                 <p className="text-body-xs text-foreground-secondary">{t('bankNotAvailableNote')}</p>
-            )}
-            {showCardRestrictionNote && (
-                <p className="text-body-xs text-foreground-secondary">{t('cardNotAvailableNote')}</p>
             )}
 
             {/* Region-restricted users get the one honest region screen instead

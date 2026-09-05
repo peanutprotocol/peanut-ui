@@ -2,6 +2,7 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import type { ComponentProps, ReactNode } from 'react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { AvatarPicker } from '../AvatarPicker'
+import { readLetterAvatar, resetLetterAvatarCache } from '../avatar-letter.storage'
 
 jest.mock('next/image', () => ({
     __esModule: true,
@@ -66,6 +67,8 @@ function fakeServer() {
 
 beforeEach(() => {
     jest.clearAllMocks()
+    window.localStorage.clear()
+    resetLetterAvatarCache()
     mockUpdateUserById.mockResolvedValue({ data: {} })
     mockFetchUser.mockResolvedValue(null)
     mockUser = {
@@ -82,7 +85,10 @@ describe('AvatarPicker', () => {
     it('lists one row of five basics and only the avatars of badges the user holds', () => {
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        expect(screen.getAllByRole('radio')).toHaveLength(8)
+        // scoped per group: the 26 initials are always on top of these
+        expect(
+            screen.getByRole('radiogroup', { name: 'From your badges' }).querySelectorAll('[role="radio"]')
+        ).toHaveLength(3)
         // human labels, not keys: badge name + slug, or the slug alone
         expect(radio(A)).toBeInTheDocument()
         expect(screen.getByRole('radiogroup', { name: 'Basics' }).querySelectorAll('[role="radio"]')).toHaveLength(5)
@@ -94,7 +100,7 @@ describe('AvatarPicker', () => {
         mockUser.user.badges = []
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        expect(screen.getAllByRole('radio')).toHaveLength(5)
+        expect(screen.getByRole('radiogroup', { name: 'Basics' }).querySelectorAll('[role="radio"]')).toHaveLength(5)
         expect(screen.getByText('Earn a badge and its avatars appear here.')).toBeInTheDocument()
     })
 
@@ -221,13 +227,63 @@ describe('AvatarPicker', () => {
         random.mockRestore()
     })
 
-    it('clears the pick back to the initial', () => {
+    it('offers every letter as its own pick, ahead of the sticker groups', () => {
+        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+        const groups = screen.getAllByRole('radiogroup').map((el) => el.getAttribute('aria-label'))
+
+        expect(groups[0]).toBe('Initials')
+        expect(screen.getByRole('radiogroup', { name: 'Initials' }).querySelectorAll('[role="radio"]')).toHaveLength(26)
+        expect(screen.getByRole('radio', { name: 'A' })).toBeInTheDocument()
+        expect(screen.getByRole('radio', { name: 'Z' })).toBeInTheDocument()
+    })
+
+    it('keeps a letter this API build still rejects, on the device, without an error toast', async () => {
+        const server = fakeServer()
+        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        fireEvent.click(screen.getByRole('radio', { name: 'K' }))
+        await server.settle(0, { error: 'body/avatarKey must match pattern' })
+
+        // the pick survives the rejection and the user is not told off for it
+        await waitFor(() => expect(readLetterAvatar('u1')?.key).toBe('letter.k'))
+        expect(mockToast).not.toHaveBeenCalled()
+        await waitFor(() => expect(radio('K')).toHaveAttribute('aria-checked', 'true'))
+    })
+
+    it('still reports a rejected sticker — those have no device-local fallback', async () => {
+        const server = fakeServer()
+        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        fireEvent.click(radio(A))
+        await server.settle(0, { error: 'Avatar not unlocked' })
+
+        expect(mockToast).toHaveBeenCalledWith({ type: 'error', message: 'Could not save your avatar. Try again.' })
+        expect(readLetterAvatar('u1')).toBeNull()
+    })
+
+    it('a server write that lands drops the mirror, so the durable copy wins', async () => {
+        const server = fakeServer()
+        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        fireEvent.click(screen.getByRole('radio', { name: 'K' }))
+        await server.settle(0, { error: 'body/avatarKey must match pattern' })
+        await waitFor(() => expect(readLetterAvatar('u1')?.key).toBe('letter.k'))
+
+        // the API now accepts it (peanut-api-ts#1529 deployed)
+        fireEvent.click(screen.getByRole('radio', { name: 'M' }))
+        await server.settle(1)
+
+        await waitFor(() => expect(readLetterAvatar('u1')).toBeNull())
+        expect(server.committed()).toBe('letter.m')
+    })
+
+    it('a letter is a real pick, not a clear back to the username initial', () => {
         mockUser.user.avatarKey = 'basic.apple'
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        fireEvent.click(screen.getByRole('button', { name: 'Use my initial instead' }))
+        fireEvent.click(screen.getByRole('radio', { name: 'K' }))
 
-        expect(mockUpdateUserById).toHaveBeenCalledWith({ userId: 'u1', avatarKey: null })
+        expect(mockUpdateUserById).toHaveBeenCalledWith({ userId: 'u1', avatarKey: 'letter.k' })
     })
 
     it('closes on done', () => {

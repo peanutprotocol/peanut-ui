@@ -16,7 +16,15 @@ describe('HomeTopNav', () => {
 
         expect(container.querySelector('a[href="/profile"] img')).toHaveAttribute('src', '/avatars/letter/t.webp')
         expect(screen.queryByText(/^TE$/i)).not.toBeInTheDocument()
-        expect(container.querySelector('a[href="/profile"] svg')).not.toBeInTheDocument()
+        // the avatar slot itself carries no generated face — the link's only
+        // svg is the affordance chevron, asserted below
+        expect(container.querySelector('a[href="/profile"] [role="img"] svg')).not.toBeInTheDocument()
+    })
+
+    it('marks the avatar as tappable with a chevron', () => {
+        const { container } = renderWithIntl(<HomeTopNav username="testuser" showRewards={false} />)
+
+        expect(container.querySelector('a[href="/profile"] svg')).toBeInTheDocument()
     })
 
     it('wears the picked avatar inside the profile link (TASK-22142)', () => {
