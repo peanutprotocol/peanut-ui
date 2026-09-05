@@ -1074,7 +1074,15 @@
                 "iosChrome1": "Paso 1: abrí Ajustes → Chrome",
                 "iosChrome2": "Paso 2: activá la cámara",
                 "iosSafari1": "Paso 1: tocá “aA” en la barra de direcciones",
-                "iosSafari2": "Paso 2: tocá “Ajustes del sitio web”"
+                "iosSafari2": "Paso 2: tocá “Ajustes del sitio web”",
+                "native": {
+                    "hint": "Peanut necesita la cámara para escanear un código QR. Activá la cámara para Peanut en la configuración de tu dispositivo.",
+                    "openSettings": "Abrí Configuración",
+                    "step1": "Abrí Configuración y buscá Peanut",
+                    "iosStep2": "Activá la cámara",
+                    "androidStep2": "Tocá Permisos",
+                    "androidStep3": "Elegí Permitir en Cámara"
+                }
             }
         },
         "qrScannerOverlay": {

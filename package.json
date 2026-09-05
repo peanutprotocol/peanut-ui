@@ -91,6 +91,7 @@
         "@zerodev/sdk": "5.5.7",
         "@zerodev/webauthn-key": "^5.5.0",
         "canvas-confetti": "^1.9.3",
+        "capacitor-native-settings": "8.2.0",
         "circle-flags": "^2.8.2",
         "classnames": "^2.5.1",
         "d3-force": "^3.0.0",
