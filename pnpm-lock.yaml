@@ -153,6 +153,9 @@ importers:
       canvas-confetti:
         specifier: ^1.9.3
         version: 1.9.4
+      capacitor-native-settings:
+        specifier: 8.2.0
+        version: 8.2.0(@capacitor/core@8.2.0)
       circle-flags:
         specifier: ^2.8.2
         version: 2.8.2
@@ -4250,6 +4253,11 @@ packages:
 
   canvas-confetti@1.9.4:
     resolution: {integrity: sha512-yxQbJkAVrFXWNbTUjPqjF7G+g6pDotOUHGbkZq2NELZUMDpiJ85rIEazVb8GTaAptNW2miJAXbs1BtioA251Pw==}
+
+  capacitor-native-settings@8.2.0:
+    resolution: {integrity: sha512-jqklDll5YFvPpt2SI+wa+oMy0ykvWESSclDMhSI/t1TvJDnomATa7Iz0eE219DY/6pJxRhI7+8RYE0ePtAYxAw==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.2'
 
   ccount@2.0.1:
     resolution: {integrity: sha512-eyrF0jiFpY+3drT6383f1qhkbGsLSifNAjA61IUjZjmLCWjItY6LB9ft9YhoDgwfmclB2zhu51Lc7+95b8NRAg==}
@@ -13838,6 +13846,10 @@ snapshots:
       tinycolor2: 1.6.0
 
   canvas-confetti@1.9.4: {}
+
+  capacitor-native-settings@8.2.0(@capacitor/core@8.2.0):
+    dependencies:
+      '@capacitor/core': 8.2.0
 
   ccount@2.0.1: {}
 
