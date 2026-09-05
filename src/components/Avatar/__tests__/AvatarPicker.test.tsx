@@ -207,6 +207,28 @@ describe('AvatarPicker', () => {
         expect(radio(B)).toHaveAttribute('aria-checked', 'true')
     })
 
+    // Chip (#2989): the pill already shows the new avatar while the save
+    // drains, so a close/reopen in that window must deal from the pending pick
+    // — dealing from `saved` can drop it and leave no tile checked.
+    it('deals from the pending pick when reopened during an in-flight save', async () => {
+        const server = fakeServer()
+        const { rerender } = renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        fireEvent.click(radio(B))
+        expect(server.posts.map((post) => post.key)).toEqual([KEY_B])
+
+        rerender(<AvatarPicker open={false} onOpenChange={jest.fn()} />)
+        rerender(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        expect(mockDealHand).toHaveBeenLastCalledWith(KEY_B, UNLOCKED, { prefer: undefined })
+        expect(radio(B)).toHaveAttribute('aria-checked', 'true')
+
+        await server.settle(0)
+        await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
+        expect(server.committed()).toBe(KEY_B)
+        expect(radio(B)).toHaveAttribute('aria-checked', 'true')
+    })
+
     it('a rejected first save still lets the second go through and clears pending', async () => {
         const server = fakeServer()
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)

@@ -3315,6 +3315,7 @@
         },
         "copyToClipboard": {
             "copyCode": "Copiar código",
+            "copyProfileLink": "Copiar enlace del perfil",
             "copyFailed": "No se pudo copiar"
         },
         "copyField": {

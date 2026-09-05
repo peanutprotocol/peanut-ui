@@ -87,7 +87,9 @@ export function AvatarPicker({ open, onOpenChange, prefer }: AvatarPickerProps) 
     const [hand, setHand] = useState<(string | null)[]>([])
     const [turns, setTurns] = useState(0)
     useEffect(() => {
-        if (open) setHand(dealHand(saved, unlocked, { prefer }))
+        // deal from `pick`, not `saved`: reopening while a save is still in
+        // flight must keep the visibly selected avatar in the hand
+        if (open) setHand(dealHand(pick, unlocked, { prefer }))
         // deal once per open; the pick joins the hand by being picked from it
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open])

@@ -57,7 +57,7 @@ afterAll(() => {
 })
 
 // the pill's three hit areas: the handle copies, the share icon shares, the avatar opens the picker
-const copyButton = () => screen.queryByRole('button', { name: /^peanut\.example\.org\/\s*satoshi$/ })
+const copyButton = () => screen.queryByRole('button', { name: /^Copy profile link peanut\.example\.org\/\s*satoshi$/ })
 const shareButton = () => screen.queryByRole('button', { name: 'Share' })
 
 describe('ProfileHeader pill', () => {
@@ -152,6 +152,16 @@ describe('ProfileHeader pill', () => {
             source: REFERRAL_SOURCES.PROFILE_HEADER,
             link_type: 'profile',
         })
+    })
+
+    // Chip (#2989): the url alone reads as a link, so the segment has to say
+    // what activating it does — and keep saying the url, and the verified state.
+    it('names the copy action, the url and the verified state in the accessible name', () => {
+        renderWithIntl(<ProfileHeader name="Satoshi" username="satoshi" showShareButton isVerified />)
+
+        expect(
+            screen.getByRole('button', { name: /^Copy profile link peanut\.example\.org\/\s*satoshi Verified$/ })
+        ).toBeInTheDocument()
     })
 
     // One border, three hit areas. Nesting the picker inside the share or the

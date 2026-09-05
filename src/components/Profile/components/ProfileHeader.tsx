@@ -109,6 +109,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                         onClick={copyProfileUrl}
                         className={twMerge('flex h-full min-w-0 items-center pl-3', SEGMENT_FOCUS)}
                     >
+                        {/* the url alone reads as a link, not as an action */}
+                        <span className="sr-only">{tGlobal('copyToClipboard.copyProfileLink')}</span>
                         <span className="shrink-0 text-body-l whitespace-nowrap text-foreground-secondary">
                             {profileDomain}
                         </span>
