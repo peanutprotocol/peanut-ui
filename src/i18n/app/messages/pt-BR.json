@@ -1671,7 +1671,7 @@
             "summary": "Pagamentos com cartão usam o que está no cartão. Tudo que está fora do cartão é instantâneo para envios, pagamentos QR e saques, e nunca espera o bloqueio do cartão.",
             "autoTitle": "Recargas automáticas",
             "keepOnCard": "Manter no cartão",
-            "keepOnCardHint": "Recarregado do seu saldo fora do cartão sempre que o cartão ficar abaixo deste valor. Compras maiores ainda passam: o cartão recarrega e a nova tentativa funciona.",
+            "keepOnCardHint": "Recarregado do seu saldo fora do cartão sempre que o cartão ficar abaixo deste valor. Uma compra maior é recusada uma vez: o cartão se recarrega e, se você tentar de novo em um ou dois minutos, normalmente passa.",
             "keepOffCard": "Manter fora do cartão",
             "keepOffCardHint": "Nunca vai para o cartão automaticamente, então está sempre pronto para enviar.",
             "loadAll": "Carregar tudo no cartão",

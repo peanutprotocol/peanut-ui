@@ -8338,6 +8338,8 @@ export interface paths {
                             frequency: "perAuthorization" | "per24HourPeriod" | "per30DayPeriod" | "perAllTime";
                         }[];
                         loadAllToCard?: boolean;
+                        /** @description Default true. False lowers collateralTargetCents without pinning it (a move off the card), so the nightly tuner keeps sizing the card. */
+                        pinTarget?: boolean;
                         walletFloorCents?: number;
                     };
                 };

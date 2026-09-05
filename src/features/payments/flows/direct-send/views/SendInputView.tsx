@@ -87,7 +87,9 @@ export function SendInputView() {
                         hideCurrencyToggle={true}
                     />
                     {isInsufficientBalance && <FieldError>{t('errors.insufficientPayment')}</FieldError>}
-                    {isLoggedIn && !isInsufficientBalance && <CollateralPullNotice amountUsd={amount} />}
+                    {isLoggedIn && !isInsufficientBalance && (
+                        <CollateralPullNotice amountUsd={amount} collateralOnlyAllowed />
+                    )}
                 </div>
 
                 {/* message input */}

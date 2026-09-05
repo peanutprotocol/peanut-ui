@@ -16,7 +16,7 @@ import { useBalanceSplit } from './useBalanceSplit'
  */
 export function useCollateralPullPreview(
     amountUsd: string | number | null | undefined,
-    options: { collateralOnlyAllowed?: boolean } = {}
+    options: { collateralOnlyAllowed: boolean }
 ) {
     const { hasActiveCard, offCardUnits, onCardCents } = useBalanceSplit()
     // Advisory only: no provider (a bare layout or a view test) reads as "no lock".

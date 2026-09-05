@@ -14,6 +14,7 @@ import Card from '@/components/Global/Card'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { mantecaApi } from '@/services/manteca'
+import { armRainCooldownFromSuccess } from '@/services/rain'
 import type { QrPayment, QrPaymentLock } from '@/services/manteca'
 import NavHeader from '@/components/Global/NavHeader'
 import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
@@ -961,6 +962,8 @@ export default function QRPayPage() {
                               : {}),
                       } as const)
             const qrPayment = await mantecaApi.completeQrPaymentWithSignedTx(requestBody)
+            // a card pull consumed the withdrawal signature: start the countdown
+            armRainCooldownFromSuccess(qrPayment.cooldownSec)
             // clear the timer since we got a response
             if (payingStateTimerRef.current) {
                 clearTimeout(payingStateTimerRef.current)
@@ -1857,7 +1860,7 @@ export default function QRPayPage() {
                         />
                     </Card>
 
-                    {!balanceErrorMessage && <CollateralPullNotice amountUsd={usdAmount} />}
+                    {!balanceErrorMessage && <CollateralPullNotice amountUsd={usdAmount} collateralOnlyAllowed />}
 
                     {/* Send Button */}
                     <Button

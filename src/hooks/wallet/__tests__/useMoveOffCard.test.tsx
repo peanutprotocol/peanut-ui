@@ -10,7 +10,10 @@
  *     would pick smart-only — a self-transfer no-op — whenever the smart
  *     wallet covers the amount) and submitted for exactly the amount, capped
  *     at what the card actually holds,
- *  3. a missing wallet address fails closed before any signing.
+ *  3. a missing wallet address fails closed before any signing,
+ *  4. `beforeSubmit` (the caller's target-lowering PATCH) runs after the
+ *     passkey and before the broadcast: never on a cancelled passkey, and
+ *     its failure leaves the signed withdrawal unsent.
  */
 import { renderHook, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -120,6 +123,51 @@ describe('useMoveOffCard', () => {
         await act(async () => {
             await expect(result.current.moveOffCard(5_000)).rejects.toThrow('user cancelled')
         })
+        expect(mockSubmitWithdrawal).not.toHaveBeenCalled()
+    })
+
+    it('runs beforeSubmit after the passkey and before the broadcast', async () => {
+        const order: string[] = []
+        mockSignSpend.mockImplementation(async () => {
+            order.push('sign')
+            return { strategy: 'collateral-only', rainWithdrawal: RAIN_WITHDRAWAL }
+        })
+        mockSubmitWithdrawal.mockImplementation(async () => {
+            order.push('submit')
+            return { txHash: '0xhash' }
+        })
+        const { result } = setup()
+        await act(async () => {
+            expect(
+                await result.current.moveOffCard(5_000, {
+                    beforeSubmit: async () => {
+                        order.push('before')
+                    },
+                })
+            ).toBe(5_000)
+        })
+        expect(order).toEqual(['sign', 'before', 'submit'])
+    })
+
+    it('a failed beforeSubmit leaves the signed withdrawal unsent', async () => {
+        const { result } = setup()
+        await act(async () => {
+            await expect(
+                result.current.moveOffCard(5_000, { beforeSubmit: async () => Promise.reject(new Error('offline')) })
+            ).rejects.toThrow('offline')
+        })
+        expect(mockSignSpend).toHaveBeenCalled()
+        expect(mockSubmitWithdrawal).not.toHaveBeenCalled()
+    })
+
+    it('never runs beforeSubmit when the passkey is cancelled', async () => {
+        mockSignSpend.mockRejectedValue(new Error('user cancelled'))
+        const beforeSubmit = jest.fn(async () => undefined)
+        const { result } = setup()
+        await act(async () => {
+            await expect(result.current.moveOffCard(5_000, { beforeSubmit })).rejects.toThrow('user cancelled')
+        })
+        expect(beforeSubmit).not.toHaveBeenCalled()
         expect(mockSubmitWithdrawal).not.toHaveBeenCalled()
     })
 })

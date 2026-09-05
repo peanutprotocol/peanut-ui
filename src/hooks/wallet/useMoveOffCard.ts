@@ -18,10 +18,13 @@ import { EXCESS_COLLATERAL_MIN_CENTS, rainCentsToUsdcUnits } from '@/utils/balan
  * INTERNAL_TRANSFER, hidden from history), and the unified total never
  * changes.
  *
- * Callers that lower the on-card target MUST PATCH it first: the balancer
- * tops the card up to the target, so a return ahead of the PATCH races it
- * straight back. The inflow debounce also holds the returned money off the
- * card for a few minutes regardless.
+ * Callers that lower the on-card target MUST land that PATCH before the
+ * broadcast: the balancer tops the card up to the target, so a return ahead
+ * of the PATCH races it straight back. They pass it as `beforeSubmit`, which
+ * runs AFTER the passkey and BEFORE the withdrawal is submitted — a
+ * cancelled passkey therefore changes nothing, and a failed PATCH aborts
+ * the move with the signed withdrawal unsent. The inflow debounce also holds
+ * the returned money off the card for a few minutes regardless.
  *
  * Returns the cents actually moved (0 = nothing to move, no prompt shown).
  */
@@ -32,7 +35,7 @@ export const useMoveOffCard = () => {
     const queryClient = useQueryClient()
 
     const moveOffCard = useCallback(
-        async (amountCents: number): Promise<number> => {
+        async (amountCents: number, options: { beforeSubmit?: () => Promise<void> } = {}): Promise<number> => {
             const spendingPowerCents = overview?.balance?.spendingPower
             if (spendingPowerCents == null || !Number.isFinite(spendingPowerCents) || spendingPowerCents <= 0) return 0
             if (!Number.isFinite(amountCents)) return 0
@@ -56,6 +59,7 @@ export const useMoveOffCard = () => {
             if (artifact.strategy !== 'collateral-only') {
                 throw new Error('Unexpected withdrawal strategy')
             }
+            await options.beforeSubmit?.()
             await rainApi.submitWithdrawal(artifact.rainWithdrawal)
 
             // Funds moved collateral → smart wallet; refresh both buckets so the

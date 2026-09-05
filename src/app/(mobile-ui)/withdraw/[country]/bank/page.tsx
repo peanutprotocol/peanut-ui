@@ -516,7 +516,9 @@ export default function WithdrawBankPage() {
                         <PaymentInfoRow hideBottomBorder label={t('bank.fee')} value={`$ 0.00`} />
                     </Card>
 
-                    {!submittedTxHash && !balanceErrorMessage && <CollateralPullNotice amountUsd={amountToWithdraw} />}
+                    {!submittedTxHash && !balanceErrorMessage && (
+                        <CollateralPullNotice amountUsd={amountToWithdraw} collateralOnlyAllowed />
+                    )}
 
                     {submittedTxHash ? (
                         // On-chain leg already fired. Even if confirmOfframp failed

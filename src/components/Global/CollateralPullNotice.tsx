@@ -8,8 +8,13 @@ import { formatLockRemaining } from '@/utils/collateralPull.utils'
 
 interface Props {
     amountUsd: string | number | null | undefined
-    /** False for multi-call flows (cross-chain), which can only pull the shortfall. */
-    collateralOnlyAllowed?: boolean
+    /**
+     * How the flow will execute — mirrors `useSpendBundle`'s routing so the
+     * preview cannot drift from it. True for a single transfer (`sendMoney`,
+     * `signSpend`): the whole amount can leave the card. False for a
+     * multi-call UserOp (send links, cross-chain): only the shortfall can.
+     */
+    collateralOnlyAllowed: boolean
     className?: string
 }
 

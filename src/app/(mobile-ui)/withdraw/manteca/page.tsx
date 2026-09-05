@@ -22,6 +22,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'
 import RateGateScreen from '@/components/Global/RateUnavailable/RateGateScreen'
 import { mantecaApi, type WithdrawPriceLock } from '@/services/manteca'
+import { armRainCooldownFromSuccess } from '@/services/rain'
 import { useCurrency } from '@/hooks/useCurrency'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { countryData } from '@/components/AddMoney/consts'
@@ -492,6 +493,8 @@ function MantecaBankWithdrawFlow() {
                 return
             }
 
+            // a card pull consumed the withdrawal signature: start the countdown
+            armRainCooldownFromSuccess(result.data?.cooldownSec)
             setStep('success')
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_COMPLETED, {
                 amount_usd: usdAmount,
@@ -792,7 +795,7 @@ function MantecaBankWithdrawFlow() {
                         )
                     })()}
 
-                    {!balanceErrorMessage && <CollateralPullNotice amountUsd={usdAmount} />}
+                    {!balanceErrorMessage && <CollateralPullNotice amountUsd={usdAmount} collateralOnlyAllowed />}
 
                     <Button
                         variant="purple"

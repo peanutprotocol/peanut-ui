@@ -283,28 +283,37 @@ const OnCardScreen: FC<Props> = ({ cardId, onPrev }) => {
     }
 
     const moveOff = async (cents: number) => {
-        // Pin the target below what stays on the card FIRST — and switch
-        // load-everything off, which ignores the target — or the balancer
-        // sweeps the returned money straight back. One awaited PATCH; if it
-        // fails nothing is withdrawn. The inflow debounce also holds the
-        // returned money off the card for a few minutes.
+        // The target has to sit below what stays on the card — and
+        // load-everything, which ignores the target, has to be off — before
+        // the withdrawal lands, or the balancer sweeps the returned money
+        // straight back. That PATCH runs between the passkey and the
+        // broadcast: a cancelled passkey leaves the policy untouched, a
+        // failed PATCH leaves the signed withdrawal unsent. `pinTarget:
+        // false` keeps an auto-sized card auto-sized — this is a lowering
+        // the move forces, not a number the user chose. The inflow debounce
+        // also holds the returned money off the card for a few minutes.
         const remaining = Math.max(0, (onCardCents ?? 0) - cents)
-        if (policy && (policy.loadAllToCard || remaining < policy.targetCents)) {
-            await patch(
-                {
-                    collateralTargetCents: Math.min(remaining, policy.targetCents),
-                    ...(policy.loadAllToCard ? { loadAllToCard: false } : {}),
-                },
-                'target'
-            )
-            posthog.capture(ANALYTICS_EVENTS.CARD_COLLATERAL_TARGET_CHANGED, {
-                old_cents: policy.targetCents,
-                new_cents: Math.min(remaining, policy.targetCents),
-                reason: 'move_off_card',
-                load_all_disabled: policy.loadAllToCard,
-            })
-        }
-        const moved = await moveOffCard(cents)
+        const lowerTarget =
+            policy && (policy.loadAllToCard || remaining < policy.targetCents)
+                ? async () => {
+                      const nextTarget = Math.min(remaining, policy.targetCents)
+                      await patch(
+                          {
+                              collateralTargetCents: nextTarget,
+                              pinTarget: false,
+                              ...(policy.loadAllToCard ? { loadAllToCard: false } : {}),
+                          },
+                          'target'
+                      )
+                      posthog.capture(ANALYTICS_EVENTS.CARD_COLLATERAL_TARGET_CHANGED, {
+                          old_cents: policy.targetCents,
+                          new_cents: nextTarget,
+                          reason: 'move_off_card',
+                          load_all_disabled: policy.loadAllToCard,
+                      })
+                  }
+                : undefined
+        const moved = await moveOffCard(cents, { beforeSubmit: lowerTarget })
         if (moved <= 0) throw new Error(t('moveFailed'))
         posthog.capture(ANALYTICS_EVENTS.CARD_MOVE_OFF_CARD, { amount_cents: moved, reason: 'manual' })
         toast.success(t('moveOffCardDone', { amount: formatDollars(moved) }))

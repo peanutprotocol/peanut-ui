@@ -3,10 +3,13 @@
  * balancer's shared policy. These pin its orchestration, not the hooks:
  *  1. move-to-card's idempotency key is bound to the amount — an exact retry
  *     reuses it, an edited amount gets a new one,
- *  2. move-off-card pins the target (and switches load-all off) BEFORE the
- *     withdrawal, and a failed pin aborts the withdrawal,
+ *  2. move-off-card lowers the target (unpinned, and switches load-all off)
+ *     between the passkey and the broadcast: a cancelled passkey changes no
+ *     policy, and a failed lowering does not report a move,
  *  3. lowering the target offers exactly the excess back, and a failure
- *     there is swallowed (the target already landed).
+ *     there is swallowed (the target already landed),
+ *  4. the load-all toggle and the off-card floor PATCH their own field, and
+ *     a rejected toggle is reported without flipping the switch.
  */
 import React from 'react'
 import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react'
@@ -78,10 +81,16 @@ async function submitAmount(buttonLabel: string, dollars: string, ctaLabel = but
     fireEvent.click(ctas[ctas.length - 1]!)
 }
 
+type MoveOffOptions = { beforeSubmit?: () => Promise<void> }
+
 beforeEach(() => {
     jest.clearAllMocks()
     mockPatch.mockResolvedValue(undefined)
-    mockMoveOffCard.mockResolvedValue(0)
+    // the real hook runs `beforeSubmit` after the passkey and before the broadcast
+    mockMoveOffCard.mockImplementation(async (cents: number, opts?: MoveOffOptions) => {
+        await opts?.beforeSubmit?.()
+        return cents
+    })
     mockMoveToCard.mockResolvedValue({ ok: true, amountCents: 1_000, userOpHash: '0x1' })
 })
 
@@ -113,32 +122,64 @@ describe('OnCardScreen — move to card idempotency key', () => {
 })
 
 describe('OnCardScreen — move off card', () => {
-    it('pins the target below the remaining amount before withdrawing, and turns load-all off', async () => {
+    it('lowers the target (unpinned) and turns load-all off after the passkey, before the broadcast', async () => {
         const order: string[] = []
         mockPatch.mockImplementation(async () => {
             order.push('patch')
         })
-        mockMoveOffCard.mockImplementation(async (cents: number) => {
-            order.push('withdraw')
+        mockMoveOffCard.mockImplementation(async (cents: number, opts?: MoveOffOptions) => {
+            order.push('passkey')
+            await opts?.beforeSubmit?.()
+            order.push('broadcast')
             return cents
         })
         setup({ onCard: 10_000, policy: policy({ loadAllToCard: true }) })
 
         await submitAmount('Move off card', '40')
-        await waitFor(() => expect(mockMoveOffCard).toHaveBeenCalledWith(4_000))
+        await waitFor(() => expect(order).toContain('broadcast'))
 
-        expect(mockPatch).toHaveBeenCalledWith(CARD_ID, { collateralTargetCents: 6_000, loadAllToCard: false })
-        expect(order).toEqual(['patch', 'withdraw'])
+        expect(mockMoveOffCard).toHaveBeenCalledWith(
+            4_000,
+            expect.objectContaining({ beforeSubmit: expect.any(Function) })
+        )
+        expect(mockPatch).toHaveBeenCalledWith(CARD_ID, {
+            collateralTargetCents: 6_000,
+            pinTarget: false,
+            loadAllToCard: false,
+        })
+        expect(order).toEqual(['passkey', 'patch', 'broadcast'])
     })
 
-    it('does not withdraw when the pin fails', async () => {
+    it('a cancelled passkey leaves the balancing policy untouched', async () => {
+        // the real hook throws from the passkey step without ever calling beforeSubmit
+        mockMoveOffCard.mockRejectedValueOnce(new Error('passkey cancelled'))
+        setup({ onCard: 10_000 })
+
+        await submitAmount('Move off card', '40')
+        await screen.findByText('passkey cancelled')
+
+        expect(mockPatch).not.toHaveBeenCalled()
+        expect(mockToast.success).not.toHaveBeenCalled()
+    })
+
+    it('a failed lowering aborts the move and reports the error', async () => {
         mockPatch.mockRejectedValueOnce(new Error('offline'))
         setup({ onCard: 10_000 })
 
         await submitAmount('Move off card', '40')
         await screen.findByText('offline')
 
-        expect(mockMoveOffCard).not.toHaveBeenCalled()
+        expect(mockToast.success).not.toHaveBeenCalled()
+    })
+
+    it('does not touch the target when the remainder still covers it', async () => {
+        setup({ onCard: 10_000, policy: policy({ targetCents: 5_000 }) })
+
+        await submitAmount('Move off card', '40')
+        await waitFor(() => expect(mockToast.success).toHaveBeenCalled())
+
+        expect(mockPatch).not.toHaveBeenCalled()
+        expect(mockMoveOffCard).toHaveBeenCalledWith(4_000, { beforeSubmit: undefined })
     })
 
     it('offers only landed collateral, never the amount still moving to the card', async () => {
@@ -167,5 +208,42 @@ describe('OnCardScreen — keep on card', () => {
         await waitFor(() => expect(mockMoveOffCard).toHaveBeenCalledWith(7_000))
         // the modal closed: the target change stood even though the return failed
         await waitFor(() => expect(screen.queryByRole('button', { name: 'Save' })).toBeNull())
+    })
+})
+
+describe('OnCardScreen — load everything to card', () => {
+    it('switching it on PATCHes only that flag', async () => {
+        setup()
+
+        fireEvent.click(screen.getByRole('switch', { name: 'Load everything to card' }))
+
+        await waitFor(() => expect(mockPatch).toHaveBeenCalledWith(CARD_ID, { loadAllToCard: true }))
+        expect(mockToast.error).not.toHaveBeenCalled()
+    })
+
+    it('a rejected PATCH reports the failure and leaves the switch off and usable', async () => {
+        mockPatch.mockRejectedValueOnce(new Error('offline'))
+        setup()
+
+        const toggle = screen.getByRole('switch', { name: 'Load everything to card' })
+        fireEvent.click(toggle)
+
+        await waitFor(() => expect(mockToast.error).toHaveBeenCalledWith("Couldn't save. Please try again."))
+        expect(toggle).toHaveAttribute('aria-checked', 'false')
+        await waitFor(() => expect(toggle).not.toBeDisabled())
+    })
+})
+
+describe('OnCardScreen — keep off card', () => {
+    it('saving the floor PATCHes only walletFloorCents', async () => {
+        setup()
+
+        fireEvent.click(screen.getByRole('button', { name: /^Keep off card/ }))
+        const input = await screen.findByLabelText(/^Keep off card/)
+        fireEvent.change(input, { target: { value: '10' } })
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+        await waitFor(() => expect(mockPatch).toHaveBeenCalledWith(CARD_ID, { walletFloorCents: 1_000 }))
+        expect(mockMoveOffCard).not.toHaveBeenCalled()
     })
 })

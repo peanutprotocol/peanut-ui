@@ -50,6 +50,8 @@ export function SemanticRequestInputView() {
         isLoading,
         isLoggedIn,
         isConnected,
+        isXChain,
+        isDiffToken,
         setAmount,
         handlePayment,
         setCurrentView,
@@ -182,7 +184,9 @@ export function SemanticRequestInputView() {
                         disabled={isAmountFromUrl || !!chargeIdFromUrl}
                     />
                     {isInsufficientBalance && <FieldError>{t('errors.insufficientPayment')}</FieldError>}
-                    {!isInsufficientBalance && <CollateralPullNotice amountUsd={amount} />}
+                    {!isInsufficientBalance && (
+                        <CollateralPullNotice amountUsd={amount} collateralOnlyAllowed={!(isXChain || isDiffToken)} />
+                    )}
                 </div>
 
                 {/* token selector for chain/token selection (not for USERNAME) */}

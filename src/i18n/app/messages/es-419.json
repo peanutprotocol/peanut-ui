@@ -1671,7 +1671,7 @@
             "summary": "Los pagos con tarjeta usan lo que está en la tarjeta. Todo lo que está fuera de la tarjeta es instantáneo para envíos, pagos QR y retiros, y nunca espera el bloqueo de la tarjeta.",
             "autoTitle": "Recargas automáticas",
             "keepOnCard": "Mantener en la tarjeta",
-            "keepOnCardHint": "Se recarga desde tu saldo fuera de la tarjeta cada vez que la tarjeta baja de este monto. Las compras mayores igual pasan: la tarjeta se recarga y el reintento funciona.",
+            "keepOnCardHint": "Se recarga desde tu saldo fuera de la tarjeta cada vez que la tarjeta baja de este monto. Una compra mayor se rechaza una vez: la tarjeta se recarga sola y, si volvés a intentar en uno o dos minutos, normalmente pasa.",
             "keepOffCard": "Mantener fuera de la tarjeta",
             "keepOffCardHint": "Nunca se mueve a la tarjeta automáticamente, así que siempre está listo para enviar.",
             "loadAll": "Cargar todo a la tarjeta",

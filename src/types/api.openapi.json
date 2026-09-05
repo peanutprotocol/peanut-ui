@@ -14149,6 +14149,10 @@
                                     "loadAllToCard": {
                                         "type": "boolean"
                                     },
+                                    "pinTarget": {
+                                        "description": "Default true. False lowers collateralTargetCents without pinning it (a move off the card), so the nightly tuner keeps sizing the card.",
+                                        "type": "boolean"
+                                    },
                                     "walletFloorCents": {
                                         "maximum": 1000000,
                                         "minimum": 0,

@@ -83,6 +83,9 @@ export interface RainCardCollateralPolicy {
 
 export interface UpdateCollateralSettingsInput {
     collateralTargetCents?: number
+    /** False lowers the target without pinning it (a move off the card, not a
+     *  number the user chose) so an auto-sized card stays auto-sized. */
+    pinTarget?: boolean
     walletFloorCents?: number
     loadAllToCard?: boolean
 }
@@ -297,8 +300,13 @@ export interface RainCooldownEventDetail {
     silent?: boolean
 }
 
-/** Arm the shared cooldown from a server-confirmed lock duration. */
-function armCooldownFromSuccess(cooldownSec: unknown) {
+/**
+ * Arm the shared cooldown from a server-confirmed lock duration. Every
+ * success path that consumed a Rain withdrawal signature feeds this — the
+ * direct submit and stamp below, and the coordinated Manteca QR / off-ramp
+ * completions, whose replies carry the same `cooldownSec`.
+ */
+export function armRainCooldownFromSuccess(cooldownSec: unknown) {
     if (typeof window === 'undefined') return
     if (typeof cooldownSec !== 'number' || !Number.isFinite(cooldownSec) || cooldownSec <= 0) return
     window.dispatchEvent(
@@ -579,7 +587,7 @@ export const rainApi = {
         })
         // The pull just consumed a signature: the lock is running now, so the
         // next review step can show its countdown before the passkey.
-        armCooldownFromSuccess(res.cooldownSec)
+        armRainCooldownFromSuccess(res.cooldownSec)
         return res
     },
 
@@ -627,7 +635,7 @@ export const rainApi = {
                 body: input,
             })
             // The mixed userOp consumed a signature too: same lock, same countdown.
-            armCooldownFromSuccess(res.cooldownSec)
+            armRainCooldownFromSuccess(res.cooldownSec)
         } catch (e) {
             // Non-fatal: intent stays PENDING until expiry, no history
             // categorization until then. Log loudly but don't block the user.

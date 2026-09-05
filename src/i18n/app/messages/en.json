@@ -1671,7 +1671,7 @@
             "summary": "Card payments spend from what's on the card. Everything off the card is instant for sends, QR payments and withdrawals, and never waits for the card's lock.",
             "autoTitle": "Automatic top-ups",
             "keepOnCard": "Keep on card",
-            "keepOnCardHint": "Topped up from your off-card balance whenever the card dips below this. Card purchases above it still go through: the card refills and the retry works.",
+            "keepOnCardHint": "Topped up from your off-card balance whenever the card dips below this. A card purchase above it is declined once: the card tops itself up and the purchase usually works if you try again after a minute or two.",
             "keepOffCard": "Keep off card",
             "keepOffCardHint": "Never moved to the card automatically, so it's always ready to send.",
             "loadAll": "Load everything to card",

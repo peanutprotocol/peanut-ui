@@ -291,7 +291,8 @@ const LinkSendInitialView = () => {
                 </Notification>
             )}
 
-            {!errorState?.showError && <CollateralPullNotice amountUsd={tokenValue} />}
+            {/* a link is an approve + deposit bundle: only the shortfall can leave the card */}
+            {!errorState?.showError && <CollateralPullNotice amountUsd={tokenValue} collateralOnlyAllowed={false} />}
 
             <div className="flex flex-col gap-4">
                 {/* only a flow (submit-time) error flips the CTA to retry — a
