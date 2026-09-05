@@ -37,16 +37,15 @@ const KycPrepChecklist = ({ path }: { path: KycPrepPath }) => {
             {!isHosted && <p className="text-body-s">{t(`intro.${path}`)}</p>}
             {/* The requirements are label + value pairs, not claims, so they read
                 as DataRows in a card rather than a tinted checklist. The label is
-                the short document name so the value has room; what counts as that
-                document hangs off the row's own info tooltip. */}
+                the short document name so the value has room, and what counts as
+                that document stays on screen under its row — it is the part a
+                user gets wrong, so it does not belong behind a tooltip. */}
             <Card position="single" className="divide-y divide-dashed divide-border-default px-4 py-0">
                 {items.map((item) => (
-                    <DataRow
-                        key={item}
-                        label={t(`items.${item}.label`)}
-                        value={t(`items.${item}.title`)}
-                        moreInfoText={t(`items.${item}.body`)}
-                    />
+                    <div key={item} className="pb-3">
+                        <DataRow label={t(`items.${item}.label`)} value={t(`items.${item}.title`)} />
+                        <p className="text-body-xs text-foreground-secondary">{t(`items.${item}.body`)}</p>
+                    </div>
                 ))}
             </Card>
             {isHosted && (
