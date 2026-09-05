@@ -2,7 +2,6 @@
 
 import NavHeader from '@/components/Global/NavHeader'
 import Card from '@/components/Global/Card'
-import { Icon } from '@/components/Global/Icons/Icon'
 import { useLimits } from '@/hooks/useLimits'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useTranslations } from 'next-intl'
@@ -103,7 +102,6 @@ const MantecaLimitsView = () => {
                         })}
                         {/* info text */}
                         <div className="flex items-center justify-center gap-2 text-body-xs text-foreground-secondary">
-                            <Icon name="info" size={16} />
                             <p>{t('appliesTo')}</p>
                         </div>
                     </div>
