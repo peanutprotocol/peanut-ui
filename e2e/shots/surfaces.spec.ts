@@ -113,16 +113,34 @@ for (const [id, surface] of Object.entries(SURFACE_META)) {
         // Measure the head-to-next gap rather than trusting the class list: a
         // margin that collapses, or a parent gap stacking on top of it, is
         // exactly the bug this rule shipped with the first time.
-        const gaps = await page.evaluate(() =>
-            Array.from(document.querySelectorAll('[data-testid="modal-head"], [data-testid="drawer-header"]')).map(
-                (head) => {
-                    const next = head.nextElementSibling
-                    if (!next) return { kind: head.getAttribute('data-testid'), gap: null }
-                    const gap = next.getBoundingClientRect().top - head.getBoundingClientRect().bottom
-                    return { kind: head.getAttribute('data-testid'), gap: Math.round(gap * 10) / 10 }
+        const gaps = await page.evaluate(() => {
+            const round = (n: number) => Math.round(n * 10) / 10
+            const heads = Array.from(
+                document.querySelectorAll('[data-testid="modal-head"], [data-testid="drawer-header"]')
+            ).map((head) => {
+                const next = head.nextElementSibling
+                if (!next) return { kind: head.getAttribute('data-testid'), gap: null }
+                return {
+                    kind: head.getAttribute('data-testid'),
+                    gap: round(next.getBoundingClientRect().top - head.getBoundingClientRect().bottom),
                 }
-            )
-        )
+            })
+            // Every pair of buttons that are visual siblings, so an inconsistent
+            // gap between two ctas shows up as a number rather than a feeling.
+            const buttonGaps: { gap: number }[] = []
+            for (const parent of new Set(Array.from(document.querySelectorAll('button')).map((b) => b.parentElement))) {
+                if (!parent) continue
+                const kids = Array.from(parent.children).filter(
+                    (c) => c.querySelector('button') || c.tagName === 'BUTTON'
+                )
+                for (let i = 1; i < kids.length; i++) {
+                    const a = kids[i - 1].getBoundingClientRect()
+                    const b = kids[i].getBoundingClientRect()
+                    if (b.top >= a.bottom - 1) buttonGaps.push({ gap: round(b.top - a.bottom) })
+                }
+            }
+            return { heads, buttonGaps }
+        })
         await mkdir(OUT_DIR, { recursive: true })
         await writeFile(join(OUT_DIR, `${id}.gaps.json`), JSON.stringify(gaps))
         await page.screenshot({

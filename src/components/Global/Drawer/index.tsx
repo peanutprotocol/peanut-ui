@@ -132,12 +132,13 @@ const DrawerContent = React.forwardRef<React.ElementRef<typeof DrawerPrimitive.C
 )
 DrawerContent.displayName = 'DrawerContent'
 
-// mb-3: the head carries M/12 beneath it, the same rule ActionModal applies to
-// modals. A call site that puts the header in a gapped flex column has to zero
-// that gap, or the two stack.
+// No margin here on purpose. Most callers place the header in their own gapped
+// flex column, so a margin on the shared primitive stacks with that gap (16 + 12
+// = 28px) on every screen nobody touched. Each drawer owns the M/12 under its
+// own head instead — see CancelSendLinkDrawer and KycRegionRestrictedModal.
 const DrawerHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
     <div
-        className={twMerge('mb-3 grid gap-1 p-4 text-center sm:text-left', className)}
+        className={twMerge('grid gap-1 p-4 text-center sm:text-left', className)}
         data-testid="drawer-header"
         {...props}
     />

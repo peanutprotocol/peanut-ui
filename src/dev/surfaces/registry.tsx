@@ -141,7 +141,8 @@ export const SURFACES: Record<string, Surface> = {
     '05-a-signtesttransaction': {
         name: 'SignTestTransaction — account ready',
         path: 'Setup/Views/SignTestTransaction.tsx',
-        render: () => <SetupScreen screenId="sign-test-transaction" />,
+        blocked:
+            'Redirects to /home when the fixture account already exists (SignTestTransaction guards on accountExists), so the harness never reaches the account-ready state.',
     },
     '06-a-signup': { name: 'Signup', path: 'Setup/Views/Signup.tsx', render: () => <SetupScreen screenId="signup" /> },
     '07-a-setuppasskey': {

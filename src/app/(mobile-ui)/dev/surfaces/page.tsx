@@ -10,7 +10,7 @@
  * reaches a production chunk.
  */
 
-import { useSearchParams } from 'next/navigation'
+import { parseAsString, useQueryState } from 'nuqs'
 import Link from 'next/link'
 import { useEffect } from 'react'
 import { DEV_TOOLS_ENABLED } from '@/constants/dev-tools.consts'
@@ -44,8 +44,7 @@ function SurfaceHost({ id }: { id: string }) {
 }
 
 export default function DevSurfacesPage() {
-    const params = useSearchParams()
-    const id = params.get('s')
+    const [id] = useQueryState('s', parseAsString)
 
     if (!DEV_TOOLS_ENABLED) return null
 

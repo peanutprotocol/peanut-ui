@@ -43,7 +43,7 @@ const CancelSendLinkDrawer = ({
                     {/* destructive-confirm anatomy: red icon bubble (design.md nested-drawer recipe) */}
                     <IconBubble icon="link-slash" color="red" className="mb-4" />
 
-                    <DrawerHeader className="mb-0 w-full gap-2 p-0 text-center sm:text-center">
+                    <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                         <DrawerTitle>{t('cancelSendLinkModal.title')}</DrawerTitle>
                         {/* two paragraphs under the head → body reads left-aligned, not centered */}
                         <DrawerDescription className="space-y-2 text-left">

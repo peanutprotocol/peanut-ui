@@ -1,1 +1,1 @@
-placeholder for local build
+../AGENTS.md

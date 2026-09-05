@@ -1447,7 +1447,7 @@
         },
         "cancel": {
             "title": "Cancel your card?",
-            "body": "You won't be able to use it again. Request a new one anytime.",
+            "body": "You won't be able to use it again. You can request a new one.",
             "canceling": "Canceling…",
             "slideToCancel": "Slide to Cancel",
             "canceledTitle": "Card canceled",

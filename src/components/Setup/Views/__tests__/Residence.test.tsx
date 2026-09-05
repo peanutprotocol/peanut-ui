@@ -80,7 +80,7 @@ describe('ResidenceStep', () => {
     it('renders the step title as the only heading on the select view', () => {
         render(<ResidenceStep />)
         expect(screen.getAllByRole('heading')).toHaveLength(1)
-        expect(screen.getByRole('heading', { level: 1, name: 'Where are you a resident?' })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { level: 1, name: 'Where do you legally live?' })).toBeInTheDocument()
     })
 
     it('prefills from geo as a suggestion without advancing', () => {
