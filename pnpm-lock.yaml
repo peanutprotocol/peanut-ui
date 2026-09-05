@@ -33,6 +33,9 @@ importers:
       '@capacitor/app':
         specifier: ^8.1.0
         version: 8.1.0(@capacitor/core@8.2.0)
+      '@capacitor/app-launcher':
+        specifier: 8.0.1
+        version: 8.0.1(@capacitor/core@8.2.0)
       '@capacitor/browser':
         specifier: ^8.0.3
         version: 8.0.3(@capacitor/core@8.2.0)
@@ -72,6 +75,9 @@ importers:
       '@capgo/capacitor-crisp':
         specifier: ^8.0.27
         version: 8.0.27(@capacitor/core@8.2.0)
+      '@capgo/capacitor-in-app-review':
+        specifier: 8.2.3
+        version: 8.2.3(@capacitor/core@8.2.0)
       '@capgo/capacitor-native-biometric':
         specifier: 8.6.0
         version: 8.6.0(@capacitor/core@8.2.0)
@@ -608,6 +614,11 @@ packages:
     peerDependencies:
       '@capacitor/core': ^8.2.0
 
+  '@capacitor/app-launcher@8.0.1':
+    resolution: {integrity: sha512-23D8zi74sn7kxvISix8qYwgqdxGJN+4NImcNGvHen98LB1zb4eZfkJvFvp7pwntxGw4OjIE7yuf4wbzZxQHpog==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
+
   '@capacitor/app@8.1.0':
     resolution: {integrity: sha512-MlmttTOWHDedr/G4SrhNRxsXMqY+R75S4MM4eIgzsgCzOYhb/MpCkA5Q3nuOCfL1oHm26xjUzqZ5aupbOwdfYg==}
     peerDependencies:
@@ -673,6 +684,11 @@ packages:
 
   '@capgo/capacitor-crisp@8.0.27':
     resolution: {integrity: sha512-Qq5gQIHuXfW7UD7uKYQuccTpMYwnsvvryiFWv5bvEYsEvtp77oRDr2o+TBh8/sdJcaOrHNUKNaOhF1c9HO/iEA==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
+
+  '@capgo/capacitor-in-app-review@8.2.3':
+    resolution: {integrity: sha512-uTFp0IZc6JaCALEg1Z/Ku+95hrhIs8fgKmgqCxQn4MAC5m2EtkjVhSw1+Px9fk3wVbgyAZqFpRvDzK83HUB5Zw==}
     peerDependencies:
       '@capacitor/core': '>=8.0.0'
 
@@ -8930,6 +8946,10 @@ snapshots:
     dependencies:
       '@capacitor/core': 8.2.0
 
+  '@capacitor/app-launcher@8.0.1(@capacitor/core@8.2.0)':
+    dependencies:
+      '@capacitor/core': 8.2.0
+
   '@capacitor/app@8.1.0(@capacitor/core@8.2.0)':
     dependencies:
       '@capacitor/core': 8.2.0
@@ -9001,6 +9021,10 @@ snapshots:
       '@capacitor/core': 8.2.0
 
   '@capgo/capacitor-crisp@8.0.27(@capacitor/core@8.2.0)':
+    dependencies:
+      '@capacitor/core': 8.2.0
+
+  '@capgo/capacitor-in-app-review@8.2.3(@capacitor/core@8.2.0)':
     dependencies:
       '@capacitor/core': 8.2.0
 

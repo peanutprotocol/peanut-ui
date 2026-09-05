@@ -99,11 +99,6 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         path: 'Migration/MigrationDownloadModal.tsx',
         blocked: 'Opens itself off the sunset countdown and a stored dismissal — no visible prop.',
     },
-    '42-c-reviewpromptmodal': {
-        name: 'ReviewPromptModal',
-        path: 'Migration/ReviewPromptModal.tsx',
-        blocked: 'Opens itself after a happy-moment event and a stored cooldown — no visible prop.',
-    },
     '43-c-scantodownloadmodal': { name: 'ScanToDownloadModal', path: 'Migration/ScanToDownloadModal.tsx' },
     '44-c-otaupdatemodal': { name: 'OtaUpdateModal (normal)', path: 'Profile/components/OtaUpdateModal.tsx' },
     '45-c-residencechangemodal': { name: 'ResidenceChangeModal', path: 'Profile/views/ResidenceChangeModal.tsx' },

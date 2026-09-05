@@ -25,13 +25,6 @@ export const MIGRATION_URGENCY_THRESHOLD_DAYS = 14
 // (only during the migration window; flag off keeps closed-forever)
 export const NOTIF_PROMPT_SNOOZE_DAYS = 14
 
-// store review deep links ("Love it" on the review prompt); the ios id is the
-// App Store Connect app id (6786373552).
-export const REVIEW_URL = {
-    ios: 'https://apps.apple.com/app/id6786373552?action=write-review',
-    android: 'https://play.google.com/store/apps/details?id=me.peanut.wallet',
-} as const
-
 // support escape hatch for users who can't install the app: support DMs
 // `/home?keep-web=<token>`; visiting it stores a 90-day cookie that bypasses
 // the sunset block.
@@ -40,8 +33,20 @@ export const KEEP_WEB_COOKIE = 'keep-web'
 export const KEEP_WEB_TOKEN = 'walnut-still-cracks'
 export const KEEP_WEB_COOKIE_DAYS = 90
 
+/**
+ * Write-a-review deep links for the user-initiated "Rate Peanut" row in Profile
+ * → About. A prompt built out of these would breach guideline 5.6.1 (that ask is
+ * the OS sheet, see utils/app-review.ts) — Apple documents this form only for a
+ * review the user starts themselves, which is what the row is. It is also the
+ * release valve for a user whose OS quota silently swallowed the sheet.
+ */
+export const REVIEW_URL = {
+    ios: 'https://apps.apple.com/us/app/id6786373552?action=write-review',
+    android: 'https://play.google.com/store/apps/details?id=me.peanut.wallet',
+} as const
+
 export const STORE_URL = {
-    ios: 'https://apps.apple.com/app/id6786373552',
+    ios: 'https://apps.apple.com/us/app/id6786373552',
     android: 'https://play.google.com/store/apps/details?id=me.peanut.wallet',
 } as const
 
