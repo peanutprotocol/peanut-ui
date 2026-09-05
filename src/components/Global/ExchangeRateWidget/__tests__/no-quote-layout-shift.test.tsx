@@ -7,13 +7,13 @@
  * feed quotes but no rail supports. So the boxes hold their height on the
  * typed amount, and the claims inside them wait for a landed quote.
  *
- * There is no "Peanut fee" row at all: mono/product/pricing.md forbids a
- * separate visible Peanut-fee line outright — the displayed rate IS the
- * disclosure — and the widget's own default USD→EUR corridor stacks ~100bps
- * behind what used to read "Free!".
+ * The "Peanut fee — Free!" row stands: BRIDGE_DEVELOPER_FEE_RATE is 0 here and
+ * on the backend, so the label is accurate today. Whether a zero fee should be
+ * a visible LINE at all is a separate question — mono/product/pricing.md wants
+ * fee visibility to be the rate — and it is not this PR's to settle.
  */
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import ExchangeRateWidget from '../index'
 
@@ -55,7 +55,7 @@ const renderMarketingWidget = (to: string) =>
     )
 
 /** The two boxes whose height was the layout shift, found without their text. */
-const feeCard = () => document.querySelector('.min-h-14')
+const feeCard = () => document.querySelector('.min-h-17')
 const deliveryLine = () => document.querySelector('.min-h-4')
 
 describe('ExchangeRateWidget before the quote arrives', () => {
@@ -95,10 +95,14 @@ describe('ExchangeRateWidget before the quote arrives', () => {
         expect(screen.getByText('Should arrive in minutes.')).toBeInTheDocument()
     })
 
-    it('shows no separate Peanut fee line, priced or not', () => {
+    it('states both fees once priced, and neither before', () => {
         mockUseExchangeRate.mockReturnValue(quote())
         renderWidget()
+        expect(screen.getByText('Peanut fee')).toBeInTheDocument()
 
+        cleanup()
+        mockUseExchangeRate.mockReturnValue(quote({ destinationAmount: '', exchangeRate: 0, isLoading: true }))
+        renderWidget()
         expect(screen.queryByText('Peanut fee')).not.toBeInTheDocument()
     })
 

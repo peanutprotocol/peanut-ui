@@ -387,12 +387,19 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
             </div>
 
             {hasAmount && (
-                <div className="flex min-h-14 w-full flex-col justify-center gap-3 rounded-sm border border-border-default px-4 py-2">
+                <div className="flex min-h-17 w-full flex-col justify-center gap-3 rounded-sm border border-border-default px-4 py-2">
                     {hasQuote && (
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-left text-body-s font-normal">{l.bankFee}</h2>
-                            <h2 className="text-left text-body-s font-normal">{l.free}</h2>
-                        </div>
+                        <>
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-left text-body-s font-normal">{l.bankFee}</h2>
+                                <h2 className="text-left text-body-s font-normal">{l.free}</h2>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-left text-body-s font-normal">{l.peanutFee}</h2>
+                                <h2 className="text-left text-body-s font-normal">{l.free}</h2>
+                            </div>
+                        </>
                     )}
                 </div>
             )}
