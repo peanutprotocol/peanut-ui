@@ -18,15 +18,10 @@ const PASSTHROUGH_TIMEOUT_MS = 10_000
 
 // Public read-only rate endpoints proxied to the real backend so demo shows live
 // FX rates. Best-effort: any failure falls through to the canned handler below.
-// /tokens/* are public too — the canned {} fallback is NOT a valid shape for
-// them (fetchWalletBalances crashed on `{}.balances.filter` in recover-funds).
-const PASSTHROUGH_GET = new Set([
-    '/bridge/exchange-rate',
-    '/manteca/prices',
-    '/fx/rate',
-    '/tokens/price',
-    '/tokens/wallet-portfolio',
-])
+// /tokens/price is public too — the canned {} fallback is NOT a valid shape
+// for it. /tokens/wallet-portfolio is owner-only (session required), so it
+// gets a synthetic handler instead of a passthrough that would 401.
+const PASSTHROUGH_GET = new Set(['/bridge/exchange-rate', '/manteca/prices', '/fx/rate', '/tokens/price'])
 
 const EMPTY_GRAPH = {
     nodes: [] as unknown[],
@@ -501,6 +496,10 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         pattern: '/fx/rate',
         handler: () => json({ error: 'FX_UNAVAILABLE', message: 'Exchange rates are unavailable.' }, 503),
     },
+
+    // The demo wallet holds nothing to recover; the shape is what
+    // fetchWalletBalances reads.
+    { method: 'GET', pattern: '/tokens/wallet-portfolio', handler: () => ({ balances: [], totalBalance: 0 }) },
 
     // bridge on/off-ramp
     {

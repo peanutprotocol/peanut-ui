@@ -22,6 +22,19 @@ const body = async (path: string, options?: RequestInit) => {
 }
 
 describe('demoRespond — routing', () => {
+    it('answers wallet-portfolio synthetically instead of hitting the owner-only endpoint', async () => {
+        const originalFetch = global.fetch
+        global.fetch = jest.fn()
+        try {
+            const { res, data } = await body('/tokens/wallet-portfolio?address=0xdemo')
+            expect(res.status).toBe(200)
+            expect(data).toEqual({ balances: [], totalBalance: 0 })
+            expect(global.fetch).not.toHaveBeenCalled()
+        } finally {
+            global.fetch = originalFetch
+        }
+    })
+
     it('bounds and forwards the shared FX passthrough', async () => {
         const originalFetch = global.fetch
         global.fetch = jest.fn().mockResolvedValue(
