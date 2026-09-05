@@ -808,6 +808,7 @@
                 "title": "Boas notícias",
                 "description": "Não há restrições onde você mora. Dólares digitais e envios para qualquer @usuário funcionam desde já, e uma verificação rápida de identidade libera {rail}.",
                 "descriptionNoRail": "Não há restrições onde você mora. Dólares digitais e envios para qualquer @usuário funcionam desde já.",
+                "cardClause": "O cartão Peanut também está disponível: precisa de uma verificação de identidade, e você entra em uma lista de espera.",
                 "rails": {
                     "pix": "transferências PIX",
                     "arQr": "pagamentos e transferências por QR",
@@ -1629,7 +1630,7 @@
             "verificationSlow": "A verificação está demorando mais que o esperado. Tente de novo."
         },
         "recovery": {
-            "navTitle": "Recuperar fundos do cartão",
+            "navTitle": "Recuperar fundos",
             "previewFailed": "Não foi possível carregar a prévia da recuperação",
             "failed": "A recuperação falhou — tente de novo",
             "doneTitle": "Fundos enviados para sua carteira.",

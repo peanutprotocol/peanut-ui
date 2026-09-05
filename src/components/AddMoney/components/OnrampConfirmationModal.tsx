@@ -1,13 +1,11 @@
 'use client'
 
+import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { useTranslations } from 'next-intl'
-
-// grey uppercase mini-header, the same shape the account-ready screen uses
-const MINI_HEADER = 'text-label-m uppercase tracking-wide text-foreground-secondary'
 
 interface OnrampConfirmationModalProps {
     visible: boolean
@@ -46,13 +44,13 @@ export const OnrampConfirmationModal = ({
                         screen that confirms an irreversible transfer. */}
                     <div className="flex w-full flex-col gap-4 text-left">
                         <div className="flex flex-col gap-1">
-                            <h2 className={MINI_HEADER}>{t('nextStep')}</h2>
+                            <MiniHeader>{t('nextStep')}</MiniHeader>
                             <p className="text-body-s text-foreground-primary">{t('bankDetailsItem')}</p>
                             <p className="text-body-s text-foreground-primary">{t('referenceCodeItem')}</p>
                         </div>
 
                         <div className="flex flex-col gap-1">
-                            <h2 className={MINI_HEADER}>{t('youMust')}</h2>
+                            <MiniHeader>{t('youMust')}</MiniHeader>
                             <p className="text-body-s text-foreground-primary">
                                 {t.rich('sendExactly', {
                                     currency,
