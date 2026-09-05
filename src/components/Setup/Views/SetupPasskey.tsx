@@ -53,6 +53,21 @@ const SetupPasskey = () => {
     // hydrates asynchronously from a stale web-authn-key cookie (native cookie
     // jar) can never be mistaken for a fresh registration and skip the step.
     const registrationInitiatedRef = useRef(false)
+    /*
+     * Synchronous latch around the WHOLE handler. `isRegistering` only flips
+     * once handleRegister runs, and two awaits precede it — the live support
+     * re-check and the username-availability request — so on a phone the button
+     * stayed enabled for a second or more after the first tap. Every extra tap
+     * in that window started its own registration, and the losers surfaced
+     * CeremonyConflictError ("Something interrupted the passkey prompt") while
+     * the real ceremony was still coming up (PEANUT-UI-T09). A ref, not state:
+     * the latch also has to hold for callers that aren't the button — the help
+     * modal's retry action re-enters the handler directly.
+     */
+    const setupInFlightRef = useRef(false)
+    // Covers those same two awaits in the UI, so the button reads as busy
+    // instead of dead while the username check is in flight.
+    const [isPreparing, setIsPreparing] = useState(false)
 
     // preflight check for common passkey issues
     useEffect(() => {
@@ -68,6 +83,18 @@ const SetupPasskey = () => {
 
     // handle passkey registration with retry logic
     const handlePasskeySetup = async () => {
+        if (setupInFlightRef.current) return
+        setupInFlightRef.current = true
+        setIsPreparing(true)
+        try {
+            await runPasskeySetup()
+        } finally {
+            setupInFlightRef.current = false
+            setIsPreparing(false)
+        }
+    }
+
+    const runPasskeySetup = async () => {
         // clear any previous inline errors
         setInlineError(null)
         setErrorName(null)
@@ -227,8 +254,8 @@ const SetupPasskey = () => {
                         re-checks support and surfaces an actionable message, so a tap is
                         never a silent no-op. Only disabled while actually working. */}
                     <Button
-                        loading={isRegistering || isLoading}
-                        disabled={isRegistering || isLoading}
+                        loading={isPreparing || isRegistering || isLoading}
+                        disabled={isPreparing || isRegistering || isLoading}
                         onClick={handlePasskeySetup}
                         className="text-nowrap"
                         shadowSize="4"

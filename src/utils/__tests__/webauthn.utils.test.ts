@@ -3,6 +3,7 @@ import {
     capturePasskeySignFailure,
     classifyPasskeyError,
     getPasskeyErrorSetupKey,
+    normalizeNativePasskeyError,
     normalizePasskeyServerError,
 } from '../webauthn.utils'
 
@@ -141,5 +142,44 @@ describe('getPasskeyErrorSetupKey', () => {
         expect(getPasskeyErrorSetupKey(new Error('boom'))).toBeUndefined()
         expect(getPasskeyErrorSetupKey(passkeyError('SOME_FUTURE_CODE'))).toBeUndefined()
         expect(getPasskeyErrorSetupKey(undefined)).toBeUndefined()
+    })
+})
+
+describe('normalizeNativePasskeyError', () => {
+    // @capgo/capacitor-passkey rejects with a bare CapacitorException: the
+    // Android plugin flattens every non-DOM CreateCredentialException to
+    // code "UnknownError", and the JS shim passes the Error through without
+    // ever setting `name`. Callers switch on `err.name`, so without this the
+    // whole native failure surface collapses into "unexpected error".
+    const capacitorRejection = (message: string, code?: string, dataName?: string) =>
+        Object.assign(new Error(message), { code, data: dataName ? { name: dataName } : undefined })
+
+    test('maps an Android Credential Manager cancellation to NotAllowedError', () => {
+        const err = normalizeNativePasskeyError(
+            capacitorRejection('User cancelled the selector', 'UnknownError', 'UnknownError')
+        )
+        expect((err as Error).name).toBe('NotAllowedError')
+        expect(classifyPasskeyError(err).code).toBe('LOGIN_CANCELED')
+    })
+
+    test('recovers a DOM name the plugin did preserve', () => {
+        const err = normalizeNativePasskeyError(
+            capacitorRejection('The device does not support passkeys.', 'NotSupportedError', 'NotSupportedError')
+        )
+        expect((err as Error).name).toBe('NotSupportedError')
+        expect(classifyPasskeyError(err).code).toBe('PASSKEY_UNSUPPORTED')
+    })
+
+    test('leaves an unattributable native failure alone rather than guessing', () => {
+        const err = normalizeNativePasskeyError(capacitorRejection('Passkey registration failed.', 'UnknownError'))
+        expect((err as Error).name).toBe('Error')
+        expect(classifyPasskeyError(err).code).toBe('LOGIN_ERROR')
+    })
+
+    test('never renames an error that already carries a real name', () => {
+        const guardError = Object.assign(new Error('another passkey ceremony is already in progress'), {
+            name: 'CeremonyConflictError',
+        })
+        expect((normalizeNativePasskeyError(guardError) as Error).name).toBe('CeremonyConflictError')
     })
 })
