@@ -56,7 +56,10 @@ export function useBalanceSplit() {
         return Math.max(0, Math.floor(overview?.balance?.spendingPower ?? 0))
     }, [overview])
     const pendingToCardCents = useMemo(
-        () => (isRainBalanceKnown(overview) ? Math.max(0, Math.floor(overview?.balance?.inTransitToCollateralCents ?? 0)) : 0),
+        () =>
+            isRainBalanceKnown(overview)
+                ? Math.max(0, Math.floor(overview?.balance?.inTransitToCollateralCents ?? 0))
+                : 0,
         [overview]
     )
 
