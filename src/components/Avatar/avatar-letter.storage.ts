@@ -15,9 +15,14 @@
  * are unlocked for everyone, so there is nothing to enforce and nothing to
  * bypass.
  *
- * Keys are scoped per account, like [[declared-residence.storage]]: localStorage
- * is shared across every login on the device, and an unscoped key would let a
+ * Keys are scoped per account, like declared-residence.storage: localStorage is
+ * shared across every login on the device, and an unscoped key would let a
  * second account inherit the first one's initial.
+ *
+ * Each mirror also records the server key it was written AGAINST, so it can only
+ * shadow that exact value. Without it, a letter stored on this device would win
+ * forever over a pick made on another device — the server moving on to
+ * `basic.frog` would never surface here.
  */
 import { readStoredValue, removeStoredValue, writeStoredValue } from '@/utils/safe-storage'
 
@@ -28,10 +33,17 @@ const LETTER_KEY = /^letter\.[a-z]$/
 
 export const isLetterAvatarKey = (key: string | null | undefined): boolean => !!key && LETTER_KEY.test(key)
 
+/** The stored letter, plus the server key it was standing in for. */
+export interface LetterMirror {
+    key: string
+    /** `user.avatarKey` at the moment the mirror was written; null when unset. */
+    serverKey: string | null
+}
+
 // getSnapshot must return a stable value for the same store state, and
 // localStorage is synchronous main-thread I/O — so the parsed value is cached
 // per account and only re-read when this module is the one that changed it.
-const cache = new Map<string, string | null>()
+const cache = new Map<string, LetterMirror | null>()
 const listeners = new Set<() => void>()
 
 export function subscribeLetterAvatar(onChange: () => void): () => void {
@@ -41,21 +53,40 @@ export function subscribeLetterAvatar(onChange: () => void): () => void {
     }
 }
 
-export function readLetterAvatar(userId: string | undefined): string | null {
+export function readLetterAvatar(userId: string | undefined): LetterMirror | null {
     if (!userId) return null
     const cached = cache.get(userId)
     if (cached !== undefined) return cached
-    const stored = readStoredValue(keyFor(userId))
-    const value = isLetterAvatarKey(stored) ? stored : null
-    cache.set(userId, value)
-    return value
+    cache.set(userId, parse(readStoredValue(keyFor(userId))))
+    return cache.get(userId) ?? null
 }
 
-/** Pass `null` to drop the mirror — what a successful server write does. */
-export function storeLetterAvatar(userId: string | undefined, key: string | null): void {
+// Tolerates the bare-string shape an earlier build wrote, treating it as a
+// mirror of "no server pick" — the only value it could have stood in for.
+function parse(stored: string | null): LetterMirror | null {
+    if (!stored) return null
+    if (isLetterAvatarKey(stored)) return { key: stored, serverKey: null }
+    try {
+        const parsed: unknown = JSON.parse(stored)
+        if (typeof parsed !== 'object' || parsed === null) return null
+        const { key, serverKey } = parsed as Record<string, unknown>
+        if (!isLetterAvatarKey(typeof key === 'string' ? key : null)) return null
+        if (serverKey !== null && typeof serverKey !== 'string') return null
+        return { key: key as string, serverKey: serverKey as string | null }
+    } catch {
+        return null
+    }
+}
+
+/** Pass a null `key` to drop the mirror — what a successful server write does. */
+export function storeLetterAvatar(
+    userId: string | undefined,
+    key: string | null,
+    serverKey: string | null = null
+): void {
     if (!userId) return
-    const value = isLetterAvatarKey(key) ? key : null
-    if (value) writeStoredValue(keyFor(userId), value)
+    const value: LetterMirror | null = isLetterAvatarKey(key) ? { key: key as string, serverKey } : null
+    if (value) writeStoredValue(keyFor(userId), JSON.stringify(value))
     else removeStoredValue(keyFor(userId))
     cache.set(userId, value)
     for (const listener of listeners) listener()

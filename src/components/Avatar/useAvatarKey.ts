@@ -12,10 +12,11 @@ import { readLetterAvatar, subscribeLetterAvatar } from './avatar-letter.storage
  * redux store and the profile surfaces take it from authContext, and a hook
  * that picked one would silently return the wrong value on the other.
  *
- * Precedence is "local letter wins when it exists", which is only safe because
- * every successful server write clears the mirror (AvatarPicker.save). So a
- * mirror can only survive while the server holds nothing newer, and the two can
- * never disagree about which pick came last.
+ * A mirror only wins while the server key still matches what it was written
+ * against. Two things could otherwise strand it: a successful write on THIS
+ * device (handled by clearing the mirror in AvatarPicker.save), and a pick made
+ * on ANOTHER device, which this device only ever learns about by refetching —
+ * so the stored serverKey is what lets that refetch take precedence.
  *
  * The server snapshot is null on purpose: reading localStorage during render
  * would make the server and client markup differ and trip hydration. The letter
@@ -23,12 +24,14 @@ import { readLetterAvatar, subscribeLetterAvatar } from './avatar-letter.storage
  * the same art whenever the letter matches the username's first character, so
  * in the common case nothing visibly changes.
  */
-export function useAvatarKey(serverKey: string | null | undefined, userId: string | undefined): string | null {
-    const localLetter = useSyncExternalStore(
+export function useAvatarKey(rawServerKey: string | null | undefined, userId: string | undefined): string | null {
+    const serverKey = rawServerKey ?? null
+    const mirror = useSyncExternalStore(
         subscribeLetterAvatar,
         () => readLetterAvatar(userId),
         () => null
     )
 
-    return localLetter ?? serverKey ?? null
+    const fresh = mirror && mirror.serverKey === serverKey ? mirror.key : null
+    return fresh ?? serverKey
 }

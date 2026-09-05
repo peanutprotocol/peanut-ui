@@ -20,15 +20,28 @@ describe('useAvatarKey', () => {
         expect(renderHook(() => useAvatarKey(undefined, undefined)).result.current).toBeNull()
     })
 
-    it('prefers a device-local letter over the server pick it has not superseded yet', () => {
-        storeLetterAvatar('u1', 'letter.k')
+    it('prefers a device-local letter over the server pick it stood in for', () => {
+        storeLetterAvatar('u1', 'letter.k', null)
 
         expect(renderHook(() => useAvatarKey(null, 'u1')).result.current).toBe('letter.k')
-        expect(renderHook(() => useAvatarKey('basic.frog', 'u1')).result.current).toBe('letter.k')
+    })
+
+    it('yields to a pick made on another device — the mirror only shadows its own server value', () => {
+        // stored while the server held nothing
+        storeLetterAvatar('u1', 'letter.k', null)
+
+        // ...then device B saved basic.frog and this device refetched
+        expect(renderHook(() => useAvatarKey('basic.frog', 'u1')).result.current).toBe('basic.frog')
+    })
+
+    it('still shadows the exact server value it was written against', () => {
+        storeLetterAvatar('u1', 'letter.k', 'basic.apple')
+
+        expect(renderHook(() => useAvatarKey('basic.apple', 'u1')).result.current).toBe('letter.k')
     })
 
     it('scopes the mirror per account — a second login does not inherit the first initial', () => {
-        storeLetterAvatar('u1', 'letter.k')
+        storeLetterAvatar('u1', 'letter.k', null)
 
         expect(renderHook(() => useAvatarKey(null, 'u2')).result.current).toBeNull()
     })
@@ -37,7 +50,7 @@ describe('useAvatarKey', () => {
         const { result } = renderHook(() => useAvatarKey(null, 'u1'))
         expect(result.current).toBeNull()
 
-        act(() => storeLetterAvatar('u1', 'letter.m'))
+        act(() => storeLetterAvatar('u1', 'letter.m', null))
         expect(result.current).toBe('letter.m')
 
         act(() => storeLetterAvatar('u1', null))
@@ -49,5 +62,13 @@ describe('useAvatarKey', () => {
         resetLetterAvatarCache()
 
         expect(renderHook(() => useAvatarKey(null, 'u1')).result.current).toBeNull()
+    })
+
+    it('reads the bare-string shape an earlier build wrote as a mirror of "no server pick"', () => {
+        window.localStorage.setItem('peanut:avatarLetter:u1', 'letter.k')
+        resetLetterAvatarCache()
+
+        expect(renderHook(() => useAvatarKey(null, 'u1')).result.current).toBe('letter.k')
+        expect(renderHook(() => useAvatarKey('basic.frog', 'u1')).result.current).toBe('basic.frog')
     })
 })

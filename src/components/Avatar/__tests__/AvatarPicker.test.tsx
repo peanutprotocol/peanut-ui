@@ -245,7 +245,7 @@ describe('AvatarPicker', () => {
         await server.settle(0, { error: 'body/avatarKey must match pattern' })
 
         // the pick survives the rejection and the user is not told off for it
-        await waitFor(() => expect(readLetterAvatar('u1')).toBe('letter.k'))
+        await waitFor(() => expect(readLetterAvatar('u1')?.key).toBe('letter.k'))
         expect(mockToast).not.toHaveBeenCalled()
         await waitFor(() => expect(radio('K')).toHaveAttribute('aria-checked', 'true'))
     })
@@ -267,7 +267,7 @@ describe('AvatarPicker', () => {
 
         fireEvent.click(screen.getByRole('radio', { name: 'K' }))
         await server.settle(0, { error: 'body/avatarKey must match pattern' })
-        await waitFor(() => expect(readLetterAvatar('u1')).toBe('letter.k'))
+        await waitFor(() => expect(readLetterAvatar('u1')?.key).toBe('letter.k'))
 
         // the API now accepts it (peanut-api-ts#1529 deployed)
         fireEvent.click(screen.getByRole('radio', { name: 'M' }))

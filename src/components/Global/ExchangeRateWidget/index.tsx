@@ -238,10 +238,14 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
     // Determine delivery time text based on destination currency
     const deliveryTimeText = destinationCurrency === 'USD' ? l.arrivesHours : l.arrivesMinutes
 
-    // The source amount is known synchronously (URL, default 10); the quote is
-    // not. Reading it here is what lets the fee card and the delivery line hold
-    // their space from the first paint.
+    // Space is reserved whenever there is an amount, but a CLAIM about that
+    // corridor needs a landed quote. Marketing callers do not pass
+    // restrictToRoutable and seed ~20 currencies the FX feed quotes but no rail
+    // supports (see the prop comment), so "arrives in minutes" gated on the
+    // typed amount alone promised fulfilment on corridors with neither a rate
+    // nor a route — including while loading and alongside "rate unavailable".
     const hasAmount = typeof sourceAmount === 'number' && sourceAmount > 0
+    const hasQuote = typeof destinationAmount === 'number' && destinationAmount > 0 && !isError
 
     // no exchange-rate board exists in figma (checked 2026-08-20) — container
     // rebuilt on the DS Card primitive (board 17802:61536) as the conservative
@@ -374,22 +378,14 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                 )}
             </div>
 
-            {/* Gated on what the user typed, not on the quote. Both fees are free
-                on every pair, so nothing here needs the rate — and gating them on
-                `destinationAmount` meant the fee card and the delivery line were
-                absent on first paint and pushed the CTA down the moment the quote
-                landed. */}
             {hasAmount && (
-                <div className="flex w-full flex-col gap-3 rounded-sm border border-border-default px-4 py-2">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-left text-body-s font-normal">{l.bankFee}</h2>
-                        <h2 className="text-left text-body-s font-normal">{l.free}</h2>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-left text-body-s font-normal">{l.peanutFee}</h2>
-                        <h2 className="text-left text-body-s font-normal">{l.free}</h2>
-                    </div>
+                <div className="flex min-h-14 w-full flex-col justify-center gap-3 rounded-sm border border-border-default px-4 py-2">
+                    {hasQuote && (
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-left text-body-s font-normal">{l.bankFee}</h2>
+                            <h2 className="text-left text-body-s font-normal">{l.free}</h2>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -402,7 +398,9 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                 {ctaLabel}
             </Button>
 
-            {hasAmount && <p className="text-body-xs text-foreground-secondary">{deliveryTimeText}</p>}
+            {hasAmount && (
+                <p className="min-h-4 text-body-xs text-foreground-secondary">{hasQuote ? deliveryTimeText : ''}</p>
+            )}
         </Card>
     )
 }

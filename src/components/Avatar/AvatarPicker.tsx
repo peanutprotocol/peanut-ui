@@ -11,7 +11,7 @@ import { twMerge } from '@/utils/tw'
 import { badgeAvatarKeys, letterAvatarKeys, offerBasics } from './avatar.utils'
 import { isLetterAvatarKey, storeLetterAvatar } from './avatar-letter.storage'
 import { useAvatarKey } from './useAvatarKey'
-import { AVATAR_PICKER_COLUMNS, AVATAR_PICKER_LETTER_COLUMNS, roveAvatarTiles } from './avatarPicker.utils'
+import { roveAvatarTiles } from './avatarPicker.utils'
 import { UserAvatar } from './UserAvatar'
 
 interface AvatarPickerProps {
@@ -94,7 +94,9 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
      * rejected sticker has nowhere to go, so it still reports.
      */
     const rememberOrReport = (key: string | null) => {
-        if (isLetterAvatarKey(key)) storeLetterAvatar(userId, key)
+        // stamped with the server key it stands in for, so a pick made on another
+        // device supersedes it as soon as this one refetches
+        if (isLetterAvatarKey(key)) storeLetterAvatar(userId, key, user?.user.avatarKey ?? null)
         else toast({ type: 'error', message: t('saveFailed') })
     }
 
@@ -123,17 +125,18 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
         return kind === 'letter' ? code.toUpperCase() : code
     }
 
-    const tiles = (keys: string[], groupLabel: string, columns: number = AVATAR_PICKER_COLUMNS) => {
+    // Five columns for every group, initials included. Seven fitted the 26
+    // letters in four rows but left ~42px per track at 375px and ~34px at 320px,
+    // under both the 48px tile and the 44px touch target — and the roving helper
+    // steps by AVATAR_PICKER_COLUMNS, so a second column count would also have
+    // desynced arrow keys from the visual rows.
+    const tiles = (keys: string[], groupLabel: string) => {
         const focusIndex = Math.max(0, keys.indexOf(pick ?? ''))
         return (
             <div
                 role="radiogroup"
                 aria-label={groupLabel}
-                data-columns={columns}
-                className={twMerge(
-                    'grid gap-2',
-                    columns === AVATAR_PICKER_LETTER_COLUMNS ? 'grid-cols-7' : 'grid-cols-5'
-                )}
+                className="grid grid-cols-5 gap-2"
                 onKeyDown={roveAvatarTiles}
             >
                 {keys.map((key, index) => {
@@ -174,7 +177,7 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                 <div className="flex flex-col gap-6 pb-2">
                     <section className="flex flex-col gap-2">
                         <div className="text-label-m text-foreground-secondary uppercase">{t('initials')}</div>
-                        {tiles(letters, t('initials'), AVATAR_PICKER_LETTER_COLUMNS)}
+                        {tiles(letters, t('initials'))}
                     </section>
                     <section className="flex flex-col gap-2">
                         <div className="flex items-baseline justify-between text-label-m text-foreground-secondary uppercase">
