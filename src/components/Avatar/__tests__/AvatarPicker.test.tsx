@@ -82,7 +82,10 @@ describe('AvatarPicker', () => {
     it('lists one row of five basics and only the avatars of badges the user holds', () => {
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        expect(screen.getAllByRole('radio')).toHaveLength(8)
+        // scoped per group: the 26 initials are always on top of these
+        expect(
+            screen.getByRole('radiogroup', { name: 'From your badges' }).querySelectorAll('[role="radio"]')
+        ).toHaveLength(3)
         // human labels, not keys: badge name + slug, or the slug alone
         expect(radio(A)).toBeInTheDocument()
         expect(screen.getByRole('radiogroup', { name: 'Basics' }).querySelectorAll('[role="radio"]')).toHaveLength(5)
@@ -94,7 +97,7 @@ describe('AvatarPicker', () => {
         mockUser.user.badges = []
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        expect(screen.getAllByRole('radio')).toHaveLength(5)
+        expect(screen.getByRole('radiogroup', { name: 'Basics' }).querySelectorAll('[role="radio"]')).toHaveLength(5)
         expect(screen.getByText('Earn a badge and its avatars appear here.')).toBeInTheDocument()
     })
 
@@ -221,13 +224,23 @@ describe('AvatarPicker', () => {
         random.mockRestore()
     })
 
-    it('clears the pick back to the initial', () => {
+    it('offers every letter as its own pick, ahead of the sticker groups', () => {
+        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+        const groups = screen.getAllByRole('radiogroup').map((el) => el.getAttribute('aria-label'))
+
+        expect(groups[0]).toBe('Initials')
+        expect(screen.getByRole('radiogroup', { name: 'Initials' }).querySelectorAll('[role="radio"]')).toHaveLength(26)
+        expect(screen.getByRole('radio', { name: 'A' })).toBeInTheDocument()
+        expect(screen.getByRole('radio', { name: 'Z' })).toBeInTheDocument()
+    })
+
+    it('a letter is a real pick, not a clear back to the username initial', () => {
         mockUser.user.avatarKey = 'basic.apple'
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        fireEvent.click(screen.getByRole('button', { name: 'Use my initial instead' }))
+        fireEvent.click(screen.getByRole('radio', { name: 'K' }))
 
-        expect(mockUpdateUserById).toHaveBeenCalledWith({ userId: 'u1', avatarKey: null })
+        expect(mockUpdateUserById).toHaveBeenCalledWith({ userId: 'u1', avatarKey: 'letter.k' })
     })
 
     it('closes on done', () => {

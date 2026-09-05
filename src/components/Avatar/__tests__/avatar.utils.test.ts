@@ -47,7 +47,8 @@ describe('avatar catalog', () => {
             'badge.BUG_WHISPERER.shell',
             'badge.BUG_WHISPERER.peek',
         ])
-        expect(avatarPool(['OFFRAMP_USER'])).toHaveLength(23)
+        // 26 letters + 20 basics + the 3 OFFRAMP_USER avatars
+        expect(avatarPool(['OFFRAMP_USER'])).toHaveLength(49)
     })
 
     it('maps keys to their art and rejects anything the manifest does not know', () => {
@@ -56,6 +57,9 @@ describe('avatar catalog', () => {
         expect(avatarSrc('basic.peanut')).toBeNull()
         expect(avatarSrc('badge.BUG_WHISPERER.nope')).toBeNull()
         expect(avatarSrc('badge.FIRST_INVITE.beetle')).toBeNull()
+        expect(avatarSrc('letter.k')).toBe('/avatars/letter/k.webp')
+        expect(avatarSrc('letter.K')).toBeNull()
+        expect(avatarSrc('letter.ab')).toBeNull()
         expect(avatarSrc('../etc/passwd')).toBeNull()
         // plain JSON object: prototype names must not read as badges
         expect(avatarSrc('badge.constructor.x')).toBeNull()

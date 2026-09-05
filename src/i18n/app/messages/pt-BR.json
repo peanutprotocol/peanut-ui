@@ -398,7 +398,6 @@
                 "notAvailable": "Não disponível"
             },
             "bankNotAvailableNote": "Transferências bancárias e emissão de cartão não estão disponíveis para residentes do seu país.",
-            "cardNotAvailableNote": "O cartão não está disponível para residentes do seu país.",
             "unlockModal": {
                 "title": "Desbloquear {method}",
                 "titleGeneric": "Desbloqueie este método de pagamento",
@@ -3685,12 +3684,12 @@
     "avatar": {
         "title": "Seu avatar",
         "description": "Escolha um ou jogue os dados para ver outros básicos.",
+        "initials": "Iniciais",
         "fromBadges": "Dos seus selos",
         "basics": "Básicos",
         "unlocked": "{count} desbloqueados",
         "noBadgeAvatars": "Ganhe um selo e seus avatares aparecem aqui.",
         "rollDice": "Jogar os dados",
-        "useInitial": "Usar minha inicial",
         "change": "Trocar avatar",
         "saveFailed": "Não foi possível salvar seu avatar. Tente de novo."
     }

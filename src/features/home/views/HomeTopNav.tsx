@@ -28,7 +28,7 @@ export function HomeTopNav({ username, avatarKey, showRewards }: HomeTopNavProps
                 href="/profile"
                 onClick={() => triggerHaptic()}
                 // 32px visual — extend the pressable area to 44px (touch-target law)
-                className="relative block after:absolute after:-inset-1.5"
+                className="relative flex items-center gap-0.5 after:absolute after:-inset-1.5"
                 aria-label={t('openProfile')}
             >
                 {/* Own identity: the picked avatar (TASK-22142), or the first
@@ -37,6 +37,9 @@ export function HomeTopNav({ username, avatarKey, showRewards }: HomeTopNavProps
                     No username yet still gets an avatar-toned circle (yellow —
                     the palette's no-name default). */}
                 <UserAvatar name={username} avatarKey={avatarKey} size="extra-small" />
+                {/* A lone sticker reads as decoration; the chevron is what says
+                    it opens something. Decorative — the Link already has a label. */}
+                <Icon name="chevron-down" size={16} className="text-foreground-secondary" aria-hidden />
             </Link>
             {showRewards && (
                 <Link

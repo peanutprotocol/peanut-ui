@@ -8,8 +8,8 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { useAuth } from '@/context/authContext'
 import { twMerge } from '@/utils/tw'
-import { badgeAvatarKeys, offerBasics } from './avatar.utils'
-import { roveAvatarTiles } from './avatarPicker.utils'
+import { badgeAvatarKeys, letterAvatarKeys, offerBasics } from './avatar.utils'
+import { AVATAR_PICKER_COLUMNS, AVATAR_PICKER_LETTER_COLUMNS, roveAvatarTiles } from './avatarPicker.utils'
 import { UserAvatar } from './UserAvatar'
 
 interface AvatarPickerProps {
@@ -18,11 +18,16 @@ interface AvatarPickerProps {
 }
 
 /**
- * The profile avatar picker (TASK-22142): what the user's badges unlocked,
- * then one row of the basics everyone has. A tap saves at once; the dice
- * rerolls the offered row and never the pick; "use my initial" clears it.
- * The API validates the pick against the same pool, so a locked key never
- * lands even if the manifest and the catalog drift.
+ * The profile avatar picker (TASK-22142): the a-z initials everyone has, then
+ * what the user's badges unlocked, then one row of the basics. A tap saves at
+ * once; the dice rerolls the offered row and never the pick. The API validates
+ * the pick against the same pool, so a locked key never lands even if the
+ * manifest and the catalog drift.
+ *
+ * The initials grid replaced a "use my initial instead" text button. That
+ * button wrote `avatarKey: null`, which renders the first letter of the
+ * USERNAME and follows it on rename; a `letter.<a-z>` pick is a real pick and
+ * stays put. `null` remains the day-0 state of someone who never opened this.
  */
 export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
     const t = useTranslations('avatar')
@@ -79,6 +84,8 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
         if (!draining.current) void drain()
     }
 
+    const letters = letterAvatarKeys()
+
     // the offered row of five basics: dealt on open, redealt by the dice
     const [offer, setOffer] = useState<string[]>([])
     useEffect(() => {
@@ -91,16 +98,21 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
     // human labels: "Bug Whisperer · beetle" for a badge avatar, the slug for a basic
     const label = (key: string) => {
         const [kind, code, slug] = key.split('.')
-        return kind === 'badge' ? `${badgeName[code] ?? code} · ${slug}` : code
+        if (kind === 'badge') return `${badgeName[code] ?? code} · ${slug}`
+        return kind === 'letter' ? code.toUpperCase() : code
     }
 
-    const tiles = (keys: string[], groupLabel: string) => {
+    const tiles = (keys: string[], groupLabel: string, columns: number = AVATAR_PICKER_COLUMNS) => {
         const focusIndex = Math.max(0, keys.indexOf(pick ?? ''))
         return (
             <div
                 role="radiogroup"
                 aria-label={groupLabel}
-                className="grid grid-cols-5 gap-2"
+                data-columns={columns}
+                className={twMerge(
+                    'grid gap-2',
+                    columns === AVATAR_PICKER_LETTER_COLUMNS ? 'grid-cols-7' : 'grid-cols-5'
+                )}
                 onKeyDown={roveAvatarTiles}
             >
                 {keys.map((key, index) => {
@@ -129,12 +141,20 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
 
     return (
         <Drawer open={open} onOpenChange={onOpenChange}>
-            <DrawerContent className="p-4">
+            {/* The horizontal padding belongs to the SCROLL AREA, not to the panel
+                around it: the panel's padding sits outside the overflow-auto box,
+                so a w-full button's 4px offset shadow fell past the scroll edge
+                and got clipped. The matching pb-2 below covers the bottom. */}
+            <DrawerContent className="py-4" scrollAreaClassName="px-4">
                 <DrawerHeader className="p-0 pb-4 text-left">
                     <DrawerTitle className="text-heading-s text-foreground-primary">{t('title')}</DrawerTitle>
                     <DrawerDescription>{t('description')}</DrawerDescription>
                 </DrawerHeader>
-                <div className="flex flex-col gap-6">
+                <div className="flex flex-col gap-6 pb-2">
+                    <section className="flex flex-col gap-2">
+                        <div className="text-label-m text-foreground-secondary uppercase">{t('initials')}</div>
+                        {tiles(letters, t('initials'), AVATAR_PICKER_LETTER_COLUMNS)}
+                    </section>
                     <section className="flex flex-col gap-2">
                         <div className="flex items-baseline justify-between text-label-m text-foreground-secondary uppercase">
                             <span>{t('fromBadges')}</span>
@@ -158,9 +178,6 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                         </Button>
                         <Button variant="purple" className="w-full" onClick={() => onOpenChange(false)}>
                             {tCommon('done')}
-                        </Button>
-                        <Button variant="transparent" className="w-full" onClick={() => save(null)}>
-                            {t('useInitial')}
                         </Button>
                     </div>
                 </div>

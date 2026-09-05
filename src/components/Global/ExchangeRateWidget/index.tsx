@@ -238,6 +238,11 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
     // Determine delivery time text based on destination currency
     const deliveryTimeText = destinationCurrency === 'USD' ? l.arrivesHours : l.arrivesMinutes
 
+    // The source amount is known synchronously (URL, default 10); the quote is
+    // not. Reading it here is what lets the fee card and the delivery line hold
+    // their space from the first paint.
+    const hasAmount = typeof sourceAmount === 'number' && sourceAmount > 0
+
     // no exchange-rate board exists in figma (checked 2026-08-20) — container
     // rebuilt on the DS Card primitive (board 17802:61536) as the conservative
     // recipe; a dedicated board can restyle the internals later.
@@ -251,7 +256,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                 <div className="mt-2 flex w-full items-center justify-center gap-4 rounded-sm border border-border-default bg-background-default p-4">
                     {showLoading ? (
                         <div className="flex w-full items-center">
-                            <div className="h-8 w-40 animate-pulse rounded-full bg-background-disabled" />
+                            <div className="h-5 w-40 animate-pulse rounded-full bg-background-disabled" />
                         </div>
                     ) : (
                         <input
@@ -269,7 +274,9 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                                 }
                             }}
                             type="number"
-                            className="w-full bg-transparent text-body-m-semibold text-foreground-primary outline-none"
+                            // h-5 pins the field to its own line box so the skeleton
+                            // it swaps with is exactly as tall
+                            className="h-5 w-full bg-transparent text-body-m-semibold text-foreground-primary outline-none"
                         />
                     )}
                     <CurrencySelect
@@ -306,7 +313,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                 <div className="mt-2 flex w-full items-center justify-center gap-4 rounded-sm border border-border-default bg-background-default p-4">
                     {showLoading ? (
                         <div className="flex w-full items-center">
-                            <div className="h-8 w-40 animate-pulse rounded-full bg-background-disabled" />
+                            <div className="h-5 w-40 animate-pulse rounded-full bg-background-disabled" />
                         </div>
                     ) : (
                         <input
@@ -330,7 +337,9 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                                 }
                             }}
                             type="number"
-                            className="w-full bg-transparent text-body-m-semibold text-foreground-primary outline-none"
+                            // h-5 pins the field to its own line box so the skeleton
+                            // it swaps with is exactly as tall
+                            className="h-5 w-full bg-transparent text-body-m-semibold text-foreground-primary outline-none"
                         />
                     )}
                     <CurrencySelect
@@ -355,7 +364,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
 
             <div className="rounded-full bg-background-disabled px-2 py-[2px] text-label-m text-foreground-secondary">
                 {showLoading ? (
-                    <div className="mx-auto h-3 w-28 animate-pulse rounded-full bg-background-disabled" />
+                    <div className="mx-auto h-4 w-28 animate-pulse rounded-full bg-foreground-primary/10" />
                 ) : isError ? (
                     <span>{l.rateUnavailable}</span>
                 ) : (
@@ -365,7 +374,12 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                 )}
             </div>
 
-            {typeof destinationAmount === 'number' && destinationAmount > 0 && (
+            {/* Gated on what the user typed, not on the quote. Both fees are free
+                on every pair, so nothing here needs the rate — and gating them on
+                `destinationAmount` meant the fee card and the delivery line were
+                absent on first paint and pushed the CTA down the moment the quote
+                landed. */}
+            {hasAmount && (
                 <div className="flex w-full flex-col gap-3 rounded-sm border border-border-default px-4 py-2">
                     <div className="flex items-center justify-between">
                         <h2 className="text-left text-body-s font-normal">{l.bankFee}</h2>
@@ -388,9 +402,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                 {ctaLabel}
             </Button>
 
-            {typeof destinationAmount === 'number' && destinationAmount > 0 && (
-                <p className="text-body-xs text-foreground-secondary">{deliveryTimeText}</p>
-            )}
+            {hasAmount && <p className="text-body-xs text-foreground-secondary">{deliveryTimeText}</p>}
         </Card>
     )
 }

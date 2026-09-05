@@ -186,7 +186,11 @@ const ActionModal: React.FC<ActionModalProps> = ({
                     </div>
                 </div>
 
-                {content && <div className="w-full">{content}</div>}
+                {/* items-center, not a bare block: before the head's mb-3 landed,
+                    `content` sat directly in this centered column, and intrinsically
+                    sized bodies (the invite QR) centered themselves. A plain
+                    wrapper left them hanging off the left edge. */}
+                {content && <div className="flex w-full flex-col items-center">{content}</div>}
 
                 {(checkbox || (ctas && ctas.length > 0)) && (
                     <div className="space-y-4 mt-6 w-full">

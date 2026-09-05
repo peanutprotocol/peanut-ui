@@ -398,7 +398,6 @@
                 "notAvailable": "Not available"
             },
             "bankNotAvailableNote": "Bank transfers and card issuing aren't available for residents of your country.",
-            "cardNotAvailableNote": "The card isn't available for residents of your country.",
             "unlockModal": {
                 "title": "Unlock {method}",
                 "titleGeneric": "Unlock this payment method",
@@ -3685,12 +3684,12 @@
     "avatar": {
         "title": "Your avatar",
         "description": "Pick one, or roll the dice for a fresh row of basics.",
+        "initials": "Initials",
         "fromBadges": "From your badges",
         "basics": "Basics",
         "unlocked": "{count} unlocked",
         "noBadgeAvatars": "Earn a badge and its avatars appear here.",
         "rollDice": "Roll the dice",
-        "useInitial": "Use my initial instead",
         "change": "Change avatar",
         "saveFailed": "Could not save your avatar. Try again."
     }
