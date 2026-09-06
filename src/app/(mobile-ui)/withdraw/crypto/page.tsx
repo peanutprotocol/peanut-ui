@@ -622,19 +622,30 @@ export default function WithdrawCryptoPage() {
         [isCrossChainWithdrawal, networkFee, usdAmount]
     )
 
-    // Pre-sign affordability gate on every path: the kernel spend (`payAmount`
-    // — the quote's pay side cross-chain, the principal same-chain) must fit
+    // Pre-sign affordability gate on every path: what the kernel spends must fit
     // the LIVE balance. The input-time gate saw the balance at input; a card
     // spend settling, another withdrawal landing first, or a quoted fee can
-    // leave it short here — and the send would surface the misleading
-    // "balance isn't fully available yet" (settling) error instead of an
-    // honest "not enough balance". Only once the route has resolved
-    // `payAmount` (skipped while calculating; CTA is disabled by isCalculating
-    // anyway).
+    // leave it short here — and the send would surface the misleading "balance
+    // isn't fully available yet" (settling) error instead of an honest "not
+    // enough balance".
+    //
+    // The spend is not the same number on both paths. Cross-chain the kernel
+    // sends the quote's pay side (`payAmount`, via requiredUsdcAmount); it is
+    // null until the route resolves, so the gate simply doesn't fire while
+    // calculating — the CTA is disabled by isCalculating anyway. Same-chain the
+    // kernel sends `effectiveAmount`, and `payAmount` there is the CHARGE's
+    // destination amount (`usdValue / token.price`) — so a routine USDC price of
+    // 0.9999 makes it a few base units more than the balance on a full-balance
+    // withdrawal, which would disable the CTA on a send that would have
+    // succeeded.
+    const kernelSpend = isCrossChainWithdrawal ? payAmount : effectiveAmount
     const insufficientBalance = useMemo<boolean>(
         () =>
-            payAmount != null && spendableBalance !== undefined && !isAmountWithinBalance(payAmount, spendableBalance),
-        [payAmount, spendableBalance]
+            kernelSpend != null &&
+            kernelSpend !== '' &&
+            spendableBalance !== undefined &&
+            !isAmountWithinBalance(kernelSpend, spendableBalance),
+        [kernelSpend, spendableBalance]
     )
 
     // Rhino accepts SDA deposits below the route minimum on-chain but never

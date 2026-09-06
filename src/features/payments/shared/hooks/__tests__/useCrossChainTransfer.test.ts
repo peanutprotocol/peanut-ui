@@ -168,6 +168,45 @@ describe('useCrossChainTransfer — feeUsd is the quote, verbatim', () => {
         expect(result.current.error).toBeNull()
     })
 
+    // A max withdrawal re-quotes on every sub-cent balance change, so two
+    // calculates are routinely in flight. If the older one lands last it used to
+    // overwrite the newer numbers — and the affordability gate would then be
+    // checking a payAmount the user is not about to send.
+    it('a superseded quote landing last does not overwrite the newer one', async () => {
+        let releaseFirst: (v: unknown) => void = () => {}
+        const first = new Promise((res) => {
+            releaseFirst = res
+        })
+        mockGetBridgeQuote
+            .mockImplementationOnce(async () => {
+                await first
+                return { ...quote(1.51), payAmount: '10.126123', isSwap: true }
+            })
+            .mockImplementationOnce(async () => ({ ...quote(1.51), payAmount: '10.129999', isSwap: true }))
+
+        const { result } = renderHook(() => useCrossChainTransfer())
+        const destination = {
+            recipientAddress: RECIPIENT,
+            tokenAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' as `0x${string}`,
+            tokenAmount: '0.004',
+            tokenDecimals: 18,
+            tokenType: 0,
+            chainId: '1',
+            tokenSymbol: 'ETH',
+        }
+
+        await act(async () => {
+            // A is in flight and stuck; B starts and finishes.
+            const a = result.current.calculate({ source, destination, context: 'withdraw', contextId: 'charge-A' })
+            await result.current.calculate({ source, destination, context: 'withdraw', contextId: 'charge-B' })
+            releaseFirst(undefined)
+            await a
+        })
+
+        // B is newer, so B's numbers stand even though A resolved last.
+        expect(result.current.payAmount).toBe('10.129999')
+    })
+
     // Deploy order: this build must also work against an API that predates the
     // payAmount/receiveAmount rename and still sends amountIn/amountOut.
     it('bridge path: reads the pre-rename amountIn/amountOut when that is all the API sends', async () => {

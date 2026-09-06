@@ -78,9 +78,11 @@ jest.mock('@/utils/cross-chain-fee.utils', () => ({
     isWithdrawFeeDisproportionate: () => false,
 }))
 
-jest.mock('@/utils/balance.utils', () => ({
-    isAmountWithinBalance: () => true,
-}))
+// NOT stubbed: `isAmountWithinBalance` is the pre-sign affordability gate, and
+// a stub that always says "affordable" cannot fail the way the real comparison
+// does. The fixtures below fund the wallet well above the amount, so the
+// existing cases are unaffected; the balance-gate suite drives it to the edge.
+jest.mock('@/utils/balance.utils', () => jest.requireActual('@/utils/balance.utils'))
 
 jest.mock('@/utils/withdraw.utils', () => ({
     isBelowRhinoMinDeposit: () => false,
@@ -122,8 +124,10 @@ jest.mock('@/services/requests', () => ({
 
 jest.mock('@/components/Withdraw/views/Confirm.withdraw.view', () => ({
     __esModule: true,
-    default: (props: { onConfirm: () => void }) => (
-        <button data-testid="confirm-withdraw" onClick={props.onConfirm}>
+    default: (props: { onConfirm: () => void; insufficientBalance?: boolean }) => (
+        // The real view disables the CTA on insufficientBalance; mirror that so
+        // the gate is observable here instead of being stubbed away.
+        <button data-testid="confirm-withdraw" onClick={props.onConfirm} disabled={props.insufficientBalance}>
             Confirm
         </button>
     ),
@@ -195,6 +199,8 @@ const withdrawData = {
 
 const mockWithdrawFlow = {
     amountToWithdraw: '50',
+    isMaxWithdrawal: false,
+    setIsMaxWithdrawal: jest.fn(),
     usdAmount: '50',
     setAmountToWithdraw: jest.fn(),
     currentView: 'CONFIRM',
@@ -222,13 +228,15 @@ jest.mock('@/context/WithdrawFlowContext', () => ({
 
 const mockSendMoney = jest.fn()
 const mockSendTransactions = jest.fn()
+/** Mutable so the balance-gate suite can drive the comparison to the edge. */
+const mockWallet = { spendableBalance: 100n * 10n ** 6n }
 jest.mock('@/hooks/wallet/useWallet', () => ({
     useWallet: () => ({
         isConnected: true,
         address: USER_ADDRESS,
         sendMoney: mockSendMoney,
         sendTransactions: mockSendTransactions,
-        spendableBalance: 100n * 10n ** 6n,
+        spendableBalance: mockWallet.spendableBalance,
     }),
 }))
 
@@ -629,5 +637,51 @@ describe('crypto withdraw retry — record-only replay (TASK-19581 double-spend)
 
         // No spend happened on attempt 1, so attempt 2 legitimately broadcasts.
         expect(mockSendMoney).toHaveBeenCalledTimes(2)
+    })
+})
+
+describe('crypto withdraw confirm — pre-sign balance gate (real balance math)', () => {
+    // The gate now covers the same-chain path too — the highest-volume route,
+    // and the one "use full balance" is built for. Nothing stubs the comparison
+    // in this suite, so these run the real bigint math.
+    const BALANCE = 50n * 10n ** 6n
+
+    afterEach(() => {
+        mockWallet.spendableBalance = 100n * 10n ** 6n
+        Object.assign(mockWithdrawFlow, { isMaxWithdrawal: false })
+        Object.assign(mockCrossChainTransfer, { payAmount: '50' })
+    })
+
+    it('a full-balance same-chain withdraw at exact equality keeps the CTA enabled', () => {
+        mockWallet.spendableBalance = BALANCE
+        Object.assign(mockWithdrawFlow, { isMaxWithdrawal: true })
+        // What the CHARGE records: usdValue / token.price, and a USDC price of
+        // 0.9999 is routine from a feed. The kernel still sends effectiveAmount,
+        // so gating on this number would refuse a withdrawal that fits.
+        Object.assign(mockCrossChainTransfer, { payAmount: '50.005001' })
+
+        render(<WithdrawCryptoPage />)
+
+        expect(screen.getByTestId('confirm-withdraw')).toBeEnabled()
+    })
+
+    it('one base unit short disables the CTA', () => {
+        mockWallet.spendableBalance = BALANCE - 1n
+        Object.assign(mockWithdrawFlow, { isMaxWithdrawal: true })
+
+        render(<WithdrawCryptoPage />)
+
+        expect(screen.getByTestId('confirm-withdraw')).toBeDisabled()
+    })
+
+    it('cross-chain still gates on the quote pay side, which is what the kernel sends', () => {
+        mockWallet.spendableBalance = BALANCE
+        Object.assign(mockCrossChainTransfer, { isXChain: true, payAmount: '50.01' })
+        try {
+            render(<WithdrawCryptoPage />)
+            expect(screen.getByTestId('confirm-withdraw')).toBeDisabled()
+        } finally {
+            Object.assign(mockCrossChainTransfer, { isXChain: false })
+        }
     })
 })
