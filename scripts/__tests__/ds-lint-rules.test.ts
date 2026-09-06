@@ -219,6 +219,57 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
         expect(countWeightStacks("const SIZES = { sm: 'text-body-m font-semibold' }; const c = SIZES[v]")).toBe(1)
     })
 
+    it('treats an INDEXED array as alternatives, and a joined one as one list', () => {
+        // Producting every array invented a stack across two entries of a valid
+        // variant list; the regex scanner reported 0 for the indexed form.
+        const list = "const S = ['text-body-m', 'font-semibold']"
+        expect(countWeightStacks(`${list}; const c = clsx(S[i])`)).toBe(0)
+        expect(countWeightStacks(list)).toBe(0)
+        // ...but `.join(' ')` renders every entry into ONE class list.
+        expect(countWeightStacks("const c = ['text-body-m', 'font-semibold'].join(' ')")).toBe(1)
+    })
+
+    it('unions cva options within an axis and combines across axes', () => {
+        // One option per axis is rendered, so two options of the SAME axis never
+        // co-apply — but two AXES are selected independently and both land.
+        expect(
+            countWeightStacks(
+                "const c = cva('base', { variants: { size: { sm: 'text-body-m', lg: 'font-semibold' } } })"
+            )
+        ).toBe(0)
+        expect(
+            countWeightStacks(
+                "const c = cva('base', { variants: { size: { sm: 'text-body-m' }, w: { b: 'font-semibold' } } })"
+            )
+        ).toBe(1)
+        // the base co-applies with every axis
+        expect(countWeightStacks("const c = cva('text-body-m', { variants: { w: { b: 'font-semibold' } } })")).toBe(1)
+    })
+
+    it('honours every shadowing form, not just parameters', () => {
+        // A shadow the scanner does not RECORD is a shadow it silently ignores:
+        // the name falls through to an unrelated outer const.
+        const outer = "const style = 'text-body-m'; "
+        expect(
+            countWeightStacks(
+                `${outer}function f(props) { const { style } = props; return clsx(style, 'font-semibold') }`
+            )
+        ).toBe(0)
+        expect(
+            countWeightStacks(
+                `${outer}function f(xs) { for (const style of xs) { use(clsx(style, 'font-semibold')) } }`
+            )
+        ).toBe(0)
+        expect(
+            countWeightStacks(
+                `${outer}function f() { try { g() } catch (style) { return clsx(style, 'font-semibold') } }`
+            )
+        ).toBe(0)
+        expect(countWeightStacks(`${outer}const f = function style() { return clsx(style, 'font-semibold') }`)).toBe(0)
+        // the genuine outer-const stack is still counted
+        expect(countWeightStacks(`${outer}const c = clsx(style, 'font-semibold')`)).toBe(1)
+    })
+
     it('reads class strings written as builder object KEYS', () => {
         // `clsx({ 'a b': cond })` puts the classes in the key. Treating every
         // object as a lookup map lost this form entirely — the old regex counter

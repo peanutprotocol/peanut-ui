@@ -197,9 +197,18 @@ function alternatives(node, ctx, depth = 0, seen = new Set(), mode = LOOKUP_OBJE
         )
     }
     if (ts.isArrayLiteralExpression(node)) {
-        let out = NOTHING
-        for (const el of node.elements) out = product(out, alternatives(el, ctx, depth + 1, seen, mode))
-        return out
+        // Same producer question as an object. Flattened by a builder or joined
+        // into one string, the entries CO-APPLY. Indexed, exactly one is
+        // selected — and producting those invented a stack across two entries of
+        // a perfectly good variant list.
+        if (mode === BUILDER_OBJECT) {
+            let out = NOTHING
+            for (const el of node.elements) out = product(out, alternatives(el, ctx, depth + 1, seen, mode))
+            return out
+        }
+        let out = []
+        for (const el of node.elements) out = union(out, alternatives(el, ctx, depth + 1, seen, mode))
+        return out.length ? out : NOTHING
     }
     if (ts.isObjectLiteralExpression(node)) {
         // An object literal means two different things, and the producer decides
@@ -237,8 +246,10 @@ function alternatives(node, ctx, depth = 0, seen = new Set(), mode = LOOKUP_OBJE
     if (ts.isCallExpression(node)) {
         const name = calleeName(node)
         if (name === 'join' && ts.isPropertyAccessExpression(node.expression)) {
-            return alternatives(node.expression.expression, ctx, depth + 1, seen, mode)
+            // `.join(' ')` renders every entry into ONE class list.
+            return alternatives(node.expression.expression, ctx, depth + 1, seen, BUILDER_OBJECT)
         }
+        if (name === 'cva') return cvaAlternatives(node, ctx, depth, seen)
         if (name && BUILDERS.has(name)) {
             let out = NOTHING
             for (const arg of node.arguments) {
@@ -276,6 +287,47 @@ function alternatives(node, ctx, depth = 0, seen = new Set(), mode = LOOKUP_OBJE
 }
 
 /**
+ * `cva(base, config)` — the one builder whose config is not a flat bag of
+ * conditional classes.
+ *
+ * Within an AXIS the options are mutually exclusive: `size: { sm, lg }` renders
+ * one of them, so treating the axis as co-applying invents a stack across two
+ * variants of a valid table. ACROSS axes they combine — `size` and `weight` are
+ * selected independently and both land on the element — as do the base classes
+ * and any compound entry that matches.
+ */
+function cvaAlternatives(node, ctx, depth, seen) {
+    const [base, config] = node.arguments
+    let out = base ? alternatives(base, ctx, depth + 1, seen, BUILDER_OBJECT) : NOTHING
+    if (!config) return out
+
+    const configObject = resolveToObjectLiteral(config, ctx, depth, seen)
+    if (!configObject) return product(out, alternatives(config, ctx, depth + 1, seen, BUILDER_OBJECT))
+
+    for (const prop of configObject.properties) {
+        if (!ts.isPropertyAssignment(prop)) continue
+        const key = ts.isIdentifier(prop.name) || ts.isStringLiteral(prop.name) ? prop.name.text : null
+
+        if (key === 'variants') {
+            const variants = resolveToObjectLiteral(prop.initializer, ctx, depth, seen)
+            if (!variants) continue
+            for (const axis of variants.properties) {
+                if (!ts.isPropertyAssignment(axis)) continue
+                // union WITHIN the axis, product ACROSS axes
+                out = product(out, alternatives(axis.initializer, ctx, depth + 1, seen, LOOKUP_OBJECT))
+            }
+        } else if (key === 'compoundVariants') {
+            // Each compound entry applies only when its own combination matches,
+            // so entries are alternatives; the matching one co-applies with the
+            // axes that triggered it, hence the product.
+            out = product(out, alternatives(prop.initializer, ctx, depth + 1, seen, LOOKUP_OBJECT))
+        }
+        // `defaultVariants` names keys, not classes — nothing to read.
+    }
+    return out
+}
+
+/**
  * Bindings a scope introduces.
  *
  * EVERY declaration is recorded, including ones we refuse to inline. A binding
@@ -285,16 +337,41 @@ function alternatives(node, ctx, depth = 0, seen = new Set(), mode = LOOKUP_OBJE
  * initializers are inlined; parameters, `let`, `var` and function names are
  * recorded as OPAQUE, which stops the walk without inventing a value.
  */
+/** Every name a binding pattern introduces — `const { a, b: [c] } = x`. */
+function patternNames(name, into) {
+    if (ts.isIdentifier(name)) {
+        into.push(name.text)
+        return
+    }
+    if (ts.isObjectBindingPattern(name) || ts.isArrayBindingPattern(name)) {
+        for (const el of name.elements) if (ts.isBindingElement(el)) patternNames(el.name, into)
+    }
+}
+
+/** Record a declaration list's names, inlining only a plain `const x = <expr>`. */
+function recordDeclarationList(list, bindings) {
+    // eslint-disable-next-line no-bitwise
+    const isConst = !!(list.flags & ts.NodeFlags.Const)
+    for (const decl of list.declarations) {
+        if (ts.isIdentifier(decl.name)) {
+            bindings.set(decl.name.text, isConst && decl.initializer ? decl.initializer : OPAQUE)
+            continue
+        }
+        // Destructuring binds real names we cannot resolve a value for. Recording
+        // them OPAQUE is the whole point: a name merely ABSENT from the map falls
+        // through to an outer scope, which is how `const { style } = props`
+        // resolved to an unrelated module-level `const style`.
+        const names = []
+        patternNames(decl.name, names)
+        for (const bound of names) bindings.set(bound, OPAQUE)
+    }
+}
+
 function declarationBindings(statements) {
     const bindings = new Map()
     for (const statement of statements ?? []) {
         if (ts.isVariableStatement(statement)) {
-            // eslint-disable-next-line no-bitwise
-            const isConst = !!(statement.declarationList.flags & ts.NodeFlags.Const)
-            for (const decl of statement.declarationList.declarations) {
-                if (!ts.isIdentifier(decl.name)) continue
-                bindings.set(decl.name.text, isConst && decl.initializer ? decl.initializer : OPAQUE)
-            }
+            recordDeclarationList(statement.declarationList, bindings)
         } else if (ts.isFunctionDeclaration(statement) && statement.name) {
             bindings.set(statement.name.text, OPAQUE)
         } else if (ts.isClassDeclaration(statement) && statement.name) {
@@ -344,6 +421,33 @@ function statementScope(node) {
 }
 
 /**
+ * Bindings introduced by a node that is not a statement list: loop heads, catch
+ * clauses, and the self-name of a named function or class EXPRESSION.
+ *
+ * All OPAQUE. They exist purely to stop resolution walking past them to an outer
+ * const of the same name — a shadow the scanner does not record is a shadow it
+ * silently ignores.
+ */
+function otherScopeBindings(node) {
+    const bindings = new Map()
+    if (ts.isForStatement(node) || ts.isForOfStatement(node) || ts.isForInStatement(node)) {
+        const init = ts.isForStatement(node) ? node.initializer : node.initializer
+        if (init && ts.isVariableDeclarationList(init)) {
+            const names = []
+            for (const decl of init.declarations) patternNames(decl.name, names)
+            for (const bound of names) bindings.set(bound, OPAQUE)
+        }
+    } else if (ts.isCatchClause(node) && node.variableDeclaration) {
+        const names = []
+        patternNames(node.variableDeclaration.name, names)
+        for (const bound of names) bindings.set(bound, OPAQUE)
+    } else if ((ts.isFunctionExpression(node) || ts.isClassExpression(node)) && node.name) {
+        bindings.set(node.name.text, OPAQUE)
+    }
+    return bindings
+}
+
+/**
  * Every distinct token+weight stack in a file, as dedupe keys.
  *
  * Keyed on the source positions of the literals that produced the pair rather
@@ -377,6 +481,8 @@ function weightStackSites(text, filename, { isToken, isWeight }) {
         const scopes = []
         if (statementScope(node)) scopes.push(declarationBindings(node.statements))
         if (isFunctionLike(node)) scopes.push(parameterBindings(node))
+        const other = otherScopeBindings(node)
+        if (other.size > 0) scopes.push(other)
         for (const scope of scopes) ctx.scopes.push(scope)
 
         if (ts.isJsxAttribute(node) && node.name && isClassNameProp(node.name.getText(source))) {
