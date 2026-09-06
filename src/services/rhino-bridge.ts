@@ -12,6 +12,7 @@
  */
 
 import { apiFetch } from '@/utils/api-fetch'
+import type { RhinoQuote } from '@/services/rhino-sda'
 
 export interface BridgeQuoteParams {
     amount: string
@@ -25,18 +26,15 @@ export interface BridgeQuoteParams {
     mode: 'pay' | 'receive'
 }
 
-export interface BridgeQuoteResponse {
-    quoteId: string
-    amountIn: string
-    amountOut: string
-    fee: string
-    feeUsd: number
-    gasFeeUsd: number
-    estimatedDuration?: number
-    expiresAt: string // ISO timestamp
+export interface BridgeQuoteResponse extends RhinoQuote {
     /** Backend echoes this so the FE passes it back through commit — discriminates
      *  the Rhino finalisation path (getSwapCalldata vs deposit-address). */
     isSwap: boolean
+    /** Pre-2026-09 names for `payAmount` / `receiveAmount`. Read them only
+     *  through `quoteAmounts()` — an API that predates the rename sends these
+     *  and not the new ones, so this build must work against either. */
+    amountIn?: string
+    amountOut?: string
 }
 
 export interface BridgeCommitResponse {
@@ -110,10 +108,25 @@ export function getBridgeChains(): Promise<{ chains: BridgeChainConfig[] }> {
 }
 
 /**
+ * The quote's pay/receive sides, under whichever names the API used. Lets this
+ * build run against an API deployed before the rename, so the two repos can
+ * ship in either order.
+ */
+export function quoteAmounts(quote: BridgeQuoteResponse): { payAmount: string; receiveAmount: string } {
+    return {
+        payAmount: quote.payAmount ?? quote.amountIn ?? '',
+        receiveAmount: quote.receiveAmount ?? quote.amountOut ?? '',
+    }
+}
+
+/** How long signing/broadcast needs: a quote closer to expiry than this is treated as expired everywhere. */
+export const QUOTE_SIGNING_LEAD_MS = 15_000
+
+/**
  * Returns true when the quote is within the near-expiry window (default 15s).
  * Hooks should re-quote before commit to avoid Rhino rejecting an expired ID.
  */
-export function isQuoteNearExpiry(expiresAt: string, leadTimeMs = 15_000): boolean {
+export function isQuoteNearExpiry(expiresAt: string, leadTimeMs = QUOTE_SIGNING_LEAD_MS): boolean {
     const expires = new Date(expiresAt).getTime()
     return Number.isFinite(expires) && Date.now() + leadTimeMs >= expires
 }
