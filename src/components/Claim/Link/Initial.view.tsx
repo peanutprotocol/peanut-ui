@@ -21,8 +21,15 @@ import { PEANUTMAN } from '@/assets/mascot'
 import { GuestVerificationModal } from '@/components/Global/GuestVerificationModal'
 import MantecaFlowManager from './MantecaFlowManager'
 import { useInitialClaimFlow } from './useInitialClaimFlow'
+import { badgeCampaignForLegacyWire } from '@/components/Invites/badge-campaign-context'
+import { useSearchParams } from 'next/navigation'
 
 export const InitialClaimLinkView = (props: IClaimScreenProps) => {
+    // `/claim` remains a published singular campaignTag wire. resolved here from
+    // the live search params (this file predates the nuqs ratchet) so url order
+    // and duplicate keys keep their original precedence, then handed to the hook.
+    const searchParams = useSearchParams()
+    const campaignTag = badgeCampaignForLegacyWire(searchParams)
     const {
         onNext,
         claimLinkData,
@@ -65,7 +72,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         handleClaimLink,
         handleClaimAction,
         handleRecipientUpdate,
-    } = useInitialClaimFlow(props)
+    } = useInitialClaimFlow(props, campaignTag)
 
     const getButtonText = () => {
         if (isPeanutWallet && !claimToExternalWallet) {

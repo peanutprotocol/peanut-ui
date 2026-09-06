@@ -44,12 +44,11 @@ import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useFormatter, useTranslations } from 'next-intl'
-import { badgeCampaignForLegacyWire, BADGE_CAMPAIGN_QUERY_PARAM } from '@/components/Invites/badge-campaign-context'
 
 // flow hook for the initial claim-link screen — logic moved verbatim from
 // Initial.view.tsx (TASK-21854 logic/ui separation). The view stays the
 // composition root at its original path.
-export const useInitialClaimFlow = (props: IClaimScreenProps) => {
+export const useInitialClaimFlow = (props: IClaimScreenProps, campaignTag: string | undefined) => {
     const t = useTranslations('claim')
     const toFriendlyError = useFriendlyError()
     const format = useFormatter()
@@ -59,9 +58,6 @@ export const useInitialClaimFlow = (props: IClaimScreenProps) => {
     // same string-or-null contract as the old searchParams.get calls
     const [
         {
-            [BADGE_CAMPAIGN_QUERY_PARAM]: badgeCampaignFromQuery,
-            campaign: campaignFromQuery,
-            campaignTag: campaignTagFromQuery,
             tokenAddress: paramsDevconnectTokenAddress,
             chainId: paramsDevconnectChainId,
             address: paramsDevconnectRecipientAddress,
@@ -69,26 +65,12 @@ export const useInitialClaimFlow = (props: IClaimScreenProps) => {
             method: methodFromURL,
         },
     ] = useQueryStates({
-        [BADGE_CAMPAIGN_QUERY_PARAM]: parseAsString,
-        campaign: parseAsString,
-        campaignTag: parseAsString,
         tokenAddress: parseAsString,
         chainId: parseAsString,
         address: parseAsString,
         step: parseAsString,
         method: parseAsString,
     })
-    // `/claim` remains a published singular campaignTag wire. Resolve its URL
-    // through the canonical badge namespace before forwarding that legacy field.
-    // The helper wants a URLSearchParams, so rebuild one from the nuqs values
-    // (same shim idea as useAddMoneyFlow's returnTo). One value per key: a
-    // duplicated query key keeps only its first occurrence; comma-separated
-    // lists still split inside the helper.
-    const campaignSearchParams = new URLSearchParams()
-    if (badgeCampaignFromQuery !== null) campaignSearchParams.set(BADGE_CAMPAIGN_QUERY_PARAM, badgeCampaignFromQuery)
-    if (campaignFromQuery !== null) campaignSearchParams.set('campaign', campaignFromQuery)
-    if (campaignTagFromQuery !== null) campaignSearchParams.set('campaignTag', campaignTagFromQuery)
-    const campaignTag = badgeCampaignForLegacyWire(campaignSearchParams)
 
     const senderDisplay = useRecipientDisplay({
         user: props.claimLinkData.sender,
