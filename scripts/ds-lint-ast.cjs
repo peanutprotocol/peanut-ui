@@ -186,9 +186,9 @@ function propertyByName(node, name, ctx, depth, seen) {
             continue
         }
         if (!ts.isPropertyAssignment(prop)) continue
-        const key = prop.name
-        const keyText = ts.isIdentifier(key) || ts.isStringLiteral(key) ? key.text : null
-        if (keyText === name) return { value: prop.initializer, scopes: target.scopes }
+        if (staticKeyName(prop.name, inner, depth + 1, seen) === name) {
+            return { value: prop.initializer, scopes: target.scopes }
+        }
     }
     return null
 }
@@ -201,19 +201,50 @@ function propertyByName(node, name, ctx, depth, seen) {
  * every operand does, and it is the whole concatenation that matters. `'a' +
  * 'b'` renders `ab`, one class — which is the entire reason concatenation cannot
  * be treated as composition.
+ *
+ * Same-file consts fold too, in their OWN declaration scope. `const prefix =
+ * 'text-body'` makes `prefix + '-m font-semibold'` render a type token and a
+ * weight; refusing the identifier reported neither, and the mirror case
+ * (`token + 'font-semibold'`, one glued class) reported a stack that never
+ * renders. Both are answered by classifying the rendered string.
  */
-function staticText(node) {
-    if (!node) return null
+function staticText(node, ctx, depth = 0, seen = new Set()) {
+    if (!node || depth > MAX_DEPTH) return null
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return node.text
     if (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isSatisfiesExpression(node)) {
-        return staticText(node.expression)
+        return staticText(node.expression, ctx, depth + 1, seen)
+    }
+    if (ts.isIdentifier(node)) {
+        if (!ctx || seen.has(node.text)) return null
+        const bound = lookup(ctx.scopes, node.text)
+        if (!bound || bound.value === OPAQUE) return null
+        const next = new Set(seen)
+        next.add(node.text)
+        return staticText(bound.value, { ...ctx, scopes: bound.scopes }, depth + 1, next)
     }
     if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken) {
-        const left = staticText(node.left)
+        const left = staticText(node.left, ctx, depth + 1, seen)
         if (left === null) return null
-        const right = staticText(node.right)
+        const right = staticText(node.right, ctx, depth + 1, seen)
         return right === null ? null : left + right
     }
+    return null
+}
+
+/**
+ * A property name's literal text, including a COMPUTED name that resolves to a
+ * static string.
+ *
+ * `clsx({ ['text-body-m']: on })` renders `text-body-m` exactly as the quoted
+ * form does, and `SIZES[k]` has to select the same entry either way — so one
+ * resolver, used by the builder branch and by {@link propertyByName}.
+ */
+function staticKeyName(name, ctx, depth = 0, seen = new Set()) {
+    if (!name) return null
+    if (ts.isIdentifier(name) || ts.isStringLiteral(name) || ts.isNoSubstitutionTemplateLiteral(name)) {
+        return name.text
+    }
+    if (ts.isComputedPropertyName(name)) return staticText(name.expression, ctx, depth, seen)
     return null
 }
 
@@ -265,7 +296,7 @@ function alternatives(node, ctx, depth = 0, seen = new Set(), mode = LOOKUP_OBJE
             // depends on the whole rendered string rather than on the join. When
             // every operand is static there is no need to guess: fold the
             // concatenation and read the class list it really produces.
-            const rendered = staticText(node)
+            const rendered = staticText(node, ctx, depth + 1, seen)
             if (rendered !== null) return literalAlt(node, rendered, ctx)
             // Something in the chain is dynamic, so the rendered text is
             // unknowable. Compose — over-counting is the safe direction for a
@@ -334,8 +365,9 @@ function alternatives(node, ctx, depth = 0, seen = new Set(), mode = LOOKUP_OBJE
                 // value is still analysed — the walker visits every node — it
                 // just does not compose with the keys around it.
                 const key = ts.isPropertyAssignment(prop) || ts.isShorthandPropertyAssignment(prop) ? prop.name : null
-                if (key && (ts.isStringLiteral(key) || ts.isIdentifier(key))) {
-                    out = product(out, literalAlt(key, key.text, ctx))
+                const keyText = staticKeyName(key, ctx, depth + 1, seen)
+                if (keyText !== null) {
+                    out = product(out, literalAlt(key, keyText, ctx))
                 }
             }
             return out
@@ -417,6 +449,7 @@ function alternatives(node, ctx, depth = 0, seen = new Set(), mode = LOOKUP_OBJE
         if (arg && ts.isNumericLiteral(arg)) {
             const selected = elementByIndex(node.expression, Number(arg.text), ctx, depth, seen)
             if (selected) {
+                if (!selected.value) return NOTHING
                 return alternatives(selected.value, { ...ctx, scopes: selected.scopes }, depth + 1, seen, LOOKUP_OBJECT)
             }
         }
@@ -441,17 +474,20 @@ function alternatives(node, ctx, depth = 0, seen = new Set(), mode = LOOKUP_OBJE
  * read down to names.
  *
  * `size: 'sm'` names one; `size: ['sm', 'md']` names two and the compound fires
- * for either, so they union. Anything else — a boolean axis, a computed name —
- * is unreadable and leaves its axis unconstrained.
+ * for either, so they union. An EMPTY list comes back as an empty array, not as
+ * null: cva tests an array selector with `includes`, so `[]` matches nothing and
+ * the compound can never fire — a resolved impossibility, not an unknown.
+ * Anything else — a boolean axis, a computed name — is unreadable and leaves its
+ * axis unconstrained.
  */
 function selectorOptionNames(node, ctx, depth, seen) {
-    const single = staticText(node)
+    const single = staticText(node, ctx, depth, seen)
     if (single !== null) return [single]
     const table = resolveToArrayLiteral(node, ctx, depth, seen)
-    if (!table || table.elements.length === 0) return null
+    if (!table) return null
     const names = []
     for (const el of table.elements) {
-        const text = staticText(el)
+        const text = staticText(el, { ...ctx, scopes: table.scopes }, depth + 1, seen)
         if (text === null) return null
         names.push(text)
     }
@@ -483,11 +519,16 @@ function cvaAlternatives(node, ctx, depth, seen) {
     // Every axis by name, so a compound can product against the ones it leaves free.
     const axisAlts = new Map()
     for (const prop of configTable.node.properties) {
-        if (!ts.isPropertyAssignment(prop)) continue
-        const key = ts.isIdentifier(prop.name) || ts.isStringLiteral(prop.name) ? prop.name.text : null
+        // `cva(base, { variants, compoundVariants })` is the ordinary way to
+        // write this once the tables are hoisted; skipping shorthand read the
+        // whole config as empty.
+        const shorthand = ts.isShorthandPropertyAssignment(prop)
+        if (!ts.isPropertyAssignment(prop) && !shorthand) continue
+        const key = shorthand ? prop.name.text : staticKeyName(prop.name, configCtx, depth + 1, seen)
+        const field = shorthand ? prop.name : prop.initializer
 
         if (key === 'variants') {
-            variants = resolveToObjectLiteral(prop.initializer, configCtx, depth, seen)
+            variants = resolveToObjectLiteral(field, configCtx, depth, seen)
             if (!variants) continue
             const variantsCtx = { ...ctx, scopes: variants.scopes }
             for (const axis of variants.node.properties) {
@@ -499,7 +540,7 @@ function cvaAlternatives(node, ctx, depth, seen) {
                 out = product(out, alts)
             }
         } else if (key === 'compoundVariants') {
-            compounds = resolveToArrayLiteral(prop.initializer, configCtx, depth, seen)
+            compounds = resolveToArrayLiteral(field, configCtx, depth, seen)
         }
         // `defaultVariants` names keys, not classes — nothing to read.
     }
@@ -517,9 +558,14 @@ function cvaAlternatives(node, ctx, depth, seen) {
         let selected = NOTHING
         let classes = NOTHING
         const pinned = new Set()
-        for (const field of compound.node.properties) {
-            if (!ts.isPropertyAssignment(field)) continue
-            const name = ts.isIdentifier(field.name) || ts.isStringLiteral(field.name) ? field.name.text : null
+        // A selector resolved to NO options can never match, so the compound's
+        // classes never render alongside anything.
+        let impossible = false
+        for (const prop of compound.node.properties) {
+            const shorthand = ts.isShorthandPropertyAssignment(prop)
+            if (!ts.isPropertyAssignment(prop) && !shorthand) continue
+            const name = shorthand ? prop.name.text : staticKeyName(prop.name, entryCtx, depth + 1, seen)
+            const field = { initializer: shorthand ? prop.name : prop.initializer }
             if (name === 'class' || name === 'className') {
                 classes = product(classes, alternatives(field.initializer, entryCtx, depth + 1, seen, BUILDER_OBJECT))
                 continue
@@ -529,7 +575,11 @@ function cvaAlternatives(node, ctx, depth, seen) {
             // options, unioned; a selector we cannot read down to named options
             // (a boolean, a computed name) leaves the axis unpinned below, which
             // reads as "any option" — over-counting, the safe direction.
-            const optionNames = selectorOptionNames(field.initializer, ctx, depth, seen)
+            const optionNames = selectorOptionNames(field.initializer, entryCtx, depth, seen)
+            if (optionNames !== null && optionNames.length === 0) {
+                impossible = true
+                break
+            }
             if (name === null || optionNames === null || !variants) continue
             const axis = propertyByName(variants.node, name, { ...ctx, scopes: variants.scopes }, depth, seen)
             if (!axis) continue
@@ -559,6 +609,7 @@ function cvaAlternatives(node, ctx, depth, seen) {
         // axis unioned together, so producting against it would put the compound
         // weight back beside a sibling option of a PINNED axis — the exact
         // constraint this loop exists to respect.
+        if (impossible) continue
         let combination = product(baseAlts, selected)
         for (const [axisName, alts] of axisAlts) {
             if (pinned.has(axisName)) continue
@@ -600,9 +651,16 @@ function resolveToArrayLiteral(node, ctx, depth, seen) {
 function elementByIndex(node, index, ctx, depth, seen) {
     if (!Number.isInteger(index) || index < 0) return null
     const table = resolveToArrayLiteral(node, ctx, depth, seen)
-    if (!table || index >= table.elements.length) return null
-    for (let i = 0; i <= index; i++) if (ts.isSpreadElement(table.elements[i])) return null
-    return { value: table.elements[index], scopes: table.scopes }
+    if (!table) return null
+    // Any spread at or before the index — and, when the index is past the end,
+    // any spread at all — could be supplying that position.
+    const upto = Math.min(index, table.elements.length - 1)
+    for (let i = 0; i <= upto; i++) if (ts.isSpreadElement(table.elements[i])) return null
+    const element = table.elements[index]
+    // Resolved, and nothing is there: `['a'][1]` renders no class at all, so
+    // unioning the array would borrow one from an entry the index cannot reach.
+    if (!element || ts.isOmittedExpression(element)) return { value: null, scopes: table.scopes }
+    return { value: element, scopes: table.scopes }
 }
 
 /**

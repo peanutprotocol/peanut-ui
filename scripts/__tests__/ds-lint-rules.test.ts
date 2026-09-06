@@ -346,6 +346,87 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
         expect(countWeightStacks("const c = clsx({ x: clsx('text-body-m', 'font-semibold') })")).toBe(1)
     })
 
+    it('folds a const-backed operand into the rendered concatenation', () => {
+        // The prefix really does render `text-body-m font-semibold`, two classes...
+        expect(countWeightStacks("const prefix = 'text-body'; const c = clsx(prefix + '-m font-semibold')")).toBe(1)
+        // ...and the mirror case renders ONE glued class, so it is not a stack
+        expect(countWeightStacks("const token = 'text-body-m'; const c = clsx(token + 'font-semibold')")).toBe(0)
+        // the const is read in ITS scope, not the use site's
+        expect(
+            countWeightStacks(
+                "const prefix = 'text-body'; function f() { const prefix = 'underline'; return clsx(prefix + '-m font-semibold') }"
+            )
+        ).toBe(0)
+        // ...and so is a const the const itself refers to: `prefix` is
+        // module-level, so `base` has to resolve there too, not against the
+        // function's namesake.
+        expect(
+            countWeightStacks(
+                "const base = 'text-body'; const prefix = base; function f() { const base = 'underline'; return clsx(prefix + '-m font-semibold') }"
+            )
+        ).toBe(1)
+        // a dynamic operand still falls back to the over-counting product
+        expect(countWeightStacks("const c = clsx(unknown + 'text-body-m font-semibold')")).toBe(1)
+    })
+
+    it('reads a computed builder key as the class it renders', () => {
+        expect(countWeightStacks("const c = clsx({ ['text-body-m']: a, ['font-semibold']: b })")).toBe(1)
+        expect(countWeightStacks("const c = clsx({ ['text-body-m']: a, ['underline']: b })")).toBe(0)
+        // and the same resolver selects by a computed key
+        expect(
+            countWeightStacks(
+                "const S = { ['sm']: 'text-body-m', lg: 'underline' }; const c = clsx(S.sm, 'font-semibold')"
+            )
+        ).toBe(1)
+    })
+
+    it('renders nothing for an index a resolved array does not reach', () => {
+        expect(countWeightStacks("const S = ['text-body-m']; const c = clsx(S[1], 'font-semibold')")).toBe(0)
+        // a hole is just as absent
+        expect(countWeightStacks("const S = ['text-body-m', , 'x']; const c = clsx(S[1], 'font-semibold')")).toBe(0)
+        // an UNRESOLVED array still unions — absence has to be proven, and a
+        // resolvable one whose index IS in range still selects
+        expect(countWeightStacks("const S = ['underline', 'text-body-m']; const c = clsx(S[1], 'font-semibold')")).toBe(
+            1
+        )
+    })
+
+    it('reads cva config fields written as shorthand', () => {
+        expect(
+            countWeightStacks(
+                "const variants = { tone: { loud: 'text-body-m' } }; const c = cva('base', { variants, compoundVariants: [{ tone: 'loud', class: 'font-semibold' }] })"
+            )
+        ).toBe(1)
+        expect(
+            countWeightStacks(
+                "const variants = { tone: { loud: 'text-body-m' } }; const compoundVariants = [{ tone: 'loud', class: 'font-semibold' }]; const c = cva('base', { variants, compoundVariants })"
+            )
+        ).toBe(1)
+    })
+
+    it('drops a cva compound whose selector can never match', () => {
+        // cva tests an array selector with `includes`, so [] matches nothing.
+        const axes = "variants: { tone: { loud: 'text-body-m', quiet: 'x' } }"
+        expect(
+            countWeightStacks(
+                `const c = cva('base', { ${axes}, compoundVariants: [{ tone: [], class: 'font-semibold' }] })`
+            )
+        ).toBe(0)
+        // field order must not matter — here the classes are read BEFORE the
+        // selector, so the combination has to be dropped, not merely cut short
+        expect(
+            countWeightStacks(
+                `const c = cva('base', { ${axes}, compoundVariants: [{ class: 'font-semibold', tone: [] }] })`
+            )
+        ).toBe(0)
+        // ...and a non-empty one still fires
+        expect(
+            countWeightStacks(
+                `const c = cva('base', { ${axes}, compoundVariants: [{ tone: ['loud'], class: 'font-semibold' }] })`
+            )
+        ).toBe(1)
+    })
+
     it('treats an enum or namespace declaration as a real shadow', () => {
         expect(
             countWeightStacks(
