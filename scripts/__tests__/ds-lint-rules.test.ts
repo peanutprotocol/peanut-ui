@@ -219,6 +219,62 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
         expect(countWeightStacks("const SIZES = { sm: 'text-body-m font-semibold' }; const c = SIZES[v]")).toBe(1)
     })
 
+    it('respects the token boundary across + concatenation', () => {
+        // `+` GLUES: 'text-body-m' + 'font-semibold' renders the single class
+        // `text-body-mfont-semibold`, not a token beside a weight.
+        expect(countWeightStacks("const c = 'text-body-m' + 'font-semibold'")).toBe(0)
+        expect(countWeightStacks("const c = 'text-body-m ' + 'font-semibold'")).toBe(1)
+        expect(countWeightStacks("const c = 'text-body-m' + ' font-semibold'")).toBe(1)
+        // an unreadable fragment is ASSUMED to separate — over-counting is the
+        // safe direction for a debt ratchet
+        expect(countWeightStacks("const c = 'text-body-m' + x + 'font-semibold'")).toBe(1)
+    })
+
+    it('resolves entries carried in by an object spread', () => {
+        const base = "const BASE = { x: 'text-body-m' }; const S = { ...BASE }; "
+        expect(countWeightStacks(`${base}const c = clsx(S[k], 'font-semibold')`)).toBe(1)
+        expect(countWeightStacks(`${base}const c = clsx(S.x, 'font-semibold')`)).toBe(1)
+    })
+
+    it('hoists a nested var into its function scope', () => {
+        // `var` is function-scoped, so a `var style` inside an `if` shadows for
+        // the WHOLE function — including the call after the block closes.
+        expect(
+            countWeightStacks(
+                "const style = 'text-body-m'; function f(cond) { if (cond) { var style = 'underline' } return clsx(style, 'font-semibold') }"
+            )
+        ).toBe(0)
+        // a nested FUNCTION's var does not leak outward
+        expect(
+            countWeightStacks(
+                "const style = 'text-body-m'; function f() { function g() { var style = 'u' } return clsx(style, 'font-semibold') }"
+            )
+        ).toBe(1)
+    })
+
+    it('combines a cva compound only with the options that select it', () => {
+        const axes = "variants: { size: { sm: 'text-body-m', lg: 'underline' } }"
+        // the compound fires for `lg`, whose class is not a type token — so its
+        // weight never lands beside the `sm` token
+        expect(
+            countWeightStacks(
+                `const c = cva('base', { ${axes}, compoundVariants: [{ size: 'lg', class: 'font-semibold' }] })`
+            )
+        ).toBe(0)
+        // ...but for `sm` it really does co-apply
+        expect(
+            countWeightStacks(
+                `const c = cva('base', { ${axes}, compoundVariants: [{ size: 'sm', class: 'font-semibold' }] })`
+            )
+        ).toBe(1)
+        // and a compound whose own class stacks is caught regardless
+        expect(
+            countWeightStacks(
+                "const c = cva('base', { variants: { size: { sm: 'x' } }, compoundVariants: [{ size: 'sm', class: 'text-body-m font-semibold' }] })"
+            )
+        ).toBe(1)
+    })
+
     it('only a WHITESPACE join composes a class list', () => {
         // `.join(',')` yields the single class `a,b`, and `.join()` defaults to a
         // comma — treating either as composition reports a stack no element ever
