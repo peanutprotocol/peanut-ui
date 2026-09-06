@@ -19,8 +19,34 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import posthog from 'posthog-js'
-import { Children, type ReactNode, cloneElement, memo, type ReactElement, useState } from 'react'
+import {
+    Children,
+    type ReactNode,
+    cloneElement,
+    createContext,
+    memo,
+    type ReactElement,
+    useContext,
+    useEffect,
+    useState,
+} from 'react'
 import { twMerge } from '@/utils/tw'
+
+const SetupImageContext = createContext<(src: string | null) => void>(() => {})
+
+/**
+ * Lets a step's sub-view swap the wrapper's illustration for as long as it is
+ * mounted — the residence step's "Good news" outcome celebrates, while the
+ * selector it shares a step with keeps the neutral greeting. Sub-views are not
+ * steps, so they have no step config of their own to carry an image.
+ */
+export const useSetupImageOverride = (src: string | null) => {
+    const setImage = useContext(SetupImageContext)
+    useEffect(() => {
+        setImage(src)
+        return () => setImage(null)
+    }, [src, setImage])
+}
 
 /**
  * props interface for the SetupWrapper component
@@ -282,6 +308,7 @@ export const SetupWrapper = memo(function SetupWrapper({
     titleClassName,
 }: SetupWrapperProps) {
     const t = useTranslations('setup.braveInstall')
+    const [imageOverride, setImageOverride] = useState<string | null>(null)
     const { isBrave } = useBravePWAInstallState()
     const [showBraveSuccessMessage, setShowBraveSuccessMessage] = useState(false)
     const prefersReducedMotion = useReducedMotion()
@@ -328,7 +355,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                     imageClassName={imageClassName}
                     screenId={screenId}
                     layoutType={layoutType}
-                    image={image}
+                    image={imageOverride ?? image}
                 />
 
                 {/* content section */}
@@ -382,18 +409,20 @@ export const SetupWrapper = memo(function SetupWrapper({
                     )}
                     {/* main content area */}
                     <div className="mx-auto w-full md:max-w-xs">
-                        {Children.map(children, (child) => {
-                            if ((child as ReactElement).type === InstallPWA) {
-                                return cloneElement(child as ReactElement, {
-                                    deferredPrompt,
-                                    canInstall,
-                                    deviceType,
-                                    screenId,
-                                    setShowBraveSuccessMessage,
-                                })
-                            }
-                            return child
-                        })}
+                        <SetupImageContext.Provider value={setImageOverride}>
+                            {Children.map(children, (child) => {
+                                if ((child as ReactElement).type === InstallPWA) {
+                                    return cloneElement(child as ReactElement, {
+                                        deferredPrompt,
+                                        canInstall,
+                                        deviceType,
+                                        screenId,
+                                        setShowBraveSuccessMessage,
+                                    })
+                                }
+                                return child
+                            })}
+                        </SetupImageContext.Provider>
                     </div>
                 </motion.div>
             </div>

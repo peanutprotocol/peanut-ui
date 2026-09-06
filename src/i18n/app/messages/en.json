@@ -814,7 +814,7 @@
                     "arQr": "QR payments and transfers",
                     "spei": "SPEI transfers",
                     "usdAch": "USD transfers (ACH and wire)",
-                    "eurSepa": "SEPA bank transfers",
+                    "eurSepa": "bank transfers",
                     "gbpFps": "GBP bank transfers (Faster Payments)"
                 },
                 "continue": "Continue"
@@ -849,8 +849,8 @@
                 "multiCurrencyNote": "Transfers in another currency need a bank account in that currency.",
                 "guideTitle": "Which country goes first?",
                 "guideDeclaration": "Both entries must be countries where you genuinely hold legal residence. This is a declaration, and providers verify it during the ID check, including proof of address.",
-                "guideOrder": "If both countries are truly home, either order is honest. The order only changes what the app shows you first, never what you are eligible for. Eligibility is decided by the verification itself.",
-                "guideSecond": "Your second country stays on record. You can verify its payment rails anytime from Unlock payments, and change the order later."
+                "guideOrder": "If both countries are truly home, pick the one to record as your main residence. Eligibility is decided by the documents you provide at verification.",
+                "selectCountry": "Select {country}"
             }
         },
         "passkey": {
@@ -3499,7 +3499,8 @@
         },
         "countryCombobox": {
             "noResults": "No countries match",
-            "clear": "Clear search"
+            "clear": "Clear search",
+            "removeCountry": "Remove {country}"
         }
     },
     "errors": {
