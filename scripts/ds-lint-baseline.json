@@ -1,24 +1,24 @@
 {
-    "rawHex": 27,
-    "rawHexFiles": 20,
-    "inlineStyle": 21,
+    "rawHex": 26,
+    "rawHexFiles": 19,
+    "inlineStyle": 24,
     "stockTextSize": 8,
     "dsTextScale": 11,
-    "nonDsClassesInViews": 16,
-    "useSearchParamsFiles": 44,
-    "nuqsFiles": 23,
+    "nonDsClassesInViews": 19,
+    "useSearchParamsFiles": 41,
+    "nuqsFiles": 31,
     "legacyColorClasses": 0,
     "offRampPalette": 0,
     "deadLegacyTokens": 0,
     "consumedUndefinedTokens": 0,
-    "classNameSitesInPages": 312,
+    "classNameSitesInPages": 225,
     "fontWeightOnTypeToken": 47,
     "offScaleSpacing": 188,
-    "iconOffScale": 70,
+    "iconOffScale": 68,
     "offScaleRadius": 37,
     "rawDuration": 6,
-    "retypedCardLiteral": 17,
-    "hoverNoActiveFiles": 44,
+    "retypedCardLiteral": 16,
+    "hoverNoActiveFiles": 45,
     "arbitraryFontSize": 111,
     "rawErrorText": 25,
     "handRolledCloseGlyphFiles": 9,
@@ -52,6 +52,11 @@
             "date": "2026-09-04",
             "metrics": ["classNameSitesInPages 310 -> 312"],
             "reason": "dev-side, not authored here: the exchange-rate page gained 2 className sites in dev's exchange-currencies work (profile/exchange-rate/page.tsx), counted in on the merge. this branch touches no (mobile-ui) page.tsx at all."
+        },
+        {
+            "date": "2026-09-06",
+            "metrics": ["inlineStyle 21 -> 24", "nonDsClassesInViews 16 -> 19", "hoverNoActiveFiles 44 -> 45"],
+            "reason": "TASK-21457 qr-pay split: markup relocated verbatim from the allowlisted app/(mobile-ui)/qr-pay/page.tsx into features/payments/flows/qr-pay/views/ — behavior-parity migration per design.md; no new drift, flagged in the PR body"
         }
     ]
 }
