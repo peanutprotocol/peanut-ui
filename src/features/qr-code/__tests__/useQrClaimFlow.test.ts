@@ -2,6 +2,7 @@
  * @jest-environment jsdom
  */
 import { act, renderHook } from '@testing-library/react'
+import { withNuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { useQrClaimFlow } from '../useQrClaimFlow'
 
 const mockPush = jest.fn()
@@ -15,7 +16,6 @@ let mockQrStatus: { data: any; isLoading: boolean; error: any } = { data: undefi
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockPush }),
     useParams: () => ({ code: 'abc123' }),
-    useSearchParams: () => ({ get: () => null }),
 }))
 jest.mock('next-intl', () => ({
     useTranslations: () => (key: string) => key,
@@ -51,7 +51,7 @@ describe('useQrClaimFlow', () => {
     })
 
     it('does nothing while the status is loading', () => {
-        renderHook(() => useQrClaimFlow())
+        renderHook(() => useQrClaimFlow(), { wrapper: withNuqsTestingAdapter() })
         expect(mockPush).not.toHaveBeenCalled()
     })
 
@@ -62,7 +62,7 @@ describe('useQrClaimFlow', () => {
             error: null,
         }
         mockSanitizeRedirectURL.mockReturnValue('/kush/i/123')
-        renderHook(() => useQrClaimFlow())
+        renderHook(() => useQrClaimFlow(), { wrapper: withNuqsTestingAdapter() })
         expect(mockPush).toHaveBeenCalledWith('/kush/i/123')
     })
 
@@ -73,14 +73,14 @@ describe('useQrClaimFlow', () => {
             error: null,
         }
         mockSanitizeRedirectURL.mockReturnValue(null)
-        const { result } = renderHook(() => useQrClaimFlow())
+        const { result } = renderHook(() => useQrClaimFlow(), { wrapper: withNuqsTestingAdapter() })
         expect(mockPush).not.toHaveBeenCalled()
         expect(result.current.error).toBe('claim.invalidDestination')
     })
 
     it('sends a logged-out visitor to setup when the qr is unclaimed', () => {
         mockQrStatus = { data: { claimed: false, available: true }, isLoading: false, error: null }
-        renderHook(() => useQrClaimFlow())
+        renderHook(() => useQrClaimFlow(), { wrapper: withNuqsTestingAdapter() })
         expect(mockSaveRedirectUrl).toHaveBeenCalled()
         expect(mockPush).toHaveBeenCalledWith('/setup')
     })
@@ -90,7 +90,7 @@ describe('useQrClaimFlow', () => {
         mockQrStatus = { data: { claimed: false, available: true }, isLoading: false, error: null }
         mockServerFetch.mockResolvedValue({ ok: true, json: async () => ({}) })
 
-        const { result } = renderHook(() => useQrClaimFlow())
+        const { result } = renderHook(() => useQrClaimFlow(), { wrapper: withNuqsTestingAdapter() })
         await act(async () => {
             await result.current.handleClaim()
         })
@@ -108,7 +108,7 @@ describe('useQrClaimFlow', () => {
         mockQrStatus = { data: { claimed: false, available: true }, isLoading: false, error: null }
         mockServerFetch.mockResolvedValue({ ok: false, json: async () => ({ message: 'nope' }) })
 
-        const { result } = renderHook(() => useQrClaimFlow())
+        const { result } = renderHook(() => useQrClaimFlow(), { wrapper: withNuqsTestingAdapter() })
         await act(async () => {
             await result.current.handleClaim()
         })
