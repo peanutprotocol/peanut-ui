@@ -52,8 +52,6 @@ jest.mock('@/hooks/useRainCardOverview', () => ({
 jest.mock('../useGrantSessionKey', () => ({ useGrantSessionKey: () => ({ grant: jest.fn() }) }))
 jest.mock('@/utils/rainWithdraw.utils', () => ({ buildRainWithdrawTypedData: jest.fn(() => ({})) }))
 jest.mock('@/app/actions/clients', () => ({ peanutPublicClient: {} }))
-let mockSessionKeyEnabled = false
-jest.mock('@/constants/session-key-spend.consts', () => ({ sessionKeySpendEnabled: () => mockSessionKeyEnabled }))
 jest.mock('./../mixedEphemeralSpend', () => ({ tryMixedEphemeralSpend: jest.fn() }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
 jest.mock('@/services/rain', () => ({
@@ -98,6 +96,9 @@ beforeEach(() => {
     queryClient = new QueryClient()
     mockPreflight.mockImplementation(async ({ kernelClient }) => kernelClient)
     mockResolveSpendStrategy.mockResolvedValue({ strategy: 'collateral-only', smartBalance: 0n })
+    // one-tap is ungated: the mixed path always tries the ephemeral spend first.
+    // Default: it declines without crossing the broadcast boundary.
+    ;(tryMixedEphemeralSpend as jest.Mock).mockResolvedValue({ ok: false, reason: 'no session key' })
     mockPrepareWithdrawal.mockResolvedValue(PREP)
     mockSignTypedData.mockResolvedValue('0xadminsig')
     mockSubmitWithdrawal.mockResolvedValue({ txHash: '0x' + 'a'.repeat(64) })
@@ -183,27 +184,23 @@ describe('useSpendBundle — draft back-out boundaries', () => {
             // through; the passkey fallback reuses the SAME prep and its
             // ceremony is dismissed. The ceremony carve-out must not override
             // the earlier ambiguous broadcast (Chip-filed follow-up on r2).
-            mockSessionKeyEnabled = true
-            try {
-                const mockEphemeral = tryMixedEphemeralSpend as jest.Mock
-                mockEphemeral.mockImplementationOnce(async (args) => {
-                    args.onBroadcastAttempt?.()
-                    return { ok: false, reason: 'timeout waiting for receipt' }
-                })
-                mockHandleSendUserOpEncoded.mockImplementationOnce(async (_calls, _chain, opts) => {
-                    opts?.onBroadcastAttempt?.()
-                    const err = new Error('ceremony dismissed')
-                    err.name = 'NotAllowedError'
-                    throw err
-                })
-                const { result } = renderHook(() => useSpendBundle(), { wrapper })
-                await act(async () => {
-                    await expect(result.current.spend(spendInput())).rejects.toThrow('ceremony dismissed')
-                })
-                expect(mockCancelPreparation).not.toHaveBeenCalled()
-            } finally {
-                mockSessionKeyEnabled = false
-            }
+            // one-tap is on for everyone now (no gate) — the ephemeral attempt always runs on mixed
+            const mockEphemeral = tryMixedEphemeralSpend as jest.Mock
+            mockEphemeral.mockImplementationOnce(async (args) => {
+                args.onBroadcastAttempt?.()
+                return { ok: false, reason: 'timeout waiting for receipt' }
+            })
+            mockHandleSendUserOpEncoded.mockImplementationOnce(async (_calls, _chain, opts) => {
+                opts?.onBroadcastAttempt?.()
+                const err = new Error('ceremony dismissed')
+                err.name = 'NotAllowedError'
+                throw err
+            })
+            const { result } = renderHook(() => useSpendBundle(), { wrapper })
+            await act(async () => {
+                await expect(result.current.spend(spendInput())).rejects.toThrow('ceremony dismissed')
+            })
+            expect(mockCancelPreparation).not.toHaveBeenCalled()
         })
     })
 })

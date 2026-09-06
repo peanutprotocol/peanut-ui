@@ -182,7 +182,13 @@ describe('useUserQuery — demo mode', () => {
         const { result } = renderHook(() => useUserQuery(), { wrapper: makeWrapper() })
         await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-        // the real fetchUser path, through the mutable demo profile, not the static constant
-        expect(result.current.data?.user.avatarKey).toBe('basic.frog')
+        // Force a settled round-trip: with demo placeholderData the mount-time
+        // fetch's completion never notifies this 5.8.4 harness (placeholder
+        // stays on screen); the app path is invalidate→refetch, mirrored here.
+        const { data } = await result.current.refetch()
+
+        // the real fetchUser path, through the mutable demo profile, not the
+        // static constant (which also serves as placeholderData pre-fetch)
+        expect(data?.user.avatarKey).toBe('basic.frog')
     })
 })
