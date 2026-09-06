@@ -9,7 +9,20 @@ import { startKycAction } from '@/app/actions/sumsub'
 import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useLimits } from '@/hooks/useLimits'
+import { markSubmitted } from '@/hooks/useSubmissionWindow'
+import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { selectMantecaCapNudge } from '@/utils/capability-gate'
+
+/**
+ * How long a local submission suppresses the CTA on its own.
+ *
+ * The backend only flips the hint from `raise` to `wait` when the RFI webhook
+ * lands, which is asynchronous and can be lost. Long enough to cover the
+ * ordinary webhook, short enough that a lost one re-offers the upload instead
+ * of hiding it forever — and short enough that it can never be the reason a
+ * genuinely NEW cap block goes unanswered.
+ */
+const CAP_NUDGE_SUBMITTED_TTL_MS = 10 * 60 * 1000
 
 /**
  * The Manteca cap-nudge — the surface for "you hit your monthly cap, verify your
@@ -27,35 +40,52 @@ import { selectMantecaCapNudge } from '@/utils/capability-gate'
  *
  * Deliberately tiny, for the same reason the card's PoA self-heal is: the
  * multi-phase KYC machinery is bank-onboarding shaped and completes on rail
- * semantics this lifecycle never reaches. Here we need only mint → open → refetch.
+ * semantics this lifecycle never reaches. Here we need only mint → open →
+ * arm the poller → let the backend take over.
  */
 export default function CapNudgeCard() {
     const t = useTranslations('limits.capNudge')
     const tKyc = useTranslations('kyc')
     const { rails, nextActions } = useCapabilities()
-    const { fetchUser } = useAuth()
+    const { user, fetchUser } = useAuth()
     const { refetch: refetchLimits } = useLimits()
 
     const [token, setToken] = useState<string | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [isStarting, setIsStarting] = useState(false)
-    // Optimistic "we got it" between the SDK submit and the backend stamping
-    // `submittedAt` on the marker (a webhook round-trip later). Without it the
-    // actionable CTA lingers and invites a second upload of the same document.
-    const [submitted, setSubmitted] = useState(false)
     // Two concurrent taps race the backend's create-action idempotency into
     // minting two Sumsub actions — the same guard the card PoA self-heal uses.
     const startingRef = useRef(false)
 
+    const userId = user?.user?.userId
     const nudge = selectMantecaCapNudge(rails, nextActions)
     const actionKey = nudge?.state === 'raise' ? nudge.actionKey : null
 
-    // Once the backend's own state takes over — the marker gains `submittedAt`
-    // and the hint flips to `wait`, or a NEW cap block re-seeds the actionable
-    // CTA — drop the optimistic flag so the re-offered upload isn't suppressed.
+    // Optimistic "we got it", persisted per user rather than held in component
+    // state. The webhook that stamps `submittedAt` on the marker is a
+    // round-trip away, and a flag that dies with this component let the user
+    // navigate away, come back, and be offered the same upload again — which
+    // is how a second Sumsub action gets minted for a document already in.
+    // localStorage is unreadable during SSR, hence the post-render read.
+    const [submittedAt, setSubmittedAt] = useState<number | null>(null)
     useEffect(() => {
-        if (submitted && nudge?.state !== 'raise') setSubmitted(false)
-    }, [submitted, nudge?.state])
+        if (!userId) return
+        const stored = getUserPreferences(userId)?.capNudgeSubmittedAt
+        const parsed = stored ? Date.parse(stored) : NaN
+        setSubmittedAt(Number.isNaN(parsed) ? null : parsed)
+    }, [userId])
+
+    const recentlySubmitted = submittedAt !== null && Date.now() - submittedAt < CAP_NUDGE_SUBMITTED_TTL_MS
+
+    // Once the backend's own state takes over, drop the local flag: the marker
+    // it wrote outlives this device, and leaving ours behind would suppress a
+    // later, genuinely new cap block.
+    useEffect(() => {
+        if (!userId || submittedAt === null) return
+        if (nudge?.state === 'raise' && recentlySubmitted) return
+        updateUserPreferences(userId, { capNudgeSubmittedAt: undefined })
+        setSubmittedAt(null)
+    }, [userId, submittedAt, nudge?.state, recentlySubmitted])
 
     const start = useCallback(async () => {
         if (!actionKey || startingRef.current) return
@@ -84,14 +114,29 @@ export default function CapNudgeCard() {
         return response.data.token
     }, [actionKey])
 
-    const refresh = useCallback(() => {
+    const onSubmit = useCallback(() => {
+        setToken(null)
+        // Arm the shared post-write poller BEFORE refetching. This rail is
+        // ENABLED, so the auto-refresh predicate's pending-rail arm never fires
+        // for it — without the window a single refetch races the webhook, and
+        // losing that race leaves the actionable hint sitting in the user cache
+        // for its full staleTime with nothing scheduled to correct it.
+        markSubmitted()
+        if (userId) updateUserPreferences(userId, { capNudgeSubmittedAt: new Date().toISOString() })
+        setSubmittedAt(Date.now())
+        void fetchUser()
+        void refetchLimits()
+    }, [userId, fetchUser, refetchLimits])
+
+    const onClose = useCallback(() => {
+        setToken(null)
         void fetchUser()
         void refetchLimits()
     }, [fetchUser, refetchLimits])
 
     if (!nudge) return null
 
-    if (nudge.state === 'under-review' || submitted) {
+    if (nudge.state === 'under-review' || recentlySubmitted) {
         return (
             <Card position="single" className="p-4">
                 <p className="text-body-s text-foreground-secondary">{t('underReview')}</p>
@@ -118,15 +163,8 @@ export default function CapNudgeCard() {
             <SumsubKycWrapper
                 visible={token !== null}
                 accessToken={token}
-                onClose={() => {
-                    setToken(null)
-                    refresh()
-                }}
-                onComplete={() => {
-                    setToken(null)
-                    setSubmitted(true)
-                    refresh()
-                }}
+                onClose={onClose}
+                onComplete={onSubmit}
                 onRefreshToken={refreshToken}
             />
         </>

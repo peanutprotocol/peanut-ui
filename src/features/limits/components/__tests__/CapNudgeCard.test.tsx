@@ -19,12 +19,24 @@ let mockNextActions: NextAction[] = []
 const mockFetchUser = jest.fn(() => Promise.resolve(null))
 const mockRefetchLimits = jest.fn()
 const mockStartKycAction = jest.fn()
+const mockMarkSubmitted = jest.fn()
+let mockPrefs: Record<string, unknown> = {}
+const mockUpdatePrefs = jest.fn((_userId: string, prefs: Record<string, unknown>) => {
+    mockPrefs = { ...mockPrefs, ...prefs }
+})
 
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({ rails: mockRails, nextActions: mockNextActions }),
 }))
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ fetchUser: mockFetchUser }),
+    useAuth: () => ({ user: { user: { userId: 'user-1' } }, fetchUser: mockFetchUser }),
+}))
+jest.mock('@/hooks/useSubmissionWindow', () => ({
+    markSubmitted: () => mockMarkSubmitted(),
+}))
+jest.mock('@/utils/general.utils', () => ({
+    getUserPreferences: () => mockPrefs,
+    updateUserPreferences: (userId: string, prefs: Record<string, unknown>) => mockUpdatePrefs(userId, prefs),
 }))
 jest.mock('@/hooks/useLimits', () => ({
     useLimits: () => ({ refetch: mockRefetchLimits }),
@@ -79,6 +91,11 @@ describe('CapNudgeCard', () => {
         mockRefetchLimits.mockReset()
         mockStartKycAction.mockReset()
         mockStartKycAction.mockResolvedValue({ data: { token: 'tok-1', levelName: 'source-of-funds' } })
+        mockMarkSubmitted.mockReset()
+        // mockClear, NOT mockReset: reset strips the implementation that
+        // writes through to mockPrefs, and the remount cases depend on it.
+        mockUpdatePrefs.mockClear()
+        mockPrefs = {}
     })
 
     test('renders nothing when the user carries no cap-nudge', () => {
@@ -127,12 +144,57 @@ describe('CapNudgeCard', () => {
             expect(mockFetchUser).toHaveBeenCalled()
             expect(mockRefetchLimits).toHaveBeenCalled()
         })
+
+        test('submitting arms the post-write poller, not just one refetch', async () => {
+            // This rail is ENABLED, so the auto-refresh predicate's pending-rail
+            // arm never fires for it. Without the window a single refetch races
+            // the webhook, and losing that race parks the actionable hint in the
+            // user cache for its full staleTime with nothing to correct it.
+            render(<CapNudgeCard />)
+            fireEvent.click(screen.getByRole('button', { name: /verify income/i }))
+            fireEvent.click(await screen.findByText('submit-document'))
+
+            expect(mockMarkSubmitted).toHaveBeenCalled()
+        })
+
+        test('the suppression survives a remount, so the same upload is not re-offered', async () => {
+            const { unmount } = render(<CapNudgeCard />)
+            fireEvent.click(screen.getByRole('button', { name: /verify income/i }))
+            fireEvent.click(await screen.findByText('submit-document'))
+            await screen.findByText(/reviewing your limit/i)
+            unmount()
+
+            // The backend still says `raise` — the webhook has not landed yet.
+            render(<CapNudgeCard />)
+            expect(await screen.findByText(/reviewing your limit/i)).toBeInTheDocument()
+            expect(screen.queryByRole('button', { name: /verify income/i })).not.toBeInTheDocument()
+        })
+
+        test('a stale local submission ages out and the upload is offered again', async () => {
+            // A lost webhook must re-offer the upload rather than hide it
+            // forever — and must never be the reason a NEW cap block goes
+            // unanswered.
+            mockPrefs = { capNudgeSubmittedAt: new Date(Date.now() - 60 * 60 * 1000).toISOString() }
+
+            render(<CapNudgeCard />)
+            expect(await screen.findByRole('button', { name: /verify income/i })).toBeInTheDocument()
+            // and the dead marker is cleared, not left to shadow a later block
+            expect(mockUpdatePrefs).toHaveBeenCalledWith('user-1', { capNudgeSubmittedAt: undefined })
+        })
     })
 
     describe('completed RFI → non-actionable review state', () => {
         beforeEach(() => {
             mockRails = [mantecaRail({ hintActions: ['manteca:limit-review'] })]
             mockNextActions = [reviewAction]
+        })
+
+        test('clears a local submission marker once the backend confirms', async () => {
+            mockPrefs = { capNudgeSubmittedAt: new Date().toISOString() }
+            render(<CapNudgeCard />)
+            await waitFor(() =>
+                expect(mockUpdatePrefs).toHaveBeenCalledWith('user-1', { capNudgeSubmittedAt: undefined })
+            )
         })
 
         test('shows the review copy with no control at all', () => {
