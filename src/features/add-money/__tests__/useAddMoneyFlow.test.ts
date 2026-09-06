@@ -1,21 +1,14 @@
 /**
  * @jest-environment jsdom
  */
-import { renderHook, act } from '@testing-library/react'
+import { renderHook, act, waitFor } from '@testing-library/react'
+import { withNuqsTestingAdapter, type UrlUpdateEvent } from 'nuqs/adapters/testing'
 
 const mockRouterPush = jest.fn()
 const mockRouterReplace = jest.fn()
-let mockSearchParams = new URLSearchParams()
-let mockMethod: string | null = null
 
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockRouterPush, replace: mockRouterReplace, back: jest.fn(), prefetch: jest.fn() }),
-    useSearchParams: () => mockSearchParams,
-}))
-
-jest.mock('nuqs', () => ({
-    useQueryState: () => [mockMethod, jest.fn()],
-    parseAsStringEnum: () => ({}),
 }))
 
 const mockResetOnrampFlow = jest.fn()
@@ -58,65 +51,66 @@ jest.mock('@/constants/analytics.consts', () => ({
 
 import { useAddMoneyFlow } from '../useAddMoneyFlow'
 
+const renderFlow = (search = '', onUrlUpdate?: (e: UrlUpdateEvent) => void) =>
+    renderHook(() => useAddMoneyFlow(), { wrapper: withNuqsTestingAdapter({ searchParams: search, onUrlUpdate }) })
+
 describe('useAddMoneyFlow', () => {
     beforeEach(() => {
         jest.clearAllMocks()
-        mockSearchParams = new URLSearchParams()
-        mockMethod = null
     })
 
     it('bare root redirects to the home add drawer and resets onramp state', () => {
-        renderHook(() => useAddMoneyFlow())
+        renderFlow()
         expect(mockResetOnrampFlow).toHaveBeenCalled()
         expect(mockRouterReplace).toHaveBeenCalledWith('/home?drawer=add')
     })
 
     it('bare root carries a same-origin returnTo, drops an off-origin one', () => {
-        mockSearchParams = new URLSearchParams({ returnTo: '/profile/exchange-rate' })
-        renderHook(() => useAddMoneyFlow())
+        renderFlow('?returnTo=/profile/exchange-rate')
         expect(mockRouterReplace).toHaveBeenCalledWith(
             `/home?drawer=add&returnTo=${encodeURIComponent('/profile/exchange-rate')}`
         )
 
         mockRouterReplace.mockClear()
-        mockSearchParams = new URLSearchParams({ returnTo: 'https://evil.example/phish' })
-        renderHook(() => useAddMoneyFlow())
+        renderFlow(`?returnTo=${encodeURIComponent('https://evil.example/phish')}`)
         expect(mockRouterReplace).toHaveBeenCalledWith('/home?drawer=add')
     })
 
     it('?method=bank is not bare root and does not redirect', () => {
-        mockMethod = 'bank'
-        const { result } = renderHook(() => useAddMoneyFlow())
+        const { result } = renderFlow('?method=bank')
         expect(result.current.isBareRoot).toBe(false)
         expect(mockRouterReplace).not.toHaveBeenCalled()
     })
 
     it('back honours a same-origin returnTo, resets to /home otherwise', () => {
-        mockMethod = 'bank'
-        mockSearchParams = new URLSearchParams({ returnTo: '/profile/exchange-rate' })
-        const { result } = renderHook(() => useAddMoneyFlow())
+        const { result } = renderFlow(`?method=bank&returnTo=${encodeURIComponent('/profile/exchange-rate')}`)
         act(() => result.current.handleBack())
         expect(mockRouterPush).toHaveBeenCalledWith('/profile/exchange-rate')
 
         mockRouterPush.mockClear()
-        mockSearchParams = new URLSearchParams()
-        const { result: r2 } = renderHook(() => useAddMoneyFlow())
+        const { result: r2 } = renderFlow('?method=bank')
         act(() => r2.current.handleBack())
         expect(mockRouterPush).toHaveBeenCalledWith('/home')
     })
 
-    it('back from a country sub-view returns to the bank country list', () => {
-        mockMethod = 'bank'
-        mockSearchParams = new URLSearchParams({ country: 'austria' })
-        const { result } = renderHook(() => useAddMoneyFlow())
+    it('back from a country sub-view writes the bank country list params in place', async () => {
+        const events: UrlUpdateEvent[] = []
+        const { result } = renderFlow('?country=austria', (e) => events.push(e))
         expect(mockResetOnrampFlow).not.toHaveBeenCalled()
+
         act(() => result.current.handleBack())
-        expect(mockRouterPush).toHaveBeenCalledWith('/add-money?method=bank')
+        await waitFor(() => expect(events.length).toBeGreaterThan(0))
+
+        const last = events.at(-1)
+        expect(last?.searchParams.get('country')).toBeNull()
+        expect(last?.searchParams.get('method')).toBe('bank')
+        // history entry preserved, as with the old router.push
+        expect(last?.options.history).toBe('push')
+        expect(mockRouterPush).not.toHaveBeenCalled()
     })
 
     it('routes a country click to manteca, bridge bank, or the per-country screen', () => {
-        mockMethod = 'bank'
-        const { result } = renderHook(() => useAddMoneyFlow())
+        const { result } = renderFlow('?method=bank')
 
         act(() => result.current.handleCountryClick({ id: 'AR', path: 'argentina' } as any))
         expect(mockRouterPush).toHaveBeenCalledWith('/add-money/argentina/manteca')

@@ -61,7 +61,9 @@ jest.mock('nuqs', () => ({
         return [value, setter]
     },
     useQueryStates: (_parsers: any, _opts?: any) => {
-        return [mockQueryState, mockSetQueryState]
+        // one URL in reality: params set through mockSearchParams (the
+        // useSearchParams channel) must be visible to nuqs reads too
+        return [{ ...Object.fromEntries(mockSearchParams), ...mockQueryState }, mockSetQueryState]
     },
     parseAsString: { withDefault: (d: string) => d },
     parseAsStringEnum: (_values: string[]) => ({

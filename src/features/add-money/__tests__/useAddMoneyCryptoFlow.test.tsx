@@ -4,17 +4,11 @@
 import React from 'react'
 import { renderHook, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { withNuqsTestingAdapter } from 'nuqs/adapters/testing'
 
 const mockRouterPush = jest.fn()
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockRouterPush, replace: jest.fn(), back: jest.fn(), prefetch: jest.fn() }),
-}))
-
-let mockQueryValues: Record<string, string | null> = {}
-jest.mock('nuqs', () => ({
-    useQueryState: (key: string) => [mockQueryValues[key] ?? null, jest.fn()],
-    parseAsString: {},
-    parseAsStringEnum: () => ({}),
 }))
 
 let mockUser: any = null
@@ -68,43 +62,46 @@ jest.mock('@/constants/analytics.consts', () => ({
 
 import { useAddMoneyCryptoFlow } from '../useAddMoneyCryptoFlow'
 
-const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-        {children}
-    </QueryClientProvider>
-)
+const wrapperFor = (search = '') => {
+    const NuqsWrapper = withNuqsTestingAdapter({ searchParams: search })
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const Wrapper = ({ children }: { children: React.ReactNode }) => (
+        <QueryClientProvider client={client}>
+            <NuqsWrapper>{children}</NuqsWrapper>
+        </QueryClientProvider>
+    )
+    return Wrapper
+}
+
+const renderFlow = (search = '') => renderHook(() => useAddMoneyCryptoFlow(), { wrapper: wrapperFor(search) })
 
 describe('useAddMoneyCryptoFlow', () => {
     beforeEach(() => {
         jest.clearAllMocks()
-        mockQueryValues = {}
         mockUser = null
     })
 
     it('needs a network choice on a bare url, defaults the network to EVM', () => {
-        const { result } = renderHook(() => useAddMoneyCryptoFlow(), { wrapper })
+        const { result } = renderFlow()
         expect(result.current.needsNetworkChoice).toBe(true)
         expect(result.current.network).toBe('EVM')
     })
 
     it('a ?network deep link skips the network choice', () => {
-        mockQueryValues.network = 'SOL'
-        const { result } = renderHook(() => useAddMoneyCryptoFlow(), { wrapper })
+        const { result } = renderFlow('?network=SOL')
         expect(result.current.needsNetworkChoice).toBe(false)
         expect(result.current.network).toBe('SOL')
     })
 
     it('back pushes a same-origin returnTo instead of history-back', () => {
-        mockQueryValues.returnTo = '/profile/exchange-rate'
-        const { result } = renderHook(() => useAddMoneyCryptoFlow(), { wrapper })
+        const { result } = renderFlow(`?returnTo=${encodeURIComponent('/profile/exchange-rate')}`)
         act(() => result.current.onBack())
         expect(mockRouterPush).toHaveBeenCalledWith('/profile/exchange-rate')
         expect(mockSafeBack).not.toHaveBeenCalled()
     })
 
     it('an off-origin returnTo falls through to safe back', () => {
-        mockQueryValues.returnTo = 'https://evil.example/phish'
-        const { result } = renderHook(() => useAddMoneyCryptoFlow(), { wrapper })
+        const { result } = renderFlow(`?returnTo=${encodeURIComponent('https://evil.example/phish')}`)
         act(() => result.current.onBack())
         expect(mockSafeBack).toHaveBeenCalled()
         expect(mockRouterPush).not.toHaveBeenCalled()
@@ -112,7 +109,7 @@ describe('useAddMoneyCryptoFlow', () => {
 
     it('handleSuccess records the deposit and flips to the success view', () => {
         mockUser = { user: { userId: 'u1' }, invitedBy: 'someone' }
-        const { result } = renderHook(() => useAddMoneyCryptoFlow(), { wrapper })
+        const { result } = renderFlow()
 
         act(() => result.current.handleSuccess(50))
 
@@ -130,7 +127,7 @@ describe('useAddMoneyCryptoFlow', () => {
     })
 
     it('handleSuccessComplete clears the success state', () => {
-        const { result } = renderHook(() => useAddMoneyCryptoFlow(), { wrapper })
+        const { result } = renderFlow()
         act(() => result.current.handleSuccess(10))
         act(() => result.current.handleSuccessComplete())
         expect(result.current.showSuccessView).toBe(false)

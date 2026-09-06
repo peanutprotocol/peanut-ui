@@ -8,8 +8,8 @@ import { getRedirectUrl, clearRedirectUrl, getFromLocalStorage } from '@/utils/g
 import { addMoneyCountryUrl, rewriteMethodPath } from '@/utils/native-routes'
 import { isBridgeSupportedCountry } from '@/utils/regions.utils'
 import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { useQueryState, parseAsStringEnum } from 'nuqs'
+import { useRouter } from 'next/navigation'
+import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import posthog from 'posthog-js'
 import { useEffect } from 'react'
 
@@ -19,12 +19,23 @@ import { useEffect } from 'react'
  */
 export function useAddMoneyFlow() {
     const router = useRouter()
-    const searchParams = useSearchParams()
     const { resetOnrampFlow } = useOnrampFlow()
-    const [method] = useQueryState('method', parseAsStringEnum(['bank']))
 
-    // native app passes country as query param instead of path segment
-    const countryFromQuery = searchParams.get('country')
+    // all query params this page reads/writes, via nuqs per the URL-as-State
+    // rule: `method` picks the bank country list, `country`/`view` are the
+    // native app's stand-ins for path segments, `returnTo` is the caller's
+    // back origin (validated through readReturnTo before every use).
+    const [urlParams, setUrlParams] = useQueryStates({
+        method: parseAsStringEnum(['bank']),
+        country: parseAsString,
+        view: parseAsString,
+        [RETURN_TO_PARAM]: parseAsString,
+    })
+    const { method, country: countryFromQuery, view: viewFromQuery, [RETURN_TO_PARAM]: rawReturnTo } = urlParams
+
+    // readReturnTo validates same-origin + not-self on the raw value (same
+    // shim as useAddMoneyCryptoFlow — nuqs value in, URLSearchParams-like out)
+    const returnToParams = { get: (key: string) => (key === RETURN_TO_PARAM ? rawReturnTo : null) }
 
     // clear stale onramp state on the root list (no country in the URL); reruns
     // on back-nav from a ?country=… sub-view, not just on mount. resetOnrampFlow
@@ -37,19 +48,18 @@ export function useAddMoneyFlow() {
         // if viewing country-specific form, go back to country list. Keep the
         // returnTo origin alive: dropping it here would strand the later backs
         // on /home instead of the caller (the bug returnTo exists to fix).
+        // Same pathname, so the params are written in place via nuqs; 'push'
+        // keeps the history entry the old router.push created.
         if (countryFromQuery) {
-            const params = new URLSearchParams()
             // sanitized for the same open-redirect reason as the bare-root hop
-            const origin = readReturnTo(searchParams, '/add-money')
-            if (origin) params.set(RETURN_TO_PARAM, origin)
-            params.set('method', 'bank')
-            router.push(`/add-money?${params.toString()}`)
+            const origin = readReturnTo(returnToParams, '/add-money')
+            setUrlParams({ country: null, view: null, method: 'bank', [RETURN_TO_PARAM]: origin }, { history: 'push' })
             return
         }
 
         // an explicit origin (e.g. the exchange-rate widget's "Try it!" CTA) wins over
         // the /home reset below — that reset is only right for tab-bar entries
-        const returnTo = readReturnTo(searchParams, '/add-money')
+        const returnTo = readReturnTo(returnToParams, '/add-money')
         if (returnTo) {
             router.push(returnTo)
             return
@@ -99,7 +109,7 @@ export function useAddMoneyFlow() {
     // (?drawer=add), so direct links and generic entries (checklists, CTAs,
     // lifecycle emails) land on a surface that offers crypto AND bank. The
     // country list lives on the explicit ?method=bank.
-    const isBareRoot = !method && !searchParams.get('country')
+    const isBareRoot = !method && !countryFromQuery
     useEffect(() => {
         if (!isBareRoot) return
         // carry the caller's origin through the drawer hop — dropping it here
@@ -107,13 +117,13 @@ export function useAddMoneyFlow() {
         // readReturnTo, not the raw param: forwarding an unvalidated value
         // from a trusted deep link is an open redirect (chip P16)
         const params = new URLSearchParams({ drawer: 'add' })
-        const origin = readReturnTo(searchParams, '/add-money')
+        const origin = readReturnTo({ get: (key) => (key === RETURN_TO_PARAM ? rawReturnTo : null) }, '/add-money')
         if (origin) params.set(RETURN_TO_PARAM, origin)
-        router.replace(`/home?${params.toString()}`)
-    }, [isBareRoot, router, searchParams])
-
-    // native app: render sub-views based on query params
-    const viewFromQuery = searchParams.get('view')
+        // this redirect leaves the page (/home), so its params can't be written
+        // through this page's nuqs state — pathname+query built once, up front
+        const target = `/home?${params.toString()}`
+        router.replace(target)
+    }, [isBareRoot, router, rawReturnTo])
 
     return {
         countryFromQuery,

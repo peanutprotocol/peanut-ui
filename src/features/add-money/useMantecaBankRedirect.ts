@@ -3,7 +3,8 @@
 import { countryData } from '@/components/AddMoney/consts'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { rewriteMethodPath } from '@/utils/native-routes'
-import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
+import { useQueryState, parseAsString } from 'nuqs'
 import { useEffect, useMemo } from 'react'
 
 // Manteca countries (BR/AR) deposit via their own PIX / Mercado Pago flow, not
@@ -15,10 +16,12 @@ import { useEffect, useMemo } from 'react'
 // (add-money/page.tsx) so the two can't disagree on which countries are Manteca.
 export function useMantecaBankRedirect() {
     const params = useParams()
-    const searchParams = useSearchParams()
+    // country comes from the path on web, from ?country= on native (nuqs per
+    // the URL-as-State rule; read-only here)
+    const [countryFromQuery] = useQueryState('country', parseAsString)
     const router = useRouter()
 
-    const selectedCountryPath = (params.country as string) || searchParams.get('country') || ''
+    const selectedCountryPath = (params.country as string) || countryFromQuery || ''
     const selectedCountry = useMemo(() => {
         if (!selectedCountryPath) return null
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)

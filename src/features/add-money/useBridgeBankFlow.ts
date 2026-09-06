@@ -25,8 +25,8 @@ import { upliftTriggerFromGate, upliftTriggerFromAdvisory } from '@/utils/eea-up
 import { formatAmount } from '@/utils/general.utils'
 import { addMoneyCountryUrl } from '@/utils/native-routes'
 import { useLocale, useTranslations } from 'next-intl'
-import { useParams, useSearchParams } from 'next/navigation'
-import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
+import { useParams } from 'next/navigation'
+import { useQueryState, useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import posthog from 'posthog-js'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { formatUnits } from 'viem'
@@ -41,7 +41,9 @@ import type { BridgeBankStep } from './types'
  */
 export function useBridgeBankFlow() {
     const params = useParams()
-    const _searchParams = useSearchParams()
+    // country comes from the path on web, from ?country= on native (nuqs per
+    // the URL-as-State rule; read-only here)
+    const [countryFromQuery] = useQueryState('country', parseAsString)
     const locale = useLocale()
     const t = useTranslations('addMoney')
     const tCommon = useTranslations('common')
@@ -102,7 +104,7 @@ export function useBridgeBankFlow() {
     })
 
     // read country from path params (web) or query params (native/capacitor)
-    const selectedCountryPath = (params.country as string) || _searchParams.get('country') || ''
+    const selectedCountryPath = (params.country as string) || countryFromQuery || ''
 
     const selectedCountry = useMemo(() => {
         if (!selectedCountryPath) return null
@@ -163,7 +165,7 @@ export function useBridgeBankFlow() {
 
     useEffect(() => {
         fetchUser()
-    }, [])
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
     const peanutWalletBalance = useMemo(() => {
         return balance !== undefined ? formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : ''

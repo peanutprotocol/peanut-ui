@@ -2,23 +2,13 @@
  * @jest-environment jsdom
  */
 import { renderHook, act, waitFor } from '@testing-library/react'
+import { withNuqsTestingAdapter, type UrlUpdateEvent } from 'nuqs/adapters/testing'
 
-// ---------- navigation / url state ----------
+// ---------- navigation ----------
 
 let mockParams: Record<string, string> = { country: 'germany' }
 jest.mock('next/navigation', () => ({
     useParams: () => mockParams,
-    useSearchParams: () => ({ get: () => null }),
-}))
-
-let mockUrlState: Record<string, any> = {}
-const mockSetUrlState = jest.fn((updates: Record<string, any>) => {
-    Object.assign(mockUrlState, updates)
-})
-jest.mock('nuqs', () => ({
-    useQueryStates: () => [mockUrlState, mockSetUrlState],
-    parseAsString: {},
-    parseAsStringEnum: () => ({}),
 }))
 
 jest.mock('next-intl', () => ({
@@ -186,46 +176,50 @@ jest.mock('posthog-js', () => ({
 
 import { useBridgeBankFlow } from '../useBridgeBankFlow'
 
+const renderFlow = (search = '', onUrlUpdate?: (e: UrlUpdateEvent) => void) =>
+    renderHook(() => useBridgeBankFlow(), { wrapper: withNuqsTestingAdapter({ searchParams: search, onUrlUpdate }) })
+
 describe('useBridgeBankFlow', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         mockParams = { country: 'germany' }
-        mockUrlState = {}
         mockGate = { kind: 'ready' }
         mockOnrampFlow.error = { showError: false, errorMessage: '' }
         mockOnrampFlow.onrampData = null
+        mockOnrampFlow.setOnrampData = jest.fn((data) => {
+            mockOnrampFlow.onrampData = data
+        })
         mockAdvisoryIntercept.mockImplementation((proceed: () => void) => proceed())
         mockUseLimitsValidation.mockReturnValue({ isBlocking: false, isWarning: false })
     })
 
     it('resolves the selected country from the path and fetches the user on mount', () => {
-        const { result } = renderHook(() => useBridgeBankFlow())
+        const { result } = renderFlow()
         expect(result.current.selectedCountry?.id).toBe('DE')
         expect(mockFetchUser).toHaveBeenCalledTimes(1)
     })
 
     it('steers a missing step to inputAmount when the gate is ready', async () => {
-        renderHook(() => useBridgeBankFlow())
-        await waitFor(() => expect(mockSetUrlState).toHaveBeenCalledWith({ step: 'inputAmount' }))
+        const events: UrlUpdateEvent[] = []
+        renderFlow('', (e) => events.push(e))
+        await waitFor(() => expect(events.at(-1)?.searchParams.get('step')).toBe('inputAmount'))
     })
 
     it('steers a stale inputAmount step back to verify when identity is needed', async () => {
         mockGate = { kind: 'needs-identity' }
-        mockUrlState = { step: 'inputAmount', amount: '100' }
-        renderHook(() => useBridgeBankFlow())
-        await waitFor(() => expect(mockSetUrlState).toHaveBeenCalledWith({ step: 'verify' }))
+        const events: UrlUpdateEvent[] = []
+        renderFlow('?step=inputAmount&amount=100', (e) => events.push(e))
+        await waitFor(() => expect(events.at(-1)?.searchParams.get('step')).toBe('verify'))
     })
 
     it('flags an amount below the country minimum as a validation error', () => {
-        mockUrlState = { step: 'inputAmount', amount: '2' }
-        const { result } = renderHook(() => useBridgeBankFlow())
+        const { result } = renderFlow('?step=inputAmount&amount=2')
         expect(result.current.validationError).toBe('errors.minimumDeposit')
         expect(result.current.minimumAmount).toBe(5)
     })
 
     it('Continue on a ready gate records the amount and opens the confirmation modal', () => {
-        mockUrlState = { step: 'inputAmount', amount: '100' }
-        const { result } = renderHook(() => useBridgeBankFlow())
+        const { result } = renderFlow('?step=inputAmount&amount=100')
 
         act(() => result.current.handleAmountContinue())
 
@@ -239,8 +233,7 @@ describe('useBridgeBankFlow', () => {
 
     it('Continue on a pending gate opens the wait modal, never the KYC modal', () => {
         mockGate = { kind: 'pending' }
-        mockUrlState = { step: 'inputAmount', amount: '100' }
-        const { result } = renderHook(() => useBridgeBankFlow())
+        const { result } = renderFlow('?step=inputAmount&amount=100')
 
         act(() => result.current.handleAmountContinue())
 
@@ -250,8 +243,7 @@ describe('useBridgeBankFlow', () => {
 
     it('Continue on an accept-tos gate routes through the ToS guard', () => {
         mockGate = { kind: 'accept-tos' }
-        mockUrlState = { step: 'inputAmount', amount: '100' }
-        const { result } = renderHook(() => useBridgeBankFlow())
+        const { result } = renderFlow('?step=inputAmount&amount=100')
 
         act(() => result.current.handleAmountContinue())
 
@@ -261,8 +253,7 @@ describe('useBridgeBankFlow', () => {
 
     it('Continue on a verifiable gate opens the KYC modal', () => {
         mockGate = { kind: 'needs-identity' }
-        mockUrlState = { step: 'inputAmount', amount: '100' }
-        const { result } = renderHook(() => useBridgeBankFlow())
+        const { result } = renderFlow('?step=inputAmount&amount=100')
 
         act(() => result.current.handleAmountContinue())
 
@@ -272,8 +263,7 @@ describe('useBridgeBankFlow', () => {
 
     it('Continue on a loading gate silently no-ops', () => {
         mockGate = { kind: 'loading' }
-        mockUrlState = { step: 'inputAmount', amount: '100' }
-        const { result } = renderHook(() => useBridgeBankFlow())
+        const { result } = renderFlow('?step=inputAmount&amount=100')
 
         act(() => result.current.handleAmountContinue())
 
@@ -284,8 +274,8 @@ describe('useBridgeBankFlow', () => {
 
     it('confirm creates the onramp with the displayed amount and moves to showDetails', async () => {
         mockCreateOnramp.mockResolvedValue({ transferId: 'transfer-123' })
-        mockUrlState = { step: 'inputAmount', amount: '100' }
-        const { result } = renderHook(() => useBridgeBankFlow())
+        const events: UrlUpdateEvent[] = []
+        const { result } = renderFlow('?step=inputAmount&amount=100', (e) => events.push(e))
 
         await act(async () => {
             await result.current.handleWarningConfirm()
@@ -301,13 +291,13 @@ describe('useBridgeBankFlow', () => {
             method_type: 'bank',
             country: 'germany',
         })
-        expect(mockSetUrlState).toHaveBeenCalledWith({ step: 'showDetails' })
+        await waitFor(() => expect(events.at(-1)?.searchParams.get('step')).toBe('showDetails'))
     })
 
     it('a failed onramp surfaces the thrown message and records the failure', async () => {
         mockCreateOnramp.mockRejectedValue(new Error('Service unavailable'))
-        mockUrlState = { step: 'inputAmount', amount: '100' }
-        const { result } = renderHook(() => useBridgeBankFlow())
+        const events: UrlUpdateEvent[] = []
+        const { result } = renderFlow('?step=inputAmount&amount=100', (e) => events.push(e))
 
         await act(async () => {
             await result.current.handleWarningConfirm()
@@ -321,31 +311,29 @@ describe('useBridgeBankFlow', () => {
             showError: true,
             errorMessage: 'Service unavailable',
         })
-        expect(mockSetUrlState).not.toHaveBeenCalledWith({ step: 'showDetails' })
+        expect(events.every((e) => e.searchParams.get('step') !== 'showDetails')).toBe(true)
     })
 
     it('handleVerify routes each gate to its own KYC action', async () => {
-        mockUrlState = { step: 'verify' }
-
         mockGate = { kind: 'restart-identity' }
-        let { result } = renderHook(() => useBridgeBankFlow())
+        let { result } = renderFlow('?step=verify')
         await act(async () => result.current.handleVerify())
         expect(mockSumsubFlow.handleRestartIdentity).toHaveBeenCalled()
 
         mockGate = { kind: 'fixable-rejection' }
-        ;({ result } = renderHook(() => useBridgeBankFlow()))
+        ;({ result } = renderFlow('?step=verify'))
         await act(async () => result.current.handleVerify())
         expect(mockSumsubFlow.handleSelfHealResubmit).toHaveBeenCalledWith('BRIDGE')
 
         mockGate = { kind: 'needs-identity' }
-        ;({ result } = renderHook(() => useBridgeBankFlow()))
+        ;({ result } = renderFlow('?step=verify'))
         await act(async () => result.current.handleVerify())
         expect(mockSumsubFlow.handleInitiateKyc).toHaveBeenCalledWith('intent:europe', undefined, undefined, 'DE')
     })
 
     it('bounces a deep-linked showDetails without onramp data back to inputAmount', async () => {
-        mockUrlState = { step: 'showDetails' }
-        renderHook(() => useBridgeBankFlow())
-        await waitFor(() => expect(mockSetUrlState).toHaveBeenCalledWith({ step: 'inputAmount' }))
+        const events: UrlUpdateEvent[] = []
+        renderFlow('?step=showDetails', (e) => events.push(e))
+        await waitFor(() => expect(events.at(-1)?.searchParams.get('step')).toBe('inputAmount'))
     })
 })
