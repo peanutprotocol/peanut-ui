@@ -389,8 +389,8 @@ const SumsubWebSdkModal = ({
                     {
                         text: tCommon('cancel'),
                         onClick: () => setIsHelpModalOpen(false),
-                        variant: 'transparent' as ButtonVariant,
-                        className: 'underline text-body-s w-full h-fit mt-3',
+                        variant: 'stroke' as ButtonVariant,
+                        className: 'w-full',
                     },
                 ],
             }
@@ -414,8 +414,8 @@ const SumsubWebSdkModal = ({
                 {
                     text: tCommon('continue'),
                     onClick: () => setIsHelpModalOpen(false),
-                    variant: 'transparent' as ButtonVariant,
-                    className: 'underline text-body-s w-full h-fit mt-3',
+                    variant: 'stroke' as ButtonVariant,
+                    className: 'w-full',
                 },
             ],
         }
@@ -440,15 +440,22 @@ const SumsubWebSdkModal = ({
                     <div className="flex h-full flex-col">
                         <div className="flex items-center justify-between px-4 py-2">
                             <button
+                                type="button"
+                                aria-label={tCommon('contactSupport')}
                                 onClick={() => {
                                     setModalVariant('trouble')
                                     setIsHelpModalOpen(true)
                                 }}
-                                className="flex items-center gap-1 p-1"
+                                className="relative flex items-center gap-1 p-1 transition-opacity duration-instant after:absolute after:-inset-2 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
                             >
                                 <Icon name="peanut-support" size={20} className="text-foreground-secondary" />
                             </button>
-                            <button onClick={handleCloseButton} className="p-1">
+                            <button
+                                type="button"
+                                aria-label={tCommon('close')}
+                                onClick={handleCloseButton}
+                                className="relative p-1 transition-opacity duration-instant after:absolute after:-inset-2 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
+                            >
                                 <Icon name="cancel" size={24} />
                             </button>
                         </div>

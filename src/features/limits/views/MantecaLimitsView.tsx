@@ -2,7 +2,6 @@
 
 import NavHeader from '@/components/Global/NavHeader'
 import Card from '@/components/Global/Card'
-import { Icon } from '@/components/Global/Icons/Icon'
 import { useLimits } from '@/hooks/useLimits'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useTranslations } from 'next-intl'
@@ -35,7 +34,7 @@ const MantecaLimitsView = () => {
     const [period, setPeriod] = useState<LimitsPeriod>('monthly')
 
     return (
-        <div className="space-y-6 flex min-h-[inherit] flex-col">
+        <div className="flex min-h-inherit flex-col gap-6">
             <NavHeader title={t('title')} onPrev={onBack} />
 
             {isLoading && <Loading variant="mascot" coverFullScreen />}
@@ -103,7 +102,6 @@ const MantecaLimitsView = () => {
                         })}
                         {/* info text */}
                         <div className="flex items-center justify-center gap-2 text-body-xs text-foreground-secondary">
-                            <Icon name="info" size={16} />
                             <p>{t('appliesTo')}</p>
                         </div>
                     </div>

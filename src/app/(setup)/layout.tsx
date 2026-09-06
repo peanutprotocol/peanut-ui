@@ -11,7 +11,7 @@ import { AppShell } from '@/components/Global/AppShell'
 import { Banner } from '@/components/Global/Banner'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
-import { usePullToRefresh } from '@/hooks/usePullToRefresh'
+import { usePullToRefresh, useShouldPullToRefresh } from '@/hooks/usePullToRefresh'
 import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import SunsetScreen from '@/components/Migration/SunsetScreen'
@@ -98,7 +98,7 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
         }
     }, [isPWA, deviceType, dispatch])
 
-    usePullToRefresh()
+    usePullToRefresh({ shouldPullToRefresh: useShouldPullToRefresh() })
 
     // pwa-sunset: past the cutover the web signup is switched off too — same
     // block as the mobile-ui layout (this route group has its own layout, so

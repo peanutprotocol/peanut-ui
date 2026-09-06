@@ -1,4 +1,5 @@
 'use client'
+import { ScreenMark } from '@/components/0_Bruddle/ScreenMark'
 import { type FC, useCallback, useEffect, useRef, useState } from 'react'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useTranslations } from 'next-intl'
@@ -110,6 +111,7 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
         return (
             <PageStack gap="6">
                 <NavHeader title={t('navTitle')} onPrev={onPrev} />
+                <ScreenMark icon="credit-card" color="brand" />
                 <div className="flex flex-col gap-6">
                     <div className="flex flex-col gap-2">
                         <h1 className="text-heading-xs">{t('noPinTitle')}</h1>
@@ -126,11 +128,12 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
     return (
         <PageStack gap="6">
             <NavHeader title={t('navTitle')} onPrev={onPrev} />
+            <ScreenMark icon="credit-card" color="brand" />
             <div className="flex flex-col gap-6">
                 <p className="text-body-s text-foreground-secondary">{t('hiddenNote')}</p>
                 <div className="flex items-center gap-3">
                     {/* Fixed-height slot keeps the row geometry constant across
-                     * masked / loading / revealed. text-6xl in this repo's
+                     * masked / loading / revealed. the 6xl stock size in this repo's
                      * Tailwind config is font-size 3rem / line-height 3.25rem
                      * (52px), so the wrapper locks to that — `****`, the
                      * skeleton, and the real digits all sit centered in the

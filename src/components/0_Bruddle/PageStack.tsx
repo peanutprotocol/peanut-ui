@@ -12,7 +12,7 @@ interface PageStackProps extends HTMLAttributes<HTMLDivElement> {
 
 const PageStack = ({ gap = '8', className, children, ...props }: PageStackProps) => (
     <div
-        className={twMerge('flex min-h-[inherit] w-full flex-col', gap === '8' ? 'gap-8' : 'gap-6', className)}
+        className={twMerge('flex min-h-inherit w-full flex-col', gap === '8' ? 'gap-8' : 'gap-6', className)}
         {...props}
     >
         {children}

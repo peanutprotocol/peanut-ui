@@ -105,7 +105,9 @@ export function RainCooldownProvider({ children }: { children: ReactNode }) {
         toast({
             id: COOLDOWN_TOAST_ID,
             duration: 'persistent',
-            className: 'border-action-secondary',
+            // the compact notification carries no border of its own — this pill
+            // draws its accent border explicitly
+            className: 'border border-action-secondary',
             content: <CooldownPillContent endsAt={cooldownEndsAt} />,
         })
     }, [cooldownEndsAt, toast, dismiss])

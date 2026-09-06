@@ -3,7 +3,7 @@ import { supportedPeanutChains, peanutTokenDetails } from '@/constants/token-reg
 import { toInviteCode } from '@/utils/invite-code.utils'
 import { jsonStringify, jsonParse, saveToCookie, getFromCookie, sanitizeRedirectURL } from '@/utils/cookie-url.utils'
 import { STABLE_COINS, ENS_NAME_REGEX } from '@/constants/general.consts'
-import { shareableUrl } from '@/utils/url.utils'
+import { payLinkUrl, shareableUrl } from '@/utils/url.utils'
 import { isCapacitor } from '@/utils/capacitor'
 import * as Sentry from '@/utils/sentry-lazy'
 import type { Address, TransactionReceipt } from 'viem'
@@ -41,6 +41,14 @@ export const shortenStringLong = (s?: string, chars?: number, firstChars?: numbe
     const endingBit = s.substring(s.length - lastBitLength, s.length)
 
     return firstBit + '...' + endingBit
+}
+
+// one-line account identifiers: head + ellipsis + the last 4 characters
+// (whitespace ignored) people recognize an account by. no-op when it fits.
+export const middleEllipsisAccount = (value: string, max: number): string => {
+    if (value.length <= max) return value
+    const tail = value.replace(/\s/g, '').slice(-4)
+    return `${value.slice(0, max - 7).trimEnd()} … ${tail}`
 }
 
 // Address detection patterns (permissive to handle lowercase-stored addresses)
@@ -351,33 +359,6 @@ export function formatTokenAmount(amount?: number | string, maxFractionDigits?: 
     return formattedAmount
 }
 
-export async function copyTextToClipboardWithFallback(text: string) {
-    if (navigator.clipboard && window.isSecureContext) {
-        try {
-            await navigator.clipboard.writeText(text)
-            return
-        } catch (err) {
-            Sentry.captureException(err)
-            console.error('Clipboard API failed, trying fallback method. Error:', err)
-        }
-    }
-
-    try {
-        const textarea = document.createElement('textarea')
-        textarea.value = text
-        textarea.setAttribute('readonly', '')
-        textarea.style.position = 'absolute'
-        textarea.style.left = '-9999px'
-        document.body.appendChild(textarea)
-        textarea.select()
-        document.execCommand('copy')
-        document.body.removeChild(textarea)
-    } catch (err) {
-        Sentry.captureException(err)
-        console.error('Fallback method failed. Error:', err)
-    }
-}
-
 export const isTestnetChain = (chainId: string) => {
     // viem's chains carry a `testnet: true` flag; fall through to default
     // false for unknown chains so prod paths fail closed (treat as mainnet).
@@ -438,8 +419,10 @@ export type UserPreferences = {
      *  legacy permanent `notifModalClosed` so we can re-ask after a cooldown
      *  during the migration window. */
     notifModalClosedAt?: string
-    /** ISO timestamp the app-review prompt was shown (asked once, ever). */
-    reviewPromptShownAt?: string
+    /** App-review nudge budget (see utils/app-review.ts). `moments` counts
+     *  qualifying happy moments seen; `requestedAt` holds the ISO timestamps of
+     *  past OS review requests, oldest first. */
+    reviewNudge?: { moments: number; requestedAt: string[] }
     /** Dismissal fingerprints (`bridgeTaskDismissalKey`: key|requirement|due)
      *  of the pending Bridge verification tasks the user individually
      *  dismissed on /home. A task that turns blocking or changes substance
@@ -699,7 +682,7 @@ export function getRequestLink(
     const recipient = username || recipientAddress
     const chain = !username && chainId ? `@${chainId}` : ''
 
-    let link = shareableUrl(`/${recipient}${chain}/`)
+    let link = payLinkUrl(`/${recipient}${chain}/`)
     if (tokenAmount) {
         link += `${formatAmount(tokenAmount)}`
     }

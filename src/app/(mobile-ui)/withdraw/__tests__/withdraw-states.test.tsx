@@ -463,12 +463,12 @@ describe('GROUP 3: Amount Validation', () => {
         renderWithdraw()
 
         expect(screen.getByText('Continue')).toBeDisabled()
-        // validation is debounced 300ms behind typing
-        await waitFor(() =>
-            expect(mockSetError).toHaveBeenCalledWith({
-                showError: true,
-                errorMessage: 'Minimum withdrawal is $1.',
-            })
+        // validation is debounced 300ms behind typing; the minimum is a
+        // client-side validation error, so it renders as the field's own
+        // error — never through the flow-level setError channel
+        await waitFor(() => expect(screen.getByTestId('error-alert')).toHaveTextContent('Minimum withdrawal is $1.'))
+        expect(mockSetError).not.toHaveBeenCalledWith(
+            expect.objectContaining({ showError: true, errorMessage: 'Minimum withdrawal is $1.' })
         )
     })
 

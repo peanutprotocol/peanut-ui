@@ -32,7 +32,7 @@ jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: { user: { userId: 'user-1' } }, fetchUser: mockFetchUser, logoutUser: jest.fn() }),
 }))
 jest.mock('@/app/actions/sumsub', () => ({
-    startBridgeHostedVerification: () => mockStartHosted(),
+    startHostedVerification: () => mockStartHosted(),
 }))
 const mockOpenExternalUrl = jest.fn<Promise<void>, [string]>()
 let mockIsCapacitor = false
@@ -56,6 +56,8 @@ jest.mock(
 const mockRouterReplace = jest.fn()
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: jest.fn(), replace: mockRouterReplace, back: jest.fn() }),
+    // NavHeader mounts the maintenance Banner, which reads the pathname
+    usePathname: () => '/kyc/additional-verification',
 }))
 let mockNextActions: NextAction[] = []
 let mockCapabilitiesLoading = false

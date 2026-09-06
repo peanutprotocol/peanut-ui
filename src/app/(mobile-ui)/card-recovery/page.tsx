@@ -57,6 +57,12 @@ export default function CardRecoveryPage() {
         ;(async () => {
             try {
                 const data = await rainApi.getRecoverFundsPreview()
+                // amountCents/dustWei go straight into BigInt() during render, which
+                // THROWS on a missing or non-integer value — a partial 200 used to
+                // take the whole route down with a client-side exception instead of
+                // landing in the error banner two lines below. Validate here so a
+                // bad payload is a message, not a white screen.
+                if (!isRecoverablePreview(data)) throw new Error(t('previewFailed'))
                 if (!cancelled) setPreview(data)
             } catch (e) {
                 if (!cancelled) setError((e as Error).message || t('previewFailed'))
@@ -176,11 +182,23 @@ export default function CardRecoveryPage() {
     )
 }
 
+// A decimal-integer string is the only thing BigInt() accepts without throwing.
+const isIntegerString = (value: unknown): value is string => typeof value === 'string' && /^-?\d+$/.test(value)
+
+function isRecoverablePreview(data: RecoverFundsPreviewResponse | undefined | null): boolean {
+    return (
+        !!data &&
+        isIntegerString(data.amountCents) &&
+        isIntegerString(data.dustWei) &&
+        typeof data.recipient === 'string'
+    )
+}
+
 function Row({ label, value }: { label: string; value: string }) {
     return (
         <div className="flex items-center justify-between">
             <span className="text-body-s text-foreground-secondary">{label}</span>
-            <span className="text-body-s font-medium text-foreground-primary">{value}</span>
+            <span className="text-body-s text-foreground-primary">{value}</span>
         </div>
     )
 }

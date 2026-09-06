@@ -134,6 +134,9 @@ const WIRE_CODE_MAP: Partial<Record<ApiErrorCode, FriendlyErrorCode>> = {
     // advice — the sanitized 500 prose says "contact support" instead, which is
     // what six users were told during the 2026-08-19 ZeroDev incident.
     [API_ERROR_CODES.CHAIN_INFRA_UNAVAILABLE]: 'networkBusyTimeout',
+    // A claim or cancel on a deposit the recipient already withdrew. The API
+    // leaves the link CLAIMED and answers 409 with this code (TASK-22091).
+    [API_ERROR_CODES.LINK_ALREADY_CLAIMED]: 'sendLinkAlreadyClaimed',
 }
 
 /** Both cooldown codes render the same copy — the distinction between a
@@ -208,6 +211,13 @@ const classifyError = (error: unknown): FriendlyError => {
         return minutes === null
             ? code('rainCooldownRetryShortly')
             : { kind: 'params', code: 'rainCooldownRetry', values: { minutes } }
+    }
+    // The backend already ships a specific, user-ready sentence for a
+    // sub-minimum bridge ("Amount ($2.00) is below the $5 minimum to bridge to
+    // ETHEREUM.") with the interpolated amounts and chain — pass it through
+    // rather than collapsing to a generic coded string.
+    if (wire === API_ERROR_CODES.BELOW_MIN_BRIDGE_AMOUNT) {
+        return message ? passthrough(message) : code('genericSupport')
     }
     if (wire) {
         const mapped = WIRE_CODE_MAP[wire as ApiErrorCode]
@@ -317,6 +327,10 @@ const classifyError = (error: unknown): FriendlyError => {
         text.includes('timed out after')
     )
         return code('networkBusyTimeout')
+    // Client-side backstop for a claim whose bridge minimum couldn't be verified
+    // (Rhino returned no/zero minimum) — a transient, retryable condition, so
+    // surface the retry copy rather than "contact support".
+    if (text.includes('Could not verify the claim amount against the bridge minimum')) return code('networkBusyTimeout')
     // Browser-native fetch rejection — the request never reached a server, so
     // there is no status and no wire code to key off, only the engine's own
     // TypeError copy: `Failed to fetch` (Chromium, so every Android WebView),

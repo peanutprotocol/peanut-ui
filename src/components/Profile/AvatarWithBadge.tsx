@@ -4,8 +4,9 @@ import React, { useMemo, useState } from 'react'
 import { twMerge } from '@/utils/tw'
 import { Icon, type IconName } from '../Global/Icons/Icon'
 import Image, { type StaticImageData } from 'next/image'
+import { AVATAR_SIZE_CLASSES, type AvatarSize } from './avatar-size.consts'
 
-export type AvatarSize = 'tiny' | 'extra-small' | 'small' | 'medium' | 'large'
+export type { AvatarSize }
 
 /**
  * props for the avatarwithbadge component.
@@ -19,6 +20,11 @@ interface AvatarWithBadgeProps {
     textColor?: string
     iconFillColor?: string
     logo?: string | StaticImageData
+    /**
+     * The user's own avatar (home chip, self profile header) shows the first
+     * letter of the username only; contacts keep two-letter initials.
+     */
+    firstLetterOnly?: boolean
     /**
      * Rendered when `logo` fails to load (next/image onError). Lets a parent
      * provide a semantic fallback (e.g. bank tx → bank icon on dark bg)
@@ -42,21 +48,9 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
     iconFillColor,
     logo,
     fallback,
+    firstLetterOnly,
 }) => {
     const [logoFailed, setLogoFailed] = useState(false)
-    // board 17802:61529 sizes XS/S/M/L are 24/32/48/64 — the boxes here already
-    // matched, under different names, but every initials step was raw stock
-    // type and none of the five sat on the DS scale. Board type per box:
-    // 24 and 32 = Label/M, 48 = Body/M-SemiBold, 64 = Heading/S. `large` (96)
-    // has no board row and takes the next heading step up.
-    const sizeClasses: Record<AvatarSize, string> = {
-        tiny: 'h-6 w-6 text-label-m',
-        'extra-small': 'h-8 w-8 text-label-m',
-        small: 'h-12 w-12 text-body-m-semibold',
-        medium: 'h-16 w-16 text-heading-s',
-        large: 'h-24 w-24 text-heading-m',
-    }
-
     const iconSizeMap: Record<AvatarSize, number> = {
         tiny: 12,
         'extra-small': 16,
@@ -66,16 +60,20 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
     }
 
     const initials = useMemo(() => {
-        if (name) {
-            return getInitialsFromName(name)
-        }
-        return ''
-    }, [name])
+        if (!name) return ''
+        return firstLetterOnly ? name.trim().charAt(0).toUpperCase() : getInitialsFromName(name)
+    }, [name, firstLetterOnly])
 
     if (logo && !logoFailed) {
         return (
             <div className={'relative'}>
-                <div className={twMerge(`flex items-center justify-center rounded-full`, sizeClasses[size], className)}>
+                <div
+                    className={twMerge(
+                        `flex items-center justify-center rounded-full`,
+                        AVATAR_SIZE_CLASSES[size],
+                        className
+                    )}
+                >
                     <Image
                         src={logo}
                         alt={name ? `${name} logo` : 'logo'}
@@ -108,7 +106,7 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
                     // weights (Label/M is 800, Body/M-SemiBold 600, Heading/S
                     // 800) and a blanket bold rendered all three at 700.
                     `flex items-center justify-center rounded-full`,
-                    sizeClasses[size],
+                    AVATAR_SIZE_CLASSES[size],
                     className
                 )}
                 // apply dynamic styles (e.g., background color)

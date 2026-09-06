@@ -216,7 +216,7 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
                 preventClose={isExiting}
                 icon="check"
                 iconProps={{ className: 'text-white' }}
-                iconContainerClassName="bg-green-500"
+                iconContainerClassName="bg-background-icon-bubble-green"
                 title=""
                 description={
                     <div className={isExiting ? 'animate-gift-exit' : 'animate-gift-revealed'}>
@@ -233,7 +233,7 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
                             </>
                         ) : inviteeName ? (
                             <p className="mt-1 flex items-center justify-center gap-1 text-body-s text-foreground-secondary">
-                                <Icon name="invite-heart" size={14} />
+                                <Icon name="invite-heart" size={16} />
                                 {t.rich('usedPeanut', {
                                     inviteeName,
                                     name: (chunks) => <span className="font-medium">{chunks}</span>,
@@ -265,27 +265,25 @@ function SuccessModal({ perk, claimPhase, onClose, onDismiss }: SuccessModalProp
                                         >
                                             {t('shareAndEarn')}
                                         </Button>
-                                        <button
-                                            className="text-body-s text-foreground-secondary underline"
-                                            onClick={onDismiss}
-                                        >
+                                        <Button variant="stroke" className="w-full" onClick={onDismiss}>
                                             {tCommon('maybeLater')}
-                                        </button>
+                                        </Button>
                                     </>
                                 ) : (
                                     <>
                                         <Button variant="purple" shadowSize="4" className="w-full" onClick={onDismiss}>
                                             {tCommon('done')}
                                         </Button>
-                                        <p
-                                            className="cursor-pointer text-center text-body-s text-foreground-secondary underline"
+                                        <Button
+                                            variant="stroke"
+                                            className="w-full"
                                             onClick={() => {
                                                 onDismiss()
                                                 router.push('/rewards')
                                             }}
                                         >
                                             {t('inviteFriendsToEarnMore')}
-                                        </p>
+                                        </Button>
                                     </>
                                 )}
                             </div>
@@ -345,7 +343,7 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
         <div className="flex flex-col items-center">
             {/* Title */}
             <p className="mb-6 text-center text-body-s text-foreground-secondary">
-                <Icon name="invite-heart" size={14} className="mr-1 inline" />
+                <Icon name="invite-heart" size={16} className="mr-1 inline" />
                 {t.rich('usedPeanut', {
                     inviteeName: inviteeName ?? '',
                     name: (chunks) => <span className="font-medium">{chunks}</span>,

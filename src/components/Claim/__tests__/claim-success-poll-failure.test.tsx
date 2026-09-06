@@ -171,6 +171,20 @@ describe('SUCCESS view — polled claim failure', () => {
         await waitFor(() => expect(screen.getByTestId('success-card')).toBeInTheDocument())
         expect(screen.queryByText(/network is busy/i)).not.toBeInTheDocument()
     })
+
+    test('a CLAIMED status with no projected hash still renders the success card', async () => {
+        // matches the backend's notify point: CLAIMED means the money moved, so
+        // the view must not sit on "processing" waiting the txHash out
+        mockSendLinksApi.get.mockResolvedValue({
+            status: 'CLAIMED',
+            events: [],
+        })
+
+        renderView()
+
+        await waitFor(() => expect(screen.getByTestId('success-card')).toBeInTheDocument())
+        expect(screen.queryByText(/network is busy/i)).not.toBeInTheDocument()
+    })
 })
 
 describe('SUCCESS view — before the poll resolves', () => {

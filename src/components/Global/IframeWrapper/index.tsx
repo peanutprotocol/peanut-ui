@@ -118,14 +118,14 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                         text: t('iframeWrapper.chatWithSupport'),
                         icon: 'peanut-support' as IconName,
                         onClick: () => setIsSupportModalOpen(true),
-                        variant: 'transparent' as ButtonVariant,
-                        className: 'underline text-body-s w-full fill-none h-fit mt-3',
+                        variant: 'stroke' as ButtonVariant,
+                        className: 'w-full',
                     },
                     {
                         text: t('iframeWrapper.cancel'),
                         onClick: () => setIsHelpModalOpen(false),
-                        variant: 'transparent' as ButtonVariant,
-                        className: 'underline text-body-s w-full h-fit mt-3',
+                        variant: 'stroke' as ButtonVariant,
+                        className: 'w-full',
                     },
                 ],
             }
@@ -149,8 +149,8 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                 {
                     text: t('iframeWrapper.continueVerifying'),
                     onClick: () => setIsHelpModalOpen(false),
-                    variant: 'transparent' as ButtonVariant,
-                    className: 'underline text-body-s w-full h-fit mt-3',
+                    variant: 'stroke' as ButtonVariant,
+                    className: 'w-full',
                 },
             ],
         }
@@ -214,13 +214,13 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                         ref={iframeRef}
                         src={src}
                         allow="camera *; microphone *; fullscreen *"
-                        className="h-[85%] w-full rounded-md border-0"
+                        className="h-[85%] w-full rounded-sm border-0"
                         sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-top-navigation-by-user-activation allow-media-devices"
                     />
                     <div className="flex h-[15%] w-full flex-col items-center justify-center gap-2 px-4">
                         <Button
-                            variant={'transparent'}
-                            className={`h-8 max-w-md font-normal underline`}
+                            variant={'stroke'}
+                            className={`max-w-md`}
                             onClick={() => {
                                 setModalVariant('stop-verification')
                                 setIsHelpModalOpen(true)

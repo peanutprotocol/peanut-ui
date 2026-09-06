@@ -1,15 +1,15 @@
 'use client'
 
+import { UserAvatar } from '@/components/Avatar/UserAvatar'
 import { Icon } from '@/components/Global/Icons/Icon'
 import InvitesIcon from '@/components/Home/InvitesIcon'
-import DotFaceAvatar from '@/components/Global/DotFaceAvatar'
-import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import Link from 'next/link'
 
 interface HomeTopNavProps {
-    avatarName?: string
+    username?: string
+    avatarKey?: string | null
     showRewards: boolean
 }
 
@@ -18,7 +18,7 @@ interface HomeTopNavProps {
  * top-left linking to /profile (Vlad follow-up: one size down from 48),
  * rewards link top-right. The link keeps a 44px hit area via after: inset.
  */
-export function HomeTopNav({ avatarName, showRewards }: HomeTopNavProps) {
+export function HomeTopNav({ username, avatarKey, showRewards }: HomeTopNavProps) {
     const t = useAppTranslations('home')
     const { triggerHaptic } = useAppHaptic()
 
@@ -28,25 +28,18 @@ export function HomeTopNav({ avatarName, showRewards }: HomeTopNavProps) {
                 href="/profile"
                 onClick={() => triggerHaptic()}
                 // 32px visual — extend the pressable area to 44px (touch-target law)
-                className="relative block after:absolute after:-inset-1.5"
+                className="relative flex items-center gap-0.5 after:absolute after:-inset-1.5"
                 aria-label={t('openProfile')}
             >
-                {/* The generated face, which is what DotFaceAvatar exists for —
-                    own identity, here and on the profile header. This chip was
-                    rebuilt onto initials during the nav consolidation and the
-                    face was left behind in UserHeader, which nothing renders.
-                    A user with no name string at all still gets an avatar-toned
-                    circle (yellow — the palette's no-name default). */}
-                {avatarName ? (
-                    <DotFaceAvatar username={avatarName} size={32} />
-                ) : (
-                    <AvatarWithBadge
-                        size="extra-small"
-                        icon="user"
-                        className="border border-avatar-yellow-border bg-avatar-yellow text-avatar-yellow-foreground"
-                        iconFillColor="var(--color-avatar-yellow-foreground)"
-                    />
-                )}
+                {/* Own identity: the picked avatar (TASK-22142), or the first
+                    letter of the USERNAME — the same seed as the profile header,
+                    so the letter and its palette never follow the display name.
+                    No username yet still gets an avatar-toned circle (yellow —
+                    the palette's no-name default). */}
+                <UserAvatar name={username} avatarKey={avatarKey} size="extra-small" />
+                {/* A lone sticker reads as decoration; the chevron is what says
+                    it opens something. Decorative — the Link already has a label. */}
+                <Icon name="chevron-down" size={16} className="text-foreground-secondary" aria-hidden />
             </Link>
             {showRewards && (
                 <Link

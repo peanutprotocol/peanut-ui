@@ -13,10 +13,10 @@ export const CountryListSkeleton = () => {
                 return (
                     <ListItem
                         key={index}
-                        title={<div className="h-4 w-24 animate-pulse rounded bg-gray-200" />}
+                        title={<div className="h-4 w-24 animate-pulse rounded bg-foreground-primary/10" />}
                         position={position}
                         chevron
-                        leading={<div className="h-8 w-8 animate-pulse rounded-full bg-gray-200" />}
+                        leading={<div className="h-8 w-8 animate-pulse rounded-full bg-foreground-primary/10" />}
                     />
                 )
             })}

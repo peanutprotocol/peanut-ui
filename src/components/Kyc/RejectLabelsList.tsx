@@ -23,13 +23,13 @@ export const RejectLabelsList = ({ rejectLabels }: { rejectLabels?: string[] | n
     }, [labels, t])
 
     if (!reasons) {
-        return <Notification priority="info">{t('rejectLabelsFallbackDescription')}</Notification>
+        return <Notification priority="error">{t('rejectLabelsFallbackDescription')}</Notification>
     }
 
     return (
         <div className="space-y-2">
             {reasons.map((reason, i) => (
-                <Notification key={i} priority="info" title={reason.title}>
+                <Notification key={i} priority="error" title={reason.title}>
                     {reason.description}
                 </Notification>
             ))}

@@ -3,7 +3,6 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import Card from '@/components/Global/Card'
 import CopyToClipboard, { type CopyToClipboardRef } from '@/components/Global/CopyToClipboard'
-import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ChainChip from '../components/ChainChip'
@@ -72,7 +71,7 @@ const RhinoDepositView = ({
 
     if (depositAddressStatus === 'failed') {
         return (
-            <div className="flex min-h-[inherit] w-full flex-col justify-start gap-8 pb-4 md:pb-0">
+            <div className="flex min-h-inherit w-full flex-col justify-start gap-8 pb-4 md:pb-0">
                 <NavHeader title={headerTitle} onPrev={onBack} />
 
                 <div className="flex h-full min-h-[60vh] flex-col items-center justify-center gap-4">
@@ -85,9 +84,7 @@ const RhinoDepositView = ({
                                 {t('marketMovedDescription')}
                             </p>
 
-                            <p className="text-center text-body-s font-bold text-foreground-secondary">
-                                {t('marketMovedNote')}
-                            </p>
+                            <p className="text-center text-label-l text-foreground-secondary">{t('marketMovedNote')}</p>
                         </div>
                     </Card>
                     <Button onClick={resetStatus} shadowSize="4" loading={isResetting} disabled={isResetting}>
@@ -159,7 +156,7 @@ const RhinoDepositView = ({
 
                             <Button
                                 variant="primary-soft"
-                                className="flex h-8 w-2/3 cursor-pointer items-center justify-center gap-1.5 rounded-full px-2.5 md:h-9 md:px-3.5"
+                                className="flex h-8 w-2/3 cursor-pointer items-center justify-center gap-1 rounded-full px-3 md:h-9 md:px-4"
                                 shadowSize="3"
                                 size="small"
                                 onClick={() => copyRef.current?.copy()}
@@ -167,9 +164,12 @@ const RhinoDepositView = ({
                                 <p className="w-full text-body-s" ref={containerRef}>
                                     {truncatedAddress}
                                 </p>
+                                {/* the row Button IS the copy control — the glyph
+                                    must not nest a second <button> */}
                                 <CopyToClipboard
                                     ref={copyRef}
                                     type="icon"
+                                    interactive={false}
                                     textToCopy={depositAddressData.depositAddress}
                                 />
                             </Button>
@@ -190,26 +190,24 @@ const RhinoDepositView = ({
                             <div className="flex w-full flex-col gap-1">
                                 <div className="flex w-full items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <Icon name="info" size={18} className="text-foreground-secondary" />
                                         <p className="text-body-s text-foreground-secondary">
                                             {t('minDepositForLabel', { network: amountLimitsTitle })}
                                         </p>
                                     </div>
 
-                                    <p className="text-body-s font-medium text-foreground-secondary">
+                                    <p className="text-body-s text-foreground-secondary">
                                         {depositAddressData.minDepositLimitUsd} USD
                                     </p>
                                 </div>
 
                                 <div className="flex w-full items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <Icon name="info" size={18} className="text-foreground-secondary" />
                                         <p className="text-body-s text-foreground-secondary">
                                             {t('maxDepositForLabel', { network: amountLimitsTitle })}
                                         </p>
                                     </div>
 
-                                    <p className="text-body-s font-medium text-foreground-secondary">
+                                    <p className="text-body-s text-foreground-secondary">
                                         {depositAddressData.maxDepositLimitUsd} USD
                                     </p>
                                 </div>
@@ -217,7 +215,7 @@ const RhinoDepositView = ({
 
                             {chainType === 'EVM' && (
                                 <Card className="space-y-2 p-4">
-                                    <h3 className="text-body-s font-bold text-foreground-primary">
+                                    <h3 className="text-label-l text-foreground-primary">
                                         {t('supportedEvmNetworks')}
                                     </h3>
                                     <div className="flex flex-wrap gap-2">

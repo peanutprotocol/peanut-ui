@@ -167,7 +167,7 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                                                 type="button"
                                                 aria-label={t('pendingTasks.dismiss', { task: copy.title })}
                                                 onClick={() => handleDismissTask(task)}
-                                                className="absolute top-3 right-3 z-10 cursor-pointer p-0 text-black outline-none"
+                                                className="absolute top-3 right-3 z-10 cursor-pointer p-0 text-black transition-opacity duration-instant after:absolute after:-inset-4 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
                                             >
                                                 <Icon name="cancel" size={16} />
                                             </button>
@@ -176,7 +176,7 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                                             <Icon name={isHosted ? 'user-id' : 'badge'} size={20} />
                                         </div>
                                         <div className="w-full">
-                                            <div className="text-body-m font-bold">{copy.title}</div>
+                                            <div className="text-body-m-semibold">{copy.title}</div>
                                             <div className="text-body-s text-foreground-secondary">
                                                 {copy.description}
                                             </div>

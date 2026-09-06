@@ -49,7 +49,7 @@ const LandingStep = () => {
         if (!isAlreadyReported(error)) {
             Sentry.captureException(error, { extra: { errorCode } })
         }
-        posthog.capture(ANALYTICS_EVENTS.SIGNUP_LOGIN_ERROR, { error_code: errorCode })
+        posthog.capture(ANALYTICS_EVENTS.SIGNUP_LOGIN_ERROR, { error_code: errorCode, native: isCapacitor() })
     }
 
     const onLoginClick = async () => {
@@ -68,7 +68,7 @@ const LandingStep = () => {
                         {/* heading only above the desktop QR — a lone store button
                             explains itself */}
                         {deviceType === DeviceType.WEB && (
-                            <p className="text-center text-body-s font-semibold text-foreground-primary">
+                            <p className="text-center text-label-l text-foreground-primary">
                                 {tMigration('banner.title')}
                             </p>
                         )}

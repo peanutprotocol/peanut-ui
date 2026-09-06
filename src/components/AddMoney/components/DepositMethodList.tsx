@@ -70,13 +70,13 @@ export const DepositMethodList = ({ methods, onItemClick, isAllMethodsView = fal
                                 <AvatarWithBadge
                                     icon="wallet-outline"
                                     size="extra-small"
-                                    className="bg-background-icon-bubble-yellow"
+                                    className="bg-background-icon-bubble-blue"
                                 />
                             ) : method.id === 'bank-transfer-add' ? (
                                 <AvatarWithBadge
                                     icon="bank"
                                     size="extra-small"
-                                    className="bg-background-icon-bubble-yellow"
+                                    className="bg-background-icon-bubble-blue"
                                     inlineStyle={{ color: 'black' }}
                                 />
                             ) : method.type === 'country' ? (
@@ -92,7 +92,7 @@ export const DepositMethodList = ({ methods, onItemClick, isAllMethodsView = fal
                                 <AvatarWithBadge
                                     name={method.title}
                                     size="extra-small"
-                                    className="bg-background-icon-bubble-yellow"
+                                    className="bg-background-icon-bubble-blue"
                                 />
                             )
                         }

@@ -12,6 +12,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { confettiPresets } from '@/utils/confetti'
 import { useRedirectQrStatus } from '@/hooks/useRedirectQrStatus'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
+import { copyTextToClipboard } from '@/utils/clipboard.utils'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { BASE_URL } from '@/constants/general.consts'
 
@@ -64,7 +65,7 @@ export default function RedirectQrSuccessPage() {
                     <div className="flex gap-3">
                         <Icon name="star" size={20} className="flex-shrink-0 text-action-secondary" />
                         <div className="space-y-1">
-                            <p className="text-body-s font-bold">{t('claimSuccess.putItAnywhere')}</p>
+                            <p className="text-label-l">{t('claimSuccess.putItAnywhere')}</p>
                             <p className="text-body-xs text-foreground-secondary">
                                 {t('claimSuccess.stickerDescription')}
                             </p>
@@ -87,9 +88,14 @@ export default function RedirectQrSuccessPage() {
                         shadowSize="4"
                         onClick={async () => {
                             try {
-                                // copy first — clipboard works everywhere, share() is mobile-only
-                                await navigator.clipboard.writeText(qrUrl)
-                                toast.info(t('claimSuccess.linkCopied'))
+                                // copy first — clipboard works everywhere, share() is mobile-only.
+                                // copyTextToClipboard, not a bare writeText: it carries the native
+                                // plugin path, the writeText timeout race and the execCommand
+                                // fallback, and it stamps the clipboard marker the toast stack
+                                // reads to clear Android's system copy preview.
+                                if (await copyTextToClipboard(qrUrl)) {
+                                    toast.info(t('claimSuccess.linkCopied'))
+                                }
 
                                 if (navigator.share) {
                                     await navigator.share({

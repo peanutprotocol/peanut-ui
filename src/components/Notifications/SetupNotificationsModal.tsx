@@ -49,26 +49,27 @@ export default function SetupNotificationsModal() {
             <ActionModal
                 visible={showPermissionModal}
                 onClose={handleCloseNotifsSetupModal}
-                modalPanelClassName="m-0 max-w-[90%]"
                 title={t(migrationOn ? 'migrationSetupTitle' : 'setupTitle')}
                 description={t(migrationOn ? 'migrationSetupDescription' : 'setupDescription')}
                 icon="bell"
-                ctaClassName="md:flex-col gap-4"
+                // stacked CTAs at every width; sm:flex-none stops ActionModal's
+                // sm:flex-1 from stretching the buttons in the column
+                ctaClassName="sm:flex-col"
                 ctas={[
                     {
                         text: isRequestingPermission ? t('requesting') : t('enable'),
                         onClick: handleAllowClick,
                         variant: 'purple',
                         shadowSize: '4',
-                        className: 'py-2',
+                        className: 'sm:flex-none',
                         loading: isRequestingPermission,
                         disabled: isRequestingPermission,
                     },
                     {
                         text: t('notNow'),
                         onClick: handleCloseNotifsSetupModal,
-                        variant: 'transparent',
-                        className: 'underline h-6',
+                        variant: 'stroke',
+                        className: 'sm:flex-none',
                     },
                 ]}
             />

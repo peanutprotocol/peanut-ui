@@ -1,0 +1,210 @@
+# Ownership gate for PRs carrying bot-authored commits — the second half of
+# the provenance policy whose first half (per-commit Ordered-By / Order
+# trailers) lives in the human-authors job in tests.yml. That job proves every
+# bot commit cites the team member who ordered it; this one proves that human
+# owns the PR:
+#
+#   - the PR is assigned to every cited orderer, and
+#   - base != main: an APPROVED review of the CURRENT head from an orderer —
+#     the accountability click; bot work never merges on green gates alone,
+#     dev included. When the orderer opened the PR themselves (adopting bot
+#     commits), GitHub blocks self-approval, so any other team member's
+#     approval of the current head satisfies the rule instead. And
+#   - base == main: an APPROVED review of the current head from a team member
+#     who is NOT an orderer, so main always gets a second human.
+#
+# Bot involvement is decided from commit authorship, never from who opened
+# the PR — a human opening a PR that carries bot commits must not skip the
+# gate. Commits that already went through this base's ceremony are exempt:
+# base main exempts only commits already ON main — the dev path never
+# required a second human, so a dev->main promotion must still collect one —
+# while any other base exempts main+dev, so back-merges carrying historical
+# bot commits don't wedge. PRs past GitHub's 250-commit listing cap fail
+# closed: a gate that cannot see every commit must not pass.
+#
+# PRs with no unlanded bot commits pass immediately — nothing changes for
+# people. This is a separate workflow because approval state changes on
+# pull_request_review events, which must not re-run the test matrix (a
+# review-event ci-success run would report green with every test job skipped).
+# The `edited` trigger matters: it is the event a base-branch retarget fires,
+# and retargeting dev -> main must re-evaluate the second-human rule.
+# Enforced by adding the `bot-approval` context to the org ruleset that
+# already requires ci-success — until that flip, this check is advisory.
+name: Bot approval
+
+on:
+    pull_request:
+        types: [opened, reopened, synchronize, ready_for_review, assigned, unassigned, edited]
+    pull_request_review:
+        types: [submitted, dismissed]
+
+permissions:
+    pull-requests: read
+    contents: read
+
+concurrency:
+    group: bot-approval-${{ github.event.pull_request.number }}
+    cancel-in-progress: true
+
+jobs:
+    bot-approval:
+        name: bot-approval
+        runs-on: ubuntu-latest
+        steps:
+            - name: Verify a human owns and approved the bot-authored commits
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const ALLOWED_BOTS = ['chip-peanut-bot[bot]'];
+                      // GitHub logins are case-insensitive; compare lowercased everywhere.
+                      const lc = (s) => (s || '').toLowerCase();
+                      const BOT_SET = new Set(ALLOWED_BOTS.map(lc));
+                      const pr = context.payload.pull_request;
+                      const memberCache = new Map();
+                      async function hasWriteAccess(login) {
+                        const key = lc(login);
+                        if (memberCache.has(key)) return memberCache.get(key);
+                        let ok = false;
+                        try {
+                          const { data } = await github.rest.repos.getCollaboratorPermissionLevel({
+                            owner: context.repo.owner,
+                            repo: context.repo.repo,
+                            username: login,
+                          });
+                          ok = ['admin', 'maintain', 'write'].includes(data.permission);
+                        } catch (e) {
+                          ok = false;
+                        }
+                        memberCache.set(key, ok);
+                        return ok;
+                      }
+                      // Landed exemption, base-aware. Into main, only main reachability
+                      // counts — commits merged to dev were never second-human approved, so
+                      // the promotion PR is where that ceremony happens. Into anything else,
+                      // main+dev reachability exempts, so back-merges don't wedge.
+                      const LANDED_BRANCHES = pr.base.ref === 'main' ? ['main'] : ['main', 'dev'];
+                      const landedCache = new Map();
+                      async function alreadyLanded(sha) {
+                        if (landedCache.has(sha)) return landedCache.get(sha);
+                        let landed = false;
+                        for (const branch of LANDED_BRANCHES) {
+                          try {
+                            const { data } = await github.rest.repos.compareCommitsWithBasehead({
+                              owner: context.repo.owner,
+                              repo: context.repo.repo,
+                              basehead: `${branch}...${sha}`,
+                            });
+                            if (data.status === 'identical' || data.status === 'behind') {
+                              landed = true;
+                              break;
+                            }
+                          } catch (e) {
+                            core.warning(`already-landed check failed for ${sha} against ${branch}: ${e.message}`);
+                          }
+                        }
+                        landedCache.set(sha, landed);
+                        return landed;
+                      }
+                      // Bot involvement and the orderers come from the commits, not from the
+                      // PR opener. Trailer validity (presence, write access, order link) is
+                      // human-authors' job in tests.yml; here the trailers only name whose
+                      // ownership to demand.
+                      const commits = await github.paginate(github.rest.pulls.listCommits, {
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        pull_number: pr.number,
+                        per_page: 100,
+                      });
+                      // Fail closed when the listing is truncated: the API caps PR commit
+                      // listings at 250, and a gate blind to even one commit must not pass.
+                      const total = typeof pr.commits === 'number' ? pr.commits : null;
+                      if ((total !== null && commits.length < total) || (total === null && commits.length >= 250)) {
+                        core.setFailed(`The PR has ${total ?? '250+'} commits but the API enumerated ${commits.length} — the gate cannot see every commit. Split the PR or merge in stages.`);
+                        return;
+                      }
+                      const orderers = new Set();
+                      const untrailed = [];
+                      let unlandedBotCommits = 0;
+                      for (const c of commits) {
+                        const login = lc(c.author && c.author.login);
+                        if (!login || !BOT_SET.has(login)) continue;
+                        if (await alreadyLanded(c.sha)) continue;
+                        unlandedBotCommits++;
+                        const m = c.commit.message.match(/^Ordered-By: @?([A-Za-z0-9-]+)\s*$/m);
+                        if (m) orderers.add(lc(m[1]));
+                        else untrailed.push(c.sha.slice(0, 7));
+                      }
+                      if (unlandedBotCommits === 0) {
+                        // A bot-opened PR whose commits all claim human authors is either
+                        // authorship laundering (API commits carry caller-supplied author
+                        // metadata) or a fully superseded branch — red either way. ANY bot
+                        // opener counts, not just allowlisted ones: an unlisted bot opening
+                        // forged-human commits must not slip past both gates.
+                        if (pr.user.type === 'Bot' || lc(pr.user.login).endsWith('[bot]')) {
+                          core.setFailed(`Bot-opened PR carries no unlanded bot-authored commits — a bot PR must consist of its own provenance-trailed commits.`);
+                          return;
+                        }
+                        console.log('✅ No unlanded bot-authored commits — no ownership gate to apply');
+                        return;
+                      }
+                      // Never fail open: an ownership gate with no owner is red, even though
+                      // human-authors flags the same commits through ci-success.
+                      if (untrailed.length) {
+                        core.setFailed(`Unlanded bot commit(s) without an Ordered-By trailer: ${untrailed.join(', ')} — no owner, no green.`);
+                        return;
+                      }
+                      const assignees = (pr.assignees || []).map((a) => lc(a.login));
+                      const unassigned = [...orderers].filter((o) => !assignees.includes(o));
+                      if (unassigned.length) {
+                        core.setFailed(`The PR must be assigned to the human(s) who ordered it — missing assignee(s): ${unassigned.join(', ')}. The assignee owns the findings and the merge.`);
+                        return;
+                      }
+                      // Latest review state per human. COMMENTED never overwrites an earlier
+                      // APPROVED / CHANGES_REQUESTED — the same semantics GitHub itself uses.
+                      // An approval only counts on the exact current head: a bot push after
+                      // the click is new, unapproved work.
+                      const reviews = await github.paginate(github.rest.pulls.listReviews, {
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        pull_number: pr.number,
+                        per_page: 100,
+                      });
+                      // Fold oldest-first so the newest review per human wins — the API does
+                      // not document an ordering, and last-write-wins on an undocumented
+                      // order could let a stale APPROVED shadow a newer CHANGES_REQUESTED.
+                      reviews.sort((a, b) => new Date(a.submitted_at) - new Date(b.submitted_at) || a.id - b.id);
+                      const latest = new Map();
+                      for (const r of reviews) {
+                        if (!r.user || r.user.type === 'Bot') continue;
+                        if (!['APPROVED', 'CHANGES_REQUESTED', 'DISMISSED'].includes(r.state)) continue;
+                        latest.set(lc(r.user.login), { state: r.state, commit: r.commit_id });
+                      }
+                      const approvers = [];
+                      for (const [login, r] of latest) {
+                        if (r.state !== 'APPROVED' || r.commit !== pr.head.sha) continue;
+                        if (await hasWriteAccess(login)) approvers.push(login);
+                      }
+                      if (pr.base.ref === 'main') {
+                        const second = approvers.filter((a) => !orderers.has(a));
+                        if (!second.length) {
+                          core.setFailed(`Bot work into main needs an APPROVED review of the current head from a team member other than the orderer(s) (${[...orderers].join(', ')}) — main always gets a second human.`);
+                          return;
+                        }
+                        console.log(`✅ Second-human approval by ${second.join(', ')} (ordered by ${[...orderers].join(', ')})`);
+                      } else if (orderers.has(lc(pr.user.login))) {
+                        // The orderer opened the PR themselves and cannot self-approve, so
+                        // any other team member's approval of the head stands in — bot work
+                        // still never merges reviewless.
+                        if (!approvers.length) {
+                          core.setFailed(`PR opened by orderer ${pr.user.login}, who cannot approve their own PR — needs an APPROVED review of the current head from any other team member; bot work never merges on green gates alone.`);
+                          return;
+                        }
+                        console.log(`✅ Approval by ${approvers.join(', ')} for orderer-opened PR`);
+                      } else {
+                        const owner = approvers.filter((a) => orderers.has(a));
+                        if (!owner.length) {
+                          core.setFailed(`Bot work needs an APPROVED review of the current head from the human who ordered it (${[...orderers].join(' or ')}) — their approval is the accountability act; bot PRs never merge on green gates alone.`);
+                          return;
+                        }
+                        console.log(`✅ Owner approval by ${owner.join(', ')}`);
+                      }

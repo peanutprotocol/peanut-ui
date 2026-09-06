@@ -17,7 +17,7 @@ export default function CryptoLimitsSection() {
                 <div className="flex items-center gap-2">
                     <span className="text-body-s">{t('noLimits')}</span>
                     <Tooltip content={t('tooltip')} position="top">
-                        <Icon name="info" className="cursor-pointer text-foreground-secondary" size={18} />
+                        <Icon name="info" className="cursor-pointer text-foreground-secondary" size={16} />
                     </Tooltip>
                 </div>
             </Card>

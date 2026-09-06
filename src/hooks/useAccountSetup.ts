@@ -28,7 +28,7 @@ export const useAccountSetup = () => {
         })
 
         console.log('[useAccountSetup] Resolved post-auth redirect:', redirect)
-        router.push(redirect.destination)
+        router.replace(redirect.destination)
         return redirect.source === 'explicit'
     }
 

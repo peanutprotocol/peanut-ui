@@ -23,6 +23,8 @@ import {
     rewriteMethodPath,
     deepLinkToNativePath,
     isNativeExportPath,
+    resolveInAppNavigation,
+    NATIVE_EXPORT_ROOTS,
 } from '../native-routes'
 
 describe('native-routes', () => {
@@ -530,6 +532,31 @@ describe('native-routes', () => {
                 expect(deepLinkToNativePath('https://peanut.me/pay/alice')).toBe('/send?recipient=alice')
             })
 
+            // payLinkUrl() shape: /pay/<recipient>[/<amount><token>]?id=|?chargeId=.
+            // The root catch-all that used to serve these is claimed by neither the
+            // AASA nor the Android filter, so shared links now ride the /pay prefix.
+            it('maps a /pay request link onto the pay-request stand-in', () => {
+                expect(deepLinkToNativePath('https://peanut.me/pay/alice/10USDC?id=req-123')).toBe(
+                    '/pay-request?id=req-123'
+                )
+                expect(deepLinkToNativePath('https://peanut.me/pay/alice?id=req-123')).toBe('/pay-request?id=req-123')
+                expect(deepLinkToNativePath('https://peanut.me/pay/alice/10USDC?chargeId=charge-123')).toBe(
+                    '/pay-request?chargeId=charge-123'
+                )
+            })
+
+            it('carries the charge context param through a /pay link', () => {
+                expect(
+                    deepLinkToNativePath('https://peanut.me/pay/alice?chargeId=charge-123&context=card-pioneer')
+                ).toBe('/pay-request?chargeId=charge-123&context=card-pioneer')
+            })
+
+            it('funnels an amount-shaped /pay link with no charge into the send dispatcher', () => {
+                expect(deepLinkToNativePath('https://peanut.me/pay/alice/10USDC')).toBe(
+                    '/send?recipient=alice%2F10USDC'
+                )
+            })
+
             it('maps legacy /request/pay?id=<chargeUuid> as a CHARGE, not user "pay"', () => {
                 expect(deepLinkToNativePath('https://peanut.me/request/pay?id=charge-123')).toBe(
                     '/pay-request?chargeId=charge-123'
@@ -558,6 +585,11 @@ describe('native-routes', () => {
 
             it('returns null for web-only roots so the caller opens them in the in-app browser', () => {
                 expect(deepLinkToNativePath('https://peanut.me/help')).toBeNull()
+                // retired /quests: reserved in STATIC_REDIRECT_ROUTES, so it must
+                // never be read as a recipient — the in-app browser opens the web
+                // URL, whose redirects.json entry lands on the homepage.
+                expect(deepLinkToNativePath('https://peanut.me/quests')).toBeNull()
+                expect(deepLinkToNativePath('https://peanut.me/quests/most_invites')).toBeNull()
                 expect(deepLinkToNativePath('https://peanut.me/blog/some-post')).toBeNull()
                 expect(deepLinkToNativePath('https://peanut.me/terms')).toBeNull()
                 expect(deepLinkToNativePath('https://peanut.me/es-419/pricing')).toBeNull()
@@ -580,6 +612,16 @@ describe('native-routes', () => {
 
             it('maps /pay/<user> to the send route (mirror of the web page redirect)', () => {
                 expect(deepLinkToNativePath('https://peanut.me/pay/alice')).toBe('/send/alice')
+            })
+
+            // On web the /pay catch-all renders the payment page itself, so a link
+            // carrying payment context must reach it rather than be rewritten away
+            // — /send/<user>/<amount> drops the amount segment.
+            it('leaves a /pay payment link alone on web', () => {
+                expect(deepLinkToNativePath('https://peanut.me/pay/alice/10USDC?id=req-123')).toBe(
+                    '/pay/alice/10USDC?id=req-123'
+                )
+                expect(deepLinkToNativePath('https://peanut.me/pay/alice/10USDC')).toBe('/pay/alice/10USDC')
             })
 
             it('maps legacy /request/pay?id= to pay-request on web too', () => {
@@ -647,6 +689,171 @@ describe('native-routes', () => {
     })
 })
 
+/*
+ * Export drift guard: NATIVE_EXPORT_ROOTS is a hand-written list of what the
+ * native static export ships. It once carried `notifications`, a route that
+ * never existed. Derive the exported page roots from src/app minus what
+ * scripts/native-build.js disables, and pin the two against each other.
+ */
+describe('NATIVE_EXPORT_ROOTS matches the pages the native export ships', () => {
+    const { existsSync, readdirSync, statSync } = require('fs')
+    const { join } = require('path')
+    const { ITEMS_TO_DISABLE } = require('../../../scripts/native-build.js') as {
+        ITEMS_TO_DISABLE: Array<{ path: string; type: 'dir' | 'file' }>
+    }
+    const APP_DIR = join(process.cwd(), 'src/app')
+    const disabled = new Set(ITEMS_TO_DISABLE.map((item) => item.path))
+    const PAGE_FILE = /^page\.(tsx|ts|jsx|js)$/
+
+    // Exported, deliberately not in NATIVE_EXPORT_ROOTS:
+    // - `app`: the smart store link. It must open externally, never be pushed
+    //   in-app, so isNativeExportPath must keep saying no.
+    // - `dev`: pruneExportedAssets() strips every /dev page but /dev/deferred,
+    //   which is reached through the AASA, not from in-app anchors.
+    const WEB_ONLY_EXPORTED = ['app', 'dev']
+
+    // A directory counts once it has a page file anywhere below it that the
+    // native build does not disable — a disabled page/dir contributes nothing.
+    function hasExportedPage(dir: string, rel: string): boolean {
+        if (disabled.has(rel)) return false
+        for (const entry of readdirSync(dir)) {
+            const entryRel = rel ? `${rel}/${entry}` : entry
+            if (disabled.has(entryRel)) continue
+            const full = join(dir, entry)
+            if (statSync(full).isDirectory()) {
+                if (hasExportedPage(full, entryRel)) return true
+            } else if (PAGE_FILE.test(entry)) {
+                return true
+            }
+        }
+        return false
+    }
+
+    function exportedRoots(): Set<string> {
+        const roots = new Set<string>()
+        for (const group of ['(mobile-ui)', '(setup)', '']) {
+            const base = join(APP_DIR, group)
+            for (const entry of readdirSync(base)) {
+                const full = join(base, entry)
+                if (!statSync(full).isDirectory()) continue
+                // route groups only at the top level (handled above); dynamic
+                // segments have no static root of their own
+                if (entry.startsWith('(') || entry.startsWith('[') || entry === '__tests__') continue
+                const rel = group ? `${group}/${entry}` : entry
+                if (hasExportedPage(full, rel)) roots.add(entry)
+            }
+        }
+        return roots
+    }
+
+    const onDisk = exportedRoots()
+
+    it.each([...NATIVE_EXPORT_ROOTS].sort())('listed root %s has a page in the export', (root) => {
+        expect(onDisk.has(root)).toBe(true)
+    })
+
+    it.each([...onDisk].sort())('exported root %s is listed or explicitly web-only', (root) => {
+        expect(NATIVE_EXPORT_ROOTS.has(root) || WEB_ONLY_EXPORTED.includes(root)).toBe(true)
+    })
+
+    it('keeps the web-only allowlist honest', () => {
+        for (const root of WEB_ONLY_EXPORTED) {
+            expect(onDisk.has(root)).toBe(true)
+            expect(NATIVE_EXPORT_ROOTS.has(root)).toBe(false)
+        }
+        expect(existsSync(join(APP_DIR, '(mobile-ui)/notifications'))).toBe(false)
+    })
+})
+
+/*
+ * The receipt's Pay CTA assigned an absolute peanut.me URL to window.location —
+ * an off-origin top-level navigation the Capacitor WebView hands to the OS.
+ */
+describe('resolveInAppNavigation', () => {
+    describe('capacitor mode', () => {
+        beforeEach(() => mockIsCapacitor.mockReturnValue(true))
+
+        it('pushes the native stand-in for a request link', () => {
+            expect(resolveInAppNavigation('https://peanut.me/alice?chargeId=abc')).toEqual({
+                kind: 'push',
+                path: '/pay-request?chargeId=abc',
+            })
+            expect(resolveInAppNavigation('https://peanut.me/alice/5usdc?id=pot-1')).toEqual({
+                kind: 'push',
+                path: '/pay-request?id=pot-1',
+            })
+        })
+
+        it('pushes a bare in-app path unchanged', () => {
+            expect(resolveInAppNavigation('/pay-request?chargeId=abc')).toEqual({
+                kind: 'push',
+                path: '/pay-request?chargeId=abc',
+            })
+        })
+
+        it('hands a peanut.me page the export does not ship to the browser', () => {
+            expect(resolveInAppNavigation('https://peanut.me/en/help')).toEqual({
+                kind: 'external',
+                url: 'https://peanut.me/en/help',
+            })
+        })
+
+        // The link is a caller-supplied baseUrl persisted by the charge API, so
+        // only an https Peanut origin may leave the app; anything else is dropped.
+        it.each([
+            ['an off-domain https link', 'https://example.com/pay'],
+            ['a look-alike host', 'https://peanut.me.evil.example/pay'],
+            ['a javascript: url', 'javascript:alert(1)'],
+            ['a data: url', 'data:text/html,<script>alert(1)</script>'],
+            ['a plain http peanut link', 'http://peanut.me/en/help'],
+        ])('refuses to open %s', (_name, link) => {
+            expect(resolveInAppNavigation(link)).toBeNull()
+        })
+
+        it('returns null for an empty or unparseable link', () => {
+            expect(resolveInAppNavigation('')).toBeNull()
+            expect(resolveInAppNavigation('not a url')).toBeNull()
+        })
+    })
+
+    describe('web mode', () => {
+        beforeEach(() => mockIsCapacitor.mockReturnValue(false))
+
+        it('pushes the path of a same-origin link, query and fragment included', () => {
+            expect(resolveInAppNavigation(`${window.location.origin}/alice?chargeId=abc#x`)).toEqual({
+                kind: 'push',
+                path: '/alice?chargeId=abc#x',
+            })
+        })
+
+        it('pushes a relative path', () => {
+            expect(resolveInAppNavigation('/alice?chargeId=abc')).toEqual({
+                kind: 'push',
+                path: '/alice?chargeId=abc',
+            })
+        })
+
+        it('hands an https peanut.me link that is not same-origin to the browser', () => {
+            expect(resolveInAppNavigation('https://app.peanut.me/en/help')).toEqual({
+                kind: 'external',
+                url: 'https://app.peanut.me/en/help',
+            })
+        })
+
+        it.each([
+            ['another origin', 'https://example.com/pay'],
+            ['a javascript: url', 'javascript:alert(1)'],
+            ['a data: url', 'data:text/html,hi'],
+        ])('refuses to open %s', (_name, link) => {
+            expect(resolveInAppNavigation(link)).toBeNull()
+        })
+
+        it('returns null for an empty link', () => {
+            expect(resolveInAppNavigation('')).toBeNull()
+        })
+    })
+})
+
 describe('redactNativePath (deep-link telemetry)', () => {
     // The BLOCKING finding: the code lives in a path segment, so stripping
     // only query and fragment left an unclaimed, claimable QR code readable
@@ -682,6 +889,24 @@ describe('redactNativePath (deep-link telemetry)', () => {
     // rather than pass an unknown identifier through.
     it('redacts an undeclared root instead of trusting it', () => {
         expect(redactNativePath('/not-a-declared-route/secret-value')).toBe('/:id/:id')
+    })
+
+    // The API allows usernames such as `bank` or `crypto`, and `/<username>` is
+    // a profile link — a safe sub-view token must not leak one from the
+    // identifier position.
+    it('keeps safe sub-view tokens only in the sub-view position', () => {
+        expect(redactNativePath('https://peanut.me/bank')).toBe('https://peanut.me/:id')
+        expect(redactNativePath('/profile/crypto')).toBe('/profile/:id')
+        expect(redactNativePath('/manteca/success')).toBe('/:id/:id')
+        expect(redactNativePath('/add-money/us/bank')).toBe('/add-money/:id/bank')
+        expect(redactNativePath('/withdraw/manteca')).toBe('/withdraw/:id')
+    })
+
+    // The authority can carry userinfo, which is attacker-controlled on a link
+    // and would otherwise survive into `raw` next to the redacted path.
+    it('drops userinfo from the authority', () => {
+        expect(redactNativePath('https://CLAIM_SECRET@peanut.me/qr/aB3xK9mQ2pL7vN4z')).toBe('https://peanut.me/qr/:id')
+        expect(redactNativePath('https://user:pass@peanut.me/home')).toBe('https://peanut.me/home')
     })
 
     // A locale or other prefix must not shift the root out of a positional

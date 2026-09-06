@@ -5,6 +5,7 @@ import type { ReactNode } from 'react'
 import { useUserQuery } from '../user'
 import { apiFetch } from '@/utils/api-fetch'
 import { setAuthToken, clearAuthToken } from '@/utils/auth-token'
+import { isDemoMode } from '@/utils/demo'
 
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: jest.fn() }))
 jest.mock('@/utils/auth-token', () => ({
@@ -20,6 +21,9 @@ jest.mock('@/redux/hooks', () => ({
     useUserStore: () => ({ user: null }),
 }))
 jest.mock('posthog-js', () => ({ default: { capture: jest.fn() }, capture: jest.fn() }))
+jest.mock('@/utils/demo', () => ({ isDemoMode: jest.fn(() => false) }))
+// demo-api → demo → general.utils → app/actions/clients starts viem timers that keep the worker alive
+jest.mock('@/app/actions/clients', () => ({}))
 
 const mockApiFetch = apiFetch as jest.MockedFunction<typeof apiFetch>
 const mockSetAuthToken = setAuthToken as jest.MockedFunction<typeof setAuthToken>
@@ -141,5 +145,48 @@ describe('useUserQuery — JWT sliding refresh', () => {
         await waitFor(() => expect(result.current.isSuccess).toBe(true), { timeout: 5000 })
 
         expect(mockClearAuthToken).not.toHaveBeenCalled()
+    })
+})
+
+describe('useUserQuery — demo mode', () => {
+    // jsdom strips the WebView's global Response; the demo routes build one.
+    // Only what fetchUser reads back: ok, status, json().
+    class TestResponse {
+        status: number
+        constructor(
+            private body: string,
+            init?: { status?: number }
+        ) {
+            this.status = init?.status ?? 200
+        }
+        get ok() {
+            return this.status >= 200 && this.status < 300
+        }
+        json() {
+            return Promise.resolve(JSON.parse(this.body))
+        }
+    }
+    const originalResponse = global.Response
+    beforeAll(() => {
+        global.Response = TestResponse as unknown as typeof Response
+    })
+    afterAll(() => {
+        global.Response = originalResponse
+        ;(isDemoMode as jest.Mock).mockReturnValue(false)
+    })
+
+    it('keeps an avatar picked through the demo routes across a refetch (TASK-22142)', async () => {
+        ;(isDemoMode as jest.Mock).mockReturnValue(true)
+        const { demoRespond } = await import('@/utils/demo-api')
+        await demoRespond('/update-user', {
+            method: 'POST',
+            body: JSON.stringify({ username: 'demo', avatarKey: 'basic.frog' }),
+        })
+
+        const { result } = renderHook(() => useUserQuery(), { wrapper: makeWrapper() })
+        await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+        // the real fetchUser path, through the mutable demo profile, not the static constant
+        expect(result.current.data?.user.avatarKey).toBe('basic.frog')
     })
 })

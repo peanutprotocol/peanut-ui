@@ -41,7 +41,7 @@ export default function IncreaseLimitsButton() {
 
     if (actionFlow.isComplete) {
         return (
-            <div className="rounded-sm border border-border-default bg-background-badge-success p-4 text-center text-body-s font-medium">
+            <div className="rounded-sm border border-border-default bg-background-badge-success p-4 text-center text-body-s">
                 {t('submitted')}
             </div>
         )

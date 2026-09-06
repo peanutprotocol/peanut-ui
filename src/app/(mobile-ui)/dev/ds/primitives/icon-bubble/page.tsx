@@ -7,6 +7,7 @@ import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { PropsTable } from '../../_components/PropsTable'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { DesignNote } from '../../_components/DesignNote'
 
 export default function IconBubblePage() {
     return (
@@ -33,18 +34,23 @@ export default function IconBubblePage() {
 
             <SectionDivider />
 
-            <DocSection title="Colors">
+            <DocSection title="Colors" description="Color is semantic, not decorative.">
                 <DocSection.Content>
                     <div className="flex items-center gap-4">
                         <IconBubble icon="check" color="green" />
-                        <IconBubble icon="alert" color="red" />
-                        <IconBubble icon="link" color="yellow" />
+                        <IconBubble icon="ban" color="red" />
+                        <IconBubble icon="alert" color="yellow" />
                         <IconBubble icon="clock" color="gray" />
-                        <IconBubble icon="bell" color="blue" />
+                        <IconBubble icon="info" color="blue" />
                     </div>
+                    <DesignNote type="info">
+                        Yellow is for warnings only (a caution the user should read before acting). Red is an error,
+                        green a success, blue plain information or a neutral method/action icon. Gray is inactive.
+                        ActionModal exposes the same mapping as its <code>tone</code> prop.
+                    </DesignNote>
                 </DocSection.Content>
                 <DocSection.Code>
-                    <CodeBlock label="Colors" code={`<IconBubble icon="alert" color="red" />`} />
+                    <CodeBlock label="Colors" code={`<IconBubble icon="ban" color="red" />`} />
                 </DocSection.Code>
             </DocSection>
 

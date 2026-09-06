@@ -25,13 +25,6 @@ export const MIGRATION_URGENCY_THRESHOLD_DAYS = 14
 // (only during the migration window; flag off keeps closed-forever)
 export const NOTIF_PROMPT_SNOOZE_DAYS = 14
 
-// store review deep links ("Love it" on the review prompt). the ios
-// write-review action needs the real numeric app id — placeholder until launch.
-export const REVIEW_URL = {
-    ios: 'https://apps.apple.com/app/peanut?action=write-review',
-    android: 'https://play.google.com/store/apps/details?id=me.peanut.wallet',
-} as const
-
 // support escape hatch for users who can't install the app: support DMs
 // `/home?keep-web=<token>`; visiting it stores a 90-day cookie that bypasses
 // the sunset block.
@@ -40,12 +33,26 @@ export const KEEP_WEB_COOKIE = 'keep-web'
 export const KEEP_WEB_TOKEN = 'walnut-still-cracks'
 export const KEEP_WEB_COOKIE_DAYS = 90
 
-// placeholder store URLs — real App Store numeric id + Play listing must be
-// confirmed before flag-on (also needed for the review deep link).
-export const STORE_URL = {
-    ios: 'https://apps.apple.com/app/peanut',
+/**
+ * Write-a-review deep links for the user-initiated "Rate Peanut" row in Profile
+ * → About. A prompt built out of these would breach guideline 5.6.1 (that ask is
+ * the OS sheet, see utils/app-review.ts) — Apple documents this form only for a
+ * review the user starts themselves, which is what the row is. It is also the
+ * release valve for a user whose OS quota silently swallowed the sheet.
+ */
+export const REVIEW_URL = {
+    ios: 'https://apps.apple.com/us/app/id6786373552?action=write-review',
     android: 'https://play.google.com/store/apps/details?id=me.peanut.wallet',
 } as const
+
+export const STORE_URL = {
+    ios: 'https://apps.apple.com/us/app/id6786373552',
+    android: 'https://play.google.com/store/apps/details?id=me.peanut.wallet',
+} as const
+
+// The iOS listing (App Store Connect app 6786373552) is not published yet:
+// the store URL 404s, so store-update prompts stay hidden on iOS until then.
+export const IOS_APP_STORE_LISTING_LIVE = false
 
 export const STORE_NAME = {
     ios: 'App Store',
@@ -60,6 +67,7 @@ export const MIGRATION_SURFACES = {
     HOME_BANNER: 'home_banner',
     SETUP: 'setup',
     GUEST_FLOW: 'guest_flow',
+    PROFILE_UPDATE: 'profile_update',
 } as const
 
 export type MigrationSurface = (typeof MIGRATION_SURFACES)[keyof typeof MIGRATION_SURFACES]

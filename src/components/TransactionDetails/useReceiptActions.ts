@@ -7,8 +7,10 @@ import useClaimLink from '@/components/Claim/useClaimLink'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { TRANSACTIONS } from '@/constants/query.consts'
+import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useUserStore } from '@/redux/hooks'
+import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
 
@@ -24,6 +26,7 @@ export function useReceiptActions(transaction: TransactionDetails | null) {
     const { cancelLinkAndClaim, pollForClaimConfirmation } = useClaimLink()
     const { user } = useUserStore()
     const toast = useToast()
+    const friendly = useFriendlyError()
     const t = useTranslations('transaction')
 
     const invalidateTransactions = () => queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
@@ -61,13 +64,15 @@ export function useReceiptActions(transaction: TransactionDetails | null) {
     }
 
     /**
-     * Sender cancels a pending send link by claiming it back. Resolves true on
-     * success (toast shown), false on failure (error toast shown). Refresh
-     * failures after a successful claim still count as success — the money is
-     * back either way.
+     * Sender cancels a pending send link by claiming it back.
+     *  - `cancelled`: toast shown, money back (a refresh failure after a
+     *    successful claim still counts — the money is back either way).
+     *  - `already-claimed`: the recipient got there first. The link is CLAIMED,
+     *    not failed; the list is refetched so the entry re-renders as claimed.
+     *  - `failed`: error toast shown, safe to retry.
      */
-    const cancelSendLink = async (): Promise<boolean> => {
-        if (!transaction) return false
+    const cancelSendLink = async (): Promise<'cancelled' | 'already-claimed' | 'failed'> => {
+        if (!transaction) return 'failed'
         try {
             if (!user?.accounts) {
                 throw new Error('User not found for cancellation')
@@ -102,12 +107,19 @@ export function useReceiptActions(transaction: TransactionDetails | null) {
                 })
                 toast.success(t('toast.linkCancelledRefresh'))
             }
-            return true
+            return 'cancelled'
         } catch (error) {
+            if (wireErrorCode(error) === API_ERROR_CODES.LINK_ALREADY_CLAIMED) {
+                // refetch so the entry re-renders as claimed; a refetch failure is
+                // not a cancel failure (same rule as the success path above)
+                await invalidateTransactions().catch(() => undefined)
+                toast.info(friendly(error))
+                return 'already-claimed'
+            }
             captureException(error)
             console.error('Error claiming link:', error)
             toast.error(t('toast.cancelLinkFailed'))
-            return false
+            return 'failed'
         }
     }
 

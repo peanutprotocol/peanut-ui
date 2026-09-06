@@ -4,6 +4,7 @@
 
 import { couldBeRecipient, isPlausibleUsername, isReservedRoute } from '@/constants/routes'
 import { isCapacitor } from './capacitor'
+import { sanitizeRedirectURL } from './cookie-url.utils'
 
 // Deep links are peanut.me links by definition — that's the host the Android
 // App Links filter and the AASA are bound to. Deliberately not derived from
@@ -131,11 +132,25 @@ function mapDeepLinkPath(parsed: URL): string | null {
     if (segments[0] === 'send' && segments[1]) {
         return appendParams(sendUrl(decodeURIComponent(segments.slice(1).join('/'))), extraParams)
     }
-    // `/pay/<recipient>` — every user's "My QR" payload. The web page is a pure
-    // client redirect to sendUrl(recipient) and is stripped from the native
-    // export, so both platforms funnel straight to the send dispatcher here.
+    /*
+     * `/pay/<recipient>[/<amount><token>]` — every user's "My QR" payload AND the
+     * shape payLinkUrl() prints into a shared request link. A bare recipient is a
+     * send, on both platforms (the web page redirects to the same place). Anything
+     * carrying payment context renders on the web `/pay` catch-all; the native
+     * export ships no catch-all page, so it dispatches through /pay-request and
+     * the send dispatcher exactly as the root recipient branch below does.
+     */
     if (segments[0] === 'pay' && segments[1]) {
-        return appendParams(sendUrl(decodeURIComponent(segments.slice(1).join('/'))), extraParams)
+        const rest = segments.slice(1)
+        const chargeId = parsed.searchParams.get('chargeId')
+        const requestId = parsed.searchParams.get('id')
+        if (!chargeId && !requestId && rest.length === 1) {
+            return appendParams(sendUrl(decodeURIComponent(rest[0])), extraParams)
+        }
+        if (!isCapacitor()) return appendParams(path, extraParams)
+        if (chargeId) return chargePayUrl(chargeId, parsed.searchParams.get('context') ?? undefined)
+        if (requestId) return requestPotUrl(requestId)
+        return appendParams(recipientPayUrl(rest.map(decodeURIComponent).join('/')), extraParams)
     }
     /*
      * Legacy `/request/pay?id=<chargeUuid>` — printed into old shared links.
@@ -232,12 +247,13 @@ function mapDeepLinkPath(parsed: URL): string | null {
 
 /*
  * Route roots that exist in the native static export — src/app/(mobile-ui)/* +
- * /setup + /shhhhh, minus what scripts/native-build.js disables. The AASA
- * drift test in __tests__/native-routes.test.ts walks the App Links path list
- * against this mapper, so a root claimed for the app but missing here fails CI
- * instead of shipping a dead deep link.
+ * /setup + /shhhhh, minus what scripts/native-build.js disables. Two tests in
+ * __tests__/native-routes.test.ts pin it: the AASA drift test walks the App
+ * Links path list against this mapper, and the export drift test walks src/app
+ * against this set, so a root claimed for the app but missing here — or listed
+ * here with no page behind it — fails CI instead of shipping a dead deep link.
  */
-const NATIVE_EXPORT_ROOTS = new Set([
+export const NATIVE_EXPORT_ROOTS: ReadonlySet<string> = new Set([
     'add-money',
     'badges',
     'card',
@@ -248,7 +264,6 @@ const NATIVE_EXPORT_ROOTS = new Set([
     'history',
     'home',
     'limits',
-    'notifications',
     'pay-request',
     'points',
     'profile',
@@ -281,9 +296,61 @@ export function isNativeExportPath(path: string): boolean {
     return NATIVE_EXPORT_ROOTS.has(root.toLowerCase())
 }
 
+export type InAppNavigation = { kind: 'push'; path: string } | { kind: 'external'; url: string }
+
+/**
+ * Where an app-authored link should go: an in-app route push, or a hand-off to
+ * the browser. Assigning `window.location` to an absolute peanut.me URL is an
+ * off-origin top-level navigation inside the Capacitor WebView, which the shell
+ * hands to the OS — so on native the link is mapped through the deep-link
+ * mapper first, and only a path the static export renders is pushed. On web,
+ * same-origin links push their path; everything else is external. Null for an
+ * empty or unparseable link — nothing to navigate to.
+ */
+export function resolveInAppNavigation(url: string): InAppNavigation | null {
+    if (!url) return null
+    if (isCapacitor()) {
+        const target = deepLinkToNativePath(url)
+        const safe = target === null ? null : sanitizeRedirectURL(target)
+        if (safe) return { kind: 'push', path: safe }
+        return parseExternal(url)
+    }
+    const safe = sanitizeRedirectURL(url)
+    if (safe) return { kind: 'push', path: safe }
+    return parseExternal(url)
+}
+
+// The request link comes from the charge API, which stores whatever baseUrl the
+// creating caller supplied — so it must not be trusted past this boundary. Only
+// an https Peanut origin (or the build's own base URL, for previews) may be
+// handed to the browser; any other scheme or host is dropped, never opened.
+function parseExternal(url: string): InAppNavigation | null {
+    let parsed: URL
+    try {
+        parsed = new URL(url)
+    } catch {
+        return null
+    }
+    if (parsed.protocol !== 'https:') return null
+    if (!APP_HOSTS.test(parsed.hostname) && parsed.origin !== baseOrigin()) return null
+    return { kind: 'external', url: parsed.href }
+}
+
+function baseOrigin(): string | null {
+    try {
+        return new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.me').origin
+    } catch {
+        return null
+    }
+}
+
 /**
  * Static sub-view segments that carry diagnostic value and no identifier.
  * Everything NOT here and not a route root is treated as an identifier.
+ *
+ * Honoured only in the sub-view position — `/<root>/<id>/<sub-view>` — so a
+ * user whose username collides with one of these (`/bank` is a valid profile
+ * link) is still redacted at the identifier position.
  */
 const TELEMETRY_SAFE_SEGMENTS = new Set(['success', 'bank', 'manteca', 'crypto', 'us'])
 
@@ -321,14 +388,20 @@ const TELEMETRY_SAFE_SEGMENTS = new Set(['success', 'bank', 'manteca', 'crypto',
 export function redactNativePath(value: string): string {
     const beforeQuery = value.split('#')[0].split('?')[0]
     // Keep scheme://host so a peanut.me universal link stays distinguishable
-    // from a custom-scheme launch — neither carries an identifier.
-    const prefix = beforeQuery.match(/^[a-z][a-z0-9+.-]*:\/\/[^/]*/i)?.[0] ?? ''
-    const path = beforeQuery.slice(prefix.length)
-    const redacted = path
-        .split('/')
-        .map((segment) => {
+    // from a custom-scheme launch — neither carries an identifier. Userinfo
+    // (`https://secret@peanut.me/…`) is dropped: it is attacker-controlled
+    // input on a link and would otherwise ride into telemetry intact.
+    const authority = beforeQuery.match(/^[a-z][a-z0-9+.-]*:\/\/[^/]*/i)?.[0] ?? ''
+    const prefix = authority.replace(/\/\/[^/]*@/, '//')
+    const path = beforeQuery.slice(authority.length)
+    const segments = path.split('/')
+    const redacted = segments
+        .map((segment, i) => {
             if (segment === '') return segment
-            if (NATIVE_EXPORT_ROOTS.has(segment) || TELEMETRY_SAFE_SEGMENTS.has(segment)) return segment
+            if (NATIVE_EXPORT_ROOTS.has(segment)) return segment
+            // sub-view position only: two after a root, `/qr/<code>/success`
+            const underRoot = i >= 2 && NATIVE_EXPORT_ROOTS.has(segments[i - 2])
+            if (underRoot && TELEMETRY_SAFE_SEGMENTS.has(segment)) return segment
             return ':id'
         })
         .join('/')

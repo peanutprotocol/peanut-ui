@@ -27,6 +27,10 @@ interface Props {
      *  the Sumsub upload flow — rendered as the primary CTA so users fix it
      *  themselves instead of messaging support. */
     onUploadProofOfAddress?: () => void
+    /** When the rail carries a `rain-hosted` action (identity document rejected),
+     *  this opens Rain's card-member portal to re-upload — the primary CTA so
+     *  users fix it themselves instead of hitting the contact-support dead end. */
+    onUploadIdentity?: () => void
     /** Inline failure from starting the upload (a silent primary CTA on a
      *  stuck-application screen reads as broken). */
     uploadError?: string
@@ -65,6 +69,7 @@ const ApplicationStatusScreen: FC<Props> = ({
     reasonCode,
     onContactSupport,
     onUploadProofOfAddress,
+    onUploadIdentity,
     uploadError,
     onPrev,
 }) => {
@@ -104,6 +109,14 @@ const ApplicationStatusScreen: FC<Props> = ({
                     <div className="flex w-full flex-col gap-2">
                         <Button variant="purple" shadowSize="4" className="w-full" onClick={onUploadProofOfAddress}>
                             {t('uploadProofOfAddress')}
+                        </Button>
+                        {uploadError && <p className="text-body-s text-foreground-error">{uploadError}</p>}
+                    </div>
+                )}
+                {SUPPORT_VARIANTS.has(variant) && onUploadIdentity && (
+                    <div className="flex w-full flex-col gap-2">
+                        <Button variant="purple" shadowSize="4" className="w-full" onClick={onUploadIdentity}>
+                            {t('uploadIdentityDocuments')}
                         </Button>
                         {uploadError && <p className="text-body-s text-foreground-error">{uploadError}</p>}
                     </div>

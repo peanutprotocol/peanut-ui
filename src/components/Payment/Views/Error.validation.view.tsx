@@ -43,10 +43,10 @@ function ValidationErrorView({
     }
 
     return (
-        <div className="space-y-4 flex flex-col items-center justify-center rounded-lg text-center">
+        <div className="space-y-4 flex flex-col items-center justify-center text-center">
             <Image src={PeanutSad.src} unoptimized alt={t('validation.sadPeanutAlt')} width={96} height={96} />
             <div className="space-y-2">
-                <h1 className="text-body-l font-semibold">{title}</h1>
+                <h1 className="text-heading-card">{title}</h1>
                 <p className="text-body-s font-normal md:max-w-xs">{message}</p>
             </div>
             {showLearnMore && (

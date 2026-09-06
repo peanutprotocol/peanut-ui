@@ -1,4 +1,5 @@
 'use client'
+import { ScreenMark } from '@/components/0_Bruddle/ScreenMark'
 import { type FC, useState } from 'react'
 import { Section } from '@/components/0_Bruddle/Section'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
@@ -45,6 +46,7 @@ const CardLimitsScreen: FC<Props> = ({ cardId, onPrev }) => {
     return (
         <PageStack gap="6">
             <NavHeader title={t('navTitle')} onPrev={onPrev} />
+            <ScreenMark icon="credit-card" color="brand" />
             <Section title={t('subtitle')} className="gap-3">
                 {isLoading ? (
                     <div className="flex justify-center py-8">
@@ -61,7 +63,7 @@ const CardLimitsScreen: FC<Props> = ({ cardId, onPrev }) => {
                     <div className="flex items-center justify-between rounded-sm border border-border-default bg-background-default px-4 py-3">
                         <div>
                             <div className="text-body-s text-foreground-secondary">{label}</div>
-                            <div className="text-body-m font-bold">
+                            <div className="text-body-m-semibold">
                                 {amount != null ? formatDollars(amount) : t('noLimitSet')}
                             </div>
                         </div>

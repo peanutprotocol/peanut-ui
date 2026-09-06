@@ -1,6 +1,7 @@
 'use client'
 
-import DotFaceAvatar from '@/components/Global/DotFaceAvatar'
+import { UserAvatar } from '@/components/Avatar/UserAvatar'
+import { useAvatarKey } from '@/components/Avatar/useAvatarKey'
 import Link from 'next/link'
 import { Icon } from '../Global/Icons/Icon'
 import { twMerge } from '@/utils/tw'
@@ -18,18 +19,22 @@ interface UserHeaderProps {
 }
 
 export const UserHeader = ({ username }: UserHeaderProps) => {
+    const { user: authenticatedUser } = useAuth()
+    const ownAvatarKey = useAvatarKey(authenticatedUser?.user.avatarKey, authenticatedUser?.user.userId)
     return (
         <Link href={`/profile`} className="block">
             <Button
                 variant="primary-soft"
                 className={twMerge(
-                    'flex h-8 w-auto cursor-pointer items-center justify-center gap-1.5 rounded-full px-1 md:h-9'
+                    'flex h-8 w-auto cursor-pointer items-center justify-center gap-1 rounded-full px-1 md:h-9'
                 )}
                 shadowSize="3"
                 size="small"
             >
-                <DotFaceAvatar username={username} className="h-[30px] w-[30px]" />
-                <span className="pr-1.5 text-body-xs font-semibold whitespace-nowrap md:text-body-s">{username}</span>
+                {/* self surface — it links to /profile — so it shows the same
+                    picked sticker as /home, never a bare initial (TASK-22142) */}
+                <UserAvatar size="extra-small" name={username} avatarKey={ownAvatarKey} className="h-[30px] w-[30px]" />
+                <span className="pr-1 text-body-xs font-semibold whitespace-nowrap md:text-body-s">{username}</span>
             </Button>
         </Link>
     )
@@ -44,7 +49,7 @@ export const UserHeader = ({ username }: UserHeaderProps) => {
  * profile name measured 24px at weight 600 for exactly that reason — right
  * size off the caller's token, wrong weight off this component's default.
  * `text-body-m-semibold` is 16/600/20, which is what the old
- * `font-semibold md:text-base` pair already computed to.
+ * semibold + stock-base pair already computed to.
  */
 const LABEL_TYPE = 'text-body-m-semibold'
 
@@ -94,7 +99,7 @@ export const VerifiedUserLabel = ({
     const isInviter = user?.invitedBy === username
 
     return (
-        <div className="flex min-w-0 items-center gap-1.5">
+        <div className="flex min-w-0 items-center gap-1">
             {/* The AddressLink lane only wins when the caller passed no worded
                 copy (name === username). A caller that DID word the name — the
                 receipt head's "Added from {ens}" — must not have its title

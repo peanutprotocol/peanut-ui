@@ -351,7 +351,7 @@ export default function ShhhhhLandingPage() {
                             </div>
                         )}
                         {joinError && (
-                            <p className="font-roboto-flex mt-3 text-center text-sm font-bold text-error md:text-left">
+                            <p className="font-roboto-flex mt-3 text-center text-sm font-bold text-foreground-error md:text-left">
                                 {t('hero.joinError')}
                             </p>
                         )}
@@ -603,7 +603,9 @@ export default function ShhhhhLandingPage() {
                         )}
                     </div>
                     {joinError && (
-                        <p className="font-roboto-flex mt-3 text-sm font-bold text-error">{t('hero.joinError')}</p>
+                        <p className="font-roboto-flex mt-3 text-sm font-bold text-foreground-error">
+                            {t('hero.joinError')}
+                        </p>
                     )}
                 </div>
             </section>

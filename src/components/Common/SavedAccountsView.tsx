@@ -1,7 +1,7 @@
 'use client'
 import { countryData as ALL_METHODS_DATA, ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import { Section } from '@/components/0_Bruddle/Section'
-import { formatIban } from '@/utils/general.utils'
+import { formatIban, middleEllipsisAccount } from '@/utils/general.utils'
 import { AccountType, type Account } from '@/interfaces/interfaces'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
@@ -56,7 +56,7 @@ export default function SavedAccountsView({
     const tWithdraw = useTranslations('withdraw')
     const plusTrailing = <Icon name="plus" size={20} className="text-foreground-primary" />
     return (
-        <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
+        <div className="flex min-h-inherit flex-col justify-normal gap-8">
             <NavHeader title={pageTitle} onPrev={onPrev} />
             <div className="space-y-6">
                 <Section title={t('savedAccounts.title')} className="h-full justify-center">
@@ -104,7 +104,7 @@ export default function SavedAccountsView({
                         {onCryptoClick && (
                             <ListItem
                                 position="single"
-                                leading={<IconBubble icon="credit-card" size="s" color="yellow" />}
+                                leading={<IconBubble icon="credit-card" size="s" color="blue" />}
                                 title={tSend('methods.exchangeOrWalletTitle')}
                                 body={tSend('methods.exchangeOrWalletDescription')}
                                 trailing={plusTrailing}
@@ -168,8 +168,9 @@ export function SavedAccountsMapping({
                 return (
                     <ListItem
                         key={account.id}
-                        // node-wrapped so long ibans wrap instead of truncating
-                        title={<div>{title}</div>}
+                        // middle ellipsis keeps one line and the last 4 digits
+                        // visible; ListItem's string truncate is the fallback
+                        title={middleEllipsisAccount(title, 24)}
                         position="single"
                         onClick={() => onItemClick(account, path)}
                         className="p-4 py-2"

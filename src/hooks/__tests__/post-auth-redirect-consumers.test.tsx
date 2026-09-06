@@ -6,13 +6,14 @@ import { useAccountSetup } from '../useAccountSetup'
 import { useLogin } from '../useLogin'
 
 const mockRouterPush = jest.fn()
+const mockRouterReplace = jest.fn()
 const mockHandleLogin = jest.fn()
 const mockAddAccount = jest.fn()
 const mockToastError = jest.fn()
 let explicitRedirect: string | null = null
 
 jest.mock('next/navigation', () => ({
-    useRouter: () => ({ push: mockRouterPush }),
+    useRouter: () => ({ push: mockRouterPush, replace: mockRouterReplace }),
     useSearchParams: () => ({
         get: (key: string) => (key === 'redirect_uri' ? explicitRedirect : null),
     }),
@@ -57,7 +58,9 @@ describe('post-auth redirect consumers', () => {
 
         act(() => expect(result.current.handleRedirect()).toBe(true))
 
-        expect(mockRouterPush).toHaveBeenCalledWith(FINANCIAL_REDIRECT)
+        // the setup→destination leg replaces: back from there must not re-enter a finished /setup
+        expect(mockRouterReplace).toHaveBeenCalledWith(FINANCIAL_REDIRECT)
+        expect(mockRouterPush).not.toHaveBeenCalled()
         expect(getRedirectUrl()).toBeNull()
     })
 
@@ -72,6 +75,7 @@ describe('post-auth redirect consumers', () => {
 
         expect(mockAddAccount).toHaveBeenCalled()
         expect(mockRouterPush).not.toHaveBeenCalled()
+        expect(mockRouterReplace).not.toHaveBeenCalled()
         // the redirect is still queued for the CTA to consume
         expect(getRedirectUrl()).toBe(CAMPAIGN_REDIRECT)
     })

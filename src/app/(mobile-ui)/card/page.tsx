@@ -27,9 +27,11 @@ import { rainApi, type ApplyForCardResponse } from '@/services/rain'
 import { cardConsentDocuments } from '@/services/consent'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { useHostedVerification } from '@/hooks/useHostedVerification'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useSumsubReloadResume } from '@/hooks/useSumsubReloadResume'
+import { displayableBadges } from '@/constants/badges.consts'
 
 // localStorage key for the one-time celebration gate (per-device by design:
 // re-doing the funnel re-celebrates, see the eligibility-check effect below).
@@ -270,6 +272,17 @@ const CardPage: FC = () => {
         }
     }, [])
     const onUploadProofOfAddress = poaAction && !poaSubmitted ? () => void startPoaUpload() : undefined
+
+    // The rain rail's identity-document re-upload action, emitted when Rain
+    // rejected the card application on a proof-of-identity document. Rather than
+    // a Sumsub token we own, this hands off to Rain's card-member portal (which
+    // runs and re-adjudicates its own Sumsub flow) via the shared hosted-
+    // verification handoff — same gesture-bound tab reservation as bridge-hosted.
+    const identityAction = cardRail
+        ? nextActionsForRail(cardRail.id).find((action) => action.kind === 'rain-hosted')
+        : undefined
+    const { start: startIdentityUpload, error: identityUploadError } = useHostedVerification('rain-hosted')
+    const onUploadIdentity = identityAction ? () => void startIdentityUpload() : undefined
 
     // Once the backend's own state takes over (the rail's sumsub action gives
     // way to the review-wait state, an approval, or a different ask), drop the
@@ -580,7 +593,7 @@ const CardPage: FC = () => {
     if (state === 'loading') {
         return (
             <PageContainer>
-                <div className="flex min-h-[inherit] w-full items-center justify-center">
+                <div className="flex min-h-inherit w-full items-center justify-center">
                     <Loading />
                 </div>
             </PageContainer>
@@ -590,7 +603,7 @@ const CardPage: FC = () => {
     if (pioneerError || overviewError) {
         return (
             <PageContainer>
-                <div className="flex min-h-[inherit] w-full flex-col items-center justify-center gap-4 p-4">
+                <div className="flex min-h-inherit w-full flex-col items-center justify-center gap-4 p-4">
                     <p className="text-center text-foreground-primary">{t('page.loadFailed')}</p>
                     <Button onClick={() => refetchCardInfo()} variant="purple" shadowSize="4">
                         {tCommon('retry')}
@@ -686,12 +699,16 @@ const CardPage: FC = () => {
                 // Share asset shows ALL earned badges, not just skip-badges.
                 // `user.user.badges` is the full collection from /get-user
                 // (with earnedAt) — fall back to cardInfo.skipBadges if it
-                // hasn't loaded yet so we still render something.
+                // hasn't loaded yet so we still render something. Filtered:
+                // this builds a shareable image, and permission records must
+                // never be stamped onto one.
+                const shareableBadges = user?.user?.badges && displayableBadges(user.user.badges)
                 const allBadges =
-                    user?.user?.badges?.map((b) => ({
+                    shareableBadges?.map((b) => ({
                         code: b.code,
                         iconUrl: b.iconUrl,
                         earnedAt: b.earnedAt,
+                        isVisible: b.isVisible,
                     })) ?? cardInfo!.skipBadges.map((code) => ({ code }))
                 return (
                     <BadgeSkipCelebration
@@ -722,7 +739,7 @@ const CardPage: FC = () => {
                 // capabilities so the screen never flashes without its reason.
                 if (capabilitiesLoading) {
                     return (
-                        <div className="flex min-h-[inherit] w-full items-center justify-center">
+                        <div className="flex min-h-inherit w-full items-center justify-center">
                             <Loading />
                         </div>
                     )
@@ -737,7 +754,8 @@ const CardPage: FC = () => {
                         reasonCode={cardRailReasonCode}
                         onContactSupport={() => setIsSupportModalOpen(true)}
                         onUploadProofOfAddress={onUploadProofOfAddress}
-                        uploadError={poaError ?? undefined}
+                        onUploadIdentity={onUploadIdentity}
+                        uploadError={poaError ?? identityUploadError ?? undefined}
                         onPrev={onBack}
                     />
                 )

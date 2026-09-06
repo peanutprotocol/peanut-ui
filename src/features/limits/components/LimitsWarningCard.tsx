@@ -73,6 +73,7 @@ export default function LimitsWarningCard({
     return (
         <Notification
             priority={type === 'error' ? 'error' : 'attention'}
+            hideIcon
             title={titleKind ? t(`warningCard.${titleKind}Title`) : title}
             className={className}
         >
@@ -82,7 +83,7 @@ export default function LimitsWarningCard({
                         <li key={index}>
                             {item.isLink && item.href ? (
                                 <Link href={item.href} className="underline underline-offset-2">
-                                    {item.icon && <Icon name={item.icon} className="mr-1" size={12} />}
+                                    {item.icon && <Icon name={item.icon} className="mr-1" size={16} />}
                                     <span>{itemText(item)}</span>
                                 </Link>
                             ) : (
@@ -99,7 +100,7 @@ export default function LimitsWarningCard({
                             disabled={isIncreaseLimitsLoading}
                             className="flex items-center gap-1"
                         >
-                            <Icon name="plus-circle" size={12} />
+                            <Icon name="plus-circle" size={16} />
                             <span className="font-semibold underline">
                                 {isIncreaseLimitsLoading ? tCommon('loading') : t('increase.cta')}
                             </span>
@@ -112,7 +113,7 @@ export default function LimitsWarningCard({
                             onClick={() => openSupportWithMessage(LIMITS_COPY.SUPPORT_MESSAGE)}
                             className="flex items-center gap-1"
                         >
-                            <Icon name="plus-circle" size={12} />
+                            <Icon name="plus-circle" size={16} />
                             <span className="font-semibold underline">{t('needHigherLimits')}</span>
                         </button>
                     </>

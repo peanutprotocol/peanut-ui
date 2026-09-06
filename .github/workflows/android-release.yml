@@ -201,18 +201,47 @@ jobs:
                       echo "versionName $VERSION_NAME is covered by production bundle $CURRENT"
                   fi
 
+            - name: Write MeaWallet config
+              # mea_config for the MPP SDK (Google Pay push provisioning) —
+              # gitignored; bundled from res/raw when present, no-op until the
+              # secret is provisioned.
+              env:
+                  MEA_CONFIG: ${{ secrets.MEAWALLET_CONFIG_BASE64 }}
+              run: |
+                  if [ -n "$MEA_CONFIG" ]; then
+                      mkdir -p android/app/src/main/res/raw
+                      echo "$MEA_CONFIG" | base64 -d > android/app/src/main/res/raw/mea_config
+                      echo "mea_config written"
+                  else
+                      echo "MEAWALLET_CONFIG_BASE64 not set — push provisioning stays stubbed"
+                  fi
+
             - name: Build signed AAB
               env:
                   # native sentry sdk dsn — read by android/app/build.gradle into a
                   # manifest placeholder. same project dsn the js layer bakes into
                   # the static export above; no new secret needed.
                   SENTRY_DSN_ANDROID: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
+                  # MeaWallet MPP SDK — gradle gates both the dependency and the
+                  # plugin source on these; absent secrets build without the SDK.
+                  # Android-specific names: see the note in ios-release.yml.
+                  MEAWALLET_NEXUS_USER: ${{ secrets.MEAWALLET_NEXUS_USER_ANDROID }}
+                  MEAWALLET_NEXUS_PASSWORD: ${{ secrets.MEAWALLET_NEXUS_PASSWORD_ANDROID }}
                   ANDROID_VERSION_NAME: ${{ steps.version.outputs.name }}
               run: |
-                  # Monotonic (run_number always increases). +10000 clears legacy
-                  # codes already on Play from earlier manual/local uploads (small
-                  # console codes plus git-commit-count builds up to ~8600).
-                  export ANDROID_VERSION_CODE=$((10000 + GITHUB_RUN_NUMBER))
+                  # versionCode must increase in UPLOAD order, which is not run
+                  # order: GitHub preserves run_number when you re-run an older
+                  # workflow and only bumps run_attempt, so any run-numbered or
+                  # version-derived code goes backwards when dispatch 1 is
+                  # re-run after dispatch 2 has already uploaded — and Play
+                  # refuses the recovery upload, leaving the retry wedged.
+                  # scripts/android-version-code.mjs uses wall-clock seconds,
+                  # the only value monotonic by construction rather than by an
+                  # argument about GitHub's numbering. See the header there for
+                  # the two schemes this replaces.
+                  ANDROID_VERSION_CODE="$(node scripts/android-version-code.mjs)"
+                  export ANDROID_VERSION_CODE
+                  echo "versionCode $ANDROID_VERSION_CODE (version $ANDROID_VERSION_NAME, run $GITHUB_RUN_NUMBER attempt $GITHUB_RUN_ATTEMPT)"
                   pnpm native:release
 
             - name: Upload to Google Play
@@ -251,7 +280,7 @@ jobs:
                     --key-data-v2 "$CAPGO_PRIVATE_KEY" \
                     --path ./out \
                     --bundle "$VERSION" \
-                    --auto-min-update-version \
+                    --min-update-version "$VERSION" \
                     --version-exists-ok \
                     --comment "${GITHUB_SHA:0:7} — auto-published with the $VERSION native release"
                   CURRENT="$(npx @capgo/cli@8.42.4 channel currentBundle production \

@@ -185,7 +185,7 @@ const InstallPWA = ({
                         onClick={() =>
                             posthog.capture(ANALYTICS_EVENTS.PWA_OPEN_APP_CLICKED, { device_type: deviceType })
                         }
-                        className="btn btn-purple btn-shadow-primary-4 flex w-full items-center justify-center gap-2 no-underline transition-all duration-100 active:translate-x-[3px] active:translate-y-[4px] active:shadow-none"
+                        className="btn btn-purple btn-shadow-primary-4 flex w-full items-center justify-center gap-2 no-underline transition-all duration-instant active:translate-x-[3px] active:translate-y-[4px] active:shadow-none"
                     >
                         {t('openPeanutApp')}
                     </a>
@@ -255,7 +255,7 @@ const InstallPWA = ({
                                 title={t('mobileFirstTitle')}
                                 description={t('mobileFirstDescription')}
                                 content={
-                                    <div className="mx-auto rounded-lg">
+                                    <div className="mx-auto">
                                         <QRCodeWrapper
                                             url={`${process.env.NEXT_PUBLIC_BASE_URL || window.location.origin}/setup`}
                                         />

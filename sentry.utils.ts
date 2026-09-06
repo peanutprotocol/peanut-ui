@@ -104,10 +104,19 @@ const IGNORED_ERRORS = {
  * (~95/day on native). The user never sees them: the updater just retries on
  * the next launch. Suppress those, but keep the failures that mean OTA is
  * genuinely broken rather than merely flaky — a bundle that semver-sorts below
- * the installed binary, or one that arrived corrupt.
+ * the installed binary, one that arrived corrupt, or one the plugin rolled back
+ * because notifyAppReady never landed. That last class is the reason this list
+ * is not just the two it started with: an update that silently un-happens
+ * leaves no other trace, and suppressing it made the whole population read as
+ * one event in 90 days (PEANUT-UI-SVT).
  */
 const CAPGO_LOG_PREFIXES = ['[CapgoUpdater]', 'CapgoUpdater :', '[capgo]']
-const CAPGO_ACTIONABLE = ['disable_auto_update_under_native', 'Checksum mismatch']
+const CAPGO_ACTIONABLE = [
+    'disable_auto_update_under_native',
+    'Checksum mismatch',
+    'notifyAppReady was not called',
+    'Update to bundle:',
+]
 
 const isFromCapgo = (searchTexts: string[]): boolean =>
     searchTexts.some((text) => CAPGO_LOG_PREFIXES.some((prefix) => text.includes(prefix)))
@@ -116,7 +125,7 @@ function isActionableCapgoError(searchTexts: string[]): boolean {
     return isFromCapgo(searchTexts) && searchTexts.some((text) => CAPGO_ACTIONABLE.some((p) => text.includes(p)))
 }
 
-function isTransientCapgoNoise(searchTexts: string[]): boolean {
+export function isTransientCapgoNoise(searchTexts: string[]): boolean {
     return isFromCapgo(searchTexts) && !isActionableCapgoError(searchTexts)
 }
 
@@ -153,9 +162,19 @@ export function isMutatingMethod(method: string | undefined): boolean {
     return MUTATING_METHODS.includes((method || '').toUpperCase())
 }
 
+/*
+ * The method comes from the `http.method` tag, with the fingerprint's third
+ * slot as fallback. The timeout capture no longer carries url and method in its
+ * fingerprint — it groups on `['timeout']` alone so one phenomenon is one issue
+ * — and reading the method positionally would have made this rescue silently
+ * inert for exactly the events it exists to keep: a POST that dies on the
+ * network. The fallback keeps the non-2xx and network-error captures, which
+ * still fingerprint positionally, working unchanged.
+ */
 function isFetchSiteMutationFailure(event: ErrorEvent): boolean {
-    const [kind, , method] = event.fingerprint ?? []
-    return FETCH_SITE_FINGERPRINTS.includes(kind) && isMutatingMethod(method)
+    const [kind, , fingerprintMethod] = event.fingerprint ?? []
+    const method = event.tags?.['http.method'] ?? fingerprintMethod
+    return FETCH_SITE_FINGERPRINTS.includes(kind) && isMutatingMethod(typeof method === 'string' ? method : undefined)
 }
 
 /*
@@ -183,6 +202,32 @@ export function isThirdPartyScriptFrame(filename: string): boolean {
 }
 
 /**
+ * The texts every noise predicate matches against, one entry per field.
+ * Matching each field independently — rather than one concatenated string —
+ * keeps a pattern from matching across unrelated fields and suppressing a
+ * legitimate event. Shared with the PostHog mirror wrapper in sentry-init so
+ * both filters read the same event the same way.
+ *
+ * Class names come from every link in the chain. Sentry orders `exception.values`
+ * root-cause-first, so a wrapper carrying a `cause` lands at the END — exactly
+ * where fetchWithSentry's ServiceUnavailableError and useZeroDev's PasskeyError
+ * always sit. Reading only values[0] left `alreadyReported` inert for a month:
+ * PEANUT-UI-SNP kept double-counting PEANUT-UI-QEY.
+ *
+ * Deliberately types only, not messages. Class names are exact, so matching them
+ * chain-wide can only catch our own wrappers. Widening the fuzzy message patterns
+ * the same way would suppress MORE — the failure 5343f1d0 just fixed, where viem's
+ * "Details: Failed to fetch" ate real payment errors via `networkIssues`.
+ */
+export function getEventSearchTexts(event: ErrorEvent): string[] {
+    const message = event.message || ''
+    const exceptionValue = event.exception?.values?.[0]?.value || ''
+    const culprit = (event as any).culprit || ''
+    const exceptionTypes = (event.exception?.values ?? []).map((v) => v.type || '')
+    return [message, exceptionValue, culprit, ...exceptionTypes]
+}
+
+/**
  * Check if error message matches any ignored pattern
  */
 export function shouldIgnoreError(event: ErrorEvent): boolean {
@@ -190,26 +235,7 @@ export function shouldIgnoreError(event: ErrorEvent): boolean {
     // stay filtered even there — a user backing out of the passkey sheet is not
     // a defect, and those would drown out the real failures.
     const isCriticalFlow = Boolean(event.tags?.[CRITICAL_FLOW_TAG])
-    const message = event.message || ''
-    const exceptionValue = event.exception?.values?.[0]?.value || ''
-    const culprit = (event as any).culprit || ''
-    /*
-     * Class names from every link in the chain. Sentry orders `exception.values`
-     * root-cause-first, so a wrapper carrying a `cause` lands at the END — exactly
-     * where fetchWithSentry's ServiceUnavailableError and useZeroDev's PasskeyError
-     * always sit. Reading only values[0] left `alreadyReported` inert for a month:
-     * PEANUT-UI-SNP kept double-counting PEANUT-UI-QEY.
-     *
-     * Deliberately types only, not messages. Class names are exact, so matching them
-     * chain-wide can only catch our own wrappers. Widening the fuzzy message patterns
-     * the same way would suppress MORE — the failure 5343f1d0 just fixed, where viem's
-     * "Details: Failed to fetch" ate real payment errors via `networkIssues`.
-     */
-    const exceptionTypes = (event.exception?.values ?? []).map((v) => v.type || '')
-
-    // Match each field independently — concatenating them would let a pattern
-    // match across unrelated fields and suppress a legitimate event.
-    const searchTexts = [message, exceptionValue, culprit, ...exceptionTypes]
+    const searchTexts = getEventSearchTexts(event)
 
     /*
      * Rescue actionable OTA failures BEFORE the generic patterns run. The Capgo

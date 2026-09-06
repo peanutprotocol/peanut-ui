@@ -12,7 +12,7 @@
  * terminal classification and restores a futile retry.
  */
 
-import { initiateSumsubKyc, isTerminalActionCode } from '@/app/actions/sumsub'
+import { initiateSumsubKyc, isTerminalActionCode, restartIdentityVerification } from '@/app/actions/sumsub'
 import { serverFetch } from '@/utils/api-fetch'
 
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
@@ -84,5 +84,79 @@ describe('initiateSumsubKyc — backend refusals', () => {
 
         expect(result.data?.token).toBe('tok')
         expect(result.error).toBeUndefined()
+    })
+})
+
+describe('restartIdentityVerification — wire shape', () => {
+    const okResponse = () =>
+        ({
+            ok: true,
+            json: async () => ({ token: 'tok', levelName: 'general', applicantId: 'app-1' }),
+        }) as unknown as Response
+
+    it('posts the region intent as JSON so the backend mints the matching level', async () => {
+        mockFetch.mockResolvedValue(okResponse())
+        const result = await restartIdentityVerification('LATAM')
+        expect(mockFetch).toHaveBeenCalledWith(
+            '/users/identity/restart',
+            expect.objectContaining({
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ regionIntent: 'LATAM' }),
+            })
+        )
+        expect(result.data?.token).toBe('tok')
+    })
+
+    it('sends an empty body without an intent, and drops one outside the known set', async () => {
+        mockFetch.mockResolvedValue(okResponse())
+        await restartIdentityVerification()
+        expect(mockFetch).toHaveBeenLastCalledWith('/users/identity/restart', expect.objectContaining({ body: '{}' }))
+
+        await restartIdentityVerification('BOGUS' as never)
+        expect(mockFetch).toHaveBeenLastCalledWith('/users/identity/restart', expect.objectContaining({ body: '{}' }))
+    })
+
+    // The backend resolves the intent from the declared residence and can
+    // overrule what we asked for, so the resolved value has to reach the caller.
+    it('surfaces the intent the backend resolved, not the one we sent', async () => {
+        mockFetch.mockResolvedValue({
+            ok: true,
+            json: async () => ({ token: 'tok', levelName: 'general', applicantId: 'app-1', regionIntent: 'LATAM' }),
+        } as unknown as Response)
+        const result = await restartIdentityVerification()
+        expect(result.data?.regionIntent).toBe('LATAM')
+    })
+
+    // The response is unvalidated JSON and the caller stores this in the ref
+    // `refreshToken` replays to `initiateSumsubKyc` — so an unrecognised value
+    // would not merely read as single-level, it would be sent BACK to the API on
+    // the next refresh. Dropping it lets the caller keep the intent it had.
+    it('drops an unrecognised resolved intent rather than storing it', async () => {
+        mockFetch.mockResolvedValue({
+            ok: true,
+            json: async () => ({ token: 'tok', levelName: 'general', applicantId: 'app-1', regionIntent: 'ATLANTIS' }),
+        } as unknown as Response)
+        const result = await restartIdentityVerification()
+        expect(result.data?.regionIntent).toBeUndefined()
+        expect(result.data?.token).toBe('tok')
+    })
+
+    it('a backend that predates the field yields no intent, not a crash', async () => {
+        mockFetch.mockResolvedValue(okResponse())
+        const result = await restartIdentityVerification()
+        expect(result.data?.regionIntent).toBeUndefined()
+        expect(result.data?.levelName).toBe('general')
+    })
+
+    it('a refusal is still surfaced as an error', async () => {
+        mockFetch.mockResolvedValue({
+            ok: false,
+            status: 403,
+            json: async () => ({ error: 'restart_failed', userMessage: 'Cannot restart right now' }),
+        } as unknown as Response)
+        const result = await restartIdentityVerification()
+        expect(result.data).toBeUndefined()
+        expect(result.error).toBeTruthy()
     })
 })
