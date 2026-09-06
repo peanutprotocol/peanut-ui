@@ -204,7 +204,11 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                             className="flex w-1/2 items-center justify-center gap-2 rounded-full py-3"
                         >
                             <Icon name="arrow-down-left" size={20} fill="black" />
-                            <span className="font-bold">{tNav('request')}</span>
+                            {/* Not navigation.request: that labels the user's OWN
+                                Request flow, and es-419 renders it "Recibir" —
+                                receiving, which is not what this button does to
+                                someone else's profile. */}
+                            <span className="font-bold">{t('requestAction')}</span>
                         </Button>
                     </div>
                 )}

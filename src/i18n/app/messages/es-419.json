@@ -526,7 +526,8 @@
             "begShareText": "Bro… estoy de rodillas. Peanut es solo por invitación y me quedé afuera. Sálvame la vida y mándame tu invitación",
             "begForInvite": "Rogar por una invitación",
             "activityPrivateNote": "La actividad solo es visible para ti, no es pública.",
-            "noInviteTitle": "Sin invitación no hay Peanut"
+            "noInviteTitle": "Sin invitación no hay Peanut",
+            "requestAction": "Solicitar"
         },
         "iosCopy": {
             "menu": {

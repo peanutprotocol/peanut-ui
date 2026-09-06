@@ -526,7 +526,8 @@
             "begShareText": "Bro… I'm on my knees. Peanut is invite-only and I'm locked outside. Save my life and send me your invite",
             "begForInvite": "Beg for an invite",
             "activityPrivateNote": "Activity is only visible for you, it is not public.",
-            "noInviteTitle": "No invite, no Peanut"
+            "noInviteTitle": "No invite, no Peanut",
+            "requestAction": "Request"
         },
         "iosCopy": {
             "menu": {
