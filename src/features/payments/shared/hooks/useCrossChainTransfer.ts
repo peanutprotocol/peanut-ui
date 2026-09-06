@@ -21,7 +21,7 @@
  * await calculate({ source, destination, context: 'withdraw', contextId: chargeUuid })
  */
 
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { captureException } from '@sentry/nextjs'
 import { encodeFunctionData, erc20Abi, parseUnits, type Address, type Hex } from 'viem'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
@@ -187,6 +187,14 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
     const [isXChain, setIsXChain] = useState(false)
     const [isDiffToken, setIsDiffToken] = useState(false)
     const [isCalculating, setIsCalculating] = useState(false)
+    /**
+     * Each `calculate` gets a generation. A max withdrawal re-quotes on every
+     * sub-cent balance change, so two are routinely in flight; without this an
+     * older one finishing last would overwrite the newer numbers — and the
+     * affordability gate would then be checking a `payAmount` the user is not
+     * about to send. Latest wins, the same way the claim flow does it.
+     */
+    const quoteGenerationRef = useRef(0)
     const [isFeeEstimationError, setIsFeeEstimationError] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [path, setPath] = useState<CrossChainPath | null>(null)
@@ -244,6 +252,15 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
             senderPeanutWalletAddress,
             skipGasEstimate,
         }: CalculateInput) => {
+            const generation = ++quoteGenerationRef.current
+            const isCurrent = () => generation === quoteGenerationRef.current
+            /** Wrap a setter so a superseded quote cannot write through it. */
+            const live =
+                <T>(set: (v: T) => void) =>
+                (v: T) => {
+                    if (isCurrent()) set(v)
+                }
+
             setIsCalculating(true)
             setError(null)
             setIsFeeEstimationError(false)
@@ -268,14 +285,14 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
                     // request-link fulfillment (existing behavior — unchanged).
                     await buildSameChainTx({
                         destination,
-                        setTransactions,
-                        setEstimatedGasCostUsd,
-                        setIsFeeEstimationError,
-                        setReceiveAmount,
-                        setPayAmount,
+                        setTransactions: live(setTransactions),
+                        setEstimatedGasCostUsd: live(setEstimatedGasCostUsd),
+                        setIsFeeEstimationError: live(setIsFeeEstimationError),
+                        setReceiveAmount: live(setReceiveAmount),
+                        setPayAmount: live(setPayAmount),
                         skipGasEstimate,
                     })
-                    setPath('same-chain')
+                    if (isCurrent()) setPath('same-chain')
                     return
                 }
 
@@ -308,16 +325,16 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
                         sourceRhinoChain,
                         destRhinoChain,
                         tokenSymbol,
-                        setTransactions,
-                        setReceiveAmount,
-                        setPayAmount,
-                        setFeeUsd,
-                        setEstimatedGasCostUsd,
-                        setIsFeeEstimationError,
-                        setQuoteExpiresAt,
-                        setCommitmentId,
+                        setTransactions: live(setTransactions),
+                        setReceiveAmount: live(setReceiveAmount),
+                        setPayAmount: live(setPayAmount),
+                        setFeeUsd: live(setFeeUsd),
+                        setEstimatedGasCostUsd: live(setEstimatedGasCostUsd),
+                        setIsFeeEstimationError: live(setIsFeeEstimationError),
+                        setQuoteExpiresAt: live(setQuoteExpiresAt),
+                        setCommitmentId: live(setCommitmentId),
                     })
-                    setPath('bridge')
+                    if (isCurrent()) setPath('bridge')
                     return
                 }
 
@@ -326,12 +343,22 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
                 // persist them onto the charge for audit (the FEE ledger entry is
                 // booked from Rhino's executed actuals, not from this quote).
                 // Sequential because provision depends on preview's numbers.
+                // A withdraw is sized by what the user spends (pay mode, the
+                // source amount): whatever Rhino quotes as a fee comes out of
+                // the delivery, never on top, so a full-balance withdraw always
+                // fits the balance. A pay-request / claim is sized by what the
+                // recipient must get (receive mode): the payer covers any fee.
+                // Under the 1:1 account config both give the same numbers.
+                const withdraw = context === 'withdraw'
+                if (withdraw && !source.tokenAmount) {
+                    throw new Error('Withdraw requires source.tokenAmount (the USDC amount the user is spending)')
+                }
                 const preview = await previewSdaTransfer({
                     chainIn: sourceRhinoChain,
                     chainOut: destRhinoChain,
                     token: tokenSymbol,
-                    amount: destination.tokenAmount,
-                    mode: 'receive', // UI always asks "merchant gets X" — user pays X + quoted fee
+                    amount: withdraw ? source.tokenAmount! : destination.tokenAmount,
+                    mode: withdraw ? 'pay' : 'receive',
                     depositor: source.address,
                     recipient: destination.recipientAddress,
                 })
@@ -352,25 +379,29 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
                     preview,
                     sda,
                     source,
-                    setTransactions,
-                    setSdaAddress,
-                    setReceiveAmount,
-                    setPayAmount,
-                    setFeeUsd,
-                    setMinDepositLimitUsd,
-                    setMaxDepositLimitUsd,
-                    setEstimatedGasCostUsd,
-                    setIsFeeEstimationError,
-                    setQuoteExpiresAt,
+                    setTransactions: live(setTransactions),
+                    setSdaAddress: live(setSdaAddress),
+                    setReceiveAmount: live(setReceiveAmount),
+                    setPayAmount: live(setPayAmount),
+                    setFeeUsd: live(setFeeUsd),
+                    setMinDepositLimitUsd: live(setMinDepositLimitUsd),
+                    setMaxDepositLimitUsd: live(setMaxDepositLimitUsd),
+                    setEstimatedGasCostUsd: live(setEstimatedGasCostUsd),
+                    setIsFeeEstimationError: live(setIsFeeEstimationError),
+                    setQuoteExpiresAt: live(setQuoteExpiresAt),
                 })
-                setPath('sda')
+                if (isCurrent()) setPath('sda')
             } catch (err) {
                 const message = err instanceof Error ? err.message : 'failed to calculate cross-chain transfer'
-                setError(message)
-                setIsFeeEstimationError(true)
+                // A superseded quote's failure is not the user's problem — the
+                // newer one owns the screen, including whether it errored.
+                live(setError)(message)
+                live(setIsFeeEstimationError)(true)
                 captureException(err)
             } finally {
-                setIsCalculating(false)
+                // Only the newest quote clears the spinner; a stale one finishing
+                // first would otherwise say "done" while the real one still runs.
+                if (isCurrent()) setIsCalculating(false)
             }
         },
         []
@@ -643,12 +674,13 @@ function applyRhinoResult({
     ])
     setSdaAddress(sda.sdaAddress)
     setReceiveAmount(preview.receiveAmount)
-    // SDA path uses mode='receive' — any fee Rhino quotes is taken at source, so
-    // `payAmount` IS `principal + quoted fee` (== principal under the current
-    // 1:1 account config) and matches the on-chain transfer amount we just
-    // encoded above. Callers routing through sendTransactions({ requiredUsdcAmount })
-    // MUST pass this — not the principal — or the kernel's collateral-sweep
-    // under-funds and the transfer reverts with `ERC20: transfer amount exceeds balance`.
+    // `payAmount` is the quote's pay side and matches the on-chain transfer
+    // amount we just encoded above: the source amount on a withdraw (pay
+    // mode), principal + quoted fee on a pay-request (receive mode) — the same
+    // number under the current 1:1 account config. Callers routing through
+    // sendTransactions({ requiredUsdcAmount }) MUST pass this — not the
+    // principal — or the kernel's collateral-sweep under-funds and the
+    // transfer reverts with `ERC20: transfer amount exceeds balance`.
     setPayAmount(preview.payAmount)
     setFeeUsd(preview.feeUsd)
     setMinDepositLimitUsd(sda.minDepositLimitUsd)

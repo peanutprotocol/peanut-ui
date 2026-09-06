@@ -20,7 +20,7 @@ import type {
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
 import { isWithdrawFeeDisproportionate, getMinWithdrawUsdForChain } from '@/utils/cross-chain-fee.utils'
 import { isAmountWithinBalance } from '@/utils/balance.utils'
-import { isBelowRhinoMinDeposit } from '@/utils/withdraw.utils'
+import { isBelowRhinoMinDeposit, resolveWithdrawAmount } from '@/utils/withdraw.utils'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
@@ -65,6 +65,9 @@ export default function WithdrawCryptoPage() {
     const { resetTokenContextProvider } = useContext(tokenSelectorContext)
     const {
         amountToWithdraw,
+        isMaxWithdrawal,
+        preparedAmount,
+        setPreparedAmount,
         usdAmount,
         currentView,
         setCurrentView,
@@ -151,13 +154,31 @@ export default function WithdrawCryptoPage() {
         resetPaymentRecorder()
     }, [setChargeDetails, setTransactionHash, setPaymentDetails, resetRouteCalculation, resetPaymentRecorder])
 
+    // What a withdrawal prepared RIGHT NOW would move: the amount on screen,
+    // plus the sub-cent remainder when the user tapped "use full balance" and
+    // did not edit it. Tracks the live balance, so it is only read at the
+    // moment the charge is built. See resolveWithdrawAmount for the guard
+    // rails (TASK-21899).
+    const liveResolvedAmount = useMemo(
+        () => resolveWithdrawAmount(amountToWithdraw, spendableBalance, isMaxWithdrawal, PEANUT_WALLET_TOKEN_DECIMALS),
+        [amountToWithdraw, spendableBalance, isMaxWithdrawal]
+    )
+
+    // What THIS withdrawal moves. Once a charge exists, the amount it was built
+    // from is the only one that may be quoted, gated or sent — the charge is
+    // what the API validator settles against, and the live figure keeps moving
+    // under it. See WithdrawFlowContext.preparedAmount.
+    const effectiveAmount = preparedAmount ?? liveResolvedAmount
+
     // clear errors when amount changes
     useEffect(() => {
         if (amountToWithdraw) {
             clearErrors()
             setChargeDetails(null)
+            // The charge is gone, so the amount frozen against it is too.
+            setPreparedAmount(null)
         }
-    }, [amountToWithdraw, clearErrors, setChargeDetails])
+    }, [amountToWithdraw, clearErrors, setChargeDetails, setPreparedAmount])
 
     // propagate route/record errors
     useEffect(() => {
@@ -177,9 +198,9 @@ export default function WithdrawCryptoPage() {
                 address: address as Address,
                 tokenAddress: PEANUT_WALLET_TOKEN as Address,
                 chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                // amountToWithdraw is USD-denominated; source token is USDC (1:1).
-                // Required for the bridge path's 'pay' mode (cross-chain ETH/etc).
-                tokenAmount: amountToWithdraw,
+                // effectiveAmount is USD-denominated; source token is USDC (1:1).
+                // It sizes the pay-mode quote on every cross-chain path.
+                tokenAmount: effectiveAmount,
             },
             destination: {
                 recipientAddress: chargeDetails.requestLink.recipientAddress as Address,
@@ -194,7 +215,7 @@ export default function WithdrawCryptoPage() {
             senderPeanutWalletAddress: address as Address,
             skipGasEstimate: true, // peanut wallet handles gas
         })
-    }, [chargeDetails, withdrawData, calculateRoute, address, amountToWithdraw])
+    }, [chargeDetails, withdrawData, calculateRoute, address, effectiveAmount])
 
     // prepare transaction when entering confirm view
     useEffect(() => {
@@ -209,6 +230,11 @@ export default function WithdrawCryptoPage() {
                 return
             }
 
+            // Resolve ONCE, here. Everything this function decides — the minimum
+            // check, the destination token amount, the charge — must come from
+            // the same number, and that number is what gets frozen below.
+            const spendAmount = liveResolvedAmount
+
             // Same-chain USDC is a direct transfer — no Rhino, no minimum
             // (parity with send-via-link). Every other destination/token rides
             // Rhino, which parks (doesn't auto-refund) deposits below the route
@@ -218,7 +244,7 @@ export default function WithdrawCryptoPage() {
                 data.chain.chainId.toString() === PEANUT_WALLET_CHAIN.id.toString() &&
                 data.token.address.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase()
             if (!isSameChainUsdc) {
-                const usdToWithdraw = parseFloat(amountToWithdraw)
+                const usdToWithdraw = parseFloat(spendAmount)
                 const minUsd = getMinWithdrawUsdForChain(data.chain.chainId)
                 if (!Number.isFinite(usdToWithdraw) || usdToWithdraw < minUsd) {
                     const minDisplay = minUsd % 1 === 0 ? `$${minUsd}` : `$${minUsd.toFixed(2)}`
@@ -231,6 +257,9 @@ export default function WithdrawCryptoPage() {
 
             clearErrors()
             setChargeDetails(null)
+            // Re-arm: this preparation decides the amount afresh from the live
+            // balance, then freezes it below.
+            setPreparedAmount(null)
             setIsPreparingReview(true)
 
             try {
@@ -239,10 +268,10 @@ export default function WithdrawCryptoPage() {
                 // units before persisting the request/charge — otherwise meta
                 // ends up with `tokenAmount: "1"` + `tokenSymbol: "ETH"` and
                 // history renders "1 ETH" for what was actually a $1 withdraw.
-                const usdValue = parseFloat(amountToWithdraw)
+                const usdValue = parseFloat(spendAmount)
                 const tokenPrice = data.token.price ?? 0
                 const destinationTokenAmount =
-                    tokenPrice > 0 ? (usdValue / tokenPrice).toFixed(Number(data.token.decimals)) : amountToWithdraw
+                    tokenPrice > 0 ? (usdValue / tokenPrice).toFixed(Number(data.token.decimals)) : spendAmount
 
                 const completeWithdrawData = { ...data, amount: destinationTokenAmount }
                 setWithdrawData(completeWithdrawData)
@@ -296,6 +325,10 @@ export default function WithdrawCryptoPage() {
 
                 const fullChargeDetails = await chargesApi.get(createdCharge.data.id)
 
+                // Frozen with the charge, not before it: a failure above leaves
+                // the flow re-armed rather than pinned to an amount that never
+                // reached the backend.
+                setPreparedAmount(spendAmount)
                 setChargeDetails(fullChargeDetails)
                 setShowCompatibilityModal(true)
             } catch (err) {
@@ -308,6 +341,8 @@ export default function WithdrawCryptoPage() {
         },
         [
             amountToWithdraw,
+            liveResolvedAmount,
+            setPreparedAmount,
             clearErrors,
             setChargeDetails,
             setIsPreparingReview,
@@ -414,7 +449,7 @@ export default function WithdrawCryptoPage() {
                     txHash,
                     receipt: r,
                     strategy: s,
-                } = await sendMoney(withdrawData.address as Address, amountToWithdraw, {
+                } = await sendMoney(withdrawData.address as Address, effectiveAmount, {
                     kind: 'CRYPTO_WITHDRAW',
                     // Lets the backend settle the charge directly when the spend
                     // routes through Rain card collateral (collateral-only): the
@@ -556,6 +591,7 @@ export default function WithdrawCryptoPage() {
         chargeDetails,
         withdrawData,
         amountToWithdraw,
+        effectiveAmount,
         address,
         transactions,
         payAmount,
@@ -611,21 +647,32 @@ export default function WithdrawCryptoPage() {
         [isCrossChainWithdrawal, networkFee, usdAmount]
     )
 
-    // Pre-sign affordability gate for cross-chain. The input-time gate only
-    // checked the principal, but the kernel must spend principal + bridge fee
-    // (`payAmount`), so a withdraw that fit the balance at input can fall short
-    // here once the fee is known — and the send would surface the misleading
-    // "balance isn't fully available yet" (settling) error instead of an honest
-    // "not enough balance". Block it here with the right message. Only once the
-    // quote has resolved `payAmount` (skipped while calculating; CTA is disabled
-    // by isCalculating anyway).
-    const insufficientForFee = useMemo<boolean>(
+    // Pre-sign affordability gate on every path: what the kernel spends must fit
+    // the LIVE balance. The input-time gate saw the balance at input; a card
+    // spend settling, another withdrawal landing first, or a quoted fee can
+    // leave it short here — and the send would surface the misleading "balance
+    // isn't fully available yet" (settling) error instead of an honest "not
+    // enough balance".
+    //
+    // The spend is not the same number on both paths. Cross-chain the kernel
+    // sends the quote's pay side (`payAmount`, via requiredUsdcAmount); it is
+    // null until the route resolves, so the gate simply doesn't fire while
+    // calculating — the CTA is disabled by isCalculating anyway. Same-chain the
+    // kernel sends `effectiveAmount` (frozen with the charge), and `payAmount`
+    // there is the CHARGE's
+    // destination amount (`usdValue / token.price`) — so a routine USDC price of
+    // 0.9999 makes it a few base units more than the balance on a full-balance
+    // withdrawal, which would disable the CTA on a send that would have
+    // succeeded. Gating on the frozen amount is also what makes the gate honest:
+    // it is the number that will actually leave the wallet.
+    const kernelSpend = isCrossChainWithdrawal ? payAmount : effectiveAmount
+    const insufficientBalance = useMemo<boolean>(
         () =>
-            isCrossChainWithdrawal &&
-            payAmount != null &&
+            kernelSpend != null &&
+            kernelSpend !== '' &&
             spendableBalance !== undefined &&
-            !isAmountWithinBalance(payAmount, spendableBalance),
-        [isCrossChainWithdrawal, payAmount, spendableBalance]
+            !isAmountWithinBalance(kernelSpend, spendableBalance),
+        [kernelSpend, spendableBalance]
     )
 
     // Rhino accepts SDA deposits below the route minimum on-chain but never
@@ -683,7 +730,7 @@ export default function WithdrawCryptoPage() {
                     receiveAmount={receiveAmount}
                     payAmount={payAmount}
                     showHighFeeWarning={showHighFeeWarning}
-                    insufficientBalance={insufficientForFee}
+                    insufficientBalance={insufficientBalance}
                     belowMinimumMessage={belowMinimumMessage}
                     isFromSendFlow={isFromSendFlow}
                 />

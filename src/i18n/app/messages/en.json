@@ -3088,6 +3088,7 @@
     "global": {
         "amountInput": {
             "balance": "Balance:",
+            "useFullBalance": "Use full balance: {balance}",
             "switchCurrency": "Switch currency"
         },
         "tokenSelector": {

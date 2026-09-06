@@ -59,6 +59,7 @@ export default function WithdrawPage() {
     const {
         amountToWithdraw: amountFromContext,
         setAmountToWithdraw,
+        setIsMaxWithdrawal,
         setError,
         error,
         setUsdAmount,
@@ -253,6 +254,18 @@ export default function WithdrawPage() {
         [balance, maxDecimalAmount, selectedTokenData?.price, isFromSendFlow, minUsdAmount, t, tErrors]
     )
 
+    // The exact string the balance tap last filled. Any other value reaching
+    // handleTokenAmountChange is the user typing, which retires the max intent.
+    const filledFromBalanceRef = useRef<string | null>(null)
+
+    const handleBalanceFilled = useCallback(
+        (value: string) => {
+            filledFromBalanceRef.current = value
+            setIsMaxWithdrawal(true)
+        },
+        [setIsMaxWithdrawal]
+    )
+
     const handleTokenAmountChange = useCallback(
         (value: string | undefined) => {
             let newValue = value || ''
@@ -261,6 +274,11 @@ export default function WithdrawPage() {
                 newValue = ''
             }
             setRawTokenAmount(newValue)
+
+            if (newValue !== filledFromBalanceRef.current) {
+                filledFromBalanceRef.current = null
+                setIsMaxWithdrawal(false)
+            }
 
             // ignore programmatically injected tiny residual amounts (<1) before user interaction
             const numericVal = parseFloat(newValue)
@@ -451,6 +469,8 @@ export default function WithdrawPage() {
                                 decimals: 6, // we want USDC decimals to be able to pay exactly
                             }}
                             walletBalance={peanutWalletBalance}
+                            balanceFillAmount={maxDecimalAmount}
+                            onBalanceFilled={handleBalanceFilled}
                             hideCurrencyToggle
                         />
                     </FieldColumn>

@@ -3088,6 +3088,7 @@
     "global": {
         "amountInput": {
             "balance": "Saldo:",
+            "useFullBalance": "Usar saldo completo: {balance}",
             "switchCurrency": "Cambiar moneda"
         },
         "tokenSelector": {
