@@ -429,6 +429,14 @@ export type UserPreferences = {
      *  gets a new fingerprint and re-surfaces; the tasks always stay
      *  reachable under Profile → Unlocked regions. */
     pendingVerificationTasksDismissed?: string[]
+    /** ISO timestamp of a Manteca cap-nudge source-of-funds submission this
+     *  device made. Optimistic only: the backend stamps `submittedAt` on the
+     *  marker a webhook later, and until it does this is the only thing that
+     *  knows the document is already in. Deliberately SHORT-LIVED — see
+     *  CAP_NUDGE_SUBMITTED_TTL_MS — so a lost webhook re-offers the upload
+     *  rather than hiding it forever, and a genuinely new cap block is never
+     *  suppressed by a stale local flag. */
+    capNudgeSubmittedAt?: string
 }
 
 export const updateUserPreferences = (
