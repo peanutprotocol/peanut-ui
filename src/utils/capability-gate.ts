@@ -237,6 +237,66 @@ function firstAdvisory(candidates: RailWithVerdict[]): GateAdvisory | undefined 
 }
 
 /**
+ * Purposes the Manteca cap-nudge is emitted under (peanut-api-ts
+ * `kyc/capabilities/resolver.ts`). A full-tier Manteca rail that recently hit
+ * its monthly cap carries the marker as a `hintAction`; once the user submits
+ * the source-of-funds document the marker gains `submittedAt` and the hint
+ * becomes a `wait`.
+ */
+const CAP_NUDGE_RAISE_PURPOSE = 'raise-manteca-limit'
+const CAP_NUDGE_REVIEW_PURPOSE = 'manteca-limit-under-review'
+
+/**
+ * The Manteca cap-nudge, if the user is carrying one.
+ *
+ *   - `raise`        — a fresh cap block. `actionKey` starts the source-of-funds
+ *                      Sumsub flow (POST /users/kyc/start-action).
+ *   - `under-review` — the document is in, but Sumsub accepting it does NOT mean
+ *                      Manteca raised the cap (that is still a manual support
+ *                      step). Non-actionable by construction: no key to start.
+ */
+export type MantecaCapNudge = { state: 'raise'; actionKey: string } | { state: 'under-review' }
+
+/**
+ * Select the Manteca cap-nudge from the capability block.
+ *
+ * Deliberately NOT routed through {@link firstAdvisory}: that selector ranks
+ * Bridge's future-dated requirements by `effectiveDate`, and the cap-nudge has
+ * no date to rank by — it is already due. Loosening the date requirement there
+ * would push the nudge into the add-money/withdraw pre-empt modal, interrupting
+ * a payment to advertise a limit raise. This is its own read, consumed by the
+ * limits page.
+ *
+ * A fresh block outranks an in-review sibling: re-seeding the marker (a NEW cap
+ * block after a completed RFI) must restore the actionable CTA rather than leave
+ * the user staring at a stale "under review".
+ *
+ * Both branches are pinned to the action `kind` the FE can actually honour, so a
+ * future BE that re-purposes either key cannot make the review state tappable.
+ */
+export function selectMantecaCapNudge(rails: RailCapability[], nextActions: NextAction[]): MantecaCapNudge | undefined {
+    const byKey = new Map(nextActions.map((action) => [action.key, action]))
+    let underReview = false
+
+    for (const rail of rails) {
+        if (rail.provider !== 'manteca') continue
+        // The verdict's nextAction is the BE-derived carrier on an enabled rail;
+        // `hintActions` is the legacy one. Read both — same dual-source rule as
+        // railVerdict — so neither an older nor a newer BE drops the nudge.
+        const candidates = [...railHintActions(rail, byKey), rail.resolved?.nextAction]
+        for (const action of candidates) {
+            if (!action) continue
+            if (action.kind === 'sumsub' && action.purpose === CAP_NUDGE_RAISE_PURPOSE) {
+                return { state: 'raise', actionKey: action.key }
+            }
+            if (action.kind === 'wait' && action.purpose === CAP_NUDGE_REVIEW_PURPOSE) underReview = true
+        }
+    }
+
+    return underReview ? { state: 'under-review' } : undefined
+}
+
+/**
  * Input state for the pure derive. Held separately from the React hook so the
  * gate is independently testable (and re-usable from non-React callers).
  */
