@@ -1867,6 +1867,7 @@
             "to": "Para",
             "networkFee": "Taxa de rede",
             "networkFeeInfo": "Peanut cobre o custo da ponte. Um pequeno custo de rede pode ser descontado na entrega.",
+            "networkFeeChargedInfo": "Esta rota cobra uma taxa. Ela já está incluída no valor que você paga.",
             "youPay": "Você paga",
             "highFeeWarning": "Atenção: a taxa de rede é uma parte grande deste saque. Sacar um valor maior ou escolher uma rede mais barata reduz a taxa."
         },

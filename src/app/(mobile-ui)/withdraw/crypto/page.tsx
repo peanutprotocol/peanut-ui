@@ -360,6 +360,10 @@ export default function WithdrawCryptoPage() {
             // Nothing prepared — the route never resolved, or an expiry refresh
             // just failed. Quote again instead of dead-ending on "not prepared";
             // a persistent failure keeps surfacing through routeError.
+            // Drop the copied error first: it is the previous attempt's, and
+            // leaving it up would show "Retry" over a route that just resolved,
+            // so the next tap would broadcast under a stale failure message.
+            clearErrors()
             await quoteRoute()
             return
         }
@@ -373,6 +377,7 @@ export default function WithdrawCryptoPage() {
         const alreadySpent = executedSpendRef.current?.chargeId === chargeDetails.uuid
         const quoteExpired = quoteExpiresAt ? isQuoteNearExpiry(quoteExpiresAt) : false
         if (quoteExpired && !alreadySpent) {
+            clearErrors()
             await quoteRoute()
             return
         }
