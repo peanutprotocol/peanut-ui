@@ -219,6 +219,31 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
         expect(countWeightStacks("const SIZES = { sm: 'text-body-m font-semibold' }; const c = SIZES[v]")).toBe(1)
     })
 
+    it('only a WHITESPACE join composes a class list', () => {
+        // `.join(',')` yields the single class `a,b`, and `.join()` defaults to a
+        // comma — treating either as composition reports a stack no element ever
+        // receives, and rejects valid non-class string assembly.
+        const list = "const c = ['text-body-m', 'font-semibold']"
+        expect(countWeightStacks(`${list}.join(' ')`)).toBe(1)
+        expect(countWeightStacks(`${list}.join('\\n')`)).toBe(1)
+        expect(countWeightStacks(`${list}.join(',')`)).toBe(0)
+        expect(countWeightStacks(`${list}.join()`)).toBe(0)
+        expect(countWeightStacks(`${list}.join(sep)`)).toBe(0)
+    })
+
+    it('the alternatives bound never drops a partial that can still form a match', () => {
+        // A weight-only alternative sitting past the ceiling still forms a real
+        // stack once the outer token products with it. Slicing it away reported
+        // zero — a bound losing a finding, which is the one direction it must
+        // never fail in.
+        //
+        // The weight goes FIRST on purpose. With it last, the incremental union
+        // rebuilds after the cap and happens to keep it — so a weight-last
+        // fixture passes even with the bound broken, and proves nothing.
+        const many = Array.from({ length: 300 }, (_, i) => `'text-body-m-${i}'`).join(', ')
+        expect(countWeightStacks(`const S = ['font-semibold', ${many}]; const c = clsx('text-body-m', S[i])`)).toBe(1)
+    })
+
     it('treats an INDEXED array as alternatives, and a joined one as one list', () => {
         // Producting every array invented a stack across two entries of a valid
         // variant list; the regex scanner reported 0 for the indexed form.

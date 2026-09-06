@@ -60,7 +60,16 @@ const NOTHING = [EMPTY_ALT]
 const altKey = (alt) => `${alt.token ?? '-'}:${alt.weight ?? '-'}`
 const isMatch = (alt) => alt.token !== null && alt.weight !== null
 
-/** Dedupe, keeping matches first so a truncation cannot drop a finding. */
+/**
+ * Dedupe, and bound without ever losing a finding — present or future.
+ *
+ * Truncating a deduped list dropped PARTIALS that had not composed yet: a
+ * weight-only alternative sitting past the cap still forms a real stack once the
+ * outer token products with it, and slicing it away reported zero. So when the
+ * bound bites, every full match is kept AND one representative of each partial
+ * shape — token-only, weight-only, neither. One representative is enough: any
+ * match those partials could form, they can still form.
+ */
 function normalize(alts) {
     const seen = new Map()
     for (const alt of alts) {
@@ -69,8 +78,17 @@ function normalize(alts) {
     }
     const out = [...seen.values()]
     if (out.length <= MAX_ALTERNATIVES) return out
-    const matches = out.filter(isMatch)
-    return [...matches, ...out.filter((alt) => !isMatch(alt))].slice(0, Math.max(MAX_ALTERNATIVES, matches.length))
+
+    const kept = out.filter(isMatch)
+    const shapes = new Set()
+    for (const alt of out) {
+        if (isMatch(alt)) continue
+        const shape = `${alt.token !== null}:${alt.weight !== null}`
+        if (shapes.has(shape)) continue
+        shapes.add(shape)
+        kept.push(alt)
+    }
+    return kept
 }
 
 /** Combine alternative-sets that apply AT THE SAME TIME (concatenation, builder args, join). */
@@ -246,8 +264,23 @@ function alternatives(node, ctx, depth = 0, seen = new Set(), mode = LOOKUP_OBJE
     if (ts.isCallExpression(node)) {
         const name = calleeName(node)
         if (name === 'join' && ts.isPropertyAccessExpression(node.expression)) {
-            // `.join(' ')` renders every entry into ONE class list.
-            return alternatives(node.expression.expression, ctx, depth + 1, seen, BUILDER_OBJECT)
+            // Only a WHITESPACE separator composes a class list. `.join(',')`
+            // yields the single class `a,b`, and `.join()` defaults to a comma —
+            // treating either as composition reports a stack that no element
+            // ever receives, and rejects valid non-class string assembly.
+            const sep = node.arguments[0]
+            const isWhitespace =
+                sep !== undefined &&
+                (ts.isStringLiteral(sep) || ts.isNoSubstitutionTemplateLiteral(sep)) &&
+                sep.text.length > 0 &&
+                sep.text.trim() === ''
+            return alternatives(
+                node.expression.expression,
+                ctx,
+                depth + 1,
+                seen,
+                isWhitespace ? BUILDER_OBJECT : LOOKUP_OBJECT
+            )
         }
         if (name === 'cva') return cvaAlternatives(node, ctx, depth, seen)
         if (name && BUILDERS.has(name)) {
