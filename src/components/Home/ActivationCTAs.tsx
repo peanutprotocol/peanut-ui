@@ -419,6 +419,12 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                             void kycFlow.handleFixableRejection({
                                 provider: fixableProvider,
                                 actionKey: fixableActionKey,
+                                // The handler routes a residence park to start-action
+                                // and everything else to resubmit, and the code is the
+                                // only thing that tells them apart. `emailBlocked` is
+                                // falsy in this branch, so the memo's precedence makes
+                                // this the fixable rail's own code.
+                                reasonCode: primaryRejectionCode,
                             })
                         } else if (activationStep === 'outbound' && !hasProviderRejection && hasCardAccess) {
                             posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SHOWN)

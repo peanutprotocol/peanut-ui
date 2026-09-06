@@ -31,10 +31,13 @@ jest.mock('next/navigation', () => ({
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
 
 let mockRails: unknown[] = []
+// A provider rejection only surfaces for an APPROVED user, so this has to be
+// settable — the residence-park case below is exactly that shape.
+let mockIsKycApproved = false
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({
         rails: mockRails,
-        isKycApproved: false,
+        isKycApproved: mockIsKycApproved,
         railsForProvider: () => [],
         nextActionsForRail: () => [],
     }),
@@ -79,10 +82,13 @@ jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSu
 const mockInitiateKyc = jest.fn()
 const mockRestartIdentity = jest.fn()
 let mockFlowError: string | null = null
+const mockSelfHealResubmit = jest.fn()
+const mockFixableRejection = jest.fn()
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => ({
         handleInitiateKyc: mockInitiateKyc,
-        handleSelfHealResubmit: jest.fn(),
+        handleSelfHealResubmit: mockSelfHealResubmit,
+        handleFixableRejection: mockFixableRejection,
         handleRestartIdentity: mockRestartIdentity,
         isLoading: false,
         error: mockFlowError,
@@ -117,6 +123,7 @@ describe('UnlockPayments', () => {
         mockBridgeLimits = null
         jest.clearAllMocks()
         mockRails = []
+        mockIsKycApproved = false
         mockRestrictions = { banking: false, card: false }
         mockUser = null
         mockIdentity = { status: 'not_started' }
@@ -250,6 +257,74 @@ describe('UnlockPayments', () => {
     it('states the P2P no-limit fact even before anything is unlocked', () => {
         render()
         expect(screen.getByText('No limits on Peanut-to-Peanut payments')).toBeInTheDocument()
+    })
+
+    // A residence-parked rail. The TOP-LEVEL status is `blocked` (the backend maps
+    // REQUIRES_SUPPORT that way); only `resolved.status` is fixable. That is what
+    // makes `hasFunctionalRail` treat the region as LOCKED, so this modal is the
+    // surface the cohort actually reaches (TASK-22286).
+    const residenceParkedRail = {
+        id: 'bridge.sepa_eu',
+        provider: 'bridge',
+        channel: 'bank',
+        country: 'DE',
+        status: 'blocked',
+        reason: {
+            code: 'residence_unresolved',
+            userMessage: 'We still need your home address to finish setting up bank transfers.',
+        },
+        resolved: {
+            status: 'fixable',
+            blocking: {
+                code: 'residence_unresolved',
+                userMessage: 'We still need your home address to finish setting up bank transfers.',
+                selfHealable: true,
+                selfHealKind: 'document-resubmit',
+            },
+            nextAction: {
+                key: 'sumsub:address_of_residence',
+                kind: 'sumsub',
+                purpose: 'bridge-rfi',
+                levelKey: 'address_of_residence',
+            },
+        },
+    }
+
+    it('a residence park opens the address step, not the resubmit that 404s for it', () => {
+        mockRails = [residenceParkedRail]
+        mockIsKycApproved = true
+        render()
+        fireEvent.click(screen.getByText('SEPA transfers'))
+        fireEvent.click(screen.getByText('Upload document'))
+
+        expect(mockFixableRejection).toHaveBeenCalledWith(
+            expect.objectContaining({ provider: 'BRIDGE', reasonCode: 'residence_unresolved' })
+        )
+        expect(mockSelfHealResubmit).not.toHaveBeenCalled()
+    })
+
+    it('every other fixable rejection here still takes resubmit — Manteca is untouched', () => {
+        mockRails = [
+            {
+                ...residenceParkedRail,
+                id: 'manteca.pix_br',
+                provider: 'manteca',
+                country: 'BR',
+                reason: { code: 'source_of_funds', userMessage: 'We need information about your source of funds.' },
+                resolved: {
+                    ...residenceParkedRail.resolved,
+                    blocking: { ...residenceParkedRail.resolved.blocking, code: 'source_of_funds' },
+                    nextAction: { ...residenceParkedRail.resolved.nextAction, key: 'sumsub:source_of_funds' },
+                },
+            },
+        ]
+        mockIsKycApproved = true
+        render()
+        fireEvent.click(screen.getByText('PIX (Brazil), QR & bank transfers (Argentina)'))
+        fireEvent.click(screen.getByText('Upload document'))
+
+        expect(mockSelfHealResubmit).toHaveBeenCalledWith('MANTECA')
+        expect(mockFixableRejection).not.toHaveBeenCalled()
     })
 
     it('a declared change pending re-verification is surfaced on the row', () => {
