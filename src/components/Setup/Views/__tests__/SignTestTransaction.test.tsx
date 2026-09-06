@@ -34,9 +34,8 @@ jest.mock('@/context/authContext', () => ({
     }),
 }))
 
-jest.mock('@/redux/hooks', () => ({
-    useAppDispatch: () => jest.fn(),
-    useSetupStore: () => ({ residenceCountry: '', secondResidenceCountry: '', telegramHandle: '' }),
+jest.mock('@/features/setup/SetupFlowContext', () => ({
+    useSetupFlowContext: () => ({ residenceCountry: '', secondResidenceCountry: '', setIsLoading: jest.fn() }),
 }))
 
 jest.mock('@/app/actions/users', () => ({ updateUserById: jest.fn() }))

@@ -16,10 +16,6 @@ jest.mock('@/utils/auth-token', () => ({
 }))
 jest.mock('@/hooks/usePWAStatus', () => ({ usePWAStatus: () => false, isStandaloneDisplayMode: () => false }))
 jest.mock('@/hooks/useGetDeviceType', () => ({ useDeviceType: () => ({ deviceType: 'desktop' }) }))
-jest.mock('@/redux/hooks', () => ({
-    useAppDispatch: () => jest.fn(),
-    useUserStore: () => ({ user: null }),
-}))
 jest.mock('posthog-js', () => ({ default: { capture: jest.fn() }, capture: jest.fn() }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: jest.fn(() => false) }))
 // demo-api → demo → general.utils → app/actions/clients starts viem timers that keep the worker alive

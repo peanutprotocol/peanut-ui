@@ -36,8 +36,8 @@ jest.mock('next/image', () => ({
     default: () => null,
 }))
 
-jest.mock('@/redux/hooks', () => ({
-    useUserStore: () => ({ user: { user: { username: 'satoshi' } } }),
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ user: { user: { username: 'satoshi' } } }),
 }))
 
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))

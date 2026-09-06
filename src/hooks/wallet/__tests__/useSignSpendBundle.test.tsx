@@ -49,7 +49,7 @@ jest.mock('@/hooks/useRainCardOverview', () => ({
 jest.mock('../useGrantSessionKey', () => ({ useGrantSessionKey: () => ({ grant: jest.fn() }) }))
 jest.mock('../useSignUserOp', () => ({ useSignUserOp: () => ({ signCallsUserOp: jest.fn() }) }))
 jest.mock('@/utils/rainWithdraw.utils', () => ({ buildRainWithdrawTypedData: jest.fn(() => ({})) }))
-jest.mock('@/services/rain', () => ({ rainApi: { prepareWithdrawal: jest.fn() } }))
+jest.mock('@/services/rain', () => ({ rainApi: { prepareWithdrawal: jest.fn(), cancelPreparation: jest.fn() } }))
 // Keep the real InsufficientSpendableError class (instanceof must hold);
 // mock only the two engine entry points.
 jest.mock('../spendPreflight', () => ({
@@ -107,11 +107,12 @@ describe('useSignSpendBundle — forceStrategy: collateral-only', () => {
             })
         })
         expect(mockResolveSpendStrategy).not.toHaveBeenCalled()
+        // The backend chooses the intent kind (TASK-21815) — the wire call
+        // carries no client-declared kind.
         expect(mockPrepareWithdrawal).toHaveBeenCalledWith({
             amount: '15000', // USDC units → Rain cents
             recipientAddress: RECIPIENT,
             directTransfer: true,
-            kind: 'AUTO_REBALANCE',
         })
         expect(artifact).toEqual({
             strategy: 'collateral-only',
@@ -146,5 +147,26 @@ describe('useSignSpendBundle — forceStrategy: collateral-only', () => {
         expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['rain-card-overview'] })
         expect(mockResolveSpendStrategy).not.toHaveBeenCalled()
         expect(mockPrepareWithdrawal).not.toHaveBeenCalled()
+    })
+
+    it('backs the draft out when the flow dies after a successful prepare (TASK-21815)', async () => {
+        const mockCancelPreparation = rainApi.cancelPreparation as jest.Mock
+        // Prepare succeeds, the admin signature ceremony throws (user
+        // dismissed the passkey prompt) — the hook must fire the best-effort
+        // cancel for the orphaned draft.
+        mockSignTypedData.mockRejectedValueOnce(new Error('ceremony dismissed'))
+        const { result } = renderHook(() => useSignSpendBundle(), { wrapper })
+        await act(async () => {
+            await expect(
+                result.current.signSpend({
+                    requiredUsdcAmount: 150_000_000n,
+                    recipient: RECIPIENT,
+                    rainSpendingPower: 200_000_000n,
+                    kind: 'AUTO_REBALANCE',
+                    forceStrategy: 'collateral-only',
+                })
+            ).rejects.toThrow('ceremony dismissed')
+        })
+        expect(mockCancelPreparation).toHaveBeenCalledWith('prep-1')
     })
 })

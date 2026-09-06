@@ -283,10 +283,6 @@ jest.mock('@/context/loadingStates.context', () => {
 // DirectRequestInitialView deps — only this view uses them (PayRequestLink does
 // not), so stubbing them globally is safe. Defaults resolve to a logged-in user
 // viewing a valid recipient, so the main form (incl. AmountInput) renders.
-const mockUseUserStore = jest.fn(() => ({ user: { user: { userId: 'user-1', username: 'me' } } }))
-jest.mock('@/redux/hooks', () => ({
-    useUserStore: () => mockUseUserStore(),
-}))
 
 const mockUseUserByUsername = jest.fn(() => ({
     user: { userId: 'recip-1', username: 'test-user', fullName: 'Test User', isVerified: false },
