@@ -12,6 +12,7 @@ import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { withNuqsTestingAdapter } from 'nuqs/adapters/testing'
 
 // ---------- module-level mocks (must be before imports that depend on them) ----------
 
@@ -245,7 +246,9 @@ function renderClaim() {
             <QueryClientProvider client={queryClient}>
                 <Claim />
             </QueryClientProvider>
-        </IntlWrapper>
+        </IntlWrapper>,
+        // useClaimFlow reads query params through nuqs
+        { wrapper: withNuqsTestingAdapter() }
     )
 }
 
