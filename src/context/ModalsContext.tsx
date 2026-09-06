@@ -31,8 +31,12 @@ interface ModalsContextType {
     // of the mixed card-withdraw flow so the user has something to look at
     // while the kernel prepares the follow-up UserOp.
     isSecurityVerificationOpen: boolean
-    setIsSecurityVerificationOpen: (isOpen: boolean) => void
+    securityVerificationVariant: SecurityVerificationVariant
+    setIsSecurityVerificationOpen: (isOpen: boolean, variant?: SecurityVerificationVariant) => void
 }
+
+/** 'next-passkey' tells the user a second passkey sheet follows (mixed spend tap #2). */
+export type SecurityVerificationVariant = 'default' | 'next-passkey'
 
 const ModalsContext = createContext<ModalsContextType | undefined>(undefined)
 
@@ -65,7 +69,17 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
     const [isQRScannerOpen, setIsQRScannerOpen] = useState(false)
 
     // Security Verification Overlay
-    const [isSecurityVerificationOpen, setIsSecurityVerificationOpen] = useState(false)
+    const [securityVerification, setSecurityVerification] = useState<{
+        open: boolean
+        variant: SecurityVerificationVariant
+    }>({ open: false, variant: 'default' })
+    const isSecurityVerificationOpen = securityVerification.open
+    const securityVerificationVariant = securityVerification.variant
+    const setIsSecurityVerificationOpen = useCallback(
+        (isOpen: boolean, variant: SecurityVerificationVariant = 'default') =>
+            setSecurityVerification({ open: isOpen, variant }),
+        []
+    )
 
     /*
      * Redact before storing, so every downstream sink is covered at once — the
@@ -106,6 +120,7 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
 
             // Security Verification Overlay
             isSecurityVerificationOpen,
+            securityVerificationVariant,
             setIsSecurityVerificationOpen,
         }),
         [
@@ -118,6 +133,8 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
             openSupportWithMessage,
             isQRScannerOpen,
             isSecurityVerificationOpen,
+            securityVerificationVariant,
+            setIsSecurityVerificationOpen,
         ]
     )
 

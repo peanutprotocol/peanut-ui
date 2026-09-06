@@ -175,7 +175,6 @@ export function ReceiptActions({
 
             {isPendingSentLink && !shouldShowQrShare && (
                 <div className="flex items-center justify-center gap-1 text-center text-label-m text-foreground-secondary">
-                    <Icon name="info" size={20} />
                     {t('pendingLinkDeviceNote')}
                 </div>
             )}

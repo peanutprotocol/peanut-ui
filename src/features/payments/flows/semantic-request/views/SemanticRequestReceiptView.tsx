@@ -14,12 +14,12 @@ import { useMemo } from 'react'
 import { type StatusPillType } from '@/components/Global/StatusPill'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { getInitialsFromName } from '@/utils/general.utils'
-import { BASE_URL } from '@/constants/general.consts'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useTranslations } from 'next-intl'
+import { payLinkUrl } from '@/utils/url.utils'
 
 export function SemanticRequestReceiptView() {
     const onBack = useSafeBack('/home')
@@ -46,7 +46,7 @@ export function SemanticRequestReceiptView() {
 
         const recipientIdentifier = recipient?.identifier || parsedUrl?.recipient?.identifier
         const receiptLink = recipientIdentifier
-            ? `${BASE_URL}/${recipientIdentifier}?chargeId=${charge.uuid}`
+            ? payLinkUrl(`/${recipientIdentifier}?chargeId=${charge.uuid}`)
             : undefined
 
         const networkFeeDisplayValue = '$ 0.00' // fee is zero for peanut wallet txns

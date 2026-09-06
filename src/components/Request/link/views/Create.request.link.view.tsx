@@ -14,7 +14,6 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.co
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { loadingStateContext } from '@/context/loadingStates.context'
-import { BASE_URL } from '@/constants/general.consts'
 import { useAuth } from '@/context/authContext'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -31,6 +30,7 @@ import { useSearchParams } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { useSafeBack } from '@/hooks/useSafeBack'
+import { payLinkUrl, shareableUrl } from '@/utils/url.utils'
 
 export const CreateRequestLinkView = () => {
     const t = useTranslations('request')
@@ -124,7 +124,8 @@ export const CreateRequestLinkView = () => {
     const qrCodeLink = useMemo(() => {
         if (generatedLink) return generatedLink
 
-        return `${BASE_URL}${tokenValue ? `/${user?.user.username}/${tokenValue}USDC` : `/send/${user?.user.username}`}`
+        if (tokenValue) return payLinkUrl(`/${user?.user.username}/${tokenValue}USDC`)
+        return shareableUrl(`/send/${user?.user.username}`)
     }, [user?.user.username, tokenValue, generatedLink])
 
     const createRequestLink = useCallback(

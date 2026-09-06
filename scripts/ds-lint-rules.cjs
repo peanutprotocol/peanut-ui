@@ -49,10 +49,11 @@ function countOffScaleSpacing(text) {
 // per-line pass over the remaining text.
 // stock weight names + the theme's own extraBlack (globals.css
 // --font-weight-extraBlack, registered in tw.ts) + arbitrary numeric brackets
-// (decimals included) + the font-(weight:…) custom-property form. bare
-// font-(--x) is a font-FAMILY custom property, not a weight — excluded.
+// (decimals included) + the font-(weight:…) and bare font-(--x) custom-property
+// forms: tailwind 4 compiles an untyped font-(--x) as font-WEIGHT, and a family
+// needs the family-name: hint, so only that typed form is excluded.
 const WEIGHT_STACK_RE =
-    /\bfont-(?:thin|extralight|light|normal|medium|semibold|extrabold|extraBlack|bold|black|\[[0-9]+(?:\.[0-9]+)?\]|\[weight:[^\]]+\]|\(weight:[^)]+\))(?![a-zA-Z0-9-])/
+    /\bfont-(?:thin|extralight|light|normal|medium|semibold|extrabold|extraBlack|bold|black|\[[0-9]+(?:\.[0-9]+)?\]|\[weight:[^\]]+\]|\(weight:[^)]+\)|\(--[^)]+\))(?![a-zA-Z0-9-])/
 const TYPE_TOKEN_RE = /\btext-(?:body|heading|label|button)-[a-z-]+\b/
 
 function classNameExpressions(text) {

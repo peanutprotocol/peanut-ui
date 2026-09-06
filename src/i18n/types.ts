@@ -88,6 +88,7 @@ export interface Translations {
 
     // Landing page — shared chrome
     landingSignUp: string
+    landingLogIn: string
     landingLearnMore: string
 
     // Landing page — "global cash, local feel" section
@@ -217,7 +218,9 @@ export interface Translations {
     statusWindowStart: string
     statusIncidentOngoing: string
     statusIncidentResolved: string
-    statusFetchFailed: string
+    statusFeedUnreachable: string
+    statusFeedUnreachableTitle: string
+    statusBucketNotMonitored: string
     statusGroupApp: string
     statusServiceApp: string
     statusServiceSumsub: string

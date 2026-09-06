@@ -4,14 +4,27 @@ import { renderWithIntl as render } from '@/test-utils/intl'
 import { Icon } from '@/components/Global/Icons/Icon'
 import ToastStack from '../ToastStack'
 
+const mockReduceMotion = { value: false }
+const mockMotionProps: Record<string, unknown>[] = []
+
 jest.mock('framer-motion', () => {
     const react = require('react')
     return {
         AnimatePresence: ({ children }: { children: React.ReactNode }) =>
             react.createElement(react.Fragment, null, children),
+        useReducedMotion: () => mockReduceMotion.value,
         motion: {
-            div: ({ children, className }: { children: React.ReactNode; className?: string }) =>
-                react.createElement('div', { className }, children),
+            div: ({
+                children,
+                className,
+                ...rest
+            }: {
+                children: React.ReactNode
+                className?: string
+            } & Record<string, unknown>) => {
+                mockMotionProps.push(rest)
+                return react.createElement('div', { className }, children)
+            },
         },
     }
 })
@@ -55,5 +68,43 @@ describe('ToastStack', () => {
             (svg) => !dismissButton.contains(svg)
         )
         expect(svgsOutsideDismiss).toHaveLength(1)
+    })
+
+    // chip: the countdown strip going static was only half of it — an 80px
+    // spring in and a 200px slide out is exactly the large decorative motion
+    // prefers-reduced-motion is asking us not to make.
+    describe('prefers-reduced-motion', () => {
+        beforeEach(() => {
+            mockMotionProps.length = 0
+        })
+        afterEach(() => {
+            mockReduceMotion.value = false
+        })
+
+        const renderOne = () =>
+            render(
+                <ToastStack
+                    toasts={[{ id: 'x', duration: 2000, type: 'success', message: 'Link cancelled successfully!' }]}
+                    dismiss={() => {}}
+                />
+            )
+
+        test('normally the card springs in and slides out', () => {
+            renderOne()
+            const props = mockMotionProps[0]
+            expect(props.initial).toEqual({ scale: 0.8, y: 80 })
+            expect(props.exit).toMatchObject({ y: 200 })
+            expect(props.transition).toMatchObject({ type: 'spring' })
+        })
+
+        test('under reduce it carries no transform variants at all', () => {
+            mockReduceMotion.value = true
+            renderOne()
+            const props = mockMotionProps[0]
+            expect(props.initial).toBeUndefined()
+            expect(props.animate).toBeUndefined()
+            expect(props.exit).toBeUndefined()
+            expect(props.transition).toBeUndefined()
+        })
     })
 })

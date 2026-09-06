@@ -117,10 +117,12 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
             'font-[650.5]',
             'font-(weight:--my-weight)',
             'font-[weight:var(--my-font-weight)]',
+            // untyped custom property = font-weight in tailwind 4
+            'font-(--my-weight)',
         ]) {
             expect(countWeightStacks(`<p className="text-body-s ${w}" />`)).toBe(1)
         }
-        for (const notWeight of ['font-sans', 'font-roboto', 'font-(--brand-face)', 'font-blackout']) {
+        for (const notWeight of ['font-sans', 'font-roboto', 'font-(family-name:--brand-face)', 'font-blackout']) {
             expect(countWeightStacks(`<p className="text-body-s ${notWeight}" />`)).toBe(0)
         }
     })

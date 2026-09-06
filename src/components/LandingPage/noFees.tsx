@@ -135,6 +135,7 @@ export function NoFees({
                     ctaLabel={strings.sendMoney}
                     ctaAction={handleCtaAction}
                     labels={strings.exchange}
+                    restrictToRoutable
                 />
 
                 <ContextualLinks

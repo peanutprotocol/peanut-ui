@@ -900,7 +900,6 @@ function MantecaBankWithdrawFlow() {
                             )}
 
                             <div className="flex items-center gap-2 text-body-s text-foreground-secondary">
-                                <Icon name="info" size={16} />
                                 <span>{t('manteca.ownAccountOnly')}</span>
                             </div>
                         </div>

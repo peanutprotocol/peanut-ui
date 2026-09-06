@@ -19,6 +19,7 @@ import { IntlWrapper } from '@/test-utils/intl'
 import SupportDrawer from '../index'
 import { isCapacitor } from '@/utils/capacitor'
 import { SUPPORT_EMAIL } from '@/constants/crisp'
+import { dispatchBackPress, resetBackHandlersForTests } from '@/utils/back-handler'
 
 const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
@@ -40,10 +41,11 @@ const modalsState: { supportPrefilledMessage: string | undefined; isSupportModal
     supportPrefilledMessage: undefined,
     isSupportModalOpen: true,
 }
+const mockSetIsSupportModalOpen = jest.fn()
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({
         isSupportModalOpen: modalsState.isSupportModalOpen,
-        setIsSupportModalOpen: jest.fn(),
+        setIsSupportModalOpen: mockSetIsSupportModalOpen,
         supportPrefilledMessage: modalsState.supportPrefilledMessage,
     }),
 }))
@@ -669,5 +671,44 @@ describe('SupportDrawer — native open runs once per open cycle', () => {
 
         expect(nativeCrisp.openMessenger).not.toHaveBeenCalled()
         expect(nativeCrisp.sendMessage).not.toHaveBeenCalled()
+    })
+})
+
+// The hand-rolled overlay was left off the LIFO back stack PR #2920 gave the DS
+// Drawer and Modal, so Android back with the sheet open navigated the page
+// underneath instead of closing the sheet.
+describe('SupportDrawer — Android hardware back', () => {
+    beforeEach(() => {
+        mockUseCrispUserData.mockReset().mockReturnValue({})
+        mockUseCrispTokenId.mockReset().mockReturnValue(undefined)
+        mockIsCapacitor.mockReset().mockReturnValue(false)
+        mockSetIsSupportModalOpen.mockReset()
+        resetBackHandlersForTests()
+    })
+
+    it('closes the sheet and consumes the press while open', () => {
+        modalsState.isSupportModalOpen = true
+        render(<SupportDrawer />)
+
+        let consumed = false
+        act(() => {
+            consumed = dispatchBackPress()
+        })
+
+        expect(consumed).toBe(true)
+        expect(mockSetIsSupportModalOpen).toHaveBeenCalledWith(false)
+    })
+
+    it('leaves the press to the page while closed', () => {
+        modalsState.isSupportModalOpen = false
+        render(<SupportDrawer />)
+
+        let consumed = true
+        act(() => {
+            consumed = dispatchBackPress()
+        })
+
+        expect(consumed).toBe(false)
+        expect(mockSetIsSupportModalOpen).not.toHaveBeenCalled()
     })
 })

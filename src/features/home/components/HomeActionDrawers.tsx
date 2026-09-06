@@ -2,6 +2,7 @@
 
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
+import { ScreenMark } from '@/components/0_Bruddle/ScreenMark'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { useHomeDrawer, type HomeDrawer } from '../useHomeDrawer'
@@ -95,6 +96,7 @@ export function HomeActionDrawers() {
             <DrawerContent className="px-4 pb-2">
                 {content && (
                     <div className="flex flex-col gap-4">
+                        {content === 'add' && <ScreenMark icon="plus" />}
                         <DrawerTitle className="text-center text-heading-s text-foreground-primary">
                             {tNav(content)}
                         </DrawerTitle>

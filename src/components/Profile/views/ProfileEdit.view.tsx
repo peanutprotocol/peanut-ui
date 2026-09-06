@@ -40,6 +40,13 @@ export const ProfileEditView = () => {
     // validation renders as the name field's own error instead.
     const [errorMessage, setErrorMessage] = useState('')
     const [nameError, setNameError] = useState('')
+    // Mirrors `showFullName` so the header above updates the moment the toggle
+    // flips, instead of waiting for the background user refetch to land.
+    const [showFullName, setShowFullName] = useState(user?.user.showFullName ?? false)
+
+    useEffect(() => {
+        setShowFullName(user?.user.showFullName ?? false)
+    }, [user?.user.showFullName])
 
     // split the full name into name and surname
     const splitName = useCallback((fullName: string) => {
@@ -172,14 +179,16 @@ export const ProfileEditView = () => {
         }
     }, [formData, user, fetchUser, router, isEmailSet, canEditName, t, tCommon])
 
-    const fullName = user?.user.fullName || user?.user?.username || ''
     const username = user?.user.username || ''
+    // The header shows what the rest of the world sees: the full name only
+    // while it is public, the username otherwise.
+    const displayName = showFullName && user?.user.fullName ? user.user.fullName : username
 
     return (
         <div className="flex flex-col gap-8">
             <NavHeader title={t('title')} onPrev={onBack} />
 
-            <ProfileHeader name={fullName} username={username} isVerified={isKycApproved} showShareButton={false} />
+            <ProfileHeader name={displayName} username={username} isVerified={isKycApproved} showShareButton={false} />
 
             {/* two groups — who you are, then how we reach you. gap-6 (XL,
                 the section step) against gap-4 (L) inside a group, so the
@@ -252,7 +261,7 @@ export const ProfileEditView = () => {
                         position="single"
                         leading={<Icon name="eye" size={24} />}
                         title={tMenu('showMyFullName')}
-                        trailing={<ShowNameToggle />}
+                        trailing={<ShowNameToggle checked={showFullName} onChange={setShowFullName} />}
                     />
                 )}
             </div>

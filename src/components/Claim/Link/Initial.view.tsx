@@ -41,8 +41,10 @@ import ActionModal from '@/components/Global/ActionModal'
 import { BankFlowManager } from './views/BankFlowManager.view'
 import { type ClaimXChainPreview } from '../Claim.consts'
 import { previewSdaTransfer } from '@/services/rhino-sda'
+import { findClaimRoute, resolveClaimQuoteRecipient } from '@/utils/claim-route.utils'
 import { evmChainIdToRhinoName } from '@/constants/rhino.consts'
-import { getTokenSymbol } from '@/utils/general.utils'
+import { getTokenSymbol, getChainName } from '@/utils/general.utils'
+import { belowClaimBridgeMinimum } from '@/utils/claim-min-guard'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import Image from 'next/image'
@@ -216,6 +218,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     }, [user, resetClaimBankFlow])
 
     const hasTrackedClaimView = useRef(false)
+    // Each route quote gets a generation; a result whose generation is no
+    // longer current (the recipient changed, or a newer quote started) is
+    // cached but never selected — a slow quote for A must not land on a
+    // confirm screen for B.
+    const quoteGenerationRef = useRef(0)
     useEffect(() => {
         if (claimLinkData && !hasTrackedClaimView.current) {
             hasTrackedClaimView.current = true
@@ -379,12 +386,45 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     if (!selectedTokenData?.chainId || !selectedTokenData?.address) {
                         throw new Error('Selected token data is required for cross-chain claims')
                     }
+
+                    // Rhino parks (and does NOT auto-refund) a cross-chain deposit
+                    // below the route minimum — the funds strand at the SDA and the
+                    // recipient is never credited. Block a sub-minimum claim before
+                    // any SDA is provisioned. This applies to EVERY cross-chain
+                    // destination — an external wallet AND the claimer's own Peanut
+                    // balance (a fixed cross-chain hop to Arbitrum) — only the copy
+                    // differs. tokenPrice gates the check: without a price we can't
+                    // size the claim in USD, so the server-side guard is the backstop.
+                    const claimUsdAmount =
+                        Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * tokenPrice
+                    const hasUsdAmount = tokenPrice > 0 && Number.isFinite(claimUsdAmount)
+                    const belowMin = belowClaimBridgeMinimum({
+                        isXChain: true,
+                        destinationChainId: selectedTokenData.chainId,
+                        amountUsd: hasUsdAmount ? claimUsdAmount : null,
+                    })
+                    if (belowMin) {
+                        const amount = format.number(belowMin.minUsd, { style: 'currency', currency: 'USD' })
+                        setErrorState({
+                            showError: true,
+                            errorMessage: claimToExternalWallet
+                                ? t('errors.belowNetworkMinimum', {
+                                      amount,
+                                      network: getChainName(selectedTokenData.chainId) ?? selectedTokenData.chainId,
+                                  })
+                                : t('errors.belowMinimumCrossChain', { amount }),
+                        })
+                        setLoadingState('Idle')
+                        return
+                    }
+
                     claimTxHash = await claimLinkXchain({
                         address: recipientAddress,
                         link: claimLinkData.link,
                         destinationChainId: selectedTokenData.chainId,
                         destinationToken: selectedTokenData.address,
                         campaignTag: campaignTag ?? undefined,
+                        amountUsd: hasUsdAmount ? claimUsdAmount : undefined,
                     })
                     setClaimType('claimxchain')
                 } else {
@@ -465,9 +505,13 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             claimLinkData.tokenAddress,
             claimLinkData.pubKey,
             claimLinkData.amount,
+            claimLinkData.tokenDecimals,
             claimLinkData.status,
             claimLinkData.createdAt,
             claimLinkData.senderAddress,
+            tokenPrice,
+            format,
+            claimToExternalWallet,
             isPeanutWallet,
             fetchBalance,
             recipient.address,
@@ -620,6 +664,23 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         setIsValidRecipient(!!recipient.address)
     }, [recipient.address])
 
+    // A route is priced for one recipient (account-bound quote). Switching the
+    // external address drops the stale selection and re-quotes for the new one;
+    // an unchanged effective recipient (bank claims, the Peanut wallet) keeps it.
+    useEffect(() => {
+        if (!selectedRoute) return
+        const quotedFor = resolveClaimQuoteRecipient({
+            recipientAddress: recipient.address,
+            walletAddress: address,
+            senderAddress: claimLinkData.senderAddress,
+        })
+        if (selectedRoute.quotedFor.toLowerCase() === quotedFor.toLowerCase()) return
+        quoteGenerationRef.current += 1
+        setSelectedRoute(undefined)
+        setHasFetchedRoute(false)
+        setRefetchXchainRoute(true)
+    }, [recipient.address, address, claimLinkData.senderAddress, selectedRoute, setSelectedRoute, setHasFetchedRoute])
+
     useEffect(() => {
         if (!selectedTokenData) return
         if (
@@ -656,11 +717,19 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             }
             const chainId = toChain ?? selectedTokenData!.chainId
             const tokenAddress = toToken ?? selectedTokenData!.address
+            // The quote is account- and address-bound, so a cached route is only
+            // valid for the recipient it was priced for.
+            const quotedFor = resolveClaimQuoteRecipient({
+                recipientAddress: recipient.address,
+                walletAddress: address,
+                senderAddress: claimLinkData.senderAddress,
+            })
+
+            const generation = ++quoteGenerationRef.current
+            const isCurrent = () => generation === quoteGenerationRef.current
 
             try {
-                const existingRoute = routes.find(
-                    (route) => route.chainId === chainId && areEvmAddressesEqual(route.tokenAddress, tokenAddress)
-                )
+                const existingRoute = findClaimRoute(routes, { chainId, tokenAddress, quotedFor })
 
                 if (existingRoute) {
                     setSelectedRoute(existingRoute)
@@ -688,12 +757,17 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 // Rhino preview expects a decimal string, so format down.
                 const decimals = selectedTokenData?.decimals ?? 6
                 const previewAmount = formatUnits(claimLinkData.amount, decimals)
+                // The SDA deposit itself comes from the Peanut claim relayer, so
+                // the link sender's address (always an EVM address on the link's
+                // chain) stands in as depositor for pricing.
                 const preview = await previewSdaTransfer({
                     chainIn: sourceRhinoChain,
                     chainOut: destRhinoChain,
                     token: tokenSymbol,
                     amount: previewAmount,
                     mode: 'pay',
+                    depositor: claimLinkData.senderAddress,
+                    recipient: quotedFor,
                 })
 
                 const route: ClaimXChainPreview = {
@@ -701,16 +775,24 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     tokenAddress: tokenAddress as Address,
                     receiveAmount: preview.receiveAmount,
                     feeUsd: preview.feeUsd,
+                    quotedFor,
+                    expiresAt: preview.expiresAt,
                 }
 
-                setRoutes([...routes, route])
-                if (!toToken && !toChain) {
+                // Functional update: concurrent quotes must not overwrite each
+                // other's cache entry (each miss costs a flow credit).
+                setRoutes((prev) => [...prev, route])
+                if (!toToken && !toChain && isCurrent()) {
                     setSelectedRoute(route)
                     setHasFetchedRoute(true)
                 }
                 return route
             } catch (error) {
                 console.error('Error fetching route:', error)
+                Sentry.captureException(error)
+                // A superseded quote's failure must not clear a newer route or
+                // install its error over a newer success.
+                if (!isCurrent()) return undefined
                 if (!toToken && !toChain) {
                     setSelectedRoute(undefined)
                     setHasFetchedRoute(true)
@@ -719,14 +801,25 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     showError: true,
                     errorMessage: ROUTE_NOT_FOUND_ERROR,
                 })
-                Sentry.captureException(error)
                 return undefined
             } finally {
-                setIsXchainLoading(false)
-                setLoadingState('Idle')
+                if (isCurrent()) {
+                    setIsXchainLoading(false)
+                    setLoadingState('Idle')
+                }
             }
         },
-        [claimLinkData, isXChain, selectedTokenData, setLoadingState, routes, setHasFetchedRoute, setSelectedRoute]
+        [
+            claimLinkData,
+            isXChain,
+            selectedTokenData,
+            setLoadingState,
+            routes,
+            setHasFetchedRoute,
+            setSelectedRoute,
+            recipient.address,
+            address,
+        ]
     )
 
     useEffect(() => {
@@ -740,7 +833,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     useEffect(() => {
         if (!selectedChainID || !selectedTokenAddress) return
 
-        // Clear the old route when selection changes
+        // Clear the old route when selection changes — and retire any quote
+        // still in flight for the old chain/token, synchronously, so it can
+        // never resolve as current and select a route for a destination the
+        // user has left.
+        quoteGenerationRef.current += 1
         setSelectedRoute(undefined)
         setHasFetchedRoute(false)
 

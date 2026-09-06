@@ -111,6 +111,17 @@
     --color-background-icon-bubble-gray: #d1d5db;
     --color-background-icon-bubble-blue: #90a8ed;
 
+    /* The floating (toast) surface: each iconBubble tone composited at 5% over
+       background/default, precomputed so the fill stays opaque — a toast must
+       never read as a wash over the screen behind it. No board defines these
+       yet; same open gap as the skeleton/muted-surface tint, and they want a
+       vlad ruling before anything but the toast uses them. */
+    --color-background-surface-success: #f4fcf8;
+    --color-background-surface-error: #fef9f9;
+    --color-background-surface-attention: #fffcf2;
+    --color-background-surface-info: #f9fbfe;
+    --color-background-surface-helper: #fdfdfd;
+
     --color-background-badge-attention: #ffe6b3;
     --color-background-badge-info: #dbeafe;
     --color-background-badge-error: #ffcccc;
@@ -241,6 +252,13 @@
     --text-body-s: 0.875rem;
     --text-body-s--line-height: 1.25rem;
     --text-body-s--font-weight: 500;
+    /* the emphasis step for Body/S, mirroring body.m -> body.m-semibold's
+       500 -> 600. Purely additive: Body/S keeps its own 500, so no existing
+       call site moves. Ruled 2026-09-04, slava; no board defines it yet, so it
+       wants a vlad push alongside the background/surface/* tints above. */
+    --text-body-s-semibold: 0.875rem;
+    --text-body-s-semibold--line-height: 1.25rem;
+    --text-body-s-semibold--font-weight: 600;
     --text-body-xs: 0.75rem;
     --text-body-xs--line-height: 1rem;
     --text-body-xs--font-weight: 400;
@@ -390,6 +408,9 @@
     --animate-accordion-down: accordion-down 0.3s cubic-bezier(0.87, 0, 0.13, 1);
     --animate-accordion-up: accordion-up 0.3s cubic-bezier(0.87, 0, 0.13, 1);
     --animate-star-pulsate-wiggle: starPulsateWiggle 10s ease-in-out infinite;
+    /* the toast countdown bar. the duration is set per toast from the
+       auto-dismiss timer, so the shorthand carries none of its own */
+    --animate-toast-progress: toast-progress linear forwards;
 
     @keyframes pulsate {
         0% {
@@ -440,6 +461,14 @@
         }
         to {
             height: 0;
+        }
+    }
+    @keyframes toast-progress {
+        from {
+            transform: scaleX(1);
+        }
+        to {
+            transform: scaleX(0);
         }
     }
     @keyframes starPulsateWiggle {

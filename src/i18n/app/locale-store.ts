@@ -7,6 +7,7 @@ import Cookies from 'js-cookie'
 import posthog from 'posthog-js'
 import { APP_RELEASE } from '@/constants/app-release'
 import { getPlatform, isCapacitor, isNativeBridge } from '@/utils/capacitor'
+import { resolveDeviceIdentity, type DeviceIdentity } from '@/utils/device-identity'
 import { readStoredValue, writeStoredValue } from '@/utils/safe-storage'
 import { resolveLocale, type AppLocale } from './config'
 
@@ -87,7 +88,7 @@ type DeviceContext = {
     app_release: string
     binary_version?: string
     binary_build?: string
-}
+} & Partial<DeviceIdentity>
 
 let deviceContext: DeviceContext | null = null
 
@@ -124,6 +125,39 @@ export async function emitDeviceContextToAnalytics(): Promise<void> {
     } catch {
         // analytics failure degrades to missing data, never a broken app
     }
+
+    await registerDeviceIdentity()
+}
+
+/**
+ * Registered as its own step rather than folded into the context above: the
+ * native branch is a second bridge round-trip, and a binary whose plugin never
+ * answers would otherwise take `platform` and `app_release` down with it.
+ * Person properties as well as super properties — a cohort of slow devices is a
+ * person-level question, and `identified_only` means only identified users get
+ * a profile to write to.
+ */
+async function registerDeviceIdentity(): Promise<void> {
+    try {
+        const identity = await resolveDeviceIdentity()
+        posthog.register(identity)
+        // Covers the identity resolving after login. The other order — a login
+        // that lands after this — is covered by authContext folding
+        // currentDeviceIdentity() into its identify payload, because a visitor
+        // who was still anonymous here gets no $set at all.
+        if (posthog._isIdentified()) posthog.setPersonProperties(identity)
+        deviceIdentity = identity
+        if (deviceContext) deviceContext = { ...deviceContext, ...identity }
+    } catch {
+        // analytics failure degrades to missing data, never a broken app
+    }
+}
+
+let deviceIdentity: DeviceIdentity | null = null
+
+/** Resolved device identity, for the identify payload; null until it resolves. */
+export function currentDeviceIdentity(): DeviceIdentity | null {
+    return deviceIdentity
 }
 
 async function resolveStartupLocale(): Promise<AppLocale> {

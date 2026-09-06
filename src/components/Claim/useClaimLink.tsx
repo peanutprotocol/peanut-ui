@@ -177,6 +177,7 @@ export async function executeClaimXChain({
     destinationChainId,
     destinationToken,
     campaignTag,
+    amountUsd,
     baseUrl = `${PEANUT_API_URL}/claim`,
 }: {
     link: string
@@ -184,6 +185,8 @@ export async function executeClaimXChain({
     destinationChainId: string
     destinationToken: string
     campaignTag?: string
+    /** USD value of the funds being claimed, used to block sub-minimum bridges. */
+    amountUsd?: number
     baseUrl?: string
     isMainnet?: boolean
     slippage?: number
@@ -210,6 +213,10 @@ export async function executeClaimXChain({
     // token, recipient — so that re-claims to the same destination reuse
     // the SDA (idempotent, doesn't hit Rhino's rate limit) but a re-claim
     // to a different chain/token/address gets a fresh SDA.
+    // The backend reads the claim amount from chain (via this deposit identity)
+    // and rejects a sub-minimum bridge before returning the SDA — Rhino parks
+    // such a deposit with no auto-refund. Passing the identity, not an amount,
+    // keeps the guard server-authoritative.
     const sda = await provisionSdaTransfer({
         context: 'claim-xchain',
         contextId: `${params.chainId}:${params.depositIdx}:${destinationChainId}:${tokenSymbol}:${recipientAddress.toLowerCase()}`,
@@ -217,7 +224,27 @@ export async function executeClaimXChain({
         destinationChain: destRhinoChain,
         destinationAddress: recipientAddress as `0x${string}`,
         tokenOut: tokenSymbol,
+        depositChainId: params.chainId,
+        depositIdx: Number(params.depositIdx),
+        depositContractVersion: params.contractVersion,
     })
+
+    // Client-side backstop before signing — no funds have moved yet (provisioning
+    // is a lookup, not a transfer). The pre-flight static floor is the first line;
+    // the backend's server-authoritative guard is the authority. Treat a missing
+    // or non-positive live minimum as UNVERIFIABLE (Rhino stores 0 when it omits
+    // supportedTokens) and refuse rather than trust it as "no minimum".
+    if (typeof amountUsd === 'number' && Number.isFinite(amountUsd)) {
+        const min = sda.minDepositLimitUsd
+        if (min == null || min <= 0) {
+            throw new Error('Could not verify the claim amount against the bridge minimum. Please try again.')
+        }
+        if (amountUsd < min) {
+            throw new Error(
+                `Cross-chain claim to ${destRhinoChain} requires at least $${min} — the $${amountUsd.toFixed(2)} claim would be stranded by the bridge.`
+            )
+        }
+    }
 
     // Sign the withdrawal message targeting the SDA as the on-chain recipient.
     // Whoever knows the password (= anyone with the link) authorizes the claim;
@@ -393,12 +420,14 @@ const useClaimLink = () => {
             destinationChainId,
             destinationToken,
             campaignTag,
+            amountUsd,
         }: {
             address: string
             link: string
             destinationChainId: string
             destinationToken: string
             campaignTag?: string
+            amountUsd?: number
         }) => {
             const isTestnet = isTestnetChain(destinationChainId)
             return await executeClaimXChain({
@@ -407,6 +436,7 @@ const useClaimLink = () => {
                 destinationChainId,
                 destinationToken,
                 campaignTag,
+                amountUsd,
                 isMainnet: !isTestnet,
             })
         },
@@ -464,12 +494,14 @@ const useClaimLink = () => {
         destinationChainId,
         destinationToken,
         campaignTag,
+        amountUsd,
     }: {
         address: string
         link: string
         destinationChainId: string
         destinationToken: string
         campaignTag?: string
+        amountUsd?: number
     }) => {
         return await claimLinkXChainMutation.mutateAsync({
             address,
@@ -477,6 +509,7 @@ const useClaimLink = () => {
             destinationChainId,
             destinationToken,
             campaignTag,
+            amountUsd,
         })
     }
 

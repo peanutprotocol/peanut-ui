@@ -2,7 +2,6 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
-import { Icon } from '@/components/Global/Icons/Icon'
 import { MercadoPagoStep } from '@/types/manteca.types'
 import { type Dispatch, type FC, type SetStateAction, useState } from 'react'
 import ValidatedInput from '@/components/Global/ValidatedInput'
@@ -66,7 +65,6 @@ const MantecaDetailsStep: FC<MantecaDetailsStepProps> = ({
                 {errorMessage && <FieldError>{errorMessage}</FieldError>}
             </div>
             <div className="flex items-center gap-2 text-body-xs text-foreground-secondary">
-                <Icon name="info" width={16} height={16} />
                 <span>{t('manteca.ownAccountOnly')}</span>
             </div>
             <Button

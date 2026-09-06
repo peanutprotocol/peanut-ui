@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback } from 'react'
-import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
+import { withCeremonyFlow, withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
 import { useQueryClient } from '@tanstack/react-query'
 import type { Address, Hex } from 'viem'
 import { encodeFunctionData, erc20Abi } from 'viem'
@@ -111,7 +111,7 @@ export const useSignSpendBundle = () => {
     const { grant } = useGrantSessionKey()
     const queryClient = useQueryClient()
 
-    const signSpend = useCallback(
+    const signSpendInner = useCallback(
         async (input: SignSpendBundleInput): Promise<SignedSpendArtifact> => {
             const {
                 requiredUsdcAmount,
@@ -302,7 +302,15 @@ export const useSignSpendBundle = () => {
                     }),
                 }
 
-                const signedUserOp = await signCallsUserOp([withdrawCall, transferCall], chainIdStr)
+                // Tap #2 follows the admin signature; tell the user so the second
+                // sheet is not dismissed as a duplicate (same beat as useSpendBundle).
+                modals?.setIsSecurityVerificationOpen?.(true, 'next-passkey')
+                let signedUserOp: SignedUserOpData
+                try {
+                    signedUserOp = await signCallsUserOp([withdrawCall, transferCall], chainIdStr)
+                } finally {
+                    modals?.setIsSecurityVerificationOpen?.(false)
+                }
                 return { strategy, signedUserOp, rainPreparationId: prep.preparationId }
             } catch (e) {
                 posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_FAILED, {
@@ -325,6 +333,27 @@ export const useSignSpendBundle = () => {
             grant,
             queryClient,
         ]
+    )
+
+    // Brackets every ceremony one spend triggers as a flow (sign_spend:<kind>) so
+    // the prompt count per kind is measurable; link_create nests inside it.
+    const signSpend = useCallback(
+        (input: SignSpendBundleInput) => {
+            let strategy: string | undefined
+            return withCeremonyFlow(
+                `sign_spend:${input.kind}`,
+                () =>
+                    signSpendInner({
+                        ...input,
+                        onStrategyDecided: (decided) => {
+                            strategy = decided
+                            input.onStrategyDecided?.(decided)
+                        },
+                    }),
+                () => ({ strategy })
+            )
+        },
+        [signSpendInner]
     )
 
     return { signSpend }

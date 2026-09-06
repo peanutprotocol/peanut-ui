@@ -203,6 +203,38 @@ jobs:
                   echo "name=$FLOOR" >> "$GITHUB_OUTPUT"
                   echo "Bundle requires native $FLOOR or newer"
 
+            # The floor above says which binary this bundle CLAIMS to need. This
+            # step checks the claim: if the native surface moved since that
+            # binary was cut, the JS being published was built against plugins,
+            # permissions or entitlements no shipped binary has, and the floor is
+            # a number rather than a fact.
+            #
+            # A bundle's version says nothing about the native surface it needs,
+            # so nothing else in this pipeline can tell. Capgo's
+            # min_update_version only blocks DELIVERY, only under the `metadata`
+            # channel strategy, and lives in a dashboard CI cannot read — it
+            # never reports that an incompatible bundle was built. The
+            # fingerprint is a pure function of the tree, so the shipped binary's
+            # surface is exactly what its tag describes and no state has to be
+            # stored anywhere.
+            #
+            # Failing here is the intended outcome, not an obstacle: it is
+            # docs/NATIVE-RELEASE.md's "bump the native version whenever you
+            # change plugins/native code" with something actually checking it.
+            # The fix is to cut a native release, never to weaken this step.
+            - name: Check the native surface still matches that binary
+              env:
+                  FLOOR: ${{ steps.native_floor.outputs.name }}
+              run: |
+                  if ! git rev-parse -q --verify "refs/tags/v$FLOOR" >/dev/null; then
+                      echo "::error::no v$FLOOR tag in this checkout — cannot prove the bundle fits the binary it targets (needs fetch-depth: 0 and tags)" >&2
+                      exit 1
+                  fi
+                  if ! node scripts/native-fingerprint.mjs --diff "v$FLOOR"; then
+                      echo "::error::this tree's native surface differs from the v$FLOOR binary, so the JS about to ship was built against native code no released binary has. Cut a native release (Actions -> Release Native) before OTA'ing this tree." >&2
+                      exit 1
+                  fi
+
             - name: Upload bundle to Capgo
               # Commit message via env, never inline — a multi-line message (or one
               # with quotes) injected into the run script breaks --comment quoting.

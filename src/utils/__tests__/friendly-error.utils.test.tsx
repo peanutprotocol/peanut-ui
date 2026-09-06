@@ -45,6 +45,14 @@ describe('friendlyError', () => {
                 code: 'operationTimedOut',
             })
         })
+
+        test('unverifiable claim minimum maps to the retryable copy, not contact-support', () => {
+            expect(
+                friendlyError(
+                    new Error('Could not verify the claim amount against the bridge minimum. Please try again.')
+                )
+            ).toEqual({ kind: 'code', code: 'networkBusyTimeout' })
+        })
     })
 
     describe('WebAuthn NotAllowedError (passkey ceremony refused)', () => {

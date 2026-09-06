@@ -28,7 +28,7 @@ interface Props {
     username?: string
     /** Full user-badges payload (with `earnedAt`) — drawer stamps every
      *  badge the user holds, not just the skip-the-line subset. */
-    badges?: Array<{ code: string; iconUrl?: string | null; earnedAt?: string | Date | null }>
+    badges?: Array<{ code: string; iconUrl?: string | null; earnedAt?: string | Date | null; isVisible?: boolean }>
 }
 
 const VIA_COPY_KEYS = {

@@ -6,6 +6,7 @@ import type { LandingProblemStrings, LandingSupportedRailsStrings } from './land
 // catalogs (same reason ContentLanding/HelpLanding take `strings`).
 export interface LandingStrings {
     signUp: string
+    logIn: string
     signUpNow: string
     sendNow: string
     sendMoney: string
@@ -48,6 +49,7 @@ export interface LandingStrings {
 export function landingStrings(i18n: Translations): LandingStrings {
     return {
         signUp: i18n.landingSignUp,
+        logIn: i18n.landingLogIn,
         signUpNow: i18n.landingSignUpNow,
         sendNow: i18n.landingSendNow,
         sendMoney: i18n.sendMoney,

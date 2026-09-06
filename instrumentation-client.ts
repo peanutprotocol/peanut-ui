@@ -5,6 +5,8 @@ import { inferSentryEnvironment } from '@/utils/sentry-env'
 import { withoutBrowserTracing } from '@/utils/sentry-integrations'
 import { posthogErrorMirror } from '@/utils/sentry-posthog-mirror'
 import { whenIdle } from '@/utils/defer-analytics'
+import { startWebVitalsShim } from '@/utils/web-vitals-shim'
+import { noteAppReviewFriction } from '@/utils/app-review-friction'
 import { installPaymentNetworkGoogleAnalyticsGuard, isPaymentNetworkExplorerPath } from '@/utils/private-routes'
 
 // Same conditions as the GA bootstrap in app/layout.tsx: with no GA to disable
@@ -48,7 +50,13 @@ if (
         capture_pageleave: true,
         // The payment explorer contains team-only identity and relationship data.
         // Drop every event on client navigation; direct loads skip init above.
-        before_send: (event) => (isPaymentNetworkExplorerPath(window.location.pathname) ? null : event),
+        // Doubles as the review nudge's friction tap: every money-flow failure
+        // already funnels through here, so the suppressor needs no call sites.
+        before_send: (event) => {
+            if (isPaymentNetworkExplorerPath(window.location.pathname)) return null
+            if (event?.event) noteAppReviewFriction(event.event)
+            return event
+        },
         // autocapture walks the DOM ancestor chain on every tap, which costs frames
         // in the in-app WebView renderer for data that 220+ explicit
         // posthog.capture calls already cover. Native keeps the explicit events only.
@@ -83,6 +91,12 @@ if (
     })
 
     whenIdle(() => posthog.startSessionRecording())
+
+    // No-ops unless the document is one PostHog refuses to measure (iOS native,
+    // served from capacitor://). Not deferred to idle like the recorder above:
+    // the INP observer has to exist before the taps it measures. `web-vitals`
+    // itself loads dynamically inside, so http(s) documents never fetch it.
+    startWebVitalsShim()
 
     // expose the instance like the official snippet does — console access for
     // QA (feature-flag overrides, e.g. pwa-sunset preview testing) and support

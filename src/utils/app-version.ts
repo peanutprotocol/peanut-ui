@@ -5,6 +5,11 @@ export interface BinaryInfo {
     appBuild: string
 }
 
+export interface RunningVersionInfo extends BinaryInfo {
+    /** Capgo bundle actually executing, or null when it is the JS baked into the binary */
+    otaVersion: string | null
+}
+
 /**
  * The version the native shell actually ships, read off the binary.
  *
@@ -24,13 +29,44 @@ export async function getBinaryInfo(): Promise<BinaryInfo | null> {
     }
 }
 
+// Capgo's name for the JS baked into the binary; some plugin versions report it
+// as the bundle id, others as its version.
+const BUILTIN_BUNDLE = 'builtin'
+
+/**
+ * The Capgo bundle currently executing, when it is not the binary's own JS.
+ *
+ * Null on the builtin bundle so the binary's version stays the answer there:
+ * Capgo echoes the native version for builtin on some plugin versions and the
+ * literal "builtin" on others, and neither is worth preferring over App.getInfo().
+ */
+async function getOtaBundleVersion(): Promise<string | null> {
+    try {
+        const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
+        const bundle = (await CapacitorUpdater.current())?.bundle
+        if (!bundle || bundle.id === BUILTIN_BUNDLE || bundle.version === BUILTIN_BUNDLE) return null
+        return bundle.version || null
+    } catch {
+        return null
+    }
+}
+
+/** What this install is actually running: the binary, plus the OTA layered on it. */
+export async function getRunningVersion(): Promise<RunningVersionInfo | null> {
+    const binary = await getBinaryInfo()
+    if (!binary) return null
+    return { ...binary, otaVersion: await getOtaBundleVersion() }
+}
+
 /**
  * How the app version reads on screen: `<major>.<build>.<ota>.<ci-build>`.
  *
- * The first three segments are `appVersion` verbatim — Peanut's release scheme
- * (scripts/release-version.mjs): major generation, native build counter, and
- * the OTA counter within that build. None of them may be replaced: overwriting
- * the third would name an OTA revision that never shipped.
+ * The first three segments are the release version of the code that is running
+ * — Peanut's scheme (scripts/release-version.mjs): major generation, native
+ * build counter, and the OTA counter within that build. On an OTA'd install
+ * that is the bundle's version, not the binary's: the binary is frozen at the
+ * `.0` it shipped with, so reporting it would name a revision the user stopped
+ * running the moment the OTA applied.
  *
  * The CI build number is appended as a fourth segment rather than parenthesised
  * so the whole identifier reads as one string a user can dictate. It is the
@@ -44,4 +80,8 @@ export function formatBinaryVersion({ appVersion, appBuild }: BinaryInfo): strin
     if (!appVersion) return appBuild
     if (!appBuild) return appVersion
     return `${appVersion}.${appBuild}`
+}
+
+export function formatRunningVersion({ appVersion, appBuild, otaVersion }: RunningVersionInfo): string {
+    return formatBinaryVersion({ appVersion: otaVersion || appVersion, appBuild })
 }

@@ -188,20 +188,34 @@ const ResidenceStep = () => {
 
     if (view === 'congrats') {
         /* One paragraph, gates kept honest: dollars and @username sends need
-           no ID check; the bank rail unlocks with verification. The card is
-           deliberately NOT mentioned: its closed beta must stay unnamed in
-           onboarding (product direction), and any card mention must state
-           every access gate (compliance) — no sentence satisfies both, and
-           the compare cards already state card availability per residence.
-           The rail phrase
-           comes from the same per-country map the compare cards render and is
+           no ID check; the bank rail unlocks with verification. The card IS
+           named here as of 2026-09-05 (slava's call, reversing the earlier
+           product direction that kept it unnamed in onboarding), and the
+           clause states both of its gates — the ID check and the waitlist.
+
+           The clause carries no country framing, which is what Rain's
+           §7 forbids (content/_system/guidelines/partners/rain/marketing-compliance.md:
+           acceptance framing only, never availability or issuance keyed to a
+           place). Naming the card at all is still gated on the restriction
+           sets — a residence Rain prohibits, or GB, never reaches this branch.
+
+           The gate itself reads the KYC-time residence geo
+           (product/card.md), not the residence declared here, so a
+           declaration that does not survive verification can still be
+           refused later — which is why this sentence promises a process, not
+           an entitlement.
+
+           The rail phrase comes from the same per-country map the compare cards render and is
            named ONLY where a fiat rail exists (PIX, AR, SPEI, ACH, SEPA); for
            the rest of the world the map falls back to 'bank', which here means
            blockchain-only — so the ID-check clause is dropped entirely rather
            than promising a rail verification cannot deliver. */
-        const railItem = residenceAvailability(restrictionSets, residenceCountry).available.find(
-            (item) => item !== 'p2p' && item !== 'card' && item !== 'bank'
-        )
+        const availability = residenceAvailability(restrictionSets, residenceCountry)
+        const railItem = availability.available.find((item) => item !== 'p2p' && item !== 'card' && item !== 'bank')
+        // Read off the same restriction sets the compare cards use rather than
+        // trusting that reaching this view implies an unrestricted card: a
+        // routing change upstream must not turn this into a false claim.
+        const hasCard = availability.available.includes('card')
         return (
             <div className="flex h-full w-full flex-col justify-between gap-6">
                 <div className="flex flex-col gap-2">
@@ -214,6 +228,7 @@ const ResidenceStep = () => {
                                   rail: t(`residenceStep.congrats.rails.${railItem}`),
                               })
                             : t('residenceStep.congrats.descriptionNoRail')}
+                        {hasCard && ` ${t('residenceStep.congrats.cardClause')}`}
                     </p>
                 </div>
                 <div className="flex w-full flex-col gap-4">

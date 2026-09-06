@@ -13,11 +13,12 @@ import ProfileMenuItem from '@/components/Profile/components/ProfileMenuItem'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import CardFace from '@/components/Card/CardFace'
+import CardFace, { type CopyableCardField } from '@/components/Card/CardFace'
 import CancelCardModal from '@/components/Card/CancelCardModal'
 import LockCardModal from '@/components/Card/LockCardModal'
 import { shouldShowAutoRenewBanner, daysUntilExpiry } from '@/components/Card/cardExpiry.utils'
 import { useCardReveal } from '@/hooks/useCardReveal'
+import { usePushProvisioning } from '@/hooks/usePushProvisioning'
 import { useWalletPlatform } from '@/hooks/useWalletPlatform'
 import { cardBalanceDueCents } from '@/utils/balance.utils'
 import { copyTextToClipboard } from '@/utils/clipboard.utils'
@@ -31,6 +32,12 @@ interface Props {
     onPrev?: () => void
 }
 
+const COPIED_MESSAGE_KEY: Record<CopyableCardField, 'cardNumberCopied' | 'expiryCopied' | 'cvvCopied'> = {
+    pan: 'cardNumberCopied',
+    expiry: 'expiryCopied',
+    cvv: 'cvvCopied',
+}
+
 const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
     const t = useTranslations('card.yourCard')
     const tGlobal = useTranslations('global')
@@ -42,6 +49,20 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
         walletPlatform === 'android' ? t('addToGoogleWallet') : walletPlatform === 'ios' ? t('addToAppleWallet') : null
     const { triggerHaptic } = useAppHaptic()
     const toast = useToast()
+    const { nativeAvailable, isAdding, addToWallet } = usePushProvisioning({ id: card.id, last4: card.last4 })
+
+    const handleAddToWallet = useCallback(async () => {
+        if (isAdding) return
+        const result = await addToWallet()
+        if (result.added) {
+            triggerHaptic()
+            toast.success(t('walletAddSuccess'))
+        } else if (!result.canceled && !result.alreadyInWallet) {
+            // alreadyInWallet is not a failure — the hook flips the row back to
+            // the carousel; canceled is the user closing the sheet.
+            toast.error(t('walletAddFailed'))
+        }
+    }, [isAdding, addToWallet, triggerHaptic, toast, t])
 
     const isLocked = card.status === 'LOCKED'
     const closeAction = () => void setAction(null)
@@ -50,13 +71,13 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
     const balanceDueCents = cardBalanceDueCents(overview.balance?.spendingPower)
 
     const handleCopy = useCallback(
-        async (value: string, field: 'pan' | 'cvv') => {
+        async (value: string, field: CopyableCardField) => {
             if (!(await copyTextToClipboard(value))) {
                 toast.error(tGlobal('copyToClipboard.copyFailed'))
                 return
             }
             triggerHaptic()
-            toast.success(field === 'pan' ? t('cardNumberCopied') : t('cvvCopied'))
+            toast.success(t(COPIED_MESSAGE_KEY[field]))
         },
         [triggerHaptic, toast, t, tGlobal]
     )
@@ -117,9 +138,19 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
                         <ProfileMenuItem icon="more-horizontal" label={t('pin')} href="/card/pin" />
                         <ProfileMenuItem icon="meter" label={t('spendingLimit')} href="/card/limit" />
                         <ProfileMenuItem icon="credit-card" label={t('physicalCard')} href="/card/physical" />
-                        {walletLabel && (
-                            <ProfileMenuItem icon="wallet" label={walletLabel} href="/card/add-to-wallet" />
-                        )}
+                        {walletLabel &&
+                            // Native one-tap provisioning when the binary + flag support
+                            // it; the manual screenshot carousel everywhere else.
+                            (nativeAvailable ? (
+                                <ProfileMenuItem
+                                    icon="wallet"
+                                    label={walletLabel}
+                                    onClick={() => void handleAddToWallet()}
+                                    href="/dummy"
+                                />
+                            ) : (
+                                <ProfileMenuItem icon="wallet" label={walletLabel} href="/card/add-to-wallet" />
+                            ))}
                     </ListGroup>
                 </Section>
 

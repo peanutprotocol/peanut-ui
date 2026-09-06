@@ -5,13 +5,15 @@ import { Notification } from '@/components/0_Bruddle/Notification'
 import Card from '@/components/Global/Card'
 import DisplayIcon from '@/components/Global/DisplayIcon'
 import NavHeader from '@/components/Global/NavHeader'
+import NetworkFeeRow from '@/components/Global/NetworkFeeRow'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { formatTokenAmount, isStableCoin } from '@/utils/general.utils'
+import { formatTokenAmount, isStableCoin, getChainName } from '@/utils/general.utils'
+import { belowClaimBridgeMinimum } from '@/utils/claim-min-guard'
 import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import * as Sentry from '@sentry/nextjs'
@@ -25,8 +27,9 @@ import { useSearchParams } from 'next/navigation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import underMaintenanceConfig, { CROSS_CHAIN_DISABLED_MESSAGE } from '@/config/underMaintenance.config'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useFormatter } from 'next-intl'
 import { badgeCampaignForLegacyWire } from '@/components/Invites/badge-campaign-context'
+import { isQuoteNearExpiry } from '@/services/rhino-bridge'
 
 export const ConfirmClaimLinkView = ({
     onNext,
@@ -38,8 +41,11 @@ export const ConfirmClaimLinkView = ({
     setTransactionHash,
     attachment,
     selectedRoute,
+    setSelectedRoute,
+    setHasFetchedRoute,
 }: _consts.IClaimScreenProps) => {
     const t = useTranslations('claim')
+    const format = useFormatter()
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const toFriendlyError = useFriendlyError()
@@ -78,11 +84,21 @@ export const ConfirmClaimLinkView = ({
         return isStableCoin(resolvedTokenSymbol) ? `$ ${amount}` : `${amount} ${resolvedTokenSymbol}`
     }, [selectedRoute, resolvedTokenSymbol])
 
-    // Network fee display – always sponsored in this flow
-    const networkFeeDisplay: string = tCommon('sponsoredByPeanut')
-
     const handleOnClaim = async () => {
         if (!recipient) {
+            return
+        }
+
+        // The route's fee and receive amount are Rhino's quote only until it
+        // expires. Decided at the tap: past expiry, drop the route and return
+        // to the initial view, which re-quotes for the same selection — never
+        // execute against numbers Rhino no longer stands behind. A route with
+        // no expiry (an API that sends none) is not expired — bouncing on it
+        // would loop, since the re-quote comes back without one too.
+        if (selectedRoute?.expiresAt !== undefined && isQuoteNearExpiry(selectedRoute.expiresAt)) {
+            setSelectedRoute(undefined)
+            setHasFetchedRoute(false)
+            onPrev()
             return
         }
 
@@ -110,12 +126,38 @@ export const ConfirmClaimLinkView = ({
                     setLoadingState('Idle')
                     return
                 }
+
+                // Rhino parks (and does NOT auto-refund) a cross-chain deposit
+                // below the route minimum — block a sub-minimum claim before the
+                // SDA is provisioned. This view only handles external-wallet claims,
+                // so the network-picker copy always applies. Without a token price we
+                // can't size the claim in USD, so defer to the backend guard.
+                const claimUsdAmount = Number(formattedAmount) * tokenPrice
+                const hasUsdAmount = tokenPrice > 0 && Number.isFinite(claimUsdAmount)
+                const belowMin = belowClaimBridgeMinimum({
+                    isXChain: true,
+                    destinationChainId: selectedChainID,
+                    amountUsd: hasUsdAmount ? claimUsdAmount : null,
+                })
+                if (belowMin) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: t('errors.belowNetworkMinimum', {
+                            amount: format.number(belowMin.minUsd, { style: 'currency', currency: 'USD' }),
+                            network: getChainName(selectedChainID) ?? selectedChainID,
+                        }),
+                    })
+                    setLoadingState('Idle')
+                    return
+                }
+
                 claimTxHash = await claimLinkXchain({
                     address: recipient ? recipient.address : (address ?? ''),
                     link: claimLinkData.link,
                     destinationChainId: selectedChainID,
                     destinationToken: selectedTokenAddress,
                     campaignTag: campaignTag ?? undefined,
+                    amountUsd: hasUsdAmount ? claimUsdAmount : undefined,
                 })
                 setClaimType('claimxchain')
             } else {
@@ -235,8 +277,12 @@ export const ConfirmClaimLinkView = ({
                             />
                         }
 
-                        {/* Max network fee row */}
-                        <PaymentInfoRow label={t('confirm.maxNetworkFee')} value={networkFeeDisplay} />
+                        {/* Max network fee row — the route preview's quoted fee, verbatim */}
+                        <NetworkFeeRow
+                            label={t('confirm.maxNetworkFee')}
+                            feeUsd={selectedRoute?.feeUsd}
+                            isCrossChain={!!selectedRoute}
+                        />
 
                         {/* Peanut fee row */}
                         <PaymentInfoRow label={tCommon('peanutFee')} value={'$ 0.00'} hideBottomBorder />

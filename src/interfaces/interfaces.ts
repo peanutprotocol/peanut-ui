@@ -166,6 +166,9 @@ export interface User {
     userId: string
     email: string
     profile_picture: string | null
+    /** Picked profile avatar, `basic.<slug>` or `badge.<CODE>.<slug>`;
+     *  null means the username-initial fallback (TASK-22142). */
+    avatarKey?: string | null
     username: string | null
     bridgeCustomerId: string | null
     fullName: string

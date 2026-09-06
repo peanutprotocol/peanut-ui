@@ -27,7 +27,7 @@ jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
 jest.mock('@/components/Profile/AvatarWithBadge', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/CopyToClipboard', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/UserHeader', () => ({
-    VerifiedUserLabel: ({ name }: { name: string }) => <span>{name}</span>,
+    VerifiedUserLabel: ({ name }: { name: string }) => <span data-testid="profile-name">{name}</span>,
 }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
@@ -89,6 +89,21 @@ describe('ProfileHeader share pill', () => {
         expect(shownCalls()).toHaveLength(1)
         rerender(<ProfileHeader name="Satoshi" username="satoshi" showShareButton />)
         expect(shownCalls()).toHaveLength(2)
+    })
+
+    // With no full name the row used to fall back to the username, printing the
+    // handle twice on a page whose pill already reads peanut.example.org/satoshi.
+    it('drops the name row when the caller has no name to show, keeping the pill', () => {
+        renderWithIntl(<ProfileHeader name="" username="satoshi" showShareButton />)
+
+        expect(screen.queryByTestId('profile-name')).not.toBeInTheDocument()
+        expect(sharePill()).toBeInTheDocument()
+    })
+
+    it('keeps the name row when a full name is set', () => {
+        renderWithIntl(<ProfileHeader name="Satoshi Nakamoto" username="satoshi" showShareButton />)
+
+        expect(screen.getByTestId('profile-name')).toHaveTextContent('Satoshi Nakamoto')
     })
 
     it('shares the profile url and captures the click only on a successful share', () => {

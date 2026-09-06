@@ -39,14 +39,15 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { type ReactNode, useEffect, useMemo, useRef } from 'react'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
+import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
 import { PeanutCheering } from '@/assets/mascot'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import PointsCard from '@/components/Common/PointsCard'
-import { BASE_URL } from '@/constants/general.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import type { ParsedURL } from '@/lib/url-parser/types/payment'
+import { payLinkUrl } from '@/utils/url.utils'
 
 // minimal user info needed for display
 type UserDisplayInfo = {
@@ -159,7 +160,7 @@ const PaymentSuccessView = ({
 
         const recipientIdentifier = user?.username || parsedPaymentData?.recipient?.identifier
         const receiptLink = recipientIdentifier
-            ? `${BASE_URL}/${recipientIdentifier}?chargeId=${chargeDetails.uuid}`
+            ? payLinkUrl(`/${recipientIdentifier}?chargeId=${chargeDetails.uuid}`)
             : undefined
 
         let details: Partial<TransactionDetails> = {
@@ -286,6 +287,9 @@ const PaymentSuccessView = ({
         // trigger haptic on mount
         triggerHaptic()
     }, [triggerHaptic])
+
+    // type REQUEST is the "request created" screen — a link made, not money moved
+    useAppReviewNudge(authUser?.user.userId, 'payment_completed', type !== 'REQUEST')
 
     return (
         <div className="flex min-h-inherit flex-col justify-between gap-8">

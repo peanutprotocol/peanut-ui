@@ -218,9 +218,9 @@ describe('General Utilities', () => {
     })
 
     describe('getRequestLink', () => {
-        // getRequestLink now uses shareableUrl which reads window.location.origin
-        // (so a link shared from staging stays on staging). Mock origin so existing
-        // assertions against peanut.example.org keep working.
+        // getRequestLink uses payLinkUrl, which reads window.location.origin (so a
+        // link shared from staging stays on staging) and prefixes /pay.
+        // Mock origin so the assertions below stay origin-stable.
         const originalLocation = window.location
         beforeAll(() => {
             Object.defineProperty(window, 'location', {
@@ -245,7 +245,7 @@ describe('General Utilities', () => {
                     recipientAddress: '0x1234567890123456789012345678901234567890',
                     uuid: 'c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
                 },
-                expectedLink: 'https://peanut.example.org/satoshi/?id=c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
+                expectedLink: 'https://peanut.example.org/pay/satoshi/?id=c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
             },
             // For Peanut Wallet users with token amount
             {
@@ -260,7 +260,7 @@ describe('General Utilities', () => {
                     tokenAmount: '10',
                     uuid: 'c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
                 },
-                expectedLink: 'https://peanut.example.org/satoshi/10?id=c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
+                expectedLink: 'https://peanut.example.org/pay/satoshi/10?id=c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
             },
             {
                 requestData: {
@@ -274,7 +274,7 @@ describe('General Utilities', () => {
                     tokenAmount: '10.000000',
                     uuid: 'c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
                 },
-                expectedLink: 'https://peanut.example.org/satoshi/10?id=c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
+                expectedLink: 'https://peanut.example.org/pay/satoshi/10?id=c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
             },
             {
                 requestData: {
@@ -288,7 +288,7 @@ describe('General Utilities', () => {
                     tokenAmount: '10.110000',
                     uuid: 'c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
                 },
-                expectedLink: 'https://peanut.example.org/satoshi/10.11?id=c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
+                expectedLink: 'https://peanut.example.org/pay/satoshi/10.11?id=c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
             },
             // For Peanut Wallet users with token amount and symbol
             {
@@ -304,7 +304,7 @@ describe('General Utilities', () => {
                     tokenSymbol: 'ETH',
                     uuid: 'c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
                 },
-                expectedLink: 'https://peanut.example.org/satoshi/10ETH?id=c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
+                expectedLink: 'https://peanut.example.org/pay/satoshi/10ETH?id=c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
             },
             // For EVM address users (address-based links)
             {
@@ -317,7 +317,7 @@ describe('General Utilities', () => {
                     uuid: 'c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
                 },
                 expectedLink:
-                    'https://peanut.example.org/0x1234567890123456789012345678901234567890@1/?id=c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
+                    'https://peanut.example.org/pay/0x1234567890123456789012345678901234567890@1/?id=c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
             },
             // For EVM address users with token amount
             {
@@ -331,7 +331,7 @@ describe('General Utilities', () => {
                     uuid: 'c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
                 },
                 expectedLink:
-                    'https://peanut.example.org/0x1234567890123456789012345678901234567890@1/5.5?id=c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
+                    'https://peanut.example.org/pay/0x1234567890123456789012345678901234567890@1/5.5?id=c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
             },
             // For EVM address users with token amount and symbol
             {
@@ -346,7 +346,7 @@ describe('General Utilities', () => {
                     uuid: 'c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
                 },
                 expectedLink:
-                    'https://peanut.example.org/0x1234567890123456789012345678901234567890@1/5.5USDC?id=c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
+                    'https://peanut.example.org/pay/0x1234567890123456789012345678901234567890@1/5.5USDC?id=c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
             },
             // Using chargeId instead of uuid
             {
@@ -360,7 +360,7 @@ describe('General Utilities', () => {
                     recipientAddress: '0x1234567890123456789012345678901234567890',
                     chargeId: 'charge_123456789',
                 },
-                expectedLink: 'https://peanut.example.org/satoshi/?chargeId=charge_123456789',
+                expectedLink: 'https://peanut.example.org/pay/satoshi/?chargeId=charge_123456789',
             },
             // The bug we're fixing: BE returns an EVM_ADDRESS-typed account
             // for a recipient that DOES have a Peanut user attached. Username
@@ -379,7 +379,7 @@ describe('General Utilities', () => {
                     tokenSymbol: 'USDC',
                     uuid: '04acc664-c572-4d12-bb15-6d286ac80e81',
                 },
-                expectedLink: 'https://peanut.example.org/hugo0/0.38USDC?id=04acc664-c572-4d12-bb15-6d286ac80e81',
+                expectedLink: 'https://peanut.example.org/pay/hugo0/0.38USDC?id=04acc664-c572-4d12-bb15-6d286ac80e81',
             },
             // Defensive: unprojected Prisma enum value flowing through. Same
             // outcome — username wins.
@@ -395,7 +395,7 @@ describe('General Utilities', () => {
                     chainId: '1',
                     uuid: 'c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
                 },
-                expectedLink: 'https://peanut.example.org/satoshi/?id=c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
+                expectedLink: 'https://peanut.example.org/pay/satoshi/?id=c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
             },
             // PEANUT_WALLET type with no `user` field — previously threw
             // TypeError via `user!.username`. Now falls back to the address
@@ -410,7 +410,7 @@ describe('General Utilities', () => {
                     uuid: 'c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
                 },
                 expectedLink:
-                    'https://peanut.example.org/0x1234567890123456789012345678901234567890@42161/?id=c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
+                    'https://peanut.example.org/pay/0x1234567890123456789012345678901234567890@42161/?id=c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
             },
             // Token symbol but no amount
             {
@@ -425,7 +425,7 @@ describe('General Utilities', () => {
                     tokenSymbol: 'ETH',
                     uuid: 'c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
                 },
-                expectedLink: 'https://peanut.example.org/satoshi/ETH?id=c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
+                expectedLink: 'https://peanut.example.org/pay/satoshi/ETH?id=c4fc57cb-deae-4ea2-bdb3-aeaa996255ad',
             },
         ])('should return the correct link', ({ requestData, expectedLink }) => {
             expect(getRequestLink(requestData)).toBe(expectedLink)

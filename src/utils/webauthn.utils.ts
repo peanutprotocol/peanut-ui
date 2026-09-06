@@ -119,6 +119,48 @@ export function normalizePasskeyServerError(error: unknown): unknown {
     return error
 }
 
+/**
+ * @capgo/capacitor-passkey (8.2.2, still true on 8.5.1) drops the DOM error
+ * name on the native path twice over: the Android plugin maps every
+ * non-`CreatePublicKeyCredentialDomException` to `"UnknownError"`, and the JS
+ * shim's `normalizePluginError` returns Capacitor's rejection unchanged
+ * whenever it is already an `Error` — which `CapacitorException` always is, and
+ * it never sets `name`. So a user dismissing the Android Credential Manager
+ * sheet arrives here as `Error("User cancelled the selector")` instead of
+ * `NotAllowedError`, and every caller that switches on `err.name` falls through
+ * to its unknown-failure branch (generic help modal + a `passkey_setup_error`
+ * Sentry report for something the user did on purpose).
+ *
+ * Recovering the name from the plugin's `code`/`data.name` is not enough on its
+ * own — the cancellation exceptions are the ones flattened to `UnknownError` —
+ * so androidx's cancellation and no-provider messages are mapped explicitly.
+ */
+const ANDROID_CANCELLATION_MESSAGE =
+    /user cancelled the selector|activity is cancelled by the user|cancelled by the user/i
+const ANDROID_NO_CREATE_OPTION_MESSAGE = /no create options|no credential available to create/i
+
+type PluginRejection = Error & { code?: unknown; data?: { name?: unknown } }
+
+function pluginErrorName(error: PluginRejection): string | undefined {
+    if (typeof error.code === 'string' && error.code.endsWith('Error')) return error.code
+    const dataName = error.data?.name
+    return typeof dataName === 'string' && dataName.endsWith('Error') ? dataName : undefined
+}
+
+export function normalizeNativePasskeyError(error: unknown): unknown {
+    if (!(error instanceof Error) || error.name !== 'Error') return error
+    const rejection = error as PluginRejection
+    const message = rejection.message ?? ''
+    const recovered =
+        ANDROID_CANCELLATION_MESSAGE.test(message) || ANDROID_NO_CREATE_OPTION_MESSAGE.test(message)
+            ? WebAuthnErrorName.NotAllowed
+            : pluginErrorName(rejection)
+    if (!recovered || recovered === 'UnknownError') return error
+    // Renaming in place keeps the original stack and the plugin's own fields.
+    rejection.name = recovered
+    return rejection
+}
+
 function isNetworkError(error: Error): boolean {
     if (error.name === 'TypeError' && /fetch|network/i.test(error.message)) return true
     // "Load failed" is WebKit's message for a failed fetch (common when the
@@ -131,7 +173,8 @@ function isNetworkError(error: Error): boolean {
  * Classification order: known DOMException name → network heuristic → fallback.
  */
 export function classifyPasskeyError(error: unknown): PasskeyErrorClassification {
-    const err = error instanceof Error ? error : new Error(String(error))
+    const normalized = normalizeNativePasskeyError(error)
+    const err = normalized instanceof Error ? normalized : new Error(String(normalized))
     let code: PasskeyErrorCode = 'LOGIN_ERROR'
     // iOS surfaces ceremony failures as a bare Error whose message carries the
     // ASAuthorizationError code, not a DOMException name: 1001 = user canceled,

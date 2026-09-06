@@ -101,6 +101,23 @@ describe('shouldIgnoreError — Capgo updater noise', () => {
         expect(shouldIgnoreError(eventWith({ message }))).toBe(false)
     })
 
+    /*
+     * An update that silently un-happens leaves no other trace: Capgo's own logs
+     * only reach Sentry through an eval into a WebView the rollback is about to
+     * tear down, so suppressing these made the whole population read as one
+     * event in 90 days (PEANUT-UI-SVT).
+     */
+    it('keeps a bundle the plugin rolled back for want of notifyAppReady', () => {
+        expect(
+            shouldIgnoreError(
+                eventWith({ message: '[CapgoUpdater] 🔴 notifyAppReady was not called, roll back current bundle: E3J' })
+            )
+        ).toBe(false)
+        expect(shouldIgnoreError(eventWith({ message: '[CapgoUpdater] 🔴 Update to bundle: 1.0.56 Failed!' }))).toBe(
+            false
+        )
+    })
+
     it('keeps a checksum mismatch — the bundle arrived corrupt, not merely late', () => {
         expect(shouldIgnoreError(eventWith({ message: '[CapgoUpdater] 🔴 Checksum mismatch' }))).toBe(false)
     })

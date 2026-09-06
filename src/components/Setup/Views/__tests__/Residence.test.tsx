@@ -80,7 +80,7 @@ describe('ResidenceStep', () => {
     it('renders the step title as the only heading on the select view', () => {
         render(<ResidenceStep />)
         expect(screen.getAllByRole('heading')).toHaveLength(1)
-        expect(screen.getByRole('heading', { level: 1, name: 'Where are you a resident?' })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { level: 1, name: 'Where do you legally live?' })).toBeInTheDocument()
     })
 
     it('prefills from geo as a suggestion without advancing', () => {
@@ -148,11 +148,14 @@ describe('ResidenceStep', () => {
         // the screen itself never names a country
         expect(screen.queryByText(/Brazil/)).not.toBeInTheDocument()
         // gates stay separated in prose: no-ID features first, the bank rail
-        // behind the ID check (named per country); the card is deliberately
-        // absent — its beta stays unnamed in onboarding, and any mention
-        // would have to state every access gate
+        // behind the ID check (named per country), then the card behind BOTH
+        // of its remaining gates. Naming the card without the waitlist is the
+        // regression this guards (2026-09-05 policy change).
         expect(screen.getByText(/work right away, and a quick ID check unlocks PIX transfers/)).toBeInTheDocument()
-        expect(screen.queryByText(/Peanut card/)).not.toBeInTheDocument()
+        expect(screen.getByText(/The Peanut card is also available/)).toBeInTheDocument()
+        expect(screen.getByText(/it needs an ID check, and you'll join a waitlist/)).toBeInTheDocument()
+        // Rain §7 bans availability framing keyed to a place — no country here
+        expect(screen.queryByText(/in your country/)).not.toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
         expect(mockHandleNext).toHaveBeenCalled()
     })
@@ -164,8 +167,11 @@ describe('ResidenceStep', () => {
         mockSetupState.residenceCountry = 'NG'
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: 'Next' }))
-        expect(screen.getByText(/work right away\.$/)).toBeInTheDocument()
-        expect(screen.queryByText(/Peanut card/)).not.toBeInTheDocument()
+        // the rail clause disappears; the card clause is self-contained, so the
+        // same string serves both branches
+        expect(screen.getByText(/work right away\./)).toBeInTheDocument()
+        expect(screen.getByText(/it needs an ID check, and you'll join a waitlist/)).toBeInTheDocument()
+        expect(screen.queryByText(/in your country/)).not.toBeInTheDocument()
         expect(screen.queryByText(/unlocks/)).not.toBeInTheDocument()
         expect(screen.queryByText(/bank transfers/i)).not.toBeInTheDocument()
     })

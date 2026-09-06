@@ -103,10 +103,10 @@ const DrawerContent = React.forwardRef<React.ElementRef<typeof DrawerPrimitive.C
             <DrawerPrimitive.Content
                 ref={ref}
                 className={twMerge(
-                    // chrome per the TX Details board (17490:115877): page background,
+                    // chrome per the TX Details board (17490:115877): white background,
                     // no border, handle 32x5 sitting 8px from the top with 24px below.
                     // tx-details board 17835:84492: 16px top corners (was a hardcoded 10px)
-                    'fixed inset-x-0 bottom-0 z-50 mt-24 flex flex-col rounded-t-2xl bg-background-page',
+                    'fixed inset-x-0 bottom-0 z-50 mt-24 flex flex-col rounded-t-2xl bg-white',
                     className
                 )}
                 aria-describedby={undefined}
@@ -132,8 +132,16 @@ const DrawerContent = React.forwardRef<React.ElementRef<typeof DrawerPrimitive.C
 )
 DrawerContent.displayName = 'DrawerContent'
 
+// No margin here on purpose. Most callers place the header in their own gapped
+// flex column, so a margin on the shared primitive stacks with that gap (16 + 12
+// = 28px) on every screen nobody touched. Each drawer owns the M/12 under its
+// own head instead — see CancelSendLinkDrawer and KycRegionRestrictedModal.
 const DrawerHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-    <div className={twMerge('grid gap-1 p-4 text-center sm:text-left', className)} {...props} />
+    <div
+        className={twMerge('grid gap-1 p-4 text-center sm:text-left', className)}
+        data-testid="drawer-header"
+        {...props}
+    />
 )
 DrawerHeader.displayName = 'DrawerHeader'
 

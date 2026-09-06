@@ -142,7 +142,7 @@ const ResidenceChangeModal = ({
             onClose={onClose}
             title={t('title')}
             description={
-                <div className="flex flex-col gap-3 text-left">
+                <div className="flex flex-col gap-3 text-center">
                     <p>{t('description')}</p>
                     <CountryCombobox
                         options={countryOptions}

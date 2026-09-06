@@ -56,7 +56,10 @@ export default function InviteFriendsModal({ visible, onClose, username, source 
             content={
                 <>
                     {inviteLink && (
-                        <div className="my-2 size-44">
+                        // the white p-4 is the QR quiet zone, not decoration: modules
+                        // that run to the edge of the code are the scan failure
+                        // QRCodeWrapper already guards against the same way
+                        <div className="mx-auto my-4 size-44 rounded-sm bg-white p-4">
                             <QRCode
                                 value={inviteLink}
                                 size={120}

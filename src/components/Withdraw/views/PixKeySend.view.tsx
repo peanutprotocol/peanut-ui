@@ -8,7 +8,6 @@ import { useSafeBack } from '@/hooks/useSafeBack'
 import { Button } from '@/components/0_Bruddle/Button'
 import NavHeader from '@/components/Global/NavHeader'
 import ValidatedInput from '@/components/Global/ValidatedInput'
-import { Icon } from '@/components/Global/Icons/Icon'
 import { isPixEmvcoQr, normalizePixInput, validatePixKey } from '@/utils/withdraw.utils'
 import { pixKeyToQrPayUrl } from '@/utils/pix.utils'
 import { useTranslations } from 'next-intl'
@@ -76,7 +75,6 @@ export default function PixKeySendView({ destinationParam }: { destinationParam?
                             {errorMessage && <FieldError>{errorMessage}</FieldError>}
                         </div>
                         <div className="flex items-center gap-2 text-body-s text-foreground-secondary">
-                            <Icon name="info" size={16} />
                             <span>{t('pixKey.info')}</span>
                         </div>
                     </div>

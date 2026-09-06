@@ -16,7 +16,7 @@ import {
 } from '@/utils/general.utils'
 import { apiFetch } from '@/utils/api-fetch'
 import { useAppLocked } from '@/hooks/useAppLocked'
-import { currentAppLocale, currentDeviceContext } from '@/i18n/app/locale-store'
+import { currentAppLocale, currentDeviceContext, currentDeviceIdentity } from '@/i18n/app/locale-store'
 import { isCapacitor } from '@/utils/capacitor'
 import { clearAuthToken } from '@/utils/auth-token'
 import { resetCrispProxySessions } from '@/utils/crisp'
@@ -127,6 +127,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 // — covers the first session, where the startup locale resolves
                 // before identify.
                 ...(appLocale ? { app_locale: appLocale } : {}),
+                // Device identity is a super property, which reaches events but
+                // never the person profile. A visitor who was anonymous when it
+                // resolved got no $set, so without this the slow-device cohorts
+                // would omit everyone who identifies after startup.
+                ...(currentDeviceIdentity() ?? {}),
             })
             // Sentry: every error captured from here on inherits user context
             // as searchable Sentry tags. Closes the historical gap where FE

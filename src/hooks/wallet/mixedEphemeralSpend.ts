@@ -9,7 +9,7 @@ import { createEphemeralSpendSession, type EphemeralCall } from '@/utils/ephemer
 import { rescueUserOpReceipt } from '@/utils/userop-rescue.utils'
 
 /*
- * One-tap variant of the mixed spend (SESSION_KEY_SPEND flag): the single
+ * One-tap mixed spend: the single
  * passkey tap signs the permission-enable for a per-transaction ephemeral key
  * (see ephemeralSpendKey.ts), which then silently signs BOTH the Rain admin
  * EIP-712 (consumed via the kernel's ERC-1271 during withdrawAsset) and the

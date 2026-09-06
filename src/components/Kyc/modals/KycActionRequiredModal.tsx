@@ -31,24 +31,30 @@ export const KycActionRequiredModal = ({
             }}
         >
             <DrawerContent>
-                <div className="flex flex-col items-center gap-4 px-4 pt-1 pb-6 text-center">
-                    <IconBubble icon="alert" color="yellow" />
-                    <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
-                        <DrawerTitle>{t('actionRequiredTitle')}</DrawerTitle>
-                        <DrawerDescription>{t('actionRequiredDescription')}</DrawerDescription>
-                    </DrawerHeader>
-                    <div className="w-full text-left">
-                        <RejectLabelsList rejectLabels={rejectLabels} />
+                <div className="flex flex-col items-center px-4 pt-1 pb-6 text-center">
+                    {/* the head owns the M/12 beneath it; everything after it
+                        keeps the drawer's L/16 rhythm */}
+                    <div className="mb-3 flex w-full flex-col items-center gap-4">
+                        <IconBubble icon="alert" color="yellow" />
+                        <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
+                            <DrawerTitle>{t('actionRequiredTitle')}</DrawerTitle>
+                            <DrawerDescription>{t('actionRequiredDescription')}</DrawerDescription>
+                        </DrawerHeader>
                     </div>
-                    <Button
-                        icon="retry"
-                        shadowSize="4"
-                        className="w-full justify-center"
-                        disabled={isLoading}
-                        onClick={onResubmit}
-                    >
-                        {tCommon(isLoading ? 'loading' : 'continue')}
-                    </Button>
+                    <div className="flex w-full flex-col items-center gap-4">
+                        <div className="w-full text-left">
+                            <RejectLabelsList rejectLabels={rejectLabels} />
+                        </div>
+                        <Button
+                            icon="retry"
+                            shadowSize="4"
+                            className="w-full justify-center"
+                            disabled={isLoading}
+                            onClick={onResubmit}
+                        >
+                            {tCommon(isLoading ? 'loading' : 'continue')}
+                        </Button>
+                    </div>
                 </div>
             </DrawerContent>
         </Drawer>

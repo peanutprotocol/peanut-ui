@@ -58,6 +58,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const isHome = pathName === '/home' || pathName === '/home/'
     const isHistory = pathName === '/history'
     const isSupport = pathName === '/support'
+    // The profile menu IS the full-screen menu: the bottom nav and its QR
+    // button used to float over its own list of destinations. Exact match —
+    // /profile/* sub-pages keep the nav.
+    const isProfileMenu = pathName === '/profile' || pathName === '/profile/'
     const isDev = pathName?.startsWith('/dev') ?? false
     const alignStart = isHome || isHistory || isSupport
     const router = useRouter()
@@ -179,12 +183,16 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             <AppShell
                 variant="app"
                 banner={!isDev && <ShellBannerFallback />}
-                nav={!isDev && isUserLoggedIn && <BottomNav />}
+                nav={!isDev && !isProfileMenu && isUserLoggedIn && <BottomNav />}
                 contentClassName={twMerge(
                     'pb-[calc(6rem_+_var(--safe-bottom))]',
                     isSupport && 'p-0 pb-[calc(5rem_+_var(--safe-bottom))]',
                     isHome && 'p-0',
-                    isUserLoggedIn ? 'pb-[calc(6rem_+_var(--safe-bottom))]' : 'pb-[calc(1rem_+_var(--safe-bottom))]',
+                    // the 6rem reservation exists to clear the bottom nav, so a
+                    // screen without one takes the same inset as a logged-out one
+                    isUserLoggedIn && !isProfileMenu
+                        ? 'pb-[calc(6rem_+_var(--safe-bottom))]'
+                        : 'pb-[calc(1rem_+_var(--safe-bottom))]',
                     isDev && 'p-0 pb-0',
                     isHome && isCapacitor() && 'px-0 pt-0'
                 )}
