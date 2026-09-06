@@ -219,6 +219,19 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
         expect(countWeightStacks("const SIZES = { sm: 'text-body-m font-semibold' }; const c = SIZES[v]")).toBe(1)
     })
 
+    it('still sees drift in a map entry past the alternatives ceiling', () => {
+        // Returning early at the cap was a false NEGATIVE with teeth: 64 clean
+        // entries followed by a drifted one walked past the ratchet entirely.
+        // Overflow is merged instead, which can only over-count — the one
+        // direction a debt ratchet is allowed to be wrong in.
+        const clean = Array.from({ length: 64 }, (_, i) => `    k${i}: 'text-body-m',`).join('\n')
+        expect(countWeightStacks(`const SIZES = {\n${clean}\n    late: 'text-body-m font-semibold',\n}`)).toBe(1)
+
+        // ...and a large map that is genuinely clean stays clean.
+        const allClean = Array.from({ length: 80 }, (_, i) => `    k${i}: 'text-body-m',`).join('\n')
+        expect(countWeightStacks(`const SIZES = {\n${allClean}\n}`)).toBe(0)
+    })
+
     it('resolves an identifier to its own scope, not to a later namesake', () => {
         // A file-wide name→initializer map let a later declaration in an
         // unrelated function overwrite an earlier one, which hid real stacks or

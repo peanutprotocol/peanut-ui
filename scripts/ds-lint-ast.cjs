@@ -98,14 +98,25 @@ function product(left, right) {
  */
 function objectAlternatives(node, scopes, depth, seen) {
     const out = []
+    // Entries past the ceiling are MERGED into one conservative alternative
+    // rather than dropped. Returning early was a false NEGATIVE with teeth: 64
+    // clean entries followed by a drifted one meant the drift walked past the
+    // ratchet entirely. Merging can only over-count, which the baseline absorbs;
+    // dropping loses debt silently, which is the one direction a ratchet must
+    // never fail in.
+    let overflow = null
     for (const prop of node.properties) {
         if (!ts.isPropertyAssignment(prop)) continue
         for (const alt of alternatives(prop.initializer, scopes, depth + 1, seen)) {
             if (alt.length === 0) continue
-            out.push(alt)
-            if (out.length >= MAX_ALTERNATIVES) return out
+            if (out.length < MAX_ALTERNATIVES) {
+                out.push(alt)
+            } else {
+                overflow = overflow ? capPieces([...overflow, ...alt]) : alt
+            }
         }
     }
+    if (overflow) out.push(overflow)
     return out.length ? out : NOTHING
 }
 
