@@ -21,7 +21,7 @@
 // still out of scope, and honestly so: class values imported from OTHER
 // modules. that needs cross-file resolution; same-file consts ARE resolved.
 
-const { classLists } = require('./ds-lint-ast.cjs')
+const { weightStackSites } = require('./ds-lint-ast.cjs')
 
 // allowlist inversion, not a blocklist: tailwind v4 compiles ANY numeric step
 // (p-4.5, pr-18, -mt-5, ps-5), so the metric flags every numeric spacing
@@ -181,25 +181,20 @@ function countWeightStacksByRegex(text) {
  * returns 0 on a file it cannot read is a ratchet with the tension let out.
  */
 function countWeightStacks(text, filename = 'file.tsx') {
-    let lists
+    let sites
     try {
-        lists = classLists(text, filename)
+        sites = weightStackSites(text, filename, {
+            isToken: (value) => TYPE_TOKEN_RE.test(value),
+            isWeight: (value) => WEIGHT_STACK_RE.test(value),
+        })
     } catch {
-        lists = null
+        sites = null
     }
     // null = the file did not parse cleanly. A recovered tree can be missing
     // whole statements, so trusting it would under-report on exactly the files
     // we cannot read.
-    if (!lists) return countWeightStacksByRegex(text)
-    const seen = new Set()
-    for (const list of lists) {
-        const token = list.find((piece) => TYPE_TOKEN_RE.test(piece.text))
-        if (!token) continue
-        const weight = list.find((piece) => WEIGHT_STACK_RE.test(piece.text))
-        if (!weight) continue
-        seen.add(`${Math.min(token.pos, weight.pos)}:${Math.max(token.pos, weight.pos)}`)
-    }
-    return seen.size
+    if (!sites) return countWeightStacksByRegex(text)
+    return sites.size
 }
 
 // three ways an Icon gets sized: the size prop (also width/height, which the

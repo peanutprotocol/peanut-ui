@@ -16,34 +16,70 @@
 //
 // Still out of scope, and honestly so: values imported from OTHER modules. That
 // needs cross-file resolution, and a lint pass that reads its neighbours is a
-// different tool. Same-file `const`s ARE resolved, lexically.
+// different tool. Same-file bindings ARE resolved, lexically.
+//
+// What this module carries is a SUMMARY, not the class strings. An alternative
+// is reduced to "where is its type token, where is its weight utility" the
+// moment it is built. Carrying the strings and bounding them later forced a
+// choice between merging siblings (a false stack across two variants of a
+// lookup map) and truncating them (real drift in a late entry going unseen) —
+// both of which shipped, and both of which this shape removes: summaries dedupe
+// on their own, and when a bound is applied the MATCHES are kept first, so a
+// budget can never hide debt.
 
 const ts = require('typescript')
 
 /** Class-list producers: a call whose arguments are all class fragments. */
 const BUILDERS = new Set(['twMerge', 'clsx', 'cn', 'classNames', 'cva', 'tw'])
 
-/** Depth ceiling for const resolution — cheap insurance against a cyclic const. */
+/** Depth ceiling for binding resolution — cheap insurance against a cyclic const. */
 const MAX_DEPTH = 12
 
 /**
- * Ceiling on alternative class lists carried through a combination. A variant
- * map crossed with another variant map is a product, and a pathological file
- * should slow nobody down; past the cap we collapse to a single merged list,
- * which is the old (over-counting) behaviour and never under-reports.
+ * Ceiling on distinct alternatives tracked through one combination. Reached only
+ * by pathological files; when it bites, alternatives that already MATCH are kept
+ * ahead of ones that do not, so the bound can cost precision but never a finding.
  */
-const MAX_ALTERNATIVES = 64
+const MAX_ALTERNATIVES = 256
 
-/** "No pieces" is ONE empty alternative, not zero — zero would annihilate a product. */
-const NOTHING = [[]]
+/** A name that is bound but whose value we refuse to inline (param, let, var, import…). */
+const OPAQUE = Symbol('opaque-binding')
 
-/**
- * Hard ceiling on pieces carried in one alternative. A generated data file can
- * hold thousands of string entries in a single object literal; without a bound
- * the scanner spends its budget rebuilding arrays that no class list will ever
- * be, and on this repo's own audit-data.ts it exhausted the heap.
- */
-const MAX_PIECES = 512
+/** An alternative reduced to what the metric needs: where its token and weight are. */
+const EMPTY_ALT = { token: null, weight: null }
+const NOTHING = [EMPTY_ALT]
+
+const altKey = (alt) => `${alt.token ?? '-'}:${alt.weight ?? '-'}`
+const isMatch = (alt) => alt.token !== null && alt.weight !== null
+
+/** Dedupe, keeping matches first so a truncation cannot drop a finding. */
+function normalize(alts) {
+    const seen = new Map()
+    for (const alt of alts) {
+        const key = altKey(alt)
+        if (!seen.has(key)) seen.set(key, alt)
+    }
+    const out = [...seen.values()]
+    if (out.length <= MAX_ALTERNATIVES) return out
+    const matches = out.filter(isMatch)
+    return [...matches, ...out.filter((alt) => !isMatch(alt))].slice(0, Math.max(MAX_ALTERNATIVES, matches.length))
+}
+
+/** Combine alternative-sets that apply AT THE SAME TIME (concatenation, builder args, join). */
+function product(left, right) {
+    const out = []
+    for (const a of left) {
+        for (const b of right) {
+            out.push({ token: a.token ?? b.token, weight: a.weight ?? b.weight })
+        }
+    }
+    return normalize(out.length ? out : NOTHING)
+}
+
+/** Combine alternative-sets where exactly ONE applies at runtime (lookup-map entries). */
+function union(left, right) {
+    return normalize([...left, ...right])
+}
 
 function isClassNameProp(name) {
     return /[a-zA-Z]*[cC]lassName$/.test(name)
@@ -56,73 +92,37 @@ function calleeName(node) {
     return null
 }
 
-function piece(node, text) {
-    return { text, pos: node.getStart ? node.getStart() : node.pos }
+function startOf(node) {
+    return node.getStart ? node.getStart() : node.pos
 }
 
-/**
- * Combine two alternative-sets that apply AT THE SAME TIME (concatenation,
- * builder arguments, array join): every pairing is a class list the element can
- * actually receive.
- */
-/** Truncate one alternative to the piece ceiling. */
-function capPieces(list) {
-    return list.length > MAX_PIECES ? list.slice(0, MAX_PIECES) : list
-}
-
-/**
- * Combine two alternative-sets that apply AT THE SAME TIME (concatenation,
- * builder arguments, array join): every pairing is a class list the element can
- * actually receive.
- *
- * Past the ceiling the product collapses to a single merged list — the old
- * flatten-everything behaviour, which over-counts rather than under-counts, so
- * the ratchet never loses tension to a budget.
- */
-function product(left, right) {
-    if (left.length * right.length > MAX_ALTERNATIVES) {
-        return [capPieces([...left.flat(), ...right.flat()])]
+/** Innermost lexical binding for a name — OPAQUE stops the walk, it does not fall through. */
+function lookup(scopes, name) {
+    for (let i = scopes.length - 1; i >= 0; i--) {
+        if (scopes[i].has(name)) return scopes[i].get(name)
     }
-    const out = []
-    for (const a of left) for (const b of right) out.push(capPieces([...a, ...b]))
-    return out.length ? out : NOTHING
+    return undefined
 }
 
-/**
- * The property values of an object literal, each as its own alternative.
- *
- * Accumulated in place with an early bail. Folding pairwise re-flattened the
- * whole accumulator once per property, which is quadratic — and a generated
- * data file with thousands of entries then exhausts the heap rather than
- * finishing the scan.
- */
-function objectAlternatives(node, scopes, depth, seen) {
-    const out = []
-    // Entries past the ceiling are MERGED into one conservative alternative
-    // rather than dropped. Returning early was a false NEGATIVE with teeth: 64
-    // clean entries followed by a drifted one meant the drift walked past the
-    // ratchet entirely. Merging can only over-count, which the baseline absorbs;
-    // dropping loses debt silently, which is the one direction a ratchet must
-    // never fail in.
-    let overflow = null
-    for (const prop of node.properties) {
-        if (!ts.isPropertyAssignment(prop)) continue
-        for (const alt of alternatives(prop.initializer, scopes, depth + 1, seen)) {
-            if (alt.length === 0) continue
-            if (out.length < MAX_ALTERNATIVES) {
-                out.push(alt)
-            } else {
-                overflow = overflow ? capPieces([...overflow, ...alt]) : alt
-            }
-        }
+function resolveToObjectLiteral(node, ctx, depth, seen) {
+    if (!node || depth > MAX_DEPTH) return null
+    if (ts.isObjectLiteralExpression(node)) return node
+    if (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isSatisfiesExpression(node)) {
+        return resolveToObjectLiteral(node.expression, ctx, depth + 1, seen)
     }
-    if (overflow) out.push(overflow)
-    return out.length ? out : NOTHING
+    if (ts.isIdentifier(node)) {
+        if (seen.has(node.text)) return null
+        const bound = lookup(ctx.scopes, node.text)
+        if (!bound || bound === OPAQUE) return null
+        const next = new Set(seen)
+        next.add(node.text)
+        return resolveToObjectLiteral(bound, ctx, depth + 1, next)
+    }
+    return null
 }
 
-/** Look up an object-literal property by name, honouring same-file const resolution. */
-function propertyByName(node, name, scopes, depth, seen) {
-    const target = resolveToObjectLiteral(node, scopes, depth, seen)
+function propertyByName(node, name, ctx, depth, seen) {
+    const target = resolveToObjectLiteral(node, ctx, depth, seen)
     if (!target) return null
     for (const prop of target.properties) {
         if (!ts.isPropertyAssignment(prop)) continue
@@ -133,63 +133,39 @@ function propertyByName(node, name, scopes, depth, seen) {
     return null
 }
 
-function resolveToObjectLiteral(node, scopes, depth, seen) {
-    if (depth > MAX_DEPTH) return null
-    if (ts.isObjectLiteralExpression(node)) return node
-    if (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isSatisfiesExpression(node)) {
-        return resolveToObjectLiteral(node.expression, scopes, depth + 1, seen)
-    }
-    if (ts.isIdentifier(node)) {
-        if (seen.has(node.text)) return null
-        const decl = lookup(scopes, node.text)
-        if (!decl) return null
-        const next = new Set(seen)
-        next.add(node.text)
-        return resolveToObjectLiteral(decl, scopes, depth + 1, next)
-    }
-    return null
-}
-
-/** Innermost lexical binding for a name. */
-function lookup(scopes, name) {
-    for (let i = scopes.length - 1; i >= 0; i--) {
-        const found = scopes[i].get(name)
-        if (found !== undefined) return found
-    }
-    return undefined
+function literalAlt(node, text, ctx) {
+    const pos = startOf(node)
+    return [{ token: ctx.isToken(text) ? pos : null, weight: ctx.isWeight(text) ? pos : null }]
 }
 
 /**
- * Every class list an expression can produce, as a list of ALTERNATIVES — each
- * one a set of positioned string pieces that co-apply.
+ * Every class list an expression can produce, as deduped ALTERNATIVES.
  *
  * Alternatives exist for lookup maps specifically. `{ sm: 'text-body-m', lg:
- * 'font-semibold' }` selects exactly one entry at runtime, and flattening the
- * table into a single list invented a stack out of two unrelated variants —
- * which, against a tight baseline, fails CI on a perfectly good variant map.
+ * 'font-semibold' }` selects exactly one entry at runtime, and treating the
+ * table as a single list invents a stack out of two unrelated variants.
  *
- * Ternaries and `&&` guards are deliberately NOT alternatives: they are combined
- * as a product, which is what the pre-AST scanner did (it saw the whole
- * expression's source text) and what the baseline is calibrated on. Splitting
- * them would be a coverage change, not a bug fix, so it stays a separate
- * decision.
+ * Ternaries and `&&` guards are deliberately NOT alternatives: they combine as a
+ * product, which is what the pre-AST scanner did (it saw the whole expression's
+ * source text) and what the baseline is calibrated on. Splitting them would be a
+ * coverage change, not a bug fix, so it stays a separate decision.
  */
-function alternatives(node, scopes, depth = 0, seen = new Set()) {
+function alternatives(node, ctx, depth = 0, seen = new Set()) {
     if (!node || depth > MAX_DEPTH) return NOTHING
 
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
-        return [[piece(node, node.text)]]
+        return literalAlt(node, node.text, ctx)
     }
     if (ts.isTemplateExpression(node)) {
-        let out = [[{ text: node.head.text, pos: node.head.pos }]]
+        let out = literalAlt(node.head, node.head.text, ctx)
         for (const span of node.templateSpans) {
-            out = product(out, alternatives(span.expression, scopes, depth + 1, seen))
-            out = product(out, [[{ text: span.literal.text, pos: span.literal.pos }]])
+            out = product(out, alternatives(span.expression, ctx, depth + 1, seen))
+            out = product(out, literalAlt(span.literal, span.literal.text, ctx))
         }
         return out
     }
     if (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isSatisfiesExpression(node)) {
-        return alternatives(node.expression, scopes, depth + 1, seen)
+        return alternatives(node.expression, ctx, depth + 1, seen)
     }
     if (ts.isBinaryExpression(node)) {
         const kind = node.operatorToken.kind
@@ -200,153 +176,193 @@ function alternatives(node, scopes, depth = 0, seen = new Set()) {
             kind === ts.SyntaxKind.QuestionQuestionToken
         ) {
             return product(
-                alternatives(node.left, scopes, depth + 1, seen),
-                alternatives(node.right, scopes, depth + 1, seen)
+                alternatives(node.left, ctx, depth + 1, seen),
+                alternatives(node.right, ctx, depth + 1, seen)
             )
         }
         return NOTHING
     }
     if (ts.isConditionalExpression(node)) {
         return product(
-            alternatives(node.whenTrue, scopes, depth + 1, seen),
-            alternatives(node.whenFalse, scopes, depth + 1, seen)
+            alternatives(node.whenTrue, ctx, depth + 1, seen),
+            alternatives(node.whenFalse, ctx, depth + 1, seen)
         )
     }
     if (ts.isArrayLiteralExpression(node)) {
         let out = NOTHING
-        for (const el of node.elements) {
-            out = product(out, alternatives(el, scopes, depth + 1, seen))
-            if (out.length === 1 && out[0].length >= MAX_PIECES) break
-        }
+        for (const el of node.elements) out = product(out, alternatives(el, ctx, depth + 1, seen))
         return out
     }
     if (ts.isObjectLiteralExpression(node)) {
-        return objectAlternatives(node, scopes, depth, seen)
+        // EVERY property is scanned — the bound applies to distinct summaries,
+        // not to how far into the object we got, so a late entry cannot hide.
+        let out = []
+        for (const prop of node.properties) {
+            if (!ts.isPropertyAssignment(prop)) continue
+            out = union(out, alternatives(prop.initializer, ctx, depth + 1, seen))
+        }
+        return out.length ? out : NOTHING
     }
-    if (ts.isSpreadElement(node)) return alternatives(node.expression, scopes, depth + 1, seen)
+    if (ts.isSpreadElement(node)) return alternatives(node.expression, ctx, depth + 1, seen)
     if (ts.isCallExpression(node)) {
         const name = calleeName(node)
-        // `[...].join(' ')` — the form the header called out by name.
         if (name === 'join' && ts.isPropertyAccessExpression(node.expression)) {
-            return alternatives(node.expression.expression, scopes, depth + 1, seen)
+            return alternatives(node.expression.expression, ctx, depth + 1, seen)
         }
         if (name && BUILDERS.has(name)) {
             let out = NOTHING
-            for (const arg of node.arguments) out = product(out, alternatives(arg, scopes, depth + 1, seen))
+            for (const arg of node.arguments) out = product(out, alternatives(arg, ctx, depth + 1, seen))
             return out
         }
         return NOTHING
     }
     if (ts.isPropertyAccessExpression(node)) {
-        // `SIZES.sm` selects ONE entry — resolve the key rather than taking the
-        // whole table, which is how a two-variant map read as a stack.
-        const selected = propertyByName(node.expression, node.name.text, scopes, depth, seen)
-        if (selected) return alternatives(selected, scopes, depth + 1, seen)
-        return alternatives(node.expression, scopes, depth + 1, seen)
+        const selected = propertyByName(node.expression, node.name.text, ctx, depth, seen)
+        if (selected) return alternatives(selected, ctx, depth + 1, seen)
+        return alternatives(node.expression, ctx, depth + 1, seen)
     }
     if (ts.isElementAccessExpression(node)) {
         const arg = node.argumentExpression
         if (arg && ts.isStringLiteral(arg)) {
-            const selected = propertyByName(node.expression, arg.text, scopes, depth, seen)
-            if (selected) return alternatives(selected, scopes, depth + 1, seen)
+            const selected = propertyByName(node.expression, arg.text, ctx, depth, seen)
+            if (selected) return alternatives(selected, ctx, depth + 1, seen)
         }
-        // Unknown index: every entry is a candidate, each on its own.
-        return alternatives(node.expression, scopes, depth + 1, seen)
+        return alternatives(node.expression, ctx, depth + 1, seen)
     }
     if (ts.isIdentifier(node)) {
         if (seen.has(node.text)) return NOTHING
-        const decl = lookup(scopes, node.text)
-        if (!decl) return NOTHING
+        const bound = lookup(ctx.scopes, node.text)
+        if (!bound || bound === OPAQUE) return NOTHING
         const next = new Set(seen)
         next.add(node.text)
-        return alternatives(decl, scopes, depth + 1, next)
+        return alternatives(bound, ctx, depth + 1, next)
     }
     return NOTHING
 }
 
 /**
- * `const` bindings declared directly in a scope's statement list.
+ * Bindings a scope introduces.
  *
- * `const` only: a `let` or `var` can be reassigned after the declaration the
- * scanner would read, so inlining its initializer reports a class list that may
- * never exist. Per-scope, not file-wide: a flat name→initializer map let a
- * later declaration in an unrelated function overwrite an earlier one, which
- * both hid real stacks and invented fake ones depending on source order.
+ * EVERY declaration is recorded, including ones we refuse to inline. A binding
+ * that is merely absent from the map falls through to an outer scope — which is
+ * how a function parameter named `style` resolved to an unrelated module-level
+ * `const style` and reported a stack the parameter never carries. Only `const`
+ * initializers are inlined; parameters, `let`, `var` and function names are
+ * recorded as OPAQUE, which stops the walk without inventing a value.
  */
-function scopeBindings(statements) {
+function declarationBindings(statements) {
     const bindings = new Map()
     for (const statement of statements ?? []) {
-        if (!ts.isVariableStatement(statement)) continue
-        // eslint-disable-next-line no-bitwise
-        if (!(statement.declarationList.flags & ts.NodeFlags.Const)) continue
-        for (const decl of statement.declarationList.declarations) {
-            if (ts.isIdentifier(decl.name) && decl.initializer) bindings.set(decl.name.text, decl.initializer)
+        if (ts.isVariableStatement(statement)) {
+            // eslint-disable-next-line no-bitwise
+            const isConst = !!(statement.declarationList.flags & ts.NodeFlags.Const)
+            for (const decl of statement.declarationList.declarations) {
+                if (!ts.isIdentifier(decl.name)) continue
+                bindings.set(decl.name.text, isConst && decl.initializer ? decl.initializer : OPAQUE)
+            }
+        } else if (ts.isFunctionDeclaration(statement) && statement.name) {
+            bindings.set(statement.name.text, OPAQUE)
+        } else if (ts.isClassDeclaration(statement) && statement.name) {
+            bindings.set(statement.name.text, OPAQUE)
+        } else if (ts.isImportDeclaration(statement)) {
+            const clause = statement.importClause
+            if (clause?.name) bindings.set(clause.name.text, OPAQUE)
+            const named = clause?.namedBindings
+            if (named && ts.isNamedImports(named)) {
+                for (const el of named.elements) bindings.set(el.name.text, OPAQUE)
+            } else if (named && ts.isNamespaceImport(named)) {
+                bindings.set(named.name.text, OPAQUE)
+            }
         }
     }
     return bindings
 }
 
-function createsScope(node) {
+/** Parameter names of a function-like node, all OPAQUE — they shadow, they never inline. */
+function parameterBindings(node) {
+    const bindings = new Map()
+    const record = (name) => {
+        if (ts.isIdentifier(name)) {
+            bindings.set(name.text, OPAQUE)
+        } else if (ts.isObjectBindingPattern(name) || ts.isArrayBindingPattern(name)) {
+            for (const el of name.elements) if (ts.isBindingElement(el)) record(el.name)
+        }
+    }
+    for (const param of node.parameters ?? []) record(param.name)
+    return bindings
+}
+
+function isFunctionLike(node) {
+    return (
+        ts.isFunctionDeclaration(node) ||
+        ts.isFunctionExpression(node) ||
+        ts.isArrowFunction(node) ||
+        ts.isMethodDeclaration(node) ||
+        ts.isConstructorDeclaration(node) ||
+        ts.isGetAccessorDeclaration(node) ||
+        ts.isSetAccessorDeclaration(node)
+    )
+}
+
+function statementScope(node) {
     return ts.isSourceFile(node) || ts.isBlock(node) || ts.isModuleBlock(node) || ts.isCaseBlock(node)
 }
 
 /**
- * Every class list in a file, as arrays of positioned string pieces.
+ * Every distinct token+weight stack in a file, as dedupe keys.
  *
- * Four producers, matching what the regex scanner covered plus what it could
- * not reach: `*ClassName` JSX attributes, builder calls, standalone template
- * literals, and variable initializers (the pre-AST scanner caught the last as
- * a per-line pass over whatever text the region-finders had not consumed).
- *
- * Overlap is expected and harmless — a builder call inside a className
- * attribute is reached twice — because callers dedupe on the LITERAL POSITIONS
- * a match came from, not on the class list.
+ * Keyed on the source positions of the literals that produced the pair rather
+ * than per class list: a drifted constant read in five places is one thing to
+ * fix, and it also collapses the natural overlap between producers (a builder
+ * call nested inside a className attribute is reached twice).
  *
  * Returns `null` when the source does not parse cleanly, so the caller can fall
  * back rather than trust a recovered tree.
  */
-function classLists(text, filename = 'file.tsx') {
+function weightStackSites(text, filename, { isToken, isWeight }) {
     // Script kind by extension. TSX is not a superset: in a .ts file `<T>value`
     // is a type assertion and `<T,>(x) => x` a generic arrow, and parsing those
-    // as TSX yields syntax errors on perfectly good source. The default stays
-    // TSX for bare snippets, which are the JSX ones.
+    // as TSX yields syntax errors on perfectly good source.
     const kind = filename.endsWith('.ts') ? ts.ScriptKind.TS : ts.ScriptKind.TSX
     const source = ts.createSourceFile(filename, text, ts.ScriptTarget.Latest, true, kind)
     // `createSourceFile` does not throw on a syntax error — it recovers, and the
     // recovered tree can be missing whole statements the source really has. A
     // scanner that walked one of those would under-report on exactly the files
     // it could not read, which is a ratchet with the tension quietly let out.
-    // `parseDiagnostics` is not in TS's public types, hence the runtime guard:
-    // absent, we treat the parse as untrusted.
     const diagnostics = source.parseDiagnostics
     if (!Array.isArray(diagnostics) || diagnostics.length > 0) return null
 
-    const lists = []
-    const scopes = []
+    const ctx = { scopes: [], isToken, isWeight }
+    const sites = new Set()
+    const record = (alts) => {
+        for (const alt of alts) if (isMatch(alt)) sites.add(altKey(alt))
+    }
 
     const visit = (node) => {
-        const opensScope = createsScope(node)
-        if (opensScope) scopes.push(scopeBindings(node.statements))
+        const scopes = []
+        if (statementScope(node)) scopes.push(declarationBindings(node.statements))
+        if (isFunctionLike(node)) scopes.push(parameterBindings(node))
+        for (const scope of scopes) ctx.scopes.push(scope)
 
         if (ts.isJsxAttribute(node) && node.name && isClassNameProp(node.name.getText(source))) {
             const init = node.initializer
             const expr = init && ts.isJsxExpression(init) ? init.expression : init
-            if (expr) lists.push(...alternatives(expr, scopes))
+            if (expr) record(alternatives(expr, ctx))
         } else if (ts.isCallExpression(node)) {
             const name = calleeName(node)
-            if (name && BUILDERS.has(name)) lists.push(...alternatives(node, scopes))
+            if (name && BUILDERS.has(name)) record(alternatives(node, ctx))
         } else if (ts.isVariableDeclaration(node) && node.initializer) {
-            lists.push(...alternatives(node.initializer, scopes))
+            record(alternatives(node.initializer, ctx))
         } else if (ts.isNoSubstitutionTemplateLiteral(node) || ts.isTemplateExpression(node)) {
-            lists.push(...alternatives(node, scopes))
+            record(alternatives(node, ctx))
         }
         ts.forEachChild(node, visit)
 
-        if (opensScope) scopes.pop()
+        for (let i = 0; i < scopes.length; i++) ctx.scopes.pop()
     }
     visit(source)
 
-    return lists.filter((list) => list.length > 0)
+    return sites
 }
 
-module.exports = { classLists, alternatives, scopeBindings, BUILDERS }
+module.exports = { weightStackSites, BUILDERS, OPAQUE }

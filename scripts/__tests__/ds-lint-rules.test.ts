@@ -219,6 +219,47 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
         expect(countWeightStacks("const SIZES = { sm: 'text-body-m font-semibold' }; const c = SIZES[v]")).toBe(1)
     })
 
+    it('does not stack two overflow variants against each other', () => {
+        // Merging overflow into one list recreated the very cross-variant stack
+        // the alternatives model exists to prevent, just past the ceiling.
+        const clean = Array.from({ length: 64 }, (_, i) => `    k${i}: 'text-body-m',`).join('\n')
+        expect(countWeightStacks(`const S = {\n${clean}\n    a: 'text-body-m',\n    b: 'font-semibold',\n}`)).toBe(0)
+    })
+
+    it('does not truncate a late map entry into invisibility', () => {
+        // Bounding by PIECES meant a real stack far enough down the object was
+        // sliced off and reported zero. The bound is on distinct summaries now,
+        // and keeps matches first, so it can cost precision but never a finding.
+        const big = Array.from({ length: 600 }, (_, i) => `    k${i}: 'text-body-m',`).join('\n')
+        expect(countWeightStacks(`const S = {\n${big}\n    late: 'text-body-m font-semibold',\n}`)).toBe(1)
+    })
+
+    it('lets a parameter shadow an outer const', () => {
+        // A binding merely ABSENT from the scope map falls through to an outer
+        // scope, so a parameter named `style` resolved to an unrelated
+        // module-level const and reported a stack the parameter never carries.
+        expect(
+            countWeightStacks(
+                "const style = 'text-body-m'; function clean(style) { return clsx(style, 'font-semibold') }"
+            )
+        ).toBe(0)
+        // arrow params and destructured params shadow too
+        expect(
+            countWeightStacks("const style = 'text-body-m'; const f = (style) => clsx(style, 'font-semibold')")
+        ).toBe(0)
+        expect(
+            countWeightStacks("const style = 'text-body-m'; const f = ({ style }) => clsx(style, 'font-semibold')")
+        ).toBe(0)
+        // ...and an inner `let` shadows without being inlined
+        expect(
+            countWeightStacks(
+                "const style = 'text-body-m'; function f() { let style = 'x'; return clsx(style, 'font-semibold') }"
+            )
+        ).toBe(0)
+        // the genuine outer-const stack is still counted
+        expect(countWeightStacks("const style = 'text-body-m'; const c = clsx(style, 'font-semibold')")).toBe(1)
+    })
+
     it('still sees drift in a map entry past the alternatives ceiling', () => {
         // Returning early at the cap was a false NEGATIVE with teeth: 64 clean
         // entries followed by a drifted one walked past the ratchet entirely.
