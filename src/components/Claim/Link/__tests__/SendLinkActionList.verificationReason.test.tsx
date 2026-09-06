@@ -87,6 +87,9 @@ jest.mock('@/context/tokenSelector.context', () => ({
 
 const bankMethod = { id: 'bank', title: 'Bank', description: 'EUR, USD & more', icons: [], soon: false }
 const mercadoPagoMethod = { id: 'mercadopago', title: 'Mercado Pago', description: 'ARS', icons: [], soon: false }
+// An unrecognised recipient — the only case where the rails render at all.
+jest.mock('@/hooks/useKnownPeanutDevice', () => ({ useKnownPeanutDevice: () => false }))
+
 jest.mock('@/hooks/useGeoFilteredPaymentOptions', () => ({
     useGeoFilteredPaymentOptions: () => ({ filteredMethods: [bankMethod, mercadoPagoMethod], isLoading: false }),
 }))

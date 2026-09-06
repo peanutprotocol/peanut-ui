@@ -64,7 +64,7 @@ export function FAQsPanel({ heading, questions, learnMoreLabel = 'Learn more' }:
                         >
                             <summary className="font-roboto-flex-extrabold flex cursor-pointer list-none items-center justify-between gap-4 text-lg font-extraBlack uppercase md:text-xl [&::-webkit-details-marker]:hidden">
                                 <span>{faq.question}</span>
-                                <span className="shrink-0 text-3xl leading-none transition-transform duration-200 group-open:rotate-45">
+                                <span className="shrink-0 text-3xl leading-none transition-transform duration-fast group-open:rotate-45">
                                     +
                                 </span>
                             </summary>

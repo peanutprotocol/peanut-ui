@@ -46,7 +46,7 @@ const NetworkButton: React.FC<NetworkButtonProps> = ({
                 )}
             >
                 {isSearch ? (
-                    <Icon name="cancel" size={12} className="size-4 rotate-45" />
+                    <Icon name="cancel" size={16} className="size-4 rotate-45" />
                 ) : chainIconURI && !chainImageError ? (
                     <Image
                         src={chainIconURI}
@@ -60,9 +60,7 @@ const NetworkButton: React.FC<NetworkButtonProps> = ({
                     <AvatarWithBadge size="extra-small" name={chainName} />
                 )}
             </div>
-            <span className="text-body-s font-medium">
-                {isSearch ? t('tokenSelector.moreNetworksButton') : chainName}
-            </span>
+            <span className="text-body-s">{isSearch ? t('tokenSelector.moreNetworksButton') : chainName}</span>
         </Button>
     )
 }

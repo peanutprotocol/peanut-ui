@@ -11,9 +11,9 @@ interface ChainChipProps {
 
 const ChainChip = ({ chainName, chainSymbol, logo, logoClassName }: ChainChipProps) => {
     return (
-        <Card className="flex w-fit flex-row items-center gap-1 rounded-full border-0 bg-transparent p-1 px-1.5">
-            {chainSymbol && <Image src={chainSymbol} alt={chainName} width={18} height={18} />}
-            {logo && <Icon name={logo} width={18} height={18} className={logoClassName} />}
+        <Card className="flex w-fit flex-row items-center gap-1 rounded-full border-0 bg-transparent p-1 px-2">
+            {chainSymbol && <Image src={chainSymbol} alt={chainName} width={16} height={16} />}
+            {logo && <Icon name={logo} width={16} height={16} className={logoClassName} />}
             <p className="text-body-xs text-foreground-primary">{chainName}</p>
         </Card>
     )

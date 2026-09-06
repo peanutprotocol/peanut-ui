@@ -251,6 +251,33 @@ describe('LinkSendInitialView sub-minimum fiat-claim warning', () => {
     })
 })
 
+// TASK-22121 #26: validation errors are field-level — they must render under
+// the amount input and leave the primary CTA intact. Only submit-time (flow)
+// failures may flip the CTA to Retry.
+describe('LinkSendInitialView validation errors keep the primary CTA', () => {
+    test('balance shortfall shows the field error without flipping Create link to Retry', async () => {
+        mockUseWallet.mockReturnValue(walletState(10))
+
+        renderView('20')
+        await waitFor(() =>
+            expect(screen.getByTestId('error-alert')).toHaveTextContent(en.errors.notEnoughBalanceAddFunds)
+        )
+        expect(screen.getByText('Create link')).toBeInTheDocument()
+        expect(screen.queryByText('Retry')).not.toBeInTheDocument()
+    })
+
+    test('a submit-time failure still flips the CTA to Retry', async () => {
+        mockUseWallet.mockReturnValue(walletState(100))
+        mockCreateLink.mockRejectedValue(new Error(COOLDOWN_MESSAGE))
+
+        renderView('20')
+        fireEvent.click(screen.getByText('Create link'))
+        await waitFor(() => expect(screen.getByTestId('error-alert')).toHaveTextContent(COOLDOWN_MESSAGE))
+        expect(screen.getByText('Retry')).toBeInTheDocument()
+        expect(screen.queryByText('Create link')).not.toBeInTheDocument()
+    })
+})
+
 // TASK-21669: "0"/"0.00" are truthy strings — they used to pass the string-
 // truthiness guard and create a real zero-value on-chain link.
 describe('LinkSendInitialView zero-amount gate', () => {

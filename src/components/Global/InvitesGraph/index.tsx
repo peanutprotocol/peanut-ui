@@ -35,6 +35,7 @@ import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { openExternalUrl } from '@/utils/capacitor'
 import { profileUrl } from '@/utils/native-routes'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -2254,8 +2255,10 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                                 />
                                 {searchQuery && (
                                     <button
+                                        type="button"
+                                        aria-label={t('tokenSelector.clearSearch')}
                                         onClick={handleClearSearch}
-                                        className="absolute top-1/2 right-2 -translate-y-1/2 rounded p-1 transition-colors"
+                                        className="absolute top-1/2 right-2 -translate-y-1/2 rounded p-1 transition-opacity duration-instant after:absolute after:-inset-3 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
                                     >
                                         <Icon name="cancel" size={14} />
                                     </button>
@@ -2324,9 +2327,9 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                                       selectedUserId}
                             </span>
                         </span>
-                        <button onClick={handleResetView} className="ml-2 font-semibold underline">
+                        <LinkButton onClick={handleResetView} className="ml-2">
                             {t('invitesGraph.clear')}
-                        </button>
+                        </LinkButton>
                     </div>
                 )}
             </div>

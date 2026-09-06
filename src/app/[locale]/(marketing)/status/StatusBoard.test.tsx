@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { OperationalDonut, StatusBoard, operationalScore } from './StatusBoard'
+import { OperationalDonut, StatusBanner, StatusBoard, operationalScore } from './StatusBoard'
 import { getTranslations } from '@/i18n'
 import type { StatusProvider, StatusSummary } from './types'
 
@@ -138,6 +138,41 @@ describe('StatusBoard', () => {
         expect(screen.queryByRole('img', { name: /operational —/ })).not.toBeInTheDocument()
         expect(screen.queryByText(/services operational/)).not.toBeInTheDocument()
         expect(screen.getByText('App & Account')).toBeInTheDocument()
+    })
+
+    // The outage of 2026-09-03 was legible on this page only as the colour of
+    // a 2px dot some rows down the list.
+    it('leads with the verdict once anything is not operational', () => {
+        render(<StatusBoard summary={summary({ state: 'down' })} locale="en" i18n={i18n} />)
+        expect(screen.getByText('Service outage')).toBeInTheDocument()
+    })
+
+    // Grey reads as "nothing to see here", which is the opposite of what not
+    // knowing whether Peanut is up should convey.
+    it('treats an unknown overall state as an outage, not as a neutral notice', () => {
+        const { container } = render(<StatusBanner state="unknown" title="Status unavailable" />)
+        expect(container.firstElementChild?.className).toContain('bg-error-1')
+    })
+
+    it('says a bar with no checks was unmonitored rather than showing 0/0', () => {
+        const blind = summary({
+            state: 'down',
+            providers: KEYS.map((key) =>
+                key === 'app'
+                    ? provider(key, {
+                          state: 'down',
+                          buckets: provider(key).buckets.map((bucket, hour) =>
+                              hour === 30 ? { ...bucket, state: 'down' as const, checks: 0, failures: 0 } : bucket
+                          ),
+                      })
+                    : provider(key)
+            ),
+        })
+
+        render(<StatusBoard summary={blind} locale="en" i18n={i18n} />)
+
+        expect(screen.getByTitle(/No data — monitoring was unavailable/)).toBeInTheDocument()
+        expect(screen.queryByTitle(/0\/0/)).not.toBeInTheDocument()
     })
 })
 

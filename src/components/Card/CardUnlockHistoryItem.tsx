@@ -28,7 +28,7 @@ interface Props {
     username?: string
     /** Full user-badges payload (with `earnedAt`) — drawer stamps every
      *  badge the user holds, not just the skip-the-line subset. */
-    badges?: Array<{ code: string; iconUrl?: string | null; earnedAt?: string | Date | null }>
+    badges?: Array<{ code: string; iconUrl?: string | null; earnedAt?: string | Date | null; isVisible?: boolean }>
 }
 
 const VIA_COPY_KEYS = {
@@ -54,7 +54,7 @@ const CardUnlockHistoryItem: FC<Props> = ({ entry, position = 'single', classNam
                 aria-label={t('openAssetAria', { title })}
                 leading={
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-200">
-                        <Icon name="credit-card" size={18} />
+                        <Icon name="credit-card" size={20} />
                     </div>
                 }
                 title={title}

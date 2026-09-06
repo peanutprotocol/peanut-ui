@@ -27,7 +27,10 @@ jest.mock('@/hooks/useNetworkStatus', () => ({
 jest.mock('@/hooks/useAccountSetupRedirect', () => ({
     useAccountSetupRedirect: () => ({ needsRedirect: false, isCheckingAccount: false }),
 }))
-jest.mock('@/hooks/usePullToRefresh', () => ({ usePullToRefresh: jest.fn() }))
+jest.mock('@/hooks/usePullToRefresh', () => ({
+    usePullToRefresh: jest.fn(),
+    useShouldPullToRefresh: () => () => true,
+}))
 jest.mock('@/hooks/useNativePlugins', () => ({ useNativePlugins: jest.fn() }))
 jest.mock('@/hooks/useKeepWebBypass', () => ({ useKeepWebBypass: () => false }))
 jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => false }))

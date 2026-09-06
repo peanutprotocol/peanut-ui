@@ -60,7 +60,7 @@ const Section: React.FC<SectionProps> = ({ title, icon, children, className, tit
     <div className={twMerge('space-y-2', className)}>
         <div className="flex items-center gap-2">
             {icon && <Icon name={icon} size={16} className="text-foreground-secondary" />}
-            <h2 className={twMerge('text-body-m font-bold text-foreground-primary', titleClassName)}>{title}</h2>
+            <h2 className={twMerge('text-body-m-semibold text-foreground-primary', titleClassName)}>{title}</h2>
         </div>
         {children}
     </div>
@@ -396,7 +396,12 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     const clearChainSelection = () => {
         return (
             <div className="absolute -top-4 right-0">
-                <Button variant="transparent" className="h-fit w-fit p-0" onClick={handleClearSelectedToken}>
+                <Button
+                    variant="transparent"
+                    aria-label={t('tokenSelector.clearNetworkSelection')}
+                    className="relative h-fit w-fit p-0 after:absolute after:-inset-3"
+                    onClick={handleClearSelectedToken}
+                >
                     <div className="flex size-6 items-center justify-center">
                         <Icon name="cancel" className="h-4 w-4" />
                     </div>
@@ -446,10 +451,10 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                             )}
                         </div>
                         <div className="flex flex-col items-start overflow-hidden">
-                            <span className="truncate text-body-m font-semibold text-foreground-primary">
+                            <span className="truncate text-body-m-semibold text-foreground-primary">
                                 {buttonSymbol || t('tokenSelector.selectAToken')}
                                 {buttonChainName && (
-                                    <span className="ml-1 text-body-s font-medium text-foreground-secondary">
+                                    <span className="ml-1 text-body-s text-foreground-secondary">
                                         {t.rich('tokenSelector.onChain', {
                                             chainName: buttonChainName,
                                             c: (chunks) => <span className="capitalize">{chunks}</span>,
@@ -461,7 +466,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                             {(viewType === 'withdraw' || viewType === 'claim') &&
                                 selectedTokenAddress?.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase() &&
                                 selectedChainID === PEANUT_WALLET_CHAIN.id.toString() && (
-                                    <span className="text-body-xs font-normal text-foreground-secondary">
+                                    <span className="text-body-xs text-foreground-secondary">
                                         {t('tokenSelector.noFeesWithToken')}
                                     </span>
                                 )}
@@ -490,7 +495,6 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                 {/* Info banner when cross-chain is disabled */}
                                 {isCrossChainDisabled && (
                                     <div className="flex items-center gap-2 rounded-sm bg-background-badge-attention p-3 text-body-s text-foreground-primary">
-                                        <Icon name="info" size={16} className="flex-shrink-0" />
                                         <span>{t('tokenSelector.crossChainUnavailable')}</span>
                                     </div>
                                 )}
@@ -538,8 +542,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                             placeholder={t('tokenSelector.searchTokenPlaceholder')}
                                         />
                                         <div className="flex items-center justify-center gap-2">
-                                            <Icon name="info" size={10} className="text-foreground-secondary" />
-                                            <span className="text-body-xs font-normal text-foreground-secondary">
+                                            <span className="text-body-xs text-foreground-secondary">
                                                 {t('tokenSelector.sponsoredHint')}
                                             </span>
                                         </div>

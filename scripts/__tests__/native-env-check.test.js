@@ -5,12 +5,12 @@ const Module = require('module')
 
 const SCRIPT_PATH = path.join(__dirname, '..', 'native-build.js')
 
-// native-build.js is a script, not a module: it calls main() at import time and
-// exports nothing. Load the real source with that call stripped so the env check
+// native-build.js is a script first: it calls main() when run directly and only
+// exports ITEMS_TO_DISABLE. Load the real source with that call stripped so the env check
 // can be asserted against the list the build actually enforces.
 function loadScriptInternals() {
     const source = fs.readFileSync(SCRIPT_PATH, 'utf-8')
-    const withoutEntrypoint = source.replace(/\nmain\(\)\s*$/, '\n')
+    const withoutEntrypoint = source.replace(/\nif \(require\.main === module\) main\(\)\s*$/, '\n')
     expect(withoutEntrypoint).not.toBe(source)
 
     const exposed =

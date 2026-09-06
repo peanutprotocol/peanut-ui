@@ -54,8 +54,8 @@ export const GuestVerificationModal = ({
                 },
                 {
                     text: secondaryCtaLabel,
-                    variant: 'transparent',
-                    className: 'w-full h-auto underline font-semibold text-body-s underline-offset-2',
+                    variant: 'stroke',
+                    className: 'w-full',
                     onClick: () => {
                         onClose()
                     },

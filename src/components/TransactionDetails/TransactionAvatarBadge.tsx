@@ -1,4 +1,5 @@
 import { type IconName } from '@/components/Global/Icons/Icon'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import AvatarWithBadge, { type AvatarSize } from '@/components/Profile/AvatarWithBadge'
 import { type TransactionType } from '@/components/TransactionDetails/transaction-types'
 import {
@@ -49,6 +50,16 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
 
     // determine if the userName represents a user (not address or specific strings)
     const isValidUser = userName ? !isAddress(userName) : false
+
+    // An unfulfilled request has no counterparty — its display name is the
+    // literal "Request", which used to render as an "RE" initials avatar and
+    // read like a contact. Per designer QA it is an IconBubble with the
+    // transaction-type icon (arrow-down-left, same as the row's action icon).
+    // Link-requests keep the link treatment below.
+    if (transactionType === 'request' && !isLinkTransaction) {
+        const bubbleSize = ({ tiny: 'xs', 'extra-small': 's', small: 'm', medium: 'm', large: 'l' } as const)[size]
+        return <IconBubble icon="arrow-down-left" size={bubbleSize} color="green" />
+    }
 
     // determine Icon, background, and colors based on type and context
     switch (transactionType) {

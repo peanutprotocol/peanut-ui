@@ -126,7 +126,7 @@ export const SendRouterView = () => {
                         ...method,
                         title: t('methods.exchangeOrWalletTitle'),
                         description: t('methods.exchangeOrWalletDescription'),
-                        identifierIcon: <IconBubble icon="credit-card" size="s" color="yellow" />,
+                        identifierIcon: <IconBubble icon="credit-card" size="s" color="blue" />,
                     }
                 case 'pix':
                     return {
@@ -194,11 +194,11 @@ export const SendRouterView = () => {
         <div className="space-y-8">
             <NavHeader title={tNav('send')} onPrev={handlePrev} />
             <div className="space-y-4 w-full">
-                {/* link card per the SendLink board (17832:79996): yellow icon
-                    bubble, centered title + sub, full-width purple cta */}
+                {/* link card per the SendLink board (17832:79996): icon bubble,
+                    centered title + sub, full-width purple cta */}
                 <Card position="single" className="flex flex-col items-center gap-6 p-6">
                     <div className="flex flex-col items-center gap-2">
-                        <IconBubble icon="link" size="m" color="yellow" />
+                        <IconBubble icon="link" size="m" color="blue" />
                         <div className="space-y-1 text-center">
                             <div className="text-heading-card text-foreground-primary">{t('linkCard.title')}</div>
                             <div className="text-body-m text-foreground-secondary">{t('linkCard.description')}</div>

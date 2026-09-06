@@ -308,4 +308,20 @@ describe('TransactionCard — open-request pending exemption', () => {
         expect(pendingPill(container)).not.toBeNull()
         expect(screen.getByText('-$10')).toHaveClass('opacity-40')
     })
+
+    // ruled 2026-09-03 (Kush): a pending card payment keeps its full-strength
+    // amount — the spend is already committed — while the pending chip stays
+    it('keeps the amount full-strength for a pending card payment', () => {
+        const tx = { ...cardSpendTx({}), status: 'pending' } as TransactionDetails
+        const { container } = renderPending(tx, 'send')
+        expect(pendingPill(container)).not.toBeNull()
+        expect(screen.getByText('-$10')).not.toHaveClass('opacity-40')
+    })
+
+    // a pending refund CREDIT has not settled — full-strength would overpromise
+    it('keeps a pending card refund greyed', () => {
+        const tx = { ...cardSpendTx({ isRefund: true }), status: 'pending', direction: 'receive' } as TransactionDetails
+        renderPending(tx, 'receive')
+        expect(screen.getByText('+$10')).toHaveClass('opacity-40')
+    })
 })

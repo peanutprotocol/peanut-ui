@@ -24,10 +24,10 @@ jest.mock('@/config/underMaintenance.config', () => ({
     },
 }))
 
-const renderBanner = () =>
+const renderBanner = (props?: { variant?: 'feature' | 'global' }) =>
     render(
         <NextIntlClientProvider locale="en" messages={en}>
-            <Banner />
+            <Banner {...props} />
         </NextIntlClientProvider>
     )
 
@@ -39,7 +39,7 @@ describe('Banner maintenance path targeting', () => {
     })
 
     it('shows on every page when no paths are configured', () => {
-        mockPathname.mockReturnValue('/home')
+        mockPathname.mockReturnValue('/history')
         renderBanner()
         expect(screen.getByText(en.global.maintenanceBanner)).toBeInTheDocument()
     })
@@ -53,17 +53,44 @@ describe('Banner maintenance path targeting', () => {
 
     it('hides on a page outside the targeted paths', () => {
         mockConfig.maintenanceBannerPaths = ['/add-money']
-        mockPathname.mockReturnValue('/home')
+        mockPathname.mockReturnValue('/history')
         const { container } = renderBanner()
         expect(container).toBeEmptyDOMElement()
+    })
+
+    // full maintenance is a global outage — the feature copy's "everything
+    // else works as usual" would be a lie, so the global one-liner wins
+    it('full maintenance forces the global copy even on a feature mount', () => {
+        mockConfig.enableMaintenanceBanner = false
+        mockConfig.enableFullMaintenance = true
+        mockPathname.mockReturnValue('/card')
+        renderBanner({ variant: 'feature' })
+        expect(screen.getByText(en.global.maintenanceBanner)).toBeInTheDocument()
+        expect(screen.queryByText(en.global.maintenanceBody)).not.toBeInTheDocument()
     })
 
     it('full maintenance ignores path targeting', () => {
         mockConfig.enableMaintenanceBanner = false
         mockConfig.enableFullMaintenance = true
         mockConfig.maintenanceBannerPaths = ['/add-money']
-        mockPathname.mockReturnValue('/home')
+        mockPathname.mockReturnValue('/history')
         renderBanner()
         expect(screen.getByText(en.global.maintenanceBanner)).toBeInTheDocument()
+    })
+
+    // designer ruling 2026-09-03: a maintenance warning on the money overview
+    // reads as "funds at risk" — home never shows it, whatever the config says
+    it('never shows on home, even when every page is targeted', () => {
+        mockPathname.mockReturnValue('/home')
+        const { container } = renderBanner()
+        expect(container).toBeEmptyDOMElement()
+    })
+
+    it('never shows on home, even under full maintenance', () => {
+        mockConfig.enableMaintenanceBanner = false
+        mockConfig.enableFullMaintenance = true
+        mockPathname.mockReturnValue('/home')
+        const { container } = renderBanner()
+        expect(container).toBeEmptyDOMElement()
     })
 })

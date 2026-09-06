@@ -7,7 +7,7 @@
  * degraded the Rain lookup).
  */
 import React from 'react'
-import { render as rtlRender, screen } from '@testing-library/react'
+import { fireEvent, render as rtlRender, screen } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import CardFace, { type RevealedCardDetails } from '@/components/Card/CardFace'
 
@@ -20,6 +20,17 @@ const revealed: RevealedCardDetails = {
     expiryYear: 2030,
     cardholderName: 'Jane Doe',
 }
+
+describe('CardFace copy buttons', () => {
+    it('copies the expiry as MM/YY with its own button', () => {
+        const onCopy = jest.fn()
+        render(<CardFace last4="1234" revealed={revealed} onCopy={onCopy} />)
+        fireEvent.click(screen.getByRole('button', { name: 'Copy expiry date' }))
+        expect(onCopy).toHaveBeenCalledWith('12/30', 'expiry')
+        fireEvent.click(screen.getByRole('button', { name: 'Copy CVV' }))
+        expect(onCopy).toHaveBeenCalledWith('123', 'cvv')
+    })
+})
 
 describe('CardFace cardholder name', () => {
     it('shows the registered name when the card is revealed', () => {

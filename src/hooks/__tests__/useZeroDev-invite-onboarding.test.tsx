@@ -74,10 +74,6 @@ jest.mock('@/services/invites', () => ({
 jest.mock('@/services/invite-acquisition', () => ({
     settleAcceptedInviteAcquisition: (...args: unknown[]) => mockSettleAcceptedInviteAcquisition(...args),
 }))
-jest.mock('@/services/registration-acquisition', () => ({
-    persistRegistrationBadgeCampaignDestination: (...args: unknown[]) =>
-        mockPersistRegistrationBadgeCampaignDestination(...args),
-}))
 jest.mock('@/app/shhhhh/shhhhh-acquisition', () => ({
     settleShhhhhCampaignContinuation: (...args: unknown[]) => mockSettleShhhhhCampaignContinuation(...args),
 }))
@@ -98,6 +94,7 @@ jest.mock('@/utils/walletCredential.utils', () => ({
 jest.mock('@/utils/webauthn.utils', () => ({
     capturePasskeySignFailure: jest.fn(),
     classifyPasskeyError: () => ({ code: 'UNKNOWN', message: 'unknown' }),
+    normalizePasskeyServerError: (e: unknown) => e,
 }))
 jest.mock('@sentry/nextjs', () => ({ captureException: (...args: unknown[]) => mockCaptureException(...args) }))
 jest.mock('posthog-js', () => ({ capture: (...args: unknown[]) => mockCapture(...args) }))

@@ -23,6 +23,7 @@
 //   node scripts/release-version.mjs native
 //   node scripts/release-version.mjs ota --current <version>
 //   node scripts/release-version.mjs staging
+//   node scripts/release-version.mjs native-floor
 //   node scripts/release-version.mjs validate <version> --kind <native|ota>
 //
 // Needs full history and tags (actions/checkout with fetch-depth: 0).
@@ -55,10 +56,12 @@ function main(argv) {
             return nextOta(major, flag(rest, '--current'))
         case 'staging':
             return `${major}.${latestBuild(major)}.${commitCount()}`
+        case 'native-floor':
+            return nativeFloor(major)
         case 'validate':
             return validate(major, rest[0], flag(rest, '--kind'))
         default:
-            throw new Error(`unknown mode "${mode ?? ''}" — expected native, ota, staging or validate`)
+            throw new Error(`unknown mode "${mode ?? ''}" — expected native, ota, staging, native-floor or validate`)
     }
 }
 
@@ -96,6 +99,17 @@ function commitCount() {
     const out = execFileSync('git', ['rev-list', '--count', 'HEAD'], { cwd: repoRoot, encoding: 'utf8' }).trim()
     if (!/^\d+$/.test(out)) throw new Error(`git rev-list returned "${out}"`)
     return Number(out)
+}
+
+// The newest native release, for a bundle's --min-update-version. A bundle
+// built from the current tree targets the newest shell, and Capgo's
+// --auto-min-update-version only copies the previous bundle's floor forward,
+// so on a checkout with no native version stamped on disk the floor never rose.
+function nativeFloor(major) {
+    const build = latestBuild(major)
+    if (build === 0)
+        throw new Error(`no v${major}.<build>.0 tag exists — cut a native release before publishing a bundle`)
+    return `${major}.${build}.0`
 }
 
 function validate(major, version, kind) {

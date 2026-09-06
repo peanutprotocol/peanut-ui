@@ -1,4 +1,32 @@
 import { isNativeBridge } from '@/utils/capacitor'
+import * as Sentry from '@/utils/sentry-lazy'
+
+const CLIPBOARD_WRITE_TIMEOUT_MS = 1000
+
+/**
+ * Android 13+ pops a system clipboard preview at the bottom-left on every
+ * write, and nothing inside the WebView can see or measure it. The toast stack
+ * reads this to lift itself clear for the moment one is on screen.
+ *
+ * Stamped here rather than passed as a flag from the eight call sites that
+ * copy-then-toast: the overlay is caused by the write, not by the toast, so a
+ * ninth call site gets the behaviour without having to remember it.
+ */
+let lastClipboardWriteAt = 0
+
+const markClipboardWrite = () => {
+    lastClipboardWriteAt = Date.now()
+}
+
+export const clipboardWrittenWithin = (ms: number): boolean =>
+    lastClipboardWriteAt !== 0 && Date.now() - lastClipboardWriteAt < ms
+
+/** test seam — there is no way to un-write a real clipboard */
+export const resetClipboardWriteMarkForTests = () => {
+    lastClipboardWriteAt = 0
+}
+
+const describeError = (err: unknown) => (err instanceof Error ? `${err.name}: ${err.message}` : String(err))
 
 /**
  * Copies text to the clipboard, reporting whether it actually landed.
@@ -6,42 +34,71 @@ import { isNativeBridge } from '@/utils/capacitor'
  * Native goes through the Capacitor plugin first: the WebView's
  * navigator.clipboard write is gated on a live user activation, which an await
  * on a network call (creating a link, say) has usually already spent.
+ *
+ * On the web, writeText is raced against a timeout (Brave iOS never settles
+ * it) and a rejection or a hang falls through to the legacy execCommand path.
+ * A copy that fails every path is captured to Sentry once, naming the methods
+ * that failed; the text itself never is.
  */
 export async function copyTextToClipboard(text: string): Promise<boolean> {
+    const failed: Record<string, string> = {}
+
     if (isNativeBridge()) {
         try {
             const { Clipboard } = await import('@capacitor/clipboard')
             await Clipboard.write({ string: text })
+            markClipboardWrite()
             return true
         } catch (err) {
-            console.error('Failed to copy: ', err)
+            failed.nativePlugin = describeError(err)
         }
     }
 
-    let textArea: HTMLTextAreaElement | undefined
-
-    try {
-        if (navigator.clipboard && window.isSecureContext) {
-            await navigator.clipboard.writeText(text)
+    if (navigator.clipboard && window.isSecureContext) {
+        let timer: ReturnType<typeof setTimeout> | undefined
+        try {
+            await Promise.race([
+                navigator.clipboard.writeText(text),
+                new Promise<never>((_, reject) => {
+                    timer = setTimeout(
+                        () => reject(new Error('navigator.clipboard.writeText timed out')),
+                        CLIPBOARD_WRITE_TIMEOUT_MS
+                    )
+                }),
+            ])
+            markClipboardWrite()
             return true
-        } else {
-            // Fallback for older browsers
-            textArea = document.createElement('textarea')
-            textArea.value = text
-            textArea.style.position = 'fixed'
-            textArea.style.left = '-999999px'
-            textArea.style.top = '-999999px'
-            document.body.appendChild(textArea)
-            textArea.focus()
-            textArea.select()
-            return document.execCommand('copy')
+        } catch (err) {
+            failed.clipboardApi = describeError(err)
+        } finally {
+            clearTimeout(timer)
         }
-    } catch (err) {
-        console.error('Failed to copy: ', err)
-        return false
-    } finally {
-        textArea?.remove()
     }
+
+    // Fallback for older browsers, and for a Clipboard API that rejected or hung
+    const textArea = document.createElement('textarea')
+    textArea.value = text
+    textArea.setAttribute('readonly', '')
+    textArea.style.position = 'fixed'
+    textArea.style.left = '-999999px'
+    textArea.style.top = '-999999px'
+    document.body.appendChild(textArea)
+    try {
+        textArea.focus()
+        textArea.select()
+        if (document.execCommand('copy')) {
+            markClipboardWrite()
+            return true
+        }
+        failed.execCommand = 'returned false'
+    } catch (err) {
+        failed.execCommand = describeError(err)
+    } finally {
+        textArea.remove()
+    }
+
+    Sentry.captureException(new Error('Clipboard copy failed'), { extra: { failed } })
+    return false
 }
 
 /**
@@ -86,7 +143,10 @@ export function beginClipboardCopy(): PendingClipboardCopy {
 
     // started here, inside the gesture; the text arrives later
     const reserved = navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]).then(
-        () => true,
+        () => {
+            markClipboardWrite()
+            return true
+        },
         (err) => {
             console.error('Failed to copy: ', err)
             return false

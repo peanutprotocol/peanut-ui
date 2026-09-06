@@ -60,7 +60,8 @@ export function BridgeDepositInstructions({ transaction }: { transaction: Transa
                     <span>{showBankDetails ? t('bridge.hideBankDetails') : t('bridge.seeBankDetails')}</span>
                     <Icon
                         name="chevron-up"
-                        className={`h-4 w-4 transition-transform ${!showBankDetails ? 'rotate-180' : ''}`}
+                        size={16}
+                        className={`transition-transform ${!showBankDetails ? 'rotate-180' : ''}`}
                     />
                 </button>
             </div>

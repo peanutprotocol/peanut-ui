@@ -1,6 +1,9 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { withNuqsTestingAdapter, type UrlUpdateEvent } from 'nuqs/adapters/testing'
 import { HomeActionDrawers } from '../components/HomeActionDrawers'
+import { resetBottomNavVisibilityForTests, useBottomNavHidden } from '@/utils/bottom-nav-visibility'
+
+const NavProbe = () => <span data-testid="nav-hidden">{String(useBottomNavHidden())}</span>
 
 // F-28: the real nuqs pipeline runs (parser, enum validation, url writes) via
 // the official testing adapter — the old suite mocked all of nuqs, so the
@@ -37,6 +40,7 @@ beforeAll(() => {
 
 beforeEach(() => {
     jest.clearAllMocks()
+    resetBottomNavVisibilityForTests()
 })
 
 const renderWithUrl = (search: string, onUrlUpdate?: (e: UrlUpdateEvent) => void) =>
@@ -78,5 +82,63 @@ describe('HomeActionDrawers', () => {
 
         // withdraw is reachable via the SEND drawer only (product ruling)
         expect(screen.queryByTestId('home-drawer-add-withdraw')).not.toBeInTheDocument()
+    })
+
+    /*
+     * The middle link of the returnTo chain (chip P23): bare /add-money
+     * redirects to /home?drawer=add&returnTo=X, and choosing an option must
+     * carry X onto the destination while CLEARING it from home's own history
+     * entry — a stale origin left behind would be forwarded into an
+     * unrelated flow on a later Add open.
+     */
+    it('carries returnTo onto the crypto destination and clears it from home', async () => {
+        const urlUpdates: UrlUpdateEvent[] = []
+        const origin = '/profile/exchange-rate?from=USD&to=EUR'
+        renderWithUrl(`?drawer=add&returnTo=${encodeURIComponent(origin)}`, (e) => urlUpdates.push(e))
+
+        fireEvent.click(screen.getByTestId('home-drawer-add-crypto'))
+        await waitFor(() =>
+            expect(mockPush).toHaveBeenCalledWith(`/add-money/crypto?returnTo=${encodeURIComponent(origin)}`)
+        )
+        const last = urlUpdates[urlUpdates.length - 1]
+        expect(last.searchParams.get('drawer')).toBeNull()
+        expect(last.searchParams.get('returnTo')).toBeNull()
+    })
+
+    it('carries returnTo onto the bank destination through the & separator branch', async () => {
+        const origin = '/profile/exchange-rate?from=USD&to=EUR'
+        renderWithUrl(`?drawer=add&returnTo=${encodeURIComponent(origin)}`)
+
+        fireEvent.click(screen.getByTestId('home-drawer-add-bank'))
+        await waitFor(() =>
+            expect(mockPush).toHaveBeenCalledWith(`/add-money?method=bank&returnTo=${encodeURIComponent(origin)}`)
+        )
+    })
+
+    it('hides the bottom nav while open and releases the hold once closed', async () => {
+        render(
+            <>
+                <NavProbe />
+                <HomeActionDrawers />
+            </>,
+            { wrapper: withNuqsTestingAdapter({ searchParams: '?drawer=send' }) }
+        )
+
+        expect(screen.getByTestId('nav-hidden')).toHaveTextContent('true')
+
+        fireEvent.click(screen.getByTestId('home-drawer-send-withdraw'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/withdraw'))
+        await waitFor(() => expect(screen.getByTestId('nav-hidden')).toHaveTextContent('false'))
+    })
+
+    it('leaves the bottom nav alone when no drawer is open', () => {
+        render(
+            <>
+                <NavProbe />
+                <HomeActionDrawers />
+            </>,
+            { wrapper: withNuqsTestingAdapter({ searchParams: '' }) }
+        )
+        expect(screen.getByTestId('nav-hidden')).toHaveTextContent('false')
     })
 })

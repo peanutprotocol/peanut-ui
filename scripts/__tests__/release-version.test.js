@@ -145,6 +145,28 @@ describe('release version resolver', () => {
         })
     })
 
+    describe('native-floor', () => {
+        // Only v<major>.<build>.0 tags are native releases: OTA tags, another major
+        // and the off-scheme v2026.02.26 on main must not become a floor.
+        it('picks the newest native release tag', () => {
+            const result = run(repo('1.0.53', { tags: ['v1.4.0', 'v1.4.2', 'v1.3.0', 'v2.1.0', 'v2026.02.26'] }), [
+                'native-floor',
+            ])
+
+            expect(result.status).toBe(0)
+            expect(result.stdout.trim()).toBe('1.4.0')
+        })
+
+        // A missing floor would upload a bundle every shell accepts, including the
+        // ones it was not built for — fail the lane instead.
+        it('fails when no native release tag exists', () => {
+            const result = run(repo('1.0.53', { tags: ['v1.0.0', 'v2026.02.26'] }), ['native-floor'])
+
+            expect(result.status).toBe(1)
+            expect(result.stderr).toMatch(/cut a native release/)
+        })
+    })
+
     describe('validate', () => {
         // `v*` is too loose a glob to reject this, and v2026.02.26 is a real tag on
         // main — it is X.Y.Z shaped, so only the major check catches it.

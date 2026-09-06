@@ -3,6 +3,7 @@
 import { railUserMessage, railVerdict } from '@/utils/capability-gate'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { type ActivationStep } from '@/hooks/useActivationStatus'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { useRouter } from 'next/navigation'
@@ -59,7 +60,8 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     // Card spend counts as activation too — card-access users get a card+QR
     // chooser on the outbound step instead of jumping straight to the scanner.
     // `undefined` while loading collapses to false → scanner behavior (never
-    // tease the card to a user we can't confirm has access).
+    // tease the card to a user we can't confirm has access), which is also why
+    // the scanner path must stand on its own QR-rail check below.
     const { hasCardAccess } = useCardInfo()
     // Suppress the "Unlock payments" verify CTA while identity is mid-flight
     // (Sumsub processing / action_required). The user already took the verify
@@ -71,6 +73,36 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         isRegionRestricted,
     } = useIdentityVerification()
     const residenceRestrictions = useResidenceRestrictions()
+
+    // Activation is one of exactly two events (BE, GET /users/me): a card spend
+    // authorization, or a Manteca QR pay on Pix / Mercado Pago. Send links,
+    // direct sends, offramps and withdrawals are volume, not activation — so
+    // the spend step is only honest while one of those two is open to the user.
+    //
+    // Keyed on the provider and the `pay` op, never on the channel: Pix is a
+    // BANK-channel method that happens to carry `pay` (peanut-api-ts
+    // METHOD_CHANNELS — MercadoPago is the only `qr-only` entry), and the QR
+    // pool enables its rails one at a time, so a `qr-only` filter silently
+    // drops every Brazilian user whose Pix pays but whose MercadoPago row did
+    // not enable.
+    //
+    // `pay` must be present AND enabled — deliberately not `canDo`/
+    // `operationStatus`, whose `operations.pay ?? status` fallback would read a
+    // bank-only rail's missing `pay` as the rail's enabled status and hand it a
+    // phantom QR capability. MANTECA_METHOD_OPERATIONS lists every op a method
+    // supports (BANK_TRANSFER_AR is deposit+withdraw only), so on a rail that
+    // carries the map an absent `pay` means "no merchant QR". The map is only
+    // absent for an unknown method or a response predating it, where the
+    // qr-only channel is pay by construction.
+    const hasQrSpendRail = useMemo(
+        () =>
+            rails.some((rail) => {
+                if (rail.provider !== 'manteca') return false
+                if (rail.operations) return rail.operations.pay === 'enabled'
+                return channelOf(rail) === 'qr-only' && rail.status === 'enabled'
+            }),
+        [rails, channelOf]
+    )
 
     // The activation funnel gates deposit/outbound, which routes through bank or
     // qr-only channels — never through card. Top-level status (not per-op
@@ -175,7 +207,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                 title: t('steps.outbound.title'),
                 description: t('steps.outbound.description'),
                 ctaLabel: t('steps.outbound.cta'),
-                href: '/send',
+                href: '', // handled in onClick — card chooser or the QR scanner
             },
         }),
         [t]
@@ -327,13 +359,28 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
 
     if (!step) return null
 
-    // Happy-path funnel steps render as the 3-item getting-started checklist
-    // (one status language with the Unlock payments screen). Interrupts keep
-    // their dedicated card below — provider rejections, email blocks, and the
-    // region-restricted terminal explanation, which outranks the checklist:
-    // every step on the list (bank money in, the card) is a door this user
-    // cannot open, so offering the list would be dishonest.
-    if (!hasProviderRejection && !isRegionRestricted) return <GettingStartedChecklist />
+    // The 3-item checklist is the Home empty state (product decision,
+    // TASK-22114): pre-funding it is the whole card slot; once money has moved
+    // the activity list takes its place. Everything else falls through to the
+    // single-step card below —
+    //   • `outbound` / `card`: funded but NOT yet activated. Activation still
+    //     needs a spend, so the one remaining step keeps a CTA. Dropping it
+    //     stranded funded accounts with no route to the spend (and to Rewards).
+    //   • provider rejections, email blocks, and the region-restricted
+    //     explanation, which outranks the checklist: every step on the list is
+    //     a door that user cannot open, so offering the list would be dishonest.
+    const isFundedNotActivated = activationStep === 'outbound' || activationStep === 'card'
+    if (!hasProviderRejection && !isRegionRestricted && !isFundedNotActivated) return <GettingStartedChecklist />
+
+    // The spend step survives only while a spend that ACTIVATES is open: the
+    // card (`/card`, or the chooser) or a QR pay. A funded user with neither
+    // cannot clear this step at all — a peer send is volume, not activation —
+    // so the card would reappear after every payment they make. They keep the
+    // activity list instead.
+    const canSpendToActivate = hasCardAccess === true || hasQrSpendRail
+    if (activationStep === 'outbound' && !hasProviderRejection && !isRegionRestricted && !canSpendToActivate) {
+        return null
+    }
 
     return (
         <Card position="single" className="p-0">
@@ -373,13 +420,14 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                                 provider: fixableProvider,
                                 actionKey: fixableActionKey,
                             })
+                        } else if (activationStep === 'outbound' && !hasProviderRejection && hasCardAccess) {
+                            posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SHOWN)
+                            setShowSpendChooser(true)
                         } else if (activationStep === 'outbound' && !hasProviderRejection) {
-                            if (hasCardAccess) {
-                                posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SHOWN)
-                                setShowSpendChooser(true)
-                            } else {
-                                setIsQRScannerOpen(true)
-                            }
+                            // No card, so the QR pay is this user's only
+                            // activating spend — and the gate above already
+                            // established they hold the rail for it.
+                            setIsQRScannerOpen(true)
                         } else {
                             router.push(step.href)
                         }
@@ -388,9 +436,12 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     {step.ctaLabel}
                 </Button>
                 {step.dismissable && onDismissCard && (
-                    <button type="button" onClick={onDismissCard} className="text-body-s text-black underline">
+                    // deliberate body-s size kept; states come from LinkButton.
+                    // mt-1 tops the card's gap-3 up to 16px so LinkButton's
+                    // 14px upward hit-area slop cannot overlap the primary CTA
+                    <LinkButton onClick={onDismissCard} className="mt-1 text-body-s text-foreground-primary">
                         {tCommon('maybeLater')}
-                    </button>
+                    </LinkButton>
                 )}
             </div>
             <ProvideEmailStep

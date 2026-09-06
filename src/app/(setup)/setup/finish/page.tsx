@@ -6,6 +6,8 @@ import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
 import SignTestTransaction from '@/components/Setup/Views/SignTestTransaction'
 import { PeanutWhistling } from '@/assets/mascot'
 import { useAuth } from '@/context/authContext'
+import { useBackHandler } from '@/hooks/useBackHandler'
+import { minimizeNativeApp } from '@/utils/capacitor'
 import { useTranslations } from 'next-intl'
 
 /**
@@ -15,6 +17,10 @@ import { useTranslations } from 'next-intl'
 function FinishSetupPageContent() {
     const t = useTranslations('setup')
     const { logoutUser, isLoggingOut } = useAuth()
+    useBackHandler(() => {
+        void minimizeNativeApp()
+        return true
+    })
 
     return (
         <SetupWrapper
@@ -28,7 +34,7 @@ function FinishSetupPageContent() {
             description={t('finish.description')}
             showBackButton={false}
             showSkipButton={false}
-            contentClassName="flex flex-col items-center justify-center gap-5"
+            contentClassName="flex flex-col items-center justify-center gap-6"
         >
             <SignTestTransaction />
         </SetupWrapper>

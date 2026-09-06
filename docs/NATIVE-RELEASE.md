@@ -19,6 +19,22 @@ How to run the app locally, build/sign/ship it, and get it through Play review.
 | **PostgreSQL** | 16 (14 works locally) | backend |
 | Xcode / CocoaPods | 26+ / latest | iOS only (§11) |
 
+### OS / WebView floors
+
+The web bundle is built with Tailwind v4: ~90% of the stylesheet lives in
+`@layer` (WebKit ≥ 15.4), gradients interpolate `in oklab` (≥ 16.2) and the
+`@property` fallback sits inside a layer (≥ 16.4). Anything older renders an
+unstyled app, so the shells pin these floors:
+
+| Platform | Floor | Where |
+|----------|-------|-------|
+| iOS | **16.4** | `IPHONEOS_DEPLOYMENT_TARGET` in `ios/App/App.xcodeproj/project.pbxproj` (+ `.iOS(.v16)` in `ios/App/CapApp-SPM/Package.swift`) |
+| Android | `minSdkVersion 24`, **Chrome WebView ≥ 111** | the OS is not the floor, the updatable System WebView is; the app shows an "update your WebView" screen when the boot-time CSS canary fails |
+
+Raising the iOS floor changes the App Store's minimum OS on the next submission;
+the JS canary (`isWebViewCssSupported`) is the runtime guard for devices below
+either floor that still hold an older binary.
+
 Clone with submodules — the build needs `src/content`:
 ```bash
 git clone --recurse-submodules https://github.com/peanutprotocol/peanut-ui
@@ -310,9 +326,52 @@ own `out/` under the binary's versionName, then assert the channel serves it.
   environment has no protection rules, so the run ships immediately. Adding required
   reviewers under Settings → Environments → Production makes it queue for approval with no
   workflow change (needs repo admin).
-- **Native-version gating:** `--auto-min-update-version` (already set) keeps a JS bundle
-  built against new plugins off older native shells. **Bump the native version whenever
-  you change plugins/native code**, then ship that via Play — OTA can't.
+- **Native-version gating:** every upload passes an explicit `--min-update-version`, so a
+  JS bundle built against new plugins stays off older native shells. The release lanes pin
+  it to the binary they ship; `capgo-deploy.yml` resolves it from the newest `v<major>.<build>.0`
+  tag (`scripts/release-version.mjs native-floor`) and fails if none is visible. It replaced
+  `--auto-min-update-version`, which only copies the previous bundle's floor forward — with no
+  native version stamped on the `dev` checkout (package.json says 1.0.53) the floor never
+  rose past the first upload, and the CLI refuses the two flags together. Capgo only enforces
+  the floor when the channel's "disable auto update" strategy is set to *version number*.
+  **Bump the native version whenever you change plugins/native code**, then ship that via
+  Play — OTA can't.
+- **Native fingerprint (the check behind that rule):** `scripts/native-fingerprint.mjs`
+  hashes the JS↔native contract in three parts: the **config** (Capacitor's two generated
+  plugin manifests, `capacitor.config.ts`, the gradle files, `AndroidManifest.xml`,
+  `project.pbxproj`, `Info.plist`, both entitlements files), the **bridges** JS actually
+  calls (`android/app/src/main/**.{java,kt}`, `ios/App/**.swift` — a bundle calling a new
+  method on `PushProvisioningPlugin` needs the binary that has it, and no config file
+  moves when that changes), the **resource contracts** those config files delegate to
+  (`android/app/src/main/res/**.xml`, including the `capacitor-passkey.xml` asset
+  statement, and every `Info.plist`/`.entitlements` under `ios/App` — the extensions'
+  as well as the app's), and the **resolved plugin versions from `pnpm-lock.yaml`**
+  (the OTA workflow runs `pnpm install` but never regenerates the committed manifests, so
+  a plugin bumped without a `cap sync` would ship the new JS wrapper against unchanged
+  manifest bytes; the plugin set is the union of the declared dependencies and the names
+  Capacitor generated and an explicit `NATIVE_DEPENDENCIES` list — three sources, because
+  a package name cannot be trusted and the generated manifests only cover plugins that
+  have been synced; a test asserts every generated plugin appears in the list so it cannot
+  drift. Plus `patches/` with the `patchedDependencies` map, since a pnpm patch rewrites
+  both halves of a package with no version change. Deliberately **not** every dependency:
+  hashing the whole name set was tried and reverted after `web-vitals`, a pure-JS library,
+  would have refused every staging OTA until a native release was cut).
+  Every Android source set is hashed, including the credential-gated `src/meawallet`:
+  whether it reaches a binary is not knowable from the tree, and of the two unsound
+  choices, over-claiming only forces an unnecessary native release while under-claiming
+  fails silently. **The real fix is for that variant to stop depending on a CI secret.**
+  An unresolvable ref is an error, never an empty read, and `--root` points the CLI at
+  another checkout so its tests never mutate this one. `capgo-deploy.yml` recomputes it and compares against the
+  `v<major>.<build>.0` tag the bundle's floor targets; a mismatch **fails the OTA** and
+  names the file that moved. It is a pure function of the tree, so nothing is stored and
+  any tag can be fingerprinted retroactively (`--ref v1.2.0`). `MARKETING_VERSION` and
+  `CURRENT_PROJECT_VERSION` are normalised out — `native-ios-postsync.js` stamps them on
+  every sync, and leaving them in would refuse an OTA after every release.
+  **Why it exists:** `min_update_version` only blocks *delivery*, only under the
+  `metadata` channel strategy, and lives in a dashboard CI cannot read, so nothing
+  previously reported that an incompatible bundle had been *built* — the mismatch first
+  appeared on a user's device. The remedy for a failure is always to cut a native
+  release, never to widen or skip the check.
 - **Staged rollout:** roll production OTA to ~10% → watch Sentry/crash + error rates →
   100%. Don't 100% every merge.
 - **Rollback** is configured in `capacitor.config.ts` (`appReadyTimeout: 15000` +

@@ -11,6 +11,7 @@ export const ANALYTICS_EVENTS = {
     SIGNUP_RESIDENCE_SELECTED: 'signup_residence_selected',
     SIGNUP_RESIDENCE_RESTRICTED_SHOWN: 'signup_residence_restricted_shown',
     SIGNUP_RESIDENCE_PARTIAL_SHOWN: 'signup_residence_partial_shown',
+    SIGNUP_RESIDENCE_CONGRATS_SHOWN: 'signup_residence_congrats_shown',
     SIGNUP_RESIDENCE_RESTRICTED_CONTINUED: 'signup_residence_restricted_continued',
     SIGNUP_RESIDENCE_NOTIFY_SUBMITTED: 'signup_residence_notify_submitted',
     RESIDENCE_CHANGED: 'residence_changed',
@@ -148,6 +149,13 @@ export const ANALYTICS_EVENTS = {
     NOTIFICATION_CLICKED: 'notification_clicked',
     NOTIFICATION_SUBSCRIPTION_SNAPSHOT: 'notification_subscription_snapshot',
 
+    // ── App store review ──
+    // The OS sheet was requested. There is deliberately no "shown" or "rated"
+    // counterpart: neither SKStoreReviewController nor Play In-App Review tells
+    // us whether the sheet appeared or what the user did. Measure the outcome
+    // against App Store Connect / Play Console rating counts, not against this.
+    REVIEW_REQUESTED: 'review_requested',
+
     // ── Modal Fatigue ──
     MODAL_SHOWN: 'modal_shown',
     MODAL_DISMISSED: 'modal_dismissed',
@@ -157,6 +165,7 @@ export const ANALYTICS_EVENTS = {
     QR_SCANNED: 'qr_scanned',
     QR_NOTIFY_ME_CLICKED: 'qr_notify_me_clicked',
     QR_DECODING_ERROR_SHOWN: 'qr_decoding_error_shown',
+    QR_MERCHANT_CHARGE_EXPIRED_SHOWN: 'qr_merchant_charge_expired_shown',
 
     // ── Home ──
     BALANCE_VISIBILITY_TOGGLED: 'balance_visibility_toggled',
@@ -214,7 +223,7 @@ export const ANALYTICS_EVENTS = {
     // approval is bound to a deprecated validator; user must re-enable the card.
     CARD_STALE_APPROVAL_HIT: 'card_stale_approval_hit',
     // One-tap mixed spend via per-transaction ephemeral session key
-    // (SESSION_KEY_SPEND flag). A fallback means the passkey path took over —
+    // (one-tap mixed spend). A fallback means the passkey path took over —
     // `reason` says why; watch this before widening the flag.
     SESSION_KEY_SPEND_ATTEMPTED: 'session_key_spend_attempted',
     SESSION_KEY_SPEND_FALLBACK: 'session_key_spend_fallback',
@@ -288,6 +297,12 @@ export const ANALYTICS_EVENTS = {
     CARD_PHYSICAL_WAITLIST_VIEWED: 'card_physical_waitlist_viewed',
     CARD_PHYSICAL_WAITLIST_JOINED: 'card_physical_waitlist_joined',
     CARD_ADD_TO_WALLET_VIEWED: 'card_add_to_wallet_viewed',
+    // Native push provisioning (MeaWallet MPP). Server-side card_tokenized /
+    // card_tokenization_declined (Rain webhooks) close this funnel.
+    CARD_ADD_TO_WALLET_TAPPED: 'card_add_to_wallet_tapped',
+    CARD_ADD_TO_WALLET_SUCCEEDED: 'card_add_to_wallet_succeeded',
+    CARD_ADD_TO_WALLET_CANCELED: 'card_add_to_wallet_canceled',
+    CARD_ADD_TO_WALLET_FAILED: 'card_add_to_wallet_failed',
     // Spend routing across collateral / smart / mixed buckets. `strategy` is SpendStrategy.
     // Root-validator migration userOp fired ahead of a mixed spend (pre-2025-09-18
     // accounts still on the unpatched validator) — see kernelMigration.utils.ts.
@@ -374,7 +389,6 @@ export const MODAL_TYPES = {
     KYC_COMPLETED: 'kyc_completed',
     INVITE: 'invite',
     MIGRATION_DOWNLOAD: 'migration_download',
-    APP_REVIEW: 'app_review',
     RE_CONSENT: 're_consent',
 } as const
 

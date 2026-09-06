@@ -3,12 +3,13 @@
 // native app. android rides the Play Install Referrer; iOS rides a clipboard
 // hand-off written on the store-bounce tap and read once on first launch.
 // TASK-20772 — the download modal (TASK-20769) is the eventual web consumer.
-import { registerPlugin } from '@capacitor/core'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, DEFERRED_LINK_OUTCOMES, type DeferredLinkOutcome } from '@/constants/analytics.consts'
 import { PLAY_STORE_URL } from '@/constants/general.consts'
 import { isValidLocale } from '@/i18n/config'
+import { type AppLocale, resolveLocaleOrNull } from '@/i18n/app/config'
 import { isAndroidNative, isIOSNative } from './capacitor'
+import { nativeCapability } from './native-capability'
 import { getFromCookie, saveToCookie, sanitizeRedirectURL } from './cookie-url.utils'
 import { toInviteCode } from './invite-code.utils'
 import { deepLinkToNativePath } from './native-routes'
@@ -25,27 +26,10 @@ import {
 const MARKER = 'pnutdl'
 export const CONSUMED_KEY = 'deferredLinkConsumed'
 
-// the key the in-app i18n reads (dev branch: src/i18n/app/locale-store.ts —
-// Preferences on native, cookie/localStorage on web). we persist the restored
-// preference under it so it applies the moment that system lands on main.
-// when it does, replace the mini-resolver below with its resolveLocale.
+// the key the in-app i18n reads (src/i18n/app/locale-store.ts — Preferences
+// on native, cookie/localStorage on web); the restored preference is persisted
+// under it so it applies on the next startup resolution.
 export const APP_LOCALE_KEY = 'app-locale'
-const APP_LOCALES = ['en', 'es-419', 'pt-BR'] as const
-type AppLocale = (typeof APP_LOCALES)[number]
-
-/** normalizes a BCP 47-ish tag to a supported app locale; null when the
- * language is unsupported (a garbage payload must never override the device
- * language). */
-function resolveAppLocale(raw: string): AppLocale | null {
-    const tag = raw.trim().toLowerCase()
-    const exact = APP_LOCALES.find((l) => l.toLowerCase() === tag)
-    if (exact) return exact
-    const lang = tag.split('-')[0]
-    if (lang === 'en') return 'en'
-    if (lang === 'es') return 'es-419'
-    if (lang === 'pt') return 'pt-BR'
-    return null
-}
 
 function persistRestoredLocale(locale: AppLocale): void {
     try {
@@ -68,19 +52,18 @@ export interface DeferredPayload {
     dest?: string
 }
 
-// app-local android plugin (InstallReferrerPlugin.java); throws "not
-// implemented" on iOS/web and on older binaries running OTA'd JS — callers
-// catch and treat as null.
-const InstallReferrer = registerPlugin<{ getReferrer(): Promise<{ referrer: string | null }> }>('InstallReferrer')
+// app-local android plugin (InstallReferrerPlugin.java); absent on iOS/web and
+// on older binaries running OTA'd JS, which the capability turns into null.
+const InstallReferrer = nativeCapability<{ getReferrer(options?: undefined): Promise<{ referrer: string | null }> }>(
+    'InstallReferrer',
+    { platforms: ['android'] }
+)
 
 /** raw play install referrer string, or null anywhere it can't be read. */
 export async function readInstallReferrer(): Promise<string | null> {
-    try {
-        return (await InstallReferrer.getReferrer()).referrer ?? null
-    } catch {
-        // older binary without the plugin, iOS/web, or referrer service unavailable
-        return null
-    }
+    // null covers all of: older binary without the plugin, iOS/web, and the
+    // referrer service being unavailable on a busy first boot.
+    return (await InstallReferrer.call('getReferrer', undefined, () => ({ referrer: null }))).referrer ?? null
 }
 
 // ---------------------------------------------------------------------------
@@ -362,7 +345,8 @@ export function applyDeferredPayload(payload: DeferredPayload): RestoredContext 
     const badgeCampaigns = parsePendingBadgeCampaigns(payload.badgeCampaigns ?? payload.campaign)
     if (badgeCampaigns.length > 0) queuePendingBadgeCampaigns(badgeCampaigns, 30)
 
-    const locale = payload.lang ? resolveAppLocale(payload.lang) : null
+    // null, not the English fallback: a garbage payload must never override the device language
+    const locale = payload.lang ? resolveLocaleOrNull(payload.lang) : null
     if (locale) persistRestoredLocale(locale)
 
     // must-map, like openDeepLink: an unmappable dest (off-host, malformed

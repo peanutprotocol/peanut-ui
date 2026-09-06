@@ -5,13 +5,24 @@ import { isNativeBridge } from '@/utils/capacitor'
 import {
     BETA_OTA_CHANNEL,
     clearPendingBetaExit,
-    hasPendingBetaExit,
     OtaChannelClosedError,
     OtaChannelOverrideError,
     OtaChannelUnknownError,
     OtaResetFailedError,
+    pendingBetaExitBundle,
+    UNKNOWN_BETA_EXIT_BUNDLE,
     type OtaChannelStatus,
 } from '@/utils/capgo-updater'
+
+// An owed exit is over once the beta bundle recorded at the leave is no longer
+// the one running — the store bundle or any production OTA counts. A legacy
+// marker that never recorded a bundle can only be settled by the builtin bundle.
+function betaExitFinished(status: OtaChannelStatus, recordedBundle: string): boolean {
+    if (status.channel === BETA_OTA_CHANNEL) return false
+    if (status.onBuiltinBundle) return true
+    if (recordedBundle === UNKNOWN_BETA_EXIT_BUNDLE) return false
+    return status.bundleVersion !== null && status.bundleVersion !== recordedBundle
+}
 
 /**
  * - `staged`: on the channel, beta bundle downloaded, waiting for a restart
@@ -66,10 +77,11 @@ export function useOtaChannel(): UseOtaChannel {
         const { readOtaChannelStatus } = await import('@/utils/capgo-updater')
         const next = await readOtaChannelStatus()
         setStatus(next)
-        // An unfinished exit is only over once the store bundle is the one
-        // running; until then the device is on beta code whatever the channel says.
-        const owed = hasPendingBetaExit() && !(next.onBuiltinBundle && next.channel !== BETA_OTA_CHANNEL)
-        if (hasPendingBetaExit() && !owed) clearPendingBetaExit()
+        // Until the recorded beta bundle is gone the device is on beta code,
+        // whatever the channel says.
+        const recorded = pendingBetaExitBundle()
+        const owed = recorded !== null && !betaExitFinished(next, recorded)
+        if (recorded !== null && !owed) clearPendingBetaExit()
         setPendingExit(owed)
     }, [])
 

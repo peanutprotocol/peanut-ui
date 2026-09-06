@@ -7,7 +7,7 @@ import { twMerge } from '@/utils/tw'
  * the rail.
  *
  * The mark sits directly on the section ground — black is 9:1 on the homepage
- * blue and 19:1 on the /quests cream, so it needs no card (unlike
+ * blue, so it needs no card (unlike
  * `#regulated-rails`, whose white inner card exists because those marks sit on
  * pink). The fixed-height slot keeps the two marks on a shared baseline; the
  * underlined "Learn more →" is the only click affordance, so it stays.

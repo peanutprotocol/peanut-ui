@@ -16,7 +16,7 @@ const APP_DIR = path.join(__dirname, '..', 'src', 'app')
 
 // Files/folders to temporarily disable during native build.
 // the native app only needs (mobile-ui) and (setup) routes.
-// everything else (marketing, blog, quests, locale pages) is web-only.
+// everything else (marketing, blog, locale pages) is web-only.
 const ITEMS_TO_DISABLE = [
     { path: 'api', type: 'dir' },
     { path: 'sitemap.ts', type: 'file' },
@@ -29,9 +29,6 @@ const ITEMS_TO_DISABLE = [
     { path: 'es-419', type: 'dir' }, // localized landing (web-only)
     { path: 'es-ar', type: 'dir' }, // localized landing (web-only)
     { path: 'pt-br', type: 'dir' }, // localized landing (web-only)
-    { path: 'quests/[questId]', type: 'dir' }, // quest detail page (dynamicParams issues)
-    { path: 'quests/explore', type: 'dir' }, // quest explore page
-    { path: 'quests/page.tsx', type: 'file' }, // quest list page
     { path: 'invite', type: 'dir' }, // invite landing pages
     { path: 'exchange', type: 'dir' }, // exchange pages
     { path: 'privacy', type: 'dir' }, // legal pages
@@ -55,11 +52,14 @@ const ITEMS_TO_DISABLE = [
     { path: '(mobile-ui)/withdraw/[country]', type: 'dir' },
     { path: '(mobile-ui)/qr/[code]/page.tsx', type: 'file' },
     { path: '(mobile-ui)/qr/[code]/success/page.tsx', type: 'file' },
-    { path: '(mobile-ui)/pay/[...username]/page.tsx', type: 'file' },
+    { path: 'pay/[...recipient]/page.tsx', type: 'file' },
+    { path: 'pay/[...recipient]/layout.tsx', type: 'file' },
     // Team-only desktop web tool. force-dynamic cannot be statically exported, and
     // pruneExportedAssets() deletes /dev from the export anyway, so building it is waste.
     { path: '(mobile-ui)/dev/payment-graph', type: 'dir' },
 ]
+
+module.exports = { ITEMS_TO_DISABLE }
 
 const MODIFIED_FILES = []
 const WRAPPER_FILES = []
@@ -711,6 +711,9 @@ function pruneExportedAssets() {
     for (const entry of fs.readdirSync(outDir)) {
         if (entry.endsWith('.mov')) targets.push(path.join(outDir, entry))
     }
+    // public/ is copied wholesale, so the press kit rides along (~14 MB of team
+    // photos, brand PDF and EPS) even though /[locale]/press is disabled here.
+    targets.push(path.join(outDir, 'press'))
 
     for (const target of targets) {
         if (fs.existsSync(target)) {
@@ -720,4 +723,4 @@ function pruneExportedAssets() {
     }
 }
 
-main()
+if (require.main === module) main()

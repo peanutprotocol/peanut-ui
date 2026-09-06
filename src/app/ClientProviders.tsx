@@ -9,16 +9,18 @@
 import { ConsoleGreeting } from '@/components/Global/ConsoleGreeting'
 import { ScreenOrientationLocker } from '@/components/Global/ScreenOrientationLocker'
 import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapper'
+import { UnsupportedWebViewScreen, hasUnsupportedWebViewBypass } from '@/components/Global/UnsupportedWebViewScreen'
 import { MarketingIntlProvider } from '@/i18n/app/MarketingIntlProvider'
 import { PeanutProvider } from '@/config/peanut.config'
 import { ContextProvider } from '@/context/contextProvider'
+import { OtaUpdateProvider } from '@/context/OtaUpdateContext'
 import { FooterVisibilityProvider } from '@/context/footerVisibility'
 import { DEV_TOOLS_ENABLED } from '@/constants/dev-tools.consts'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import { useNativeAppLinks } from '@/hooks/useNativeAppLinks'
-import { useOtaUpdates } from '@/hooks/useOtaUpdates'
 import { useSplashGate } from '@/hooks/useSplashGate'
 import { useZeroLegacyAndroidSafeAreaInsets } from '@/hooks/useZeroLegacyAndroidSafeAreaInsets'
+import { applyLegacyAndroidSafeAreaZeroFromUserAgent, isCapacitor, isWebViewCssSupported } from '@/utils/capacitor'
 import { isMarketingRoute } from '@/utils/marketing-routes'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import dynamic from 'next/dynamic'
@@ -41,13 +43,21 @@ if (DEV_TOOLS_ENABLED && typeof window !== 'undefined') {
     import('@/dev/devsync-agent').then((m) => m.initDevsyncAgent())
 }
 
+// Module scope so it lands before hydration: the first paint on Android < 15
+// would otherwise show the phantom safe-area band until the async Device.getInfo
+// pass (useZeroLegacyAndroidSafeAreaInsets, still authoritative) corrects it.
+if (typeof window !== 'undefined') applyLegacyAndroidSafeAreaZeroFromUserAgent()
+
+// Decided once at load, client only. A WebView that cannot parse the
+// stylesheet gets the inline-styled update screen in place of the app tree.
+const UNSUPPORTED_WEBVIEW =
+    typeof window !== 'undefined' && isCapacitor() && !isWebViewCssSupported() && !hasUnsupportedWebViewBypass()
+
 const AppGlobals = dynamic(() => import('./AppGlobals').then((m) => m.AppGlobals))
 // The full message catalog is 129 KB; app routes load it as their own chunk.
 const AppIntlProvider = dynamic(() => import('@/i18n/app/AppIntlProvider').then((m) => m.AppIntlProvider))
 
 export function ClientProviders({ children }: { children: React.ReactNode }) {
-    // initialize capgo ota updates (calls notifyAppReady on mount, no-op on web)
-    useOtaUpdates()
     useSplashGate()
     // App Links + push-tap routing must be registered on EVERY cold-start
     // destination (including logged-out /setup), hence here and not (mobile-ui).
@@ -60,29 +70,49 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
     const marketing = isMarketingRoute(usePathname())
     const IntlProvider = marketing ? MarketingIntlProvider : AppIntlProvider
 
+    if (UNSUPPORTED_WEBVIEW) {
+        // notifyAppReady still has to run here, or the plugin's app-ready
+        // timeout rolls the active OTA bundle back on this screen.
+        return (
+            <OtaUpdateProvider>
+                <AppIntlProvider>
+                    <UnsupportedWebViewScreen />
+                </AppIntlProvider>
+            </OtaUpdateProvider>
+        )
+    }
+
     return (
-        <NuqsAdapter>
-            <PeanutProvider>
-                {/* Must sit ABOVE ContextProvider: TokenContextProvider → useWallet
-                    → useSendMoney calls useTranslations, so the intl context has to
-                    exist by the time ContextProvider renders. */}
-                <IntlProvider>
-                    <ContextProvider>
-                        <FooterVisibilityProvider>
-                            <TranslationSafeWrapper>
-                                <ConsoleGreeting />
-                                <ScreenOrientationLocker />
-                                {HarnessBootstrap && (
-                                    <Suspense fallback={null}>
-                                        <HarnessBootstrap />
-                                    </Suspense>
-                                )}
-                                {marketing ? children : <AppGlobals>{children}</AppGlobals>}
-                            </TranslationSafeWrapper>
-                        </FooterVisibilityProvider>
-                    </ContextProvider>
-                </IntlProvider>
-            </PeanutProvider>
-        </NuqsAdapter>
+        /* OTA init (notifyAppReady) must run on every native launch AND land
+           inside the plugin's 15 s app-ready timeout, or Capgo rolls the active
+           bundle back. So it sits above every lazily-loaded provider, not just
+           above the route-conditional ones: PeanutProvider renders app routes
+           only through the dynamically-imported AppStateProviders chunk, and a
+           chunk that loads slowly or fails would take readiness down with it. */
+        <OtaUpdateProvider>
+            <NuqsAdapter>
+                <PeanutProvider>
+                    {/* Must sit ABOVE ContextProvider: TokenContextProvider → useWallet
+                        → useSendMoney calls useTranslations, so the intl context has to
+                        exist by the time ContextProvider renders. */}
+                    <IntlProvider>
+                        <ContextProvider>
+                            <FooterVisibilityProvider>
+                                <TranslationSafeWrapper>
+                                    <ConsoleGreeting />
+                                    <ScreenOrientationLocker />
+                                    {HarnessBootstrap && (
+                                        <Suspense fallback={null}>
+                                            <HarnessBootstrap />
+                                        </Suspense>
+                                    )}
+                                    {marketing ? children : <AppGlobals>{children}</AppGlobals>}
+                                </TranslationSafeWrapper>
+                            </FooterVisibilityProvider>
+                        </ContextProvider>
+                    </IntlProvider>
+                </PeanutProvider>
+            </NuqsAdapter>
+        </OtaUpdateProvider>
     )
 }

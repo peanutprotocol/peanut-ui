@@ -308,7 +308,10 @@ const AmountInput = ({
             // 17360:4451 read): the amount container is a bordered box —
             // 1px border-default, L/16 padding, square corners. The dead
             // dark: variant and disabled-text fixes from the earlier pass stay.
-            className={`relative cursor-text border border-border-default bg-background-default p-4 ${className}`}
+            // DS input state pattern (design.md names AmountInput as a ring
+            // carrier): 3px blue ring replaces the border on focus; base
+            // outline-color stops the black->blue flash
+            className={`relative cursor-text border border-border-default bg-background-default p-4 outline-action-focus focus-within:border-transparent focus-within:outline-[3px] focus-within:outline-action-focus focus-within:outline-solid ${className}`}
             action=""
             onClick={() => inputRef.current?.focus()}
         >
@@ -412,8 +415,10 @@ const AmountInput = ({
             </div>
             {/* Conversion toggle */}
             {showConversion && (
-                <div
-                    className="absolute top-1/2 right-0 -translate-x-1/2 -translate-y-1/2 transform cursor-pointer"
+                <button
+                    type="button"
+                    aria-label={t('amountInput.switchCurrency')}
+                    className="absolute top-1/2 right-0 -translate-x-1/2 -translate-y-1/2 transform cursor-pointer transition-opacity duration-instant focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
                     onClick={(e) => {
                         e.preventDefault()
                         // keep editing state true - user is interacting, prevent sync from initialAmount
@@ -433,11 +438,11 @@ const AmountInput = ({
                 >
                     <IconComponent
                         name={'arrow-exchange'}
-                        className="ml-5 rotate-90 cursor-pointer"
+                        className="ml-4 rotate-90 cursor-pointer"
                         width={32}
                         height={32}
                     />
-                </div>
+                </button>
             )}
             {infoContent}
             {showSlider && maxAmount && (

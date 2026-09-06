@@ -28,9 +28,9 @@ export default function SunsetScreen() {
         // mobile: 50/50 vertical split, copy at the top of the lower half and
         // the CTA pinned to the bottom. desktop (md+): 50/50 row, hero left,
         // content centered right.
-        <div className="flex min-h-[100dvh] w-full flex-col bg-white md:flex-row">
+        <div className="flex min-h-dvh w-full flex-col bg-white md:flex-row">
             <MigrationHero className="h-[50dvh] md:h-auto md:w-1/2" />
-            <section className="flex flex-1 flex-col justify-between p-6 pb-[calc(1.5rem_+_env(safe-area-inset-bottom))] md:w-1/2 md:justify-center md:gap-10">
+            <section className="flex flex-1 flex-col justify-between p-6 pb-[calc(1.5rem_+_var(--safe-bottom))] md:w-1/2 md:justify-center md:gap-10">
                 {/* centered on desktop to match the centered store CTA below */}
                 <div className="mx-auto flex w-full max-w-md flex-col gap-3 md:text-center">
                     <h1 className="text-heading-m text-foreground-primary">{t('sunset.heading')}</h1>

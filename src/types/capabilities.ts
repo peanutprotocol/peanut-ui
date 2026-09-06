@@ -137,7 +137,12 @@ export interface ResolvedRail {
  *   - `bridge-hosted`     — open Bridge's hosted verification flow (the
  *                           catch-all for requirements with no native Sumsub
  *                           mapping); exchange the key for a URL via
- *                           startBridgeHostedVerification().
+ *                           startHostedVerification().
+ *   - `rain-hosted`       — open Rain's card-member portal to re-upload an
+ *                           identity document a card application was rejected
+ *                           on; exchange the key for a URL via
+ *                           startHostedVerification(), same handoff as
+ *                           bridge-hosted.
  */
 export type NextActionKind =
     | 'sumsub'
@@ -147,6 +152,7 @@ export type NextActionKind =
     | 'restart-identity'
     | 'provide-email'
     | 'bridge-hosted'
+    | 'rain-hosted'
 
 export interface NextAction {
     key: string // stable id, referenced by RailCapability.blockingActions

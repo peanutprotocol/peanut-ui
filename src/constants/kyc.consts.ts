@@ -41,6 +41,11 @@ export enum QrKycState {
      * a different ID.
      */
     PROVIDER_RESTART_IDENTITY = 'provider_restart_identity',
+    /**
+     * Sumsub rejected the document's jurisdiction. Terminal for every rail,
+     * pool included, so the surface must stop offering verification.
+     */
+    REGION_RESTRICTED = 'region_restricted',
 }
 
 // sets of status values by category — single source of truth

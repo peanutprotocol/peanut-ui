@@ -161,7 +161,7 @@ export const TooltipContent = ({
     const tooltipClasses: HTMLDivElement['className'] = useMemo(
         () =>
             twMerge(
-                'relative z-50 w-max max-w-[230px] rounded-md border border-border-default bg-white px-3 py-2 text-body-s text-black shadow-sm',
+                'relative z-50 w-max max-w-[230px] rounded-sm border border-border-default bg-white px-3 py-2 text-body-s text-black shadow-sm',
                 contentClassName
             ),
         [contentClassName]

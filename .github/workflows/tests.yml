@@ -22,11 +22,14 @@ concurrency:
     group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
     cancel-in-progress: true
 
+# Default for every job that does not declare its own block. `checks: write`
+# used to live here, inherited by every PR-code job — and nothing consumes it:
+# dorny/test-reporter runs with use-actions-summary (its v1 default), which
+# writes the job summary and creates no check run (none exists on dev either).
+# If check-run mode is ever turned back on, grant checks: write in a job that
+# runs no PR code — never in `unit`, which runs PR install/test code first.
 permissions:
     contents: read
-    # `checks: write` lets dorny/test-reporter publish per-PR check
-    # annotations from the JUnit XML below.
-    checks: write
 
 jobs:
     # Prettier formatting + content-link validation. Fast, no node_modules
@@ -40,6 +43,10 @@ jobs:
               with:
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
+                  # The token is only needed to CLONE the submodule; no git op
+                  # after checkout needs it, and pnpm install runs PR-authored
+                  # lifecycle scripts, so don't leave it in .git/config.
+                  persist-credentials: false
 
             - uses: pnpm/action-setup@v4
 
@@ -98,6 +105,8 @@ jobs:
               with:
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
+                  # Clone-only token — see the format job.
+                  persist-credentials: false
 
             - uses: pnpm/action-setup@v4
 
@@ -120,6 +129,8 @@ jobs:
               with:
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
+                  # Clone-only token — see the format job.
+                  persist-credentials: false
 
             - uses: pnpm/action-setup@v4
 
@@ -139,6 +150,62 @@ jobs:
 
             - name: Typecheck
               run: pnpm typecheck
+
+    # The only pre-merge coverage for the Capacitor static export. Nothing else
+    # in this workflow touches it: native-build.js renames the dynamic routes
+    # out of src/app and swaps in next.config.native.js, so that lane can break
+    # while every other job stays green — which is exactly what a Next 16.3
+    # type-check scope change did. The release lanes (capgo-deploy,
+    # ios-release, android-release) only reach it after merge, on a push to
+    # dev, so without this the first red build is a release.
+    native-export:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  submodules: true
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
+                  # Clone-only token — see the format job. This job runs both
+                  # pnpm install and the native build, so PR-authored code must
+                  # never see it in .git/config.
+                  persist-credentials: false
+
+            - uses: pnpm/action-setup@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'pnpm'
+
+            - run: pnpm install --frozen-lockfile
+
+            # Deliberately NOT the release lanes' env block. This job proves the
+            # export compiles and never uploads a bundle, so it must not pull
+            # the production NEXT_PUBLIC_* secrets into a job that also runs
+            # PR-authored code. The public literals are real; every secret is a
+            # placeholder. Values only have to be non-empty and inlined:
+            # native-build.js fails closed in CI on a missing
+            # .env.production.local, then verifies each one reached out/.
+            - name: Write placeholder NEXT_PUBLIC_* for the compile check
+              run: |
+                  cat > .env.production.local <<'ENVEOF'
+                  NEXT_PUBLIC_NATIVE_RP_ID=peanut.me
+                  NEXT_PUBLIC_BASE_URL=https://peanut.me
+                  NEXT_PUBLIC_PEANUT_API_URL=https://api.peanut.me
+                  NEXT_PUBLIC_SENTRY_DSN=https://ci0placeholder@o0.ingest.sentry.invalid/0
+                  NEXT_PUBLIC_POSTHOG_KEY=phc_ci0placeholder0000000000000000000000
+                  NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL=https://bundler.ci-placeholder.invalid
+                  NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL=https://paymaster.ci-placeholder.invalid
+                  NEXT_PUBLIC_ONESIGNAL_APP_ID=00000000-0000-4000-8000-000000000000
+                  ENVEOF
+
+            - name: Build the static export
+              run: node scripts/native-build.js
+
+            - name: Verify export output
+              run: |
+                  test -f out/index.html || { echo "::error::out/index.html missing"; exit 1; }
+                  echo "Export ready. File count: $(find out -type f | wc -l)"
 
     # Isolated on purpose. The BE's living fixture lives in peanut-api-ts, so
     # fetching it needs a cross-repo secret — and a secret must never share a
@@ -186,11 +253,16 @@ jobs:
     unit:
         needs: be-baseline
         runs-on: ubuntu-latest
+        # No checks: write here even though dorny/test-reporter runs below —
+        # in summary mode it needs none, and this job runs PR-authored code
+        # before the reporter, so any token it holds is capturable.
         steps:
             - uses: actions/checkout@v4
               with:
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
+                  # Clone-only token — see the format job.
+                  persist-credentials: false
 
             - uses: pnpm/action-setup@v4
 
@@ -302,8 +374,9 @@ jobs:
                   echo 'Files that can move a pixel:'
                   printf '%s\n' "$HITS"
 
-    # Visual diff over src/dev/fixtures/registry.ts — 30 fixtures at four phone
-    # widths, 120 PNGs. No API, no database, no provider key and no secret: a
+    # Visual diff over src/dev/fixtures/registry.ts — 30 fixtures, four phone
+    # widths on baseline pushes and two on PRs (see the capture step).
+    # No API, no database, no provider key and no secret: a
     # fixture answers every request the app makes.
     #
     # ADVISORY. It is deliberately NOT in `ci-success.needs`, so it can never
@@ -410,6 +483,23 @@ jobs:
                   echo "::error::playwright install-deps failed after 3 attempts"
                   exit 1
 
+            # Next's incremental build cache — roughly halves the ~4 min build
+            # when warm. Key follows the Next.js docs recipe: exact key per
+            # source hash, restore-keys falls back to the newest cache for the
+            # same lockfile, which is the incremental rebuild Next optimizes.
+            # Restore-only on purpose: a save on every PR push would upload a
+            # fresh 100-400 MB entry that is branch-scoped (no other PR can
+            # read it), churning the shared 10 GB cache quota and spending
+            # 1-2 min on the upload. Push runs save below instead, so every
+            # PR restores a near-fresh dev-scoped entry via restore-keys.
+            - name: Restore the Next build cache
+              uses: actions/cache/restore@v4
+              with:
+                  path: .next/cache
+                  key: ds-shots-next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
+                  restore-keys: |
+                      ds-shots-next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+
             - name: Build
               env:
                   # Without this DEV_TOOLS_ENABLED is false, ?__fixture= is
@@ -424,12 +514,32 @@ jobs:
                   NEXT_PUBLIC_BASE_URL: http://127.0.0.1:3080
               run: pnpm build
 
+            # Push runs only (dev/main/DS train land several times a day), so
+            # PRs always find a near-fresh entry without per-PR churn. Right
+            # after Build rather than a post step: a capture failure must not
+            # lose the cache. A re-run finds the key taken — losing that race
+            # costs nothing, the entry is already there.
+            - name: Save the Next build cache
+              if: github.event_name == 'push'
+              continue-on-error: true
+              uses: actions/cache/save@v4
+              with:
+                  path: .next/cache
+                  key: ds-shots-next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
+
             # The capture fails a shot that still has a spinner on camera, on
             # purpose. No continue-on-error: a red step is how anyone finds out.
+            #
+            # PR runs shoot only the two extreme widths — 320 finds the most
+            # overflow bugs, 430 is the widest device — which halves capture
+            # time. Baseline pushes keep all four widths so a later full
+            # capture always has something to diff against; visual-diff.mjs
+            # ignores baseline widths a partial capture never shot. The
+            # project names are the widths (playwright.shots.config.ts).
             - name: Capture screenshots
               env:
                   SHOTS_OUT: e2e/__shots__/${{ github.event_name == 'push' && 'base' || 'head' }}
-              run: pnpm test:visual:capture
+              run: pnpm test:visual:capture ${{ github.event_name == 'pull_request' && '--project=320 --project=430' || '' }}
 
             - name: Save this commit as the baseline
               if: github.event_name == 'push'
@@ -468,6 +578,16 @@ jobs:
                   echo "baseline=${MATCHED#ds-shots-}" >> "$GITHUB_OUTPUT"
                   node scripts/visual-diff.mjs e2e/__shots__/base e2e/__shots__/head \
                       --out=e2e/__shots__/diff --json > e2e/__shots__/report.json
+                  # Stamp the baseline commit into the report so the comment
+                  # publisher (ds-shots-comment.yml) can say what the diff was
+                  # against. Data only — the publisher validates every field.
+                  BASELINE="${MATCHED#ds-shots-}" node -e '
+                      const fs = require("node:fs")
+                      const p = "e2e/__shots__/report.json"
+                      const r = JSON.parse(fs.readFileSync(p, "utf8"))
+                      r.baseline = process.env.BASELINE
+                      fs.writeFileSync(p, JSON.stringify(r, null, 2))
+                  '
 
             # The listing runs PR-authored code (scripts/visual-comment.mjs is
             # itself pixel-moving, so a PR may edit it) — deliberately no token
@@ -492,11 +612,30 @@ jobs:
               if: steps.diff.outputs.ready == 'true' && steps.wanted.outputs.any == 'true'
               uses: actions/upload-artifact@v4
               with:
-                  name: visual-diff-${{ github.event.pull_request.number }}
+                  # run_attempt is in the name because a rerun keeps the run
+                  # id and v4 artifacts are immutable: a fixed name collides
+                  # on re-upload. The comment publisher takes the newest
+                  # attempt's report — every attempt tests the same head SHA.
+                  name: visual-diff-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
                   path: |
                       e2e/__shots__/base
                       e2e/__shots__/head
                       e2e/__shots__/diff
+                  retention-days: 7
+
+            # The report rides out separately and unconditionally: the PNG
+            # artifact above only exists when a screen moved, and the comment
+            # publisher needs the "nothing moved" report too so the green
+            # comment posts. ds-shots-comment.yml — a workflow_run workflow
+            # that never runs PR code — downloads it, validates it as
+            # untrusted input, and posts the sticky PR comment this job must
+            # not (it holds no write token, see the permissions comment above).
+            - name: Upload the diff report
+              if: steps.diff.outputs.ready == 'true'
+              uses: actions/upload-artifact@v4
+              with:
+                  name: visual-diff-report-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
+                  path: e2e/__shots__/report.json
                   retention-days: 7
             # Rendered into the job summary, which needs no permissions. The
             # script omits the <img> tags when --assets is empty, so this is a
@@ -549,9 +688,10 @@ jobs:
         permissions:
             contents: read
             pull-requests: write
+        # No checkout on purpose: every step below consumes artifacts, and this
+        # job holds a write token — a checkout would let PR-authored config
+        # (e.g. an added nyc.config.js) run with that token in reach.
         steps:
-            - uses: actions/checkout@v4
-
             - uses: actions/setup-node@v4
               with:
                   node-version: '20'
@@ -703,17 +843,23 @@ jobs:
                           });
                       }
 
-    # Human-only authorship gate. Every commit on the PR must be authored by a
-    # repo collaborator's own GitHub account — no `*[bot]` authors (claude[bot],
-    # github-actions[bot], …) and no emails that GitHub cannot map to an
-    # account. Policy set 2026-08-24: AI is a tool, not an owner; every commit
-    # has a human who is accountable for it. Cloud coding sessions that commit
-    # as claude[bot] are exactly what this blocks. Content-publish PRs pass:
-    # update-content.yml authors and signs its commit as a human account.
+    # Authorship + provenance gate. Every commit on the PR must be either
+    # (a) authored by a repo collaborator's own GitHub account, or
+    # (b) authored by an allowlisted bot and carry provenance trailers naming
+    #     the team member who ordered the work:
+    #         Ordered-By: <github-login>   (must have write access to this repo)
+    #         Order: <https link to the order — Discord message, PR comment,
+    #                Notion task>
+    # Policy set 2026-08-24, amended 2026-09-01: AI is a tool, not an owner;
+    # every commit has a human who is accountable for it. Unknown bots
+    # (claude[bot] cloud sessions, …) and emails GitHub cannot map to an
+    # account still fail. The ownership half of the policy — the orderer is
+    # assignee and approves the merge — lives in bot-approval.yml, a separate
+    # required check.
     #
-    # No allowlist to maintain: "has write access to this repo" IS the team
-    # roster, and GitHub org/repo access management keeps it current. The
-    # per-user permission endpoint works with the default GITHUB_TOKEN.
+    # No allowlist of humans to maintain: "has write access to this repo" IS
+    # the team roster, and GitHub org/repo access management keeps it current.
+    # The per-user permission endpoint works with the default GITHUB_TOKEN.
     human-authors:
         name: human-authors
         if: github.event_name == 'pull_request'
@@ -723,10 +869,11 @@ jobs:
         permissions:
             pull-requests: read
         steps:
-            - name: Verify every commit is authored by a team member
+            - name: Verify every commit is authored by a team member or a provenance-trailed bot
               uses: actions/github-script@v7
               with:
                   script: |
+                      const ALLOWED_BOTS = ['chip-peanut-bot[bot]'];
                       const memberCache = new Map();
                       async function hasWriteAccess(login) {
                         if (memberCache.has(login)) return memberCache.get(login);
@@ -777,6 +924,13 @@ jobs:
                         pull_number: context.payload.pull_request.number,
                         per_page: 100,
                       });
+                      // Fail closed when the listing is truncated: the API caps PR commit
+                      // listings at 250, and a gate blind to even one commit must not pass.
+                      const total = context.payload.pull_request.commits;
+                      if ((typeof total === 'number' && commits.length < total) || (typeof total !== 'number' && commits.length >= 250)) {
+                        core.setFailed(`The PR has ${typeof total === 'number' ? total : '250+'} commits but the API enumerated ${commits.length} — the gate cannot see every commit. Split the PR or merge in stages.`);
+                        return;
+                      }
                       const bad = [];
                       const landed = [];
                       for (const c of commits) {
@@ -786,8 +940,16 @@ jobs:
                         let problem = null;
                         if (!login) {
                           problem = `author email <${email}> is not linked to a GitHub account — commit from your own account (git config user.email must be an email verified on your GitHub profile)`;
-                        } else if (login.endsWith('[bot]')) {
-                          problem = `authored by ${login} — bot-authored commits are not allowed; commit as yourself`;
+                        } else if (ALLOWED_BOTS.includes(login.toLowerCase())) {
+                          const orderedBy = (c.commit.message.match(/^Ordered-By: @?([A-Za-z0-9-]+)\s*$/m) || [])[1];
+                          const orderUrl = (c.commit.message.match(/^Order: (https:\/\/\S+)\s*$/m) || [])[1];
+                          if (!orderedBy || !orderUrl) {
+                            problem = `authored by ${login} without provenance trailers — a bot commit must carry "Ordered-By: <github-login>" and "Order: <https link to the human's order>"`;
+                          } else if (!(await hasWriteAccess(orderedBy))) {
+                            problem = `cites Ordered-By: ${orderedBy}, who has no write access to this repo — a bot commit must cite the team member who ordered it`;
+                          }
+                        } else if (login.toLowerCase().endsWith('[bot]')) {
+                          problem = `authored by ${login} — this bot is not allowlisted; bot commits are only accepted from ${ALLOWED_BOTS.join(', ')}, with provenance trailers`;
                         } else if (!(await hasWriteAccess(login))) {
                           problem = `authored by ${login}, who has no write access to this repo`;
                         }
@@ -818,7 +980,7 @@ jobs:
     ci-success:
         name: ci-success
         if: always()
-        needs: [format, ds-lint, eslint, typecheck, unit, report, human-authors]
+        needs: [format, ds-lint, eslint, typecheck, native-export, unit, report, human-authors]
         runs-on: ubuntu-latest
         steps:
             - name: Verify all required jobs passed
@@ -830,6 +992,7 @@ jobs:
                       echo "  ds-lint:   ${{ needs['ds-lint'].result }}"
                       echo "  eslint:    ${{ needs.eslint.result }}"
                       echo "  typecheck: ${{ needs.typecheck.result }}"
+                      echo "  native-export: ${{ needs['native-export'].result }}"
                       echo "  unit:      ${{ needs.unit.result }}"
                       echo "  report:    ${{ needs.report.result }}"
                       echo "  human-authors: ${{ needs['human-authors'].result }}"

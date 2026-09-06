@@ -126,7 +126,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8 md:min-h-fit">
+        <div className="flex min-h-inherit flex-col justify-between gap-8 md:min-h-fit">
             <NavHeader icon={isSuccess ? 'cancel' : 'chevron-up'} title={t('receive')} onPrev={onPrev} />
 
             <div className="my-auto space-y-4">
