@@ -219,6 +219,56 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
         expect(countWeightStacks("const SIZES = { sm: 'text-body-m font-semibold' }; const c = SIZES[v]")).toBe(1)
     })
 
+    it('keeps a match formed INSIDE a glued operand', () => {
+        // Nothing may pair across a glued join, but a stack rendered wholly
+        // inside one operand is still a stack — discarding the whole expression
+        // reported zero for a real one.
+        expect(countWeightStacks("const c = 'text-body-m font-semibold x' + 'y'")).toBe(1)
+        expect(countWeightStacks("const c = 'y' + 'x text-body-m font-semibold'")).toBe(1)
+        expect(countWeightStacks("const c = 'text-body-m' + 'font-semibold'")).toBe(0)
+    })
+
+    it('resolves an alias in the scope it was DECLARED in', () => {
+        // `const alias = style` at module level means the MODULE's style, even
+        // when read from a function that declares its own. Re-evaluating against
+        // the use-site scopes picked the local namesake — wrong in both
+        // directions.
+        expect(
+            countWeightStacks(
+                "const style = 'text-body-m'; const alias = style; function f(){ const style = 'underline'; return clsx(alias, 'font-semibold') }"
+            )
+        ).toBe(1)
+        expect(
+            countWeightStacks(
+                "const style = 'underline'; const alias = style; function f(){ const style = 'text-body-m'; return clsx(alias, 'font-semibold') }"
+            )
+        ).toBe(0)
+    })
+
+    it('honours a braceless switch-case declaration', () => {
+        // A CaseBlock holds CLAUSES, not statements, so `case x: const style = …`
+        // declared into a scope the collector never read.
+        expect(
+            countWeightStacks(
+                "const style='text-body-m'; function f(k){ switch(k){ case 1: const style='underline'; return clsx(style,'font-semibold') } }"
+            )
+        ).toBe(0)
+    })
+
+    it('hoists a var declared in a loop HEADER', () => {
+        expect(
+            countWeightStacks(
+                "const style='text-body-m'; function f(xs){ for (var style of xs) {} return clsx(style,'font-semibold') }"
+            )
+        ).toBe(0)
+        // a `const` loop binding does not leak past its loop
+        expect(
+            countWeightStacks(
+                "const style='text-body-m'; function f(xs){ for (const y of xs) {} return clsx(style,'font-semibold') }"
+            )
+        ).toBe(1)
+    })
+
     it('respects the token boundary across + concatenation', () => {
         // `+` GLUES: 'text-body-m' + 'font-semibold' renders the single class
         // `text-body-mfont-semibold`, not a token beside a weight.

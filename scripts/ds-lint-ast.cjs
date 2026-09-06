@@ -122,10 +122,20 @@ function startOf(node) {
     return node.getStart ? node.getStart() : node.pos
 }
 
-/** Innermost lexical binding for a name — OPAQUE stops the walk, it does not fall through. */
+/**
+ * Innermost lexical binding for a name, WITH the scope chain it was declared in.
+ *
+ * The chain matters: an initializer has to be evaluated where it was written,
+ * not where the name is used. `const alias = style` at module level means the
+ * module's `style`, even if the use site sits inside a function that declares
+ * its own — re-evaluating against the use-site scopes picked the local namesake
+ * and reported the wrong answer in both directions.
+ *
+ * OPAQUE stops the walk; it does not fall through to an outer scope.
+ */
 function lookup(scopes, name) {
     for (let i = scopes.length - 1; i >= 0; i--) {
-        if (scopes[i].has(name)) return scopes[i].get(name)
+        if (scopes[i].has(name)) return { value: scopes[i].get(name), scopes: scopes.slice(0, i + 1) }
     }
     return undefined
 }
@@ -139,10 +149,10 @@ function resolveToObjectLiteral(node, ctx, depth, seen) {
     if (ts.isIdentifier(node)) {
         if (seen.has(node.text)) return null
         const bound = lookup(ctx.scopes, node.text)
-        if (!bound || bound === OPAQUE) return null
+        if (!bound || bound.value === OPAQUE) return null
         const next = new Set(seen)
         next.add(node.text)
-        return resolveToObjectLiteral(bound, ctx, depth + 1, next)
+        return resolveToObjectLiteral(bound.value, { ...ctx, scopes: bound.scopes }, depth + 1, next)
     }
     return null
 }
@@ -232,7 +242,16 @@ function alternatives(node, ctx, depth = 0, seen = new Set(), mode = LOOKUP_OBJE
             // so composing across a boundary that does not separate class names
             // reports a stack no element receives. Only concatenation with a
             // real whitespace boundary composes.
-            if (!concatBoundarySeparates(node.left, node.right)) return NOTHING
+            if (!concatBoundarySeparates(node.left, node.right)) {
+                // Glued: the two fragments fuse into one class at the join, so
+                // nothing may PAIR across it. But a stack formed wholly inside
+                // either operand is still rendered — returning NOTHING threw
+                // those away and reported zero for a real one.
+                return union(
+                    alternatives(node.left, ctx, depth + 1, seen, mode),
+                    alternatives(node.right, ctx, depth + 1, seen, mode)
+                )
+            }
             return product(
                 alternatives(node.left, ctx, depth + 1, seen, mode),
                 alternatives(node.right, ctx, depth + 1, seen, mode)
@@ -364,10 +383,13 @@ function alternatives(node, ctx, depth = 0, seen = new Set(), mode = LOOKUP_OBJE
     if (ts.isIdentifier(node)) {
         if (seen.has(node.text)) return NOTHING
         const bound = lookup(ctx.scopes, node.text)
-        if (!bound || bound === OPAQUE) return NOTHING
+        if (!bound || bound.value === OPAQUE) return NOTHING
         const next = new Set(seen)
         next.add(node.text)
-        return alternatives(bound, ctx, depth + 1, next, mode)
+        // Evaluated in the chain the binding was DECLARED in, not the one it is
+        // used from.
+        const outer = { ...ctx, scopes: bound.scopes }
+        return alternatives(bound.value, outer, depth + 1, next, mode)
     }
     return NOTHING
 }
@@ -459,10 +481,10 @@ function resolveToArrayLiteral(node, ctx, depth, seen) {
     if (ts.isIdentifier(node)) {
         if (seen.has(node.text)) return null
         const bound = lookup(ctx.scopes, node.text)
-        if (!bound || bound === OPAQUE) return null
+        if (!bound || bound.value === OPAQUE) return null
         const next = new Set(seen)
         next.add(node.text)
-        return resolveToArrayLiteral(bound, ctx, depth + 1, next)
+        return resolveToArrayLiteral(bound.value, { ...ctx, scopes: bound.scopes }, depth + 1, next)
     }
     return null
 }
@@ -557,10 +579,19 @@ function hoistedVarNames(body) {
     const names = []
     const walk = (node) => {
         if (isFunctionLike(node)) return
-        if (ts.isVariableStatement(node)) {
+        // A `for (var x …)` header declares a function-scoped binding just as a
+        // statement does, and reading only VariableStatement missed every one.
+        const list = ts.isVariableStatement(node)
+            ? node.declarationList
+            : (ts.isForStatement(node) || ts.isForOfStatement(node) || ts.isForInStatement(node)) &&
+                node.initializer &&
+                ts.isVariableDeclarationList(node.initializer)
+              ? node.initializer
+              : null
+        if (list) {
             // eslint-disable-next-line no-bitwise
-            const isVar = !(node.declarationList.flags & (ts.NodeFlags.Const | ts.NodeFlags.Let))
-            if (isVar) for (const decl of node.declarationList.declarations) patternNames(decl.name, names)
+            const isVar = !(list.flags & (ts.NodeFlags.Const | ts.NodeFlags.Let))
+            if (isVar) for (const decl of list.declarations) patternNames(decl.name, names)
         }
         ts.forEachChild(node, walk)
     }
@@ -643,7 +674,15 @@ function weightStackSites(text, filename, { isToken, isWeight }) {
 
     const visit = (node) => {
         const scopes = []
-        if (statementScope(node)) scopes.push(declarationBindings(node.statements))
+        if (statementScope(node)) {
+            // A CaseBlock holds CLAUSES, not statements, and a braceless
+            // `case x: const style = …` declares into the switch's own scope. The
+            // statement collector saw nothing there, so the name never shadowed.
+            const statements = ts.isCaseBlock(node)
+                ? node.clauses.flatMap((clause) => [...(clause.statements ?? [])])
+                : node.statements
+            scopes.push(declarationBindings(statements))
+        }
         if (isFunctionLike(node)) {
             const fnScope = parameterBindings(node)
             if (node.body) for (const name of hoistedVarNames(node.body)) fnScope.set(name, OPAQUE)
