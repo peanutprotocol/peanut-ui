@@ -88,7 +88,26 @@ export default function CapNudgeCard() {
         setSubmittedAt(Number.isNaN(parsed) ? null : parsed)
     }, [userId])
 
-    const recentlySubmitted = submittedAt !== null && Date.now() - submittedAt < CAP_NUDGE_SUBMITTED_TTL_MS
+    // Recomputed only on render — and with a lost webhook the backend keeps
+    // returning the same `raise` hint, so React Query's structural sharing hands
+    // back an identical object and nothing re-renders. Without a timer at the
+    // boundary the card stayed in the review state forever and the 20s re-arm
+    // kept the 4s user poll alive indefinitely. Schedule the expiry so it
+    // actually arrives.
+    const [now, setNow] = useState(() => Date.now())
+    const expiresAt = submittedAt === null ? null : submittedAt + CAP_NUDGE_SUBMITTED_TTL_MS
+    useEffect(() => {
+        if (expiresAt === null) return
+        const remaining = expiresAt - Date.now()
+        if (remaining <= 0) {
+            setNow(Date.now())
+            return
+        }
+        const id = setTimeout(() => setNow(Date.now()), remaining)
+        return () => clearTimeout(id)
+    }, [expiresAt])
+
+    const recentlySubmitted = expiresAt !== null && now < expiresAt
 
     // Once the backend's own state takes over, drop the local flag: the marker
     // it wrote outlives this device, and leaving ours behind would suppress a

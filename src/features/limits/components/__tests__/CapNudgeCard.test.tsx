@@ -205,6 +205,54 @@ describe('CapNudgeCard', () => {
             }
         })
 
+        test('the TTL expires on its own, with no help from a re-render', async () => {
+            // With a lost webhook the backend keeps returning the same `raise`
+            // hint, React Query's structural sharing hands back an identical
+            // object, and nothing re-renders — so a TTL read only at render time
+            // never elapsed. The card stayed in the review state and the 20s
+            // re-arm kept the 4s user poll alive indefinitely.
+            jest.useFakeTimers()
+            try {
+                render(<CapNudgeCard />)
+                fireEvent.click(screen.getByRole('button', { name: /verify income/i }))
+                await act(async () => {})
+                fireEvent.click(screen.getByText('submit-document'))
+                expect(screen.getByText(/reviewing your limit/i)).toBeInTheDocument()
+
+                // Past the 10-minute marker TTL, with no other state change.
+                act(() => {
+                    jest.advanceTimersByTime(11 * 60 * 1000)
+                })
+
+                expect(screen.getByRole('button', { name: /verify income/i })).toBeInTheDocument()
+                expect(screen.queryByText(/reviewing your limit/i)).not.toBeInTheDocument()
+            } finally {
+                jest.useRealTimers()
+            }
+        })
+
+        test('and the poller stops being re-armed once the TTL is gone', async () => {
+            jest.useFakeTimers()
+            try {
+                render(<CapNudgeCard />)
+                fireEvent.click(screen.getByRole('button', { name: /verify income/i }))
+                await act(async () => {})
+                fireEvent.click(screen.getByText('submit-document'))
+
+                act(() => {
+                    jest.advanceTimersByTime(11 * 60 * 1000)
+                })
+                const afterExpiry = mockMarkSubmitted.mock.calls.length
+
+                act(() => {
+                    jest.advanceTimersByTime(5 * 60 * 1000)
+                })
+                expect(mockMarkSubmitted.mock.calls.length).toBe(afterExpiry)
+            } finally {
+                jest.useRealTimers()
+            }
+        })
+
         test('the suppression survives a remount, so the same upload is not re-offered', async () => {
             const { unmount } = render(<CapNudgeCard />)
             fireEvent.click(screen.getByRole('button', { name: /verify income/i }))
