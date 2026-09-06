@@ -553,12 +553,9 @@ describe('GROUP 3: Amount Validation', () => {
         fireEvent.click(screen.getByTestId('use-full-balance'))
 
         expect(screen.getByText('Continue')).toBeDisabled()
-        await waitFor(() =>
-            expect(mockSetError).toHaveBeenCalledWith({
-                showError: true,
-                errorMessage: 'Minimum withdrawal is $1.',
-            })
-        )
+        // Same channel as a typed sub-minimum amount: the field's own error,
+        // never the flow-level setError.
+        await waitFor(() => expect(screen.getByTestId('error-alert')).toHaveTextContent('Minimum withdrawal is $1.'))
     })
 
     test('No fill action while the balance is still loading', () => {
