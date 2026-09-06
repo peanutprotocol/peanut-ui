@@ -219,13 +219,21 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
         expect(countWeightStacks("const SIZES = { sm: 'text-body-m font-semibold' }; const c = SIZES[v]")).toBe(1)
     })
 
-    it('keeps a match formed INSIDE a glued operand', () => {
-        // Nothing may pair across a glued join, but a stack rendered wholly
-        // inside one operand is still a stack — discarding the whole expression
-        // reported zero for a real one.
+    it('reads a static concatenation as the class list it actually renders', () => {
+        // Only the two classes TOUCHING the join fuse, so no rule about the
+        // boundary can decide this — the answer depends on the whole rendered
+        // string. Folding the concatenation gets every shape right at once.
+
+        // fully fused: one class, `text-body-mfont-semibold`, and no stack
+        expect(countWeightStacks("const c = 'text-body-m' + 'font-semibold'")).toBe(0)
+        // the stack sits wholly inside one operand; only `x`/`y` fuse
         expect(countWeightStacks("const c = 'text-body-m font-semibold x' + 'y'")).toBe(1)
         expect(countWeightStacks("const c = 'y' + 'x text-body-m font-semibold'")).toBe(1)
-        expect(countWeightStacks("const c = 'text-body-m' + 'font-semibold'")).toBe(0)
+        // the fusion happens BETWEEN them, and both survive it as separate classes
+        expect(countWeightStacks("const c = 'text-body-m x' + 'y font-semibold'")).toBe(1)
+        // three-operand chains fold the same way, left to right
+        expect(countWeightStacks("const c = 'text-body' + '-m x' + 'y font-semibold'")).toBe(1)
+        expect(countWeightStacks("const c = 'text-body' + '-m' + 'font-semibold'")).toBe(0)
     })
 
     it('resolves an alias in the scope it was DECLARED in', () => {
@@ -321,6 +329,56 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
         expect(
             countWeightStacks(
                 "const c = cva('base', { variants: { size: { sm: 'x' } }, compoundVariants: [{ size: 'sm', class: 'text-body-m font-semibold' }] })"
+            )
+        ).toBe(1)
+    })
+
+    it('keeps the axes a cva compound leaves unconstrained', () => {
+        // `tone` is selected independently of `size`, so the compound's weight
+        // really does render beside whatever tone was picked.
+        const axes = "variants: { size: { sm: 'x', lg: 'y' }, tone: { loud: 'text-body-m' } }"
+        expect(
+            countWeightStacks(
+                `const c = cva('base', { ${axes}, compoundVariants: [{ size: 'sm', class: 'font-semibold' }] })`
+            )
+        ).toBe(1)
+        // the same axis PINNED to the option that carries the token still counts...
+        expect(
+            countWeightStacks(
+                "const c = cva('base', { variants: { tone: { loud: 'text-body-m', quiet: 'y' } }, compoundVariants: [{ tone: 'loud', class: 'font-semibold' }] })"
+            )
+        ).toBe(1)
+        // ...and pinned to the sibling still does not
+        expect(
+            countWeightStacks(
+                "const c = cva('base', { variants: { tone: { loud: 'text-body-m', quiet: 'y' } }, compoundVariants: [{ tone: 'quiet', class: 'font-semibold' }] })"
+            )
+        ).toBe(0)
+    })
+
+    it('evaluates a table entry in the scope the table was declared in', () => {
+        // MAP lives at module level, so `MAP.x` is the module's `style` even when
+        // the read happens under a function that shadows the name.
+        expect(
+            countWeightStacks(
+                "const style = 'text-body-m'; const MAP = { x: style }; function f() { const style = 'underline'; return clsx(MAP.x, 'font-semibold') }"
+            )
+        ).toBe(1)
+        expect(
+            countWeightStacks(
+                "const style = 'underline'; const MAP = { x: style }; function f() { const style = 'text-body-m'; return clsx(MAP.x, 'font-semibold') }"
+            )
+        ).toBe(0)
+        // and the same through a cva compound's option table
+        expect(
+            countWeightStacks(
+                "const opt = 'text-body-m'; const V = { tone: { loud: opt } }; function f() { const opt = 'underline'; return cva('base', { variants: V, compoundVariants: [{ tone: 'loud', class: 'font-semibold' }] }) }"
+            )
+        ).toBe(1)
+        // ...and through a compoundVariants ARRAY hoisted out of the call
+        expect(
+            countWeightStacks(
+                "const w = 'font-semibold'; const C = [{ tone: 'loud', class: w }]; function f() { const w = 'underline'; return cva('base', { variants: { tone: { loud: 'text-body-m' } }, compoundVariants: C }) }"
             )
         ).toBe(1)
     })

@@ -140,9 +140,18 @@ function lookup(scopes, name) {
     return undefined
 }
 
+/**
+ * Resolve an expression to the object literal it denotes, WITH the scope chain
+ * that literal was written in.
+ *
+ * The chain travels with the node for the same reason it does in {@link lookup}:
+ * a table declared at module level means the module's bindings, and its entries
+ * have to be evaluated there. Handing back a bare node let the caller re-evaluate
+ * a module-level entry against a function's scopes and pick a local namesake.
+ */
 function resolveToObjectLiteral(node, ctx, depth, seen) {
     if (!node || depth > MAX_DEPTH) return null
-    if (ts.isObjectLiteralExpression(node)) return node
+    if (ts.isObjectLiteralExpression(node)) return { node, scopes: ctx.scopes }
     if (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isSatisfiesExpression(node)) {
         return resolveToObjectLiteral(node.expression, ctx, depth + 1, seen)
     }
@@ -157,45 +166,48 @@ function resolveToObjectLiteral(node, ctx, depth, seen) {
     return null
 }
 
+/** One property of a resolved table, as `{ value, scopes }` — see the note above. */
 function propertyByName(node, name, ctx, depth, seen) {
     const target = resolveToObjectLiteral(node, ctx, depth, seen)
     if (!target) return null
+    const inner = { ...ctx, scopes: target.scopes }
     // Later properties win, so walk backwards — and follow spreads, since
     // `{ ...BASE }` really does carry BASE's keys.
-    for (let i = target.properties.length - 1; i >= 0; i--) {
-        const prop = target.properties[i]
+    for (let i = target.node.properties.length - 1; i >= 0; i--) {
+        const prop = target.node.properties[i]
         if (ts.isSpreadAssignment(prop)) {
-            const fromSpread = propertyByName(prop.expression, name, ctx, depth + 1, seen)
+            const fromSpread = propertyByName(prop.expression, name, inner, depth + 1, seen)
             if (fromSpread) return fromSpread
             continue
         }
         if (!ts.isPropertyAssignment(prop)) continue
         const key = prop.name
         const keyText = ts.isIdentifier(key) || ts.isStringLiteral(key) ? key.text : null
-        if (keyText === name) return prop.initializer
+        if (keyText === name) return { value: prop.initializer, scopes: target.scopes }
     }
     return null
 }
 
 /**
- * Does the join between two concatenated fragments actually separate class
- * names? Only a trailing space on the left or a leading space on the right does.
- * A fragment we cannot read statically is assumed to separate — over-counting is
- * the safe direction for a debt ratchet.
+ * The FULL literal text an expression renders to, or null when any part of it is
+ * not statically known.
+ *
+ * Different from reading one fragment: a `+` chain only has a known text if
+ * every operand does, and it is the whole concatenation that matters. `'a' +
+ * 'b'` renders `ab`, one class — which is the entire reason concatenation cannot
+ * be treated as composition.
  */
-function concatBoundarySeparates(left, right) {
-    const tail = staticText(left)
-    const head = staticText(right)
-    if (tail === null || head === null) return true
-    return /\s$/.test(tail) || /^\s/.test(head) || tail === '' || head === ''
-}
-
-/** The literal text of an expression, or null when it is not statically known. */
 function staticText(node) {
+    if (!node) return null
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return node.text
-    if (ts.isTemplateExpression(node)) return null
+    if (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isSatisfiesExpression(node)) {
+        return staticText(node.expression)
+    }
     if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken) {
-        return staticText(node.right)
+        const left = staticText(node.left)
+        if (left === null) return null
+        const right = staticText(node.right)
+        return right === null ? null : left + right
     }
     return null
 }
@@ -237,21 +249,22 @@ function alternatives(node, ctx, depth = 0, seen = new Set(), mode = LOOKUP_OBJE
     if (ts.isBinaryExpression(node)) {
         const kind = node.operatorToken.kind
         if (kind === ts.SyntaxKind.PlusToken) {
-            // `+` GLUES. `'text-body-m' + 'font-semibold'` renders the single
-            // class `text-body-mfont-semibold` — not a token beside a weight —
-            // so composing across a boundary that does not separate class names
-            // reports a stack no element receives. Only concatenation with a
-            // real whitespace boundary composes.
-            if (!concatBoundarySeparates(node.left, node.right)) {
-                // Glued: the two fragments fuse into one class at the join, so
-                // nothing may PAIR across it. But a stack formed wholly inside
-                // either operand is still rendered — returning NOTHING threw
-                // those away and reported zero for a real one.
-                return union(
-                    alternatives(node.left, ctx, depth + 1, seen, mode),
-                    alternatives(node.right, ctx, depth + 1, seen, mode)
-                )
-            }
+            // `+` GLUES, and only the two classes touching the join actually
+            // fuse. `'text-body-m' + 'font-semibold'` renders ONE class,
+            // `text-body-mfont-semibold`, so it is no stack at all; but
+            // `'text-body-m x' + 'y font-semibold'` renders `text-body-m xy
+            // font-semibold`, where the token and the weight are still separate
+            // classes and DO stack.
+            //
+            // No boundary rule gets both of those right, because the answer
+            // depends on the whole rendered string rather than on the join. When
+            // every operand is static there is no need to guess: fold the
+            // concatenation and read the class list it really produces.
+            const rendered = staticText(node)
+            if (rendered !== null) return literalAlt(node, rendered, ctx)
+            // Something in the chain is dynamic, so the rendered text is
+            // unknowable. Compose — over-counting is the safe direction for a
+            // debt ratchet, and it is the direction the pre-AST scanner took.
             return product(
                 alternatives(node.left, ctx, depth + 1, seen, mode),
                 alternatives(node.right, ctx, depth + 1, seen, mode)
@@ -369,14 +382,18 @@ function alternatives(node, ctx, depth = 0, seen = new Set(), mode = LOOKUP_OBJE
         // inside a builder call: `clsx(SIZES[variant])` picks a variant, it does
         // not apply the whole table.
         const selected = propertyByName(node.expression, node.name.text, ctx, depth, seen)
-        if (selected) return alternatives(selected, ctx, depth + 1, seen, LOOKUP_OBJECT)
+        if (selected) {
+            return alternatives(selected.value, { ...ctx, scopes: selected.scopes }, depth + 1, seen, LOOKUP_OBJECT)
+        }
         return alternatives(node.expression, ctx, depth + 1, seen, LOOKUP_OBJECT)
     }
     if (ts.isElementAccessExpression(node)) {
         const arg = node.argumentExpression
         if (arg && ts.isStringLiteral(arg)) {
             const selected = propertyByName(node.expression, arg.text, ctx, depth, seen)
-            if (selected) return alternatives(selected, ctx, depth + 1, seen, LOOKUP_OBJECT)
+            if (selected) {
+                return alternatives(selected.value, { ...ctx, scopes: selected.scopes }, depth + 1, seen, LOOKUP_OBJECT)
+            }
         }
         return alternatives(node.expression, ctx, depth + 1, seen, LOOKUP_OBJECT)
     }
@@ -410,25 +427,32 @@ function cvaAlternatives(node, ctx, depth, seen) {
     let out = baseAlts
     if (!config) return out
 
-    const configObject = resolveToObjectLiteral(config, ctx, depth, seen)
-    if (!configObject) return product(out, alternatives(config, ctx, depth + 1, seen, BUILDER_OBJECT))
+    const configTable = resolveToObjectLiteral(config, ctx, depth, seen)
+    if (!configTable) return product(out, alternatives(config, ctx, depth + 1, seen, BUILDER_OBJECT))
+    const configCtx = { ...ctx, scopes: configTable.scopes }
 
     let variants = null
     let compounds = null
-    for (const prop of configObject.properties) {
+    // Every axis by name, so a compound can product against the ones it leaves free.
+    const axisAlts = new Map()
+    for (const prop of configTable.node.properties) {
         if (!ts.isPropertyAssignment(prop)) continue
         const key = ts.isIdentifier(prop.name) || ts.isStringLiteral(prop.name) ? prop.name.text : null
 
         if (key === 'variants') {
-            variants = resolveToObjectLiteral(prop.initializer, ctx, depth, seen)
+            variants = resolveToObjectLiteral(prop.initializer, configCtx, depth, seen)
             if (!variants) continue
-            for (const axis of variants.properties) {
+            const variantsCtx = { ...ctx, scopes: variants.scopes }
+            for (const axis of variants.node.properties) {
                 if (!ts.isPropertyAssignment(axis)) continue
+                const axisName = ts.isIdentifier(axis.name) || ts.isStringLiteral(axis.name) ? axis.name.text : null
                 // union WITHIN the axis, product ACROSS axes
-                out = product(out, alternatives(axis.initializer, ctx, depth + 1, seen, LOOKUP_OBJECT))
+                const alts = alternatives(axis.initializer, variantsCtx, depth + 1, seen, LOOKUP_OBJECT)
+                if (axisName !== null) axisAlts.set(axisName, alts)
+                out = product(out, alts)
             }
         } else if (key === 'compoundVariants') {
-            compounds = resolveToArrayLiteral(prop.initializer, ctx, depth, seen)
+            compounds = resolveToArrayLiteral(prop.initializer, configCtx, depth, seen)
         }
         // `defaultVariants` names keys, not classes — nothing to read.
     }
@@ -438,43 +462,64 @@ function cvaAlternatives(node, ctx, depth, seen) {
     // compound against every alternative of every axis discarded that
     // constraint and stacked a compound weight onto a token from a sibling
     // option the compound never applies to.
-    for (const entry of compounds ?? []) {
-        const compound = resolveToObjectLiteral(entry, ctx, depth, seen)
+    const compoundCtx = compounds ? { ...ctx, scopes: compounds.scopes } : ctx
+    for (const entry of compounds?.elements ?? []) {
+        const compound = resolveToObjectLiteral(entry, compoundCtx, depth, seen)
         if (!compound) continue
+        const entryCtx = { ...ctx, scopes: compound.scopes }
         let selected = NOTHING
         let classes = NOTHING
-        for (const field of compound.properties) {
+        const pinned = new Set()
+        for (const field of compound.node.properties) {
             if (!ts.isPropertyAssignment(field)) continue
             const name = ts.isIdentifier(field.name) || ts.isStringLiteral(field.name) ? field.name.text : null
             if (name === 'class' || name === 'className') {
-                classes = product(classes, alternatives(field.initializer, ctx, depth + 1, seen, BUILDER_OBJECT))
+                classes = product(classes, alternatives(field.initializer, entryCtx, depth + 1, seen, BUILDER_OBJECT))
                 continue
             }
             // A selector names an axis and the option it fires for. Pull that ONE
-            // option's classes in; an unreadable selector contributes nothing
-            // rather than the whole axis.
+            // option's classes in; a selector we cannot read down to a single
+            // option (an array of them, a boolean, a computed name) leaves the
+            // axis unpinned below, which reads as "any option" — over-counting,
+            // the safe direction.
             const optionName = staticText(field.initializer)
             if (name === null || optionName === null || !variants) continue
-            const axis = propertyByName(variants, name, ctx, depth, seen)
+            const axis = propertyByName(variants.node, name, { ...ctx, scopes: variants.scopes }, depth, seen)
             if (!axis) continue
-            const option = propertyByName(axis, optionName, ctx, depth, seen)
-            if (option) selected = product(selected, alternatives(option, ctx, depth + 1, seen, LOOKUP_OBJECT))
+            const option = propertyByName(axis.value, optionName, { ...ctx, scopes: axis.scopes }, depth, seen)
+            if (!option) continue
+            pinned.add(name)
+            selected = product(
+                selected,
+                alternatives(option.value, { ...ctx, scopes: option.scopes }, depth + 1, seen, LOOKUP_OBJECT)
+            )
         }
-        // base + the SELECTED options + the compound's own classes.
+        // base + the pinned options + EVERY axis the compound leaves free + the
+        // compound's own classes. The free axes have to stay in: a compound that
+        // only constrains `size` still renders beside whatever `tone` is set to,
+        // so its classes really do land next to every `tone` option's classes.
         //
         // Built from `baseAlts`, never from `out`: by now `out` carries every
         // axis unioned together, so producting against it would put the compound
-        // weight back beside a sibling option it never applies to — the exact
+        // weight back beside a sibling option of a PINNED axis — the exact
         // constraint this loop exists to respect.
-        out = union(out, product(product(baseAlts, selected), classes))
+        let combination = product(baseAlts, selected)
+        for (const [axisName, alts] of axisAlts) {
+            if (pinned.has(axisName)) continue
+            combination = product(combination, alts)
+        }
+        out = union(out, product(combination, classes))
     }
     return out
 }
 
-/** Resolve an expression to an array literal, following same-file consts. */
+/**
+ * Resolve an expression to the array literal it denotes, WITH the scope chain
+ * that literal was written in — see {@link resolveToObjectLiteral}.
+ */
 function resolveToArrayLiteral(node, ctx, depth, seen) {
     if (!node || depth > MAX_DEPTH) return null
-    if (ts.isArrayLiteralExpression(node)) return [...node.elements]
+    if (ts.isArrayLiteralExpression(node)) return { elements: [...node.elements], scopes: ctx.scopes }
     if (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isSatisfiesExpression(node)) {
         return resolveToArrayLiteral(node.expression, ctx, depth + 1, seen)
     }
