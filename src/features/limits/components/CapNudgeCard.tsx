@@ -25,6 +25,19 @@ import { selectMantecaCapNudge } from '@/utils/capability-gate'
 const CAP_NUDGE_SUBMITTED_TTL_MS = 10 * 60 * 1000
 
 /**
+ * Re-arm cadence for the post-write poller, comfortably under the submission
+ * window's 30s so it never lapses. Same device as {@link useWaitingOnProviderModal},
+ * and for the same reason: one `markSubmitted()` buys 30 seconds, and this rail
+ * is ENABLED so the poller has no other predicate to keep it alive. A GREEN
+ * review webhook can land well after that, and when it does there is nothing
+ * scheduled to go and fetch the `wait` state it produced.
+ *
+ * Bounded by the card being mounted — leave the page and the interval clears —
+ * and by the backend answering, whichever comes first.
+ */
+const REARM_INTERVAL_MS = 20_000
+
+/**
  * The Manteca cap-nudge — the surface for "you hit your monthly cap, verify your
  * income to raise it". Lives on the limits page, next to the (different)
  * {@link IncreaseLimitsButton} flow, so a capped user is never interrupted
@@ -86,6 +99,15 @@ export default function CapNudgeCard() {
         updateUserPreferences(userId, { capNudgeSubmittedAt: undefined })
         setSubmittedAt(null)
     }, [userId, submittedAt, nudge?.state, recentlySubmitted])
+
+    // Keep the poller alive for as long as we are still waiting on the webhook.
+    // Stops the moment the backend's own state takes over (the hint flips to
+    // `wait`), or the local marker ages out, or the user leaves the page.
+    useEffect(() => {
+        if (!recentlySubmitted || nudge?.state !== 'raise') return
+        const id = setInterval(() => markSubmitted(), REARM_INTERVAL_MS)
+        return () => clearInterval(id)
+    }, [recentlySubmitted, nudge?.state])
 
     const start = useCallback(async () => {
         if (!actionKey || startingRef.current) return

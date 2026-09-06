@@ -9,7 +9,7 @@
  * document nor claim the limit changed.
  */
 import React from 'react'
-import { screen, fireEvent, waitFor } from '@testing-library/react'
+import { act, screen, fireEvent, waitFor } from '@testing-library/react'
 import { renderWithIntl as render } from '@/test-utils/intl'
 import type { NextAction, RailCapability } from '@/types/capabilities'
 import CapNudgeCard from '../CapNudgeCard'
@@ -155,6 +155,54 @@ describe('CapNudgeCard', () => {
             fireEvent.click(await screen.findByText('submit-document'))
 
             expect(mockMarkSubmitted).toHaveBeenCalled()
+        })
+
+        test('keeps the poller armed past the 30s window while the webhook is outstanding', async () => {
+            // One markSubmitted() buys 30 seconds. This rail is ENABLED, so the
+            // auto-refresh poller has no other predicate keeping it alive — and a
+            // GREEN review webhook can land well after that, with nothing
+            // scheduled to fetch the `wait` state it produced.
+            jest.useFakeTimers()
+            try {
+                render(<CapNudgeCard />)
+                fireEvent.click(screen.getByRole('button', { name: /verify income/i }))
+                await act(async () => {})
+                fireEvent.click(screen.getByText('submit-document'))
+
+                const armedOnSubmit = mockMarkSubmitted.mock.calls.length
+                expect(armedOnSubmit).toBeGreaterThan(0)
+
+                act(() => {
+                    jest.advanceTimersByTime(60_000)
+                })
+                expect(mockMarkSubmitted.mock.calls.length).toBeGreaterThan(armedOnSubmit)
+            } finally {
+                jest.useRealTimers()
+            }
+        })
+
+        test('stops re-arming once the backend answers', async () => {
+            jest.useFakeTimers()
+            try {
+                const { unmount } = render(<CapNudgeCard />)
+                fireEvent.click(screen.getByRole('button', { name: /verify income/i }))
+                await act(async () => {})
+                fireEvent.click(screen.getByText('submit-document'))
+                unmount()
+
+                // The backend's `wait` state has landed — nothing left to poll for.
+                mockRails = [mantecaRail({ hintActions: ['manteca:limit-review'] })]
+                mockNextActions = [reviewAction]
+                render(<CapNudgeCard />)
+                const settled = mockMarkSubmitted.mock.calls.length
+
+                act(() => {
+                    jest.advanceTimersByTime(120_000)
+                })
+                expect(mockMarkSubmitted.mock.calls.length).toBe(settled)
+            } finally {
+                jest.useRealTimers()
+            }
         })
 
         test('the suppression survives a remount, so the same upload is not re-offered', async () => {
