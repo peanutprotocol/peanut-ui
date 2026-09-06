@@ -970,6 +970,51 @@ describe('selectMantecaCapNudge', () => {
         expect(selectMantecaCapNudge([mantecaRail()], [])).toBeUndefined()
     })
 
+    test('survives the Bridge action-key collision', () => {
+        // The BE key is not provider-namespaced: Bridge emits the same
+        // `sumsub:source_of_funds` for its own requirement, and `upsertAction`
+        // keeps whichever rail emits FIRST. A user carrying both ends up with the
+        // Manteca rail pointing at a descriptor whose purpose reads `unlock-bridge`
+        // — and a purpose-only check dropped the real nudge, leaving exactly that
+        // cohort with no limit-raise route at all.
+        const bridgeWon: NextAction = {
+            key: 'sumsub:source_of_funds',
+            kind: 'sumsub',
+            purpose: 'unlock-bridge',
+            levelKey: 'source_of_funds',
+        }
+        const bridgeRail = bankRail({
+            id: 'bridge.sepa_eu',
+            method: 'SEPA_EU',
+            country: 'EU',
+            status: 'requires-info',
+            blockingActions: ['sumsub:source_of_funds'],
+        })
+        const rail = mantecaRail({ hintActions: ['sumsub:source_of_funds'] })
+
+        expect(selectMantecaCapNudge([bridgeRail, rail], [bridgeWon])).toEqual({
+            state: 'raise',
+            actionKey: 'sumsub:source_of_funds',
+        })
+    })
+
+    test('a Bridge requirement on a BRIDGE rail is still not a cap-nudge', () => {
+        // The rail-local read must not become a global one: the same descriptor
+        // reached from a Bridge rail is a Bridge requirement.
+        const bridgeSof: NextAction = {
+            key: 'sumsub:source_of_funds',
+            kind: 'sumsub',
+            purpose: 'unlock-bridge',
+            levelKey: 'source_of_funds',
+        }
+        const bridgeRail = bankRail({
+            id: 'bridge.sepa_eu',
+            status: 'requires-info',
+            blockingActions: ['sumsub:source_of_funds'],
+        })
+        expect(selectMantecaCapNudge([bridgeRail], [bridgeSof])).toBeUndefined()
+    })
+
     test('a Bridge advisory hint is not a cap-nudge', () => {
         const advisory: NextAction = {
             key: 'sumsub:eea_uplift',

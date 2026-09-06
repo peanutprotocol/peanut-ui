@@ -247,6 +247,20 @@ const CAP_NUDGE_RAISE_PURPOSE = 'raise-manteca-limit'
 const CAP_NUDGE_REVIEW_PURPOSE = 'manteca-limit-under-review'
 
 /**
+ * The source-of-funds RFI the cap-nudge starts. Identified by key/level as well
+ * as purpose because the BE's action key is NOT provider-namespaced: Bridge
+ * emits the same `sumsub:source_of_funds` for its own source-of-funds
+ * requirement, and the resolver's `upsertAction` keeps whichever rail emits
+ * FIRST. A user carrying both a Bridge SoF requirement and a Manteca cap-nudge
+ * can therefore end up with the Manteca rail pointing at a descriptor whose
+ * purpose reads `unlock-bridge` — and a purpose-only check would drop the real
+ * nudge and leave exactly that cohort with no limit-raise route, which is the
+ * hole this whole selector exists to close.
+ */
+const CAP_NUDGE_RAISE_KEY = 'sumsub:source_of_funds'
+const CAP_NUDGE_RAISE_LEVEL = 'source_of_funds'
+
+/**
  * The Manteca cap-nudge, if the user is carrying one.
  *
  *   - `raise`        — a fresh cap block. `actionKey` starts the source-of-funds
@@ -286,7 +300,15 @@ export function selectMantecaCapNudge(rails: RailCapability[], nextActions: Next
         const candidates = [...railHintActions(rail, byKey), rail.resolved?.nextAction]
         for (const action of candidates) {
             if (!action) continue
-            if (action.kind === 'sumsub' && action.purpose === CAP_NUDGE_RAISE_PURPOSE) {
+            // Rail-LOCAL identification. These come from a Manteca rail's own
+            // hint list, and Bridge requirements ride Bridge rails' blocking
+            // actions — so a source-of-funds RFI reached from here is the cap
+            // nudge whatever purpose the deduped descriptor ended up carrying.
+            const isSourceOfFunds =
+                action.purpose === CAP_NUDGE_RAISE_PURPOSE ||
+                action.key === CAP_NUDGE_RAISE_KEY ||
+                action.levelKey === CAP_NUDGE_RAISE_LEVEL
+            if (action.kind === 'sumsub' && isSourceOfFunds) {
                 return { state: 'raise', actionKey: action.key }
             }
             if (action.kind === 'wait' && action.purpose === CAP_NUDGE_REVIEW_PURPOSE) underReview = true
