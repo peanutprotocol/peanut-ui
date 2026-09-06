@@ -1867,6 +1867,7 @@
             "to": "Para",
             "networkFee": "Comisión de red",
             "networkFeeInfo": "Peanut cubre el costo del puente. Es posible que se descuente un pequeño costo de red al entregar.",
+            "networkFeeChargedInfo": "Esta ruta cobra una comisión. Ya está incluida en el monto que pagas.",
             "youPay": "Pagas",
             "highFeeWarning": "Nota: la comisión de red es una parte grande de este retiro. Retirar un monto mayor o elegir una red más barata la reduce."
         },
