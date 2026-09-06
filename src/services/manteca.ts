@@ -51,6 +51,9 @@ export type QrPayment = {
         amountSponsored?: number
         txHash?: string
     }
+    /** Set when the payment pulled from the card: Rain's withdrawal-signature
+     *  lock, in seconds, for the shared cooldown countdown. */
+    cooldownSec?: number
 }
 
 export type QrPaymentCharge = {

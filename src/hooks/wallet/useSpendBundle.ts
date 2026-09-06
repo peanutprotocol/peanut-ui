@@ -165,7 +165,11 @@ export const useSpendBundle = () => {
             })
 
             onStrategyDecided?.(strategy)
-            posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_ATTEMPTED, { strategy, kind })
+            posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_ATTEMPTED, {
+                strategy,
+                kind,
+                amount_cents: Number(usdcUnitsToRainCents(requiredUsdcAmount)),
+            })
 
             try {
                 // Shared collateral pre-flights (root-validator migration gate +

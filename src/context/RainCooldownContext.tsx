@@ -89,7 +89,9 @@ export function RainCooldownProvider({ children }: { children: ReactNode }) {
             const next = !isFresh && prev > endsAt ? prev : endsAt
             cooldownEndsAtRef.current = next
             setCooldownEndsAt(next)
-            if (isFresh) setShowIntroModal(true)
+            // A lock armed from a successful pull is expected — the pill is
+            // enough; the intro modal is for the user who just hit the wall.
+            if (isFresh && !detail.silent) setShowIntroModal(true)
         }
         window.addEventListener('rain:cooldown', handler)
         return () => window.removeEventListener('rain:cooldown', handler)
@@ -143,4 +145,13 @@ export function useRainCooldown(): RainCooldownContextType {
     const ctx = useContext(RainCooldownContext)
     if (!ctx) throw new Error('useRainCooldown must be used within RainCooldownProvider')
     return ctx
+}
+
+/**
+ * Same state, but `null` outside the provider instead of a throw. For
+ * advisory surfaces (the pre-tap card-pull notice) that must never take a
+ * payment screen down because a layout or a test mounted them bare.
+ */
+export function useRainCooldownOptional(): RainCooldownContextType | null {
+    return useContext(RainCooldownContext) ?? null
 }

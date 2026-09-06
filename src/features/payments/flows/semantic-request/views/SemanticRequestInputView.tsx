@@ -30,6 +30,7 @@ import { printableAddress, areEvmAddressesEqual } from '@/utils/general.utils'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { useTranslations } from 'next-intl'
+import { CollateralPullNotice } from '@/components/Global/CollateralPullNotice'
 
 export function SemanticRequestInputView() {
     const onBack = useSafeBack('/')
@@ -49,6 +50,8 @@ export function SemanticRequestInputView() {
         isLoading,
         isLoggedIn,
         isConnected,
+        isXChain,
+        isDiffToken,
         setAmount,
         handlePayment,
         setCurrentView,
@@ -181,6 +184,11 @@ export function SemanticRequestInputView() {
                         disabled={isAmountFromUrl || !!chargeIdFromUrl}
                     />
                     {isInsufficientBalance && <FieldError>{t('errors.insufficientPayment')}</FieldError>}
+                    {/* a token-denominated request holds `amount` in token units; its USD debit is
+                        only known once the route prices it, so the confirm step previews that one */}
+                    {!isInsufficientBalance && !isTokenDenominated && (
+                        <CollateralPullNotice amountUsd={amount} collateralOnlyAllowed={!(isXChain || isDiffToken)} />
+                    )}
                 </div>
 
                 {/* token selector for chain/token selection (not for USERNAME) */}

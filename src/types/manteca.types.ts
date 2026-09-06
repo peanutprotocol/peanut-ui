@@ -87,6 +87,9 @@ export type MantecaWithdrawData = {
 }
 
 export type MantecaWithdrawResponseData = {
+    /** Set when the off-ramp pulled from the card: Rain's withdrawal-signature
+     *  lock, in seconds, for the shared cooldown countdown. */
+    cooldownSec?: number
     id: string
     numberId: string
     userId: string

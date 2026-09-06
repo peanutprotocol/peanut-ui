@@ -64,6 +64,10 @@ jest.mock('@/components/Global/PeanutActionCard', () => ({
     default: () => <div data-testid="action-card" />,
 }))
 
+// needs the wallet + Rain overview providers this view test does not mount
+jest.mock('@/components/Global/CollateralPullNotice', () => ({
+    CollateralPullNotice: () => null,
+}))
 jest.mock('@/components/Global/FileUploadInput', () => ({
     __esModule: true,
     default: () => <div data-testid="file-upload" />,

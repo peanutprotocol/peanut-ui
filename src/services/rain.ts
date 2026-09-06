@@ -58,6 +58,36 @@ export interface RainCardSummary {
     /** Whether the user has granted the one-time session-key permission
      *  used to submit collateral withdrawals with a single passkey tap. */
     hasWithdrawApproval: boolean
+    /** On-card / off-card policy the auto-balancer runs for this card.
+     *  Optional for backward-compat with a pre-deploy backend. */
+    collateral?: RainCardCollateralPolicy
+}
+
+/**
+ * How much stays on the card and how much stays off it (TASK-22293). The
+ * per-purchase limit is a separate Rain control and no longer drives this.
+ */
+export interface RainCardCollateralPolicy {
+    /** Cents the auto-balancer keeps on the card. */
+    targetCents: number
+    /** True when the user set the target; the nightly tuner leaves it alone. */
+    targetPinned: boolean
+    /** Cents the sweep leaves off the card. */
+    walletFloorCents: number
+    /** Sweep everything to the card — no target, no floor, no debounce. */
+    loadAllToCard: boolean
+    /** Per-authorization purchase limit mirrored from Rain, in cents. */
+    cardLimitCents: number | null
+    autoBalanceEnabled: boolean
+}
+
+export interface UpdateCollateralSettingsInput {
+    collateralTargetCents?: number
+    /** False lowers the target without pinning it (a move off the card, not a
+     *  number the user chose) so an auto-sized card stays auto-sized. */
+    pinTarget?: boolean
+    walletFloorCents?: number
+    loadAllToCard?: boolean
 }
 
 export interface RainCardOverview {
@@ -151,6 +181,8 @@ export interface SubmitRainWithdrawalInput {
 
 export interface SubmitRainWithdrawalResponse {
     txHash: string
+    /** Rain's post-consumption withdrawal-signature lock, in seconds. */
+    cooldownSec?: number
 }
 
 // ─── Funds-recovery types ────────────────────────────────────────────────────
@@ -263,6 +295,25 @@ export class RainCooldownError extends Error {
 export interface RainCooldownEventDetail {
     retryAfterSec: number
     message: string
+    /** Armed from a successful pull (server-confirmed lock), not from a 425:
+     *  show the countdown, skip the "please wait" intro modal. */
+    silent?: boolean
+}
+
+/**
+ * Arm the shared cooldown from a server-confirmed lock duration. Every
+ * success path that consumed a Rain withdrawal signature feeds this — the
+ * direct submit and stamp below, and the coordinated Manteca QR / off-ramp
+ * completions, whose replies carry the same `cooldownSec`.
+ */
+export function armRainCooldownFromSuccess(cooldownSec: unknown) {
+    if (typeof window === 'undefined') return
+    if (typeof cooldownSec !== 'number' || !Number.isFinite(cooldownSec) || cooldownSec <= 0) return
+    window.dispatchEvent(
+        new CustomEvent<RainCooldownEventDetail>('rain:cooldown', {
+            detail: { retryAfterSec: cooldownSec, message: '', silent: true },
+        })
+    )
 }
 
 /**
@@ -528,12 +579,16 @@ export const rainApi = {
      * request payments through this path for the first time → the regression.)
      */
     submitWithdrawal: async (input: SubmitRainWithdrawalInput): Promise<SubmitRainWithdrawalResponse> => {
-        return rainRequest<SubmitRainWithdrawalResponse>({
+        const res = await rainRequest<SubmitRainWithdrawalResponse>({
             method: 'POST',
             path: '/rain/cards/withdraw/submit',
             body: input,
             timeoutMs: 120_000,
         })
+        // The pull just consumed a signature: the lock is running now, so the
+        // next review step can show its countdown before the passkey.
+        armRainCooldownFromSuccess(res.cooldownSec)
+        return res
     },
 
     /**
@@ -574,11 +629,13 @@ export const rainApi = {
      */
     stampWithdrawal: async (input: { preparationId: string; txHash: string }): Promise<void> => {
         try {
-            await rainRequest<{ ok: boolean }>({
+            const res = await rainRequest<{ ok: boolean; cooldownSec?: number }>({
                 method: 'POST',
                 path: '/rain/cards/withdraw/stamp',
                 body: input,
             })
+            // The mixed userOp consumed a signature too: same lock, same countdown.
+            armRainCooldownFromSuccess(res.cooldownSec)
         } catch (e) {
             // Non-fatal: intent stays PENDING until expiry, no history
             // categorization until then. Log loudly but don't block the user.
@@ -751,6 +808,26 @@ export const rainApi = {
     },
 
     /** Read the current spending limits (per-txn / 24h / 30d / all-time) from Rain. */
+    /** Change what stays on / off the card. Raising the target tops the card
+     *  up in the background; lowering it never withdraws (see useMoveOffCard). */
+    updateCollateralSettings: async (cardId: string, input: UpdateCollateralSettingsInput): Promise<void> => {
+        await rainRequest<{ ok: boolean }>({ method: 'PATCH', path: `/rain/cards/${cardId}`, body: input })
+    },
+
+    /** User-chosen wallet→card move through the stored session key (no
+     *  passkey). Waits for the on-chain receipt, so the timeout is generous. */
+    moveToCard: async (
+        cardId: string,
+        input: { amountCents: number; idempotencyKey: string }
+    ): Promise<{ ok: boolean; amountCents: number; userOpHash: string }> => {
+        return rainRequest({
+            method: 'POST',
+            path: `/rain/cards/${cardId}/move-to-card`,
+            body: input,
+            timeoutMs: 90_000,
+        })
+    },
+
     getCardLimits: async (cardId: string): Promise<RainCardLimit[]> => {
         const { limits } = await rainRequest<{ limits: RainCardLimit[] }>({
             method: 'GET',

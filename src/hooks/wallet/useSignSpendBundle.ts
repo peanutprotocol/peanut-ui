@@ -171,7 +171,12 @@ export const useSignSpendBundle = () => {
             }
 
             onStrategyDecided?.(strategy)
-            posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_ATTEMPTED, { strategy, kind, flow: 'sign-only' })
+            posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_ATTEMPTED, {
+                strategy,
+                kind,
+                flow: 'sign-only',
+                amount_cents: Number(usdcUnitsToRainCents(requiredUsdcAmount)),
+            })
 
             // Failure-capture parity with useSpendBundle's catch: without this,
             // a failed migration/grant/signing in the sign-then-broadcast flow
