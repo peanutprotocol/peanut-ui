@@ -125,6 +125,40 @@ describe('CapNudgeCard', () => {
             expect(screen.getByText('tok-1')).toBeInTheDocument()
         })
 
+        test('two taps in one tick mint exactly one Sumsub action', async () => {
+            // `startingRef` is the ONLY synchronous guard: the disabled prop does
+            // not apply until React renders again, so without a test that clicks
+            // twice while the first promise is still pending, removing the guard
+            // leaves the suite green and regresses into duplicate actions — which
+            // the backend's create-action idempotency answers by minting a
+            // suffixed second one.
+            let release: (value: unknown) => void = () => {}
+            mockStartKycAction.mockImplementationOnce(
+                () =>
+                    new Promise((resolve) => {
+                        release = resolve
+                    })
+            )
+
+            render(<CapNudgeCard />)
+            const cta = screen.getByRole('button', { name: /verify income/i })
+            // BOTH dispatches inside ONE act, so React has not re-rendered
+            // between them. Two `fireEvent.click` calls flush in between, the
+            // disabled prop lands, and the second click is swallowed by the
+            // button — which makes the guard look tested when it is not.
+            act(() => {
+                cta.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+                cta.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+            })
+
+            expect(mockStartKycAction).toHaveBeenCalledTimes(1)
+
+            await act(async () => {
+                release({ data: { token: 'tok-1', levelName: 'source-of-funds' } })
+            })
+            expect(mockStartKycAction).toHaveBeenCalledTimes(1)
+        })
+
         test('a failed start surfaces inline instead of a dead CTA', async () => {
             mockStartKycAction.mockResolvedValue({ error: 'Sumsub is down' })
             render(<CapNudgeCard />)
