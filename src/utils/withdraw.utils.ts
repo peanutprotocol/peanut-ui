@@ -376,9 +376,13 @@ export const isBelowRhinoMinDeposit = (
  * to decide whether the sub-cent remainder rides along; it never enlarges or
  * shrinks what the user agreed to withdraw. Silently sending less than the
  * confirmed amount would be worse than failing, and an amount that now exceeds
- * the balance is caught downstream: cross-chain withdrawals block the confirm CTA
- * on `insufficientForFee`, and a same-chain send fails rather than overdrawing.
+ * the balance is caught downstream by the pre-sign gate on the confirm screen,
+ * which compares what the kernel will actually send against the live balance.
  * That is the same outcome a typed amount has always had when the balance moves.
+ *
+ * Called once, when the charge is prepared — the result is then frozen for that
+ * withdrawal (WithdrawFlowContext.preparedAmount). Re-resolving it later would
+ * let the spend drift away from the charge the API settles against.
  *
  * @param amount        the amount on screen, as filled or typed (USD)
  * @param spendableBalance  live spendable balance in token units

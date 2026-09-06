@@ -124,13 +124,20 @@ jest.mock('@/services/requests', () => ({
 
 jest.mock('@/components/Withdraw/views/Confirm.withdraw.view', () => ({
     __esModule: true,
-    default: (props: { onConfirm: () => void; insufficientBalance?: boolean }) => (
-        // The real view disables the CTA on insufficientBalance; mirror that so
-        // the gate is observable here instead of being stubbed away.
-        <button data-testid="confirm-withdraw" onClick={props.onConfirm} disabled={props.insufficientBalance}>
-            Confirm
-        </button>
-    ),
+    default: (props: { onConfirm: () => void; insufficientBalance?: boolean; error?: string | null }) =>
+        // Mirrors the real view: the normal CTA honours insufficientBalance, but
+        // the error-state Retry renders with disabled={false}. Do NOT "fix" that
+        // here — a mock that disables Retry too would hide the gap between the
+        // gate and the retry path.
+        props.error ? (
+            <button data-testid="confirm-withdraw" onClick={props.onConfirm}>
+                Retry
+            </button>
+        ) : (
+            <button data-testid="confirm-withdraw" onClick={props.onConfirm} disabled={props.insufficientBalance}>
+                Confirm
+            </button>
+        ),
 }))
 
 jest.mock('@/components/Withdraw/views/Initial.withdraw.view', () => ({
@@ -197,10 +204,13 @@ const withdrawData = {
     amount: '50',
 }
 
+const mockSetPreparedAmount = jest.fn()
 const mockWithdrawFlow = {
     amountToWithdraw: '50',
     isMaxWithdrawal: false,
     setIsMaxWithdrawal: jest.fn(),
+    preparedAmount: null as string | null,
+    setPreparedAmount: mockSetPreparedAmount,
     usdAmount: '50',
     setAmountToWithdraw: jest.fn(),
     currentView: 'CONFIRM',
@@ -683,5 +693,87 @@ describe('crypto withdraw confirm — pre-sign balance gate (real balance math)'
         } finally {
             Object.assign(mockCrossChainTransfer, { isXChain: false })
         }
+    })
+})
+
+describe('crypto withdraw — the spend is frozen with the charge', () => {
+    afterEach(() => {
+        mockWallet.spendableBalance = 100n * 10n ** 6n
+        Object.assign(mockWithdrawFlow, { amountToWithdraw: '50', isMaxWithdrawal: false, preparedAmount: null })
+    })
+
+    // The feature exists to drain the dust. Nothing asserted the amount that
+    // actually leaves the wallet, so reverting page.tsx's sendMoney argument to
+    // `amountToWithdraw` left the suite green while the remainder stayed
+    // stranded — displaying as $0.00 and never withdrawable.
+    it('a max withdrawal sends the sub-cent remainder, not the displayed cents', async () => {
+        Object.assign(mockWithdrawFlow, { isMaxWithdrawal: true, preparedAmount: '50.006123' })
+        mockSendMoney.mockResolvedValue({
+            txHash: '0xsent',
+            userOpHash: undefined,
+            receipt: { transactionHash: '0xsent', status: 'success' },
+            strategy: 'smart-only',
+            intentId: undefined,
+        })
+
+        render(<WithdrawCryptoPage />)
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+
+        await waitFor(() => expect(mockSendMoney).toHaveBeenCalled())
+        expect(mockSendMoney).toHaveBeenCalledWith(RECIPIENT, '50.006123', expect.anything())
+    })
+
+    // The charge records one number and the API validator settles against it.
+    // Deriving the spend live let the balance move underneath while both values
+    // still floored to the displayed cents, so the wallet would underpay its
+    // own charge.
+    it('a balance drop after the charge is prepared does not change what is sent', async () => {
+        // The displayed cents (10.12) are what the old resolver compared against,
+        // so a drop to 10.121111 still "matched" and was silently adopted — an
+        // underpayment of the 10.126123 charge the validator settles against.
+        Object.assign(mockWithdrawFlow, {
+            amountToWithdraw: '10.12',
+            isMaxWithdrawal: true,
+            preparedAmount: '10.126123',
+        })
+        mockWallet.spendableBalance = 10_121111n
+        mockSendMoney.mockResolvedValue({
+            txHash: '0xsent',
+            userOpHash: undefined,
+            receipt: { transactionHash: '0xsent', status: 'success' },
+            strategy: 'smart-only',
+            intentId: undefined,
+        })
+
+        render(<WithdrawCryptoPage />)
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+
+        // The gate refuses it — the frozen spend no longer fits the balance — and
+        // above all the drifted 10.121111 is never what gets signed.
+        expect(screen.getByTestId('confirm-withdraw')).toBeDisabled()
+        expect(mockSendMoney).not.toHaveBeenCalledWith(RECIPIENT, '10.121111', expect.anything())
+        expect(mockSendMoney).not.toHaveBeenCalled()
+    })
+
+    it('a balance rise after the charge is prepared does not enlarge what is sent', async () => {
+        Object.assign(mockWithdrawFlow, {
+            amountToWithdraw: '10.12',
+            isMaxWithdrawal: true,
+            preparedAmount: '10.126123',
+        })
+        mockWallet.spendableBalance = 10_129999n
+        mockSendMoney.mockResolvedValue({
+            txHash: '0xsent',
+            userOpHash: undefined,
+            receipt: { transactionHash: '0xsent', status: 'success' },
+            strategy: 'smart-only',
+            intentId: undefined,
+        })
+
+        render(<WithdrawCryptoPage />)
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+
+        await waitFor(() => expect(mockSendMoney).toHaveBeenCalled())
+        expect(mockSendMoney).toHaveBeenCalledWith(RECIPIENT, '10.126123', expect.anything())
     })
 })

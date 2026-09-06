@@ -44,6 +44,22 @@ interface WithdrawFlowContextType {
      */
     isMaxWithdrawal: boolean
     setIsMaxWithdrawal: (isMax: boolean) => void
+    /**
+     * The exact amount the withdrawal will move, frozen at the moment the
+     * request/charge is created from it.
+     *
+     * A max withdrawal resolves to the live balance, which keeps moving. The
+     * charge does not: it records one number, and the API validator settles
+     * against that number. Deriving the spend live through the confirm screen
+     * let the two drift apart while both still floored to the same displayed
+     * cents — the wallet would send less than the charge required, and the
+     * validator would reject the underpayment (or, on the trusted collateral
+     * path, complete and book the stale requested amount). Whatever the charge
+     * was built from is what gets sent. Null until a charge is prepared, and
+     * cleared whenever the amount is edited (TASK-21899).
+     */
+    preparedAmount: string | null
+    setPreparedAmount: (amount: string | null) => void
     usdAmount: string
     setUsdAmount: (amount: string) => void
     currentView: WithdrawView
@@ -85,6 +101,7 @@ const WithdrawFlowContext = createContext<WithdrawFlowContextType | undefined>(u
 export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [amountToWithdraw, setAmountToWithdraw] = useState<string>('')
     const [isMaxWithdrawal, setIsMaxWithdrawal] = useState<boolean>(false)
+    const [preparedAmount, setPreparedAmount] = useState<string | null>(null)
     const [usdAmount, setUsdAmount] = useState<string>('')
     const [currentView, setCurrentView] = useState<WithdrawView>('INITIAL')
     const [withdrawData, setWithdrawData] = useState<WithdrawData | null>(null)
@@ -111,6 +128,7 @@ export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({
     const resetWithdrawFlow = useCallback(() => {
         setAmountToWithdraw('')
         setIsMaxWithdrawal(false)
+        setPreparedAmount(null)
         // browser-back with the compatibility modal open leaves it armed for the
         // next /withdraw/crypto entry — reset must close it like everything else
         setShowCompatibilityModal(false)
@@ -135,6 +153,8 @@ export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({
             setAmountToWithdraw,
             isMaxWithdrawal,
             setIsMaxWithdrawal,
+            preparedAmount,
+            setPreparedAmount,
             usdAmount,
             setUsdAmount,
             currentView,
@@ -172,6 +192,7 @@ export const WithdrawFlowContextProvider: React.FC<{ children: ReactNode }> = ({
         [
             amountToWithdraw,
             isMaxWithdrawal,
+            preparedAmount,
             currentView,
             withdrawData,
             showCompatibilityModal,
