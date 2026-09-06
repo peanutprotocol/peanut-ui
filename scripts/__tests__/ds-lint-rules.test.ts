@@ -333,6 +333,112 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
         ).toBe(1)
     })
 
+    it('reads a clsx object as its KEYS, not its conditions', () => {
+        // `clsx({ 'text-body-m': enabled, foo: 'font-semibold' })` renders
+        // `text-body-m foo`. The value is a truthiness test; reading it as a
+        // class stacked a weight that never reaches the element.
+        expect(countWeightStacks("const c = clsx({ 'text-body-m': enabled, foo: 'font-semibold' })")).toBe(0)
+        // both KEYS really do co-apply, so a stack across them still counts
+        expect(countWeightStacks("const c = clsx({ 'text-body-m': a, 'font-semibold': b })")).toBe(1)
+        // shorthand keys are classes too
+        expect(countWeightStacks("const c = clsx({ 'text-body-m': a }, { 'font-semibold': b })")).toBe(1)
+        // ...and a builder nested in a value is still analysed on its own
+        expect(countWeightStacks("const c = clsx({ x: clsx('text-body-m', 'font-semibold') })")).toBe(1)
+    })
+
+    it('treats an enum or namespace declaration as a real shadow', () => {
+        expect(
+            countWeightStacks(
+                "const style = 'text-body-m'; function f() { enum style { A }; return clsx(style, 'font-semibold') }"
+            )
+        ).toBe(0)
+        expect(
+            countWeightStacks(
+                "const style = 'text-body-m'; function f() { namespace style { export const a = 1 }; return clsx(style, 'font-semibold') }"
+            )
+        ).toBe(0)
+        // Positive controls on the SAME shapes. A file that failed to parse falls
+        // back to the regex counter, which also answers 0 here — so without these
+        // the assertions above would be green on a broken parse.
+        expect(
+            countWeightStacks(
+                "const style = 'text-body-m'; function f() { enum other { A }; return clsx(style, 'font-semibold') }"
+            )
+        ).toBe(1)
+        expect(
+            countWeightStacks(
+                "const style = 'text-body-m'; function f() { namespace other { export const a = 1 }; return clsx(style, 'font-semibold') }"
+            )
+        ).toBe(1)
+    })
+
+    it('reads a shorthand entry as the value it binds', () => {
+        expect(
+            countWeightStacks("const sm = 'text-body-m'; const S = { sm }; const c = clsx(S[k], 'font-semibold')")
+        ).toBe(1)
+        // and through a direct, constant-key access
+        expect(
+            countWeightStacks("const sm = 'text-body-m'; const S = { sm }; const c = clsx(S.sm, 'font-semibold')")
+        ).toBe(1)
+        expect(
+            countWeightStacks("const sm = 'underline'; const S = { sm }; const c = clsx(S.sm, 'font-semibold')")
+        ).toBe(0)
+        // A constant key SELECTS the shorthand entry rather than unioning the
+        // table — otherwise `S.lg` borrows the token from its `sm` sibling.
+        expect(
+            countWeightStacks(
+                "const sm = 'text-body-m'; const lg = 'underline'; const S = { sm, lg }; const c = clsx(S.lg, 'font-semibold')"
+            )
+        ).toBe(0)
+        expect(
+            countWeightStacks(
+                "const sm = 'text-body-m'; const lg = 'underline'; const S = { sm, lg }; const c = clsx(S.sm, 'font-semibold')"
+            )
+        ).toBe(1)
+    })
+
+    it('selects a constant array index instead of unioning the array', () => {
+        expect(countWeightStacks("const S = ['text-body-m', 'underline']; const c = clsx(S[1], 'font-semibold')")).toBe(
+            0
+        )
+        expect(countWeightStacks("const S = ['text-body-m', 'underline']; const c = clsx(S[0], 'font-semibold')")).toBe(
+            1
+        )
+        // an unknown index really can be any entry
+        expect(countWeightStacks("const S = ['text-body-m', 'underline']; const c = clsx(S[i], 'font-semibold')")).toBe(
+            1
+        )
+        // A spread at or before the index moves everything after it, so the
+        // position is not knowable — fall back to the whole-array union, which
+        // over-counts rather than reading the wrong entry. Index 1 here is
+        // 'underline' only if REST has exactly one element.
+        expect(
+            countWeightStacks("const S = [...REST, 'underline', 'text-body-m']; const c = clsx(S[1], 'font-semibold')")
+        ).toBe(1)
+    })
+
+    it('resolves an ARRAY cva compound selector to the options it names', () => {
+        const axes = "variants: { tone: { loud: 'text-body-m', quiet: 'x' } }"
+        // fires only for `quiet`, whose class carries no type token
+        expect(
+            countWeightStacks(
+                `const c = cva('base', { ${axes}, compoundVariants: [{ tone: ['quiet'], class: 'font-semibold' }] })`
+            )
+        ).toBe(0)
+        // ...but a list that includes `loud` does stack
+        expect(
+            countWeightStacks(
+                `const c = cva('base', { ${axes}, compoundVariants: [{ tone: ['quiet', 'loud'], class: 'font-semibold' }] })`
+            )
+        ).toBe(1)
+        // a selector we cannot read down to names leaves the axis unpinned
+        expect(
+            countWeightStacks(
+                `const c = cva('base', { ${axes}, compoundVariants: [{ tone: someTone, class: 'font-semibold' }] })`
+            )
+        ).toBe(1)
+    })
+
     it('keeps the axes a cva compound leaves unconstrained', () => {
         // `tone` is selected independently of `size`, so the compound's weight
         // really does render beside whatever tone was picked.

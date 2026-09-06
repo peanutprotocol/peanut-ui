@@ -180,6 +180,11 @@ function propertyByName(node, name, ctx, depth, seen) {
             if (fromSpread) return fromSpread
             continue
         }
+        // A shorthand entry's own name is both the key and the expression.
+        if (ts.isShorthandPropertyAssignment(prop)) {
+            if (prop.name.text === name) return { value: prop.name, scopes: target.scopes }
+            continue
+        }
         if (!ts.isPropertyAssignment(prop)) continue
         const key = prop.name
         const keyText = ts.isIdentifier(key) || ts.isStringLiteral(key) ? key.text : null
@@ -322,12 +327,16 @@ function alternatives(node, ctx, depth = 0, seen = new Set(), mode = LOOKUP_OBJE
                     out = product(out, alternatives(prop.expression, ctx, depth + 1, seen, mode))
                     continue
                 }
-                if (!ts.isPropertyAssignment(prop)) continue
-                const key = prop.name
-                if (ts.isStringLiteral(key) || ts.isIdentifier(key)) {
+                // Only the KEY is emitted. `clsx({ 'text-body-m': enabled })`
+                // renders `text-body-m`; `enabled` is a truthiness test, not a
+                // class, and reading it as one stacked a weight from a condition
+                // that never reaches the element. A builder call nested in a
+                // value is still analysed — the walker visits every node — it
+                // just does not compose with the keys around it.
+                const key = ts.isPropertyAssignment(prop) || ts.isShorthandPropertyAssignment(prop) ? prop.name : null
+                if (key && (ts.isStringLiteral(key) || ts.isIdentifier(key))) {
                     out = product(out, literalAlt(key, key.text, ctx))
                 }
-                out = product(out, alternatives(prop.initializer, ctx, depth + 1, seen, mode))
             }
             return out
         }
@@ -338,6 +347,13 @@ function alternatives(node, ctx, depth = 0, seen = new Set(), mode = LOOKUP_OBJE
             // entry it carries invisible.
             if (ts.isSpreadAssignment(prop)) {
                 out = union(out, alternatives(prop.expression, ctx, depth + 1, seen, mode))
+                continue
+            }
+            // `{ sm }` binds the same value as `{ sm: sm }` — skipping shorthand
+            // made the entry invisible and the whole table read as one option
+            // shorter.
+            if (ts.isShorthandPropertyAssignment(prop)) {
+                out = union(out, alternatives(prop.name, ctx, depth + 1, seen, mode))
                 continue
             }
             if (!ts.isPropertyAssignment(prop)) continue
@@ -395,6 +411,15 @@ function alternatives(node, ctx, depth = 0, seen = new Set(), mode = LOOKUP_OBJE
                 return alternatives(selected.value, { ...ctx, scopes: selected.scopes }, depth + 1, seen, LOOKUP_OBJECT)
             }
         }
+        // A constant index picks ONE element, exactly as a constant key picks one
+        // property. Unioning the whole array for `S[1]` borrowed a token from a
+        // sibling entry the expression can never render.
+        if (arg && ts.isNumericLiteral(arg)) {
+            const selected = elementByIndex(node.expression, Number(arg.text), ctx, depth, seen)
+            if (selected) {
+                return alternatives(selected.value, { ...ctx, scopes: selected.scopes }, depth + 1, seen, LOOKUP_OBJECT)
+            }
+        }
         return alternatives(node.expression, ctx, depth + 1, seen, LOOKUP_OBJECT)
     }
     if (ts.isIdentifier(node)) {
@@ -409,6 +434,28 @@ function alternatives(node, ctx, depth = 0, seen = new Set(), mode = LOOKUP_OBJE
         return alternatives(bound.value, outer, depth + 1, next, mode)
     }
     return NOTHING
+}
+
+/**
+ * The option names a cva compound selector fires for, or null when it cannot be
+ * read down to names.
+ *
+ * `size: 'sm'` names one; `size: ['sm', 'md']` names two and the compound fires
+ * for either, so they union. Anything else — a boolean axis, a computed name —
+ * is unreadable and leaves its axis unconstrained.
+ */
+function selectorOptionNames(node, ctx, depth, seen) {
+    const single = staticText(node)
+    if (single !== null) return [single]
+    const table = resolveToArrayLiteral(node, ctx, depth, seen)
+    if (!table || table.elements.length === 0) return null
+    const names = []
+    for (const el of table.elements) {
+        const text = staticText(el)
+        if (text === null) return null
+        names.push(text)
+    }
+    return names
 }
 
 /**
@@ -477,22 +524,31 @@ function cvaAlternatives(node, ctx, depth, seen) {
                 classes = product(classes, alternatives(field.initializer, entryCtx, depth + 1, seen, BUILDER_OBJECT))
                 continue
             }
-            // A selector names an axis and the option it fires for. Pull that ONE
-            // option's classes in; a selector we cannot read down to a single
-            // option (an array of them, a boolean, a computed name) leaves the
-            // axis unpinned below, which reads as "any option" — over-counting,
-            // the safe direction.
-            const optionName = staticText(field.initializer)
-            if (name === null || optionName === null || !variants) continue
+            // A selector names an axis and the option(s) it fires for — cva
+            // accepts a list, meaning "any of these". Pull in exactly those
+            // options, unioned; a selector we cannot read down to named options
+            // (a boolean, a computed name) leaves the axis unpinned below, which
+            // reads as "any option" — over-counting, the safe direction.
+            const optionNames = selectorOptionNames(field.initializer, ctx, depth, seen)
+            if (name === null || optionNames === null || !variants) continue
             const axis = propertyByName(variants.node, name, { ...ctx, scopes: variants.scopes }, depth, seen)
             if (!axis) continue
-            const option = propertyByName(axis.value, optionName, { ...ctx, scopes: axis.scopes }, depth, seen)
-            if (!option) continue
+            let chosen = null
+            for (const optionName of optionNames) {
+                const option = propertyByName(axis.value, optionName, { ...ctx, scopes: axis.scopes }, depth, seen)
+                if (!option) continue
+                const alts = alternatives(
+                    option.value,
+                    { ...ctx, scopes: option.scopes },
+                    depth + 1,
+                    seen,
+                    LOOKUP_OBJECT
+                )
+                chosen = chosen ? union(chosen, alts) : alts
+            }
+            if (!chosen) continue
             pinned.add(name)
-            selected = product(
-                selected,
-                alternatives(option.value, { ...ctx, scopes: option.scopes }, depth + 1, seen, LOOKUP_OBJECT)
-            )
+            selected = product(selected, chosen)
         }
         // base + the pinned options + EVERY axis the compound leaves free + the
         // compound's own classes. The free axes have to stay in: a compound that
@@ -532,6 +588,21 @@ function resolveToArrayLiteral(node, ctx, depth, seen) {
         return resolveToArrayLiteral(bound.value, { ...ctx, scopes: bound.scopes }, depth + 1, next)
     }
     return null
+}
+
+/**
+ * One element of a resolved array, as `{ value, scopes }`.
+ *
+ * Refuses when a spread sits at or before the index: `[...REST, 'x'][1]` is only
+ * position 1 if REST has exactly one entry, and guessing puts the wrong element
+ * under a constant index. The caller then falls back to the whole-array union.
+ */
+function elementByIndex(node, index, ctx, depth, seen) {
+    if (!Number.isInteger(index) || index < 0) return null
+    const table = resolveToArrayLiteral(node, ctx, depth, seen)
+    if (!table || index >= table.elements.length) return null
+    for (let i = 0; i <= index; i++) if (ts.isSpreadElement(table.elements[i])) return null
+    return { value: table.elements[index], scopes: table.scopes }
 }
 
 /**
@@ -582,6 +653,12 @@ function declarationBindings(statements) {
         } else if (ts.isFunctionDeclaration(statement) && statement.name) {
             bindings.set(statement.name.text, OPAQUE)
         } else if (ts.isClassDeclaration(statement) && statement.name) {
+            bindings.set(statement.name.text, OPAQUE)
+        } else if (ts.isEnumDeclaration(statement) && statement.name) {
+            // A runtime enum is a real value binding: `enum style { A }` shadows
+            // an outer `const style`, and the object it names carries no classes.
+            bindings.set(statement.name.text, OPAQUE)
+        } else if (ts.isModuleDeclaration(statement) && statement.name && ts.isIdentifier(statement.name)) {
             bindings.set(statement.name.text, OPAQUE)
         } else if (ts.isImportDeclaration(statement)) {
             const clause = statement.importClause
