@@ -98,8 +98,10 @@ export interface RhinoQuote {
         platformUsd: number
         percentageUsd: number
     }
-    quoteId: string
-    expiresAt: string // ISO timestamp
+    /** Absent from an API that predates the authenticated quote, and from the
+     *  public quote it falls back to. Callers must tolerate both. */
+    quoteId?: string
+    expiresAt?: string // ISO timestamp
     estimatedDuration?: number
 }
 

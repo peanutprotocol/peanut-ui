@@ -40,6 +40,7 @@ import {
     commitBridgeQuote,
     getBridgeStatus,
     isQuoteNearExpiry,
+    quoteAmounts,
     type BridgeQuoteResponse,
     type BridgeCommitResponse,
     type BridgeStatusResponse,
@@ -473,6 +474,10 @@ async function runBridgePath({
         mode,
     })
 
+    // Always present here: the bridge route sends depositor/recipient, so its
+    // quote is always the authenticated one. Asserted rather than assumed —
+    // committing `undefined` would fail deep inside Rhino instead of here.
+    if (!quote.quoteId) throw new Error('Rhino returned a bridge quote with no quoteId — cannot commit')
     const commit: BridgeCommitResponse = await commitBridgeQuote(quote.quoteId, quote.isSwap, isSameChainSwap)
 
     if (!commit.contractAddress) {
@@ -480,7 +485,10 @@ async function runBridgePath({
     }
 
     const STABLECOIN_DECIMALS = 6
-    const approveAmount = parseUnits(quote.payAmount, STABLECOIN_DECIMALS)
+    // Under whichever names the API used — this build runs against an API from
+    // either side of the 2026-09 quote rename, so deploy order doesn't matter.
+    const { payAmount, receiveAmount } = quoteAmounts(quote)
+    const approveAmount = parseUnits(payAmount, STABLECOIN_DECIMALS)
     // Approve USDC for Rhino's bridge contract — required for both same-chain
     // swap (the swap contract does transferFrom) and cross-chain depositWithId.
     const approveData = encodeFunctionData({
@@ -522,17 +530,18 @@ async function runBridgePath({
         },
         bridgeCall,
     ])
-    setReceiveAmount(quote.receiveAmount)
+    setReceiveAmount(receiveAmount)
     // Bridge path: mode='pay' → user pays exactly `payAmount` at source; any
     // Rhino fee comes out of the destination amount. So the kernel needs
     // `payAmount` USDC on-hand (same as the principal).
-    setPayAmount(quote.payAmount)
+    setPayAmount(payAmount)
     // Verbatim. `feeUsd` is already Rhino's total — adding gas on top (the
-    // pre-2026-09 code) double-counted it.
+    // pre-2026-09 code) double-counted it. An older API sends a separate
+    // `gasFeeUsd`; it is deliberately not read, here or anywhere.
     setFeeUsd(quote.feeUsd)
     setEstimatedGasCostUsd(0) // gas paid by paymaster — same as SDA path
     setIsFeeEstimationError(false)
-    setQuoteExpiresAt(quote.expiresAt)
+    setQuoteExpiresAt(quote.expiresAt ?? null)
     setCommitmentId(commit.commitmentId)
 }
 
@@ -657,7 +666,9 @@ function applyRhinoResult({
     setMaxDepositLimitUsd(sda.maxDepositLimitUsd)
     // The SDA deposit is not bound to the quote (no commit), so the numbers on
     // screen are only Rhino's word until this expiry — callers re-quote past it.
-    setQuoteExpiresAt(preview.expiresAt)
+    // Null against an API that sends no expiry, which is how this behaved
+    // before the quote carried one: the numbers simply never go stale.
+    setQuoteExpiresAt(preview.expiresAt ?? null)
 
     // Gas for a plain ERC20 transfer is absorbed by the kernel paymaster;
     // the user-visible cost is the Rhino bridge fee (already in preview).
