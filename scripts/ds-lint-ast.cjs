@@ -211,6 +211,15 @@ function propertyByName(node, name, ctx, depth, seen) {
 function staticText(node, ctx, depth = 0, seen = new Set()) {
     if (!node || depth > MAX_DEPTH) return null
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return node.text
+    if (ts.isTemplateExpression(node)) {
+        let text = node.head.text
+        for (const span of node.templateSpans) {
+            const spanText = staticText(span.expression, ctx, depth + 1, seen)
+            if (spanText === null) return null
+            text += spanText + span.literal.text
+        }
+        return text
+    }
     if (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isSatisfiesExpression(node)) {
         return staticText(node.expression, ctx, depth + 1, seen)
     }
@@ -437,8 +446,20 @@ function alternatives(node, ctx, depth = 0, seen = new Set(), mode = LOOKUP_OBJE
     }
     if (ts.isElementAccessExpression(node)) {
         const arg = node.argumentExpression
-        if (arg && ts.isStringLiteral(arg)) {
-            const selected = propertyByName(node.expression, arg.text, ctx, depth, seen)
+        let argText = null
+        let argNumber = null
+        if (arg) {
+            // Resolve const-backed argument
+            const boundArg = ts.isIdentifier(arg) ? lookup(ctx.scopes, arg.text) : null
+            const resolvedArg = boundArg && boundArg.value !== OPAQUE ? boundArg.value : arg
+            if (ts.isStringLiteral(resolvedArg)) {
+                argText = resolvedArg.text
+            } else if (ts.isNumericLiteral(resolvedArg)) {
+                argNumber = Number(resolvedArg.text)
+            }
+        }
+        if (argText !== null) {
+            const selected = propertyByName(node.expression, argText, ctx, depth, seen)
             if (selected) {
                 return alternatives(selected.value, { ...ctx, scopes: selected.scopes }, depth + 1, seen, LOOKUP_OBJECT)
             }
@@ -446,6 +467,20 @@ function alternatives(node, ctx, depth = 0, seen = new Set(), mode = LOOKUP_OBJE
         // A constant index picks ONE element, exactly as a constant key picks one
         // property. Unioning the whole array for `S[1]` borrowed a token from a
         // sibling entry the expression can never render.
+        if (argNumber !== null) {
+            const selected = elementByIndex(node.expression, argNumber, ctx, depth, seen)
+            if (selected) {
+                if (!selected.value) return NOTHING
+                return alternatives(selected.value, { ...ctx, scopes: selected.scopes }, depth + 1, seen, LOOKUP_OBJECT)
+            }
+        }
+        // Fallback to original behavior for unresolved arguments
+        if (arg && ts.isStringLiteral(arg)) {
+            const selected = propertyByName(node.expression, arg.text, ctx, depth, seen)
+            if (selected) {
+                return alternatives(selected.value, { ...ctx, scopes: selected.scopes }, depth + 1, seen, LOOKUP_OBJECT)
+            }
+        }
         if (arg && ts.isNumericLiteral(arg)) {
             const selected = elementByIndex(node.expression, Number(arg.text), ctx, depth, seen)
             if (selected) {
@@ -532,10 +567,16 @@ function cvaAlternatives(node, ctx, depth, seen) {
             if (!variants) continue
             const variantsCtx = { ...ctx, scopes: variants.scopes }
             for (const axis of variants.node.properties) {
-                if (!ts.isPropertyAssignment(axis)) continue
-                const axisName = ts.isIdentifier(axis.name) || ts.isStringLiteral(axis.name) ? axis.name.text : null
+                if (!ts.isPropertyAssignment(axis) && !ts.isShorthandPropertyAssignment(axis)) continue
+                const isShorthand = ts.isShorthandPropertyAssignment(axis)
+                const axisName = isShorthand
+                    ? axis.name.text
+                    : ts.isIdentifier(axis.name) || ts.isStringLiteral(axis.name)
+                      ? axis.name.text
+                      : null
+                const initializer = isShorthand ? axis.name : axis.initializer
                 // union WITHIN the axis, product ACROSS axes
-                const alts = alternatives(axis.initializer, variantsCtx, depth + 1, seen, LOOKUP_OBJECT)
+                const alts = alternatives(initializer, variantsCtx, depth + 1, seen, LOOKUP_OBJECT)
                 if (axisName !== null) axisAlts.set(axisName, alts)
                 out = product(out, alts)
             }
@@ -551,6 +592,7 @@ function cvaAlternatives(node, ctx, depth, seen) {
     // constraint and stacked a compound weight onto a token from a sibling
     // option the compound never applies to.
     const compoundCtx = compounds ? { ...ctx, scopes: compounds.scopes } : ctx
+    const compoundCombinations = []
     for (const entry of compounds?.elements ?? []) {
         const compound = resolveToObjectLiteral(entry, compoundCtx, depth, seen)
         if (!compound) continue
@@ -615,7 +657,15 @@ function cvaAlternatives(node, ctx, depth, seen) {
             if (pinned.has(axisName)) continue
             combination = product(combination, alts)
         }
-        out = union(out, product(combination, classes))
+        compoundCombinations.push(product(combination, classes))
+    }
+    // Combine compatible compound variants that can co-apply
+    let compoundProduct = NOTHING
+    for (const combo of compoundCombinations) {
+        compoundProduct = product(compoundProduct, combo)
+    }
+    if (compoundProduct !== NOTHING) {
+        out = union(out, compoundProduct)
     }
     return out
 }
@@ -686,7 +736,6 @@ function patternNames(name, into) {
 
 /** Record a declaration list's names, inlining only a plain `const x = <expr>`. */
 function recordDeclarationList(list, bindings) {
-    // eslint-disable-next-line no-bitwise
     const isConst = !!(list.flags & ts.NodeFlags.Const)
     for (const decl of list.declarations) {
         if (ts.isIdentifier(decl.name)) {
@@ -769,8 +818,7 @@ function hoistedVarNames(body) {
               ? node.initializer
               : null
         if (list) {
-            // eslint-disable-next-line no-bitwise
-            const isVar = !(list.flags & (ts.NodeFlags.Const | ts.NodeFlags.Let))
+        const isVar = !(list.flags & (ts.NodeFlags.Const | ts.NodeFlags.Let))
             if (isVar) for (const decl of list.declarations) patternNames(decl.name, names)
         }
         ts.forEachChild(node, walk)
