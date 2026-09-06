@@ -42,6 +42,14 @@ const MAX_DEPTH = 12
  */
 const MAX_ALTERNATIVES = 256
 
+/**
+ * How an object literal reached here. A class-builder argument means its KEYS
+ * are class fragments and entries co-apply; a lookup means exactly one entry is
+ * selected. See the ObjectLiteralExpression branch.
+ */
+const BUILDER_OBJECT = 'builder'
+const LOOKUP_OBJECT = 'lookup'
+
 /** A name that is bound but whose value we refuse to inline (param, let, var, import…). */
 const OPAQUE = Symbol('opaque-binding')
 
@@ -150,7 +158,7 @@ function literalAlt(node, text, ctx) {
  * source text) and what the baseline is calibrated on. Splitting them would be a
  * coverage change, not a bug fix, so it stays a separate decision.
  */
-function alternatives(node, ctx, depth = 0, seen = new Set()) {
+function alternatives(node, ctx, depth = 0, seen = new Set(), mode = LOOKUP_OBJECT) {
     if (!node || depth > MAX_DEPTH) return NOTHING
 
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
@@ -159,13 +167,13 @@ function alternatives(node, ctx, depth = 0, seen = new Set()) {
     if (ts.isTemplateExpression(node)) {
         let out = literalAlt(node.head, node.head.text, ctx)
         for (const span of node.templateSpans) {
-            out = product(out, alternatives(span.expression, ctx, depth + 1, seen))
+            out = product(out, alternatives(span.expression, ctx, depth + 1, seen, mode))
             out = product(out, literalAlt(span.literal, span.literal.text, ctx))
         }
         return out
     }
     if (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isSatisfiesExpression(node)) {
-        return alternatives(node.expression, ctx, depth + 1, seen)
+        return alternatives(node.expression, ctx, depth + 1, seen, mode)
     }
     if (ts.isBinaryExpression(node)) {
         const kind = node.operatorToken.kind
@@ -176,58 +184,85 @@ function alternatives(node, ctx, depth = 0, seen = new Set()) {
             kind === ts.SyntaxKind.QuestionQuestionToken
         ) {
             return product(
-                alternatives(node.left, ctx, depth + 1, seen),
-                alternatives(node.right, ctx, depth + 1, seen)
+                alternatives(node.left, ctx, depth + 1, seen, mode),
+                alternatives(node.right, ctx, depth + 1, seen, mode)
             )
         }
         return NOTHING
     }
     if (ts.isConditionalExpression(node)) {
         return product(
-            alternatives(node.whenTrue, ctx, depth + 1, seen),
-            alternatives(node.whenFalse, ctx, depth + 1, seen)
+            alternatives(node.whenTrue, ctx, depth + 1, seen, mode),
+            alternatives(node.whenFalse, ctx, depth + 1, seen, mode)
         )
     }
     if (ts.isArrayLiteralExpression(node)) {
         let out = NOTHING
-        for (const el of node.elements) out = product(out, alternatives(el, ctx, depth + 1, seen))
+        for (const el of node.elements) out = product(out, alternatives(el, ctx, depth + 1, seen, mode))
         return out
     }
     if (ts.isObjectLiteralExpression(node)) {
-        // EVERY property is scanned — the bound applies to distinct summaries,
-        // not to how far into the object we got, so a late entry cannot hide.
+        // An object literal means two different things, and the producer decides
+        // which. In a class-BUILDER argument (`clsx({ 'a b': cond })`, and a
+        // `cva` variant table) the KEYS are class fragments and several can be
+        // true at once, so entries CO-APPLY. Reached through a lookup instead
+        // (`SIZES[variant]`), exactly one entry is selected, so entries are
+        // ALTERNATIVES. Treating every object as a lookup lost the builder form
+        // entirely — the old regex counter caught it and this did not, which is
+        // a coverage regression, not a refinement.
+        //
+        // EVERY property is scanned either way — the bound applies to distinct
+        // summaries, not to how far into the object we got, so a late entry
+        // cannot hide.
+        if (mode === BUILDER_OBJECT) {
+            let out = NOTHING
+            for (const prop of node.properties) {
+                if (!ts.isPropertyAssignment(prop)) continue
+                const key = prop.name
+                if (ts.isStringLiteral(key) || ts.isIdentifier(key)) {
+                    out = product(out, literalAlt(key, key.text, ctx))
+                }
+                out = product(out, alternatives(prop.initializer, ctx, depth + 1, seen, mode))
+            }
+            return out
+        }
         let out = []
         for (const prop of node.properties) {
             if (!ts.isPropertyAssignment(prop)) continue
-            out = union(out, alternatives(prop.initializer, ctx, depth + 1, seen))
+            out = union(out, alternatives(prop.initializer, ctx, depth + 1, seen, mode))
         }
         return out.length ? out : NOTHING
     }
-    if (ts.isSpreadElement(node)) return alternatives(node.expression, ctx, depth + 1, seen)
+    if (ts.isSpreadElement(node)) return alternatives(node.expression, ctx, depth + 1, seen, mode)
     if (ts.isCallExpression(node)) {
         const name = calleeName(node)
         if (name === 'join' && ts.isPropertyAccessExpression(node.expression)) {
-            return alternatives(node.expression.expression, ctx, depth + 1, seen)
+            return alternatives(node.expression.expression, ctx, depth + 1, seen, mode)
         }
         if (name && BUILDERS.has(name)) {
             let out = NOTHING
-            for (const arg of node.arguments) out = product(out, alternatives(arg, ctx, depth + 1, seen))
+            for (const arg of node.arguments) {
+                out = product(out, alternatives(arg, ctx, depth + 1, seen, BUILDER_OBJECT))
+            }
             return out
         }
         return NOTHING
     }
     if (ts.isPropertyAccessExpression(node)) {
+        // Indexing SELECTS one entry, so the object it reads is a lookup even
+        // inside a builder call: `clsx(SIZES[variant])` picks a variant, it does
+        // not apply the whole table.
         const selected = propertyByName(node.expression, node.name.text, ctx, depth, seen)
-        if (selected) return alternatives(selected, ctx, depth + 1, seen)
-        return alternatives(node.expression, ctx, depth + 1, seen)
+        if (selected) return alternatives(selected, ctx, depth + 1, seen, LOOKUP_OBJECT)
+        return alternatives(node.expression, ctx, depth + 1, seen, LOOKUP_OBJECT)
     }
     if (ts.isElementAccessExpression(node)) {
         const arg = node.argumentExpression
         if (arg && ts.isStringLiteral(arg)) {
             const selected = propertyByName(node.expression, arg.text, ctx, depth, seen)
-            if (selected) return alternatives(selected, ctx, depth + 1, seen)
+            if (selected) return alternatives(selected, ctx, depth + 1, seen, LOOKUP_OBJECT)
         }
-        return alternatives(node.expression, ctx, depth + 1, seen)
+        return alternatives(node.expression, ctx, depth + 1, seen, LOOKUP_OBJECT)
     }
     if (ts.isIdentifier(node)) {
         if (seen.has(node.text)) return NOTHING
@@ -235,7 +270,7 @@ function alternatives(node, ctx, depth = 0, seen = new Set()) {
         if (!bound || bound === OPAQUE) return NOTHING
         const next = new Set(seen)
         next.add(node.text)
-        return alternatives(bound, ctx, depth + 1, next)
+        return alternatives(bound, ctx, depth + 1, next, mode)
     }
     return NOTHING
 }

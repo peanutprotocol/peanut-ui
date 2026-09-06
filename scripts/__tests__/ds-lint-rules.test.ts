@@ -219,6 +219,34 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
         expect(countWeightStacks("const SIZES = { sm: 'text-body-m font-semibold' }; const c = SIZES[v]")).toBe(1)
     })
 
+    it('reads class strings written as builder object KEYS', () => {
+        // `clsx({ 'a b': cond })` puts the classes in the key. Treating every
+        // object as a lookup map lost this form entirely — the old regex counter
+        // caught it, so it was a coverage regression rather than a refinement.
+        expect(countWeightStacks("const c = clsx({ 'text-body-m font-semibold': enabled })")).toBe(1)
+        expect(countWeightStacks("const c = clsx({ 'text-body-m': a, 'font-semibold': b })")).toBe(1)
+        expect(countWeightStacks("const c = clsx({ 'text-body-m': a, 'underline': b })")).toBe(0)
+    })
+
+    it('lets independently selectable cva axes combine', () => {
+        // Two axes are chosen separately and applied together, so a token in one
+        // and a weight in the other really can land on the same element.
+        expect(
+            countWeightStacks(
+                "const c = cva('base', { variants: { size: { sm: 'text-body-m' }, weight: { b: 'font-semibold' } } })"
+            )
+        ).toBe(1)
+    })
+
+    it('still treats an INDEXED map as alternatives, even inside a builder', () => {
+        // Indexing selects one entry: `clsx(SIZES[variant])` picks a variant, it
+        // does not apply the whole table.
+        const map = "const S = { sm: 'text-body-m', lg: 'font-semibold' }"
+        expect(countWeightStacks(`${map}; const c = clsx(S[v])`)).toBe(0)
+        expect(countWeightStacks(`${map}; const c = clsx(S.sm)`)).toBe(0)
+        expect(countWeightStacks(`${map}; const c = S[v]`)).toBe(0)
+    })
+
     it('does not stack two overflow variants against each other', () => {
         // Merging overflow into one list recreated the very cross-variant stack
         // the alternatives model exists to prevent, just past the ceiling.
