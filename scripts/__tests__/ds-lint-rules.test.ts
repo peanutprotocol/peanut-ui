@@ -208,6 +208,58 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
         expect(countWeightStacks(broken)).toBe(1)
     })
 
+    it('does not read a variant map as a stack of its own siblings', () => {
+        // One entry is selected at runtime, so two unrelated variants never
+        // co-apply. Flattening the table invented the stack — and against a tight
+        // baseline that fails CI on a perfectly good size map.
+        const map = "const SIZES = { sm: 'text-body-m', lg: 'font-semibold' }"
+        expect(countWeightStacks(`${map}; const c = SIZES[variant]`)).toBe(0)
+        expect(countWeightStacks(`${map}; const c = SIZES.sm`)).toBe(0)
+        // ...but a single entry that really does stack is still counted.
+        expect(countWeightStacks("const SIZES = { sm: 'text-body-m font-semibold' }; const c = SIZES[v]")).toBe(1)
+    })
+
+    it('resolves an identifier to its own scope, not to a later namesake', () => {
+        // A file-wide name→initializer map let a later declaration in an
+        // unrelated function overwrite an earlier one, which hid real stacks or
+        // invented fake ones depending purely on source order.
+        const aThenB = [
+            'function A() {',
+            "    const style = 'text-body-m'",
+            "    return clsx(style, 'font-semibold')",
+            '}',
+            'function B() {',
+            "    const style = 'underline'",
+            '    return style',
+            '}',
+        ].join('\n')
+        expect(countWeightStacks(aThenB)).toBe(1)
+
+        // Reversed: B is clean and must stay clean.
+        const bThenA = [
+            'function B() {',
+            "    const style = 'underline'",
+            "    return clsx(style, 'font-semibold')",
+            '}',
+            'function A() {',
+            "    const style = 'text-body-m'",
+            '    return style',
+            '}',
+        ].join('\n')
+        expect(countWeightStacks(bThenA)).toBe(0)
+    })
+
+    it('does not inline a mutable binding', () => {
+        // `let`/`var` can be reassigned after the declaration the scanner reads,
+        // so the class list it would report may never exist.
+        expect(
+            countWeightStacks("let style = 'text-body-m'; style = 'x'; const c = clsx(style, 'font-semibold')")
+        ).toBe(0)
+        expect(countWeightStacks("var style = 'text-body-m'; const c = clsx(style, 'font-semibold')")).toBe(0)
+        // the const equivalent still counts
+        expect(countWeightStacks("const style = 'text-body-m'; const c = clsx(style, 'font-semibold')")).toBe(1)
+    })
+
     it('does not count a token and a weight that only meet in prose', () => {
         // The per-line residue pass had no way to tell source from commentary,
         // so a comment ABOUT the drift counted as the drift (0_Bruddle/Section.tsx).
