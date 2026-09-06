@@ -849,7 +849,7 @@
                 "multiCurrencyNote": "Las transferencias en otra moneda requieren una cuenta bancaria en esa moneda.",
                 "guideTitle": "¿Qué país va primero?",
                 "guideDeclaration": "Ambos deben ser países donde realmente tienes residencia legal. Es una declaración, y los proveedores la verifican durante la verificación de identidad, incluido el comprobante de domicilio.",
-                "guideOrder": "Si ambos países son realmente tu hogar, elige cuál quedará registrado como tu residencia principal. La elegibilidad la deciden los documentos que presentes en la verificación.",
+                "guideOrder": "Si ambos países son realmente tu hogar, elige cuál quedará registrado como tu residencia principal. La elegibilidad depende de la residencia que verifiques: el domicilio que compruebas en la verificación de identidad.",
                 "selectCountry": "Elegir {country}"
             }
         },

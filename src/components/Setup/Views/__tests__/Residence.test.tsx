@@ -161,6 +161,26 @@ describe('ResidenceStep', () => {
         expect(screen.queryByText('Available with Brazil')).not.toBeInTheDocument()
     })
 
+    it('stops attributing a promoted country to the geo suggestion', () => {
+        // BR was suggested by geo; the user added DE and then cleared BR. DE was
+        // typed, so continuing must not report it as a prefilled geo match.
+        mockGeoCountry = 'br'
+        const view = render(<ResidenceStep />)
+        // the geo effect prefilled BR and latched the flag
+        expect(mockDispatch).toHaveBeenCalledWith(setupActions.setResidenceCountry('BR'))
+        mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
+        view.rerender(<ResidenceStep />)
+        fireEvent.click(screen.getByText('Have documents from more than one country?'))
+        fireEvent.click(screen.getByRole('button', { name: 'Remove Brazil' }))
+        mockSetupState = { residenceCountry: 'DE', secondResidenceCountry: '' }
+        view.rerender(<ResidenceStep />)
+        fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+        expect(mockedCapture).toHaveBeenCalledWith(
+            ANALYTICS_EVENTS.SIGNUP_RESIDENCE_SELECTED,
+            expect.objectContaining({ residence_country: 'DE', was_prefilled: false })
+        )
+    })
+
     it('clearing the second country keeps the first and collapses the pair', () => {
         mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
         render(<ResidenceStep />)

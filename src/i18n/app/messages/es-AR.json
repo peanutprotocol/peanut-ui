@@ -506,7 +506,7 @@
                 },
                 "guideTitle": "¿Qué país va primero?",
                 "guideDeclaration": "Ambos deben ser países donde realmente tenés residencia legal. Es una declaración, y los proveedores la verifican durante la verificación de identidad, incluido el comprobante de domicilio.",
-                "guideOrder": "Si ambos países son realmente tu hogar, elegí cuál quedará registrado como tu residencia principal. La elegibilidad la deciden los documentos que presentes en la verificación.",
+                "guideOrder": "Si ambos países son realmente tu hogar, elegí cuál quedará registrado como tu residencia principal. La elegibilidad depende de la residencia que verifiques: el domicilio que comprobás en la verificación de identidad.",
                 "selectCountry": "Elegir {country}"
             }
         },

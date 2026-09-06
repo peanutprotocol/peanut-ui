@@ -163,7 +163,12 @@ const ResidenceStep = () => {
     // Clearing one half of a declared pair leaves the other as the sole
     // residence, back on the single-country selector.
     const onRemoveCountry = (removed: 'primary' | 'second') => {
-        if (removed === 'primary') dispatch(setupActions.setResidenceCountry(secondResidenceCountry))
+        if (removed === 'primary') {
+            // the promoted country was typed, not suggested — leaving the flag set
+            // would attribute it to the geo guess for the rest of the step
+            wasPrefilledRef.current = false
+            dispatch(setupActions.setResidenceCountry(secondResidenceCountry))
+        }
         dispatch(setupActions.setSecondResidenceCountry(''))
         setShowSecondCountry(false)
     }
