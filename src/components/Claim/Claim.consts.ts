@@ -21,8 +21,10 @@ export interface ClaimXChainPreview {
      *  is only valid for that recipient (see findClaimRoute). */
     quotedFor: string
     /** ISO expiry of the Rhino quote behind receiveAmount/feeUsd; an expired
-     *  route is a cache miss (see findClaimRoute). */
-    expiresAt: string
+     *  route is a cache miss (see findClaimRoute). Absent when the API sent no
+     *  expiry, which findClaimRoute also treats as a miss — never cache a
+     *  quote whose freshness cannot be established. */
+    expiresAt?: string
 }
 export type ClaimType = 'claim' | 'claimxchain'
 

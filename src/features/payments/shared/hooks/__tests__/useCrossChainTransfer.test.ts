@@ -20,6 +20,10 @@ jest.mock('@/services/rhino-bridge', () => ({
     commitBridgeQuote: (...args: unknown[]) => mockCommitBridgeQuote(...args),
     getBridgeStatus: jest.fn(),
     isQuoteNearExpiry: () => false,
+    quoteAmounts: (q: { payAmount?: string; amountIn?: string; receiveAmount?: string; amountOut?: string }) => ({
+        payAmount: q.payAmount ?? q.amountIn ?? '',
+        receiveAmount: q.receiveAmount ?? q.amountOut ?? '',
+    }),
 }))
 
 jest.mock('@/constants/rhino.consts', () => ({
@@ -134,6 +138,36 @@ describe('useCrossChainTransfer — feeUsd is the quote, verbatim', () => {
 
         expect(result.current.path).toBe('bridge')
         expect(result.current.feeUsd).toBe(1.51)
+        expect(result.current.payAmount).toBe('11.510000')
+        expect(result.current.receiveAmount).toBe('10')
+        expect(result.current.error).toBeNull()
+    })
+
+    // Deploy order: this build must also work against an API that predates the
+    // payAmount/receiveAmount rename and still sends amountIn/amountOut.
+    it('bridge path: reads the pre-rename amountIn/amountOut when that is all the API sends', async () => {
+        const { payAmount, receiveAmount, ...rest } = quote(1.51)
+        mockGetBridgeQuote.mockResolvedValue({ ...rest, amountIn: payAmount, amountOut: receiveAmount, isSwap: true })
+        const { result } = renderHook(() => useCrossChainTransfer())
+
+        await act(async () => {
+            await result.current.calculate({
+                source,
+                destination: {
+                    recipientAddress: RECIPIENT,
+                    tokenAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+                    tokenAmount: '0.004',
+                    tokenDecimals: 18,
+                    tokenType: 0,
+                    chainId: '1',
+                    tokenSymbol: 'ETH',
+                },
+                context: 'withdraw',
+                contextId: 'charge-3',
+            })
+        })
+
+        expect(result.current.path).toBe('bridge')
         expect(result.current.payAmount).toBe('11.510000')
         expect(result.current.receiveAmount).toBe('10')
         expect(result.current.error).toBeNull()

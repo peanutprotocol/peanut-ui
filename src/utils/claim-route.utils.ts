@@ -23,7 +23,9 @@ export function resolveClaimQuoteRecipient(input: {
  * switching the external address invalidates it even on the same chain/token
  * — and only while Rhino's quote outlives the signing lead: an entry the
  * confirm screen would already refuse is a miss, so the caller re-quotes
- * instead of bouncing the user between the two screens.
+ * instead of bouncing the user between the two screens. A route with no
+ * expiry at all is a miss too: freshness that cannot be established is not
+ * freshness.
  */
 export function findClaimRoute(
     routes: ClaimXChainPreview[],
@@ -35,6 +37,7 @@ export function findClaimRoute(
             route.chainId === key.chainId &&
             route.tokenAddress.toLowerCase() === key.tokenAddress.toLowerCase() &&
             route.quotedFor.toLowerCase() === key.quotedFor.toLowerCase() &&
+            route.expiresAt !== undefined &&
             new Date(route.expiresAt).getTime() > now + QUOTE_SIGNING_LEAD_MS
     )
 }

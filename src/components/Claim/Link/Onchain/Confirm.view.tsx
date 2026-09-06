@@ -92,8 +92,10 @@ export const ConfirmClaimLinkView = ({
         // The route's fee and receive amount are Rhino's quote only until it
         // expires. Decided at the tap: past expiry, drop the route and return
         // to the initial view, which re-quotes for the same selection — never
-        // execute against numbers Rhino no longer stands behind.
-        if (selectedRoute && isQuoteNearExpiry(selectedRoute.expiresAt)) {
+        // execute against numbers Rhino no longer stands behind. A route with
+        // no expiry (an API that sends none) is not expired — bouncing on it
+        // would loop, since the re-quote comes back without one too.
+        if (selectedRoute?.expiresAt !== undefined && isQuoteNearExpiry(selectedRoute.expiresAt)) {
             setSelectedRoute(undefined)
             setHasFetchedRoute(false)
             onPrev()
