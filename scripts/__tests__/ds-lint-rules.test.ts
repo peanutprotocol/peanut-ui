@@ -1,6 +1,7 @@
 import {
     countOffScaleSpacing,
     countWeightStacks,
+    countWeightStacksByRegex,
     countOffScaleRadius,
     OFF_SCALE_ICON_RE,
     RAW_DURATION_RE,
@@ -151,6 +152,73 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
     it('counts multiline template-literal class constants outside builders', () => {
         const code = ['const classes = `text-body-m', '    font-semibold underline`', 'use(classes)'].join('\n')
         expect(countWeightStacks(code)).toBe(1)
+    })
+
+    // The forms the regex region-finders could not reach: a class list is only
+    // visible to them when it is spelled as an attribute, a builder call or a
+    // template literal. Rebuilding these in regex means writing a parser badly,
+    // which is why the scanner parses now (scripts/ds-lint-ast.cjs).
+    it('counts a class list assembled through array .join', () => {
+        expect(countWeightStacks("const c = ['text-body-m', 'font-semibold'].join(' ')")).toBe(1)
+        expect(countWeightStacks("const c = ['text-body-m', 'underline'].join(' ')")).toBe(0)
+    })
+
+    it('counts + concatenation, including split across lines', () => {
+        expect(countWeightStacks("const c = 'text-body-m ' + 'font-semibold'")).toBe(1)
+        expect(countWeightStacks(['const c =', "    'text-body-m ' +", "    'font-semibold'"].join('\n'))).toBe(1)
+    })
+
+    it('counts a lookup map of class strings, and resolves it at the use site', () => {
+        expect(countWeightStacks("const SIZES = { sm: 'text-body-m font-semibold' }")).toBe(1)
+        // Reached through the index too — and counted ONCE, because the drift is
+        // the map entry, not each place it is read.
+        const viaIndex = [
+            "const SIZES = { sm: 'text-body-m font-semibold', lg: 'text-heading-s' }",
+            'const c = SIZES[variant]',
+            'const d = SIZES[other]',
+        ].join('\n')
+        expect(countWeightStacks(viaIndex)).toBe(1)
+    })
+
+    it('counts a token and a weight that only meet through a resolved const', () => {
+        // Neither half is a stack on its own; the class list they compose is.
+        const code = ["const TOKEN = 'text-body-m'", "const c = twMerge(TOKEN, 'font-semibold')"].join('\n')
+        expect(countWeightStacks(code)).toBe(1)
+    })
+
+    it('counts a drifted constant once, however many places read it', () => {
+        const code = [
+            "const STYLE = 'text-body-m font-semibold'",
+            'const El = () => (',
+            '    <>',
+            '        <p className={STYLE} />',
+            '        <span className={STYLE} />',
+            '    </>',
+            ')',
+        ].join('\n')
+        expect(countWeightStacks(code)).toBe(1)
+    })
+
+    it('falls back to the regex scanner on source that does not parse', () => {
+        // createSourceFile recovers rather than throwing, and a recovered tree
+        // can be missing whole statements the source really has — so a dirty
+        // parse must not be trusted, or the metric under-reports on exactly the
+        // files it cannot read.
+        const broken = ["const STYLE = 'text-body-m font-semibold'", '<p className={STYLE} />', '<span'].join('\n')
+        expect(countWeightStacks(broken)).toBe(1)
+    })
+
+    it('does not count a token and a weight that only meet in prose', () => {
+        // The per-line residue pass had no way to tell source from commentary,
+        // so a comment ABOUT the drift counted as the drift (0_Bruddle/Section.tsx).
+        expect(countWeightStacks('// font-bold vs text-heading-card drift')).toBe(0)
+        expect(countWeightStacks('/* prefer text-body-m + font-semibold */')).toBe(0)
+    })
+
+    it('survives a file it cannot parse rather than reporting zero', () => {
+        // A metric that returns 0 on an unreadable file is a ratchet with the
+        // tension let out. The regex scanner is the floor.
+        expect(countWeightStacksByRegex('<p className="text-body-s font-bold" />')).toBe(1)
     })
 
     it('does not count a token and a weight living in different elements', () => {

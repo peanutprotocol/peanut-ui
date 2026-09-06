@@ -12,7 +12,7 @@
     "deadLegacyTokens": 0,
     "consumedUndefinedTokens": 0,
     "classNameSitesInPages": 312,
-    "fontWeightOnTypeToken": 47,
+    "fontWeightOnTypeToken": 46,
     "offScaleSpacing": 188,
     "iconOffScale": 70,
     "offScaleRadius": 37,
@@ -52,6 +52,11 @@
             "date": "2026-09-04",
             "metrics": ["classNameSitesInPages 310 -> 312"],
             "reason": "dev-side, not authored here: the exchange-rate page gained 2 className sites in dev's exchange-currencies work (profile/exchange-rate/page.tsx), counted in on the merge. this branch touches no (mobile-ui) page.tsx at all."
+        },
+        {
+            "date": "2026-09-06",
+            "metrics": ["fontWeightOnTypeToken 47 -> 46"],
+            "reason": "scanner change, not a debt change: countWeightStacks now parses the file (scripts/ds-lint-ast.cjs) instead of regex-matching source regions, so it reaches class lists assembled through array .join, + concatenation and lookup maps, resolves same-file consts, and counts one drift per distinct pair of literals rather than per occurrence. the net -1 is a comment in 0_Bruddle/Section.tsx that the old per-line residue pass read as drift."
         }
     ]
 }
