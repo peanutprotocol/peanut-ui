@@ -287,6 +287,32 @@ describe('CapNudgeCard', () => {
             }
         })
 
+        test('a rejection reaches the user as soon as the backend has acknowledged', async () => {
+            // Once the backend says `under-review`, the local marker has done its
+            // job. A rejection comes back as `raise`, and masking it for the rest
+            // of the TTL leaves the user staring at "under review" for a document
+            // that was refused — with no way to retry.
+            const { unmount } = render(<CapNudgeCard />)
+            fireEvent.click(screen.getByRole('button', { name: /verify income/i }))
+            await act(async () => {})
+            fireEvent.click(screen.getByText('submit-document'))
+            await screen.findByText(/reviewing your limit/i)
+            unmount()
+
+            // backend acknowledges the submission
+            mockRails = [mantecaRail({ hintActions: ['manteca:limit-review'] })]
+            mockNextActions = [reviewAction]
+            const ack = render(<CapNudgeCard />)
+            expect(await ack.findByText(/reviewing your limit/i)).toBeInTheDocument()
+            ack.unmount()
+
+            // ...then Sumsub refuses it, and the backend returns to `raise`
+            mockRails = [mantecaRail({ hintActions: ['sumsub:source_of_funds'] })]
+            mockNextActions = [raiseAction]
+            render(<CapNudgeCard />)
+            expect(await screen.findByRole('button', { name: /verify income/i })).toBeInTheDocument()
+        })
+
         test('the suppression survives a remount, so the same upload is not re-offered', async () => {
             const { unmount } = render(<CapNudgeCard />)
             fireEvent.click(screen.getByRole('button', { name: /verify income/i }))
