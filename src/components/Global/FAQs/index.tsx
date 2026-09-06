@@ -22,8 +22,7 @@ export type FAQsProps = {
 
 // Matches the landing page's other "learn more" affordances: right-aligned,
 // underlined at rest, arrow trailing.
-const learnMoreClass =
-    'font-roboto-flex text-body-m text-foreground-primary underline hover:no-underline md:text-body-l'
+const learnMoreClass = 'text-body-m text-foreground-primary underline hover:no-underline md:text-body-l'
 
 function linkifyText(text: string) {
     const markdownLinkRegex = /\[([^\]]+)\]\(([^\s)]+)\)/g
@@ -64,7 +63,7 @@ export function FAQsPanel({ heading, questions, learnMoreLabel = 'Learn more' }:
                             key={faq.id}
                             className={`group py-4 ${idx > 0 ? 'border-t-2 border-border-default' : ''}`}
                         >
-                            <summary className="font-roboto-flex-extrabold flex cursor-pointer list-none items-center justify-between gap-4 text-heading-card uppercase md:text-heading-xs [&::-webkit-details-marker]:hidden">
+                            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-heading-card uppercase md:text-heading-xs [&::-webkit-details-marker]:hidden">
                                 <span>{faq.question}</span>
                                 <span className="shrink-0 text-heading-m leading-none transition-transform duration-fast group-open:rotate-45">
                                     +
