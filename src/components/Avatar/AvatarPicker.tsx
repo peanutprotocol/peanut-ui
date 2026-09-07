@@ -7,6 +7,7 @@ import { updateUserById } from '@/app/actions/users'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { Drawer, DrawerContent } from '@/components/Global/Drawer'
+import { Icon } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'
 import { twMerge } from '@/utils/tw'
 import { AVATAR_PICKER_BADGE_PARAM, avatarPickerBadgeParser } from './avatar.consts'
@@ -20,15 +21,6 @@ interface AvatarPickerProps {
     open: boolean
     onOpenChange: (open: boolean) => void
 }
-
-/** The dice-5 face: the four corners and the middle, one 6px pip each. */
-const DIE_PIPS = [
-    'top-1.5 left-1.5',
-    'top-1.5 right-1.5',
-    'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
-    'bottom-1.5 left-1.5',
-    'bottom-1.5 right-1.5',
-]
 
 const capitalise = (word: string) => word.charAt(0).toUpperCase() + word.slice(1)
 
@@ -191,7 +183,7 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                 onClick={() => save(initial ? initialKey : key)}
                                 className={twMerge(
                                     // XL on top: the Earned tag sits in that band, clear of the sticker
-                                    'relative flex flex-col items-center rounded-sm border border-border-default bg-background-default px-1.5 pt-6 pb-3 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus',
+                                    'relative flex flex-col items-center rounded-sm border border-border-default bg-background-default px-1 pt-6 pb-3 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus',
                                     checked && 'border-2 border-border-default'
                                 )}
                             >
@@ -224,18 +216,12 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                     >
                         {/* one full turn per roll; class parity, so no inline style */}
                         <span
-                            aria-hidden
                             className={twMerge(
-                                'relative size-9 rounded-lg border-2 border-border-default bg-background-default motion-safe:transition-transform motion-safe:duration-slow motion-safe:ease-spring',
+                                'inline-flex motion-safe:transition-transform motion-safe:duration-slow motion-safe:ease-spring',
                                 turns % 2 ? 'rotate-360' : 'rotate-0'
                             )}
                         >
-                            {DIE_PIPS.map((pip) => (
-                                <span
-                                    key={pip}
-                                    className={twMerge('absolute size-1.5 rounded-full bg-border-default', pip)}
-                                />
-                            ))}
+                            <Icon name="dice" size={24} />
                         </span>
                         {t('rollDie')}
                     </button>
