@@ -188,9 +188,10 @@ export default function WithdrawCryptoPage() {
         }
     }, [routeError, recordError, setPaymentError])
 
-    // Quote the route (Rhino preview + SDA / bridge quote, or the same-chain
-    // tx). Runs on entering the confirm view and again before signing when the
-    // quote on screen has expired.
+    // Re-quote the route (Rhino preview + SDA / bridge quote, or the
+    // same-chain tx) right before signing when the quote on screen has
+    // expired — uses effectiveAmount, the frozen amount a route was already
+    // quoted against, so signing never drifts off what the user confirmed.
     const quoteRoute = useCallback(() => {
         if (!chargeDetails || !withdrawData || !address) return Promise.resolve()
         return calculateRoute({
@@ -217,10 +218,39 @@ export default function WithdrawCryptoPage() {
         })
     }, [chargeDetails, withdrawData, calculateRoute, address, effectiveAmount])
 
-    // prepare transaction when entering confirm view
+    // prepare transaction when entering confirm view — and again on Retry
+    // after a route error (e.g. the cross-chain cap's 429), so the user is not
+    // stuck with a Retry that fails on "no transactions prepared"
+    const calculateCurrentRoute = useCallback(() => {
+        if (currentView === 'CONFIRM' && chargeDetails && withdrawData && address) {
+            calculateRoute({
+                source: {
+                    address: address as Address,
+                    tokenAddress: PEANUT_WALLET_TOKEN as Address,
+                    chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                    // amountToWithdraw is USD-denominated; source token is USDC (1:1).
+                    // Required for the bridge path's 'pay' mode (cross-chain ETH/etc).
+                    tokenAmount: amountToWithdraw,
+                },
+                destination: {
+                    recipientAddress: chargeDetails.requestLink.recipientAddress as Address,
+                    tokenAddress: chargeDetails.tokenAddress as Address,
+                    tokenAmount: chargeDetails.tokenAmount,
+                    tokenDecimals: chargeDetails.tokenDecimals,
+                    tokenType: Number(chargeDetails.tokenType),
+                    chainId: chargeDetails.chainId,
+                },
+                context: 'withdraw',
+                contextId: chargeDetails.uuid,
+                senderPeanutWalletAddress: address as Address,
+                skipGasEstimate: true, // peanut wallet handles gas
+            })
+        }
+    }, [currentView, chargeDetails, withdrawData, calculateRoute, address, amountToWithdraw])
+
     useEffect(() => {
-        if (currentView === 'CONFIRM') void quoteRoute()
-    }, [currentView, quoteRoute])
+        calculateCurrentRoute()
+    }, [calculateCurrentRoute])
 
     const handleSetupReview = useCallback(
         async (data: Omit<WithdrawData, 'amount'>) => {
@@ -382,14 +412,15 @@ export default function WithdrawCryptoPage() {
         }
 
         if (!transactions || transactions.length === 0) {
-            // Nothing prepared — the route never resolved, or an expiry refresh
-            // just failed. Quote again instead of dead-ending on "not prepared";
-            // a persistent failure keeps surfacing through routeError.
-            // Drop the copied error first: it is the previous attempt's, and
-            // leaving it up would show "Retry" over a route that just resolved,
-            // so the next tap would broadcast under a stale failure message.
+            // Nothing prepared — the route never resolved, an expiry refresh
+            // failed, or a route error (cap 429, quote failure) left nothing
+            // built. Quote again instead of dead-ending on "not prepared"; a
+            // persistent failure keeps surfacing through routeError. One
+            // recalculation at a time: a double-tap must not provision twice
+            // (each provision holds a cap slot) or race the route state.
+            if (isCalculating) return
             clearErrors()
-            await quoteRoute()
+            calculateCurrentRoute()
             return
         }
 
@@ -606,6 +637,9 @@ export default function WithdrawCryptoPage() {
         setTransactionHash,
         setPaymentDetails,
         clearErrors,
+        routeError,
+        isCalculating,
+        calculateCurrentRoute,
         setError,
         triggerHaptic,
         t,
