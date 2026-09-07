@@ -5,14 +5,21 @@ import { contentHrefsFor } from './landingContentHrefs.server'
 
 const Footer = ({
     showSiteDirectory = true,
+    showGetTheApp = false,
     locale = DEFAULT_LOCALE,
 }: {
     showSiteDirectory?: boolean
+    /** pwa-sunset download block above the footer chrome — landing page only. */
+    showGetTheApp?: boolean
     locale?: Locale
 }) => {
     return (
         <>
-            <FooterChrome locale={locale} securityDisclosureHref={contentHrefsFor(locale).securityDisclosure} />
+            <FooterChrome
+                locale={locale}
+                securityDisclosureHref={contentHrefsFor(locale).securityDisclosure}
+                showGetTheApp={showGetTheApp}
+            />
             {showSiteDirectory && <SEOFooter locale={locale} />}
         </>
     )

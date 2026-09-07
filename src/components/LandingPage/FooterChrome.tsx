@@ -9,6 +9,8 @@ import handWaving from '@/assets/illustrations/hand-waving.svg'
 import handPeace from '@/assets/illustrations/hand-peace.svg'
 import handMiddleFinger from '@/assets/illustrations/hand-middle-finger.svg'
 import { LocaleSwitcher } from '@/components/Marketing/LocaleSwitcher'
+import { FooterGetTheApp } from './FooterGetTheApp'
+import { landingStrings } from './landingStrings'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 
@@ -56,15 +58,24 @@ const SocialLinks = () => (
 export const FooterChrome = ({
     locale = DEFAULT_LOCALE,
     securityDisclosureHref,
+    showGetTheApp = false,
 }: {
     locale?: Locale
     securityDisclosureHref: string
+    /**
+     * The pwa-sunset download block. Opt-in, because this footer is shared by
+     * /careers, /m/[slug], /shhhhh and the whole marketing layout, while the
+     * locked structure scopes the block to the landing page's fold 12.
+     */
+    showGetTheApp?: boolean
 }) => {
     const i18n = getTranslations(locale)
 
     return (
         // Nav is on its own row because translated labels have different widths.
         <footer className="bg-black px-8 py-8 md:px-20">
+            {/* renders nothing with the flag off, so the footer is unchanged today */}
+            {showGetTheApp && <FooterGetTheApp strings={landingStrings(i18n).migration} />}
             <div className="mb-6 flex justify-center md:hidden">
                 <HandSigns />
             </div>

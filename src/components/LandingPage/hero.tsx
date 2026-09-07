@@ -17,7 +17,7 @@ import { type CTAButton } from '@/components/LandingPage/landing.types'
  * overlaps with the h2 subtitle below. Measures the h2 position on mount
  * and resize, then sets its own bottom edge to sit 6% into the h2.
  */
-function PeanutMascot() {
+function PeanutMascot({ compact }: { compact?: boolean }) {
     const imgRef = useRef<HTMLImageElement>(null)
 
     const position = useCallback(() => {
@@ -58,9 +58,21 @@ function PeanutMascot() {
         }
 
         window.addEventListener('resize', position)
+
+        /*
+         * `resize` alone misses everything that changes the hero's height
+         * without changing the window's: the migration CTA swapping in on
+         * mount, a webfont landing, an image decoding late. The mascot is
+         * pinned to the h2 by measurement, so any of those left it floating.
+         */
+        const hero = document.getElementById('hero')
+        const observer = hero && typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => position()) : null
+        if (hero && observer) observer.observe(hero)
+
         return () => {
             img.removeEventListener('load', onLoad)
             window.removeEventListener('resize', position)
+            observer?.disconnect()
         }
     }, [position])
 
@@ -76,7 +88,9 @@ function PeanutMascot() {
             // throttled connection (Lighthouse: 19.5s LCP, 36% load delay).
             preload
             alt="Peanut Guy"
-            className="absolute left-1/2 z-10 h-auto max-h-[40vh] w-auto max-w-[90%] -translate-x-1/2 object-contain md:max-h-[min(40vh,calc(100svh-28rem))]"
+            className={`absolute left-1/2 z-10 h-auto max-h-[40vh] w-auto max-w-[90%] -translate-x-1/2 object-contain ${
+                compact ? 'md:max-h-[min(40vh,calc(100svh-34.5rem))]' : 'md:max-h-[min(40vh,calc(100svh-28rem))]'
+            }`}
         />
     )
 }
@@ -110,6 +124,22 @@ type HeroProps = {
     buttonScale?: number
     /** replaces the primary button entirely (store-button pair on desktop during the migration window) */
     customCta?: React.ReactNode
+    /** the custom CTA fills the column instead of shrink-wrapping (phone download button) */
+    customCtaFullWidth?: boolean
+    /**
+     * Points the "Log In" link at /app instead of /setup?step=login. Flag-on
+     * only: /setup is closed during the migration window and logging back in
+     * happens in the app, which /app routes a returning phone straight into.
+     * The link itself stays — removing it would take the only re-entry path a
+     * returning visitor has AND change the CTA column's height on mount.
+     */
+    loginToApp?: boolean
+    /**
+     * Buys back the extra height the migration CTA lockup costs, so the marquee
+     * still sits inside the first fold on a 1366x768 laptop. Only the flag-on
+     * page passes it — the flag-off hero keeps today's exact geometry.
+     */
+    compactArtwork?: boolean
 }
 
 /*
@@ -128,8 +158,10 @@ const getCtaStyle = (variant: 'primary' | 'secondary', buttonVisible?: boolean, 
         pointerEvents: buttonVisible ? 'auto' : 'none',
     }) as CSSProperties
 
-const getButtonContainerClasses = (variant: 'primary' | 'secondary') =>
-    `relative z-20 mt-8 flex flex-col items-center justify-center ${variant === 'primary' ? 'mx-auto w-fit' : 'right-[calc(50%-120px)]'}`
+const getButtonContainerClasses = (variant: 'primary' | 'secondary', fullWidth = false) =>
+    `relative z-20 mt-8 flex flex-col items-center justify-center ${
+        variant === 'primary' ? (fullWidth ? 'mx-auto w-full' : 'mx-auto w-fit') : 'right-[calc(50%-120px)]'
+    }`
 
 export function Hero({
     primaryCta,
@@ -137,6 +169,9 @@ export function Hero({
     buttonVisible,
     buttonScale = 1,
     customCta,
+    customCtaFullWidth,
+    compactArtwork,
+    loginToApp,
     strings,
     locale,
 }: HeroProps) {
@@ -169,7 +204,7 @@ export function Hero({
 
     const renderCustomCta = () => (
         <div
-            className={`${getButtonContainerClasses('primary')} cta-motion`}
+            className={`${getButtonContainerClasses('primary', customCtaFullWidth)} cta-motion`}
             style={getCtaStyle('primary', buttonVisible, buttonScale)}
         >
             {customCta}
@@ -184,12 +219,19 @@ export function Hero({
             <CloudsCss clouds={heroClouds} className="md:hidden" />
             <CloudsCss className="hidden md:block" />
             <div className="relative mt-10 w-full md:mt-0">
-                {/* 23rem = the fixed stack below the artwork (h2 -> CTA) + 3rem slack, so the CTA stays inside the first fold on short laptop viewports */}
+                {/* 23rem = the fixed stack below the artwork (h2 -> CTA) + 3rem slack, so the CTA stays inside the first fold on short laptop viewports.
+                    29.5rem is the same sum with the DESKTOP migration lockup in the CTA slot: the QR frame is ~164px where the single button was ~76px.
+                    md-scoped, like the mascot's twin above: the phone CTA barely changes height (one button + "Other store" for the button and Log In link
+                    it replaces), so applying the laptop clamp there would cut up to ~100px of hero artwork off every short phone for nothing. */}
                 <Image
                     src={GlobalCashLocalFeel}
                     preload
                     sizes="(min-width: 768px) 50vw, 100vw"
-                    className="z-0 mx-auto h-auto max-h-[calc(100svh-23rem)] w-full max-w-[1000px] object-contain md:w-[50%]"
+                    className={`z-0 mx-auto h-auto w-full max-w-[1000px] object-contain md:w-[50%] ${
+                        compactArtwork
+                            ? 'max-h-[calc(100svh-23rem)] md:max-h-[calc(100svh-29.5rem)]'
+                            : 'max-h-[calc(100svh-23rem)]'
+                    }`}
                     alt="Global Cash Local Feel"
                 />
 
@@ -208,7 +250,7 @@ export function Hero({
                     <Image src={Star} alt="" />
                 </AnimateOnView>
             </div>
-            <PeanutMascot />
+            <PeanutMascot compact={compactArtwork} />
 
             <div className="relative z-20 flex w-full flex-col items-center justify-center">
                 {/* Short phone viewports only: the pt-BR headline wraps to 3 lines (and to 4 below
@@ -242,10 +284,11 @@ export function Hero({
                 {secondaryCta && renderCTAButton(secondaryCta, 'secondary')}
                 {/* Returning users with an expired session had no way back in from the
                     marketing site: every CTA pointed at signup. `?step=login` lands on
-                    the passkey Log In step (setup-entry.ts). */}
+                    the passkey Log In step (setup-entry.ts); during the migration window
+                    /setup is closed, so the same link routes into the app via /app. */}
                 <Link
                     prefetch={false}
-                    href="/setup?step=login"
+                    href={loginToApp ? '/app' : '/setup?step=login'}
                     className="mt-4 block text-center text-body-s text-n-1 underline"
                 >
                     {strings.logIn}

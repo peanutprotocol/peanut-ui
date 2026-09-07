@@ -1,6 +1,6 @@
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { IS_DEV } from '@/constants/general.consts'
+import { BASE_URL, IS_DEV } from '@/constants/general.consts'
 import {
     MIGRATION_CUTOVER_DATE,
     PWA_SUNSET_FLAG,
@@ -17,14 +17,28 @@ import {
     trackDeferredHandoffCreated,
 } from '@/utils/deferred-link'
 
+/** The one place where the flag answers to PostHog and nothing else. NEXT_PUBLIC_BASE_URL
+ *  is unset in a bare local checkout, which is why IS_DEV is an independent escape below. */
+const IS_PROD_DOMAIN = BASE_URL === 'https://peanut.me'
+
 /**
- * Flag read with a dev-only localStorage override. Local dev never inits
- * posthog (instrumentation-client gates on NODE_ENV), so e2e QA flips the
- * flag with `localStorage.setItem('pwa-sunset', 'true')` + reload instead.
- * Inert outside dev builds.
+ * Flag read with a localStorage override that is live everywhere EXCEPT the
+ * production domain: `localStorage.setItem('pwa-sunset', 'true')` + reload.
+ *
+ * Dev alone was not enough. Local dev never inits posthog
+ * (instrumentation-client gates on NODE_ENV), but neither does a CI or preview
+ * build without NEXT_PUBLIC_POSTHOG_KEY — and the e2e layout gate runs against
+ * `next start`, where the dev-only override was inert and every "flag on" case
+ * silently measured the flag-off page. Scoping to !IS_PROD_DOMAIN is the same
+ * boundary `isFeatureFlagEnabled`'s nonProdBypass already draws, so peanut.me
+ * still answers to PostHog and nothing else.
  */
 export function isPwaSunsetOn(): boolean {
-    if (IS_DEV && typeof localStorage !== 'undefined' && localStorage.getItem(PWA_SUNSET_FLAG) === 'true') {
+    if (
+        (IS_DEV || !IS_PROD_DOMAIN) &&
+        typeof localStorage !== 'undefined' &&
+        localStorage.getItem(PWA_SUNSET_FLAG) === 'true'
+    ) {
         return true
     }
     return isFeatureFlagEnabled(PWA_SUNSET_FLAG)

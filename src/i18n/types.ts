@@ -176,6 +176,16 @@ export interface Translations {
     landingProblemPaidAbroadTitle: string
     landingProblemPaidAbroadBody: string
 
+    // pwa-sunset download copy. Duplicated from the app catalog's `migration.*`
+    // namespace on purpose: the marketing catalog is keyed by the URL locale,
+    // the next-intl one by the device/cookie locale, so the fold that lives on
+    // /pt-br has to read these to stay Portuguese for a Spanish phone.
+    migrationGetTheApp: string
+    migrationQrTitle: string
+    migrationScanHint: string
+    migrationDownloadNow: string
+    migrationOtherStore: string
+
     // Legal page headers (privacy/terms carry no <Hero> in their verbatim markdown)
     legalHeroSubtitlePrivacy: string
     legalHeroSubtitleTerms: string

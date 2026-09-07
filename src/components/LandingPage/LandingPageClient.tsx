@@ -1,6 +1,7 @@
 'use client'
 
 import { useFooterVisibility } from '@/context/footerVisibility'
+import { useTranslations } from 'next-intl'
 import { Suspense, useEffect, useMemo, useState, useRef, useCallback, type ReactNode } from 'react'
 // Imported directly, not through the barrel: `export *` pulls every sibling
 // into this chunk, including dropLink's nine repeat: Infinity animations,
@@ -14,13 +15,11 @@ import { StickyMobileCTA } from '@/components/LandingPage/StickyMobileCTA'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import type { LandingStrings } from './landingStrings'
 import type { Locale } from '@/i18n/types'
-import StorePair from '@/components/Migration/StorePair'
+import { AppModalProvider } from '@/components/Migration/AppModalProvider'
 import { type CTAButton } from '@/components/LandingPage/landing.types'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
-import { useTranslations } from 'next-intl'
-import { onStoreAnchorClick, storeAnchorHref } from '@/utils/migration.utils'
 import type { LandingContentHrefs } from './landingContentHrefs'
 
 // Split out: the carousel drags the whole testimonials manifest (~64 KB of
@@ -28,6 +27,17 @@ import type { LandingContentHrefs } from './landingContentHrefs'
 // SSR stays on so crawlers still see the tweets; only the client bundle moves
 // off the critical path.
 const TweetCarousel = dynamic(() => import('@/components/LandingPage/TweetCarousel'))
+
+// Same reasoning as the carousel, plus: neither can render before mount, since
+// useMigrationFlag is false until then. Statically imported they dragged
+// AppQrCode -> QRCodeWrapper -> react-qr-code into the landing page's main
+// chunk for every visitor, flag off included.
+const HeroAppLockup = dynamic(() => import('@/components/LandingPage/HeroAppLockup').then((m) => m.HeroAppLockup), {
+    ssr: false,
+})
+const PhoneAppCta = dynamic(() => import('@/components/LandingPage/PhoneAppCta').then((m) => m.PhoneAppCta), {
+    ssr: false,
+})
 
 type LandingPageClientProps = {
     heroConfig: {
@@ -66,9 +76,6 @@ export function LandingPageClient({
 }: LandingPageClientProps) {
     const { isFooterVisible } = useFooterVisibility()
     const migrationOn = useMigrationFlag()
-    // app-locale translation (LatAm-first funnel); the flag-off label still
-    // comes from the content system per landing locale
-    const tMigration = useTranslations('migration')
     // the strip under the door fold speaks /shhhhh's vocabulary, not the
     // product one every other strip repeats
     const tDoorMarquee = useTranslations('shhhhh.marquee')
@@ -78,28 +85,12 @@ export function LandingPageClient({
     // promise, so they go dark together.
     const doorFoldOn = !underMaintenanceConfig.disableLandingCardFold
 
-    // pwa-sunset hero CTAs are device-based: phones get one "Download now"
-    // with their store's mark deep-linking to it; desktop drops the primary
-    // and shows the equal store-button pair instead (customCta below).
-    // the permanent flag-off CTA change goes through the content system
-    // post-cutover (TASK-20600).
-    const primaryCta = useMemo((): CTAButton | undefined => {
-        if (!migrationOn) return heroConfig.primaryCta
-        if (isDesktop) return undefined
-        const store = deviceType === DeviceType.ANDROID ? 'android' : 'ios'
-        return {
-            label: tMigration('downloadNow'),
-            href: storeAnchorHref(store),
-            isExternal: true,
-            icon: store === 'ios' ? 'apple-logo' : 'google-play',
-            // keep the content-system subtext (e.g. "Join +10,000 cool people")
-            subtext: heroConfig.primaryCta.subtext,
-            // the anchor navigates itself (works even where window.open is
-            // suppressed — in-app browsers); android's hand-off rides the href,
-            // ios' rides the clipboard written here inside the tap
-            onClick: () => onStoreAnchorClick(store, MIGRATION_SURFACES.LANDING_HERO),
-        }
-    }, [migrationOn, deviceType, isDesktop, heroConfig.primaryCta, tMigration])
+    // pwa-sunset hero CTAs are device-based: the whole CTA slot becomes a
+    // custom lockup — the S-full QR + store pair on desktop, one full-width
+    // download button on phones — so the content-system primary CTA drops out
+    // entirely. The permanent flag-off CTA change goes through the content
+    // system post-cutover (TASK-20600).
+    const primaryCta = migrationOn ? undefined : heroConfig.primaryCta
 
     const [buttonVisible, setButtonVisible] = useState(true)
     const [isScrollFrozen, setIsScrollFrozen] = useState(false)
@@ -150,6 +141,21 @@ export function LandingPageClient({
     }, [])
 
     useEffect(() => {
+        /*
+         * With the flag on there is no #sticky-button-target: fold 10 swaps its
+         * CTA for the get-the-app lockup. The handler below bails on a missing
+         * target BEFORE any of the unfreeze paths, so a visitor already parked
+         * at fold 10 when the flag resolves (scroll restoration on reload or a
+         * back-navigation) would be left with body overflow:hidden and no event
+         * able to clear it. Release the machinery instead — PR 3 deletes it.
+         */
+        if (migrationOn) {
+            document.body.style.overflow = ''
+            setIsScrollFrozen(false)
+            setButtonScale(1)
+            return
+        }
+
         const handleScroll = () => {
             if (sendInSecondsRef.current) {
                 const targetElement = document.getElementById('sticky-button-target')
@@ -230,7 +236,7 @@ export function LandingPageClient({
             window.removeEventListener('touchmove', handleTouchMove)
             document.body.style.overflow = ''
         }
-    }, [handleScrollDelta])
+    }, [handleScrollDelta, migrationOn])
 
     // Only the words with a real article behind them become links; the rest
     // stay plain text. Words come from the content system's marquee list, so an
@@ -271,23 +277,31 @@ export function LandingPageClient({
     )
 
     return (
-        <>
+        // one scan-to-download modal for the whole page: every re-pointed CTA
+        // below — including the ones inside server-rendered folds — opens this
+        // instance and only says which surface it is calling from
+        <AppModalProvider>
             <Hero
                 primaryCta={primaryCta}
                 buttonVisible={buttonVisible}
                 buttonScale={buttonScale}
                 strings={strings}
                 locale={locale}
+                compactArtwork={migrationOn}
+                loginToApp={migrationOn}
+                customCtaFullWidth={migrationOn && !isDesktop}
                 customCta={
-                    migrationOn && isDesktop ? (
-                        <div className="flex flex-col items-center">
-                            <StorePair surface={MIGRATION_SURFACES.LANDING_HERO} appearance="hero" />
-                            {heroConfig.primaryCta.subtext && (
-                                <span className="mt-2 block text-center text-sm text-n-1 italic md:text-base">
-                                    {heroConfig.primaryCta.subtext}
-                                </span>
-                            )}
-                        </div>
+                    migrationOn ? (
+                        isDesktop ? (
+                            <HeroAppLockup strings={strings.migration} subtext={heroConfig.primaryCta.subtext} />
+                        ) : (
+                            <PhoneAppCta
+                                surface={MIGRATION_SURFACES.LANDING_HERO}
+                                strings={strings.migration}
+                                subtext={heroConfig.primaryCta.subtext}
+                                showOtherStore
+                            />
+                        )
                     ) : undefined
                 }
             />
@@ -323,6 +337,6 @@ export function LandingPageClient({
             <Marquee {...marqueeProps} />
             {footerSlot}
             <StickyMobileCTA strings={strings} />
-        </>
+        </AppModalProvider>
     )
 }

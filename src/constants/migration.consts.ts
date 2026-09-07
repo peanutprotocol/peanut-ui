@@ -90,6 +90,14 @@ export const MIGRATION_SURFACES = {
     LANDING_DOOR: 'landing_door',
 } as const
 
+/**
+ * Dormant sub-flag for the hero QR lockup. Reserved so the QR half of the hero
+ * can be turned off independently of `pwa-sunset` once there is traffic to
+ * split; nothing reads it yet, and the lockup ships unconditionally under the
+ * parent flag until it does.
+ */
+export const LANDING_HERO_QR_FLAG = 'landing-hero-qr'
+
 export type MigrationSurface = (typeof MIGRATION_SURFACES)[keyof typeof MIGRATION_SURFACES]
 
 /** guard for a surface arriving off a URL (the /app smart link's `?s=`). */
