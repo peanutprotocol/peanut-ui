@@ -279,7 +279,7 @@ counts.classNameSitesInPages = files
 // drives the count down, new drift pushes it up and fails.
 counts.fontWeightOnTypeToken = files
     .filter((f) => !allowed(f.path))
-    .reduce((sum, f) => sum + countWeightStacks(f.text), 0)
+    .reduce((sum, f) => sum + countWeightStacks(f.text, f.path), 0)
 // matchers live in ds-lint-rules.cjs (imported at the top) so the regression
 // tests in scripts/__tests__/ds-lint-rules.test.ts exercise the exact rules
 // this script counts with, without running the src/ scan. these five scan

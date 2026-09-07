@@ -76,8 +76,22 @@ jobs:
     # --check against the committed baseline: debt counts (raw hex, inline
     # styles, stock text sizes, non-DS classes in views, useSearchParams files)
     # may only go down. A PR that lowers a count should also tighten the
-    # baseline (--write-baseline) so the gain locks in. Pure-node script — no
-    # pnpm install needed.
+    # baseline (--write-baseline) so the gain locks in.
+    #
+    # No longer a pure-node script: countWeightStacks parses the file rather
+    # than regex-matching source regions (scripts/ds-lint-ast.cjs), so the job
+    # needs `typescript` on disk. It installs with --ignore-scripts AND
+    # --ignore-pnpmfile, which keeps this job's "runs no PR code" posture — what
+    # it needs is a parser, not a build. pnpm treats those as SEPARATE controls:
+    # a repository-root .pnpmfile.cjs is evaluated before dependency resolution
+    # even with scripts off, so a PR could add a hook that rewrites the ratchet
+    # script this job is about to run. The repo has no pnpmfile today; the flag
+    # is what stops one arriving in a pull request from being honoured here. Drop the install and the script fails to load at all ("Cannot find
+    # module 'typescript'"), which is the failure mode we want: loud, and about
+    # the real cause. The in-script fallback to the regex counter covers a file
+    # that does not PARSE, not a missing parser — it reports a higher number
+    # than the AST baseline, so leaning on it here would fail the ratchet on
+    # every PR with a misleading message.
     ds-lint:
         runs-on: ubuntu-latest
         steps:
@@ -88,9 +102,14 @@ jobs:
               with:
                   persist-credentials: false
 
+            - uses: pnpm/action-setup@v4
+
             - uses: actions/setup-node@v4
               with:
                   node-version: '20'
+                  cache: 'pnpm'
+
+            - run: pnpm install --frozen-lockfile --ignore-scripts --ignore-pnpmfile
 
             - name: DS lint-count ratchet
               run: node scripts/ds-lint-counts.mjs --check
