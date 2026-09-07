@@ -188,6 +188,10 @@ describe('ProfileHeader share pill', () => {
         const { className } = mockShareButton.mock.calls.at(-1)![0] as { className: string }
         expect(className).toContain('h-auto')
         expect(className).toContain('after:-inset-3.5')
+
+        // the handle is only as tall as the 40px pill, so it reaches the 44px
+        // touch floor through the same `after:` trick — vertically only
+        expect(copySegment()).toHaveClass('relative', 'after:absolute', 'after:inset-x-0', 'after:-inset-y-0.5')
     })
 
     // Two hit areas in one pill must not overlap, or the last few pixels of the

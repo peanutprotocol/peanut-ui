@@ -149,9 +149,12 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                         <button
                             type="button"
                             onClick={copyProfileUrl}
-                            // no chrome of its own — the frame has it all, down
-                            // to the press; only the DS focus ring is local
-                            className="flex h-full min-w-0 items-center rounded-full focus-visible:outline-[3px] focus-visible:outline-action-focus"
+                            // No chrome of its own — the frame has it all, down
+                            // to the press; only the DS focus ring is local.
+                            // The pill is 40px, so this reaches the 44px touch
+                            // floor the same way the share glyph does — but
+                            // VERTICALLY ONLY, so the two hit areas stay apart.
+                            className="relative flex h-full min-w-0 items-center rounded-full after:absolute after:inset-x-0 after:-inset-y-0.5 focus-visible:outline-[3px] focus-visible:outline-action-focus"
                         >
                             {/* the url alone reads as a link, not as an action */}
                             <span className="sr-only">{tGlobal('copyToClipboard.copyProfileLink')}</span>
