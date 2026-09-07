@@ -1881,7 +1881,7 @@
             "title": "Enviar con Pix",
             "heading": "Ingresa la clave Pix",
             "placeholder": "Clave PIX",
-            "info": "Envía a cualquier clave Pix: email, teléfono, CPF/CNPJ o clave aleatoria.",
+            "info": "Envía a cualquier clave Pix: email, teléfono (incluye +55), CPF/CNPJ o clave aleatoria.",
             "invalid": "Clave Pix inválida"
         },
         "bank": {

@@ -32,6 +32,8 @@ const CONTEXT_DIVERGENT: Record<string, string> = {
     Failed: 'generic status vs. KYC status agreeing with "verificación" (Fallido / Fallida)',
     Verified: 'badge/KYC status vs. residence chip agreeing with "residencia" (Verificado / Verificada)',
     'Settings → Passwords → Search "Peanut"': 'iOS and Android name the settings app differently',
+    Username:
+        "signup asks for your own new handle (Tu usuario) vs. waitlist asks for the inviter's (Nombre de usuario)",
 }
 
 describe('deepMerge fallback', () => {

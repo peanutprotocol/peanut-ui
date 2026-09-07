@@ -99,9 +99,9 @@ describe('ResidenceStep', () => {
 
     it('reveals the second selector via the multi-doc link', () => {
         render(<ResidenceStep />)
-        expect(screen.queryByPlaceholderText('Select your second country')).not.toBeInTheDocument()
+        expect(screen.queryByPlaceholderText('Second country')).not.toBeInTheDocument()
         fireEvent.click(screen.getByText('Have documents from more than one country?'))
-        expect(screen.getByPlaceholderText('Select your second country')).toBeInTheDocument()
+        expect(screen.getByPlaceholderText('Second country')).toBeInTheDocument()
     })
 
     it('clears the stored second residence when the selector is collapsed', () => {

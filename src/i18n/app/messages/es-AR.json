@@ -926,7 +926,7 @@
         },
         "pixKey": {
             "heading": "Ingresá la clave Pix",
-            "info": "Enviá a cualquier clave Pix: email, teléfono, CPF/CNPJ o clave aleatoria."
+            "info": "Enviá a cualquier clave Pix: email, teléfono (incluí +55), CPF/CNPJ o clave aleatoria."
         },
         "bank": {
             "confirmPending": "Tu transferencia se está procesando. Los fondos se enviaron on-chain correctamente: la confirmación puede tardar unos minutos. Si no ves el retiro en tu actividad dentro de 30 minutos, contactá a soporte."

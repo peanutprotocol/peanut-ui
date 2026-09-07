@@ -1881,7 +1881,7 @@
             "title": "Send with Pix",
             "heading": "Enter Pix key",
             "placeholder": "PIX key",
-            "info": "Send to any Pix key — email, phone, CPF/CNPJ or random key.",
+            "info": "Send to any Pix key — email, phone (include +55), CPF/CNPJ or random key.",
             "invalid": "Invalid Pix key"
         },
         "bank": {
@@ -3071,7 +3071,7 @@
         "selectToken": "Select a token to recover",
         "noTokens": "No tokens to recover",
         "noTokensDescription": "Tokens sent to your address on other networks will show up here.",
-        "recipientPlaceholder": "Wallet address",
+        "recipientPlaceholder": "Destination address",
         "review": "Review",
         "youWillReceiveTo": "You will receive to",
         "sentTo": "Sent to",
