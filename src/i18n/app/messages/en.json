@@ -2595,7 +2595,7 @@
             "titleDefault": "Unlock your account",
             "descriptionError": "{error} Please contact support for assistance.",
             "descriptionBlocked": "We couldn't confirm your ID. Please contact support for assistance.",
-            "descriptionRestartIdentity": "This bank transfer option needs a document from a supported country. You can verify with a different ID.",
+            "descriptionRestartIdentity": "This payment method needs a document from a supported country. You can verify with a different ID.",
             "descriptionProviderRejection": "Please upload a clearer photo of your ID to continue.",
             "descriptionCrossRegion": "Your identity is already verified. To turn on payments in {region}, we need to confirm a few more details.",
             "descriptionCrossRegionGeneric": "Your identity is already verified. To turn on payments here, we need to confirm a few more details.",
@@ -3060,7 +3060,7 @@
             "compliance_block": "We couldn't approve your card application after a compliance review.",
             "card_rejected": "Your card application couldn't be approved. Message support if you think this is a mistake.",
             "manteca_us_nationality": "Payments from this country are not available for US citizens at this time.",
-            "country_not_supported": "This bank transfer option needs a document from a supported country. You can verify with a different ID.",
+            "country_not_supported": "This payment method needs a document from a supported country. You can verify with a different ID.",
             "tax_id_unresolved": "We couldn't read the tax ID that local deposits and withdrawals need. You can verify again to provide it. QR payments aren't affected.",
             "uk_resident_blocked": "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe — you can withdraw them as crypto anytime.",
             "identity_region_restricted": "Our verification partner doesn't accept documents issued in your country. Re-uploading won't change the result."
