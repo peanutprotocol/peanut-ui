@@ -46,7 +46,7 @@ export default function NotFound() {
                         </div>
                         <div className="space-y-3">
                             {/* Raw <a> instead of <Link>: forces a full page load when leaving the
-                                404, avoiding the historical React error #310 from hook-count
+                                404, avoiding the historical React error 310 from hook-count
                                 mismatch between this route and the (mobile-ui) tree. */}
                             {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
                             <a href="/" className="btn btn-purple flex w-full text-center shadow-4">

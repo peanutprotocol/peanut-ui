@@ -139,7 +139,7 @@ export default function PeanutActionDetailsCard({
     }, [viewType, transactionType, recipientType])
 
     const getAvatarBackgroundColor = (): string => {
-        if (viewType === 'SUCCESS') return '#29CC6A'
+        if (viewType === 'SUCCESS') return 'var(--color-background-icon-bubble-green)'
         if (
             transactionType === 'ADD_MONEY' ||
             (transactionType === 'WITHDRAW' && recipientType === 'USERNAME') ||
@@ -148,7 +148,7 @@ export default function PeanutActionDetailsCard({
             transactionType === 'WITHDRAW_BANK_ACCOUNT' ||
             transactionType === 'CLAIM_LINK_BANK_ACCOUNT'
         )
-            return '#FFC900'
+            return 'var(--color-background-icon-bubble-yellow)'
         return getColorForUsername(recipientName).lightShade
     }
 
