@@ -142,6 +142,20 @@ describe('BadgeEarnToast', () => {
         expect(mockRouterPush).toHaveBeenCalledWith('/profile?avatarPicker=true&badge=BUG_WHISPERER')
     })
 
+    // Most badges ship no avatar art, so this batch is the common one: the
+    // newest badge has none and an older one carries the three the toast
+    // announces. Naming the artless code would deal any avatar already held.
+    it('hands the picker the newest badge that actually has avatars', () => {
+        mockPending = [badge('PRODUCT_HUNT', 'Product Hunt'), badge('SHHHHH', 'Shhh')]
+        render(<BadgeEarnToast />)
+
+        render(mockToast.mock.calls[0][0].content)
+        expect(screen.getByText(/3 new avatars unlocked/)).toBeInTheDocument()
+
+        act(() => fireEvent.click(screen.getByRole('button', { name: /Choose avatar/ })))
+        expect(mockRouterPush).toHaveBeenCalledWith('/profile?avatarPicker=true&badge=SHHHHH')
+    })
+
     it('says nothing about avatars for a badge that has none', () => {
         mockPending = [badge('PRODUCT_HUNT', 'Product Hunt')]
         render(<BadgeEarnToast />)
