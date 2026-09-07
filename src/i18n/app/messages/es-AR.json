@@ -144,7 +144,7 @@
     "profile": {
         "menu": {
             "inviteFriends": "Invitá amigos a Peanut",
-            "unlockedRegions": "Desbloqueá pagos",
+            "unlockedRegions": "Canales de pago",
             "help": "Centro de Ayuda",
             "about": "Acerca de Peanut",
             "updateAvailable": "Actualización disponible"
@@ -169,7 +169,7 @@
             }
         },
         "unlockPayments": {
-            "title": "Desbloqueá pagos",
+            "title": "Canales de pago",
             "description": "Todo lo que podés usar hoy, y lo que se abre después de verificar tu identidad.",
             "residence": {
                 "label": "Residencia: {country}",

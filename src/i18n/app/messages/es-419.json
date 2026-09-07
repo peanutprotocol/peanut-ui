@@ -307,7 +307,7 @@
             "yourBadges": "Tus insignias",
             "points": "Puntos",
             "personalDetails": "Datos personales",
-            "unlockedRegions": "Desbloquea pagos",
+            "unlockedRegions": "Canales de pago",
             "paymentLimits": "Límites de pago",
             "showMyFullName": "Mostrar mi nombre completo",
             "backup": "Respaldo",
@@ -358,7 +358,7 @@
             }
         },
         "unlockPayments": {
-            "title": "Desbloquea pagos",
+            "title": "Canales de pago",
             "description": "Todo lo que puedes usar hoy, y lo que se abre después de verificar tu identidad.",
             "residence": {
                 "label": "Residencia: {country}",
@@ -679,7 +679,7 @@
         }
     },
     "exchangeRate": {
-        "title": "Tipo de cambio y comisiones",
+        "title": "Tipos de cambio y comisiones",
         "balanceNote": "Tu saldo de Peanut se muestra en USD. Donde haya un canal bancario local disponible, puedes retirar en esa moneda local.",
         "tryIt": "Retirar ahora",
         "addMoneyCta": "Agregar dinero",

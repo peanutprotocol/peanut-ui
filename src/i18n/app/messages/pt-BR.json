@@ -307,7 +307,7 @@
             "yourBadges": "Seus selos",
             "points": "Pontos",
             "personalDetails": "Dados pessoais",
-            "unlockedRegions": "Desbloqueie pagamentos",
+            "unlockedRegions": "Canais de pagamento",
             "paymentLimits": "Limites de pagamento",
             "showMyFullName": "Mostrar meu nome completo",
             "backup": "Backup",
@@ -358,7 +358,7 @@
             }
         },
         "unlockPayments": {
-            "title": "Desbloqueie pagamentos",
+            "title": "Canais de pagamento",
             "description": "Tudo o que você pode usar hoje, e o que se abre depois de verificar sua identidade.",
             "residence": {
                 "label": "Residência: {country}",
