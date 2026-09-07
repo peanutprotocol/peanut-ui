@@ -187,3 +187,58 @@ describe('usePullToRefresh', () => {
         sheet.remove()
     })
 })
+
+describe('overlay gesture isolation', () => {
+    const openDialog = () => {
+        const dialog = document.createElement('div')
+        dialog.setAttribute('role', 'dialog')
+        dialog.setAttribute('data-state', 'open')
+        document.body.appendChild(dialog)
+        return dialog
+    }
+
+    it('ignores pulls while a drawer is open and resumes after it closes', () => {
+        const invalidate = jest.spyOn(queryClient, 'invalidateQueries').mockResolvedValue(undefined)
+        renderHook(() => usePullToRefresh(), { wrapper })
+        const dialog = openDialog()
+        pullPastThreshold()
+        touch('touchend', 200)
+        expect(indicator()?.style.opacity).toBe('0')
+        expect(impactHaptic).not.toHaveBeenCalled()
+        expect(invalidate).not.toHaveBeenCalled()
+        dialog.remove()
+        pullPastThreshold()
+        touch('touchend', 200)
+        expect(invalidate).toHaveBeenCalledTimes(1)
+    })
+
+    it('cancels a pending refresh when a drawer opens before release', () => {
+        const invalidate = jest.spyOn(queryClient, 'invalidateQueries')
+        renderHook(() => usePullToRefresh(), { wrapper })
+        pullPastThreshold()
+        openDialog()
+        touch('touchend', 200)
+        expect(invalidate).not.toHaveBeenCalled()
+        expect(indicator()?.style.opacity).toBe('0')
+    })
+
+    it('never refreshes a gesture cancelled by the browser', () => {
+        const invalidate = jest.spyOn(queryClient, 'invalidateQueries')
+        renderHook(() => usePullToRefresh(), { wrapper })
+        pullPastThreshold()
+        touch('touchcancel', 200)
+        expect(invalidate).not.toHaveBeenCalled()
+    })
+})
+
+it('allows refresh with the closed always-mounted support dialog', () => {
+    const invalidate = jest.spyOn(queryClient, 'invalidateQueries').mockResolvedValue(undefined)
+    renderHook(() => usePullToRefresh(), { wrapper })
+    const support = document.createElement('div')
+    support.setAttribute('role', 'dialog')
+    support.setAttribute('aria-modal', 'false')
+    document.body.appendChild(support)
+    pullPastThreshold()
+    touch('touchend', 200)
+    expect(invalidate).toHaveBeenCalledTimes(1)
+})

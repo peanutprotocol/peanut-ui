@@ -307,7 +307,7 @@
             "yourBadges": "Tus insignias",
             "points": "Puntos",
             "personalDetails": "Datos personales",
-            "unlockedRegions": "Desbloquea pagos",
+            "unlockedRegions": "Canales de pago",
             "paymentLimits": "Límites de pago",
             "showMyFullName": "Mostrar mi nombre completo",
             "backup": "Respaldo",
@@ -358,7 +358,7 @@
             }
         },
         "unlockPayments": {
-            "title": "Desbloquea pagos",
+            "title": "Canales de pago",
             "description": "Todo lo que puedes usar hoy, y lo que se abre después de verificar tu identidad.",
             "residence": {
                 "label": "Residencia: {country}",
@@ -387,7 +387,7 @@
                 "arQr": "Pagos QR (Argentina)",
                 "arBank": "Transferencias bancarias (Argentina)",
                 "naBank": "ACH, Wire (EE. UU.) y SPEI (México)",
-                "sepa": "Transferencias SEPA"
+                "sepa": "Transferencias bancarias en EUR/GBP"
             },
             "chips": {
                 "active": "Activo",
@@ -431,6 +431,12 @@
                 "monthlyLeft": "Te quedan {remaining} de {limit} este mes",
                 "perTransfer": "Hasta {amount} por transferencia",
                 "p2pNoLimit": "Los pagos de Peanut a Peanut no tienen límite"
+            },
+            "cooldown": {
+                "title": "Espera un poco",
+                "until": "Los intentos de verificación están limitados temporalmente. Puedes volver a intentarlo después de {until}.",
+                "short": "Los intentos de verificación están limitados temporalmente. Vuelve a intentarlo en un rato.",
+                "dismiss": "Lo intentaré más tarde"
             }
         },
         "backup": {
@@ -545,7 +551,7 @@
         "about": {
             "title": "Acerca de Peanut",
             "intro": "Peanut hace fáciles los dólares: guarda tu saldo, envía a cualquier @usuario y mueve dinero por rieles locales después de una sola verificación de identidad. Creado por Squirrel Labs.",
-            "policiesHeading": "Políticas",
+            "policiesHeading": "La parte oficial",
             "policies": {
                 "terms": "Términos de servicio",
                 "privacy": "Política de privacidad",
@@ -556,7 +562,7 @@
                 "cardProhibitedActivities": "Política de actividades prohibidas",
                 "securityDisclosure": "Divulgación de seguridad"
             },
-            "rateHeading": "Calificar la app",
+            "rateHeading": "¿Te está gustando?",
             "rate": "Dejar una reseña",
             "version": "Versión {version}",
             "beta": {
@@ -673,7 +679,7 @@
         }
     },
     "exchangeRate": {
-        "title": "Tipo de cambio y comisiones",
+        "title": "Tipos de cambio y comisiones",
         "balanceNote": "Tu saldo de Peanut se muestra en USD. Donde haya un canal bancario local disponible, puedes retirar en esa moneda local.",
         "tryIt": "Retirar ahora",
         "addMoneyCta": "Agregar dinero",
@@ -3699,6 +3705,12 @@
         "noBadgeAvatars": "Gana una insignia y sus avatares aparecen aquí.",
         "rollDice": "Tirar los dados",
         "change": "Cambiar avatar",
-        "saveFailed": "No pudimos guardar tu avatar. Inténtalo de nuevo."
+        "saveFailed": "No pudimos guardar tu avatar. Inténtalo de nuevo.",
+        "useInitial": "Usar la inicial",
+        "useAvatar": "Usar el avatar",
+        "chooseAvatar": "Elige tu avatar",
+        "rolling": "Lanzando el dado…",
+        "rollingHint": "Un poco de suerte. Un nuevo look.",
+        "cancelRoll": "Cancelar lanzamiento"
     }
 }

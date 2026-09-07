@@ -121,10 +121,15 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                         onSuccess={() => posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, REFERRAL_PILL_PROPS)}
                         className="h-10 w-fit rounded-full py-3 pr-4 pl-6"
                     >
-                        <div className="text-label-l">{profileUrl.replace('https://', '')}</div>
-                        <div className="-ml-2">
-                            <Icon name="share" size={16} fill="black" />
-                        </div>
+                        <span className="flex items-center gap-4">
+                            <span className="text-label-l" aria-label={profileUrl.replace(/^https?:\/\//, '')}>
+                                <span className="font-normal">
+                                    {profileUrl.slice(0, -username.length).replace(/^https?:\/\//, '')}
+                                </span>
+                                <span>{username}</span>
+                            </span>
+                            <Icon name="share" size={16} className="shrink-0 text-foreground-primary" />
+                        </span>
                     </ShareButton>
                 )}
             </div>

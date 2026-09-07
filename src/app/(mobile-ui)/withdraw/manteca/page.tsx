@@ -678,6 +678,7 @@ function MantecaBankWithdrawFlow() {
     return (
         <div className="flex min-h-inherit flex-col gap-8">
             <InitiateKycModal
+                cooldownActive={!!sumsubFlow.errorCooldown}
                 prepPath="extended"
                 visible={showKycModal}
                 onClose={() => setShowKycModal(false)}
@@ -719,7 +720,7 @@ function MantecaBankWithdrawFlow() {
                 reasonCode={mantecaRejection.reasonCode ?? undefined}
                 regionName={selectedCountry && localizedCountryTitle(locale, selectedCountry)}
             />
-            <SumsubKycModals flow={sumsubFlow} />
+            <SumsubKycModals flow={sumsubFlow} onCooldownClose={() => setShowKycModal(false)} />
             <SumsubKycWrapper
                 visible={limitIncreaseFlow.showWrapper}
                 accessToken={limitIncreaseFlow.accessToken}

@@ -14,7 +14,7 @@
  * gate is NOT ready — so the fix didn't just delete the guard wholesale.
  */
 import React from 'react'
-import { render as rtlRender, screen, fireEvent, within } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent, within, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import AddWithdrawCountriesList from '../AddWithdrawCountriesList'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
@@ -104,12 +104,20 @@ jest.mock('@/context/ModalsContext', () => ({
 jest.mock('@/hooks/useTosGuard', () => ({
     useTosGuard: () => ({ guardWithTos: jest.fn(), showBridgeTos: false, hideTos: jest.fn() }),
 }))
+let mockCooldown: { retryAt?: string } | null = null
+const mockDismissCooldown = jest.fn()
+beforeEach(() => {
+    mockCooldown = null
+    mockDismissCooldown.mockClear()
+})
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => ({
         handleInitiateKyc: jest.fn(),
         handleSelfHealResubmit: jest.fn(),
         isLoading: false,
         error: null,
+        errorCooldown: mockCooldown,
+        dismissErrorCooldown: mockDismissCooldown,
         showWrapper: false,
     }),
 }))
@@ -129,7 +137,7 @@ jest.mock('@/utils/native-routes', () => ({
     rewriteMethodPath: (p: string) => p,
     withdrawBankUrl: (p: string) => `/withdraw/${p}`,
 }))
-jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
+jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false, isAndroidNative: () => false }))
 jest.mock('@/utils/color.utils', () => ({ getColorForUsername: () => ({ lightShade: '#fff' }) }))
 jest.mock('@/utils/withdraw.utils', () => ({ getCountryCodeForWithdraw: (id: string) => id }))
 // bridge.utils + regions.utils are direct util collaborators that transitively
@@ -164,14 +172,17 @@ jest.mock('@/components/Profile/AvatarWithBadge', () => ({ __esModule: true, def
 jest.mock('@/components/Global/EmptyStates/EmptyState', () => ({ __esModule: true, default: () => <div /> }))
 jest.mock('@/components/AddWithdraw/DynamicBankAccountForm', () => ({ DynamicBankAccountForm: () => <div /> }))
 jest.mock('@/components/Global/TokenAndNetworkConfirmationModal', () => ({ __esModule: true, default: () => null }))
-jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
+jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({ SumsubKycWrapper: () => null }))
+jest.mock('@/components/Kyc/KycVerificationInProgressModal', () => ({ KycVerificationInProgressModal: () => null }))
+jest.mock('@/components/Global/IframeWrapper', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Kyc/BridgeTosStep', () => ({ BridgeTosStep: () => null }))
 jest.mock('@/components/Kyc/ProvideEmailStep', () => ({
     __esModule: true,
     default: (props: any) => (props.visible ? <div data-testid="provide-email-sheet" /> : null),
 }))
 jest.mock('@/components/Kyc/InitiateKycModal', () => ({
-    InitiateKycModal: (props: any) => (props.visible ? <div data-testid="initiate-kyc-modal" /> : null),
+    InitiateKycModal: (props: any) =>
+        props.visible && !props.cooldownActive ? <div data-testid="initiate-kyc-modal" /> : null,
 }))
 jest.mock('next/image', () => ({ __esModule: true, default: () => null }))
 
@@ -349,4 +360,40 @@ describe('AddWithdrawCountriesList — PIX onramp maintenance tag', () => {
         expect(within(screen.getByTestId('method-pix')).queryByText('Maintenance')).toBeNull()
         expect(within(screen.getByTestId('method-bank')).queryByText('Maintenance')).toBeNull()
     })
+})
+
+describe('restart cooldown in add and withdraw flows', () => {
+    it.each(['add', 'withdraw'] as const)('shows the shared dated cooldown for %s', (flow) => {
+        mockCooldown = { retryAt: '2026-09-08T18:57:00Z' }
+        render(<AddWithdrawCountriesList flow={flow} />)
+        expect(screen.getByText('Give it a little time')).toBeInTheDocument()
+        expect(screen.getByText(/You can try again after/)).toHaveTextContent(/Sep 8/)
+        expect(screen.queryByText('Too many requests')).not.toBeInTheDocument()
+        expect(screen.queryByText('Contact support')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByText("I'll try later"))
+        expect(mockDismissCooldown).toHaveBeenCalledTimes(1)
+    })
+})
+
+it('closing a cooldown also closes the underlying bank initiation prompt', async () => {
+    setCapabilities('needs-identity', [])
+    const { rerender } = render(<AddWithdrawCountriesList flow="add" />)
+    fireEvent.click(screen.getByTestId('method-bank'))
+    expect(screen.getByTestId('initiate-kyc-modal')).toBeInTheDocument()
+    mockCooldown = { retryAt: '2026-09-08T18:57:00Z' }
+    rerender(
+        <IntlWrapper>
+            <AddWithdrawCountriesList flow="add" />
+        </IntlWrapper>
+    )
+    expect(screen.queryByTestId('initiate-kyc-modal')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByText("I'll try later"))
+    mockCooldown = null
+    rerender(
+        <IntlWrapper>
+            <AddWithdrawCountriesList flow="add" />
+        </IntlWrapper>
+    )
+    expect(screen.queryByTestId('initiate-kyc-modal')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText("I'll try later")).not.toBeInTheDocument())
 })

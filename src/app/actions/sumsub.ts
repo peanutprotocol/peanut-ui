@@ -149,6 +149,7 @@ export const restartIdentityVerification = async (
     data?: RestartIdentityResponse
     error?: string
     code?: SumsubActionErrorCode
+    cooldown?: { retryAt?: string }
 }> => {
     try {
         const intent = regionIntent && RESTART_REGION_INTENTS.has(regionIntent) ? regionIntent : undefined
@@ -159,7 +160,22 @@ export const restartIdentityVerification = async (
         })
         const responseJson = await response.json()
         if (!response.ok) {
-            return backendOrFallback(responseJson, 'Failed to restart identity verification', 'restart_failed')
+            const failure = backendOrFallback(responseJson, 'Failed to restart identity verification', 'restart_failed')
+            if (response.status !== 429) return failure
+            const rawRetryAt = responseJson.retryAt
+            const retryAfter = response.headers?.get('retry-after')
+            const retryAfterMs = retryAfter
+                ? /^\d+$/.test(retryAfter)
+                    ? Date.now() + Number(retryAfter) * 1000
+                    : Date.parse(retryAfter)
+                : NaN
+            const retryAt =
+                typeof rawRetryAt === 'string' && Number.isFinite(Date.parse(rawRetryAt))
+                    ? new Date(rawRetryAt).toISOString()
+                    : Number.isFinite(retryAfterMs)
+                      ? new Date(retryAfterMs).toISOString()
+                      : undefined
+            return { ...failure, cooldown: { retryAt } }
         }
         // Sanitize on the way OUT as well as in. `responseJson` is unvalidated,
         // and the caller stores `regionIntent` in the ref that `refreshToken`

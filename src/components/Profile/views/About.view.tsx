@@ -82,21 +82,6 @@ export const AboutView = ({ appVersion }: { appVersion: string }) => {
 
             <p className="text-body-s">{t('intro')}</p>
 
-            <div>
-                <h1 className="mb-2 font-bold text-black">{t('policiesHeading')}</h1>
-                {/* whole row is the link: DocsLink keeps the locale + in-app
-                    browser routing, ListItem carries the DS row anatomy */}
-                {LEGAL_POLICIES.map((doc, index) => (
-                    <DocsLink key={doc.href} href={doc.href} className="block">
-                        <ListItem
-                            title={t(`policies.${doc.key}`)}
-                            chevron
-                            position={getCardPosition(index, LEGAL_POLICIES.length)}
-                        />
-                    </DocsLink>
-                ))}
-            </div>
-
             {/* Native only: the web has no store listing to review against.
                 A row the user taps themselves, never a prompt — see
                 utils/app-review.ts for why that distinction is the whole rule. */}
@@ -112,6 +97,21 @@ export const AboutView = ({ appVersion }: { appVersion: string }) => {
                     />
                 </div>
             )}
+
+            <div>
+                <h1 className="mb-2 font-bold text-black">{t('policiesHeading')}</h1>
+                {/* whole row is the link: DocsLink keeps the locale + in-app
+                    browser routing, ListItem carries the DS row anatomy */}
+                {LEGAL_POLICIES.map((doc, index) => (
+                    <DocsLink key={doc.href} href={doc.href} className="block">
+                        <ListItem
+                            title={t(`policies.${doc.key}`)}
+                            chevron
+                            position={getCardPosition(index, LEGAL_POLICIES.length)}
+                        />
+                    </DocsLink>
+                ))}
+            </div>
 
             {betaRevealed && (
                 <div ref={betaCardRef}>
