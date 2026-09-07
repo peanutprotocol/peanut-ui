@@ -77,4 +77,43 @@ describe('SendInSecondsBody', () => {
         renderFold()
         expect(await screen.findByTestId('qr')).toHaveTextContent('/app?pnutdl=1&s=landing_app_fold')
     })
+
+    /*
+     * A tablet clears the `md:` breakpoint but is still a phone platform to
+     * useDeviceType, and the desktop column would then show it a QR it cannot
+     * scan next to a StorePair that collapses to the one store its UA reports.
+     * The device, not the viewport, picks the column.
+     */
+    it('gives an iPad the phone CTA, not a half store column', async () => {
+        mockMigrationOn.mockReturnValue(true)
+        mockDeviceType.mockReturnValue(DeviceType.IOS)
+        const { container } = renderFold()
+
+        expect(await screen.findByText('GET THE APP.')).toBeInTheDocument()
+        expect(screen.queryByTestId('qr')).not.toBeInTheDocument()
+        // the phone CTA, one button to the detected store — never a lone
+        // App Store button standing in for the pair
+        expect(screen.getByTestId('phone-app-cta')).toBeInTheDocument()
+        expect(hrefs(container)).toContain('https://store.example/ios')
+        expect(screen.queryByRole('link', { name: /^App Store$/ })).not.toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: /^Google Play$/ })).not.toBeInTheDocument()
+    })
+
+    it('keeps both stores on a desktop, where the pair is the point', async () => {
+        mockMigrationOn.mockReturnValue(true)
+        const { container } = renderFold()
+
+        expect(await screen.findByText('GET THE APP.')).toBeInTheDocument()
+        expect(hrefs(container)).toEqual(
+            expect.arrayContaining(['https://store.example/ios', 'https://store.example/android'])
+        )
+    })
+
+    // the hero already carries the page's h1; a second one is an outline break
+    it('titles the fold with an h2, leaving the hero its h1', async () => {
+        mockMigrationOn.mockReturnValue(true)
+        renderFold()
+        expect(await screen.findByRole('heading', { level: 2, name: 'GET THE APP.' })).toBeInTheDocument()
+        expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument()
+    })
 })

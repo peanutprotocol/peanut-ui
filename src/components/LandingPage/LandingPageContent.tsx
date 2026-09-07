@@ -80,7 +80,7 @@ export function LandingPageContent({ locale }: { locale: Locale }) {
                     regulatedRailsSlot={<RegulatedRails locale={locale} />}
                     yourMoneySlot={<YourMoney locale={locale} />}
                     securitySlot={<SecurityBuiltIn locale={locale} />}
-                    sendInSecondsSlot={<SendInSeconds locale={locale} />}
+                    sendInSecondsSlot={<SendInSeconds locale={locale} subtext={heroConfig.primaryCta.subtext} />}
                     footerSlot={<Footer locale={locale} showGetTheApp />}
                     faqSlot={
                         <FAQs

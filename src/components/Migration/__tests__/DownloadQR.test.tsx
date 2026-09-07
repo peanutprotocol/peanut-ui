@@ -86,9 +86,12 @@ describe('DownloadQR', () => {
         expect(qrUrl()).toBe(`${window.location.origin}/app?s=landing_footer`)
     })
 
-    it('encodes the deferred payload ahead of the surface', () => {
-        render_(<DownloadQR surface={MIGRATION_SURFACES.LANDING_HERO} payload="pnutdl=1&lang=pt-br&dest=%2Fsend" />)
+    it('encodes the derived deferred payload ahead of the surface', () => {
+        // the URL locale rides the payload, so a /pt-br scan lands in Portuguese
+        window.history.pushState({}, '', '/pt-br')
+        render_(<DownloadQR surface={MIGRATION_SURFACES.LANDING_HERO} handoff={{ dest: '/send' }} />)
         expect(qrUrl()).toBe(`${window.location.origin}/app?pnutdl=1&lang=pt-br&dest=%2Fsend&s=landing_hero`)
+        window.history.pushState({}, '', '/')
     })
 
     /*
@@ -134,7 +137,9 @@ describe('DownloadQR', () => {
     })
 
     it('counts an impression once the code is half visible, and only once', () => {
-        render_(<DownloadQR surface={MIGRATION_SURFACES.LANDING_APP_FOLD} payload="pnutdl=1" />)
+        // an empty hand-off is the ambient one the landing lockups pass: no
+        // destination of its own, but the deferred context still rides
+        render_(<DownloadQR surface={MIGRATION_SURFACES.LANDING_APP_FOLD} handoff={{}} />)
         expect(posthog.capture).not.toHaveBeenCalled()
 
         intersect(0.2)

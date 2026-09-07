@@ -54,14 +54,16 @@ describe('AppModalProvider', () => {
         mockOpenStore.mockClear()
     })
 
-    it('opens one modal, tagged with the calling surface, on desktop', () => {
+    // the modal is code-split (next/dynamic, ssr:false) so the QR library stays
+    // out of the landing page's main chunk — it arrives a tick after the click
+    it('opens one modal, tagged with the calling surface, on desktop', async () => {
         renderCta()
         expect(screen.queryByTestId('qr-modal')).not.toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('button', { name: 'cta' }))
 
         expect(handled).toBe(true)
-        expect(screen.getByTestId('qr-modal')).toHaveTextContent('landing_rates')
+        expect(await screen.findByTestId('qr-modal')).toHaveTextContent('landing_rates')
         // the hand-off has to survive the desktop branch too: it is what the
         // modal's QR encodes, so the scanning phone lands on /send after install
         expect(screen.getByTestId('qr-modal')).toHaveAttribute('data-handoff', '/send')

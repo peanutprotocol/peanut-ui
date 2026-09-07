@@ -47,10 +47,13 @@ describe('FooterGetTheApp', () => {
         expect(container).toBeEmptyDOMElement()
     })
 
-    it('gives a laptop the QR and the store pair, tagged as the footer', () => {
+    // the QR is code-split (next/dynamic, ssr:false) so react-qr-code stays out
+    // of the main chunk of every page that mounts the footer — it lands a tick
+    // after the block itself
+    it('gives a laptop the QR and the store pair, tagged as the footer', async () => {
         render(<FooterGetTheApp strings={strings} />)
         expect(screen.getByText('Get the Peanut app')).toBeInTheDocument()
-        expect(screen.getByTestId('qr')).toHaveTextContent('/app?pnutdl=1&s=landing_footer')
+        expect(await screen.findByTestId('qr')).toHaveTextContent('/app?pnutdl=1&s=landing_footer')
         expect(screen.getByRole('link', { name: /app store/i })).toHaveAttribute('href', 'https://store.example/ios')
         expect(screen.getByRole('link', { name: /google play/i })).toHaveAttribute(
             'href',

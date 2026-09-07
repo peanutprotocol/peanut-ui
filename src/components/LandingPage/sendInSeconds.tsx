@@ -7,7 +7,6 @@ import { SendInSecondsBody } from './SendInSecondsBody'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 import { landingStrings } from './landingStrings'
-import { getLandingContent } from '@/lib/landingContent'
 
 const sendInSecondsClouds = [
     { top: '15%', width: 320, speed: '40s', direction: 'ltr' as const },
@@ -37,11 +36,16 @@ const starConfigs = [
     { className: 'absolute left-[20rem] top-72', width: 60, height: 60, delay: '0.8s', x: '-5px', rotate: '12deg' },
 ]
 
-export function SendInSeconds({ locale = DEFAULT_LOCALE }: { locale?: Locale }) {
+/**
+ * @param subtext the same content-system line the hero prints under its CTA
+ *   (`heroConfig.primaryCta.subtext`); the get-the-app lockup reuses it rather
+ *   than inventing a second social-proof string. Passed down from
+ *   LandingPageContent, which already holds it — reading it here would mean a
+ *   second uncached readFileSync + frontmatter parse of the landing markdown on
+ *   every render.
+ */
+export function SendInSeconds({ locale = DEFAULT_LOCALE, subtext }: { locale?: Locale; subtext?: string }) {
     const i18n = getTranslations(locale)
-    // the same content-system line the hero prints under its CTA; the get-the-app
-    // lockup reuses it rather than inventing a second social-proof string
-    const { heroConfig } = getLandingContent(locale)
 
     return (
         <section id="send-in-seconds" className="relative overflow-hidden bg-secondary-1 px-4 py-16 text-n-1 md:py-32">
@@ -72,7 +76,7 @@ export function SendInSeconds({ locale = DEFAULT_LOCALE }: { locale?: Locale }) 
             <div className="relative mx-auto max-w-3xl text-center">
                 <SendInSecondsBody
                     strings={landingStrings(i18n)}
-                    subtext={heroConfig.primaryCta.subtext}
+                    subtext={subtext}
                     tagline={
                         <>
                             {i18n.landingSendTagline1}

@@ -1,6 +1,6 @@
 'use client'
 
-import DownloadQR from '@/components/Migration/DownloadQR'
+import dynamic from 'next/dynamic'
 import StorePair from '@/components/Migration/StorePair'
 import { PhoneAppCta } from './PhoneAppCta'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
@@ -21,6 +21,12 @@ import type { LandingMigrationStrings } from './landingStrings'
  * the same reason the get-the-app fold takes one: next-intl would answer with
  * the device locale and put Spanish headings on /pt-br.
  */
+// Split out for the same reason as the hero lockup and the get-the-app fold:
+// FooterChrome imports this block statically, so a static DownloadQR here drags
+// QRCodeWrapper -> react-qr-code into the main chunk of every page that mounts
+// the footer, flag off included. It renders on desktop after mount only.
+const DownloadQR = dynamic(() => import('@/components/Migration/DownloadQR'), { ssr: false })
+
 export function FooterGetTheApp({ strings }: { strings: LandingMigrationStrings }) {
     const migrationOn = useMigrationFlag()
     const { deviceType } = useDeviceType()

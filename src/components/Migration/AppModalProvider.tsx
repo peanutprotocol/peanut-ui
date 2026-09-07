@@ -1,6 +1,6 @@
 'use client'
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
-import ScanToDownloadModal from '@/components/Migration/ScanToDownloadModal'
+import dynamic from 'next/dynamic'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { isCapacitor } from '@/utils/capacitor'
@@ -18,6 +18,12 @@ import { type MigrationSurface } from '@/constants/migration.consts'
  * their store carrying the hand-off, and with the flag off (or inside the
  * native app) it returns false and the CTA does whatever it did before.
  */
+// Split out: this provider wraps every landing fold, so a static import puts
+// ScanToDownloadModal -> DownloadQR -> QRCodeWrapper -> react-qr-code in the
+// landing page's main chunk for every visitor, flag off included. The modal
+// only ever renders after a click, so deferring it costs nothing.
+const ScanToDownloadModal = dynamic(() => import('@/components/Migration/ScanToDownloadModal'), { ssr: false })
+
 type AppModalValue = (surface: MigrationSurface, handoff?: StoreHandoff) => boolean
 
 const AppModalContext = createContext<AppModalValue>(() => false)

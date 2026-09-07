@@ -7,6 +7,7 @@ import StorePair from '@/components/Migration/StorePair'
 import { PhoneAppCta } from './PhoneAppCta'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { AMBIENT_HANDOFF } from '@/utils/migration.utils'
+import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import type { LandingMigrationStrings } from './landingStrings'
 
 /**
@@ -18,6 +19,11 @@ import type { LandingMigrationStrings } from './landingStrings'
  * The outline is a border and a hard shadow, not phone art — a drawn device
  * frame dates the moment the hardware changes, and the mock-up review rejected
  * anything beyond it.
+ *
+ * The QR + store column is gated on the DEVICE, not on the viewport, the way
+ * FooterGetTheApp is: `md:` is 768px, which an iPad clears, and there the QR is
+ * a code the holder cannot scan and `StorePair appearance="stacked"` collapses
+ * to the one store the UA reports. Any known platform gets the phone CTA.
  */
 export function GetTheAppFold({
     strings,
@@ -28,11 +34,15 @@ export function GetTheAppFold({
     tagline: React.ReactNode
     subtext?: string
 }) {
+    const { deviceType } = useDeviceType()
+    const isDesktop = deviceType === DeviceType.WEB
+
     return (
         <>
-            <h1 className="font-roboto-flex-extrabold text-6xl font-extraBlack text-black md:text-headingMedium">
+            {/* h2, not h1: the page already has one, in the hero. */}
+            <h2 className="font-roboto-flex-extrabold text-6xl font-extraBlack text-black md:text-headingMedium">
                 {strings.getTheApp}
-            </h1>
+            </h2>
 
             <p
                 className="mt-6 mb-6 hidden font-roboto text-base leading-tight font-medium md:mb-10 md:block md:text-4xl"
@@ -59,26 +69,30 @@ export function GetTheAppFold({
                 </div>
 
                 {/* desktop only: a QR is useless on the phone that would scan it */}
-                <div className="hidden flex-col items-center gap-3 md:flex">
-                    <DownloadQR
-                        surface={MIGRATION_SURFACES.LANDING_APP_FOLD}
-                        size={224}
-                        bare
-                        handoff={AMBIENT_HANDOFF}
-                    />
-                    <span className="text-sm text-grey-1">{strings.scanHint}</span>
-                </div>
+                {isDesktop && (
+                    <>
+                        <div className="hidden flex-col items-center gap-3 md:flex">
+                            <DownloadQR
+                                surface={MIGRATION_SURFACES.LANDING_APP_FOLD}
+                                size={224}
+                                bare
+                                handoff={AMBIENT_HANDOFF}
+                            />
+                            <span className="text-sm text-grey-1">{strings.scanHint}</span>
+                        </div>
 
-                <div className="hidden flex-col items-center gap-3 md:flex">
-                    <StorePair
-                        surface={MIGRATION_SURFACES.LANDING_APP_FOLD}
-                        appearance="stacked"
-                        className="max-w-[13rem]"
-                    />
-                    {subtext && <span className="block text-center text-base text-n-1 italic">{subtext}</span>}
-                </div>
+                        <div className="hidden flex-col items-center gap-3 md:flex">
+                            <StorePair
+                                surface={MIGRATION_SURFACES.LANDING_APP_FOLD}
+                                appearance="stacked"
+                                className="max-w-[13rem]"
+                            />
+                            {subtext && <span className="block text-center text-base text-n-1 italic">{subtext}</span>}
+                        </div>
+                    </>
+                )}
 
-                <div className="flex w-full max-w-sm md:hidden">
+                <div className={isDesktop ? 'flex w-full max-w-sm md:hidden' : 'flex w-full max-w-sm'}>
                     <PhoneAppCta surface={MIGRATION_SURFACES.LANDING_APP_FOLD} strings={strings} subtext={subtext} />
                 </div>
             </div>

@@ -32,6 +32,12 @@ const TweetCarousel = dynamic(() => import('@/components/LandingPage/TweetCarous
 // useMigrationFlag is false until then. Statically imported they dragged
 // DownloadQR -> QRCodeWrapper -> react-qr-code into the landing page's main
 // chunk for every visitor, flag off included.
+//
+// The same split has to hold on every other path that reaches a QR from this
+// page, or it buys nothing: AppModalProvider defers ScanToDownloadModal,
+// FooterGetTheApp defers DownloadQR, and SendInSecondsBody defers
+// GetTheAppFold. react-qr-code is reachable from the landing page ONLY through
+// those four lazy boundaries.
 const HeroAppLockup = dynamic(() => import('@/components/LandingPage/HeroAppLockup').then((m) => m.HeroAppLockup), {
     ssr: false,
 })

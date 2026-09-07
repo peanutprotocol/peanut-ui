@@ -48,11 +48,17 @@ describe('Footer status link', () => {
     // ride the cutover DATE instead. Before it, the flag-off page is exactly
     // today's; after it, the listings are in the crawlable link graph, which
     // is the one thing a script-driven store bounce cannot give them.
+    //
+    // The clock these cases move is the one the SERVER reads while rendering,
+    // which for these statically prerendered pages is the build clock — so what
+    // they pin is which side of the cutover a BUILD falls on, not a transition
+    // a deployed page performs on its own. Shipping the links needs a deploy on
+    // or after the cutover date.
     describe('store listings', () => {
         const at = (iso: string) => jest.spyOn(Date, 'now').mockReturnValue(new Date(iso).getTime())
         afterEach(() => jest.restoreAllMocks())
 
-        it('are absent before the cutover, so nothing changes today', () => {
+        it('are absent from a build before the cutover, so nothing changes today', () => {
             at('2026-09-07T00:00:00Z')
             const { container } = render(<Footer showSiteDirectory locale="en" />)
             const hrefs = [...container.querySelectorAll<HTMLAnchorElement>('a[href]')].map((a) =>
@@ -63,7 +69,7 @@ describe('Footer status link', () => {
             expect(hrefs).not.toContain(STORE_URL.android)
         })
 
-        it('are crawlable links from the cutover on', () => {
+        it('are crawlable links in a build from the cutover on', () => {
             at(MIGRATION_CUTOVER_DATE.toISOString())
             render(<Footer showSiteDirectory locale="en" />)
 

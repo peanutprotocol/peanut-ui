@@ -59,12 +59,24 @@ const RESOURCE_NAME_OVERRIDES: Record<string, string> = { pricing: 'Fees and Pri
  * crawler sees (defeating the point) or, as they shipped ungated, advertise the
  * listings site-wide before launch, which breaks "renders identically to today
  * when the flag is off". A date is the one gate the server can answer.
+ *
+ * The gate is a BUILD-TIME one, not a runtime one. These pages are statically
+ * prerendered, so `Date.now()` is read when the page is built and then frozen
+ * into the HTML: the links appear at the first deploy on or after the cutover,
+ * NOT at the cutover instant. Shipping them therefore needs a deploy after
+ * MIGRATION_CUTOVER_DATE — a redeploy of the same commit is enough.
+ *
+ * A second consequence, accepted deliberately (divergence 12): from that build
+ * on, the links are in every marketing page's footer for flag-off visitors too,
+ * because the gate is the date and not `pwa-sunset`. That is the price of
+ * having them crawlable at all.
  */
 const STORE_LISTINGS = [
     { slug: 'app-store', href: STORE_URL.ios, name: 'Peanut on the App Store' },
     { slug: 'google-play', href: STORE_URL.android, name: 'Peanut on Google Play' },
 ]
 
+/** Evaluated once per prerender — see the note above: build time, not request time. */
 const storeListings = () => (Date.now() >= MIGRATION_CUTOVER_DATE.getTime() ? STORE_LISTINGS : [])
 
 /**

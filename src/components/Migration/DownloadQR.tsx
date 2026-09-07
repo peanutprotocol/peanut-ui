@@ -40,22 +40,19 @@ type DownloadQRProps = {
      */
     bare?: boolean
     className?: string
-} & (
-    | {
-          /** deferred-link querystring from `buildDeferredPayload()`, for a caller
-           *  that already holds one. */
-          payload?: string
-          handoff?: never
-      }
-    | {
-          payload?: never
-          /** where this surface was sending the user before the sunset (a fold CTA
-           *  that used to link /send). The payload is derived from it after mount
-           *  and handed to BOTH the QR and the store buttons underneath, so the two
-           *  can never carry different context. */
-          handoff?: StoreHandoff
-      }
-)
+    /**
+     * Where this surface was sending the user before the sunset (a fold CTA
+     * that used to link /send). The deferred-link querystring is derived from
+     * it after mount and handed to BOTH the QR and the store buttons
+     * underneath, so the two can never carry different context.
+     *
+     * The only context channel: callers used to be able to pass a
+     * pre-built `payload` string instead, which made it possible to feed the
+     * code and the buttons different things. Pass `AMBIENT_HANDOFF` for "the
+     * ambient deferred context, no destination of my own".
+     */
+    handoff?: StoreHandoff
+}
 
 // one smart QR instead of a per-store toggle: it encodes /app, which
 // redirects to the store of whichever phone scans it.
@@ -67,15 +64,14 @@ function ScanHint() {
     return <span className="text-body-xs text-foreground-secondary">{t('qr.scanHint')}</span>
 }
 
-export default function DownloadQR({ surface, payload, size = 160, handoff, bare, className }: DownloadQRProps) {
+export default function DownloadQR({ surface, size = 160, handoff, bare, className }: DownloadQRProps) {
     const frameRef = useRef<HTMLDivElement>(null)
 
     // one context channel, two consumers. `handoff` is the input; the querystring
     // the QR encodes is derived from it here rather than by the caller, so a
-    // surface cannot hand the buttons a destination and the QR nothing (they are
-    // mutually exclusive in the props type for the same reason). Derived after
-    // mount because buildDeferredPayload reads window (cookies, path) and this
-    // component also renders on the server.
+    // surface cannot hand the buttons a destination and the QR nothing. Derived
+    // after mount because buildDeferredPayload reads window (cookies, path) and
+    // this component also renders on the server.
     const derivesPayload = !!handoff
     const [derivedPayload, setDerivedPayload] = useState<string | null>(null)
     // gates the impression event: capturing before the payload exists would
@@ -92,7 +88,7 @@ export default function DownloadQR({ surface, payload, size = 160, handoff, bare
         }
         setContextReady(true)
     }, [derivesPayload, dest, invite])
-    const effectivePayload = payload ?? derivedPayload ?? undefined
+    const effectivePayload = derivedPayload ?? undefined
 
     // impressions, not mounts: several surfaces render a QR far below the fold
     // (the app fold, the footer), and counting those as shown would make the
