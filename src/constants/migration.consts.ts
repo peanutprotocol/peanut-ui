@@ -25,13 +25,6 @@ export const MIGRATION_URGENCY_THRESHOLD_DAYS = 14
 // (only during the migration window; flag off keeps closed-forever)
 export const NOTIF_PROMPT_SNOOZE_DAYS = 14
 
-// store review deep links ("Love it" on the review prompt). the ios
-// write-review action needs the real numeric app id.
-export const REVIEW_URL = {
-    ios: 'https://apps.apple.com/us/app/id6786373552?action=write-review',
-    android: 'https://play.google.com/store/apps/details?id=me.peanut.wallet',
-} as const
-
 // support escape hatch for users who can't install the app: support DMs
 // `/home?keep-web=<token>`; visiting it stores a 90-day cookie that bypasses
 // the sunset block.
@@ -40,26 +33,68 @@ export const KEEP_WEB_COOKIE = 'keep-web'
 export const KEEP_WEB_TOKEN = 'walnut-still-cracks'
 export const KEEP_WEB_COOKIE_DAYS = 90
 
-// real store listings (App Store Connect app 6786373552, Play me.peanut.wallet)
+/**
+ * Write-a-review deep links for the user-initiated "Rate Peanut" row in Profile
+ * → About. A prompt built out of these would breach guideline 5.6.1 (that ask is
+ * the OS sheet, see utils/app-review.ts) — Apple documents this form only for a
+ * review the user starts themselves, which is what the row is. It is also the
+ * release valve for a user whose OS quota silently swallowed the sheet.
+ */
+export const REVIEW_URL = {
+    ios: 'https://apps.apple.com/us/app/id6786373552?action=write-review',
+    android: 'https://play.google.com/store/apps/details?id=me.peanut.wallet',
+} as const
+
 export const STORE_URL = {
     ios: 'https://apps.apple.com/us/app/id6786373552',
     android: 'https://play.google.com/store/apps/details?id=me.peanut.wallet',
 } as const
+
+// The iOS listing (App Store Connect app 6786373552) is not published yet:
+// the store URL 404s, so store-update prompts stay hidden on iOS until then.
+export const IOS_APP_STORE_LISTING_LIVE = false
 
 export const STORE_NAME = {
     ios: 'App Store',
     android: 'Google Play',
 } as const
 
+/**
+ * Query param the /app smart link carries its calling surface in, so a scan
+ * that lands on the store page is attributable to the QR that produced it:
+ * /app reads it back (isMigrationSurface below) and reports it as `qr_surface`
+ * on its own store-click and hand-off events, which is what joins a smart_link
+ * click to the landing surface — hero vs app fold vs footer vs rates — whose QR
+ * produced the scan. Stripped before the payload is re-emitted into the Play
+ * install referrer, so it never reaches the app.
+ * Short on purpose: it rides inside a QR, where every character costs modules.
+ */
+export const MIGRATION_SURFACE_PARAM = 's'
+
 /** `surface` property for migration analytics events. */
 export const MIGRATION_SURFACES = {
     DOWNLOAD_MODAL: 'download_modal',
     SUNSET_SCREEN: 'sunset_screen',
     LANDING_HERO: 'landing_hero',
+    LANDING_LOGIN: 'landing_login',
     HOME_BANNER: 'home_banner',
     SETUP: 'setup',
     GUEST_FLOW: 'guest_flow',
+    PROFILE_UPDATE: 'profile_update',
+    // the /app smart link itself: the store buttons a scanner lands on
+    SMART_LINK: 'smart_link',
+    // landing folds that get their own download CTA once the flag is on
+    LANDING_APP_FOLD: 'landing_app_fold',
+    LANDING_FOOTER: 'landing_footer',
+    LANDING_RATES: 'landing_rates',
+    LANDING_COUNTRIES: 'landing_countries',
+    LANDING_DOOR: 'landing_door',
 } as const
 
 export type MigrationSurface = (typeof MIGRATION_SURFACES)[keyof typeof MIGRATION_SURFACES]
+
+/** guard for a surface arriving off a URL (the /app smart link's `?s=`). */
+export function isMigrationSurface(value: string | null | undefined): value is MigrationSurface {
+    return !!value && (Object.values(MIGRATION_SURFACES) as string[]).includes(value)
+}
 export type StoreKind = keyof typeof STORE_URL

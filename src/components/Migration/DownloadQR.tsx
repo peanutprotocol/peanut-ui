@@ -1,5 +1,5 @@
 'use client'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
@@ -8,10 +8,17 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { SELF_URL } from '@/constants/general.consts'
 import { type MigrationSurface } from '@/constants/migration.consts'
 
+import { buildDeferredPayload } from '@/utils/deferred-link'
+import type { StoreHandoff } from '@/utils/migration.utils'
+
 // one smart QR instead of a per-store toggle: it encodes /app, which
 // redirects to the store of whichever phone scans it.
-export default function DownloadQR({ surface }: { surface: MigrationSurface }) {
+export default function DownloadQR({ surface, handoff }: { surface: MigrationSurface; handoff?: StoreHandoff }) {
     const t = useTranslations('migration')
+    const [payload, setPayload] = useState<string>()
+    useEffect(() => {
+        setPayload(handoff ? buildDeferredPayload(handoff.dest, handoff.invite) : undefined)
+    }, [handoff])
 
     useEffect(() => {
         posthog.capture(ANALYTICS_EVENTS.MIGRATION_QR_SHOWN, { surface })
@@ -23,11 +30,11 @@ export default function DownloadQR({ surface }: { surface: MigrationSurface }) {
     const origin = typeof window !== 'undefined' ? window.location.origin : SELF_URL
 
     return (
-        <div className="flex flex-col items-center gap-3 py-2">
-            <QRCodeWrapper url={`${origin}/app`} />
-            <span className="text-xs text-grey-1">{t('qr.scanHint')}</span>
+        <div className="flex w-full flex-col items-center gap-3 py-2">
+            <QRCodeWrapper url={`${origin}/app${payload ? `?${payload}` : ''}`} />
+            <span className="text-body-xs text-foreground-secondary">{t('qr.scanHint')}</span>
             {/* desktop can install directly too (e.g. Google Play from the browser) */}
-            <StoreBadges surface={surface} />
+            <StoreBadges surface={surface} appearance="stacked" payload={payload} />
         </div>
     )
 }

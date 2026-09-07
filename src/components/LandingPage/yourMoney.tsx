@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import LandingCountries from '@/assets/illustrations/landing-countries.svg'
-import { Button } from '@/components/0_Bruddle/Button'
+import { CountriesSignUpCta } from './CountriesSignUpCta'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 import { linkTerms, type LinkedTerm } from './landingLinks.utils'
@@ -54,19 +54,7 @@ export function YourMoney({ locale = DEFAULT_LOCALE }: { locale?: Locale }) {
 
                 <div className="relative w-full md:w-1/2">
                     <Image src={LandingCountries} alt="countries" />
-                    <a
-                        href="/setup"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="absolute inset-0 flex items-center justify-center"
-                    >
-                        <Button
-                            shadowSize="4"
-                            className="h-auto w-auto bg-white px-8 py-3 text-sm font-extrabold hover:bg-white/90 md:px-10 md:py-4 md:text-lg"
-                        >
-                            {i18n.landingSignUp}
-                        </Button>
-                    </a>
+                    <CountriesSignUpCta label={i18n.landingSignUp} />
                 </div>
             </div>
         </section>

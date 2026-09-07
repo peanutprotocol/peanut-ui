@@ -1,6 +1,6 @@
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { IS_DEV } from '@/constants/general.consts'
+import { BASE_URL, IS_DEV } from '@/constants/general.consts'
 import {
     MIGRATION_CUTOVER_DATE,
     PWA_SUNSET_FLAG,
@@ -17,14 +17,28 @@ import {
     trackDeferredHandoffCreated,
 } from '@/utils/deferred-link'
 
+/** The one place where the flag answers to PostHog and nothing else. NEXT_PUBLIC_BASE_URL
+ *  is unset in a bare local checkout, which is why IS_DEV is an independent escape below. */
+const IS_PROD_DOMAIN = BASE_URL === 'https://peanut.me'
+
 /**
- * Flag read with a dev-only localStorage override. Local dev never inits
- * posthog (instrumentation-client gates on NODE_ENV), so e2e QA flips the
- * flag with `localStorage.setItem('pwa-sunset', 'true')` + reload instead.
- * Inert outside dev builds.
+ * Flag read with a localStorage override that is live everywhere EXCEPT the
+ * production domain: `localStorage.setItem('pwa-sunset', 'true')` + reload.
+ *
+ * Dev alone was not enough. Local dev never inits posthog
+ * (instrumentation-client gates on NODE_ENV), but neither does a CI or preview
+ * build without NEXT_PUBLIC_POSTHOG_KEY — and the e2e layout gate runs against
+ * `next start`, where the dev-only override was inert and every "flag on" case
+ * silently measured the flag-off page. Scoping to !IS_PROD_DOMAIN is the same
+ * boundary `isFeatureFlagEnabled`'s nonProdBypass already draws, so peanut.me
+ * still answers to PostHog and nothing else.
  */
 export function isPwaSunsetOn(): boolean {
-    if (IS_DEV && typeof localStorage !== 'undefined' && localStorage.getItem(PWA_SUNSET_FLAG) === 'true') {
+    if (
+        (IS_DEV || !IS_PROD_DOMAIN) &&
+        typeof localStorage !== 'undefined' &&
+        localStorage.getItem(PWA_SUNSET_FLAG) === 'true'
+    ) {
         return true
     }
     return isFeatureFlagEnabled(PWA_SUNSET_FLAG)
@@ -66,9 +80,24 @@ export function getMigrationCutoverTime(): number {
     return MIGRATION_CUTOVER_DATE.getTime()
 }
 
-/** track a store CTA click without navigating (for anchors that navigate themselves). */
-export function trackStoreClick(store: StoreKind, surface: MigrationSurface, handoff = false) {
-    posthog.capture(ANALYTICS_EVENTS.MIGRATION_STORE_CTA_CLICKED, { surface, store, handoff })
+/**
+ * track a store CTA click without navigating (for anchors that navigate themselves).
+ * `qrSurface` is only ever set on the /app smart link, where `surface` is
+ * always `smart_link`: it carries the landing surface whose QR produced the
+ * scan, so smart-link clicks join back to hero / app fold / footer / rates.
+ */
+export function trackStoreClick(
+    store: StoreKind,
+    surface: MigrationSurface,
+    handoff = false,
+    qrSurface?: MigrationSurface | null
+) {
+    posthog.capture(ANALYTICS_EVENTS.MIGRATION_STORE_CTA_CLICKED, {
+        surface,
+        store,
+        handoff,
+        ...(qrSurface ? { qr_surface: qrSurface } : {}),
+    })
 }
 
 /** context a bounce surface knows before any cookie is written (claim page invite CTA). */
@@ -116,14 +145,15 @@ export function openStore(store: StoreKind, surface: MigrationSurface, handoff?:
 /**
  * href for a store CTA that is a real anchor and navigates itself: android
  * carries the hand-off in the url; iOS can't (the clipboard needs the tap) —
- * pair with onStoreAnchorClick. never preventDefault such an anchor: its own
+ * pair with onStoreAnchorClick, passing it the SAME handoff so both channels
+ * carry the same context. never preventDefault such an anchor: its own
  * navigation is the fallback that still works where window.open is suppressed
  * (in-app browsers, strict popup blockers).
  */
-export function storeAnchorHref(store: StoreKind): string {
+export function storeAnchorHref(store: StoreKind, handoff?: StoreHandoff): string {
     if (!isCapacitor() && store === 'android') {
         try {
-            return playStoreUrlWithReferrer(buildDeferredPayload())
+            return playStoreUrlWithReferrer(buildDeferredPayload(handoff?.dest, handoff?.invite))
         } catch {
             // fall through to the bare url — the bounce itself never breaks
         }
@@ -132,14 +162,14 @@ export function storeAnchorHref(store: StoreKind): string {
 }
 
 /** tracking + iOS clipboard hand-off for a self-navigating store anchor. */
-export function onStoreAnchorClick(store: StoreKind, surface: MigrationSurface) {
+export function onStoreAnchorClick(store: StoreKind, surface: MigrationSurface, handoff?: StoreHandoff) {
     if (isCapacitor()) {
         trackStoreClick(store, surface)
         return
     }
     let payload = ''
     try {
-        payload = buildDeferredPayload()
+        payload = buildDeferredPayload(handoff?.dest, handoff?.invite)
     } catch {}
     trackStoreClick(store, surface, !!payload)
     if (store === 'ios' && payload)
