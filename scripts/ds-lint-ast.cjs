@@ -156,41 +156,65 @@ function resolveToObjectLiteral(node, ctx, depth, seen) {
         return resolveToObjectLiteral(node.expression, ctx, depth + 1, seen)
     }
     if (ts.isIdentifier(node)) {
-        if (seen.has(node.text)) return null
         const bound = lookup(ctx.scopes, node.text)
-        if (!bound || bound.value === OPAQUE) return null
+        if (!bound || bound.value === OPAQUE || seen.has(bound.value)) return null
         const next = new Set(seen)
-        next.add(node.text)
+        next.add(bound.value)
         return resolveToObjectLiteral(bound.value, { ...ctx, scopes: bound.scopes }, depth + 1, next)
     }
     return null
 }
 
-/** One property of a resolved table, as `{ value, scopes }` — see the note above. */
-function propertyByName(node, name, ctx, depth, seen) {
+/**
+ * Every value the named property can hold, later-wins first, as an array of
+ * `{ value, scopes }` — see the note above.
+ *
+ * Usually one. It is more when a LATER computed key cannot be read: `{ x: a,
+ * [k]: b }` really is `b` when `k === 'x'`, so committing to `a` reports a class
+ * list the expression can produce a different one of. Both are kept and the
+ * caller unions them.
+ */
+function propertiesByName(node, name, ctx, depth, seen) {
     const target = resolveToObjectLiteral(node, ctx, depth, seen)
-    if (!target) return null
+    if (!target) return []
     const inner = { ...ctx, scopes: target.scopes }
+    const found = []
     // Later properties win, so walk backwards — and follow spreads, since
     // `{ ...BASE }` really does carry BASE's keys.
     for (let i = target.node.properties.length - 1; i >= 0; i--) {
         const prop = target.node.properties[i]
         if (ts.isSpreadAssignment(prop)) {
-            const fromSpread = propertyByName(prop.expression, name, inner, depth + 1, seen)
-            if (fromSpread) return fromSpread
+            found.push(...propertiesByName(prop.expression, name, inner, depth + 1, seen))
+            if (found.length > 0) return found
             continue
         }
         // A shorthand entry's own name is both the key and the expression.
         if (ts.isShorthandPropertyAssignment(prop)) {
-            if (prop.name.text === name) return { value: prop.name, scopes: target.scopes }
+            if (prop.name.text === name) {
+                found.push({ value: prop.name, scopes: target.scopes })
+                return found
+            }
             continue
         }
         if (!ts.isPropertyAssignment(prop)) continue
-        if (staticKeyName(prop.name, inner, depth + 1, seen) === name) {
-            return { value: prop.initializer, scopes: target.scopes }
+        const keyText = staticKeyName(prop.name, inner, depth + 1, seen)
+        if (keyText === name) {
+            found.push({ value: prop.initializer, scopes: target.scopes })
+            return found
+        }
+        // An unreadable computed key MIGHT be this one. Keep its value as a
+        // possibility and carry on looking for the definite match behind it.
+        if (keyText === null && ts.isComputedPropertyName(prop.name)) {
+            found.push({ value: prop.initializer, scopes: target.scopes })
         }
     }
-    return null
+    return found
+}
+
+/** The single winning value for a name, ignoring any dynamic aliases. */
+function propertyByName(node, name, ctx, depth, seen) {
+    const found = propertiesByName(node, name, ctx, depth, seen)
+    return found.length > 0 ? found[found.length - 1] : null
 }
 
 /**
@@ -224,11 +248,11 @@ function staticText(node, ctx, depth = 0, seen = new Set()) {
         return staticText(node.expression, ctx, depth + 1, seen)
     }
     if (ts.isIdentifier(node)) {
-        if (!ctx || seen.has(node.text)) return null
+        if (!ctx) return null
         const bound = lookup(ctx.scopes, node.text)
-        if (!bound || bound.value === OPAQUE) return null
+        if (!bound || bound.value === OPAQUE || seen.has(bound.value)) return null
         const next = new Set(seen)
-        next.add(node.text)
+        next.add(bound.value)
         return staticText(bound.value, { ...ctx, scopes: bound.scopes }, depth + 1, next)
     }
     if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken) {
@@ -257,6 +281,16 @@ function staticKeyName(name, ctx, depth = 0, seen = new Set()) {
     return null
 }
 
+/** Union the alternatives of every value a name can select, each in its own scope. */
+function unionOfSelected(selected, ctx, depth, seen) {
+    let out = null
+    for (const entry of selected) {
+        const alts = alternatives(entry.value, { ...ctx, scopes: entry.scopes }, depth + 1, seen, LOOKUP_OBJECT)
+        out = out ? union(out, alts) : alts
+    }
+    return out ?? NOTHING
+}
+
 function literalAlt(node, text, ctx) {
     const pos = startOf(node)
     return [{ token: ctx.isToken(text) ? pos : null, weight: ctx.isWeight(text) ? pos : null }]
@@ -273,11 +307,11 @@ function staticIndex(node, ctx, depth = 0, seen = new Set()) {
         return staticIndex(node.expression, ctx, depth + 1, seen)
     }
     if (ts.isIdentifier(node)) {
-        if (!ctx || seen.has(node.text)) return null
+        if (!ctx) return null
         const bound = lookup(ctx.scopes, node.text)
-        if (!bound || bound.value === OPAQUE) return null
+        if (!bound || bound.value === OPAQUE || seen.has(bound.value)) return null
         const next = new Set(seen)
-        next.add(node.text)
+        next.add(bound.value)
         return staticIndex(bound.value, { ...ctx, scopes: bound.scopes }, depth + 1, next)
     }
     return null
@@ -302,6 +336,12 @@ function alternatives(node, ctx, depth = 0, seen = new Set(), mode = LOOKUP_OBJE
         return literalAlt(node, node.text, ctx)
     }
     if (ts.isTemplateExpression(node)) {
+        // A template with only static spans renders one string, and the classes
+        // that TOUCH a span boundary fuse into one — exactly as a `+` chain
+        // does. Classifying the pieces separately both missed `${'text-body'}-m`
+        // and invented a stack for `${'text-body-m'}font-semibold`.
+        const rendered = staticText(node, ctx, depth + 1, seen)
+        if (rendered !== null) return literalAlt(node, rendered, ctx)
         let out = literalAlt(node.head, node.head.text, ctx)
         for (const span of node.templateSpans) {
             out = product(out, alternatives(span.expression, ctx, depth + 1, seen, mode))
@@ -432,11 +472,10 @@ function alternatives(node, ctx, depth = 0, seen = new Set(), mode = LOOKUP_OBJE
             // treating either as composition reports a stack that no element
             // ever receives, and rejects valid non-class string assembly.
             const sep = node.arguments[0]
-            const isWhitespace =
-                sep !== undefined &&
-                (ts.isStringLiteral(sep) || ts.isNoSubstitutionTemplateLiteral(sep)) &&
-                sep.text.length > 0 &&
-                sep.text.trim() === ''
+            // Through the same const-resolving walk as everything else: a
+            // hoisted `const SPACE = ' '` composes exactly like the literal.
+            const sepText = sep === undefined ? null : staticText(sep, ctx, depth + 1, seen)
+            const isWhitespace = sepText !== null && sepText.length > 0 && sepText.trim() === ''
             return alternatives(
                 node.expression.expression,
                 ctx,
@@ -459,10 +498,8 @@ function alternatives(node, ctx, depth = 0, seen = new Set(), mode = LOOKUP_OBJE
         // Indexing SELECTS one entry, so the object it reads is a lookup even
         // inside a builder call: `clsx(SIZES[variant])` picks a variant, it does
         // not apply the whole table.
-        const selected = propertyByName(node.expression, node.name.text, ctx, depth, seen)
-        if (selected) {
-            return alternatives(selected.value, { ...ctx, scopes: selected.scopes }, depth + 1, seen, LOOKUP_OBJECT)
-        }
+        const selected = propertiesByName(node.expression, node.name.text, ctx, depth, seen)
+        if (selected.length > 0) return unionOfSelected(selected, ctx, depth, seen)
         return alternatives(node.expression, ctx, depth + 1, seen, LOOKUP_OBJECT)
     }
     if (ts.isElementAccessExpression(node)) {
@@ -473,10 +510,8 @@ function alternatives(node, ctx, depth = 0, seen = new Set(), mode = LOOKUP_OBJE
         const arg = node.argumentExpression
         const keyText = staticText(arg, ctx, depth + 1, seen)
         if (keyText !== null) {
-            const selected = propertyByName(node.expression, keyText, ctx, depth, seen)
-            if (selected) {
-                return alternatives(selected.value, { ...ctx, scopes: selected.scopes }, depth + 1, seen, LOOKUP_OBJECT)
-            }
+            const selected = propertiesByName(node.expression, keyText, ctx, depth, seen)
+            if (selected.length > 0) return unionOfSelected(selected, ctx, depth, seen)
         }
         // The same for a constant index into an array.
         const index = staticIndex(arg, ctx, depth + 1, seen)
@@ -490,11 +525,10 @@ function alternatives(node, ctx, depth = 0, seen = new Set(), mode = LOOKUP_OBJE
         return alternatives(node.expression, ctx, depth + 1, seen, LOOKUP_OBJECT)
     }
     if (ts.isIdentifier(node)) {
-        if (seen.has(node.text)) return NOTHING
         const bound = lookup(ctx.scopes, node.text)
-        if (!bound || bound.value === OPAQUE) return NOTHING
+        if (!bound || bound.value === OPAQUE || seen.has(bound.value)) return NOTHING
         const next = new Set(seen)
-        next.add(node.text)
+        next.add(bound.value)
         // Evaluated in the chain the binding was DECLARED in, not the one it is
         // used from.
         const outer = { ...ctx, scopes: bound.scopes }
@@ -552,27 +586,44 @@ function cvaAlternatives(node, ctx, depth, seen) {
     let compounds = null
     // Every axis by name, so a compound can product against the ones it leaves free.
     const axisAlts = new Map()
-    for (const prop of configTable.node.properties) {
-        // `cva(base, { variants, compoundVariants })` is the ordinary way to
-        // write this once the tables are hoisted; skipping shorthand read the
-        // whole config as empty.
-        const shorthand = ts.isShorthandPropertyAssignment(prop)
-        if (!ts.isPropertyAssignment(prop) && !shorthand) continue
-        const key = shorthand ? prop.name.text : staticKeyName(prop.name, configCtx, depth + 1, seen)
-        const field = shorthand ? prop.name : prop.initializer
+    // Spreads FIRST, so an explicit property written alongside `...CONFIG`
+    // still wins — the same override order the runtime has. Each spread is
+    // resolved with its own declaring scopes, which is why the fields come back
+    // paired with a context rather than as bare nodes.
+    const configFields = []
+    const collectFields = (table, tableCtx, atDepth) => {
+        if (atDepth > MAX_DEPTH) return
+        for (const prop of table.node.properties) {
+            if (ts.isSpreadAssignment(prop)) {
+                const spread = resolveToObjectLiteral(prop.expression, tableCtx, atDepth, seen)
+                if (spread) collectFields(spread, { ...tableCtx, scopes: spread.scopes }, atDepth + 1)
+                continue
+            }
+            const isShorthand = ts.isShorthandPropertyAssignment(prop)
+            if (!ts.isPropertyAssignment(prop) && !isShorthand) continue
+            configFields.push({
+                key: isShorthand ? prop.name.text : staticKeyName(prop.name, tableCtx, atDepth + 1, seen),
+                field: isShorthand ? prop.name : prop.initializer,
+                fieldCtx: tableCtx,
+            })
+        }
+    }
+    collectFields(configTable, configCtx, depth)
 
+    for (const { key, field, fieldCtx } of configFields) {
         if (key === 'variants') {
-            variants = resolveToObjectLiteral(field, configCtx, depth, seen)
+            variants = resolveToObjectLiteral(field, fieldCtx, depth, seen)
             if (!variants) continue
             const variantsCtx = { ...ctx, scopes: variants.scopes }
             for (const axis of variants.node.properties) {
                 if (!ts.isPropertyAssignment(axis) && !ts.isShorthandPropertyAssignment(axis)) continue
                 const isShorthand = ts.isShorthandPropertyAssignment(axis)
-                const axisName = isShorthand
-                    ? axis.name.text
-                    : ts.isIdentifier(axis.name) || ts.isStringLiteral(axis.name)
-                      ? axis.name.text
-                      : null
+                // Through `staticKeyName`, so `[axis]: { … }` is recorded under
+                // the name it resolves to. Its options reached the ordinary
+                // output either way, but an unnamed axis was invisible to
+                // `axisAlts` and so could never be one of the free axes a
+                // compound products against.
+                const axisName = isShorthand ? axis.name.text : staticKeyName(axis.name, variantsCtx, depth + 1, seen)
                 const initializer = isShorthand ? axis.name : axis.initializer
                 // union WITHIN the axis, product ACROSS axes
                 const alts = alternatives(initializer, variantsCtx, depth + 1, seen, LOOKUP_OBJECT)
@@ -580,7 +631,7 @@ function cvaAlternatives(node, ctx, depth, seen) {
                 out = product(out, alts)
             }
         } else if (key === 'compoundVariants') {
-            compounds = resolveToArrayLiteral(field, configCtx, depth, seen)
+            compounds = resolveToArrayLiteral(field, fieldCtx, depth, seen)
         }
         // `defaultVariants` names keys, not classes — nothing to read.
     }
@@ -596,12 +647,14 @@ function cvaAlternatives(node, ctx, depth, seen) {
         const compound = resolveToObjectLiteral(entry, compoundCtx, depth, seen)
         if (!compound) continue
         const entryCtx = { ...ctx, scopes: compound.scopes }
-        let selected = NOTHING
         let classes = NOTHING
-        // axis name → the option names this compound fires for. Kept as names,
-        // not just "pinned", because two compounds only co-apply when every
-        // axis they BOTH constrain has an option in common.
-        const pinned = new Map()
+        // axis name → option name → that option's class alternatives.
+        //
+        // Correlated per OPTION, not collapsed into one product: two compounds
+        // sharing an axis co-apply only on the options they share, and a
+        // collapsed union paired each compound's FULL selection — reporting a
+        // stack across two options that never fire together.
+        const axisOptions = new Map()
         // A selector resolved to NO options can never match, so the compound's
         // classes never render alongside anything.
         let impossible = false
@@ -627,22 +680,17 @@ function cvaAlternatives(node, ctx, depth, seen) {
             if (name === null || optionNames === null || !variants) continue
             const axis = propertyByName(variants.node, name, { ...ctx, scopes: variants.scopes }, depth, seen)
             if (!axis) continue
-            let chosen = null
+            const byOption = new Map()
             for (const optionName of optionNames) {
                 const option = propertyByName(axis.value, optionName, { ...ctx, scopes: axis.scopes }, depth, seen)
                 if (!option) continue
-                const alts = alternatives(
-                    option.value,
-                    { ...ctx, scopes: option.scopes },
-                    depth + 1,
-                    seen,
-                    LOOKUP_OBJECT
+                byOption.set(
+                    optionName,
+                    alternatives(option.value, { ...ctx, scopes: option.scopes }, depth + 1, seen, LOOKUP_OBJECT)
                 )
-                chosen = chosen ? union(chosen, alts) : alts
             }
-            if (!chosen) continue
-            pinned.set(name, new Set(optionNames))
-            selected = product(selected, chosen)
+            if (byOption.size === 0) continue
+            axisOptions.set(name, byOption)
         }
         // base + the pinned options + EVERY axis the compound leaves free + the
         // compound's own classes. The free axes have to stay in: a compound that
@@ -654,7 +702,7 @@ function cvaAlternatives(node, ctx, depth, seen) {
         // weight back beside a sibling option of a PINNED axis — the exact
         // constraint this loop exists to respect.
         if (impossible) continue
-        compoundCombinations.push({ pinned, selected, classes })
+        compoundCombinations.push({ axisOptions, classes })
     }
 
     // A compound renders beside base, the options it pins, and every axis it
@@ -665,6 +713,15 @@ function cvaAlternatives(node, ctx, depth, seen) {
     // unioned together, so producting against it would put a compound's weight
     // beside a sibling option of an axis it PINS — the constraint this whole
     // section exists to respect.
+    /** One axis's classes, restricted to a subset of its options when given one. */
+    const unionOptions = (byOption, only) => {
+        let combined = null
+        for (const [optionName, alts] of byOption) {
+            if (only && !only.has(optionName)) continue
+            combined = combined ? union(combined, alts) : alts
+        }
+        return combined ?? NOTHING
+    }
     const withFreeAxes = (constrained, base) => {
         let combination = base
         for (const [axisName, alts] of axisAlts) {
@@ -674,7 +731,9 @@ function cvaAlternatives(node, ctx, depth, seen) {
         return combination
     }
     for (const entry of compoundCombinations) {
-        out = union(out, withFreeAxes(entry.pinned, product(product(baseAlts, entry.selected), entry.classes)))
+        let combination = baseAlts
+        for (const byOption of entry.axisOptions.values()) combination = product(combination, unionOptions(byOption))
+        out = union(out, withFreeAxes(entry.axisOptions, product(combination, entry.classes)))
     }
 
     // Two compounds DO co-apply when a single selection satisfies both — the
@@ -690,16 +749,29 @@ function cvaAlternatives(node, ctx, depth, seen) {
         for (let j = i + 1; j < compoundCombinations.length; j++) {
             const a = compoundCombinations[i]
             const b = compoundCombinations[j]
-            const shared = [...a.pinned.keys()].filter((axisName) => b.pinned.has(axisName))
-            // Every axis they both constrain needs an option in common, or no
-            // single selection fires both.
-            const compatible = shared.every((axisName) =>
-                [...a.pinned.get(axisName)].some((option) => b.pinned.get(axisName).has(option))
-            )
+            const axes = new Set([...a.axisOptions.keys(), ...b.axisOptions.keys()])
+            let combination = baseAlts
+            let compatible = true
+            for (const axisName of axes) {
+                const fromA = a.axisOptions.get(axisName)
+                const fromB = b.axisOptions.get(axisName)
+                if (fromA && fromB) {
+                    // A shared axis fires both compounds only on the options they
+                    // agree on. Taking each compound's whole selection instead
+                    // paired an option of one with a DIFFERENT option of the
+                    // other — a stack no single selection produces.
+                    const shared = new Set([...fromA.keys()].filter((option) => fromB.has(option)))
+                    if (shared.size === 0) {
+                        compatible = false
+                        break
+                    }
+                    combination = product(combination, unionOptions(fromA, shared))
+                } else {
+                    combination = product(combination, unionOptions(fromA ?? fromB))
+                }
+            }
             if (!compatible) continue
-            const constrained = new Set([...a.pinned.keys(), ...b.pinned.keys()])
-            const both = product(product(product(baseAlts, a.selected), b.selected), product(a.classes, b.classes))
-            out = union(out, withFreeAxes(constrained, both))
+            out = union(out, withFreeAxes(axes, product(combination, product(a.classes, b.classes))))
         }
     }
     return out
@@ -716,11 +788,10 @@ function resolveToArrayLiteral(node, ctx, depth, seen) {
         return resolveToArrayLiteral(node.expression, ctx, depth + 1, seen)
     }
     if (ts.isIdentifier(node)) {
-        if (seen.has(node.text)) return null
         const bound = lookup(ctx.scopes, node.text)
-        if (!bound || bound.value === OPAQUE) return null
+        if (!bound || bound.value === OPAQUE || seen.has(bound.value)) return null
         const next = new Set(seen)
-        next.add(node.text)
+        next.add(bound.value)
         return resolveToArrayLiteral(bound.value, { ...ctx, scopes: bound.scopes }, depth + 1, next)
     }
     return null
@@ -842,7 +913,10 @@ function parameterBindings(node) {
 function hoistedVarNames(body) {
     const names = []
     const walk = (node) => {
-        if (isFunctionLike(node)) return
+        // A class static block is its own var scope, exactly as a nested
+        // function is — descending into one marked the ENCLOSING function's
+        // binding opaque and hid a name that really was readable.
+        if (isFunctionLike(node) || ts.isClassStaticBlockDeclaration(node)) return
         // A `for (var x …)` header declares a function-scoped binding just as a
         // statement does, and reading only VariableStatement missed every one.
         const list = ts.isVariableStatement(node)

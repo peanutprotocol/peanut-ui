@@ -404,6 +404,105 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
         ).toBe(1)
     })
 
+    it('folds a fully static template into the string it renders', () => {
+        expect(countWeightStacks("const c = clsx(`${'text-body'}-m font-semibold`)")).toBe(1)
+        // the mirror renders ONE glued class, so it is not a stack
+        expect(countWeightStacks("const c = clsx(`${'text-body-m'}font-semibold`)")).toBe(0)
+        // a dynamic span still classifies the pieces separately
+        expect(countWeightStacks('const c = clsx(`text-body-m ${x} font-semibold`)')).toBe(1)
+    })
+
+    it('reads a const join separator', () => {
+        expect(countWeightStacks("const sep = ' '; const c = ['text-body-m', 'font-semibold'].join(sep)")).toBe(1)
+        // a non-whitespace one still yields a single class
+        expect(countWeightStacks("const sep = ','; const c = ['text-body-m', 'font-semibold'].join(sep)")).toBe(0)
+    })
+
+    it('tells a shadowing binding apart from recursion', () => {
+        // Two lexical bindings can share a name. Keying the cycle guard on the
+        // SPELLING read `const outer = alias` as recursion and stopped the walk
+        // before reaching the module value it really resolves to.
+        expect(
+            countWeightStacks(
+                "const outer = 'text-body-m'; function f() { const alias = outer; function g() { const outer = alias; return clsx(outer, 'font-semibold') } }"
+            )
+        ).toBe(1)
+        // a genuine cycle still terminates without inventing a value
+        expect(countWeightStacks("const a = b; const b = a; const c = clsx(a, 'font-semibold')")).toBe(0)
+    })
+
+    it('leaves a class static block to own its vars', () => {
+        // The hoist walk stops at a static block for the same reason it stops at
+        // a nested function: the `var` is not the enclosing function's.
+        expect(
+            countWeightStacks(
+                "const style = 'text-body-m'; function f() { class C { static { var style = 'underline' } } return clsx(style, 'font-semibold') }"
+            )
+        ).toBe(1)
+        // a var in the function's OWN body still shadows
+        expect(
+            countWeightStacks(
+                "const style = 'text-body-m'; function f() { var style = 'underline'; return clsx(style, 'font-semibold') }"
+            )
+        ).toBe(0)
+    })
+
+    it('reads a cva config spread, with explicit fields still winning', () => {
+        const config =
+            "const CONFIG = { variants: { tone: { loud: 'text-body-m' } }, compoundVariants: [{ tone: 'loud', class: 'font-semibold' }] }"
+        expect(countWeightStacks(`${config}; const c = cva('base', { ...CONFIG })`)).toBe(1)
+        // a property written alongside the spread overrides it, as at runtime
+        expect(
+            countWeightStacks(
+                "const CONFIG = { variants: { tone: { loud: 'text-body-m' } } }; const c = cva('base', { ...CONFIG, variants: { tone: { loud: 'underline' } }, compoundVariants: [{ tone: 'loud', class: 'font-semibold' }] })"
+            )
+        ).toBe(0)
+    })
+
+    it('records a computed cva axis name so compounds can leave it free', () => {
+        // The axis options reached the output either way; an unnamed axis was
+        // invisible as a FREE axis, so a compound pinned elsewhere never
+        // combined with it.
+        expect(
+            countWeightStacks(
+                "const axis = 'tone'; const c = cva('base', { variants: { [axis]: { loud: 'text-body-m' }, size: { sm: 'y' } }, compoundVariants: [{ size: 'sm', class: 'font-semibold' }] })"
+            )
+        ).toBe(1)
+    })
+
+    it('combines overlapping compound selectors only on the options they share', () => {
+        const axes = "variants: { tone: { loud: 'text-body-m', quiet: 'font-semibold', neutral: 'underline' } }"
+        // They overlap only on `neutral`, where neither class is a stack —
+        // taking each compound's whole selection paired loud with quiet.
+        expect(
+            countWeightStacks(
+                `const c = cva('base', { ${axes}, compoundVariants: [{ tone: ['loud', 'neutral'], class: 'a' }, { tone: ['quiet', 'neutral'], class: 'b' }] })`
+            )
+        ).toBe(0)
+        // ...and when the shared option IS the token, the pair still counts
+        expect(
+            countWeightStacks(
+                "const c = cva('base', { variants: { tone: { loud: 'text-body-m', quiet: 'x' } }, compoundVariants: [{ tone: ['loud'], class: 'a' }, { tone: ['loud'], class: 'font-semibold' }] })"
+            )
+        ).toBe(1)
+    })
+
+    it('keeps a value a later dynamic key could alias', () => {
+        // `f('x')` really renders the second value, so committing to the first
+        // reports a class list the expression can produce a different one of.
+        expect(
+            countWeightStacks(
+                "function f(k) { const S = { x: 'underline', [k]: 'text-body-m' }; return clsx(S.x, 'font-semibold') }"
+            )
+        ).toBe(1)
+        // a READABLE computed key that is not the one asked for changes nothing
+        expect(
+            countWeightStacks(
+                "function f() { const S = { x: 'underline', ['y']: 'text-body-m' }; return clsx(S.x, 'font-semibold') }"
+            )
+        ).toBe(0)
+    })
+
     it('combines two cva compounds only when one selection fires both', () => {
         // Same axis, different options: no runtime selection matches both, so
         // producting them invents a stack across two variants of a valid table.
