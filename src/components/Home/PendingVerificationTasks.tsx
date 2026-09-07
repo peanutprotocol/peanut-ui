@@ -167,12 +167,12 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                                                 type="button"
                                                 aria-label={t('pendingTasks.dismiss', { task: copy.title })}
                                                 onClick={() => handleDismissTask(task)}
-                                                className="duration-instant focus-visible:outline-action-focus absolute right-3 top-3 z-10 cursor-pointer p-0 text-black transition-opacity after:absolute after:-inset-4 focus-visible:outline-[3px] active:opacity-60"
+                                                className="absolute top-3 right-3 z-10 cursor-pointer p-0 text-black transition-opacity duration-instant after:absolute after:-inset-4 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
                                             >
                                                 <Icon name="cancel" size={16} />
                                             </button>
                                         )}
-                                        <div className="bg-action-secondary flex size-10 items-center justify-center rounded-full">
+                                        <div className="flex size-10 items-center justify-center rounded-full bg-action-secondary">
                                             <Icon name={isHosted ? 'user-id' : 'badge'} size={20} />
                                         </div>
                                         <div className="w-full">
@@ -181,7 +181,7 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                                                 {copy.description}
                                             </div>
                                             {deadline && (
-                                                <div className="text-body-xs mt-1 font-medium">
+                                                <div className="mt-1 text-body-xs font-medium">
                                                     {t('pendingTasks.completeBefore', { deadline })}
                                                 </div>
                                             )}
