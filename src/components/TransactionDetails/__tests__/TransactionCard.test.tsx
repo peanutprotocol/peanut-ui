@@ -325,3 +325,28 @@ describe('TransactionCard — open-request pending exemption', () => {
         expect(screen.getByText('+$10')).toHaveClass('opacity-40')
     })
 })
+
+// completeHistoryEntry blanks `currency.amount` to '' for a still-pending
+// Bridge OFFRAMP row (history.utils.ts) rather than leaving the mirrored
+// crypto-leg figure in place. The card must not render that blank/invalid
+// amount as if it were a real converted "≈ CODE x" figure.
+describe('TransactionCard — secondary currency line requires a valid amount', () => {
+    function currencyTx(currency: TransactionDetails['currency']): TransactionDetails {
+        return { ...eligibleTx(), currency } as TransactionDetails
+    }
+
+    it('renders the "≈ CODE x" line for a real converted amount', () => {
+        renderCard(currencyTx({ amount: '105.9', code: 'EUR' }))
+        expect(screen.getByText('≈ EUR 105.9')).toBeInTheDocument()
+    })
+
+    it('hides the line for a blanked (pending, unconverted) amount', () => {
+        renderCard(currencyTx({ amount: '', code: 'ARS' }))
+        expect(screen.queryByText(/≈ ARS/)).toBeNull()
+    })
+
+    it('hides the line when currency.amount is missing entirely', () => {
+        renderCard(currencyTx({ code: 'ARS' } as any)) // deliberately missing `amount`
+        expect(screen.queryByText(/≈ ARS/)).toBeNull()
+    })
+})

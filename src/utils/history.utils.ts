@@ -54,6 +54,15 @@ export enum EHistoryStatus {
     expired = 'expired',
     OPEN = 'OPEN',
     CLOSED = 'CLOSED',
+    // Bridge (peanut-api-ts BridgeTransferState) sends its lifecycle lowercase
+    // end to end — see src/bridge/transfers.ts on the API side, projected
+    // straight onto `status` (src/db/history.ts). `completed`/`refunded`/
+    // `canceled` above already double as this for other providers; these
+    // four have no existing lowercase member to reuse.
+    payment_processed = 'payment_processed',
+    error = 'error',
+    returned = 'returned',
+    undeliverable = 'undeliverable',
 }
 
 export const FINAL_STATES: HistoryStatus[] = [
@@ -64,8 +73,15 @@ export const FINAL_STATES: HistoryStatus[] = [
     EHistoryStatus.PAYMENT_PROCESSED,
     EHistoryStatus.payment_processed, // Bridge terminal state (lowercase)
     EHistoryStatus.REFUNDED,
+    EHistoryStatus.refunded, // Bridge terminal state (lowercase)
     EHistoryStatus.CANCELED,
+    EHistoryStatus.canceled, // Bridge terminal state (lowercase)
     EHistoryStatus.ERROR,
+    EHistoryStatus.error, // Bridge terminal state (lowercase)
+    EHistoryStatus.RETURNED,
+    EHistoryStatus.returned, // Bridge terminal state (lowercase)
+    EHistoryStatus.UNDELIVERABLE,
+    EHistoryStatus.undeliverable, // Bridge terminal state (lowercase)
     EHistoryStatus.CLOSED,
 ]
 
@@ -431,19 +447,17 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
             if (entry.currency?.code) {
                 entry.currency.code = entry.currency.code.toUpperCase()
             }
-            // Bridge/Manteca mirror the USD amount into `currency.amount` while
-            // the intent is still in flight — the real fiat figure lands with
-            // the provider's receipt on completion (verified latent: 0 of
-            // 1,130 completed onramps ship without it). Fetching a live rate
-            // for a row that's about to get its real amount for free just
-            // hammers the FX endpoint on every pending render — skip it and
-            // let the completed re-render supply the real number.
-            if (
-                isFinalState(entry) &&
-                usdAmount === entry.currency?.amount &&
-                entry.currency?.code &&
-                entry.currency?.code !== 'USD'
-            ) {
+            // ONRAMP's `currency.amount` is the fiat SOURCE amount Bridge was
+            // asked to transfer — known synchronously at intent creation, so
+            // (unlike OFFRAMP below) it's already correct even while pending.
+            // What's unreliable pre-receipt is `usdAmount` here (the PRIMARY
+            // displayed figure): a receipt-less Bridge intent books the fiat
+            // magnitude as crypto 1:1 (see bridge/legs.ts on the API side),
+            // which is off by the exchange rate for non-1:1 pairs (MXN ~18x).
+            // That's the top-line amount, not an annotation — always correct
+            // it, pending or not; unlike OFFRAMP's secondary "≈ CODE" line,
+            // there's no safe "blank it" fallback for the primary amount.
+            if (usdAmount === entry.currency?.amount && entry.currency?.code && entry.currency?.code !== 'USD') {
                 try {
                     const price = await getCachedCurrencyPrice(entry.currency.code)
                     usdAmount = (Number(entry.currency.amount) / price.buy).toString()
@@ -470,20 +484,30 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
                 const currNum = hasCurrencyAmount ? Number(entry.currency.amount) : NaN
                 const approximatelyEqual = hasCurrencyAmount && isFinite(currNum) && Math.abs(currNum - usdNum) < 0.01
 
-                // See the ONRAMP branch above: an unconverted/mirrored amount
-                // on a still-pending row is expected and self-resolves once
-                // the provider's receipt lands, so only pay for a live-rate
-                // lookup once the row is actually final.
-                if (isFinalState(entry) && (!hasCurrencyAmount || !isFinite(currNum) || approximatelyEqual)) {
-                    try {
-                        const price = await getCachedCurrencyPrice(entry.currency.code)
-                        const converted = Number.isFinite(usdNum) && price?.sell ? usdNum * price.sell : usdNum
-                        entry.currency.amount = converted.toString()
-                    } catch (error) {
-                        console.error(
-                            `[completeHistoryEntry] Failed to fetch currency price for ${entry.currency.code}:`,
-                            error
-                        )
+                if (!hasCurrencyAmount || !isFinite(currNum) || approximatelyEqual) {
+                    if (isFinalState(entry)) {
+                        try {
+                            const price = await getCachedCurrencyPrice(entry.currency.code)
+                            const converted = Number.isFinite(usdNum) && price?.sell ? usdNum * price.sell : usdNum
+                            entry.currency.amount = converted.toString()
+                        } catch (error) {
+                            console.error(
+                                `[completeHistoryEntry] Failed to fetch currency price for ${entry.currency.code}:`,
+                                error
+                            )
+                        }
+                    } else {
+                        // Unlike ONRAMP, OFFRAMP's `currency.amount` genuinely
+                        // has no correct value until the receipt lands — the
+                        // mirrored figure isn't an approximation, it's the
+                        // crypto leg mislabeled as fiat (off by ~1000x for
+                        // ARS/BRL). Blank it rather than pay for a live-rate
+                        // lookup on every pending render just to show a
+                        // number that reads as converted but isn't;
+                        // TransactionCard hides the "≈ CODE" line when the
+                        // amount doesn't parse, and `currency.code` is kept
+                        // for the bank-account country-flag lookup.
+                        entry.currency.amount = ''
                     }
                 }
             }

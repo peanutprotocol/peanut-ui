@@ -91,12 +91,20 @@ describe('completeHistoryEntry amount-contract guards', () => {
 })
 
 /**
- * Bridge/Manteca mirror the USD amount into `currency.amount` while an
- * ONRAMP/OFFRAMP intent is still pending — the real fiat figure lands with
- * the provider's receipt on completion. A live-rate lookup for a row that's
- * about to get its real amount for free just hammers the FX endpoint on
- * every pending render, so completeHistoryEntry must skip it until the row
- * is final.
+ * ONRAMP's `currency.amount` (the fiat source Bridge was asked to transfer)
+ * is correct from intent creation, pending or not — so its live-rate lookup
+ * (which corrects the PRIMARY `usdAmount`, not `currency.amount`) always
+ * runs when the amount looks mirrored, regardless of status.
+ *
+ * OFFRAMP's `currency.amount` (the fiat destination) is genuinely unknown
+ * until the provider's receipt lands — Bridge/Manteca mirror the crypto-leg
+ * figure into it while pending. Fetching a live rate for a row that's about
+ * to get its real amount for free just hammers the FX endpoint on every
+ * pending render, so completeHistoryEntry skips the lookup until the row is
+ * final — but showing the mirrored figure as if it were converted local
+ * currency is actively wrong (off by ~1000x for ARS/BRL), so the pending
+ * path blanks `currency.amount` instead of leaving the wrong number in
+ * place.
  */
 describe('completeHistoryEntry currency-price fallback (pending vs final)', () => {
     beforeEach(() => {
@@ -104,33 +112,39 @@ describe('completeHistoryEntry currency-price fallback (pending vs final)', () =
         mockGetCachedCurrencyPrice.mockResolvedValue({ buy: 1.1, sell: 0.9 })
     })
 
-    it('does not fetch a live rate for a PENDING ONRAMP row with a mirrored amount', async () => {
-        const entry: HistoryEntry = {
+    it('always corrects the primary amount for a mirrored ONRAMP row, pending or final', async () => {
+        const pending: HistoryEntry = {
             ...baseEntry,
             status: 'PENDING' as HistoryEntry['status'],
             amount: '2.00',
             currency: { amount: '2.00', code: 'eur' },
+            extraData: { ...baseEntry.extraData, kind: 'ONRAMP' },
+        }
+        const pendingResult = await completeHistoryEntry(pending)
+        expect(mockGetCachedCurrencyPrice).toHaveBeenCalledWith('EUR')
+        expect(pendingResult.extraData?.usdAmount).toBe((2 / 1.1).toString())
+
+        mockGetCachedCurrencyPrice.mockClear()
+        const final: HistoryEntry = { ...pending, status: 'COMPLETED' as HistoryEntry['status'] }
+        const finalResult = await completeHistoryEntry(final)
+        expect(mockGetCachedCurrencyPrice).toHaveBeenCalledWith('EUR')
+        expect(finalResult.extraData?.usdAmount).toBe((2 / 1.1).toString())
+    })
+
+    it('leaves a non-mirrored ONRAMP currency.amount untouched and skips the fetch', async () => {
+        const entry: HistoryEntry = {
+            ...baseEntry,
+            status: 'COMPLETED' as HistoryEntry['status'],
+            amount: '2.00',
+            currency: { amount: '105.90', code: 'eur' },
             extraData: { ...baseEntry.extraData, kind: 'ONRAMP' },
         }
         const result = await completeHistoryEntry(entry)
         expect(mockGetCachedCurrencyPrice).not.toHaveBeenCalled()
-        // Mirrored value passes through unconverted while pending.
         expect(result.extraData?.usdAmount).toBe('2.00')
     })
 
-    it('fetches a live rate for a COMPLETED ONRAMP row with a mirrored amount', async () => {
-        const entry: HistoryEntry = {
-            ...baseEntry,
-            status: 'COMPLETED' as HistoryEntry['status'],
-            amount: '2.00',
-            currency: { amount: '2.00', code: 'eur' },
-            extraData: { ...baseEntry.extraData, kind: 'ONRAMP' },
-        }
-        await completeHistoryEntry(entry)
-        expect(mockGetCachedCurrencyPrice).toHaveBeenCalledWith('EUR')
-    })
-
-    it('does not fetch a live rate for a PENDING OFFRAMP row with a mirrored amount', async () => {
+    it('blanks a mirrored OFFRAMP currency.amount while PENDING instead of fetching', async () => {
         const entry: HistoryEntry = {
             ...baseEntry,
             status: 'PENDING' as HistoryEntry['status'],
@@ -138,11 +152,26 @@ describe('completeHistoryEntry currency-price fallback (pending vs final)', () =
             currency: { amount: '2.00', code: 'eur' },
             extraData: { ...baseEntry.extraData, kind: 'OFFRAMP' },
         }
-        await completeHistoryEntry(entry)
+        const result = await completeHistoryEntry(entry)
         expect(mockGetCachedCurrencyPrice).not.toHaveBeenCalled()
+        expect(result.currency?.amount).toBe('')
+        expect(result.currency?.code).toBe('EUR') // kept — the bank-country-flag lookup reads it
     })
 
-    it('fetches a live rate for a COMPLETED OFFRAMP row with a mirrored amount', async () => {
+    it('blanks an OFFRAMP row PENDING with no currency.amount at all', async () => {
+        const entry: HistoryEntry = {
+            ...baseEntry,
+            status: 'PENDING' as HistoryEntry['status'],
+            amount: '2.00',
+            currency: { code: 'ars' } as any, // deliberately missing `amount`
+            extraData: { ...baseEntry.extraData, kind: 'OFFRAMP' },
+        }
+        const result = await completeHistoryEntry(entry)
+        expect(mockGetCachedCurrencyPrice).not.toHaveBeenCalled()
+        expect(result.currency?.amount).toBe('')
+    })
+
+    it('converts a mirrored OFFRAMP currency.amount once COMPLETED', async () => {
         const entry: HistoryEntry = {
             ...baseEntry,
             status: 'COMPLETED' as HistoryEntry['status'],
@@ -150,49 +179,57 @@ describe('completeHistoryEntry currency-price fallback (pending vs final)', () =
             currency: { amount: '2.00', code: 'eur' },
             extraData: { ...baseEntry.extraData, kind: 'OFFRAMP' },
         }
-        await completeHistoryEntry(entry)
+        const result = await completeHistoryEntry(entry)
         expect(mockGetCachedCurrencyPrice).toHaveBeenCalledWith('EUR')
+        expect(result.currency?.amount).toBe((2 * 0.9).toString())
     })
 
-    // Bridge API returns lowercase terminal states — ensure these are recognized as final
-    it('fetches a live rate for a lowercase "completed" ONRAMP row (Bridge terminal state)', async () => {
-        const entry: HistoryEntry = {
-            ...baseEntry,
-            status: 'completed' as HistoryEntry['status'], // lowercase from Bridge API
-            amount: '2.00',
-            currency: { amount: '2.00', code: 'eur' },
-            extraData: { ...baseEntry.extraData, kind: 'ONRAMP' },
-        }
-        await completeHistoryEntry(entry)
-        expect(mockGetCachedCurrencyPrice).toHaveBeenCalledWith('EUR')
-    })
-
-    it('fetches a live rate for a lowercase "payment_processed" OFFRAMP row (Bridge terminal state)', async () => {
-        const entry: HistoryEntry = {
-            ...baseEntry,
-            status: 'payment_processed' as HistoryEntry['status'], // lowercase from Bridge API
-            amount: '2.00',
-            currency: { amount: '2.00', code: 'eur' },
-            extraData: { ...baseEntry.extraData, kind: 'OFFRAMP' },
-        }
-        await completeHistoryEntry(entry)
-        expect(mockGetCachedCurrencyPrice).toHaveBeenCalledWith('EUR')
-    })
-
-    // OFFRAMP branch: missing currency.amount entirely (no amount to compare)
-    it('fetches a live rate for a final OFFRAMP row with no currency.amount at all', async () => {
+    it('converts an OFFRAMP row with no currency.amount once COMPLETED', async () => {
         const entry: HistoryEntry = {
             ...baseEntry,
             status: 'COMPLETED' as HistoryEntry['status'],
             amount: '2.00',
-            currency: { code: 'eur' } as any, // no amount property
+            currency: { code: 'ars' } as any, // deliberately missing `amount`
             extraData: { ...baseEntry.extraData, kind: 'OFFRAMP' },
         }
-        await completeHistoryEntry(entry)
-        expect(mockGetCachedCurrencyPrice).toHaveBeenCalledWith('EUR')
-        // Should set the currency.amount to the converted value
-        expect(entry.currency?.amount).toBeDefined()
+        const result = await completeHistoryEntry(entry)
+        expect(mockGetCachedCurrencyPrice).toHaveBeenCalledWith('ARS')
+        expect(result.currency?.amount).toBe((2 * 0.9).toString())
     })
+
+    // Bridge's wire status is lowercase end to end (BridgeTransferState) —
+    // isFinalState must recognize it, or a genuinely-settled OFFRAMP row
+    // stays stuck treating its mirrored amount as pending forever.
+    it.each(['completed', 'payment_processed'])(
+        'treats OFFRAMP status=%s (Bridge lowercase terminal state) as final',
+        async (status) => {
+            const entry: HistoryEntry = {
+                ...baseEntry,
+                status: status as HistoryEntry['status'],
+                amount: '2.00',
+                currency: { amount: '2.00', code: 'eur' },
+                extraData: { ...baseEntry.extraData, kind: 'OFFRAMP' },
+            }
+            const result = await completeHistoryEntry(entry)
+            expect(mockGetCachedCurrencyPrice).toHaveBeenCalledWith('EUR')
+            expect(result.currency?.amount).toBe((2 * 0.9).toString())
+        }
+    )
+
+    it.each(['canceled', 'error', 'returned', 'undeliverable', 'refunded'])(
+        'treats OFFRAMP status=%s (Bridge lowercase failure terminal) as final too',
+        async (status) => {
+            const entry: HistoryEntry = {
+                ...baseEntry,
+                status: status as HistoryEntry['status'],
+                amount: '2.00',
+                currency: { amount: '2.00', code: 'eur' },
+                extraData: { ...baseEntry.extraData, kind: 'OFFRAMP' },
+            }
+            await completeHistoryEntry(entry)
+            expect(mockGetCachedCurrencyPrice).toHaveBeenCalledWith('EUR')
+        }
+    )
 })
 
 /**
