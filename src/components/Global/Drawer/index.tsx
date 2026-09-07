@@ -116,10 +116,17 @@ const DrawerContent = React.forwardRef<React.ElementRef<typeof DrawerPrimitive.C
                 {accessibleTitle && <DrawerTitle className="sr-only">{accessibleTitle}</DrawerTitle>}
                 <div className="mx-auto mt-2 mb-6 h-[5px] w-8 rounded-round bg-foreground-secondary" />
                 <div className="flex w-full justify-center">
+                    {/* The scroll wrapper owns the horizontal L/16 container
+                     * padding (design.md spacing table). It must live HERE,
+                     * inside the overflow box: overflow-auto clips painting at
+                     * its own edge, so padding on the panel around it leaves a
+                     * w-full button's 4px offset shadow outside the clip box —
+                     * cut off in a straight line. Consumers must not re-add
+                     * horizontal padding on the panel or on their content. */}
                     <div
                         ref={scrollAreaRef}
                         className={twMerge(
-                            'max-h-[80vh] w-full overflow-auto pb-safe-bottom md:max-w-xl',
+                            'max-h-[80vh] w-full overflow-auto px-4 pb-safe-bottom md:max-w-xl',
                             scrollAreaClassName
                         )}
                     >
@@ -138,7 +145,8 @@ DrawerContent.displayName = 'DrawerContent'
 // own head instead — see CancelSendLinkDrawer and KycRegionRestrictedModal.
 const DrawerHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
     <div
-        className={twMerge('grid gap-1 p-4 text-center sm:text-left', className)}
+        // py only: the scroll wrapper owns the horizontal L/16 padding
+        className={twMerge('grid gap-1 py-4 text-center sm:text-left', className)}
         data-testid="drawer-header"
         {...props}
     />
@@ -146,7 +154,7 @@ const DrawerHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivEleme
 DrawerHeader.displayName = 'DrawerHeader'
 
 const DrawerFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-    <div className={twMerge('mt-auto flex flex-col gap-2 p-4', className)} {...props} />
+    <div className={twMerge('mt-auto flex flex-col gap-2 py-4', className)} {...props} />
 )
 DrawerFooter.displayName = 'DrawerFooter'
 

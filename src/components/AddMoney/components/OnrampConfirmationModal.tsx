@@ -32,7 +32,7 @@ export const OnrampConfirmationModal = ({
             }}
         >
             <DrawerContent>
-                <div className="flex flex-col items-center px-4 pt-1 pb-6 text-center">
+                <div className="flex flex-col items-center pt-1 pb-6 text-center">
                     {/* the head carries M/12 beneath it; the slide keeps the L/16 of the outer stack */}
                     <div className="mb-3 flex w-full flex-col items-center gap-4">
                         <IconBubble icon="alert" color="yellow" />

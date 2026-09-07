@@ -137,7 +137,7 @@ export function CancelDepositActions({
                 }}
             >
                 <DrawerContent>
-                    <div className="flex flex-col items-center gap-4 px-4 pt-1 pb-6 text-center">
+                    <div className="flex flex-col items-center gap-4 pt-1 pb-6 text-center">
                         <IconBubble icon="ban" color="red" />
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                             <DrawerTitle>
