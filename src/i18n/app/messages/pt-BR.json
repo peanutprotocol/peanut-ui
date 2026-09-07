@@ -771,7 +771,7 @@
             "recoverWallet": "Precisa recuperar sua conta Peanut?"
         },
         "waitlist": {
-            "inviterUsernamePlaceholder": "Nome de usuário da pessoa",
+            "inviterUsernamePlaceholder": "Nome de usuário",
             "inviterNotFound": "Não há nenhum membro do Peanut com esse nome de usuário. Confira o usuário exato de quem convidou você.",
             "joinWaitlist": "Entrar na lista de espera",
             "loginCanceled": "O login foi cancelado. Tente de novo.",
@@ -794,7 +794,7 @@
         },
         "residenceStep": {
             "countryPlaceholder": "Selecione seu país",
-            "secondCountryPlaceholder": "Selecione seu segundo país",
+            "secondCountryPlaceholder": "Segundo país",
             "multiDocLink": "Tem documentos de mais de um país?",
             "errors": {
                 "invalidEmail": "Digite um e-mail válido"
@@ -1056,7 +1056,7 @@
         "linkCreatedToast": "Link criado com sucesso!",
         "linkCreatedAndCopiedToast": "Link criado e copiado para a área de transferência!",
         "requestUpdatedToast": "Cobrança atualizada com sucesso!",
-        "recipientPlaceholder": "Insira um nome de usuário, um endereço ou ENS",
+        "recipientPlaceholder": "Usuário, endereço ou ENS",
         "errors": {
             "createFailed": "Não foi possível criar o link",
             "updateFailed": "Não foi possível atualizar a cobrança",
@@ -1198,7 +1198,7 @@
         },
         "initial": {
             "receiveOn": "Receber em",
-            "recipientPlaceholder": "Insira um nome de usuário, um endereço ou ENS",
+            "recipientPlaceholder": "Usuário, endereço ou ENS",
             "usdcArbitrumOnly": "Você só pode resgatar USDC na Arbitrum para usuários da Peanut Wallet."
         },
         "addressCompatible": {
@@ -1455,7 +1455,7 @@
             "canceledTitle": "Cartão cancelado",
             "canceledBody": "Ele não pode mais ser usado para pagamentos. Você pode pedir um novo cartão, conforme sua elegibilidade.",
             "feedbackLabel": "Ajude a gente a melhorar nosso produto para você",
-            "feedbackPlaceholder": "Por que você cancelou o cartão?",
+            "feedbackPlaceholder": "Por que cancelou?",
             "submit": "Enviar",
             "thanksTitle": "Obrigado pelo feedback",
             "thanksBody": "Agradecemos seu feedback, ele ajuda a gente a melhorar a experiência do app.",
@@ -1854,8 +1854,8 @@
             "bankTransfer": "Transferência bancária"
         },
         "initial": {
-            "placeholderEns": "Digite um endereço ou ENS",
-            "placeholderAddress": "Digite um endereço",
+            "placeholderEns": "Endereço ou ENS",
+            "placeholderAddress": "Endereço",
             "detailsMissing": "Faltam os dados do saque"
         },
         "confirm": {
@@ -1880,7 +1880,7 @@
         "pixKey": {
             "title": "Enviar com Pix",
             "heading": "Digite a chave Pix",
-            "placeholder": "Chave PIX (inclua +55 se for número de telefone)",
+            "placeholder": "Chave PIX",
             "info": "Envie para qualquer chave Pix: email, telefone, CPF/CNPJ ou chave aleatória.",
             "invalid": "Chave Pix inválida"
         },
@@ -3071,7 +3071,7 @@
         "selectToken": "Selecione um token para recuperar",
         "noTokens": "Nenhum token para recuperar",
         "noTokensDescription": "Tokens enviados para seu endereço em outras redes aparecerão aqui.",
-        "recipientPlaceholder": "Digite o endereço onde você quer receber os fundos",
+        "recipientPlaceholder": "Endereço de destino",
         "review": "Revisar",
         "youWillReceiveTo": "Você vai receber em",
         "sentTo": "Enviado para",
@@ -3100,7 +3100,7 @@
             "crossChainUnavailable": "As transações entre redes estão temporariamente indisponíveis. Você pode usar USDC na Arbitrum.",
             "selectANetwork": "Escolha uma rede",
             "moreNetworksButton": "mais",
-            "searchTokenPlaceholder": "Busque um token ou cole um endereço",
+            "searchTokenPlaceholder": "Token ou endereço",
             "sponsoredHint": "As transações com USDC na Arbitrum são patrocinadas",
             "availableToken": "Token disponível",
             "searchResults": "Resultados da busca",
@@ -3110,7 +3110,7 @@
             "noMatchingTokensDescription": "Tente buscar outro token",
             "noPopularTokensTitle": "Nenhum token popular disponível",
             "moreNetworksTitle": "Mais redes",
-            "searchNetworkPlaceholder": "Busque uma rede",
+            "searchNetworkPlaceholder": "Buscar rede",
             "noNetworksFoundTitle": "Nenhuma rede encontrada para {search}",
             "noNetworksFoundDescription": "Tente buscar outra rede",
             "searchPlaceholder": "Buscar...",
