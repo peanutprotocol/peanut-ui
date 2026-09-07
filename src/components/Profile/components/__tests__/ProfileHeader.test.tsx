@@ -189,6 +189,19 @@ describe('ProfileHeader share pill', () => {
         expect(className).toContain('h-auto')
         expect(className).toContain('after:-inset-3.5')
     })
+
+    // Two hit areas in one pill must not overlap, or the last few pixels of the
+    // handle share instead of copying. jsdom has no layout, so the boundary tap
+    // cannot be clicked — the invariant is arithmetic: the glyph grows to 44px
+    // through `after:`, so the gap to the handle must cover that growth.
+    it('keeps the share hit box out of the handle segment', () => {
+        renderWithIntl(<ProfileHeader name="Satoshi" username="satoshi" showShareButton />)
+
+        const { className } = mockShareButton.mock.calls.at(-1)![0] as { className: string }
+        const grow = Number(className.match(/after:-inset-([\d.]+)/)![1])
+        const gap = Number(className.match(/(?:^|\s)ml-([\d.]+)/)![1])
+        expect(gap).toBeGreaterThanOrEqual(grow)
+    })
 })
 
 describe('ProfileHeader avatar', () => {

@@ -170,7 +170,12 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                             draws it — not an icon-only button, so it gets no box
                             of its own: the frame is the pressed surface and the
                             hit area comes from the `after:` inset (44px). Same
-                            flattening as the receipt's referral nudge. */}
+                            flattening as the receipt's referral nudge.
+                            The left margin covers that inset (16 ≥ 14, and 16 is
+                            on the spacing scale): any smaller and the
+                            pseudo-element reaches back over the handle, so a tap
+                            on the last few pixels of the url would share instead
+                            of copy. */}
                         <ShareButton
                             url={profileUrl}
                             title=""
@@ -179,7 +184,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                             onSuccess={() =>
                                 posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, REFERRAL_PILL_PROPS)
                             }
-                            className="relative ml-1 h-auto w-auto shrink-0 p-0 shadow-none after:absolute after:-inset-3.5 active:translate-x-0 active:translate-y-0"
+                            className="relative ml-4 h-auto w-auto shrink-0 p-0 shadow-none after:absolute after:-inset-3.5 active:translate-x-0 active:translate-y-0"
                         >
                             <span className="sr-only">{tGlobal('shareButton.share')}</span>
                             <Icon name="share" size={16} fill="black" />

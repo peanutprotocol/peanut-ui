@@ -85,16 +85,20 @@ export default function BadgeEarnToast() {
 
         // A badge that ships avatars (TASK-22142) announces the unlock and
         // links to the picker. The badge tap keeps its detail view, so these
-        // are two controls. The newest badge rides along in the link so the
-        // first hand the picker deals is guaranteed to contain one of its
-        // avatars — otherwise the user taps through to a hand that may not
-        // hold the thing they just unlocked.
-        const avatarCount = badgeAvatarKeys(codes).length
+        // are two controls. A badge rides along in the link so the first hand
+        // the picker deals holds one of its avatars — otherwise the user taps
+        // through to a hand that may not hold the thing they just unlocked.
+        // It has to be a badge that HAS art: most ship none, so a coalesced
+        // batch can pair an artless newest with an older one that has three,
+        // and naming the artless code falls back to any avatar already held.
+        // `codes` is newest-first, so the first survivor is the right one.
+        const withArt = codes.filter((code) => badgeAvatarKeys([code]).length > 0)
+        const avatarCount = badgeAvatarKeys(withArt).length
         const chooseAvatar = () => {
             dismiss(toastId)
             liveToastIdRef.current = null
             posthog.capture(ANALYTICS_EVENTS.BADGE_EARN_TOAST_TAPPED, { count, target: 'avatar_picker' })
-            router.push(avatarPickerPath(newest.code))
+            router.push(avatarPickerPath(withArt[0]))
         }
 
         toast({
