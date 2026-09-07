@@ -1659,11 +1659,16 @@
         }
     },
     "avatar": {
-        "useInitial": "Usar la inicial",
-        "useAvatar": "Usar el avatar",
-        "chooseAvatar": "Elegí tu avatar",
-        "rolling": "Tirando el dado…",
-        "rollingHint": "Un poco de suerte. Un nuevo look.",
-        "cancelRoll": "Cancelar tirada"
+        "cast": {
+            "cactus": {
+                "name": "Ají valiente"
+            },
+            "flower": {
+                "name": "Vaquita de la suerte"
+            },
+            "heart": {
+                "name": "Carpincho sereno"
+            }
+        }
     }
 }
