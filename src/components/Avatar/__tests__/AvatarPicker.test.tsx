@@ -14,7 +14,22 @@ jest.mock('next/image', () => ({
 // sheet carries no title of its own while the drawer still gets one.
 const mockDrawer: { accessibleTitle?: string } = {}
 jest.mock('@/components/Global/Drawer', () => ({
-    Drawer: ({ open, children }: { open: boolean; children?: ReactNode }) => (open ? <div>{children}</div> : null),
+    Drawer: ({
+        open,
+        onOpenChange,
+        children,
+    }: {
+        open: boolean
+        onOpenChange: (next: boolean) => void
+        children?: ReactNode
+    }) =>
+        open ? (
+            <div>
+                {/* stands in for every way vaul dismisses the sheet */}
+                <button onClick={() => onOpenChange(false)}>close drawer</button>
+                {children}
+            </div>
+        ) : null,
     DrawerContent: ({ accessibleTitle, children }: { accessibleTitle?: string; children?: ReactNode }) => {
         mockDrawer.accessibleTitle = accessibleTitle
         return <div>{children}</div>
@@ -23,10 +38,11 @@ jest.mock('@/components/Global/Drawer', () => ({
 
 // the badge-earned toast's deep link, read straight off the URL by the picker
 let mockBadgeParam: string | null = null
+const mockSetBadgeParam = jest.fn()
 jest.mock('nuqs', () => ({
     parseAsBoolean: { withDefault: () => ({}) },
     parseAsString: {},
-    useQueryState: () => [mockBadgeParam, jest.fn()],
+    useQueryState: () => [mockBadgeParam, mockSetBadgeParam],
 }))
 
 const mockToast = jest.fn()
@@ -172,6 +188,26 @@ describe('AvatarPicker', () => {
         expect(screen.queryByText('Earned')).not.toBeInTheDocument()
     })
 
+    // a radiogroup may only hold radios, so the die sits beside the tiles in
+    // the same grid rather than inside the group
+    it('puts the eight tiles in the radiogroup and the die outside it', () => {
+        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        const group = screen.getByRole('radiogroup', { name: 'Your avatar' })
+        expect(Array.from(group.children).map((el) => el.getAttribute('role'))).toEqual(Array(8).fill('radio'))
+        expect(group.contains(die())).toBe(false)
+    })
+
+    it('roves the hand with the arrow keys', () => {
+        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+        const hand = tiles()
+        hand[0].focus()
+
+        fireEvent.keyDown(screen.getByRole('radiogroup'), { key: 'ArrowRight' })
+
+        expect(hand[1]).toHaveFocus()
+    })
+
     it('deals the badge the deep link names', () => {
         mockBadgeParam = 'OG_2025_10_12'
         mockUser.user.badges = [
@@ -181,6 +217,27 @@ describe('AvatarPicker', () => {
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
         expect(tile(/Coin/)).toHaveTextContent('OG')
+    })
+
+    // the deep link is spent by the hand it dealt; left in the URL it would
+    // stack the same badge into every later open
+    it('clears the badge deep link when the sheet closes', () => {
+        mockBadgeParam = 'OG_2025_10_12'
+        const onOpenChange = jest.fn()
+        renderWithIntl(<AvatarPicker open onOpenChange={onOpenChange} />)
+
+        fireEvent.click(screen.getByRole('button', { name: 'close drawer' }))
+
+        expect(mockSetBadgeParam).toHaveBeenCalledWith(null)
+        expect(onOpenChange).toHaveBeenCalledWith(false)
+    })
+
+    it('leaves the URL alone when there was no deep link', () => {
+        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        fireEvent.click(screen.getByRole('button', { name: 'close drawer' }))
+
+        expect(mockSetBadgeParam).not.toHaveBeenCalled()
     })
 
     it('keeps the current pick in the hand, checked', () => {
