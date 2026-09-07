@@ -442,6 +442,61 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
         ).toBe(0)
     })
 
+    it('resolves an &&-guarded object as a candidate', () => {
+        // `enabled && { … }` is the object when the guard passes, so only the
+        // right-hand side can be a table — and it is one.
+        expect(
+            countWeightStacks(
+                "const C = enabled && { tone: 'loud', class: ['text-body-m', 'font-semibold'] }; const c = cva('base', { variants: { tone: { loud: 'x' } }, compoundVariants: [{ ...C }] })"
+            )
+        ).toBe(1)
+        expect(
+            countWeightStacks(
+                "const V = enabled && { tone: { loud: 'text-body-m' }, emphasis: { bold: 'font-semibold' } }; const c = cva('base', { variants: { ...V } })"
+            )
+        ).toBe(1)
+    })
+
+    it('recomposes a conditional cva structure outside a spread', () => {
+        // The config, the variants table and the compoundVariants array are each
+        // a structural slot in their own right. Reading them as a single literal
+        // fell through to builder-object key scanning, which returns the config's
+        // field NAMES and never descends to a class.
+        expect(
+            countWeightStacks(
+                "const c = cva('base', enabled ? { variants: { tone: { loud: 'text-body-m' } }, compoundVariants: [{ tone: 'loud', class: 'font-semibold' }] } : {})"
+            )
+        ).toBe(1)
+        expect(
+            countWeightStacks(
+                "const c = cva('base', { variants: enabled ? { tone: { loud: 'text-body-m' }, emphasis: { bold: 'font-semibold' } } : {} })"
+            )
+        ).toBe(1)
+        expect(
+            countWeightStacks(
+                "const c = cva('base', { variants: { tone: { loud: 'text-body-m' } }, compoundVariants: enabled ? [{ tone: 'loud', class: 'font-semibold' }] : [] })"
+            )
+        ).toBe(1)
+    })
+
+    it('does not lose a candidate the cap could not reach', () => {
+        // Unlike the alternatives cap, dropping a branch here erases a finding
+        // rather than inflating one, so a truncated walk folds in the
+        // conservative reading instead of trusting its partial answer.
+        // Chip's shape: ten-way, with the only real config in the LAST branch.
+        // The old cap of eight stopped before reaching it, and a dropped branch
+        // here erases a stack rather than inflating one. (The depth bound still
+        // truncates a chain far longer than any real config — see the note on
+        // CANDIDATE_LIMIT; what this pins is that the cap is no longer what
+        // decides it.)
+        const branches = Array.from({ length: 9 }, (_, i) => `b${i}?{}:`).join(' ')
+        expect(
+            countWeightStacks(
+                `const CFG = ${branches} { variants: { tone: { loud: 'text-body-m' } }, compoundVariants: [{ tone: 'loud', class: 'font-semibold' }] }; const c = cva('base', { ...CFG })`
+            )
+        ).toBe(1)
+    })
+
     it('recomposes an unreadable cva spread under cva semantics', () => {
         // Each object the spread can be is a config in its own right, so its
         // variants and its compounds combine with each other — flattening it

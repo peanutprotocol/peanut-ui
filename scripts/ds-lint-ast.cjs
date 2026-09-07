@@ -36,6 +36,15 @@ const BUILDERS = new Set(['twMerge', 'clsx', 'cn', 'classNames', 'cva', 'tw'])
 const MAX_DEPTH = 12
 
 /**
+ * How many object candidates one expression may contribute.
+ *
+ * A bound is necessary — a nested conditional chain is exponential — but
+ * hitting it is reported rather than silently truncating, because a dropped
+ * branch here erases a finding instead of inflating one.
+ */
+const CANDIDATE_LIMIT = 24
+
+/**
  * Ceiling on distinct alternatives tracked through one combination. Reached only
  * by pathological files; when it bites, alternatives that already MATCH are kept
  * ahead of ones that do not, so the bound can cost precision but never a finding.
@@ -651,6 +660,28 @@ function selectorOptionNames(node, ctx, depth, seen) {
 }
 
 /**
+ * Compose every object an expression can be, through `per`, and union them.
+ *
+ * `null` when there is nothing to compose. An INCOMPLETE walk also folds in the
+ * conservative reading, so a branch the candidate cap could not reach never
+ * removes a finding — only ever adds one.
+ */
+function composeObjectCandidates(node, ctx, depth, seen, per) {
+    if (!node) return null
+    const found = resolveToObjectLiterals(node, ctx, depth, seen)
+    let out = null
+    for (const candidate of found.candidates) {
+        const alts = per(candidate, { ...ctx, scopes: candidate.scopes })
+        out = out ? union(out, alts) : alts
+    }
+    if (!found.complete) {
+        const conservative = alternatives(node, ctx, depth + 1, seen, LOOKUP_OBJECT)
+        out = out ? union(out, conservative) : conservative
+    }
+    return out
+}
+
+/**
  * A variants table's classes: union WITHIN each axis, product ACROSS them.
  *
  * Used for a table hidden behind an unreadable spread, where the axes have no
@@ -702,11 +733,15 @@ function cvaAlternatives(node, ctx, depth, seen) {
     const baseAlts = base ? alternatives(base, ctx, depth + 1, seen, BUILDER_OBJECT) : NOTHING
     if (!config) return baseAlts
 
-    const configTable = resolveToObjectLiteral(config, ctx, depth, seen)
-    if (!configTable) {
-        return product(baseAlts, alternatives(config, ctx, depth + 1, seen, BUILDER_OBJECT))
-    }
-    return product(baseAlts, cvaConfigAlternatives(configTable, ctx, depth, seen))
+    // The config itself can be conditional — `cva(base, cond ? A : {})` — so it
+    // goes through the same multi-candidate path a conditional SPREAD does.
+    // Reading it as a single object literal fell through to builder-object key
+    // scanning, which returns the config's field NAMES and never its classes.
+    const composed = composeObjectCandidates(config, ctx, depth, seen, (candidate, candidateCtx) =>
+        cvaConfigAlternatives(candidate, candidateCtx, depth + 1, seen)
+    )
+    if (composed) return product(baseAlts, composed)
+    return product(baseAlts, alternatives(config, ctx, depth + 1, seen, BUILDER_OBJECT))
 }
 
 /**
@@ -740,22 +775,28 @@ function cvaConfigAlternatives(configTable, ctx, depth, seen) {
     // compound that selects from it reported neither together.
     for (const opaque of opaqueFields(configFields)) {
         if (!opaque.value) continue
-        const candidates = resolveToObjectLiterals(opaque.value, opaque.ctx, depth, seen)
-        if (candidates.length === 0) {
-            out = product(out, alternatives(opaque.value, opaque.ctx, depth + 1, seen, LOOKUP_OBJECT))
-            continue
-        }
-        let composed = null
-        for (const candidate of candidates) {
-            const alts = cvaConfigAlternatives(candidate, { ...ctx, scopes: candidate.scopes }, depth + 1, seen)
-            composed = composed ? union(composed, alts) : alts
-        }
-        out = product(out, composed ?? NOTHING)
+        const composed = composeObjectCandidates(opaque.value, opaque.ctx, depth, seen, (candidate, candidateCtx) =>
+            cvaConfigAlternatives(candidate, candidateCtx, depth + 1, seen)
+        )
+        out = product(out, composed ?? alternatives(opaque.value, opaque.ctx, depth + 1, seen, LOOKUP_OBJECT))
     }
     for (const { key, value: field, ctx: fieldCtx } of effectiveFields(configFields)) {
         if (key === 'variants') {
             variants = resolveToObjectLiteral(field, fieldCtx, depth, seen)
-            if (!variants) continue
+            if (!variants) {
+                // Conditional table: each candidate composes its own axes, and
+                // the result is one axis entry no compound can pin — the names
+                // are not knowable across candidates, but the classes still
+                // co-apply with everything else.
+                const composed = composeObjectCandidates(field, fieldCtx, depth, seen, (candidate, candidateCtx) =>
+                    variantsTableAlts(candidate, candidateCtx, depth + 1, seen)
+                )
+                if (composed) {
+                    axisAlts.set(field, composed)
+                    out = product(out, composed)
+                }
+                continue
+            }
             const variantsCtx = { ...ctx, scopes: variants.scopes }
             // Same reader as the config: `{ ...TONE, size: … }` is how a table
             // gets composed once an axis is hoisted, and skipping the spread
@@ -778,21 +819,21 @@ function cvaConfigAlternatives(configTable, ctx, depth, seen) {
             // selector can ever match the key.
             for (const opaque of opaqueFields(variantFields)) {
                 if (!opaque.value) continue
-                const candidates = resolveToObjectLiterals(opaque.value, opaque.ctx, depth, seen)
-                let alts = null
-                for (const candidate of candidates) {
-                    // A TABLE, so its own axes product together — one spread can
-                    // hide several, and unioning them read independently
-                    // selected axes as alternatives.
-                    const composed = variantsTableAlts(candidate, { ...ctx, scopes: candidate.scopes }, depth + 1, seen)
-                    alts = alts ? union(alts, composed) : composed
-                }
-                if (!alts) alts = alternatives(opaque.value, opaque.ctx, depth + 1, seen, LOOKUP_OBJECT)
+                // A TABLE, so its own axes product together — one spread can
+                // hide several, and unioning them read independently selected
+                // axes as alternatives.
+                const alts =
+                    composeObjectCandidates(opaque.value, opaque.ctx, depth, seen, (candidate, candidateCtx) =>
+                        variantsTableAlts(candidate, candidateCtx, depth + 1, seen)
+                    ) ?? alternatives(opaque.value, opaque.ctx, depth + 1, seen, LOOKUP_OBJECT)
                 axisAlts.set(opaque.value, alts)
                 out = product(out, alts)
             }
         } else if (key === 'compoundVariants') {
-            compounds = resolveToArrayLiteral(field, fieldCtx, depth, seen)
+            const found = resolveToArrayLiterals(field, fieldCtx, depth, seen)
+            if (found.elements.length > 0) {
+                compounds = { elements: found.elements.map((e) => e.element), scopes: found.scopes ?? fieldCtx.scopes }
+            }
         }
         // `defaultVariants` names keys, not classes — nothing to read.
     }
@@ -826,19 +867,14 @@ function cvaConfigAlternatives(configTable, ctx, depth, seen) {
         // over-counts rather than losing the stack entirely.
         for (const opaque of opaqueFields(compoundFields)) {
             if (!opaque.value) continue
-            const candidates = resolveToObjectLiterals(opaque.value, opaque.ctx, depth, seen)
-            let fromSpread = null
-            for (const candidate of candidates) {
-                // An ENTRY: only its `class` field renders, and it renders in
-                // BUILDER mode so `class: ['a', 'b']` composes. Reading the whole
-                // entry in lookup mode unioned its fields, which made two classes
-                // cva renders together look mutually exclusive.
-                const composed = compoundEntryClasses(candidate, { ...ctx, scopes: candidate.scopes }, depth + 1, seen)
-                fromSpread = fromSpread ? union(fromSpread, composed) : composed
-            }
-            if (!fromSpread) {
-                fromSpread = alternatives(opaque.value, opaque.ctx, depth + 1, seen, LOOKUP_OBJECT)
-            }
+            // An ENTRY: only its `class` field renders, and it renders in BUILDER
+            // mode so `class: ['a', 'b']` composes. Reading the whole entry in
+            // lookup mode unioned its fields, which made two classes cva renders
+            // together look mutually exclusive.
+            const fromSpread =
+                composeObjectCandidates(opaque.value, opaque.ctx, depth, seen, (candidate, candidateCtx) =>
+                    compoundEntryClasses(candidate, candidateCtx, depth + 1, seen)
+                ) ?? alternatives(opaque.value, opaque.ctx, depth + 1, seen, LOOKUP_OBJECT)
             classes = product(classes, fromSpread)
         }
         for (const prop of effectiveFields(compoundFields)) {
@@ -975,35 +1011,95 @@ function cvaConfigAlternatives(configTable, ctx, depth, seen) {
  * which is why two axes hidden behind one spread never producted and an
  * array-valued compound `class` read as mutually exclusive.
  */
-function resolveToObjectLiterals(node, ctx, depth, seen, into = []) {
-    if (!node || depth > MAX_DEPTH || into.length > 8) return into
+function resolveToObjectLiterals(node, ctx, depth, seen, found = { candidates: [], complete: true }) {
+    if (!node) return found
+    // A truncated walk must never look like a complete one. Unlike the
+    // alternatives cap — which over-counts — dropping a branch here erases the
+    // existence of a stack, so the caller is told and falls back to the
+    // conservative union instead of trusting a partial answer.
+    if (depth > MAX_DEPTH || found.candidates.length >= CANDIDATE_LIMIT) {
+        found.complete = false
+        return found
+    }
     if (ts.isObjectLiteralExpression(node)) {
-        into.push({ node, scopes: ctx.scopes })
-        return into
+        found.candidates.push({ node, scopes: ctx.scopes })
+        return found
     }
     if (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isSatisfiesExpression(node)) {
-        return resolveToObjectLiterals(node.expression, ctx, depth + 1, seen, into)
+        return resolveToObjectLiterals(node.expression, ctx, depth + 1, seen, found)
     }
     if (ts.isConditionalExpression(node)) {
-        resolveToObjectLiterals(node.whenTrue, ctx, depth + 1, seen, into)
-        return resolveToObjectLiterals(node.whenFalse, ctx, depth + 1, seen, into)
+        resolveToObjectLiterals(node.whenTrue, ctx, depth + 1, seen, found)
+        return resolveToObjectLiterals(node.whenFalse, ctx, depth + 1, seen, found)
     }
-    if (
-        ts.isBinaryExpression(node) &&
-        (node.operatorToken.kind === ts.SyntaxKind.BarBarToken ||
-            node.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken)
-    ) {
-        resolveToObjectLiterals(node.left, ctx, depth + 1, seen, into)
-        return resolveToObjectLiterals(node.right, ctx, depth + 1, seen, into)
+    if (ts.isBinaryExpression(node)) {
+        const op = node.operatorToken.kind
+        if (op === ts.SyntaxKind.BarBarToken || op === ts.SyntaxKind.QuestionQuestionToken) {
+            resolveToObjectLiterals(node.left, ctx, depth + 1, seen, found)
+            return resolveToObjectLiterals(node.right, ctx, depth + 1, seen, found)
+        }
+        // `enabled && { … }` is the object when the guard passes and a falsy
+        // primitive otherwise, so only the right-hand side can be a table.
+        if (op === ts.SyntaxKind.AmpersandAmpersandToken) {
+            return resolveToObjectLiterals(node.right, ctx, depth + 1, seen, found)
+        }
+        return found
     }
     if (ts.isIdentifier(node)) {
         const bound = lookup(ctx.scopes, node.text)
-        if (!bound || bound.value === OPAQUE || seen.has(bound.value)) return into
+        if (!bound || bound.value === OPAQUE || seen.has(bound.value)) return found
         const next = new Set(seen)
         next.add(bound.value)
-        return resolveToObjectLiterals(bound.value, { ...ctx, scopes: bound.scopes }, depth + 1, next, into)
+        return resolveToObjectLiterals(bound.value, { ...ctx, scopes: bound.scopes }, depth + 1, next, found)
     }
-    return into
+    return found
+}
+
+/**
+ * Every array literal an expression can denote — the `compoundVariants` twin of
+ * {@link resolveToObjectLiterals}.
+ *
+ * Entries from different candidates are pooled rather than kept apart: only one
+ * array is what the expression is, so treating them as co-possible over-counts,
+ * which is the direction to be wrong in.
+ */
+function resolveToArrayLiterals(node, ctx, depth, seen, found = { elements: [], scopes: null, complete: true }) {
+    if (!node) return found
+    if (depth > MAX_DEPTH || found.elements.length >= CANDIDATE_LIMIT * 8) {
+        found.complete = false
+        return found
+    }
+    if (ts.isArrayLiteralExpression(node)) {
+        for (const element of node.elements) found.elements.push({ element, scopes: ctx.scopes })
+        found.scopes = found.scopes ?? ctx.scopes
+        return found
+    }
+    if (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isSatisfiesExpression(node)) {
+        return resolveToArrayLiterals(node.expression, ctx, depth + 1, seen, found)
+    }
+    if (ts.isConditionalExpression(node)) {
+        resolveToArrayLiterals(node.whenTrue, ctx, depth + 1, seen, found)
+        return resolveToArrayLiterals(node.whenFalse, ctx, depth + 1, seen, found)
+    }
+    if (ts.isBinaryExpression(node)) {
+        const op = node.operatorToken.kind
+        if (op === ts.SyntaxKind.BarBarToken || op === ts.SyntaxKind.QuestionQuestionToken) {
+            resolveToArrayLiterals(node.left, ctx, depth + 1, seen, found)
+            return resolveToArrayLiterals(node.right, ctx, depth + 1, seen, found)
+        }
+        if (op === ts.SyntaxKind.AmpersandAmpersandToken) {
+            return resolveToArrayLiterals(node.right, ctx, depth + 1, seen, found)
+        }
+        return found
+    }
+    if (ts.isIdentifier(node)) {
+        const bound = lookup(ctx.scopes, node.text)
+        if (!bound || bound.value === OPAQUE || seen.has(bound.value)) return found
+        const next = new Set(seen)
+        next.add(bound.value)
+        return resolveToArrayLiterals(bound.value, { ...ctx, scopes: bound.scopes }, depth + 1, next, found)
+    }
+    return found
 }
 
 /**
