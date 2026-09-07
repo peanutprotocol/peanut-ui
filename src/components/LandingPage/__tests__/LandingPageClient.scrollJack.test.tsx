@@ -3,7 +3,7 @@
  * page used to freeze `document.body` and swallow wheel/touch events while it
  * grew the CTA. Nothing may bring that back.
  */
-import { render } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { act, type ReactNode } from 'react'
 import type { LandingStrings } from '../landingStrings'
 import type { LandingContentHrefs } from '../landingContentHrefs'
@@ -149,10 +149,13 @@ describe('LandingPageClient — no scroll-jack', () => {
         }
     })
 
-    it('renders the send-in-seconds slot without a scroll-jack target wrapper', () => {
-        const { container } = renderLanding()
+    it('renders the send-in-seconds slot with no wrapper element around it', () => {
+        const { container } = renderLanding(<section id="send-in-seconds" data-testid="send-in-seconds" />)
 
-        expect(container.querySelector('#send-in-seconds')).toBeInTheDocument()
-        expect(container.querySelector('#sticky-button-target')).toBeNull()
+        // The deleted wrapper was `<div ref={sendInSecondsRef}>{sendInSecondsSlot}</div>`, which
+        // carried no id or class — the only thing that catches it coming back is the slot's
+        // parent. LandingPageClient returns a fragment, so the slot must be a direct child of
+        // the render container; pre-deletion it was a child of that anonymous div.
+        expect(screen.getByTestId('send-in-seconds').parentElement).toBe(container)
     })
 })

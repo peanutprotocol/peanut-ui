@@ -41,14 +41,22 @@ describe('Hero CTA', () => {
 })
 
 describe('SendInSeconds fold', () => {
-    it('drops the scroll-jack target but keeps the section anchor and CTA entrance', () => {
+    // The scroll-jack regression guard. Keep it free of fold-10 content assertions.
+    it('drops the scroll-jack target but keeps the section anchor and the CTA motion class', () => {
         const { container } = render(<SendInSeconds locale="en" />)
 
         expect(container.querySelector('#send-in-seconds')).toBeInTheDocument()
         expect(container.querySelector('#sticky-button-target')).toBeNull()
+        expect(container.querySelector('.cta-motion')).not.toBeNull()
+    })
 
-        const cta = container.querySelector('.cta-motion.cta-enter')
-        expect(cta).not.toBeNull()
+    // Fold 10's content as it ships today. PR 2 of TASK-21788 rewrites this fold into
+    // "GET THE APP" and re-points the CTA away from /send, so this is the test to
+    // retarget or delete there — the regression guard above stays untouched.
+    it('links the CTA to /send with the entrance animation (fold-10 content, superseded by PR 2)', () => {
+        const { container } = render(<SendInSeconds locale="en" />)
+
+        expect(container.querySelector('.cta-motion.cta-enter')).not.toBeNull()
         expect(container.querySelector('a[href="/send"]')).toBeInTheDocument()
     })
 })
