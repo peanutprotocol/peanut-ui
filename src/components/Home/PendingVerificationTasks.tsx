@@ -23,10 +23,10 @@ function taskCopy(task: NextAction): { title: string; description: string } {
     if (task.kind === 'accept-tos') {
         if (task.key === 'accept-tos:sepa') {
             return {
-                title: 'Accept SEPA Terms of Service',
+                title: 'Update bank transfer terms',
                 description: advisory
-                    ? "Accept our payment partner's updated terms to keep EUR and GBP bank transfers available."
-                    : "Accept our payment partner's updated terms to enable EUR and GBP bank transfers.",
+                    ? "Accept our payment partner's updated terms to keep euro and British pound bank transfers available."
+                    : "Accept our payment partner's updated terms to enable euro and British pound bank transfers.",
             }
         }
         return {
