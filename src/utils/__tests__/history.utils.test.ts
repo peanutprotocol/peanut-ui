@@ -153,6 +153,46 @@ describe('completeHistoryEntry currency-price fallback (pending vs final)', () =
         await completeHistoryEntry(entry)
         expect(mockGetCachedCurrencyPrice).toHaveBeenCalledWith('EUR')
     })
+
+    // Bridge API returns lowercase terminal states — ensure these are recognized as final
+    it('fetches a live rate for a lowercase "completed" ONRAMP row (Bridge terminal state)', async () => {
+        const entry: HistoryEntry = {
+            ...baseEntry,
+            status: 'completed' as HistoryEntry['status'], // lowercase from Bridge API
+            amount: '2.00',
+            currency: { amount: '2.00', code: 'eur' },
+            extraData: { ...baseEntry.extraData, kind: 'ONRAMP' },
+        }
+        await completeHistoryEntry(entry)
+        expect(mockGetCachedCurrencyPrice).toHaveBeenCalledWith('EUR')
+    })
+
+    it('fetches a live rate for a lowercase "payment_processed" OFFRAMP row (Bridge terminal state)', async () => {
+        const entry: HistoryEntry = {
+            ...baseEntry,
+            status: 'payment_processed' as HistoryEntry['status'], // lowercase from Bridge API
+            amount: '2.00',
+            currency: { amount: '2.00', code: 'eur' },
+            extraData: { ...baseEntry.extraData, kind: 'OFFRAMP' },
+        }
+        await completeHistoryEntry(entry)
+        expect(mockGetCachedCurrencyPrice).toHaveBeenCalledWith('EUR')
+    })
+
+    // OFFRAMP branch: missing currency.amount entirely (no amount to compare)
+    it('fetches a live rate for a final OFFRAMP row with no currency.amount at all', async () => {
+        const entry: HistoryEntry = {
+            ...baseEntry,
+            status: 'COMPLETED' as HistoryEntry['status'],
+            amount: '2.00',
+            currency: { code: 'eur' } as any, // no amount property
+            extraData: { ...baseEntry.extraData, kind: 'OFFRAMP' },
+        }
+        await completeHistoryEntry(entry)
+        expect(mockGetCachedCurrencyPrice).toHaveBeenCalledWith('EUR')
+        // Should set the currency.amount to the converted value
+        expect(entry.currency?.amount).toBeDefined()
+    })
 })
 
 /**

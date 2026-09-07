@@ -58,9 +58,11 @@ export enum EHistoryStatus {
 
 export const FINAL_STATES: HistoryStatus[] = [
     EHistoryStatus.COMPLETED,
+    EHistoryStatus.completed, // Bridge terminal state (lowercase)
     EHistoryStatus.EXPIRED,
     EHistoryStatus.CLAIMED,
     EHistoryStatus.PAYMENT_PROCESSED,
+    EHistoryStatus.payment_processed, // Bridge terminal state (lowercase)
     EHistoryStatus.REFUNDED,
     EHistoryStatus.CANCELED,
     EHistoryStatus.ERROR,
