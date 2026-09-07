@@ -387,7 +387,7 @@
                 "arQr": "QR payments (Argentina)",
                 "arBank": "Bank transfers (Argentina)",
                 "naBank": "ACH, Wire (US) & SPEI (Mexico)",
-                "sepa": "Bank Transfers"
+                "sepa": "EUR/GBP Bank Transfers"
             },
             "chips": {
                 "active": "Active",
