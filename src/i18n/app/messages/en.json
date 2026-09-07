@@ -3365,6 +3365,7 @@
         },
         "copyToClipboard": {
             "copyCode": "Copy code",
+            "copyProfileLink": "Copy profile link",
             "copyFailed": "Copy failed"
         },
         "copyField": {
@@ -3691,14 +3692,93 @@
     },
     "avatar": {
         "title": "Your avatar",
-        "description": "Pick one, or roll the dice for a fresh row of basics.",
-        "initials": "Initials",
-        "fromBadges": "From your badges",
-        "basics": "Basics",
-        "unlocked": "{count} unlocked",
-        "noBadgeAvatars": "Earn a badge and its avatars appear here.",
-        "rollDice": "Roll the dice",
         "change": "Change avatar",
-        "saveFailed": "Could not save your avatar. Try again."
+        "saveFailed": "Could not save your avatar. Try again.",
+        "earned": "Earned",
+        "rollDie": "Roll the die",
+        "initialName": "Just {letter}",
+        "initialLine": "Your initial",
+        "cast": {
+            "apple": {
+                "name": "Jackpot Cherry",
+                "line": "Two short of rich"
+            },
+            "avocado": {
+                "name": "Watermelon Slice",
+                "line": "Feeds eleven people"
+            },
+            "cactus": {
+                "name": "Bold Chili",
+                "line": "Picked the spicy one"
+            },
+            "cloud": {
+                "name": "Grumpy Raincloud",
+                "line": "Complains, still comes"
+            },
+            "cube": {
+                "name": "Lucky Die",
+                "line": "Settles every tie"
+            },
+            "donut": {
+                "name": "Glazed Donut",
+                "line": "Missing the middle"
+            },
+            "drop": {
+                "name": "Boba Cup",
+                "line": "Sips through drama"
+            },
+            "egg": {
+                "name": "Fortune Cookie",
+                "line": "Vague on purpose"
+            },
+            "fish": {
+                "name": "Puffy Pufferfish",
+                "line": "Overreacts on cue"
+            },
+            "flower": {
+                "name": "Lucky Ladybug",
+                "line": "Lands on the bill"
+            },
+            "frog": {
+                "name": "Smiley Axolotl",
+                "line": "Never says no"
+            },
+            "gem": {
+                "name": "Lucky Horseshoe",
+                "line": "Heavy but lucky"
+            },
+            "ghost": {
+                "name": "Lucky Cat",
+                "line": "Grins at the odds"
+            },
+            "heart": {
+                "name": "Serene Capybara",
+                "line": "Fine with anything"
+            },
+            "leaf": {
+                "name": "Twisted Pretzel",
+                "line": "Overthinks the plan"
+            },
+            "moon": {
+                "name": "Ramen Bowl",
+                "line": "Cures the hangover"
+            },
+            "mushroom": {
+                "name": "Prickly Hedgehog",
+                "line": "Soft under it all"
+            },
+            "planet": {
+                "name": "Sideways Crab",
+                "line": "Avoids the question"
+            },
+            "star": {
+                "name": "Wishing Star",
+                "line": "Grants half of it"
+            },
+            "sun": {
+                "name": "Bossy Goose",
+                "line": "Herds the group"
+            }
+        }
     }
 }

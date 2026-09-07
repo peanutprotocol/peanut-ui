@@ -1615,5 +1615,18 @@
         "ready": {
             "subtitle": "Probá la puerta."
         }
+    },
+    "avatar": {
+        "cast": {
+            "cactus": {
+                "name": "Ají valiente"
+            },
+            "flower": {
+                "name": "Vaquita de la suerte"
+            },
+            "heart": {
+                "name": "Carpincho sereno"
+            }
+        }
     }
 }

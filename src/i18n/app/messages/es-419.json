@@ -3365,6 +3365,7 @@
         },
         "copyToClipboard": {
             "copyCode": "Copiar código",
+            "copyProfileLink": "Copiar enlace del perfil",
             "copyFailed": "No se pudo copiar"
         },
         "copyField": {
@@ -3691,14 +3692,93 @@
     },
     "avatar": {
         "title": "Tu avatar",
-        "description": "Elige uno o tira los dados para ver otros básicos.",
-        "initials": "Iniciales",
-        "fromBadges": "De tus insignias",
-        "basics": "Básicos",
-        "unlocked": "{count} desbloqueados",
-        "noBadgeAvatars": "Gana una insignia y sus avatares aparecen aquí.",
-        "rollDice": "Tirar los dados",
         "change": "Cambiar avatar",
-        "saveFailed": "No pudimos guardar tu avatar. Inténtalo de nuevo."
+        "saveFailed": "No pudimos guardar tu avatar. Inténtalo de nuevo.",
+        "earned": "Ganado",
+        "rollDie": "Tirar el dado",
+        "initialName": "Solo {letter}",
+        "initialLine": "Tu inicial",
+        "cast": {
+            "apple": {
+                "name": "Cereza ganadora",
+                "line": "A dos de ser rica"
+            },
+            "avocado": {
+                "name": "Rebanada de sandía",
+                "line": "Alcanza para once personas"
+            },
+            "cactus": {
+                "name": "Chile valiente",
+                "line": "Eligió el picante"
+            },
+            "cloud": {
+                "name": "Nube gruñona",
+                "line": "Se queja, pero viene"
+            },
+            "cube": {
+                "name": "Dado de la suerte",
+                "line": "Resuelve todo empate"
+            },
+            "donut": {
+                "name": "Dona glaseada",
+                "line": "Le falta el centro"
+            },
+            "drop": {
+                "name": "Té de burbujas",
+                "line": "Sorbe en pleno drama"
+            },
+            "egg": {
+                "name": "Galleta de la fortuna",
+                "line": "Ambigua a propósito"
+            },
+            "fish": {
+                "name": "Pez globo inflado",
+                "line": "Exagera a pedido"
+            },
+            "flower": {
+                "name": "Catarina de la suerte",
+                "line": "Se posa en la cuenta"
+            },
+            "frog": {
+                "name": "Ajolote sonriente",
+                "line": "Nunca dice que no"
+            },
+            "gem": {
+                "name": "Herradura de la suerte",
+                "line": "Pesada pero con suerte"
+            },
+            "ghost": {
+                "name": "Gato de la suerte",
+                "line": "Le sonríe al azar"
+            },
+            "heart": {
+                "name": "Capibara serena",
+                "line": "Todo le parece bien"
+            },
+            "leaf": {
+                "name": "Pretzel retorcido",
+                "line": "Le da mil vueltas al plan"
+            },
+            "moon": {
+                "name": "Tazón de ramen",
+                "line": "Cura la resaca"
+            },
+            "mushroom": {
+                "name": "Erizo espinoso",
+                "line": "Blandito por dentro"
+            },
+            "planet": {
+                "name": "Cangrejo de costado",
+                "line": "Esquiva la pregunta"
+            },
+            "star": {
+                "name": "Estrella de los deseos",
+                "line": "Cumple la mitad"
+            },
+            "sun": {
+                "name": "Ganso mandón",
+                "line": "Arrea al grupo"
+            }
+        }
     }
 }
