@@ -2714,8 +2714,8 @@ countryData.forEach((country) => {
                 withdrawList.push({
                     id: `${countryCode.toLowerCase()}-sepa-instant-withdraw`,
                     icon: 'bank' as IconName,
-                    title: 'Instant bank transfer',
-                    description: 'Fast euro bank transfers across Europe.',
+                    title: 'Euro bank transfers',
+                    description: 'Usually arrives within 20 minutes on business days.',
                     isSoon: false,
                 })
             }
