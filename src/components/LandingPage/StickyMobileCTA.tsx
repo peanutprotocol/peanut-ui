@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/0_Bruddle/Button'
+import StorePair from '@/components/Migration/StorePair'
 import type { LandingStrings } from './landingStrings'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
@@ -22,6 +23,10 @@ export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
     const migrationOn = useMigrationFlag()
     const tMigration = useTranslations('migration')
     const { deviceType } = useDeviceType()
+    // WEB on a bar that only exists below `md` means desktop-mode-on-a-phone
+    // (or a UA we don't recognise): guessing iOS there sent Android users to
+    // the App Store, so show both stores and let them pick.
+    const storeUnknown = deviceType === DeviceType.WEB
     const store = deviceType === DeviceType.ANDROID ? 'android' : 'ios'
     // memoized: this bar re-renders through scroll-driven animation frames,
     // and the android href builds the hand-off payload (cookie reads)
@@ -74,24 +79,30 @@ export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
                     }`}
                 >
                     {migrationOn ? (
-                        // this bar is md:hidden so the visitor is on a phone —
-                        // deep-link their store during the migration window
-                        <a
-                            href={storeHref}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="pointer-events-auto block"
-                            onClick={() => onStoreAnchorClick(store, MIGRATION_SURFACES.LANDING_HERO)}
-                        >
-                            <Button
-                                variant="purple"
-                                shadowSize="4"
-                                icon={store === 'ios' ? 'apple-logo' : 'google-play'}
-                                className="w-full py-3 text-base font-extrabold uppercase"
+                        storeUnknown ? (
+                            <div className="pointer-events-auto">
+                                <StorePair surface={MIGRATION_SURFACES.LANDING_HERO} appearance="compact" />
+                            </div>
+                        ) : (
+                            // this bar is md:hidden so the visitor is on a phone —
+                            // deep-link their store during the migration window
+                            <a
+                                href={storeHref}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="pointer-events-auto block"
+                                onClick={() => onStoreAnchorClick(store, MIGRATION_SURFACES.LANDING_HERO)}
                             >
-                                {tMigration('downloadNow')}
-                            </Button>
-                        </a>
+                                <Button
+                                    variant="purple"
+                                    shadowSize="4"
+                                    icon={store === 'ios' ? 'apple-logo' : 'google-play'}
+                                    className="w-full py-3 text-base font-extrabold uppercase"
+                                >
+                                    {tMigration('downloadNow')}
+                                </Button>
+                            </a>
+                        )
                     ) : (
                         <div className="pointer-events-auto flex items-center gap-4">
                             <Link prefetch={false} href="/setup" className="block flex-1">

@@ -14,7 +14,7 @@ import { StickyMobileCTA } from '@/components/LandingPage/StickyMobileCTA'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import type { LandingStrings } from './landingStrings'
 import type { Locale } from '@/i18n/types'
-import StoreBadges from '@/components/Migration/StoreBadges'
+import StorePair from '@/components/Migration/StorePair'
 import { type CTAButton } from '@/components/LandingPage/landing.types'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
@@ -281,7 +281,7 @@ export function LandingPageClient({
                 customCta={
                     migrationOn && isDesktop ? (
                         <div className="flex flex-col items-center">
-                            <StoreBadges surface={MIGRATION_SURFACES.LANDING_HERO} appearance="hero" />
+                            <StorePair surface={MIGRATION_SURFACES.LANDING_HERO} appearance="hero" />
                             {heroConfig.primaryCta.subtext && (
                                 <span className="mt-2 block text-center text-sm text-n-1 italic md:text-base">
                                     {heroConfig.primaryCta.subtext}

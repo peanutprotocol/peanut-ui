@@ -66,9 +66,24 @@ export function getMigrationCutoverTime(): number {
     return MIGRATION_CUTOVER_DATE.getTime()
 }
 
-/** track a store CTA click without navigating (for anchors that navigate themselves). */
-export function trackStoreClick(store: StoreKind, surface: MigrationSurface, handoff = false) {
-    posthog.capture(ANALYTICS_EVENTS.MIGRATION_STORE_CTA_CLICKED, { surface, store, handoff })
+/**
+ * track a store CTA click without navigating (for anchors that navigate themselves).
+ * `qrSurface` is only ever set on the /app smart link, where `surface` is
+ * always `smart_link`: it carries the landing surface whose QR produced the
+ * scan, so smart-link clicks join back to hero / app fold / footer / rates.
+ */
+export function trackStoreClick(
+    store: StoreKind,
+    surface: MigrationSurface,
+    handoff = false,
+    qrSurface?: MigrationSurface | null
+) {
+    posthog.capture(ANALYTICS_EVENTS.MIGRATION_STORE_CTA_CLICKED, {
+        surface,
+        store,
+        handoff,
+        ...(qrSurface ? { qr_surface: qrSurface } : {}),
+    })
 }
 
 /** context a bounce surface knows before any cookie is written (claim page invite CTA). */
@@ -116,14 +131,15 @@ export function openStore(store: StoreKind, surface: MigrationSurface, handoff?:
 /**
  * href for a store CTA that is a real anchor and navigates itself: android
  * carries the hand-off in the url; iOS can't (the clipboard needs the tap) —
- * pair with onStoreAnchorClick. never preventDefault such an anchor: its own
+ * pair with onStoreAnchorClick, passing it the SAME handoff so both channels
+ * carry the same context. never preventDefault such an anchor: its own
  * navigation is the fallback that still works where window.open is suppressed
  * (in-app browsers, strict popup blockers).
  */
-export function storeAnchorHref(store: StoreKind): string {
+export function storeAnchorHref(store: StoreKind, handoff?: StoreHandoff): string {
     if (!isCapacitor() && store === 'android') {
         try {
-            return playStoreUrlWithReferrer(buildDeferredPayload())
+            return playStoreUrlWithReferrer(buildDeferredPayload(handoff?.dest, handoff?.invite))
         } catch {
             // fall through to the bare url — the bounce itself never breaks
         }
@@ -132,14 +148,14 @@ export function storeAnchorHref(store: StoreKind): string {
 }
 
 /** tracking + iOS clipboard hand-off for a self-navigating store anchor. */
-export function onStoreAnchorClick(store: StoreKind, surface: MigrationSurface) {
+export function onStoreAnchorClick(store: StoreKind, surface: MigrationSurface, handoff?: StoreHandoff) {
     if (isCapacitor()) {
         trackStoreClick(store, surface)
         return
     }
     let payload = ''
     try {
-        payload = buildDeferredPayload()
+        payload = buildDeferredPayload(handoff?.dest, handoff?.invite)
     } catch {}
     trackStoreClick(store, surface, !!payload)
     if (store === 'ios' && payload)
