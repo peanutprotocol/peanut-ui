@@ -206,6 +206,17 @@ jobs:
                   node scripts/native-build.js && npx cap sync ios
                   if [ -f scripts/native-ios-postsync.js ]; then node scripts/native-ios-postsync.js; fi
 
+            - name: Write MeaWallet config
+              env:
+                  MEA_CONFIG: ${{ secrets.MEAWALLET_CONFIG_BASE64_IOS }}
+              run: |
+                  if [ -z "$MEA_CONFIG" ]; then
+                      echo "::error::MEAWALLET_CONFIG_BASE64_IOS is required for a production native release"
+                      exit 1
+                  fi
+                  printf '%s' "$MEA_CONFIG" | base64 --decode > ios/App/App/mea_config
+                  test -s ios/App/App/mea_config
+
             - name: Install Apple distribution certificate
               uses: apple-actions/import-codesign-certs@5142e029c445c10ffc7149d172e540235a065466 # v7
               with:

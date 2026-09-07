@@ -18,6 +18,8 @@
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
+		7A1C0DE7C11B0A4D2E5F3905 /* PushProvisioningPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1C0DE7C11B0A4D2E5F3906 /* PushProvisioningPlugin.swift */; };
+		7A1C0DE7C11B0A4D2E5F3907 /* WalletExtensionCardStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1C0DE7C11B0A4D2E5F3908 /* WalletExtensionCardStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -33,6 +35,8 @@
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
+		7A1C0DE7C11B0A4D2E5F3906 /* PushProvisioningPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushProvisioningPlugin.swift; sourceTree = "<group>"; };
+		7A1C0DE7C11B0A4D2E5F3908 /* WalletExtensionCardStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletExtensionCardStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -71,6 +75,8 @@
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
 				7A1C0DE7C11B0A4D2E5F3902 /* AppViewController.swift */,
+				7A1C0DE7C11B0A4D2E5F3906 /* PushProvisioningPlugin.swift */,
+				7A1C0DE7C11B0A4D2E5F3908 /* WalletExtensionCardStore.swift */,
 				7A1C0DE7C11B0A4D2E5F3904 /* ClipboardDetectPlugin.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
@@ -92,6 +98,7 @@
 				504EC3001FED79650016851F /* Sources */,
 				504EC3011FED79650016851F /* Frameworks */,
 				504EC3021FED79650016851F /* Resources */,
+				7A1C0DE7C11B0A4D2E5F3909 /* Bundle MeaWallet config */,
 			);
 			buildRules = (
 			);
@@ -160,6 +167,21 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		7A1C0DE7C11B0A4D2E5F3909 /* Bundle MeaWallet config */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			alwaysOutOfDate = 1;
+			files = ();
+			inputPaths = ();
+			outputPaths = ();
+			name = "Bundle MeaWallet config";
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "sh \"$SRCROOT/../../scripts/copy-ios-mea-config.sh\"";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		504EC3001FED79650016851F /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -167,6 +189,8 @@
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				7A1C0DE7C11B0A4D2E5F3901 /* AppViewController.swift in Sources */,
+				7A1C0DE7C11B0A4D2E5F3905 /* PushProvisioningPlugin.swift in Sources */,
+				7A1C0DE7C11B0A4D2E5F3907 /* WalletExtensionCardStore.swift in Sources */,
 				7A1C0DE7C11B0A4D2E5F3903 /* ClipboardDetectPlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

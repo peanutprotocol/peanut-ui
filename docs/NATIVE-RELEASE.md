@@ -505,7 +505,11 @@ Production Android releases require both MeaWallet Nexus credentials and the
 MeaWallet config. Production iOS archives compile with
 `PEANUT_REQUIRE_PUSH_PROVISIONING`; compilation fails if the SDK cannot be imported.
 The iOS sync step uses `MEAWALLET_NEXUS_USER_IOS` and
-`MEAWALLET_NEXUS_PASSWORD_IOS`. Local builds can still use the stub.
+`MEAWALLET_NEXUS_PASSWORD_IOS`. The archive also requires the iOS encrypted
+config in `MEAWALLET_CONFIG_BASE64_IOS`; the Xcode build phase refuses a missing
+or empty config and copies it into the app bundle. Both provisioning Swift files
+are app target sources and the bridge registers the plugin. Local builds can still
+use the stub.
 
 After both store builds succeed, Release Native writes a compiled-capability
 attestation into the annotated release tag. OTA checks that attestation in
