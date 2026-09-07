@@ -200,6 +200,8 @@ jobs:
                   # postsync stamps project.pbxproj; without this it would stamp
                   # package.json's version, which no longer tracks releases.
                   IOS_MARKETING_VERSION: ${{ steps.version.outputs.name }}
+                  MEAWALLET_NEXUS_USER: ${{ secrets.MEAWALLET_NEXUS_USER_IOS }}
+                  MEAWALLET_NEXUS_PASSWORD: ${{ secrets.MEAWALLET_NEXUS_PASSWORD_IOS }}
               run: |
                   node scripts/native-build.js && npx cap sync ios
                   if [ -f scripts/native-ios-postsync.js ]; then node scripts/native-ios-postsync.js; fi
@@ -296,6 +298,7 @@ jobs:
                       CURRENT_PROJECT_VERSION="$IOS_BUILD_NUMBER" \
                       "${MARKETING_ARG[@]}" \
                       SENTRY_DSN="$SENTRY_DSN" \
+                      'SWIFT_ACTIVE_COMPILATION_CONDITIONS=$(inherited) PEANUT_REQUIRE_PUSH_PROVISIONING' \
                       archive
 
                   xcodebuild \

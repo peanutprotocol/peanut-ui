@@ -215,8 +215,8 @@ jobs:
             # channel strategy, and lives in a dashboard CI cannot read — it
             # never reports that an incompatible bundle was built. The
             # fingerprint is a pure function of the tree, so the shipped binary's
-            # surface is exactly what its tag describes and no state has to be
-            # stored anywhere.
+            # code is described by its tag. The tag also attests that both
+            # release builds compiled the credential-gated native SDK.
             #
             # Failing here is the intended outcome, not an obstacle: it is
             # docs/NATIVE-RELEASE.md's "bump the native version whenever you
@@ -230,6 +230,7 @@ jobs:
                       echo "::error::no v$FLOOR tag in this checkout — cannot prove the bundle fits the binary it targets (needs fetch-depth: 0 and tags)" >&2
                       exit 1
                   fi
+                  node scripts/check-native-capabilities.mjs "v$FLOOR"
                   if ! node scripts/native-fingerprint.mjs --diff "v$FLOOR"; then
                       echo "::error::this tree's native surface differs from the v$FLOOR binary, so the JS about to ship was built against native code no released binary has. Cut a native release (Actions -> Release Native) before OTA'ing this tree." >&2
                       exit 1
