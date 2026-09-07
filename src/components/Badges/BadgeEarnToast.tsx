@@ -49,9 +49,11 @@ export default function BadgeEarnToast() {
     // Ids of the toast(s) currently on screen, so we can dismiss them when the
     // user navigates away from /home (they'd otherwise linger over the next route).
     const liveToastIdsRef = useRef<string[]>([])
-    // Pending timer for the delayed avatar toast, so a route change (or unmount)
-    // before it fires can cancel it instead of popping a toast on the wrong page.
-    const avatarTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    // Pending timers for delayed avatar toasts, so a route change (or unmount)
+    // before one fires can cancel it instead of popping a toast on the wrong
+    // page. A Set (not a single ref) because a later batch's effect run must
+    // not clobber an earlier batch's still-pending timer.
+    const avatarTimeoutsRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set())
 
     useEffect(() => {
         // Only surface on /home (never mid-onboarding) and only when there's
@@ -130,8 +132,8 @@ export default function BadgeEarnToast() {
         posthog.capture(ANALYTICS_EVENTS.BADGE_EARN_TOAST_SHOWN, { count })
 
         if (avatarCount > 0) {
-            avatarTimeoutRef.current = setTimeout(() => {
-                avatarTimeoutRef.current = null
+            const avatarTimeout = setTimeout(() => {
+                avatarTimeoutsRef.current.delete(avatarTimeout)
                 toast({
                     id: avatarToastId,
                     type: 'success',
@@ -147,6 +149,7 @@ export default function BadgeEarnToast() {
                 })
                 liveToastIdsRef.current.push(avatarToastId)
             }, AVATAR_TOAST_DELAY_MS)
+            avatarTimeoutsRef.current.add(avatarTimeout)
         }
 
         markSeen(codes)
@@ -159,18 +162,16 @@ export default function BadgeEarnToast() {
     // toast.
     useEffect(() => {
         if (pathname === HOME_PATH) return
-        if (avatarTimeoutRef.current) {
-            clearTimeout(avatarTimeoutRef.current)
-            avatarTimeoutRef.current = null
-        }
+        avatarTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout))
+        avatarTimeoutsRef.current.clear()
         liveToastIdsRef.current.forEach((id) => dismiss(id))
         liveToastIdsRef.current = []
     }, [pathname, dismiss])
 
-    // Unmount-only: cancel a still-pending avatar toast timer.
+    // Unmount-only: cancel any still-pending avatar toast timers.
     useEffect(() => {
         return () => {
-            if (avatarTimeoutRef.current) clearTimeout(avatarTimeoutRef.current)
+            avatarTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout))
         }
     }, [])
 
