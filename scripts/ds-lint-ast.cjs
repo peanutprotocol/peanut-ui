@@ -166,55 +166,85 @@ function resolveToObjectLiteral(node, ctx, depth, seen) {
 }
 
 /**
- * Every value the named property can hold, later-wins first, as an array of
- * `{ value, scopes }` — see the note above.
+ * A resolved object's fields in SOURCE order, with static spreads flattened in
+ * place.
  *
- * Usually one. It is more when a LATER computed key cannot be read: `{ x: a,
- * [k]: b }` really is `b` when `k === 'x'`, so committing to `a` reports a class
- * list the expression can produce a different one of. Both are kept and the
- * caller unions them.
+ * Source order is what makes last-wins expressible, and flattening in place is
+ * what makes `{ ...CONFIG, variants: … }` behave the way the runtime does. A
+ * spread that cannot be resolved is RECORDED rather than dropped: it could
+ * carry any key, so no caller may claim a key is absent behind one.
+ */
+function objectFields(table, ctx, depth, seen, into = []) {
+    if (depth > MAX_DEPTH) return into
+    const inner = { ...ctx, scopes: table.scopes }
+    for (const prop of table.node.properties) {
+        if (ts.isSpreadAssignment(prop)) {
+            const spread = resolveToObjectLiteral(prop.expression, inner, depth, seen)
+            if (spread) objectFields(spread, inner, depth + 1, seen, into)
+            else into.push({ key: null, value: null, ctx: inner, opaqueSpread: true })
+            continue
+        }
+        const shorthand = ts.isShorthandPropertyAssignment(prop)
+        if (!ts.isPropertyAssignment(prop) && !shorthand) continue
+        const key = shorthand ? prop.name.text : staticKeyName(prop.name, inner, depth + 1, seen)
+        into.push({
+            key,
+            value: shorthand ? prop.name : prop.initializer,
+            ctx: inner,
+            // An unreadable computed key can be ANY name, including one written
+            // definitively earlier in the same literal.
+            dynamicKey: key === null && !shorthand && ts.isComputedPropertyName(prop.name),
+        })
+    }
+    return into
+}
+
+/** Fields reduced to the ONE that wins per key, in first-appearance order. */
+function effectiveFields(fields) {
+    const byKey = new Map()
+    for (const field of fields) {
+        if (field.key === null) continue
+        byKey.set(field.key, field)
+    }
+    return [...byKey.values()]
+}
+
+/**
+ * Every value the named property can hold, later-wins first.
+ *
+ * `resolved` is the load-bearing half: an empty `values` beside it means the key
+ * is PROVABLY absent — `{ sm: … }.lg` renders nothing at all — while an
+ * unresolved table, or one hiding an opaque spread, cannot say that and leaves
+ * the caller to union the whole thing.
+ *
+ * More than one value when a LATER computed key cannot be read: `{ x: a, [k]: b }`
+ * really is `b` when `k === 'x'`, so committing to `a` reports a class list the
+ * expression can produce a different one of. Both are kept and the caller unions.
  */
 function propertiesByName(node, name, ctx, depth, seen) {
-    const target = resolveToObjectLiteral(node, ctx, depth, seen)
-    if (!target) return []
-    const inner = { ...ctx, scopes: target.scopes }
-    const found = []
-    // Later properties win, so walk backwards — and follow spreads, since
-    // `{ ...BASE }` really does carry BASE's keys.
-    for (let i = target.node.properties.length - 1; i >= 0; i--) {
-        const prop = target.node.properties[i]
-        if (ts.isSpreadAssignment(prop)) {
-            found.push(...propertiesByName(prop.expression, name, inner, depth + 1, seen))
-            if (found.length > 0) return found
-            continue
+    const table = resolveToObjectLiteral(node, ctx, depth, seen)
+    if (!table) return { resolved: false, values: [] }
+    const fields = objectFields(table, ctx, depth, seen)
+    const values = []
+    // Backwards, because later properties win.
+    for (let i = fields.length - 1; i >= 0; i--) {
+        const field = fields[i]
+        if (field.key === name) {
+            values.push({ value: field.value, scopes: field.ctx.scopes })
+            return { resolved: true, values }
         }
-        // A shorthand entry's own name is both the key and the expression.
-        if (ts.isShorthandPropertyAssignment(prop)) {
-            if (prop.name.text === name) {
-                found.push({ value: prop.name, scopes: target.scopes })
-                return found
-            }
-            continue
-        }
-        if (!ts.isPropertyAssignment(prop)) continue
-        const keyText = staticKeyName(prop.name, inner, depth + 1, seen)
-        if (keyText === name) {
-            found.push({ value: prop.initializer, scopes: target.scopes })
-            return found
-        }
-        // An unreadable computed key MIGHT be this one. Keep its value as a
-        // possibility and carry on looking for the definite match behind it.
-        if (keyText === null && ts.isComputedPropertyName(prop.name)) {
-            found.push({ value: prop.initializer, scopes: target.scopes })
-        }
+        // Either could be the requested key under another name.
+        if (field.dynamicKey) values.push({ value: field.value, scopes: field.ctx.scopes })
+        else if (field.opaqueSpread) return { resolved: false, values }
     }
-    return found
+    // Ran off the front with no definite match: the key really is not there.
+    return { resolved: true, values }
 }
 
 /** The single winning value for a name, ignoring any dynamic aliases. */
 function propertyByName(node, name, ctx, depth, seen) {
-    const found = propertiesByName(node, name, ctx, depth, seen)
-    return found.length > 0 ? found[found.length - 1] : null
+    const { values } = propertiesByName(node, name, ctx, depth, seen)
+    return values.length > 0 ? values[values.length - 1] : null
 }
 
 /**
@@ -274,7 +304,13 @@ function staticText(node, ctx, depth = 0, seen = new Set()) {
  */
 function staticKeyName(name, ctx, depth = 0, seen = new Set()) {
     if (!name) return null
-    if (ts.isIdentifier(name) || ts.isStringLiteral(name) || ts.isNoSubstitutionTemplateLiteral(name)) {
+    if (
+        ts.isIdentifier(name) ||
+        ts.isStringLiteral(name) ||
+        ts.isNoSubstitutionTemplateLiteral(name) ||
+        // `{ 0: … }` is a property named "0" — the runtime stringifies the key.
+        ts.isNumericLiteral(name)
+    ) {
         return name.text
     }
     if (ts.isComputedPropertyName(name)) return staticText(name.expression, ctx, depth, seen)
@@ -499,7 +535,12 @@ function alternatives(node, ctx, depth = 0, seen = new Set(), mode = LOOKUP_OBJE
         // inside a builder call: `clsx(SIZES[variant])` picks a variant, it does
         // not apply the whole table.
         const selected = propertiesByName(node.expression, node.name.text, ctx, depth, seen)
-        if (selected.length > 0) return unionOfSelected(selected, ctx, depth, seen)
+        // `resolved` says the table was READ, so an empty result means the key
+        // is provably absent and the access renders nothing — unioning the table
+        // there borrows a class from an entry the name can never reach.
+        if (selected.resolved || selected.values.length > 0) {
+            return unionOfSelected(selected.values, ctx, depth, seen)
+        }
         return alternatives(node.expression, ctx, depth + 1, seen, LOOKUP_OBJECT)
     }
     if (ts.isElementAccessExpression(node)) {
@@ -508,13 +549,16 @@ function alternatives(node, ctx, depth = 0, seen = new Set(), mode = LOOKUP_OBJE
         // one level left `const k = actual` reading as dynamic, and the union
         // fallback then borrowed a class from an entry the key cannot reach.
         const arg = node.argumentExpression
-        const keyText = staticText(arg, ctx, depth + 1, seen)
+        // A numeric index is also a property NAME: `{ 0: … }[0]` selects, and
+        // the runtime stringifies the key. Try the object first, then the array.
+        const index = staticIndex(arg, ctx, depth + 1, seen)
+        const keyText = staticText(arg, ctx, depth + 1, seen) ?? (index === null ? null : String(index))
         if (keyText !== null) {
             const selected = propertiesByName(node.expression, keyText, ctx, depth, seen)
-            if (selected.length > 0) return unionOfSelected(selected, ctx, depth, seen)
+            if (selected.resolved || selected.values.length > 0) {
+                return unionOfSelected(selected.values, ctx, depth, seen)
+            }
         }
-        // The same for a constant index into an array.
-        const index = staticIndex(arg, ctx, depth + 1, seen)
         if (index !== null) {
             const selected = elementByIndex(node.expression, index, ctx, depth, seen)
             if (selected) {
@@ -586,48 +630,25 @@ function cvaAlternatives(node, ctx, depth, seen) {
     let compounds = null
     // Every axis by name, so a compound can product against the ones it leaves free.
     const axisAlts = new Map()
-    // Spreads FIRST, so an explicit property written alongside `...CONFIG`
-    // still wins — the same override order the runtime has. Each spread is
-    // resolved with its own declaring scopes, which is why the fields come back
-    // paired with a context rather than as bare nodes.
-    const configFields = []
-    const collectFields = (table, tableCtx, atDepth) => {
-        if (atDepth > MAX_DEPTH) return
-        for (const prop of table.node.properties) {
-            if (ts.isSpreadAssignment(prop)) {
-                const spread = resolveToObjectLiteral(prop.expression, tableCtx, atDepth, seen)
-                if (spread) collectFields(spread, { ...tableCtx, scopes: spread.scopes }, atDepth + 1)
-                continue
-            }
-            const isShorthand = ts.isShorthandPropertyAssignment(prop)
-            if (!ts.isPropertyAssignment(prop) && !isShorthand) continue
-            configFields.push({
-                key: isShorthand ? prop.name.text : staticKeyName(prop.name, tableCtx, atDepth + 1, seen),
-                field: isShorthand ? prop.name : prop.initializer,
-                fieldCtx: tableCtx,
-            })
-        }
-    }
-    collectFields(configTable, configCtx, depth)
-
-    for (const { key, field, fieldCtx } of configFields) {
+    // Spreads flattened in place and reduced to the winner per key. Composing
+    // BOTH `variants` fields of `{ ...CONFIG, variants: … }` put the overridden
+    // table's classes into the output beside the ones that actually render.
+    for (const { key, value: field, ctx: fieldCtx } of effectiveFields(
+        objectFields(configTable, configCtx, depth, seen)
+    )) {
         if (key === 'variants') {
             variants = resolveToObjectLiteral(field, fieldCtx, depth, seen)
             if (!variants) continue
             const variantsCtx = { ...ctx, scopes: variants.scopes }
-            for (const axis of variants.node.properties) {
-                if (!ts.isPropertyAssignment(axis) && !ts.isShorthandPropertyAssignment(axis)) continue
-                const isShorthand = ts.isShorthandPropertyAssignment(axis)
-                // Through `staticKeyName`, so `[axis]: { … }` is recorded under
-                // the name it resolves to. Its options reached the ordinary
-                // output either way, but an unnamed axis was invisible to
-                // `axisAlts` and so could never be one of the free axes a
-                // compound products against.
-                const axisName = isShorthand ? axis.name.text : staticKeyName(axis.name, variantsCtx, depth + 1, seen)
-                const initializer = isShorthand ? axis.name : axis.initializer
+            // Same reader as the config: `{ ...TONE, size: … }` is how a table
+            // gets composed once an axis is hoisted, and skipping the spread
+            // lost every axis it carried. Names come from `staticKeyName`, so a
+            // computed `[axis]:` is recorded too — an unnamed axis was invisible
+            // to `axisAlts` and could never be a free axis for a compound.
+            for (const axis of effectiveFields(objectFields(variants, variantsCtx, depth, seen))) {
                 // union WITHIN the axis, product ACROSS axes
-                const alts = alternatives(initializer, variantsCtx, depth + 1, seen, LOOKUP_OBJECT)
-                if (axisName !== null) axisAlts.set(axisName, alts)
+                const alts = alternatives(axis.value, axis.ctx, depth + 1, seen, LOOKUP_OBJECT)
+                axisAlts.set(axis.key, alts)
                 out = product(out, alts)
             }
         } else if (key === 'compoundVariants') {
@@ -658,11 +679,9 @@ function cvaAlternatives(node, ctx, depth, seen) {
         // A selector resolved to NO options can never match, so the compound's
         // classes never render alongside anything.
         let impossible = false
-        for (const prop of compound.node.properties) {
-            const shorthand = ts.isShorthandPropertyAssignment(prop)
-            if (!ts.isPropertyAssignment(prop) && !shorthand) continue
-            const name = shorthand ? prop.name.text : staticKeyName(prop.name, entryCtx, depth + 1, seen)
-            const field = { initializer: shorthand ? prop.name : prop.initializer }
+        for (const prop of effectiveFields(objectFields(compound, entryCtx, depth, seen))) {
+            const name = prop.key
+            const field = { initializer: prop.value }
             if (name === 'class' || name === 'className') {
                 classes = product(classes, alternatives(field.initializer, entryCtx, depth + 1, seen, BUILDER_OBJECT))
                 continue
@@ -1020,10 +1039,20 @@ function weightStackSites(text, filename, { isToken, isWeight }) {
                 : node.statements
             scopes.push(declarationBindings(statements))
         }
+        // Parameter defaults are evaluated in the PARAMETER environment, which
+        // cannot see the body's hoisted `var`s — `function f(x = style) { var
+        // style }` reads the outer `style`. Installing the body vars for the
+        // whole function node shadowed it and lost a real finding, so the
+        // parameters are walked under the parameter scope alone and the body
+        // vars are added afterwards, for the body's own traversal.
+        let hoistedScope = null
         if (isFunctionLike(node)) {
-            const fnScope = parameterBindings(node)
-            if (node.body) for (const name of hoistedVarNames(node.body)) fnScope.set(name, OPAQUE)
-            scopes.push(fnScope)
+            scopes.push(parameterBindings(node))
+            const hoisted = node.body ? hoistedVarNames(node.body) : []
+            if (hoisted.length > 0) {
+                hoistedScope = new Map()
+                for (const name of hoisted) hoistedScope.set(name, OPAQUE)
+            }
         }
         const other = otherScopeBindings(node)
         if (other.size > 0) scopes.push(other)
@@ -1041,7 +1070,16 @@ function weightStackSites(text, filename, { isToken, isWeight }) {
         } else if (ts.isNoSubstitutionTemplateLiteral(node) || ts.isTemplateExpression(node)) {
             record(alternatives(node, ctx))
         }
-        ts.forEachChild(node, visit)
+        if (hoistedScope) {
+            for (const parameter of node.parameters ?? []) visit(parameter)
+            ctx.scopes.push(hoistedScope)
+            ts.forEachChild(node, (child) => {
+                if (!(node.parameters ?? []).includes(child)) visit(child)
+            })
+            ctx.scopes.pop()
+        } else {
+            ts.forEachChild(node, visit)
+        }
 
         for (let i = 0; i < scopes.length; i++) ctx.scopes.pop()
     }

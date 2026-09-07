@@ -404,6 +404,96 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
         ).toBe(1)
     })
 
+    it('renders nothing for a key a resolved table does not have', () => {
+        // `resolved` is what separates this from an unreadable table: unioning
+        // here borrows a class from an entry the name can never reach.
+        expect(countWeightStacks("const S = { sm: 'text-body-m' }; const c = clsx(S.lg, 'font-semibold')")).toBe(0)
+        // an UNRESOLVED table still unions — absence has to be proven
+        expect(countWeightStacks("function f(S) { return clsx(S.lg, 'font-semibold') }")).toBe(0)
+        // ...and a table hiding an opaque spread cannot claim absence either
+        expect(
+            countWeightStacks(
+                "function f(REST) { const S = { sm: 'text-body-m', ...REST }; return clsx(S.lg, 'font-semibold') }"
+            )
+        ).toBe(1)
+    })
+
+    it('looks past a non-matching spread to the definite property behind it', () => {
+        // The known-empty spread must not end the search once a later dynamic
+        // key has been collected — `f('y')` renders the earlier `x`.
+        expect(
+            countWeightStacks(
+                "function f(k) { const EMPTY = {}; const S = { x: 'text-body-m', ...EMPTY, [k]: 'underline' }; return clsx(S.x, 'font-semibold') }"
+            )
+        ).toBe(1)
+    })
+
+    it('selects a numeric object key rather than unioning the map', () => {
+        expect(
+            countWeightStacks("const S = { 0: 'underline', 1: 'text-body-m' }; const c = clsx(S[0], 'font-semibold')")
+        ).toBe(0)
+        expect(
+            countWeightStacks("const S = { 0: 'text-body-m', 1: 'underline' }; const c = clsx(S[0], 'font-semibold')")
+        ).toBe(1)
+        // the array path still works — it is tried after the object
+        expect(countWeightStacks("const A = ['text-body-m', 'underline']; const c = clsx(A[0], 'font-semibold')")).toBe(
+            1
+        )
+    })
+
+    it('reads spread axes and honours the winning variants table', () => {
+        expect(
+            countWeightStacks(
+                "const TONE = { tone: { loud: 'text-body-m' } }; const c = cva('base', { variants: { ...TONE, size: { sm: 'font-semibold' } } })"
+            )
+        ).toBe(1)
+        // the explicit table wins over the spread, so the overridden classes are
+        // not composed alongside the ones that actually render
+        expect(
+            countWeightStacks(
+                "const CONFIG = { variants: { tone: { loud: 'font-semibold' } } }; const c = cva('base', { ...CONFIG, variants: { tone: { loud: 'text-body-m' } } })"
+            )
+        ).toBe(0)
+        // ...and the winner is the LATER field, not the first one seen: here the
+        // override is what carries the stack, so first-wins would report 0.
+        expect(
+            countWeightStacks(
+                "const CONFIG = { variants: { tone: { loud: 'underline' } } }; const c = cva('font-semibold', { ...CONFIG, variants: { tone: { loud: 'text-body-m' } } })"
+            )
+        ).toBe(1)
+    })
+
+    it('expands a spread inside a cva compound entry', () => {
+        expect(
+            countWeightStacks(
+                "const C = { tone: 'loud', class: 'font-semibold' }; const c = cva('base', { variants: { tone: { loud: 'text-body-m' } }, compoundVariants: [{ ...C }] })"
+            )
+        ).toBe(1)
+        // and the entry's own field still overrides what the spread carried
+        expect(
+            countWeightStacks(
+                "const C = { tone: 'loud', class: 'font-semibold' }; const c = cva('base', { variants: { tone: { loud: 'text-body-m', quiet: 'x' } }, compoundVariants: [{ ...C, tone: 'quiet' }] })"
+            )
+        ).toBe(0)
+    })
+
+    it('keeps body vars out of the parameter environment', () => {
+        // A default initializer is evaluated before the body exists, so it reads
+        // the OUTER binding; installing the body's hoisted vars for the whole
+        // function shadowed it and lost the finding.
+        expect(
+            countWeightStacks(
+                "const style = 'text-body-m'; function f(x = clsx(style, 'font-semibold')) { var style = 'underline' }"
+            )
+        ).toBe(1)
+        // inside the body the var really does shadow
+        expect(
+            countWeightStacks(
+                "const style = 'text-body-m'; function f(x) { var style = 'underline'; return clsx(style, 'font-semibold') }"
+            )
+        ).toBe(0)
+    })
+
     it('folds a fully static template into the string it renders', () => {
         expect(countWeightStacks("const c = clsx(`${'text-body'}-m font-semibold`)")).toBe(1)
         // the mirror renders ONE glued class, so it is not a stack
