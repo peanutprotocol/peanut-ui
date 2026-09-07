@@ -771,7 +771,6 @@ function patternNames(name, into) {
 
 /** Record a declaration list's names, inlining only a plain `const x = <expr>`. */
 function recordDeclarationList(list, bindings) {
-    // eslint-disable-next-line no-bitwise
     const isConst = !!(list.flags & ts.NodeFlags.Const)
     for (const decl of list.declarations) {
         if (ts.isIdentifier(decl.name)) {
@@ -854,7 +853,6 @@ function hoistedVarNames(body) {
               ? node.initializer
               : null
         if (list) {
-            // eslint-disable-next-line no-bitwise
             const isVar = !(list.flags & (ts.NodeFlags.Const | ts.NodeFlags.Let))
             if (isVar) for (const decl of list.declarations) patternNames(decl.name, names)
         }
