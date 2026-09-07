@@ -192,7 +192,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                 reasonCode={mantecaRejection.reasonCode ?? undefined}
                 regionName={selectedCountry ? localizedCountryTitle(locale, selectedCountry) : undefined}
             />
-            <SumsubKycModals flow={sumsubFlow} />
+            <SumsubKycModals flow={sumsubFlow} onCooldownClose={() => setShowKycModal(false)} />
         </div>
     )
 }

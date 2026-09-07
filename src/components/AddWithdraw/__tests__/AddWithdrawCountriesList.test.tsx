@@ -14,7 +14,7 @@
  * gate is NOT ready — so the fix didn't just delete the guard wholesale.
  */
 import React from 'react'
-import { render as rtlRender, screen, fireEvent, within } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent, within, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import AddWithdrawCountriesList from '../AddWithdrawCountriesList'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
@@ -181,7 +181,8 @@ jest.mock('@/components/Kyc/ProvideEmailStep', () => ({
     default: (props: any) => (props.visible ? <div data-testid="provide-email-sheet" /> : null),
 }))
 jest.mock('@/components/Kyc/InitiateKycModal', () => ({
-    InitiateKycModal: (props: any) => (props.visible ? <div data-testid="initiate-kyc-modal" /> : null),
+    InitiateKycModal: (props: any) =>
+        props.visible && !props.cooldownActive ? <div data-testid="initiate-kyc-modal" /> : null,
 }))
 jest.mock('next/image', () => ({ __esModule: true, default: () => null }))
 
@@ -372,4 +373,27 @@ describe('restart cooldown in add and withdraw flows', () => {
         fireEvent.click(screen.getByText("I'll try later"))
         expect(mockDismissCooldown).toHaveBeenCalledTimes(1)
     })
+})
+
+it('closing a cooldown also closes the underlying bank initiation prompt', async () => {
+    setCapabilities('needs-identity', [])
+    const { rerender } = render(<AddWithdrawCountriesList flow="add" />)
+    fireEvent.click(screen.getByTestId('method-bank'))
+    expect(screen.getByTestId('initiate-kyc-modal')).toBeInTheDocument()
+    mockCooldown = { retryAt: '2026-09-08T18:57:00Z' }
+    rerender(
+        <IntlWrapper>
+            <AddWithdrawCountriesList flow="add" />
+        </IntlWrapper>
+    )
+    expect(screen.queryByTestId('initiate-kyc-modal')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByText("I'll try later"))
+    mockCooldown = null
+    rerender(
+        <IntlWrapper>
+            <AddWithdrawCountriesList flow="add" />
+        </IntlWrapper>
+    )
+    expect(screen.queryByTestId('initiate-kyc-modal')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText("I'll try later")).not.toBeInTheDocument())
 })

@@ -633,7 +633,13 @@ export default function WithdrawBankPage() {
                 onClose={pendingModal.close}
                 message={pendingModal.message}
             />
-            <SumsubKycModals flow={sumsubFlow} />
+            <SumsubKycModals
+                flow={sumsubFlow}
+                onCooldownClose={() => {
+                    setShowKycModal(false)
+                    resetUpliftFunnel()
+                }}
+            />
         </div>
     )
 }

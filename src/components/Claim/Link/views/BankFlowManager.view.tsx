@@ -317,36 +317,39 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     // claim path refuses inside handleSuccess, and the modal has to exist where
     // that refusal happens or the submit is a silent no-op.
     const kycModal = (
-        <InitiateKycModal
-            cooldownActive={!!sumsubFlow.errorCooldown}
-            visible={showKycModal}
-            onClose={() => setShowKycModal(false)}
-            onVerify={async () => {
-                if (gate.kind === 'restart-identity') {
-                    await sumsubFlow.handleRestartIdentity()
-                } else if (gate.kind === 'fixable-rejection') {
-                    await sumsubFlow.handleSelfHealResubmit('BRIDGE')
-                } else {
-                    await sumsubFlow.handleInitiateKyc(
-                        bankRegionIntent(selectedCountry?.region ?? 'rest-of-the-world'),
-                        undefined,
-                        gate.kind === 'needs-enrollment' || undefined,
-                        selectedCountry?.id
-                    )
-                }
-                // only close if sdk opened — if it errored, keep modal open to show error
-                if (sumsubFlow.showWrapper) setShowKycModal(false)
-            }}
-            onContactSupport={() => {
-                setShowKycModal(false)
-                setIsSupportModalOpen(true)
-            }}
-            isLoading={sumsubFlow.isLoading}
-            error={sumsubFlow.error}
-            variant={getKycModalVariant(gate.kind)}
-            providerMessage={getGateUserMessage(gate)}
-            reasonCode={getGateReasonCode(gate)}
-        />
+        <>
+            <InitiateKycModal
+                cooldownActive={!!sumsubFlow.errorCooldown}
+                visible={showKycModal}
+                onClose={() => setShowKycModal(false)}
+                onVerify={async () => {
+                    if (gate.kind === 'restart-identity') {
+                        await sumsubFlow.handleRestartIdentity()
+                    } else if (gate.kind === 'fixable-rejection') {
+                        await sumsubFlow.handleSelfHealResubmit('BRIDGE')
+                    } else {
+                        await sumsubFlow.handleInitiateKyc(
+                            bankRegionIntent(selectedCountry?.region ?? 'rest-of-the-world'),
+                            undefined,
+                            gate.kind === 'needs-enrollment' || undefined,
+                            selectedCountry?.id
+                        )
+                    }
+                    // only close if sdk opened — if it errored, keep modal open to show error
+                    if (sumsubFlow.showWrapper) setShowKycModal(false)
+                }}
+                onContactSupport={() => {
+                    setShowKycModal(false)
+                    setIsSupportModalOpen(true)
+                }}
+                isLoading={sumsubFlow.isLoading}
+                error={sumsubFlow.error}
+                variant={getKycModalVariant(gate.kind)}
+                providerMessage={getGateUserMessage(gate)}
+                reasonCode={getGateReasonCode(gate)}
+            />
+            <SumsubKycModals flow={sumsubFlow} onCooldownClose={() => setShowKycModal(false)} />
+        </>
     )
 
     const handleSuccess = async (
@@ -623,7 +626,6 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                         error={error}
                     />
                     {kycModal}
-                    <SumsubKycModals flow={sumsubFlow} />
                 </div>
             )
         case ClaimBankFlowStep.BankConfirmClaim:

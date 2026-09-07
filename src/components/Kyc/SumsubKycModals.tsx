@@ -6,6 +6,7 @@ import { type useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 
 interface SumsubKycModalsProps {
     flow: ReturnType<typeof useMultiPhaseKycFlow>
+    onCooldownClose?: () => void
 }
 
 /**
@@ -15,10 +16,16 @@ interface SumsubKycModalsProps {
  *
  * pair with useMultiPhaseKycFlow hook for the logic.
  */
-export const SumsubKycModals = ({ flow }: SumsubKycModalsProps) => {
+export const SumsubKycModals = ({ flow, onCooldownClose }: SumsubKycModalsProps) => {
     return (
         <>
-            <KycRestartCooldownModal cooldown={flow.errorCooldown} onClose={flow.dismissErrorCooldown} />
+            <KycRestartCooldownModal
+                cooldown={flow.errorCooldown}
+                onClose={() => {
+                    onCooldownClose?.()
+                    flow.dismissErrorCooldown()
+                }}
+            />
             <SumsubKycWrapper
                 visible={flow.showWrapper}
                 accessToken={flow.accessToken}

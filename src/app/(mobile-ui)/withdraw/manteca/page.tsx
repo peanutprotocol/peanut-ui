@@ -720,7 +720,7 @@ function MantecaBankWithdrawFlow() {
                 reasonCode={mantecaRejection.reasonCode ?? undefined}
                 regionName={selectedCountry && localizedCountryTitle(locale, selectedCountry)}
             />
-            <SumsubKycModals flow={sumsubFlow} />
+            <SumsubKycModals flow={sumsubFlow} onCooldownClose={() => setShowKycModal(false)} />
             <SumsubKycWrapper
                 visible={limitIncreaseFlow.showWrapper}
                 accessToken={limitIncreaseFlow.accessToken}
