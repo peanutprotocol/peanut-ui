@@ -175,6 +175,20 @@ describe('ProfileHeader share pill', () => {
         // sharing is not copying: the handle segment owns that event
         expect(posthog.capture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.PROFILE_LINK_COPIED, expect.anything())
     })
+
+    // One pressed surface, two hit areas: the frame carries the press the
+    // shipped one-button pill had, so neither segment tears off on its own. The
+    // trailing share glyph draws no box — it reaches 44px through `after:`.
+    it('presses as one pill and keeps the share icon a trailing glyph', () => {
+        renderWithIntl(<ProfileHeader name="Satoshi" username="satoshi" showShareButton />)
+
+        expect(copySegment()!.parentElement).toHaveClass('active:bg-action-primary')
+        expect(copySegment()).not.toHaveClass('active:bg-action-primary')
+
+        const { className } = mockShareButton.mock.calls.at(-1)![0] as { className: string }
+        expect(className).toContain('h-auto')
+        expect(className).toContain('after:-inset-3.5')
+    })
 })
 
 describe('ProfileHeader avatar', () => {
@@ -183,6 +197,9 @@ describe('ProfileHeader avatar', () => {
         renderWithIntl(
             <ProfileHeader name="Satoshi" username="satoshi" showShareButton onChangeAvatar={onChangeAvatar} />
         )
+
+        // the DS Button, so the pressed state comes from `.btn-*`
+        expect(avatarButton()).toHaveClass('btn')
 
         fireEvent.click(avatarButton()!)
 

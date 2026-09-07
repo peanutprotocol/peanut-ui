@@ -1,5 +1,6 @@
 import { Icon } from '@/components/Global/Icons/Icon'
 import ShareButton from '@/components/Global/ShareButton'
+import { Button } from '@/components/0_Bruddle/Button'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { copyTextToClipboard } from '@/utils/clipboard.utils'
@@ -16,9 +17,11 @@ import { useAuth } from '@/context/authContext'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 
 const REFERRAL_PILL_PROPS = { source: REFERRAL_SOURCES.PROFILE_HEADER, link_type: 'profile' } as const
-// The pill's two segments are plain hit areas: the frame draws the border and
-// the shadow, each segment only keeps the DS focus ring.
-const SEGMENT_FOCUS = 'focus-visible:outline-[3px] focus-visible:outline-action-focus'
+// The pill is one pressed surface with two hit areas inside it: the frame draws
+// the chrome AND the press (the shipped pill's own `primary-soft` values), so a
+// tap on either segment presses the whole pill instead of tearing it in half.
+const PILL_FRAME =
+    'flex h-10 max-w-full items-center rounded-full border border-border-default bg-background-default pr-4 pl-6 shadow-4 transition-all duration-instant active:translate-x-1 active:translate-y-1 active:bg-action-primary active:shadow-none'
 
 interface ProfileHeaderProps {
     name: string
@@ -96,17 +99,19 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     round button, so the tap target reads as one (TASK-22142). */}
                 {isSelfProfile ? (
                     onChangeAvatar ? (
-                        <button
+                        // the DS button, so the press (stroke → action-primary,
+                        // translate, shadow drop) is the one in `.btn-*` and is
+                        // never re-implemented here
+                        <Button
                             type="button"
+                            variant="stroke"
+                            shadowSize="4"
                             onClick={onChangeAvatar}
                             aria-label={tAvatar('change')}
-                            className={twMerge(
-                                'flex size-16 items-center justify-center rounded-full border border-border-default bg-background-default shadow-4',
-                                SEGMENT_FOCUS
-                            )}
+                            className="size-16 w-16 shrink-0 rounded-full p-0"
                         >
                             {ownAvatar('small')}
-                        </button>
+                        </Button>
                     ) : (
                         ownAvatar('large')
                     )
@@ -140,11 +145,13 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     link, the icon shares it. Never a button inside a button, so
                     the frame is a div. */}
                 {pillVisible && (
-                    <div className="flex h-10 max-w-full items-center rounded-full border border-border-default bg-background-default pr-4 pl-6 shadow-4">
+                    <div className={PILL_FRAME}>
                         <button
                             type="button"
                             onClick={copyProfileUrl}
-                            className={twMerge('flex h-full min-w-0 items-center rounded-full', SEGMENT_FOCUS)}
+                            // no chrome of its own — the frame has it all, down
+                            // to the press; only the DS focus ring is local
+                            className="flex h-full min-w-0 items-center rounded-full focus-visible:outline-[3px] focus-visible:outline-action-focus"
                         >
                             {/* the url alone reads as a link, not as an action */}
                             <span className="sr-only">{tGlobal('copyToClipboard.copyProfileLink')}</span>
@@ -159,9 +166,11 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                                 </>
                             )}
                         </button>
-                        {/* 16px icon on a 32px box, hit area extended to 44px as
-                            the nav circles do. The frame draws the chrome, so no
-                            border, no shadow and no press translate of its own. */}
+                        {/* The pill's trailing glyph, 16px as the shipped pill
+                            draws it — not an icon-only button, so it gets no box
+                            of its own: the frame is the pressed surface and the
+                            hit area comes from the `after:` inset (44px). Same
+                            flattening as the receipt's referral nudge. */}
                         <ShareButton
                             url={profileUrl}
                             title=""
@@ -170,10 +179,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                             onSuccess={() =>
                                 posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, REFERRAL_PILL_PROPS)
                             }
-                            className={twMerge(
-                                'relative ml-1 size-8 w-8 shrink-0 p-0 shadow-none after:absolute after:-inset-1.5 active:translate-x-0 active:translate-y-0',
-                                SEGMENT_FOCUS
-                            )}
+                            className="relative ml-1 h-auto w-auto shrink-0 p-0 shadow-none after:absolute after:-inset-3.5 active:translate-x-0 active:translate-y-0"
                         >
                             <span className="sr-only">{tGlobal('shareButton.share')}</span>
                             <Icon name="share" size={16} fill="black" />
