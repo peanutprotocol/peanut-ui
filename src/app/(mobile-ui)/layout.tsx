@@ -28,6 +28,7 @@ import { IS_DEV } from '@/constants/general.consts'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import { FixtureBanner } from '@/dev/fixtures/FixtureBanner'
 import { usePullToRefresh, useShouldPullToRefresh } from '@/hooks/usePullToRefresh'
+import { useLongPressGuard } from '@/hooks/useLongPressGuard'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { useAccountSetupRedirect } from '@/hooks/useAccountSetupRedirect'
 import { useNativePlugins } from '@/hooks/useNativePlugins'
@@ -78,6 +79,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
     // enable pull-to-refresh for both ios and android
     usePullToRefresh({ shouldPullToRefresh: useShouldPullToRefresh() })
+
+    // no OS long-press link preview on app-shell CTAs and menu rows
+    useLongPressGuard()
 
     const isRedirecting = useRef(false)
 
