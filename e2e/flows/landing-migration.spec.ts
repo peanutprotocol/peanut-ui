@@ -5,8 +5,9 @@
  * breakpoint and a phone, with the flag off and on. Three assertions carry the
  * whole fold budget: the flag-on page actually rendered its lockup, nothing
  * scrolls sideways, and the yellow marquee under the hero is still above the
- * fold on a laptop. All three are what the CTA lockup can break, and none is
- * visible in a unit test.
+ * fold on a laptop with the flag on. All three are what the CTA lockup can
+ * break, and none is visible in a unit test. With the flag off the marquee is
+ * measured against dev's own value, not against the fold — see VIEWPORTS.
  *
  * Two things this spec has to arrange for itself:
  *
@@ -38,12 +39,25 @@ const LOCALES = ['/', '/es-419', '/es-ar', '/pt-br'] as const
 const DESKTOP_UA =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
 
+// `marqueeCeilingFlagOff` is the fold budget for the page this branch does NOT
+// change. At 1366x768 the flag-off hero has never fit the marquee in the fold:
+// it measures 814px on origin/dev today (all four locales, CI run 34123714386
+// and a run against the branch preview). Asserting `< height` there would fail
+// on dev's own layout, so the flag-off gate is "no worse than dev" — the flag-on
+// gate below stays strict, and flag-on measures 740px, i.e. better than both.
 const VIEWPORTS = [
-    { name: '1440x900', width: 1440, height: 900, desktop: true, marqueeInFold: true },
-    { name: '1366x768', width: 1366, height: 768, desktop: true, marqueeInFold: true },
+    { name: '1440x900', width: 1440, height: 900, desktop: true, marqueeInFold: true, marqueeCeilingFlagOff: null },
+    { name: '1366x768', width: 1366, height: 768, desktop: true, marqueeInFold: true, marqueeCeilingFlagOff: 814 },
     // the md breakpoint exactly: the get-the-app fold's 3-up is tightest here
-    { name: '768x1024', width: 768, height: 1024, desktop: true, marqueeInFold: false },
-    { name: '390x844', width: 390, height: 844, desktop: false, marqueeInFold: false },
+    {
+        name: '768x1024',
+        width: 768,
+        height: 1024,
+        desktop: true,
+        marqueeInFold: false,
+        marqueeCeilingFlagOff: null,
+    },
+    { name: '390x844', width: 390, height: 844, desktop: false, marqueeInFold: false, marqueeCeilingFlagOff: null },
 ] as const
 
 const slug = (route: string) => (route === '/' ? 'en' : route.replace(/\//g, ''))
@@ -123,9 +137,17 @@ test.describe('landing page, pwa-sunset', () => {
                         expect(await hasHorizontalOverflow(page)).toBe(false)
 
                         if (viewport.marqueeInFold) {
-                            // the hero is tuned so the strip under it is visible without
-                            // scrolling; that is the whole point of the artwork clamp
-                            expect(await marqueeTop(page)).toBeLessThan(viewport.height)
+                            const top = await marqueeTop(page)
+                            if (flagOn || viewport.marqueeCeilingFlagOff === null) {
+                                // the hero is tuned so the strip under it is visible without
+                                // scrolling; that is the whole point of the artwork clamp
+                                expect(top).toBeLessThan(viewport.height)
+                            } else {
+                                // flag off = the page dev ships, which does not keep the
+                                // marquee in the fold at this height. Gate the regression
+                                // instead: never push it lower than dev already has it.
+                                expect(top).toBeLessThanOrEqual(viewport.marqueeCeilingFlagOff)
+                            }
                         }
                     })
                 }
