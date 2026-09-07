@@ -112,6 +112,7 @@ jest.mock('@/utils/kernelNonceRepair.utils', () => ({
 
 jest.mock('@/context/kernelClient.context', () => ({
     useKernelClient: () => ({
+        ensureClientForChain: jest.fn().mockResolvedValue({ account: { address: USER_ADDRESS } }),
         getClientForChain: () => ({
             account: {
                 address: USER_ADDRESS,

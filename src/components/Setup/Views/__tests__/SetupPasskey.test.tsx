@@ -1,3 +1,6 @@
+import * as Sentry from '@sentry/nextjs'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import SetupPasskey from '../SetupPasskey'
@@ -15,7 +18,7 @@ jest.mock('@/redux/hooks', () => ({ useSetupStore: () => ({ username: 'kim' }) }
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: (...args: unknown[]) => mockApiFetch(...args) }))
 jest.mock('@/utils/passkeyPreflight', () => ({ checkPasskeySupport: async () => ({ isSupported: true }) }))
 jest.mock('@/utils/passkeyDebug', () => ({ capturePasskeyDebugInfo: jest.fn() }))
-jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
+jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), addBreadcrumb: jest.fn() }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
 describe('SetupPasskey — one tap, one ceremony', () => {
@@ -56,4 +59,56 @@ describe('SetupPasskey — one tap, one ceremony', () => {
 
         await waitFor(() => expect(button).toBeDisabled())
     })
+})
+
+describe('passkey failure telemetry', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockApiFetch.mockResolvedValue({ status: 404 })
+    })
+    it.each(['NotAllowedError', 'NotReadableError'])(
+        'reports %s once without console or Sentry exception amplification',
+        async (name) => {
+            const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {})
+            const consoleWarn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+            mockHandleRegister.mockRejectedValue(Object.assign(new Error('expected passkey outcome'), { name }))
+            renderWithIntl(<SetupPasskey />)
+            fireEvent.click(screen.getByRole('button'))
+            await waitFor(
+                () =>
+                    expect(posthog.capture).toHaveBeenCalledWith(
+                        ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED,
+                        expect.objectContaining({ error_name: name })
+                    ),
+                { timeout: 5000 }
+            )
+            const failed = (posthog.capture as jest.Mock).mock.calls.filter(
+                ([event]) => event === ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED
+            )
+            expect(failed).toHaveLength(1)
+            expect(Sentry.captureException).not.toHaveBeenCalled()
+            expect(consoleError).not.toHaveBeenCalled()
+            expect(consoleWarn).not.toHaveBeenCalled()
+            consoleError.mockRestore()
+            consoleWarn.mockRestore()
+        }
+    )
+})
+
+it('reports an unexpected registration failure once without a console-capture duplicate', async () => {
+    jest.clearAllMocks()
+    mockApiFetch.mockResolvedValue({ status: 404 })
+    const error = new Error('unexpected SDK failure')
+    mockHandleRegister.mockRejectedValue(error)
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {})
+    renderWithIntl(<SetupPasskey />)
+    fireEvent.click(screen.getByRole('button'))
+    await waitFor(() => expect(Sentry.captureException).toHaveBeenCalledTimes(1))
+    expect(
+        (posthog.capture as jest.Mock).mock.calls.filter(
+            ([event]: [string]) => event === ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED
+        )
+    ).toHaveLength(1)
+    expect(consoleError).not.toHaveBeenCalled()
+    consoleError.mockRestore()
 })
