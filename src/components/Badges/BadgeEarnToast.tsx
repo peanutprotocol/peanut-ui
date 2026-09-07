@@ -106,10 +106,12 @@ export default function BadgeEarnToast() {
             id: toastId,
             type: 'success',
             duration: 6000,
-            // the compact notification carries no border of its own — this toast
-            // draws its accent border explicitly. custom content suppresses the
-            // priority icon by construction (ToastStack), no hideIcon needed.
-            className: 'border border-action-secondary bg-background-default',
+            // the floating notification already carries its default black
+            // border (border-border-default) — this only overrides the tinted
+            // success surface with an opaque white one. custom content
+            // suppresses the priority icon by construction (ToastStack), no
+            // hideIcon needed.
+            className: 'bg-background-default',
             content: (
                 <button type="button" onClick={openInspect} className="flex items-center gap-3 text-left">
                     <BadgeImage
@@ -138,7 +140,7 @@ export default function BadgeEarnToast() {
                     id: avatarToastId,
                     type: 'success',
                     duration: 6000,
-                    className: 'border border-action-secondary bg-background-default',
+                    className: 'bg-background-default',
                     content: (
                         <button type="button" onClick={chooseAvatar} className="text-left text-label-l">
                             {t('toastAvatars', { count: avatarCount })}
