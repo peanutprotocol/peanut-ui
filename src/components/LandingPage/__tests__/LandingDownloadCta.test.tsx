@@ -71,5 +71,5 @@ it('lets phone login follow the app link instead of intercepting it into a store
     )
     fireEvent.click(screen.getByRole('link'))
     expect(mockIntercept).not.toHaveBeenCalled()
-    expect(screen.getByRole('link')).toHaveAttribute('href', '/app')
+    expect(screen.getByRole('link')).toHaveAttribute('href', '/app/login')
 })

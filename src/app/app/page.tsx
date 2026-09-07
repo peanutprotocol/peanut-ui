@@ -36,15 +36,7 @@ import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import Loading from '@/components/Global/Loading'
 import MigrationHero from '@/components/Migration/MigrationHero'
-import {
-    isMigrationSurface,
-    MIGRATION_SURFACES,
-    MIGRATION_SURFACE_PARAM,
-    STORE_NAME,
-    STORE_URL,
-    type MigrationSurface,
-    type StoreKind,
-} from '@/constants/migration.consts'
+import { MIGRATION_SURFACES, STORE_NAME, STORE_URL, type StoreKind } from '@/constants/migration.consts'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { isNativeBridge } from '@/utils/capacitor'
 import {
@@ -57,14 +49,6 @@ import {
 import { isPwaSunsetOn, trackStoreClick } from '@/utils/migration.utils'
 
 const FLAG_WAIT_MS = 4000
-
-/** the payload as it must be re-emitted, minus our own analytics tag */
-function readHandoffPayload(search: string): string | null {
-    if (!parseDeferredPayload(search)) return null
-    const params = new URLSearchParams(search)
-    params.delete(MIGRATION_SURFACE_PARAM)
-    return params.toString()
-}
 
 export default function SmartStoreRedirect() {
     const t = useTranslations('migration')
@@ -81,19 +65,13 @@ export default function SmartStoreRedirect() {
     // read after mount, never during render: window.location.search does not
     // exist on the server and a payload-derived first render would not match
     const [payload, setPayload] = useState<string | null>(null)
-    // the landing surface whose QR produced this scan (?s=). Reported as
-    // `qr_surface` on this page's events — without it every smart_link click
-    // looks the same and the hero / app fold / footer / rates QRs cannot be
-    // told apart in the funnel. Validated against the known surfaces so a
-    // hand-edited url can't inject a property value.
-    const [qrSurface, setQrSurface] = useState<MigrationSurface | null>(null)
+    const [loginHandoff, setLoginHandoff] = useState(false)
     useEffect(() => {
         setMounted(true)
         const search = window.location.search
         const parsed = parseDeferredPayload(search)
-        const tag = new URLSearchParams(search).get(MIGRATION_SURFACE_PARAM)
-        if (isMigrationSurface(tag)) setQrSurface(tag)
-        if (parsed) setPayload(readHandoffPayload(search))
+        setLoginHandoff(window.location.pathname === '/app/login')
+        if (parsed) setPayload(new URLSearchParams(search).toString())
         if (!isNativeBridge()) return
         // already installed: no install to defer to, so apply the context now
         const dest = parsed ? applyDeferredPayload(parsed).dest : null
@@ -142,13 +120,13 @@ export default function SmartStoreRedirect() {
     const countHandoff = (platform: 'ios' | 'android') => {
         if (handoffCounted.current) return
         handoffCounted.current = true
-        trackDeferredHandoffCreated(platform, qrSurface ? { qr_surface: qrSurface } : undefined)
+        trackDeferredHandoffCreated(platform)
     }
 
     // must stay synchronous up to the clipboard call: a web clipboard write
     // only succeeds inside the user gesture that triggered it
     const onStoreTap = (store: StoreKind) => {
-        trackStoreClick(store, MIGRATION_SURFACES.SMART_LINK, !!payload, qrSurface)
+        trackStoreClick(store, MIGRATION_SURFACES.SMART_LINK, !!payload)
         if (!payload) return
         if (store === 'android') {
             // the referrer is already in the href — count the hand-off at the tap
@@ -166,7 +144,9 @@ export default function SmartStoreRedirect() {
         // iOS + payload: the clipboard hand-off needs the tap, so the visitor
         // picks the store themselves. android's referrer rides the url, so it
         // can still bounce; so can any device with nothing to hand off.
-        if (payload && targetStore === 'ios') return
+        // Same-domain Safari navigation cannot dispatch a universal link. Keep
+        // login visitors here for the native Smart App Banner's Open action.
+        if ((payload || loginHandoff) && targetStore === 'ios') return
         // counted before the navigation, and only once per visit
         if (payload && targetStore === 'android') countHandoff('android')
         setRedirecting(true)
@@ -174,10 +154,8 @@ export default function SmartStoreRedirect() {
         // if the store didn't take over (blocked, offline), settle to buttons
         const fallback = setTimeout(() => setRedirecting(false), 4000)
         return () => clearTimeout(fallback)
-        // countHandoff is a stable ref-guarded closure over qrSurface; re-running
-        // this effect on a qrSurface change would re-trigger the redirect
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [inNativeApp, settled, migrationOn, targetStore, payload, storeHref])
+        // countHandoff is guarded by a ref and counts once per visit.
+    }, [inNativeApp, settled, migrationOn, targetStore, payload, storeHref, loginHandoff])
 
     if (inNativeApp) return <Loading variant="mascot" coverFullScreen />
 
@@ -192,10 +170,16 @@ export default function SmartStoreRedirect() {
             <MigrationHero className="h-[50dvh] md:h-auto md:w-1/2" />
             <section className="flex flex-1 flex-col justify-between p-6 pb-[calc(1.5rem_+_var(--safe-bottom))] md:w-1/2 md:justify-center md:gap-10">
                 <div className="mx-auto flex w-full max-w-md flex-col gap-3 md:text-center">
-                    <h1 className="text-heading-m text-foreground-primary">{t('qr.title')}</h1>
+                    <h1 className="text-heading-m text-foreground-primary">
+                        {t(loginHandoff ? 'smartLink.loginTitle' : 'qr.title')}
+                    </h1>
                     {settled && migrationOn && (
                         <p className="text-body-m text-foreground-secondary">
-                            {redirecting ? t('smartLink.redirecting') : t('smartLink.pickStore')}
+                            {loginHandoff && targetStore === 'ios'
+                                ? t('smartLink.loginHint')
+                                : redirecting
+                                  ? t('smartLink.redirecting')
+                                  : t('smartLink.pickStore')}
                         </p>
                     )}
                 </div>

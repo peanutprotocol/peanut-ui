@@ -39,15 +39,37 @@ for (const device of ['desktop', 'iphone', 'android'] as const) {
         if (device !== 'desktop') {
             test('login performs a document navigation to the app handoff', async ({ page }) => {
                 await landing(page, '/', true)
+                const handoffPath = device === 'iphone' ? '/app/login' : '/app'
                 const appNavigation = page.waitForRequest(
-                    (request) => new URL(request.url()).pathname === '/app' && request.isNavigationRequest()
+                    (request) => new URL(request.url()).pathname === handoffPath && request.isNavigationRequest()
                 )
-                await page.route('**/app', (route) =>
+                await page.route(`**${handoffPath}`, (route) =>
                     route.fulfill({ contentType: 'text/html', body: 'App handoff reached' })
                 )
-                await page.locator('#hero a[href="/app"]').last().click()
+                await page.locator(`#hero a[href="${handoffPath}"]`).last().click()
                 expect((await appNavigation).resourceType()).toBe('document')
                 await expect(page.locator('body')).toHaveText('App handoff reached')
+            })
+        }
+        if (device === 'iphone') {
+            test('login keeps the store fallback visible and supplies the Safari Open banner', async ({ page }) => {
+                await landing(page, '/', true)
+                const storeRequests: string[] = []
+                await page.route(/https:\/\/(apps\.apple\.com|play\.google\.com)\//, (route) => {
+                    storeRequests.push(route.request().url())
+                    return route.fulfill({ contentType: 'text/html', body: 'Unexpected automatic store navigation' })
+                })
+                await page.locator('#hero a[href="/app/login"]').click()
+                await expect(page).toHaveURL(/\/app\/login$/)
+                await expect(page.getByRole('heading', { name: 'Log in with the Peanut app' })).toBeVisible()
+                await expect(page.locator('meta[name="apple-itunes-app"]')).toHaveAttribute(
+                    'content',
+                    'app-id=6786373552, app-argument=https://peanut.me/app'
+                )
+                await expect(page.getByRole('link', { name: 'App Store', exact: true })).toBeVisible()
+                await page.waitForTimeout(4500)
+                expect(storeRequests).toEqual([])
+                await page.screenshot({ path: path.join(shots, 'iphone-login.png'), animations: 'disabled' })
             })
         }
         for (const route of ['/', '/es-419', '/es-ar', '/pt-br']) {

@@ -80,23 +80,12 @@ export function getMigrationCutoverTime(): number {
     return MIGRATION_CUTOVER_DATE.getTime()
 }
 
-/**
- * track a store CTA click without navigating (for anchors that navigate themselves).
- * `qrSurface` is only ever set on the /app smart link, where `surface` is
- * always `smart_link`: it carries the landing surface whose QR produced the
- * scan, so smart-link clicks join back to hero / app fold / footer / rates.
- */
-export function trackStoreClick(
-    store: StoreKind,
-    surface: MigrationSurface,
-    handoff = false,
-    qrSurface?: MigrationSurface | null
-) {
+/** Track a store CTA click without navigating (for anchors that navigate themselves). */
+export function trackStoreClick(store: StoreKind, surface: MigrationSurface, handoff = false) {
     posthog.capture(ANALYTICS_EVENTS.MIGRATION_STORE_CTA_CLICKED, {
         surface,
         store,
         handoff,
-        ...(qrSurface ? { qr_surface: qrSurface } : {}),
     })
 }
 
