@@ -1299,7 +1299,7 @@
         },
         "info": {
             "exchangeRate": "Exchange Rate",
-            "exchangeRateTooltip": "Rate shown is current but may vary slightly (~$1-5 ARS) until payment is confirmed.",
+            "exchangeRateTooltip": "Rate shown is current but may vary slightly (~$1-5 {currency}) until payment is confirmed.",
             "saveVsCard": "Save vs card",
             "saveVsCardTooltipBrl": "Foreign cards pay IOF (~3.5%) plus a typical ~3% issuer FX fee. Peanut routes via PIX at the current market rate.",
             "saveVsCardTooltipArs": "Foreign cards apply the official rate plus a typical ~3% issuer FX fee. Peanut routes via MercadoPago at the current market rate."
@@ -1347,7 +1347,9 @@
             "maxQrAmount": "QR payment amount exceeds maximum limit of ${amount}",
             "minQrAmount": "QR payment amount must be at least ${amount}",
             "genericQrDetails": "An error occurred while getting the QR details.",
-            "authError": "Couldn't verify your session. Please try again."
+            "authError": "Couldn't verify your session. Please try again.",
+            "maxTransferAmount": "Transfer amount exceeds maximum limit of ${amount}",
+            "minTransferAmount": "Transfer amount must be at least ${amount}"
         },
         "claim": {
             "navTitle": "Claim QR Code",
@@ -1910,7 +1912,7 @@
             "redirecting": "Redirecting...",
             "lockingRate": "Locking rate...",
             "exchangeRate": "Exchange Rate",
-            "exchangeRateInfo": "Rate shown is current but may vary slightly (~$1-5 ARS) until payment is confirmed.",
+            "exchangeRateInfo": "Rate shown is current but may vary slightly (~$1-5 {currency}) until payment is confirmed.",
             "flagAlt": "flag",
             "increaseLimitsMessage": "Hi, I would like to increase my payment limits."
         },

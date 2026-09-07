@@ -338,6 +338,7 @@ const AmountInput = ({
                                 if (formattedAmount !== undefined) {
                                     value = formattedAmount
                                 }
+                                if (value === displayValue) return
                                 setDisplayValue(value)
                                 setExactValue(Number(value) * 10 ** DECIMAL_SCALE)
                             }}
@@ -432,7 +433,11 @@ const AmountInput = ({
                             return
                         }
                         setExactValue(alternativeValue)
-                        setDisplayValue(alternativeDisplayValue.replace(/,/g, ''))
+                        setDisplayValue(
+                            Number(alternativeDisplayValue.replace(/,/g, '')) === 0
+                                ? '0'
+                                : alternativeDisplayValue.replace(/,/g, '')
+                        )
                         setDisplaySymbol(alternativeDisplaySymbol)
                     }}
                 >

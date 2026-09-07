@@ -4,7 +4,9 @@
  * with the full scanned payload (accepted trade-off, PR #2757).
  */
 import { renderHook, act } from '@testing-library/react'
-import { captureException } from '@sentry/nextjs'
+import { captureException, addBreadcrumb } from '@sentry/nextjs'
+import posthog from 'posthog-js'
+import { ensureNativeCameraPermission } from '@/utils/camera-permission'
 import { useQRScanner } from '../useQRScanner'
 
 let onDecode: (result: { data: string }) => void
@@ -52,7 +54,9 @@ jest.mock('qr-scanner', () => ({
         setInversionMode = jest.fn()
     },
 }))
-jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
+jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), addBreadcrumb: jest.fn() }))
+jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+jest.mock('@capacitor/core', () => ({ Capacitor: { getPlatform: () => 'android' } }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({
     useToast: () => ({ error: jest.fn(), info: jest.fn() }),
 }))
@@ -594,4 +598,34 @@ describe('classifying a failure the library discarded', () => {
         expect(result.current.error).toBe('qrScanner.cameraStillBusy')
         expect(result.current.isPermissionDenied).toBe(false)
     })
+})
+
+it('reports native permission denial once without starting the camera', async () => {
+    mockCapacitor = true
+    jest.mocked(ensureNativeCameraPermission).mockResolvedValue(false)
+    jest.mocked(posthog.capture).mockClear()
+    jest.mocked(addBreadcrumb).mockClear()
+    startCalls = 0
+    const { result, unmount } = renderHook(() => useQRScanner(jest.fn(), undefined, true))
+    ;(result.current.videoRef as React.MutableRefObject<HTMLVideoElement | null>).current =
+        document.createElement('video')
+    await act(async () => {
+        jest.advanceTimersByTime(100)
+    })
+    expect(result.current.isPermissionDenied).toBe(true)
+    expect(startCalls).toBe(0)
+    expect(posthog.capture).toHaveBeenCalledTimes(1)
+    expect(posthog.capture).toHaveBeenCalledWith('qr_camera_permission_denied', {
+        platform: 'android',
+        permission: 'denied',
+        source: 'native_camera_permission',
+    })
+    expect(addBreadcrumb).toHaveBeenCalledWith(
+        expect.objectContaining({
+            data: { platform: 'android', permission: 'denied', source: 'native_camera_permission' },
+        })
+    )
+    unmount()
+    mockCapacitor = false
+    jest.mocked(ensureNativeCameraPermission).mockResolvedValue(true)
 })

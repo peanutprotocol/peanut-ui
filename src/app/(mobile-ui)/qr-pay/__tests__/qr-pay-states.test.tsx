@@ -328,6 +328,7 @@ jest.mock('@/utils/network-triage', () => ({
     captureNetworkTriagedFailure: (...args: unknown[]) => mockCaptureNetworkTriagedFailure(...args),
 }))
 
+let mockUsdScale = 1
 jest.mock('@/components/Global/AmountInput', () => ({
     __esModule: true,
     default: (props: any) => (
@@ -337,7 +338,9 @@ jest.mock('@/components/Global/AmountInput', () => ({
                 value={props.initialAmount ?? ''}
                 onChange={(e) => {
                     props.setPrimaryAmount?.(e.target.value)
-                    props.setSecondaryAmount?.(e.target.value)
+                    props.setSecondaryAmount?.(
+                        mockUsdScale === 1 ? e.target.value : (Number(e.target.value) * mockUsdScale).toFixed(2)
+                    )
                 }}
                 disabled={props.disabled}
             />
@@ -668,6 +671,7 @@ function applyDefaults() {
 // ---------- test suites ----------
 
 beforeEach(() => {
+    mockUsdScale = 1
     jest.clearAllMocks()
     mockSearchParams.clear()
     mockIsRegionRestricted = false
@@ -885,6 +889,25 @@ describe('GROUP 2: Payment Form States', () => {
         }
         mockMantecaApi.initiateQrPayment.mockResolvedValue(defaultLock)
     }
+
+    test('a positive BRL amount that rounds to zero USD still shows its minimum error', async () => {
+        setupMantecaPayment({ code: '' })
+        renderQrPay({ qrCode: 'pix://payment?id=123', type: 'PIX', t: '1' })
+        await screen.findByText('PIX Merchant')
+        mockUsdScale = 0.05
+        fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '0.05' } })
+        await waitFor(() => expect(screen.getByText(/must be at least/i)).toBeInTheDocument())
+    })
+
+    test('PIX-key transfer keeps the full recipient and uses transfer limit copy', async () => {
+        setupMantecaPayment({ code: '' })
+        const { pixKeyToBRCode } = require('@/utils/pix.utils')
+        const pixKey = 'verylongemailaddress@verylongdomain.com.br'
+        renderQrPay({ qrCode: pixKeyToBRCode(pixKey), pixKey, type: 'PIX', t: '1' })
+        await screen.findByText(pixKey)
+        fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '2500' } })
+        await waitFor(() => expect(screen.getByText(/Transfer amount exceeds maximum/i)).toBeInTheDocument())
+    })
 
     test('Manteca PIX form ready shows merchant card + amount input + pay button', async () => {
         setupMantecaPayment()

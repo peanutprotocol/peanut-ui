@@ -8,6 +8,9 @@ import { ensureNativeCameraPermission } from '@/utils/camera-permission'
 import { CAMERA_ERRORS, classifyCameraFailure } from '@/utils/camera-failure'
 import { reportQrScanError } from './utils'
 import { toError } from '@/utils/to-error'
+import posthog from 'posthog-js'
+import { addBreadcrumb } from '@sentry/nextjs'
+import { Capacitor } from '@capacitor/core'
 
 // ============================================================================
 // Configuration
@@ -323,6 +326,18 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                     const granted = await ensureNativeCameraPermission()
                     if (superseded()) return
                     if (!granted) {
+                        const data = {
+                            platform: Capacitor.getPlatform(),
+                            permission: 'denied',
+                            source: 'native_camera_permission',
+                        }
+                        posthog.capture('qr_camera_permission_denied', data)
+                        addBreadcrumb({
+                            category: 'qr_scanner',
+                            message: 'Native camera permission denied',
+                            level: 'info',
+                            data,
+                        })
                         setIsPermissionDenied(true)
                         setError(getErrorMessage(CAMERA_ERRORS.NOT_ALLOWED, 0))
                         return

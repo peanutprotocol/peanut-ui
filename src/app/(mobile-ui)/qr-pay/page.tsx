@@ -1,5 +1,7 @@
 'use client'
 
+import { verifiedPixKeyLabel } from '@/utils/pix.utils'
+
 import { railUserMessage, railVerdict } from '@/utils/capability-gate'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
@@ -123,6 +125,7 @@ export default function QRPayPage() {
     const qrCode = decodeURIComponent(searchParams.get('qrCode') || '')
     const timestamp = searchParams.get('t')
     const qrType = searchParams.get('type')
+    const pixKeyLabel = verifiedPixKeyLabel(qrCode, searchParams.get('pixKey'))
     // Rail name for outage copy. Defined here rather than reusing
     // `paymentMethodName` below because the failure-copy maps need it.
     const qrMethodName = (qrType && NAME_BY_QR_TYPE[qrType as QrType]) || 'QR'
@@ -815,8 +818,8 @@ export default function QRPayPage() {
 
     const merchantName = useMemo(() => {
         if (!paymentLock) return null
-        return paymentLock.paymentRecipientName
-    }, [paymentLock])
+        return pixKeyLabel ?? paymentLock.paymentRecipientName
+    }, [paymentLock, pixKeyLabel])
 
     const handleMantecaPayment = useCallback(async () => {
         if (!paymentLock || !qrCode || !currencyAmount) return
@@ -1180,7 +1183,12 @@ export default function QRPayPage() {
 
     // Check user balance and payment limits
     useEffect(() => {
-        if (!usdAmount || usdAmount === '0.00' || isNaN(Number(usdAmount)) || balance === undefined) {
+        if (
+            (!Number(usdAmount) && !Number(currencyAmount)) ||
+            !usdAmount ||
+            isNaN(Number(usdAmount)) ||
+            balance === undefined
+        ) {
             setBalanceErrorMessage(null)
             return
         }
@@ -1189,7 +1197,11 @@ export default function QRPayPage() {
         // Manteca-specific validation (PIX, MercadoPago, QR3)
         if (paymentProcessor === 'MANTECA') {
             if (paymentAmount < parseUnits(MIN_MANTECA_QR_PAYMENT_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
-                setBalanceErrorMessage(t('errors.minMantecaAmount', { amount: MIN_MANTECA_QR_PAYMENT_AMOUNT }))
+                setBalanceErrorMessage(
+                    t(pixKeyLabel ? 'errors.minTransferAmount' : 'errors.minMantecaAmount', {
+                        amount: MIN_MANTECA_QR_PAYMENT_AMOUNT,
+                    })
+                )
                 return
             }
             // PIX rail enforces a 1 BRL minimum, stricter than the USD floor above
@@ -1201,9 +1213,13 @@ export default function QRPayPage() {
 
         // Common validations for all payment processors
         if (paymentAmount > parseUnits(MAX_QR_PAYMENT_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
-            setBalanceErrorMessage(t('errors.maxQrAmount', { amount: MAX_QR_PAYMENT_AMOUNT }))
+            setBalanceErrorMessage(
+                t(pixKeyLabel ? 'errors.maxTransferAmount' : 'errors.maxQrAmount', { amount: MAX_QR_PAYMENT_AMOUNT })
+            )
         } else if (paymentAmount < parseUnits(MIN_QR_PAYMENT_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
-            setBalanceErrorMessage(t('errors.minQrAmount', { amount: MIN_QR_PAYMENT_AMOUNT }))
+            setBalanceErrorMessage(
+                t(pixKeyLabel ? 'errors.minTransferAmount' : 'errors.minQrAmount', { amount: MIN_QR_PAYMENT_AMOUNT })
+            )
         } else if (!isAmountWithinBalance(usdAmount, balance)) {
             // gate on the displayed total; an in-transit shortfall passes here and
             // fails late with the settling message at execution.
@@ -1211,7 +1227,7 @@ export default function QRPayPage() {
         } else {
             setBalanceErrorMessage(null)
         }
-    }, [usdAmount, balance, paymentProcessor, currency?.code, currencyAmount, t, tErrors])
+    }, [usdAmount, balance, paymentProcessor, currency?.code, currencyAmount, pixKeyLabel, t, tErrors])
 
     // Use points confetti hook for animation - must be called unconditionally
     usePointsConfetti(isSuccess && pointsData?.estimatedPoints ? pointsData.estimatedPoints : undefined, pointsDivRef)
@@ -1835,7 +1851,7 @@ export default function QRPayPage() {
                         <PaymentInfoRow
                             label={t('info.exchangeRate')}
                             value={`1 USD = ${currency.price} ${currency.code.toUpperCase()}`}
-                            moreInfoText={t('info.exchangeRateTooltip')}
+                            moreInfoText={t('info.exchangeRateTooltip', { currency: currency?.code ?? '' })}
                         />
                         {(() => {
                             if (!hasCardMarkupComparison(currency.code)) return null

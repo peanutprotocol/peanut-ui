@@ -552,7 +552,12 @@ function MantecaBankWithdrawFlow() {
             return
         }
 
-        if (!usdAmount || usdAmount === '0.00' || isNaN(Number(usdAmount)) || balance === undefined) {
+        if (
+            (!Number(usdAmount) && !Number(currencyAmount)) ||
+            !usdAmount ||
+            isNaN(Number(usdAmount)) ||
+            balance === undefined
+        ) {
             setBalanceErrorMessage(null)
             return
         }
@@ -567,7 +572,7 @@ function MantecaBankWithdrawFlow() {
         } else {
             setBalanceErrorMessage(null)
         }
-    }, [usdAmount, balance, hasPendingTransactions, isLoading, t, tErrors])
+    }, [usdAmount, currencyAmount, balance, hasPendingTransactions, isLoading, t, tErrors])
 
     // Fetch points early to avoid latency penalty - fetch as soon as we have usdAmount
     // Use flowId as uniqueId to prevent cache collisions between different withdrawal flows
@@ -967,7 +972,7 @@ function MantecaBankWithdrawFlow() {
                         <PaymentInfoRow
                             label={t('manteca.exchangeRate')}
                             value={`1 USD = ${priceLock?.price ?? currencyPrice!.sell} ${currencyCode!.toUpperCase()}`}
-                            moreInfoText={t('manteca.exchangeRateInfo')}
+                            moreInfoText={t('manteca.exchangeRateInfo', { currency: currencyCode ?? '' })}
                         />
                         <PaymentInfoRow
                             label={tCommon('peanutFee')}
