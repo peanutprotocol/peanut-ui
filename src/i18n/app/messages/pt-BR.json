@@ -674,7 +674,7 @@
     },
     "exchangeRate": {
         "title": "Câmbio e taxas",
-        "balanceNote": "Seu saldo na Peanut é exibido em USD. Onde houver um canal bancário local disponível, você pode sacar nessa moeda local.",
+        "balanceNote": "Seu saldo na Peanut é exibido em USD. Onde houver suporte a transferências bancárias em moeda local, você pode sacar nessa moeda.",
         "tryIt": "Sacar agora",
         "addMoneyCta": "Adicionar dinheiro",
         "widget": {
@@ -1851,7 +1851,9 @@
         "methods": {
             "mercadopago": "MercadoPago",
             "pix": "Pix",
-            "bankTransfer": "Transferência bancária"
+            "bankTransfer": "Transferência bancária",
+            "euroBankTransfers": "Transferências bancárias em euros",
+            "euroBankTransfersDescription": "Geralmente chega em 20 minutos, mas pode levar até 1 dia útil."
         },
         "initial": {
             "placeholderEns": "Endereço ou ENS",

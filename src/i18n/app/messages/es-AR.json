@@ -394,7 +394,7 @@
             "youSend": "Vos enviás",
             "recipientGets": "Recibís"
         },
-        "balanceNote": "Tu saldo de Peanut se muestra en USD. Donde haya un canal bancario local disponible, podés retirar en esa moneda local."
+        "balanceNote": "Tu saldo de Peanut se muestra en USD. Donde se admitan transferencias bancarias en moneda local, podés retirar en esa moneda."
     },
     "setup": {
         "steps": {
@@ -914,6 +914,10 @@
         "chooseWithdrawingMethod": "Elegí el método de retiro",
         "noAccountsTitle": "Aún no tenés cuentas",
         "noAccountsDescription": "Agregá los datos de tus cuentas una vez<br></br>y retirá con un solo toque.",
+        "methods": {
+            "euroBankTransfers": "Transferencias bancarias en euros",
+            "euroBankTransfersDescription": "Normalmente llega en 20 minutos; puede tardar hasta 1 día hábil."
+        },
         "initial": {
             "placeholderEns": "Dirección o ENS",
             "placeholderAddress": "Dirección"

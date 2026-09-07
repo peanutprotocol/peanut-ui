@@ -674,7 +674,7 @@
     },
     "exchangeRate": {
         "title": "Exchange rate & fees",
-        "balanceNote": "Your Peanut balance is shown in USD. Where bank transfers are supported, you can withdraw in the local currency.",
+        "balanceNote": "Your Peanut balance is shown in USD. Where local-currency bank transfers are supported, you can withdraw in that currency.",
         "tryIt": "Withdraw now",
         "addMoneyCta": "Add money",
         "widget": {
@@ -1851,7 +1851,9 @@
         "methods": {
             "mercadopago": "MercadoPago",
             "pix": "Pix",
-            "bankTransfer": "Bank Transfer"
+            "bankTransfer": "Bank Transfer",
+            "euroBankTransfers": "Euro bank transfers",
+            "euroBankTransfersDescription": "Usually arrives within 20 minutes, up to 1 business day."
         },
         "initial": {
             "placeholderEns": "Address or ENS",
