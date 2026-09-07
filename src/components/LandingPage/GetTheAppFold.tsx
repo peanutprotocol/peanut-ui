@@ -57,8 +57,11 @@ export function GetTheAppFold({
                 below the 192px module area the fold is specified at. */}
             <div className="mt-8 flex flex-col items-center justify-center gap-10 md:mt-0 md:flex-row md:items-center md:gap-8 lg:gap-14">
                 {/* the capture is a 960x2082 screenshot downscaled to 360px wide;
-                    the frame crops it to the phone's aspect rather than squashing it */}
-                <div className="relative h-[360px] w-[180px] shrink-0 overflow-hidden rounded-[24px] border-2 border-black bg-black shadow-[6px_6px_0_#000] md:h-[440px] md:w-[220px] md:rounded-[28px]">
+                    the frame crops it to the phone's aspect rather than squashing it.
+                    `rounded` (4px) is the top of the DS radius scale for a box — the
+                    same corner the QR frame beside it carries — so the two 3-up items
+                    share one frame treatment. */}
+                <div className="relative h-[360px] w-[180px] shrink-0 overflow-hidden rounded border-2 border-black bg-black shadow-[6px_6px_0_#000] md:h-[440px] md:w-[220px]">
                     <Image
                         src={appScanScreen}
                         alt=""

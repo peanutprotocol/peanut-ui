@@ -17,7 +17,7 @@ import type { LandingMigrationStrings } from './landingStrings'
  */
 export function HeroAppLockup({ strings, subtext }: { strings: LandingMigrationStrings; subtext?: string }) {
     return (
-        <div className="flex flex-col items-center gap-4 lg:flex-row lg:items-center lg:gap-7">
+        <div className="flex flex-col items-center gap-4 lg:flex-row lg:items-center lg:gap-6">
             <DownloadQR
                 surface={MIGRATION_SURFACES.LANDING_HERO}
                 size={192}

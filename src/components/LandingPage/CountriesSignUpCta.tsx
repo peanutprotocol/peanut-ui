@@ -6,7 +6,7 @@ import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 
 const BUTTON_CLASS =
-    'h-auto w-auto bg-white px-8 py-3 text-sm font-extrabold hover:bg-white/90 md:px-10 md:py-4 md:text-lg'
+    'h-auto w-auto bg-white px-8 py-3 text-sm font-extrabold hover:bg-white/90 active:bg-white/90 md:px-10 md:py-4 md:text-lg'
 
 /**
  * The SIGN UP button sitting inside the countries illustration. The fold around

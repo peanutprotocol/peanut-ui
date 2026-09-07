@@ -80,11 +80,11 @@ export default function StorePair({
                         icon={s === 'ios' ? 'apple-logo' : 'google-play'}
                         className={
                             isHero
-                                ? 'w-full bg-white px-6 py-3 text-button-m hover:bg-white/90 md:py-7 md:text-button-l'
+                                ? 'w-full bg-white px-6 py-3 text-button-m hover:bg-white/90 active:bg-white/90 md:py-6 md:text-button-l'
                                 : isFooter
-                                  ? 'w-full border-n-1 bg-white px-6 text-button-m shadow-none hover:bg-white/90 hover:shadow-none md:text-button-l'
+                                  ? 'w-full border-border-button bg-white px-6 text-button-m shadow-none hover:bg-white/90 hover:shadow-none active:bg-white/90 md:text-button-l'
                                   : isStacked
-                                    ? 'w-full justify-center bg-white hover:bg-white/90'
+                                    ? 'w-full justify-center bg-white hover:bg-white/90 active:bg-white/90'
                                     : 'w-auto px-4'
                         }
                     >

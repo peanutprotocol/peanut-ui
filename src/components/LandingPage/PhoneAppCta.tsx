@@ -54,7 +54,7 @@ export function PhoneAppCta({
                 <Button
                     shadowSize="4"
                     icon={store === 'ios' ? 'apple-logo' : 'google-play'}
-                    className="w-full bg-white px-7 text-base font-extrabold uppercase hover:bg-white/90"
+                    className="w-full bg-white px-6 text-base font-extrabold uppercase hover:bg-white/90 active:bg-white/90"
                 >
                     {strings.downloadNow}
                 </Button>
