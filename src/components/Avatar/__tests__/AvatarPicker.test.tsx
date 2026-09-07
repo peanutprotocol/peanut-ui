@@ -52,10 +52,14 @@ const mockUpdateUserById = jest.fn()
 jest.mock('@/app/actions/users', () => ({ updateUserById: (...args: unknown[]) => mockUpdateUserById(...args) }))
 
 const mockFetchUser = jest.fn()
+// a cold load of the deep link renders the picker before authContext resolves
+let mockHasUser = true
 let mockUser: {
     user: { userId: string; username: string; avatarKey: string | null; badges: { code: string; name: string }[] }
 }
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser, fetchUser: mockFetchUser }) }))
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ user: mockHasUser ? mockUser : undefined, fetchUser: mockFetchUser }),
+}))
 
 const tiles = () => screen.getAllByRole('radio')
 const tile = (name: RegExp) => screen.getByRole('radio', { name })
@@ -101,6 +105,7 @@ beforeEach(() => {
     resetLetterAvatarCache()
     jest.spyOn(Math, 'random').mockReturnValue(0)
     mockBadgeParam = null
+    mockHasUser = true
     mockUpdateUserById.mockResolvedValue({ data: {} })
     mockFetchUser.mockResolvedValue(null)
     mockUser = {
@@ -217,6 +222,28 @@ describe('AvatarPicker', () => {
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
         expect(tile(/Coin/)).toHaveTextContent('OG')
+    })
+
+    it('deals again when a cold-load deep link resolves its user', () => {
+        mockHasUser = false
+        mockBadgeParam = 'OG_2025_10_12'
+        mockUser.user.badges = [
+            { code: 'BUG_WHISPERER', name: 'Bug Whisperer' },
+            { code: 'OG_2025_10_12', name: 'OG' },
+        ]
+        const { rerender } = renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        // nothing to deal from yet: eight tiles, but no badge and no initial
+        expect(tiles()).toHaveLength(8)
+        expect(screen.queryByText('Earned')).not.toBeInTheDocument()
+        expect(screen.queryByText('Just S')).not.toBeInTheDocument()
+
+        mockHasUser = true
+        rerender(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        // no tap needed: the hand is dealt again the moment the user lands
+        expect(tile(/Coin/)).toHaveTextContent('OG')
+        expect(tiles()[0]).toHaveTextContent('Just S')
     })
 
     // the deep link is spent by the hand it dealt; left in the URL it would

@@ -124,13 +124,23 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
     // the hand: dealt on open, dealt again by the die; the pick never moves with it
     const [hand, setHand] = useState<(string | null)[]>([])
     const [turns, setTurns] = useState(0)
+    const dealt = useRef(false)
     useEffect(() => {
+        if (!open) {
+            dealt.current = false
+            return
+        }
+        // Dealt once per open, and once more when the user arrives: a cold load
+        // of the toast's deep link renders this before authContext resolves,
+        // and a hand dealt then holds no earned avatar and no pick. Anything
+        // after that is the die's job, so the hand never moves under a tap.
+        if (dealt.current) return
+        dealt.current = !!userId
         // deal from `pick`, not `saved`: reopening while a save is still in
         // flight must keep the visibly selected avatar in the hand
-        if (open) setHand(dealHand(pick, unlocked, { prefer: preferBadge ?? undefined }))
-        // deal once per open; the pick joins the hand by being picked from it
+        setHand(dealHand(pick, unlocked, { prefer: preferBadge ?? undefined }))
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open])
+    }, [open, userId])
     const roll = () => {
         setTurns((n) => n + 1)
         setHand(dealHand(pick, unlocked))
@@ -169,7 +179,10 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                 horizontal padding belongs to the SCROLL AREA so the hand pans
                 inside it rather than under the panel's own padding. */}
             <DrawerContent accessibleTitle={t('title')} className="pb-4" scrollAreaClassName="px-4">
-                <div className="grid grid-cols-3 gap-2">
+                {/* py-1 clears the tiles' 3px focus ring, which the scroll box would
+                    otherwise crop on the first and last rows. It belongs to the GRID:
+                    a `py-*` on the scroll area merges the primitive's pb-safe-bottom away. */}
+                <div className="grid grid-cols-3 gap-2 py-1">
                     {/* `contents` so the tiles stay grid items: a radiogroup may only
                         hold radios, and the die is a plain button beside them */}
                     <div role="radiogroup" aria-label={t('title')} className="contents" onKeyDown={roveAvatarTiles}>
@@ -207,9 +220,11 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                         avatarKey={initial ? initialKey : key}
                                         size="medium"
                                     />
-                                    <span className="mt-1 w-full truncate text-label-m">{name}</span>
-                                    {/* two lines whatever the copy: a ragged tile height across the
-                                        three rows is the one thing that breaks the grid */}
+                                    {/* Both boxes are a fixed two lines: at 320px the tile is ~81px
+                                        wide, where a single line cut "Grumpy Raincloud" to eleven
+                                        characters — and a ragged tile height across the three rows
+                                        is the one thing that breaks the grid. */}
+                                    <span className="mt-1 line-clamp-2 h-8 text-label-m">{name}</span>
                                     <span className="line-clamp-2 h-8 text-body-xs text-foreground-secondary">
                                         {line}
                                     </span>
