@@ -1196,6 +1196,68 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
         expect(countWeightStacks("const style = 'text-body-m'; const c = clsx(style, 'font-semibold')")).toBe(1)
     })
 
+    it('keeps conditional compound arrays mutually exclusive', () => {
+        expect(
+            countWeightStacks(`cva('base', {
+            variants: { tone: { loud: 'x' } },
+            compoundVariants: enabled
+                ? [{ tone: 'loud', class: 'text-body-m' }]
+                : [{ tone: 'loud', class: 'font-semibold' }]
+        })`)
+        ).toBe(0)
+        expect(
+            countWeightStacks(`cva('base', {
+            variants: { tone: { loud: 'x' } },
+            compoundVariants: enabled
+                ? [{ tone: 'loud', class: 'text-body-m' }, { tone: 'loud', class: 'font-semibold' }]
+                : []
+        })`)
+        ).toBe(1)
+    })
+
+    it('pins compound selectors to each conditional variants table', () => {
+        for (const selector of ['quiet', 'loud']) {
+            expect(
+                countWeightStacks(`cva('base', {
+                variants: enabled ? { tone: { loud: 'text-body-m', quiet: 'x' } } : {},
+                compoundVariants: [{ tone: '${selector}', class: 'font-semibold' }]
+            })`)
+            ).toBe(selector === 'loud' ? 1 : 0)
+        }
+    })
+
+    it('evaluates conditional compound arrays in their declaring scopes', () => {
+        expect(
+            countWeightStacks(`
+            const classes = 'text-body-m';
+            const entries = [{ tone: 'loud', class: classes }];
+            function styles() {
+                const classes = 'font-semibold';
+                const local = [{ tone: 'loud', class: classes }];
+                return cva('font-semibold', {
+                    variants: { tone: { loud: 'x' } },
+                    compoundVariants: enabled ? local : entries
+                });
+            }
+        `)
+        ).toBe(1)
+    })
+
+    it('composes late CVA candidates beyond the former candidate limit', () => {
+        const balanced = (items: string[]): string => {
+            if (items.length === 1) return items[0]
+            const mid = Math.floor(items.length / 2)
+            return `enabled ? (${balanced(items.slice(0, mid))}) : (${balanced(items.slice(mid))})`
+        }
+        const drift = `{ variants: { tone: { loud: 'text-body-m' } },
+            compoundVariants: [{ tone: 'loud', class: 'font-semibold' }] }`
+        for (const count of [24, 25, 32]) {
+            const config = balanced([...Array(count - 1).fill('{}'), drift])
+            expect(countWeightStacks(`cva('base', ${config})`)).toBe(1)
+            expect(countWeightStacks(`cva('base', { ...(${config}) })`)).toBe(1)
+        }
+    })
+
     it('does not count a token and a weight that only meet in prose', () => {
         // The per-line residue pass had no way to tell source from commentary,
         // so a comment ABOUT the drift counted as the drift (0_Bruddle/Section.tsx).

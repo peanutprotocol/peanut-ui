@@ -36,15 +36,6 @@ const BUILDERS = new Set(['twMerge', 'clsx', 'cn', 'classNames', 'cva', 'tw'])
 const MAX_DEPTH = 12
 
 /**
- * How many object candidates one expression may contribute.
- *
- * A bound is necessary — a nested conditional chain is exponential — but
- * hitting it is reported rather than silently truncating, because a dropped
- * branch here erases a finding instead of inflating one.
- */
-const CANDIDATE_LIMIT = 24
-
-/**
  * Ceiling on distinct alternatives tracked through one combination. Reached only
  * by pathological files; when it bites, alternatives that already MATCH are kept
  * ahead of ones that do not, so the bound can cost precision but never a finding.
@@ -662,9 +653,9 @@ function selectorOptionNames(node, ctx, depth, seen) {
 /**
  * Compose every object an expression can be, through `per`, and union them.
  *
- * `null` when there is nothing to compose. An INCOMPLETE walk also folds in the
- * conservative reading, so a branch the candidate cap could not reach never
- * removes a finding — only ever adds one.
+ * `null` when there is nothing to compose. An incomplete binding-resolution
+ * walk also folds in the generic reading. Finite syntax branches are all visited
+ * and composed through `per`, never truncated by a candidate-count limit.
  */
 function composeObjectCandidates(node, ctx, depth, seen, per) {
     if (!node) return null
@@ -751,18 +742,40 @@ function cvaAlternatives(node, ctx, depth, seen) {
  * through exactly this path instead of being flattened into a bag of values.
  */
 function cvaConfigAlternatives(configTable, ctx, depth, seen) {
+    const configCtx = { ...ctx, scopes: configTable.scopes }
+    const configFields = objectFields(configTable, configCtx, depth, seen)
+    let variants = [null]
+    let compounds = [null]
+    for (const field of effectiveFields(configFields)) {
+        if (field.key === 'variants') {
+            const found = resolveToObjectLiterals(field.value, field.ctx, depth, seen)
+            if (found.candidates.length) variants = found.candidates
+        } else if (field.key === 'compoundVariants') {
+            const found = resolveToArrayLiterals(field.value, field.ctx, depth, seen)
+            if (found.candidates.length) compounds = found.candidates
+        }
+    }
+    // Each structural candidate is a separate runtime possibility. Preserve its
+    // named axes and declaring scopes until compound correlation is finished;
+    // entries from mutually exclusive arrays must never reach the same pair loop.
+    let out = null
+    for (const variant of variants) {
+        for (const compound of compounds) {
+            const alts = cvaConfigCandidateAlternatives(configFields, variant, compound, ctx, depth, seen)
+            out = out ? union(out, alts) : alts
+        }
+    }
+    return out ?? NOTHING
+}
+
+function cvaConfigCandidateAlternatives(configFields, variants, compounds, ctx, depth, seen) {
     const baseAlts = NOTHING
     let out = baseAlts
-    const configCtx = { ...ctx, scopes: configTable.scopes }
-
-    let variants = null
-    let compounds = null
     // Every axis by name, so a compound can product against the ones it leaves free.
     const axisAlts = new Map()
     // Spreads flattened in place and reduced to the winner per key. Composing
     // BOTH `variants` fields of `{ ...CONFIG, variants: … }` put the overridden
     // table's classes into the output beside the ones that actually render.
-    const configFields = objectFields(configTable, configCtx, depth, seen)
     // A config spread we cannot resolve — `{ ...(cond ? A : B) }` — may carry
     // any of these fields. Dropping it lost every axis it could have brought, so
     // its own alternatives are producted in: over-counting, the safe direction.
@@ -780,23 +793,9 @@ function cvaConfigAlternatives(configTable, ctx, depth, seen) {
         )
         out = product(out, composed ?? alternatives(opaque.value, opaque.ctx, depth + 1, seen, LOOKUP_OBJECT))
     }
-    for (const { key, value: field, ctx: fieldCtx } of effectiveFields(configFields)) {
+    for (const { key } of effectiveFields(configFields)) {
         if (key === 'variants') {
-            variants = resolveToObjectLiteral(field, fieldCtx, depth, seen)
-            if (!variants) {
-                // Conditional table: each candidate composes its own axes, and
-                // the result is one axis entry no compound can pin — the names
-                // are not knowable across candidates, but the classes still
-                // co-apply with everything else.
-                const composed = composeObjectCandidates(field, fieldCtx, depth, seen, (candidate, candidateCtx) =>
-                    variantsTableAlts(candidate, candidateCtx, depth + 1, seen)
-                )
-                if (composed) {
-                    axisAlts.set(field, composed)
-                    out = product(out, composed)
-                }
-                continue
-            }
+            if (!variants) continue
             const variantsCtx = { ...ctx, scopes: variants.scopes }
             // Same reader as the config: `{ ...TONE, size: … }` is how a table
             // gets composed once an axis is hoisted, and skipping the spread
@@ -828,11 +827,6 @@ function cvaConfigAlternatives(configTable, ctx, depth, seen) {
                     ) ?? alternatives(opaque.value, opaque.ctx, depth + 1, seen, LOOKUP_OBJECT)
                 axisAlts.set(opaque.value, alts)
                 out = product(out, alts)
-            }
-        } else if (key === 'compoundVariants') {
-            const found = resolveToArrayLiterals(field, fieldCtx, depth, seen)
-            if (found.elements.length > 0) {
-                compounds = { elements: found.elements.map((e) => e.element), scopes: found.scopes ?? fieldCtx.scopes }
             }
         }
         // `defaultVariants` names keys, not classes — nothing to read.
@@ -1013,11 +1007,9 @@ function cvaConfigAlternatives(configTable, ctx, depth, seen) {
  */
 function resolveToObjectLiterals(node, ctx, depth, seen, found = { candidates: [], complete: true }) {
     if (!node) return found
-    // A truncated walk must never look like a complete one. Unlike the
-    // alternatives cap — which over-counts — dropping a branch here erases the
-    // existence of a stack, so the caller is told and falls back to the
-    // conservative union instead of trusting a partial answer.
-    if (depth > MAX_DEPTH || found.candidates.length >= CANDIDATE_LIMIT) {
+    // Walk every finite syntax branch. Only binding expansion consumes the
+    // resolution budget; a wide conditional must not lose its late candidates.
+    if (depth > MAX_DEPTH) {
         found.complete = false
         return found
     }
@@ -1026,22 +1018,22 @@ function resolveToObjectLiterals(node, ctx, depth, seen, found = { candidates: [
         return found
     }
     if (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isSatisfiesExpression(node)) {
-        return resolveToObjectLiterals(node.expression, ctx, depth + 1, seen, found)
+        return resolveToObjectLiterals(node.expression, ctx, depth, seen, found)
     }
     if (ts.isConditionalExpression(node)) {
-        resolveToObjectLiterals(node.whenTrue, ctx, depth + 1, seen, found)
-        return resolveToObjectLiterals(node.whenFalse, ctx, depth + 1, seen, found)
+        resolveToObjectLiterals(node.whenTrue, ctx, depth, seen, found)
+        return resolveToObjectLiterals(node.whenFalse, ctx, depth, seen, found)
     }
     if (ts.isBinaryExpression(node)) {
         const op = node.operatorToken.kind
         if (op === ts.SyntaxKind.BarBarToken || op === ts.SyntaxKind.QuestionQuestionToken) {
-            resolveToObjectLiterals(node.left, ctx, depth + 1, seen, found)
-            return resolveToObjectLiterals(node.right, ctx, depth + 1, seen, found)
+            resolveToObjectLiterals(node.left, ctx, depth, seen, found)
+            return resolveToObjectLiterals(node.right, ctx, depth, seen, found)
         }
         // `enabled && { … }` is the object when the guard passes and a falsy
         // primitive otherwise, so only the right-hand side can be a table.
         if (op === ts.SyntaxKind.AmpersandAmpersandToken) {
-            return resolveToObjectLiterals(node.right, ctx, depth + 1, seen, found)
+            return resolveToObjectLiterals(node.right, ctx, depth, seen, found)
         }
         return found
     }
@@ -1059,36 +1051,34 @@ function resolveToObjectLiterals(node, ctx, depth, seen, found = { candidates: [
  * Every array literal an expression can denote — the `compoundVariants` twin of
  * {@link resolveToObjectLiterals}.
  *
- * Entries from different candidates are pooled rather than kept apart: only one
- * array is what the expression is, so treating them as co-possible over-counts,
- * which is the direction to be wrong in.
+ * Keep arrays and their declaring scopes intact: entries within an array can
+ * co-apply, while entries from different candidate arrays cannot.
  */
-function resolveToArrayLiterals(node, ctx, depth, seen, found = { elements: [], scopes: null, complete: true }) {
+function resolveToArrayLiterals(node, ctx, depth, seen, found = { candidates: [], complete: true }) {
     if (!node) return found
-    if (depth > MAX_DEPTH || found.elements.length >= CANDIDATE_LIMIT * 8) {
+    if (depth > MAX_DEPTH) {
         found.complete = false
         return found
     }
     if (ts.isArrayLiteralExpression(node)) {
-        for (const element of node.elements) found.elements.push({ element, scopes: ctx.scopes })
-        found.scopes = found.scopes ?? ctx.scopes
+        found.candidates.push({ elements: [...node.elements], scopes: ctx.scopes })
         return found
     }
     if (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isSatisfiesExpression(node)) {
-        return resolveToArrayLiterals(node.expression, ctx, depth + 1, seen, found)
+        return resolveToArrayLiterals(node.expression, ctx, depth, seen, found)
     }
     if (ts.isConditionalExpression(node)) {
-        resolveToArrayLiterals(node.whenTrue, ctx, depth + 1, seen, found)
-        return resolveToArrayLiterals(node.whenFalse, ctx, depth + 1, seen, found)
+        resolveToArrayLiterals(node.whenTrue, ctx, depth, seen, found)
+        return resolveToArrayLiterals(node.whenFalse, ctx, depth, seen, found)
     }
     if (ts.isBinaryExpression(node)) {
         const op = node.operatorToken.kind
         if (op === ts.SyntaxKind.BarBarToken || op === ts.SyntaxKind.QuestionQuestionToken) {
-            resolveToArrayLiterals(node.left, ctx, depth + 1, seen, found)
-            return resolveToArrayLiterals(node.right, ctx, depth + 1, seen, found)
+            resolveToArrayLiterals(node.left, ctx, depth, seen, found)
+            return resolveToArrayLiterals(node.right, ctx, depth, seen, found)
         }
         if (op === ts.SyntaxKind.AmpersandAmpersandToken) {
-            return resolveToArrayLiterals(node.right, ctx, depth + 1, seen, found)
+            return resolveToArrayLiterals(node.right, ctx, depth, seen, found)
         }
         return found
     }
