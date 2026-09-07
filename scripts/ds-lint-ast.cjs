@@ -181,7 +181,10 @@ function objectFields(table, ctx, depth, seen, into = []) {
         if (ts.isSpreadAssignment(prop)) {
             const spread = resolveToObjectLiteral(prop.expression, inner, depth, seen)
             if (spread) objectFields(spread, inner, depth + 1, seen, into)
-            else into.push({ key: null, value: null, ctx: inner, opaqueSpread: true })
+            // The EXPRESSION is kept, not dropped: a caller that has to stay
+            // conservative about what an unreadable spread carried needs
+            // something to evaluate.
+            else into.push({ key: null, value: prop.expression, ctx: inner, opaqueSpread: true })
             continue
         }
         const shorthand = ts.isShorthandPropertyAssignment(prop)
@@ -199,7 +202,14 @@ function objectFields(table, ctx, depth, seen, into = []) {
     return into
 }
 
-/** Fields reduced to the ONE that wins per key, in first-appearance order. */
+/**
+ * Fields reduced to the ONE that wins per key, in first-appearance order.
+ *
+ * Keyless records — an opaque spread, an unreadable computed name — are dropped
+ * here BY DESIGN: they name nothing, so no key can be resolved to them. Callers
+ * that need to stay conservative about what such a record might have carried
+ * read them separately; see {@link opaqueFields}.
+ */
 function effectiveFields(fields) {
     const byKey = new Map()
     for (const field of fields) {
@@ -207,6 +217,11 @@ function effectiveFields(fields) {
         byKey.set(field.key, field)
     }
     return [...byKey.values()]
+}
+
+/** The records that name nothing readable — an opaque spread or a dynamic key. */
+function opaqueFields(fields) {
+    return fields.filter((field) => field.key === null)
 }
 
 /**
@@ -265,6 +280,13 @@ function propertyByName(node, name, ctx, depth, seen) {
 function staticText(node, ctx, depth = 0, seen = new Set()) {
     if (!node || depth > MAX_DEPTH) return null
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return node.text
+    // A primitive operand coerces rather than separating: `'a' + 1 + 'b'` is the
+    // single class `a1b`, and refusing the number invented two class boundaries
+    // that do not exist.
+    if (ts.isNumericLiteral(node)) return String(Number(node.text))
+    if (node.kind === ts.SyntaxKind.TrueKeyword) return 'true'
+    if (node.kind === ts.SyntaxKind.FalseKeyword) return 'false'
+    if (node.kind === ts.SyntaxKind.NullKeyword) return 'null'
     if (ts.isTemplateExpression(node)) {
         let text = node.head.text
         for (const span of node.templateSpans) {
@@ -535,13 +557,15 @@ function alternatives(node, ctx, depth = 0, seen = new Set(), mode = LOOKUP_OBJE
         // inside a builder call: `clsx(SIZES[variant])` picks a variant, it does
         // not apply the whole table.
         const selected = propertiesByName(node.expression, node.name.text, ctx, depth, seen)
-        // `resolved` says the table was READ, so an empty result means the key
-        // is provably absent and the access renders nothing — unioning the table
-        // there borrows a class from an entry the name can never reach.
-        if (selected.resolved || selected.values.length > 0) {
-            return unionOfSelected(selected.values, ctx, depth, seen)
-        }
-        return alternatives(node.expression, ctx, depth + 1, seen, LOOKUP_OBJECT)
+        // `resolved` says the table was READ to the end, so an empty result
+        // means the key is provably absent and the access renders nothing —
+        // unioning the table there borrows a class from an entry the name can
+        // never reach. An UNRESOLVED result is a partial list, not a complete
+        // one: the definite property may still be sitting behind the opaque
+        // spread that stopped the walk, so union it with the whole table.
+        if (selected.resolved) return unionOfSelected(selected.values, ctx, depth, seen)
+        const whole = alternatives(node.expression, ctx, depth + 1, seen, LOOKUP_OBJECT)
+        return selected.values.length > 0 ? union(unionOfSelected(selected.values, ctx, depth, seen), whole) : whole
     }
     if (ts.isElementAccessExpression(node)) {
         // A constant key SELECTS one entry, exactly as a property access does —
@@ -555,8 +579,11 @@ function alternatives(node, ctx, depth = 0, seen = new Set(), mode = LOOKUP_OBJE
         const keyText = staticText(arg, ctx, depth + 1, seen) ?? (index === null ? null : String(index))
         if (keyText !== null) {
             const selected = propertiesByName(node.expression, keyText, ctx, depth, seen)
-            if (selected.resolved || selected.values.length > 0) {
-                return unionOfSelected(selected.values, ctx, depth, seen)
+            if (selected.resolved) return unionOfSelected(selected.values, ctx, depth, seen)
+            if (selected.values.length > 0) {
+                // Partial, for the same reason as the property-access branch.
+                const whole = alternatives(node.expression, ctx, depth + 1, seen, LOOKUP_OBJECT)
+                return union(unionOfSelected(selected.values, ctx, depth, seen), whole)
             }
         }
         if (index !== null) {
@@ -633,9 +660,15 @@ function cvaAlternatives(node, ctx, depth, seen) {
     // Spreads flattened in place and reduced to the winner per key. Composing
     // BOTH `variants` fields of `{ ...CONFIG, variants: … }` put the overridden
     // table's classes into the output beside the ones that actually render.
-    for (const { key, value: field, ctx: fieldCtx } of effectiveFields(
-        objectFields(configTable, configCtx, depth, seen)
-    )) {
+    const configFields = objectFields(configTable, configCtx, depth, seen)
+    // A config spread we cannot resolve — `{ ...(cond ? A : B) }` — may carry
+    // any of these fields. Dropping it lost every axis it could have brought, so
+    // its own alternatives are producted in: over-counting, the safe direction,
+    // and the same fallback an unresolvable config takes below.
+    for (const opaque of opaqueFields(configFields)) {
+        if (opaque.value) out = product(out, alternatives(opaque.value, opaque.ctx, depth + 1, seen, BUILDER_OBJECT))
+    }
+    for (const { key, value: field, ctx: fieldCtx } of effectiveFields(configFields)) {
         if (key === 'variants') {
             variants = resolveToObjectLiteral(field, fieldCtx, depth, seen)
             if (!variants) continue
@@ -645,11 +678,21 @@ function cvaAlternatives(node, ctx, depth, seen) {
             // lost every axis it carried. Names come from `staticKeyName`, so a
             // computed `[axis]:` is recorded too — an unnamed axis was invisible
             // to `axisAlts` and could never be a free axis for a compound.
-            for (const axis of effectiveFields(objectFields(variants, variantsCtx, depth, seen))) {
+            const variantFields = objectFields(variants, variantsCtx, depth, seen)
+            for (const axis of effectiveFields(variantFields)) {
                 // union WITHIN the axis, product ACROSS axes
                 const alts = alternatives(axis.value, axis.ctx, depth + 1, seen, LOOKUP_OBJECT)
                 axisAlts.set(axis.key, alts)
                 out = product(out, alts)
+            }
+            // An axis table spread in from something unreadable co-applies with
+            // the ones named here, exactly as a named axis does. It cannot be
+            // recorded in `axisAlts` — it has no name for a compound to pin or
+            // leave free — so it composes into the output only.
+            for (const opaque of opaqueFields(variantFields)) {
+                if (opaque.value) {
+                    out = product(out, alternatives(opaque.value, opaque.ctx, depth + 1, seen, LOOKUP_OBJECT))
+                }
             }
         } else if (key === 'compoundVariants') {
             compounds = resolveToArrayLiteral(field, fieldCtx, depth, seen)
@@ -682,8 +725,13 @@ function cvaAlternatives(node, ctx, depth, seen) {
         for (const prop of effectiveFields(objectFields(compound, entryCtx, depth, seen))) {
             const name = prop.key
             const field = { initializer: prop.value }
+            // Each flattened field carries the scopes it was WRITTEN in — a
+            // spread from a module-level `const C` means the module's bindings,
+            // and evaluating its `class` against the call site picked up a
+            // function-local namesake instead.
+            const fieldCtx = prop.ctx
             if (name === 'class' || name === 'className') {
-                classes = product(classes, alternatives(field.initializer, entryCtx, depth + 1, seen, BUILDER_OBJECT))
+                classes = product(classes, alternatives(field.initializer, fieldCtx, depth + 1, seen, BUILDER_OBJECT))
                 continue
             }
             // A selector names an axis and the option(s) it fires for — cva
@@ -691,7 +739,7 @@ function cvaAlternatives(node, ctx, depth, seen) {
             // options, unioned; a selector we cannot read down to named options
             // (a boolean, a computed name) leaves the axis unpinned below, which
             // reads as "any option" — over-counting, the safe direction.
-            const optionNames = selectorOptionNames(field.initializer, entryCtx, depth, seen)
+            const optionNames = selectorOptionNames(field.initializer, fieldCtx, depth, seen)
             if (optionNames !== null && optionNames.length === 0) {
                 impossible = true
                 break

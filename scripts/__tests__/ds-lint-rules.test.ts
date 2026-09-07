@@ -404,6 +404,53 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
         ).toBe(1)
     })
 
+    it('folds a primitive operand instead of inventing a class boundary', () => {
+        // `'a' + 1 + 'b'` is the single class `a1b` — refusing the number split
+        // it into three and reported a stack nothing renders.
+        expect(countWeightStacks("const c = clsx('text-body-m' + 1 + 'font-semibold')")).toBe(0)
+        // ...and with real separators around it, both classes still land
+        expect(countWeightStacks("const c = clsx('text-body-m ' + 1 + ' font-semibold')")).toBe(1)
+        expect(countWeightStacks("const c = clsx('text-body-m' + true + 'font-semibold')")).toBe(0)
+    })
+
+    it('keeps composing an axis table spread in from something unreadable', () => {
+        // The spread may carry a `tone` axis; dropping it lost every class it
+        // could have brought. Over-counting is the safe direction here.
+        expect(
+            countWeightStacks(
+                "const TONE = enabled ? { tone: { loud: 'text-body-m' } } : {}; const c = cva('base', { variants: { ...TONE, size: { sm: 'font-semibold' } } })"
+            )
+        ).toBe(1)
+        // an unreadable spread that could not carry a stack still reports none
+        expect(
+            countWeightStacks("const c = cva('base', { ...MAYBE, variants: { size: { sm: 'font-semibold' } } })")
+        ).toBe(0)
+    })
+
+    it('falls back to the table when an opaque spread cut the search short', () => {
+        // The definite `x` may still be sitting behind `...REST`, so the partial
+        // list of dynamic candidates is not a complete answer.
+        expect(
+            countWeightStacks(
+                "function f(k, j, REST) { const S = { x: 'underline', [k]: 'text-body-m', ...REST, [j]: 'underline' }; return clsx(S.x, 'font-semibold') }"
+            )
+        ).toBe(1)
+    })
+
+    it('evaluates a spread compound field in the scope it was written in', () => {
+        expect(
+            countWeightStacks(
+                "const w = 'font-semibold'; const C = { tone: 'loud', class: w }; function f() { const w = 'underline'; return cva('base', { variants: { tone: { loud: 'text-body-m' } }, compoundVariants: [{ ...C }] }) }"
+            )
+        ).toBe(1)
+        // and the reverse: the module value is the one that does NOT stack
+        expect(
+            countWeightStacks(
+                "const w = 'underline'; const C = { tone: 'loud', class: w }; function f() { const w = 'font-semibold'; return cva('base', { variants: { tone: { loud: 'text-body-m' } }, compoundVariants: [{ ...C }] }) }"
+            )
+        ).toBe(0)
+    })
+
     it('renders nothing for a key a resolved table does not have', () => {
         // `resolved` is what separates this from an unreadable table: unioning
         // here borrows a class from an entry the name can never reach.
