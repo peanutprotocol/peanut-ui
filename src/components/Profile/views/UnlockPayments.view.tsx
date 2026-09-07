@@ -698,7 +698,10 @@ const UnlockSection = ({
                         Everywhere group always states that — it is the one limit
                         that exists before any unlock. */}
                     {group.id === 'everywhere' && (
-                        <p className="text-body-s text-foreground-secondary">{t('limits.p2pNoLimit')}</p>
+                        <div className="flex flex-col gap-1">
+                            <p className="text-body-s text-foreground-secondary">{t('limits.p2pNoLimit')}</p>
+                            <ProgressBar value={100} />
+                        </div>
                     )}
                     {limitSummaries.map((summary) =>
                         summary.kind === 'manteca' ? (
