@@ -49,7 +49,7 @@ describe('AboutView', () => {
         try {
             render(<AboutView appVersion="1.2.3" />)
             const invitation = await screen.findByRole('heading', { name: 'Liking it so far?' })
-            const policies = screen.getByRole('heading', { name: 'Policies' })
+            const policies = screen.getByRole('heading', { name: 'The official bits' })
             expect(invitation.compareDocumentPosition(policies) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
             expect(screen.getByRole('button', { name: 'Leave a review' })).toBeInTheDocument()
         } finally {
