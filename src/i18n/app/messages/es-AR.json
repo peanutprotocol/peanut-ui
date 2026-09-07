@@ -451,7 +451,7 @@
             "noPasskey": "No se encontró ninguna passkey. Primero creá una billetera."
         },
         "signupStep": {
-            "usernamePlaceholder": "Escribí un nombre de usuario",
+            "usernamePlaceholder": "Tu usuario",
             "errors": {
                 "invalid": "El nombre de usuario no es válido, usá uno diferente",
                 "checkFailed": "No pudimos verificar la disponibilidad del usuario. Intentalo de nuevo.",
@@ -461,7 +461,7 @@
         },
         "residenceStep": {
             "countryPlaceholder": "Seleccioná tu país",
-            "secondCountryPlaceholder": "Seleccioná tu segundo país",
+            "secondCountryPlaceholder": "Segundo país",
             "multiDocLink": "¿Tenés documentos de más de un país?",
             "errors": {
                 "invalidEmail": "Ingresá un correo electrónico válido"
@@ -602,7 +602,7 @@
     },
     "request": {
         "leaveEmptyHint": "Dejalo vacío para que quien paga elija el monto.",
-        "recipientPlaceholder": "Ingresá un nombre de usuario, una dirección o ENS",
+        "recipientPlaceholder": "Usuario, dirección o ENS",
         "errors": {
             "enterRecipient": "Ingresá una dirección de destinatario"
         },
@@ -652,7 +652,7 @@
             "createWalletHint": "Creá una billetera para recibir enlaces en el futuro."
         },
         "initial": {
-            "recipientPlaceholder": "Ingresá un nombre de usuario, una dirección o ENS",
+            "recipientPlaceholder": "Usuario, dirección o ENS",
             "usdcArbitrumOnly": "Solo podés reclamar USDC en Arbitrum para usuarios de Peanut Wallet."
         },
         "addressCompatible": {
@@ -915,8 +915,8 @@
         "noAccountsTitle": "Aún no tenés cuentas",
         "noAccountsDescription": "Agregá los datos de tus cuentas una vez<br></br>y retirá con un solo toque.",
         "initial": {
-            "placeholderEns": "Ingresá una dirección o ENS",
-            "placeholderAddress": "Ingresá una dirección"
+            "placeholderEns": "Dirección o ENS",
+            "placeholderAddress": "Dirección"
         },
         "confirm": {
             "youPay": "Pagás"
@@ -926,7 +926,7 @@
         },
         "pixKey": {
             "heading": "Ingresá la clave Pix",
-            "info": "Enviá a cualquier clave Pix: email, teléfono, CPF/CNPJ o clave aleatoria."
+            "info": "Enviá a cualquier clave Pix: email, teléfono (incluí +55), CPF/CNPJ o clave aleatoria."
         },
         "bank": {
             "confirmPending": "Tu transferencia se está procesando. Los fondos se enviaron on-chain correctamente: la confirmación puede tardar unos minutos. Si no ves el retiro en tu actividad dentro de 30 minutos, contactá a soporte."
@@ -1346,7 +1346,7 @@
     },
     "recoverFunds": {
         "selectToken": "Seleccioná un token para recuperar",
-        "recipientPlaceholder": "Ingresá la dirección donde querés recibir los fondos",
+        "recipientPlaceholder": "Dirección de destino",
         "recoveryUnavailable": "La recuperación aún no está disponible para {chain}. Contactá a soporte o intentalo de nuevo más tarde.",
         "sessionExpired": "Tu sesión expiró. Actualizá la página e intentalo de nuevo.",
         "sendFailed": "Error al enviar la transacción, intentalo de nuevo",
@@ -1358,9 +1358,9 @@
             "drawerTitle": "Elegí token y red",
             "crossChainUnavailable": "Las transacciones entre cadenas no están disponibles temporalmente. Podés usar USDC en Arbitrum.",
             "selectANetwork": "Elegí una red",
-            "searchTokenPlaceholder": "Buscá un token o pegá una dirección",
+            "searchTokenPlaceholder": "Token o dirección",
             "noMatchingTokensDescription": "Intentá buscar otro token",
-            "searchNetworkPlaceholder": "Buscá una red",
+            "searchNetworkPlaceholder": "Buscar red",
             "noNetworksFoundDescription": "Intentá buscar otra red"
         },
         "qrScanner": {

@@ -754,7 +754,7 @@
         "installPwa": {
             "openPeanutApp": "Abrir la app de Peanut",
             "installing": "Instalando",
-            "addToHomeScreen": "Agregar Peanut a la pantalla de inicio",
+            "addToHomeScreen": "Agregar a la pantalla de inicio",
             "installCancelled": "Instalación cancelada. Puedes intentar agregarlo a la pantalla de inicio de nuevo.",
             "manualInstallHint": "Para instalar la app, agrégala a tu pantalla de inicio desde el menú de tu navegador.",
             "mobileFirstTitle": "¡Peanut está hecho para el celular!",
@@ -771,7 +771,7 @@
             "recoverWallet": "¿Necesitas recuperar tu cuenta de Peanut?"
         },
         "waitlist": {
-            "inviterUsernamePlaceholder": "Su nombre de usuario",
+            "inviterUsernamePlaceholder": "Nombre de usuario",
             "inviterNotFound": "No hay ningún miembro de Peanut con ese nombre de usuario. Verifica el usuario exacto de quien te invitó.",
             "joinWaitlist": "Unirme a la lista de espera",
             "loginCanceled": "El inicio de sesión fue cancelado. Inténtalo de nuevo.",
@@ -779,7 +779,7 @@
             "loginUnexpectedError": "Ocurrió un error inesperado al iniciar sesión."
         },
         "signupStep": {
-            "usernamePlaceholder": "Escribe un nombre de usuario",
+            "usernamePlaceholder": "Tu usuario",
             "errors": {
                 "required": "El nombre de usuario es obligatorio",
                 "tooShort": "El nombre de usuario debe tener al menos 4 caracteres",
@@ -794,7 +794,7 @@
         },
         "residenceStep": {
             "countryPlaceholder": "Selecciona tu país",
-            "secondCountryPlaceholder": "Selecciona tu segundo país",
+            "secondCountryPlaceholder": "Segundo país",
             "multiDocLink": "¿Tienes documentos de más de un país?",
             "errors": {
                 "invalidEmail": "Ingresa un correo electrónico válido"
@@ -1056,7 +1056,7 @@
         "linkCreatedToast": "¡Enlace creado con éxito!",
         "linkCreatedAndCopiedToast": "¡Enlace creado y copiado al portapapeles!",
         "requestUpdatedToast": "¡Solicitud actualizada con éxito!",
-        "recipientPlaceholder": "Ingresa un nombre de usuario, una dirección o ENS",
+        "recipientPlaceholder": "Usuario, dirección o ENS",
         "errors": {
             "createFailed": "No se pudo crear el enlace",
             "updateFailed": "No se pudo actualizar la solicitud",
@@ -1198,7 +1198,7 @@
         },
         "initial": {
             "receiveOn": "Recibir en",
-            "recipientPlaceholder": "Ingresa un nombre de usuario, una dirección o ENS",
+            "recipientPlaceholder": "Usuario, dirección o ENS",
             "usdcArbitrumOnly": "Solo puedes reclamar USDC en Arbitrum para usuarios de Peanut Wallet."
         },
         "addressCompatible": {
@@ -1455,7 +1455,7 @@
             "canceledTitle": "Tarjeta cancelada",
             "canceledBody": "Ya no se puede usar para pagos. Puedes pedir una tarjeta nueva, según tu elegibilidad.",
             "feedbackLabel": "Ayúdanos a mejorar nuestro producto para ti",
-            "feedbackPlaceholder": "¿Por qué cancelaste la tarjeta?",
+            "feedbackPlaceholder": "¿Por qué cancelaste?",
             "submit": "Enviar",
             "thanksTitle": "Gracias por tus comentarios",
             "thanksBody": "Agradecemos tus comentarios, nos ayudan a mejorar la experiencia de nuestra app.",
@@ -1854,8 +1854,8 @@
             "bankTransfer": "Transferencia bancaria"
         },
         "initial": {
-            "placeholderEns": "Ingresa una dirección o ENS",
-            "placeholderAddress": "Ingresa una dirección",
+            "placeholderEns": "Dirección o ENS",
+            "placeholderAddress": "Dirección",
             "detailsMissing": "Faltan los datos del retiro"
         },
         "confirm": {
@@ -1880,8 +1880,8 @@
         "pixKey": {
             "title": "Enviar con Pix",
             "heading": "Ingresa la clave Pix",
-            "placeholder": "Clave PIX (incluye +55 si es un número de teléfono)",
-            "info": "Envía a cualquier clave Pix: email, teléfono, CPF/CNPJ o clave aleatoria.",
+            "placeholder": "Clave PIX",
+            "info": "Envía a cualquier clave Pix: email, teléfono (incluye +55), CPF/CNPJ o clave aleatoria.",
             "invalid": "Clave Pix inválida"
         },
         "bank": {
@@ -3071,7 +3071,7 @@
         "selectToken": "Selecciona un token para recuperar",
         "noTokens": "No hay tokens para recuperar",
         "noTokensDescription": "Los tokens enviados a tu dirección en otras redes aparecerán aquí.",
-        "recipientPlaceholder": "Ingresa la dirección donde quieres recibir los fondos",
+        "recipientPlaceholder": "Dirección de destino",
         "review": "Revisar",
         "youWillReceiveTo": "Vas a recibir en",
         "sentTo": "Enviado a",
@@ -3100,7 +3100,7 @@
             "crossChainUnavailable": "Las transacciones entre cadenas no están disponibles temporalmente. Puedes usar USDC en Arbitrum.",
             "selectANetwork": "Elige una red",
             "moreNetworksButton": "más",
-            "searchTokenPlaceholder": "Busca un token o pega una dirección",
+            "searchTokenPlaceholder": "Token o dirección",
             "sponsoredHint": "Las transacciones con USDC en Arbitrum son patrocinadas",
             "availableToken": "Token disponible",
             "searchResults": "Resultados de búsqueda",
@@ -3110,7 +3110,7 @@
             "noMatchingTokensDescription": "Intenta buscar otro token",
             "noPopularTokensTitle": "No hay tokens populares disponibles",
             "moreNetworksTitle": "Más redes",
-            "searchNetworkPlaceholder": "Busca una red",
+            "searchNetworkPlaceholder": "Buscar red",
             "noNetworksFoundTitle": "No se encontraron redes que coincidan con {search}",
             "noNetworksFoundDescription": "Intenta buscar otra red",
             "searchPlaceholder": "Buscar...",
