@@ -656,9 +656,19 @@ const UnlockSection = ({
                 return <StatusBadge status="processing" customText={t('chips.processing')} />
             case 'attention':
                 return <StatusBadge status="pending" customText={t('chips.attention')} />
-            case 'unlock':
             case 'notAvailable':
-                return <span className="text-body-s text-foreground-secondary">{t(`chips.${row.chip}`)}</span>
+                if (row.labelKey === 'card') {
+                    return (
+                        <StatusBadge
+                            status="custom"
+                            customText={t('chips.notAvailable')}
+                            className="bg-background-badge-helper"
+                        />
+                    )
+                }
+                return <span className="text-body-s text-foreground-secondary">{t('chips.notAvailable')}</span>
+            case 'unlock':
+                return <span className="text-body-s text-foreground-secondary">{t('chips.unlock')}</span>
         }
     }
 
