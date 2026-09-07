@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { impactHaptic, heavyImpactHaptic, cancelHaptic } from '@/utils/haptics'
 import styles from './AvatarPicker.module.css'
+import { Icon } from '@/components/Global/Icons/Icon'
 
 const PIPS = [[5], [1, 9], [1, 5, 9], [1, 3, 7, 9], [1, 3, 5, 7, 9], [1, 3, 4, 6, 7, 9]]
 export const DICE_ROLL_MS = 2400
@@ -32,7 +33,7 @@ export function DiceRoll({ onComplete, onCancel }: { onComplete: () => void; onC
     return (
         <div className={styles.rollStage}>
             <button type="button" className={styles.close} onClick={onCancel} aria-label={t('cancelRoll')}>
-                ×
+                <Icon name="cancel" size={20} />
             </button>
             <div className={styles.halo} aria-hidden="true" />
             <div className={styles.orbit} aria-hidden="true" />
