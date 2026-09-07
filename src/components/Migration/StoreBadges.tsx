@@ -1,4 +1,5 @@
 'use client'
+import { copyIOSHandoff, playStoreUrlWithReferrer } from '@/utils/deferred-link'
 import { Button } from '@/components/0_Bruddle/Button'
 import { STORE_NAME, STORE_URL, type MigrationSurface } from '@/constants/migration.consts'
 import { trackStoreClick } from '@/utils/migration.utils'
@@ -13,8 +14,10 @@ import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 export default function StoreBadges({
     surface,
     appearance = 'compact',
+    payload,
 }: {
     surface: MigrationSurface
+    payload?: string
     appearance?: 'compact' | 'hero' | 'stacked'
 }) {
     const isHero = appearance === 'hero'
@@ -27,10 +30,13 @@ export default function StoreBadges({
             {stores.map((s) => (
                 <a
                     key={s}
-                    href={STORE_URL[s]}
+                    href={payload && s === 'android' ? playStoreUrlWithReferrer(payload) : STORE_URL[s]}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={() => trackStoreClick(s, surface)}
+                    onClick={() => {
+                        trackStoreClick(s, surface, !!payload)
+                        if (payload && s === 'ios') void copyIOSHandoff(payload).catch(() => {})
+                    }}
                     className={isStacked ? 'w-full' : undefined}
                 >
                     <Button

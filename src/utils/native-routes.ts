@@ -129,6 +129,19 @@ function mapDeepLinkPath(parsed: URL): string | null {
         return isCapacitor() ? null : appendParams(path, extraParams)
     }
 
+    /*
+     * The smart download link. App Links claim `/app` AND `/app/*` (a wildcard
+     * the AASA and the intent-filter give every claimed root), but there is no
+     * `/app/<anything>` route on either the web app or the native export — so a
+     * sub-path would open the app and land on a missing route, i.e. exactly the
+     * cold-boot-to-home dropped tap the null returns below exist to prevent.
+     * Collapse the whole claim onto the one real page instead of dropping it:
+     * /app's own native branch applies the deferred payload and routes on.
+     */
+    if (segments[0] === 'app') {
+        return appendParams('/app', extraParams)
+    }
+
     if (segments[0] === 'send' && segments[1]) {
         return appendParams(sendUrl(decodeURIComponent(segments.slice(1).join('/'))), extraParams)
     }
@@ -255,6 +268,10 @@ function mapDeepLinkPath(parsed: URL): string | null {
  */
 export const NATIVE_EXPORT_ROOTS: ReadonlySet<string> = new Set([
     'add-money',
+    // the /app smart link. App Links claim it (TASK-21788) so an installed
+    // user who scans a download QR opens the app instead of the store page —
+    // and /app's own native branch applies the deferred payload and routes on.
+    'app',
     'badges',
     'card',
     'card-payment',

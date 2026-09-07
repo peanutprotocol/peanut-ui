@@ -3586,7 +3586,8 @@
         "smartLink": {
             "redirecting": "Taking you to the store…",
             "pickStore": "Global cash, local feel. Pick your store to download."
-        }
+        },
+        "otherStore": "Other store"
     },
     "shhhhh": {
         "hero": {

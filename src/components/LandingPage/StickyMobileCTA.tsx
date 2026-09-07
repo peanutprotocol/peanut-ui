@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useMemo } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/0_Bruddle/Button'
 import type { LandingStrings } from './landingStrings'
-import { MIGRATION_SURFACES } from '@/constants/migration.consts'
+import { STORE_URL, MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { useTranslations } from 'next-intl'
@@ -76,22 +76,30 @@ export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
                     {migrationOn ? (
                         // this bar is md:hidden so the visitor is on a phone —
                         // deep-link their store during the migration window
-                        <a
-                            href={storeHref}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="pointer-events-auto block"
-                            onClick={() => onStoreAnchorClick(store, MIGRATION_SURFACES.LANDING_HERO)}
-                        >
-                            <Button
-                                variant="purple"
-                                shadowSize="4"
-                                icon={store === 'ios' ? 'apple-logo' : 'google-play'}
-                                className="w-full py-3 text-base font-extrabold uppercase"
+                        <div>
+                            <a
+                                href={storeHref}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="pointer-events-auto block"
+                                onClick={() => onStoreAnchorClick(store, MIGRATION_SURFACES.LANDING_HERO)}
                             >
-                                {tMigration('downloadNow')}
-                            </Button>
-                        </a>
+                                <Button
+                                    variant="purple"
+                                    shadowSize="4"
+                                    icon={store === 'ios' ? 'apple-logo' : 'google-play'}
+                                    className="w-full py-3 text-base font-extrabold uppercase"
+                                >
+                                    {tMigration('downloadNow')}
+                                </Button>
+                            </a>
+                            <a
+                                className="pointer-events-auto mt-2 block text-center text-sm underline"
+                                href={STORE_URL[store === 'ios' ? 'android' : 'ios']}
+                            >
+                                {tMigration('otherStore')}
+                            </a>
+                        </div>
                     ) : (
                         <div className="pointer-events-auto flex items-center gap-4">
                             <Link prefetch={false} href="/setup" className="block flex-1">

@@ -57,7 +57,8 @@
         },
         "smartLink": {
             "pickStore": "Elegí tu tienda y descargá la app."
-        }
+        },
+        "otherStore": "Otra tienda"
     },
     "shhhhh": {
         "hero": {
