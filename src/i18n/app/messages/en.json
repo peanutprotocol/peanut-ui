@@ -299,25 +299,25 @@
         },
         "language": "Language",
         "menu": {
-            "inviteFriends": "Invite friends to Peanut",
+            "inviteFriends": "Invite Friends to Peanut",
             "yourCard": "Your Card",
             "peanutCard": "Peanut Card",
             "newBadge": "New!",
             "unlockBadge": "Unlock",
             "yourBadges": "Your Badges",
             "points": "Points",
-            "personalDetails": "Personal details",
-            "unlockedRegions": "Unlock payments",
+            "personalDetails": "Personal Details",
+            "unlockedRegions": "Payment Channels",
             "paymentLimits": "Payment limits",
             "showMyFullName": "Show my full name",
             "backup": "Backup",
-            "exchangeRatesAndFees": "Exchange rates and fees",
+            "exchangeRatesAndFees": "Exchange Rates and Fees",
             "starAlt": "star",
             "help": "Help Center",
             "about": "About Peanut",
-            "updateAvailable": "Update available"
+            "updateAvailable": "Update Available"
         },
-        "logOut": "Log out",
+        "logOut": "Log Out",
         "edit": {
             "title": "Edit Profile",
             "fields": {
@@ -358,7 +358,7 @@
             }
         },
         "unlockPayments": {
-            "title": "Unlock payments",
+            "title": "Payment Channels",
             "description": "Everything you can use today, and what opens after ID verification.",
             "residence": {
                 "label": "Residence: {country}",
@@ -387,7 +387,7 @@
                 "arQr": "QR payments (Argentina)",
                 "arBank": "Bank transfers (Argentina)",
                 "naBank": "ACH, Wire (US) & SPEI (Mexico)",
-                "sepa": "SEPA transfers"
+                "sepa": "EUR/GBP Bank Transfers"
             },
             "chips": {
                 "active": "Active",
@@ -431,6 +431,12 @@
                 "monthlyLeft": "{remaining} of {limit} left this month",
                 "perTransfer": "Up to {amount} per transfer",
                 "p2pNoLimit": "No limits on Peanut-to-Peanut payments"
+            },
+            "cooldown": {
+                "title": "Give it a little time",
+                "until": "Verification attempts are temporarily limited. You can try again after {until}.",
+                "short": "Verification attempts are temporarily limited. Please try again in a little while.",
+                "dismiss": "I'll try later"
             }
         },
         "backup": {
@@ -545,7 +551,7 @@
         "about": {
             "title": "About Peanut",
             "intro": "Peanut makes dollars easy: hold your balance, send to any @username, and move money on local rails after one ID check. Built by Squirrel Labs.",
-            "policiesHeading": "Policies",
+            "policiesHeading": "The official bits",
             "policies": {
                 "terms": "Terms of Service",
                 "privacy": "Privacy Policy",
@@ -556,7 +562,7 @@
                 "cardProhibitedActivities": "Prohibited Activities Policy",
                 "securityDisclosure": "Security Disclosure"
             },
-            "rateHeading": "Rate the app",
+            "rateHeading": "Liking it so far?",
             "rate": "Leave a review",
             "version": "Version {version}",
             "beta": {
@@ -588,7 +594,7 @@
             "title": "Language"
         },
         "deleteAccount": {
-            "button": "Delete My Account",
+            "button": "Delete my account",
             "confirmTitle": "Aw, you're leaving?",
             "confirmDescription": "Deleting your account is permanent. We'll switch it off right away and wipe your data within 30 days. This little guy would really rather you stayed.",
             "confirmCta": "Yes, delete it",
@@ -673,7 +679,7 @@
         }
     },
     "exchangeRate": {
-        "title": "Exchange rate & fees",
+        "title": "Exchange Rates and Fees",
         "balanceNote": "Your Peanut balance is shown in USD. Where a local bank rail is supported, you can withdraw in that local currency.",
         "tryIt": "Withdraw now",
         "addMoneyCta": "Add money",
@@ -3195,7 +3201,7 @@
             "shareTitle": "Share your profile"
         },
         "inviteFriendsModal": {
-            "title": "Invite friends!",
+            "title": "Invite Friends!",
             "description": "Share your link. Every time a friend you brought makes a payment, you earn rewards.",
             "shareSheetTitle": "Share your invite link",
             "shareCta": "Share Invite Link",
@@ -3545,6 +3551,10 @@
         "genericSupport": "There was an issue with your request. Please contact support.",
         "rainCooldownRetry": "A previous card withdrawal is still active. Try again in about {minutes, plural, one {# minute} other {# minutes}}.",
         "rainCooldownRetryShortly": "A previous card withdrawal is still active. Please try again shortly.",
+        "xchainWithdrawLimit": "You reached the limit for withdrawals to other networks. Withdrawals on Arbitrum have no limit, or contact support to raise yours.",
+        "xchainWithdrawLimitRetry": "You reached the limit for withdrawals to other networks. Try again in about {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minute} other {# minutes}}} one {# hour} other {# hours}}} one {# day} other {# days}}. Withdrawals on Arbitrum have no limit, or contact support to raise yours.",
+        "xchainPaymentLimit": "You made too many transfers to other networks recently. Contact support to raise your limit.",
+        "xchainPaymentLimitRetry": "You made too many transfers to other networks recently. Try again in about {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minute} other {# minutes}}} one {# hour} other {# hours}}} one {# day} other {# days}}, or contact support to raise your limit.",
         "rainInsufficientCollateral": "Your card doesn’t have enough collateral for this withdrawal.",
         "staleCardApproval": "Your card needs to be re-enabled before you can withdraw. It only takes one passkey tap.",
         "cardRateLimited": "Too many card requests. Please wait a moment and try again.",
@@ -3701,6 +3711,12 @@
         "noBadgeAvatars": "Earn a badge and its avatars appear here.",
         "rollDice": "Roll the dice",
         "change": "Change avatar",
-        "saveFailed": "Could not save your avatar. Try again."
+        "saveFailed": "Could not save your avatar. Try again.",
+        "useInitial": "Use the Initial",
+        "useAvatar": "Use the Avatar",
+        "chooseAvatar": "Choose your avatar",
+        "rolling": "Rolling the dice…",
+        "rollingHint": "A little luck. A whole new look.",
+        "cancelRoll": "Cancel roll"
     }
 }

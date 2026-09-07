@@ -144,7 +144,7 @@
     "profile": {
         "menu": {
             "inviteFriends": "Invitá amigos a Peanut",
-            "unlockedRegions": "Desbloqueá pagos",
+            "unlockedRegions": "Canales de pago",
             "help": "Centro de Ayuda",
             "about": "Acerca de Peanut",
             "updateAvailable": "Actualización disponible"
@@ -169,7 +169,7 @@
             }
         },
         "unlockPayments": {
-            "title": "Desbloqueá pagos",
+            "title": "Canales de pago",
             "description": "Todo lo que podés usar hoy, y lo que se abre después de verificar tu identidad.",
             "residence": {
                 "label": "Residencia: {country}",
@@ -198,7 +198,7 @@
                 "arQr": "Pagos QR (Argentina)",
                 "arBank": "Transferencias bancarias (Argentina)",
                 "naBank": "ACH, Wire (EE. UU.) y SPEI (México)",
-                "sepa": "Transferencias SEPA"
+                "sepa": "Transferencias bancarias en EUR/GBP"
             },
             "chips": {
                 "active": "Activo",
@@ -242,6 +242,12 @@
                 "monthlyLeft": "Te quedan {remaining} de {limit} este mes",
                 "perTransfer": "Hasta {amount} por transferencia",
                 "p2pNoLimit": "Los pagos de Peanut a Peanut no tienen límite"
+            },
+            "cooldown": {
+                "title": "Esperá un poco",
+                "until": "Los intentos de verificación están limitados temporalmente. Podés volver a intentarlo después de {until}.",
+                "short": "Los intentos de verificación están limitados temporalmente. Volvé a intentarlo en un rato.",
+                "dismiss": "Lo intentaré más tarde"
             }
         },
         "backup": {
@@ -317,7 +323,7 @@
         "about": {
             "title": "Acerca de Peanut",
             "intro": "Peanut hace fáciles los dólares: guardá tu saldo, enviá a cualquier @usuario y mové dinero por rieles locales después de una sola verificación de identidad. Creado por Squirrel Labs.",
-            "policiesHeading": "Políticas",
+            "policiesHeading": "La parte oficial",
             "policies": {
                 "terms": "Términos de servicio",
                 "privacy": "Política de privacidad",
@@ -1545,6 +1551,10 @@
         "genericSupport": "Hubo un problema con tu solicitud. Contactá con soporte.",
         "rainCooldownRetry": "Un retiro anterior con la tarjeta sigue activo. Volvé a intentarlo en unos {minutes, plural, one {# minuto} other {# minutos}}.",
         "rainCooldownRetryShortly": "Un retiro anterior con la tarjeta sigue activo. Volvé a intentarlo en breve.",
+        "xchainWithdrawLimit": "Alcanzaste el límite de retiros a otras redes. Los retiros en Arbitrum no tienen límite, o contactá a soporte para ampliar el tuyo.",
+        "xchainWithdrawLimitRetry": "Alcanzaste el límite de retiros a otras redes. Volvé a intentarlo en aproximadamente {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minuto} other {# minutos}}} one {# hora} other {# horas}}} one {# día} other {# días}}. Los retiros en Arbitrum no tienen límite, o contactá a soporte para ampliar el tuyo.",
+        "xchainPaymentLimit": "Hiciste demasiadas transferencias a otras redes recientemente. Contactá a soporte para ampliar tu límite.",
+        "xchainPaymentLimitRetry": "Hiciste demasiadas transferencias a otras redes recientemente. Volvé a intentarlo en aproximadamente {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minuto} other {# minutos}}} one {# hora} other {# horas}}} one {# día} other {# días}}, o contactá a soporte para ampliar tu límite.",
         "staleCardApproval": "Necesitás volver a habilitar tu tarjeta antes de retirar. Solo toma un toque con tu passkey.",
         "cardRateLimited": "Demasiadas solicitudes con la tarjeta. Esperá un momento e intentalo de nuevo.",
         "linkTransactionHashFetch": "No pudimos cargar la transacción de este enlace. Actualizá la página e intentalo de nuevo.",
@@ -1615,5 +1625,13 @@
         "ready": {
             "subtitle": "Probá la puerta."
         }
+    },
+    "avatar": {
+        "useInitial": "Usar la inicial",
+        "useAvatar": "Usar el avatar",
+        "chooseAvatar": "Elegí tu avatar",
+        "rolling": "Tirando el dado…",
+        "rollingHint": "Un poco de suerte. Un nuevo look.",
+        "cancelRoll": "Cancelar tirada"
     }
 }

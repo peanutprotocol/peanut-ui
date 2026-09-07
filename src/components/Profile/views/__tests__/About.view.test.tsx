@@ -10,6 +10,7 @@ import { IntlWrapper } from '@/test-utils/intl'
 import { loadMessages } from '@/i18n/app/messages'
 import en from '@/i18n/app/messages/en.json'
 import { AboutView } from '../About.view'
+import * as capacitor from '@/utils/capacitor'
 
 const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
 
@@ -43,6 +44,19 @@ const tapVersion = (times: number) => {
 }
 
 describe('AboutView', () => {
+    it('puts the native review invitation before policies', async () => {
+        const native = jest.spyOn(capacitor, 'isNativeBridge').mockReturnValue(true)
+        try {
+            render(<AboutView appVersion="1.2.3" />)
+            const invitation = await screen.findByRole('heading', { name: 'Liking it so far?' })
+            const policies = screen.getByRole('heading', { name: 'The official bits' })
+            expect(invitation.compareDocumentPosition(policies) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+            expect(screen.getByRole('button', { name: 'Leave a review' })).toBeInTheDocument()
+        } finally {
+            native.mockRestore()
+        }
+    })
+
     it('lists every policy under its catalog name', () => {
         render(<AboutView appVersion="1.2.3" />)
         const names = Object.values(en.profile.about.policies)

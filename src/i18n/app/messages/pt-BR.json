@@ -307,7 +307,7 @@
             "yourBadges": "Seus selos",
             "points": "Pontos",
             "personalDetails": "Dados pessoais",
-            "unlockedRegions": "Desbloqueie pagamentos",
+            "unlockedRegions": "Canais de pagamento",
             "paymentLimits": "Limites de pagamento",
             "showMyFullName": "Mostrar meu nome completo",
             "backup": "Backup",
@@ -358,7 +358,7 @@
             }
         },
         "unlockPayments": {
-            "title": "Desbloqueie pagamentos",
+            "title": "Canais de pagamento",
             "description": "Tudo o que você pode usar hoje, e o que se abre depois de verificar sua identidade.",
             "residence": {
                 "label": "Residência: {country}",
@@ -387,7 +387,7 @@
                 "arQr": "Pagamentos QR (Argentina)",
                 "arBank": "Transferências bancárias (Argentina)",
                 "naBank": "ACH, Wire (EUA) e SPEI (México)",
-                "sepa": "Transferências SEPA"
+                "sepa": "Transferências bancárias em EUR/GBP"
             },
             "chips": {
                 "active": "Ativo",
@@ -431,6 +431,12 @@
                 "monthlyLeft": "Restam {remaining} de {limit} neste mês",
                 "perTransfer": "Até {amount} por transferência",
                 "p2pNoLimit": "Os pagamentos de Peanut para Peanut não têm limite"
+            },
+            "cooldown": {
+                "title": "Espere um pouco",
+                "until": "As tentativas de verificação estão temporariamente limitadas. Você pode tentar novamente após {until}.",
+                "short": "As tentativas de verificação estão temporariamente limitadas. Tente novamente daqui a pouco.",
+                "dismiss": "Vou tentar mais tarde"
             }
         },
         "backup": {
@@ -545,7 +551,7 @@
         "about": {
             "title": "Sobre o Peanut",
             "intro": "O Peanut torna os dólares fáceis: guarde seu saldo, envie para qualquer @usuário e mova dinheiro pelos trilhos locais após uma única verificação de identidade. Criado pela Squirrel Labs.",
-            "policiesHeading": "Políticas",
+            "policiesHeading": "A parte oficial",
             "policies": {
                 "terms": "Termos de Serviço",
                 "privacy": "Política de Privacidade",
@@ -556,7 +562,7 @@
                 "cardProhibitedActivities": "Política de Atividades Proibidas",
                 "securityDisclosure": "Divulgação de Segurança"
             },
-            "rateHeading": "Avaliar o app",
+            "rateHeading": "Está gostando?",
             "rate": "Deixar uma avaliação",
             "version": "Versão {version}",
             "beta": {
@@ -3545,6 +3551,10 @@
         "genericSupport": "Ocorreu um problema com sua solicitação. Entre em contato com o suporte.",
         "rainCooldownRetry": "Um saque anterior com o cartão ainda está ativo. Tente novamente em cerca de {minutes, plural, one {# minuto} other {# minutos}}.",
         "rainCooldownRetryShortly": "Um saque anterior com o cartão ainda está ativo. Tente novamente em instantes.",
+        "xchainWithdrawLimit": "Você atingiu o limite de saques para outras redes. Saques na Arbitrum não têm limite, ou fale com o suporte para ampliar o seu.",
+        "xchainWithdrawLimitRetry": "Você atingiu o limite de saques para outras redes. Tente novamente em cerca de {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minuto} other {# minutos}}} one {# hora} other {# horas}}} one {# dia} other {# dias}}. Saques na Arbitrum não têm limite, ou fale com o suporte para ampliar o seu.",
+        "xchainPaymentLimit": "Você fez muitas transferências para outras redes recentemente. Fale com o suporte para ampliar o seu limite.",
+        "xchainPaymentLimitRetry": "Você fez muitas transferências para outras redes recentemente. Tente novamente em cerca de {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minuto} other {# minutos}}} one {# hora} other {# horas}}} one {# dia} other {# dias}}, ou fale com o suporte para ampliar o seu limite.",
         "rainInsufficientCollateral": "Seu cartão não tem colateral suficiente para este saque.",
         "staleCardApproval": "Seu cartão precisa ser reativado antes de você sacar. Leva só um toque com a passkey.",
         "cardRateLimited": "Muitas solicitações com o cartão. Aguarde um momento e tente novamente.",
@@ -3701,6 +3711,12 @@
         "noBadgeAvatars": "Ganhe um selo e seus avatares aparecem aqui.",
         "rollDice": "Jogar os dados",
         "change": "Trocar avatar",
-        "saveFailed": "Não foi possível salvar seu avatar. Tente de novo."
+        "saveFailed": "Não foi possível salvar seu avatar. Tente de novo.",
+        "useInitial": "Usar a inicial",
+        "useAvatar": "Usar o avatar",
+        "chooseAvatar": "Escolha seu avatar",
+        "rolling": "Rolando o dado…",
+        "rollingHint": "Um pouco de sorte. Um novo visual.",
+        "cancelRoll": "Cancelar rolagem"
     }
 }

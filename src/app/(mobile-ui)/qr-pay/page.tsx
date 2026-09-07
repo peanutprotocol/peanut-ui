@@ -360,6 +360,7 @@ export default function QRPayPage() {
     const shouldBlockPay = kycGateState !== QrKycState.PROCEED_TO_PAY
 
     const sumsubFlow = useMultiPhaseKycFlow({})
+    const [kycPromptDismissed, setKycPromptDismissed] = useState(false)
 
     // Auto-dismiss the Sumsub flow if the user's QR-pool rails become enabled
     // server-side while a flow is mid-air. Two known sources:
@@ -1292,7 +1293,7 @@ export default function QRPayPage() {
             <div className="flex min-h-inherit flex-col gap-8">
                 <NavHeader title={tNav('pay')} />
                 <ActionModal
-                    visible
+                    visible={!kycPromptDismissed && !sumsubFlow.errorCooldown}
                     onClose={onBack}
                     title={
                         isFixable
@@ -1341,7 +1342,13 @@ export default function QRPayPage() {
                                 },
                     ]}
                 />
-                <SumsubKycModals flow={sumsubFlow} />
+                <SumsubKycModals
+                    flow={sumsubFlow}
+                    onCooldownClose={() => {
+                        setKycPromptDismissed(true)
+                        onBack()
+                    }}
+                />
             </div>
         )
     }
@@ -1356,7 +1363,11 @@ export default function QRPayPage() {
             <div className="flex min-h-inherit flex-col gap-8">
                 <NavHeader title={tNav('pay')} />
                 <ActionModal
-                    visible={kycGateState === QrKycState.REQUIRES_IDENTITY_VERIFICATION}
+                    visible={
+                        !kycPromptDismissed &&
+                        !sumsubFlow.errorCooldown &&
+                        kycGateState === QrKycState.REQUIRES_IDENTITY_VERIFICATION
+                    }
                     onClose={onBack}
                     title={t('kyc.unlockTitle')}
                     description={t('kyc.unlockDescription')}
@@ -1414,7 +1425,13 @@ export default function QRPayPage() {
                         },
                     ]}
                 />
-                <SumsubKycModals flow={sumsubFlow} />
+                <SumsubKycModals
+                    flow={sumsubFlow}
+                    onCooldownClose={() => {
+                        setKycPromptDismissed(true)
+                        onBack()
+                    }}
+                />
             </div>
         )
     }
