@@ -74,7 +74,7 @@ const RhinoDepositView = ({
             <div className="flex min-h-inherit w-full flex-col justify-start gap-8 pb-4 md:pb-0">
                 <NavHeader title={headerTitle} onPrev={onBack} />
 
-                <div className="flex h-full min-h-[60vh] flex-col items-center justify-center gap-4">
+                <div className="flex h-full min-h-screen-60 flex-col items-center justify-center gap-4">
                     <Card>
                         <div className="flex w-full flex-col items-center justify-center gap-2">
                             <IconBubble icon="alert" size="s" color="yellow" />
@@ -123,7 +123,7 @@ const RhinoDepositView = ({
                 />
 
                 {(isDepositAddressDataLoading || depositAddressStatus === 'loading') && (
-                    <div className="flex h-[60vh] items-center justify-center">
+                    <div className="flex h-screen-60 items-center justify-center">
                         {depositAddressStatus === 'loading' ? <CyclingLoading /> : <Loading variant="mascot" />}
                     </div>
                 )}

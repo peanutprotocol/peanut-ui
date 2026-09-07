@@ -17,6 +17,7 @@ import {
     getFlagUrlForCurrency,
     type LimitsPeriod,
 } from '../utils'
+import CapNudgeCard from '../components/CapNudgeCard'
 import IncreaseLimitsButton from '../components/IncreaseLimitsButton'
 import LimitsError from '../components/LimitsError'
 import LimitsDocsLink from '../components/LimitsDocsLink'
@@ -105,6 +106,8 @@ const MantecaLimitsView = () => {
                             <p>{t('appliesTo')}</p>
                         </div>
                     </div>
+
+                    <CapNudgeCard />
 
                     <IncreaseLimitsButton />
 

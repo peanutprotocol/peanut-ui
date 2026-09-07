@@ -179,7 +179,15 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     // Skip both for USD / USD-pegged stablecoins to avoid `$0.10 / ≈ USDC 0.10` noise.
     const ccyCode = transaction.currency?.code.toUpperCase()
     const tokenSymbolUpper = (transaction.tokenSymbol ?? '').toUpperCase()
-    if (transaction.currency && ccyCode && ccyCode !== 'USD' && !isStableCoin(ccyCode)) {
+    // A pending Bridge OFFRAMP row ships `currency.amount` blanked (see
+    // completeHistoryEntry's OFFRAMP branch) rather than the unconverted
+    // crypto-leg figure mislabeled as fiat — require it to actually parse
+    // before rendering the "≈ CODE" line, so a still-pending row falls
+    // through to the token-amount line below instead of showing a number
+    // that reads as converted but isn't.
+    const hasValidCurrencyAmount =
+        !!transaction.currency?.amount && Number.isFinite(Number(transaction.currency.amount))
+    if (transaction.currency && ccyCode && ccyCode !== 'USD' && !isStableCoin(ccyCode) && hasValidCurrencyAmount) {
         const formattedCurrencyAmount = formatNumberForDisplay(transaction.currency.amount, { maxDecimals: 2 })
         currencyDisplayAmount = `≈ ${ccyCode} ${formattedCurrencyAmount}`
     } else if (

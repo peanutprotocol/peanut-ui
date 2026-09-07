@@ -526,7 +526,8 @@
             "begShareText": "Mano… estou de joelhos. O Peanut é só por convite e fiquei de fora. Salva minha vida e me manda seu convite",
             "begForInvite": "Implorar por um convite",
             "activityPrivateNote": "A atividade é visível só para você, não é pública.",
-            "noInviteTitle": "Sem convite, sem Peanut"
+            "noInviteTitle": "Sem convite, sem Peanut",
+            "requestAction": "Cobrar"
         },
         "iosCopy": {
             "menu": {
@@ -814,7 +815,7 @@
                     "arQr": "pagamentos e transferências por QR",
                     "spei": "transferências SPEI",
                     "usdAch": "transferências em USD (ACH e wire)",
-                    "eurSepa": "transferências bancárias SEPA",
+                    "eurSepa": "transferências bancárias",
                     "gbpFps": "transferências bancárias em GBP (Faster Payments)"
                 },
                 "continue": "Continuar"
@@ -849,8 +850,8 @@
                 "multiCurrencyNote": "Transferências em outra moeda exigem uma conta bancária nessa moeda.",
                 "guideTitle": "Qual país vem primeiro?",
                 "guideDeclaration": "Os dois devem ser países onde você realmente tem residência legal. Isso é uma declaração, e os provedores a verificam durante a verificação de identidade, incluindo o comprovante de residência.",
-                "guideOrder": "Se os dois países são realmente seu lar, qualquer ordem é honesta. A ordem só muda o que o app mostra primeiro, nunca aquilo a que você é elegível. A elegibilidade é decidida pela própria verificação.",
-                "guideSecond": "Seu segundo país fica registrado. Você pode verificar os métodos de pagamento dele a qualquer momento em Desbloquear pagamentos, e mudar a ordem depois."
+                "guideOrder": "Se os dois países são realmente seu lar, escolha qual ficará registrado como sua residência principal. A elegibilidade depende da residência que você verificar: o endereço que você comprova na verificação de identidade.",
+                "selectCountry": "Escolher {country}"
             }
         },
         "passkey": {
@@ -1859,14 +1860,15 @@
         },
         "confirm": {
             "recipientReceives": "O destinatário recebe",
-            "recipientReceivesInfo": "O valor completo chega na rede de destino. A taxa de rede entre redes é paga à parte: veja abaixo.",
+            "recipientReceivesInfo": "Peanut cobre o custo da ponte. Um pequeno custo de rede pode ser descontado na entrega.",
             "tokenAndNetwork": "Token e rede",
             "tokenOnChain": "{token} na <c>{chain}</c>",
             "tokenAlt": "token",
             "chainAlt": "rede",
             "to": "Para",
             "networkFee": "Taxa de rede",
-            "networkFeeInfo": "Taxa da ponte entre redes (gas no destino + 0,07% da Rhino). Paga à parte do valor sacado.",
+            "networkFeeInfo": "Peanut cobre o custo da ponte. Um pequeno custo de rede pode ser descontado na entrega.",
+            "networkFeeChargedInfo": "Esta rota cobra uma taxa. Ela já está incluída no valor que você paga.",
             "youPay": "Você paga",
             "highFeeWarning": "Atenção: a taxa de rede é uma parte grande deste saque. Sacar um valor maior ou escolher uma rede mais barata reduz a taxa."
         },
@@ -2331,7 +2333,7 @@
         "shareText": "Ganhei o selo {badge} no Peanut!\n\nEntre no Peanut e comece a ganhar pontos, desbloquear conquistas e movimentar dinheiro pelo mundo\n\n{link}",
         "toastSingle": "Selo desbloqueado: {name}",
         "toastMultiple": "Você desbloqueou {count, plural, one {# selo} other {# selos}}",
-        "toastTapToView": "— toque para ver",
+        "toastTapToView": "Toque para ver",
         "catalog": {
             "FIRST_INVITE": {
                 "name": "Primeiro convite",
@@ -3087,6 +3089,7 @@
     "global": {
         "amountInput": {
             "balance": "Saldo:",
+            "useFullBalance": "Usar saldo total: {balance}",
             "switchCurrency": "Trocar moeda"
         },
         "tokenSelector": {
@@ -3497,7 +3500,8 @@
         },
         "countryCombobox": {
             "noResults": "Nenhum país encontrado",
-            "clear": "Limpar busca"
+            "clear": "Limpar busca",
+            "removeCountry": "Remover {country}"
         }
     },
     "errors": {

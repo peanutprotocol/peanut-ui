@@ -25,14 +25,21 @@ let mockRails: Array<{
     operations?: Record<string, string>
     reason?: { userMessage: string }
     resolved?: {
-        status: 'fixable'
-        blocking: { code: string; userMessage: string; selfHealable: true; selfHealKind: 'document-resubmit' }
-        nextAction: { key: string; kind: 'sumsub'; purpose: string; levelKey: string }
+        status: 'fixable' | 'blocked'
+        blocking: {
+            code: string
+            userMessage: string
+            selfHealable: boolean
+            selfHealKind: 'document-resubmit' | 'restart-identity'
+        }
+        nextAction?: { key: string; kind: 'sumsub'; purpose: string; levelKey: string }
     }
 }> = []
 let mockUser: { user?: { isActivated?: boolean; userId?: string } } | null = null
 let mockHasCardAccess: boolean | undefined = false
 const mockHeal = jest.fn()
+const mockRestartIdentity = jest.fn()
+const mockOpenSupport = jest.fn()
 const mockPush = jest.fn()
 const mockSetIsQRScannerOpen = jest.fn()
 
@@ -77,7 +84,10 @@ jest.mock('@/components/Home/GettingStartedChecklist', () => ({
     default: () => <div>getting-started-checklist</div>,
 }))
 jest.mock('@/context/ModalsContext', () => ({
-    useModalsContext: () => ({ setIsQRScannerOpen: mockSetIsQRScannerOpen, openSupportWithMessage: jest.fn() }),
+    useModalsContext: () => ({
+        setIsQRScannerOpen: mockSetIsQRScannerOpen,
+        openSupportWithMessage: mockOpenSupport,
+    }),
 }))
 jest.mock('@/hooks/useCardInfo', () => ({
     useCardInfo: () => ({ hasCardAccess: mockHasCardAccess }),
@@ -107,7 +117,10 @@ jest.mock('@/components/Home/CardLaunchCTA/CardLaunchCTABanner', () => ({
 }))
 
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
-    useMultiPhaseKycFlow: () => ({ handleFixableRejection: mockHeal }),
+    useMultiPhaseKycFlow: () => ({
+        handleFixableRejection: mockHeal,
+        handleRestartIdentity: mockRestartIdentity,
+    }),
 }))
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({
     SumsubKycModals: () => null,
@@ -377,5 +390,87 @@ describe('ActivationCTAs — happy path renders the checklist', () => {
     it('completed without rejection renders nothing', () => {
         const { container } = render(<ActivationCTAs activationStep="completed" />)
         expect(container.firstChild).toBeNull()
+    })
+})
+
+describe('ActivationCTAs — a restart-eligible block starts a fresh ID check, not support', () => {
+    // The Brazilian this exists for: their pool-tier PIX_BR row is published
+    // `blocked` with `selfHealKind: 'restart-identity'` because the document on
+    // file carries no CPF. The restart endpoint admits them, but the Home CTA
+    // read "no longer enabled" as terminal and opened Crisp — so the main CTA
+    // contradicted the remediation.
+    const restartBlockedPix = {
+        id: 'manteca.pix_br',
+        provider: 'manteca',
+        channel: 'qr-only',
+        status: 'blocked',
+        reason: { userMessage: 'We could not resolve a tax ID from your document.' },
+        resolved: {
+            status: 'blocked' as const,
+            blocking: {
+                code: 'tax_id_unresolved',
+                userMessage: 'We could not resolve a tax ID from your document.',
+                selfHealable: false,
+                selfHealKind: 'restart-identity' as const,
+            },
+        },
+    }
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockRegionRestricted = false
+        mockResidenceRestrictions = { banking: false, card: false }
+        mockHasCardAccess = false
+        mockUser = { user: { userId: 'user-1' } }
+        mockRails = [restartBlockedPix]
+    })
+
+    it('offers the restart copy instead of "Verification issue"', () => {
+        render(<ActivationCTAs activationStep="deposit" />)
+
+        // Title and CTA share the string, as they do in UnlockPayments.
+        expect(screen.getByRole('button', { name: 'Verify with a different document' })).toBeInTheDocument()
+        // ...and the description is the localized reason for THIS code, which
+        // already tells the user QR still works — the point of the whole change.
+        expect(
+            screen.getByText(
+                "We couldn't read the tax ID that local deposits and withdrawals need. You can verify again to provide it. QR payments aren't affected."
+            )
+        ).toBeInTheDocument()
+        expect(screen.queryByText('Verification issue')).not.toBeInTheDocument()
+        expect(screen.queryByText('Contact support')).not.toBeInTheDocument()
+    })
+
+    it('starts the identity restart on click, and never opens support', () => {
+        render(<ActivationCTAs activationStep="deposit" />)
+        fireEvent.click(screen.getByRole('button', { name: 'Verify with a different document' }))
+
+        expect(mockRestartIdentity).toHaveBeenCalled()
+        expect(mockOpenSupport).not.toHaveBeenCalled()
+    })
+
+    it('a terminal block still goes to support — restart cannot lift it', () => {
+        // The discriminator is `selfHealKind`, not merely being blocked. Sending a
+        // terminal rejection into a fresh ID check burns the user's Sumsub
+        // attempts on something re-verifying can never fix.
+        mockRails = [
+            {
+                ...restartBlockedPix,
+                resolved: {
+                    status: 'blocked' as const,
+                    blocking: {
+                        code: 'terminal_rejection',
+                        userMessage: 'Your verification was declined.',
+                        selfHealable: false,
+                        selfHealKind: 'document-resubmit' as const,
+                    },
+                },
+            },
+        ]
+        render(<ActivationCTAs activationStep="deposit" />)
+        fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
+
+        expect(mockOpenSupport).toHaveBeenCalled()
+        expect(mockRestartIdentity).not.toHaveBeenCalled()
     })
 })

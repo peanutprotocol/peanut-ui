@@ -2,7 +2,10 @@ import { Notification } from '@/components/0_Bruddle/Notification'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { Button } from '@/components/0_Bruddle/Button'
+import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
 import { CountryCombobox } from '@/components/Common/CountryCombobox'
+import { useSetupImageOverride } from '@/components/Setup/components/SetupWrapper'
+import { PeanutCheering } from '@/assets/mascot'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
@@ -26,6 +29,11 @@ type PartialRestriction = 'card' | 'banking'
 const UNDERLINED_LINK =
     'relative text-body-s underline underline-offset-2 after:absolute after:inset-x-0 after:-inset-y-3.5 focus-visible:outline-[3px] focus-visible:outline-action-focus'
 const CHANGE_COUNTRY_LINK = `mt-1 self-center text-center disabled:opacity-50 ${UNDERLINED_LINK}`
+const BULLET_ROW = 'flex items-start gap-2'
+// h-4 is the Body/XS line box, so the dot centres on the first line (and stays
+// put when the row wraps) without an off-scale margin nudge
+const BULLET_MARKER = 'flex h-4 shrink-0 items-center'
+const BULLET_DOT = 'size-1 rounded-round bg-action-primary'
 
 const ResidenceStep = () => {
     const t = useTranslations('setup')
@@ -51,6 +59,13 @@ const ResidenceStep = () => {
 
     const countryOptions = useMemo(() => buildResidenceCountryOptions(locale), [locale])
 
+    // a declared pair: two distinct countries, both on screen
+    const hasPair =
+        showSecondCountry &&
+        !!residenceCountry &&
+        !!secondResidenceCountry &&
+        residenceCountry !== secondResidenceCountry
+
     // The geo guess, only if it is actually offered in the list.
     const geoSuggestion = useMemo(() => {
         if (!geoCountryCode) return undefined
@@ -71,29 +86,32 @@ const ResidenceStep = () => {
         dispatch(setupActions.setResidenceCountry(value))
     }
 
-    const onContinue = () => {
-        if (!residenceCountry) return
+    // The picked primary is passed in, not read off the store: the dual-residence
+    // "Select <country>" buttons dispatch the promotion and continue in the same
+    // handler, so the store value this render closed over is a step behind.
+    const continueWith = (primary: string, second: string) => {
+        if (!primary) return
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_SELECTED, {
-            residence_country: residenceCountry,
-            second_residence_country: secondResidenceCountry || undefined,
+            residence_country: primary,
+            second_residence_country: second || undefined,
             was_prefilled: wasPrefilledRef.current,
             geo_country: geoCountryCode?.toUpperCase() || undefined,
         })
-        if (restrictionSets.full.has(residenceCountry)) {
+        if (restrictionSets.full.has(primary)) {
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_RESTRICTED_SHOWN, {
-                residence_country: residenceCountry,
+                residence_country: primary,
             })
             setView('restricted')
             return
         }
-        const partial: PartialRestriction | null = restrictionSets.cardOnly.has(residenceCountry)
+        const partial: PartialRestriction | null = restrictionSets.cardOnly.has(primary)
             ? 'card'
-            : restrictionSets.bankingOnly.has(residenceCountry)
+            : restrictionSets.bankingOnly.has(primary)
               ? 'banking'
               : null
         if (partial) {
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_PARTIAL_SHOWN, {
-                residence_country: residenceCountry,
+                residence_country: primary,
                 restriction_type: partial,
             })
             setPartialRestriction(partial)
@@ -114,18 +132,45 @@ const ResidenceStep = () => {
         // limits on the compare cards, so the congrats claim would contradict
         // them. Advance silently instead — the heads-ups stay primary-driven.
         if (
-            secondResidenceCountry &&
-            (restrictionSets.full.has(secondResidenceCountry) ||
-                restrictionSets.cardOnly.has(secondResidenceCountry) ||
-                restrictionSets.bankingOnly.has(secondResidenceCountry))
+            second &&
+            (restrictionSets.full.has(second) ||
+                restrictionSets.cardOnly.has(second) ||
+                restrictionSets.bankingOnly.has(second))
         ) {
             void handleNext()
             return
         }
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_CONGRATS_SHOWN, {
-            residence_country: residenceCountry,
+            residence_country: primary,
         })
         setView('congrats')
+    }
+
+    const onContinue = () => continueWith(residenceCountry, secondResidenceCountry)
+
+    // Picking a main residence from the compare cards promotes it and demotes
+    // the other; the pair itself is unchanged, only its order.
+    const onSelectPrimary = (primary: string) => {
+        const second = primary === residenceCountry ? secondResidenceCountry : residenceCountry
+        if (primary !== residenceCountry) {
+            wasPrefilledRef.current = false
+            dispatch(setupActions.setResidenceCountry(primary))
+            dispatch(setupActions.setSecondResidenceCountry(second))
+        }
+        continueWith(primary, second)
+    }
+
+    // Clearing one half of a declared pair leaves the other as the sole
+    // residence, back on the single-country selector.
+    const onRemoveCountry = (removed: 'primary' | 'second') => {
+        if (removed === 'primary') {
+            // the promoted country was typed, not suggested — leaving the flag set
+            // would attribute it to the geo guess for the rest of the step
+            wasPrefilledRef.current = false
+            dispatch(setupActions.setResidenceCountry(secondResidenceCountry))
+        }
+        dispatch(setupActions.setSecondResidenceCountry(''))
+        setShowSecondCountry(false)
     }
 
     const onRestrictedContinue = () => {
@@ -152,6 +197,10 @@ const ResidenceStep = () => {
         })
         setView('notify-done')
     }
+
+    // celebration illustration for the "Good news" outcome only — the selector
+    // it shares a step with keeps the step's neutral greeting
+    useSetupImageOverride(view === 'congrats' ? PeanutCheering.src : null)
 
     /* The tier sets render from the bundled mirror and are replaced by the
        server-authoritative lists asynchronously. A congrats view reached
@@ -347,6 +396,7 @@ const ResidenceStep = () => {
                     // opens already filled instead of visibly changing itself.
                     value={residenceCountry || geoSuggestion}
                     onValueChange={onResidenceChange}
+                    onClear={hasPair ? () => onRemoveCountry('primary') : undefined}
                 />
                 <button
                     type="button"
@@ -371,6 +421,7 @@ const ResidenceStep = () => {
                         placeholder={t('residenceStep.secondCountryPlaceholder')}
                         value={secondResidenceCountry || undefined}
                         onValueChange={(value) => dispatch(setupActions.setSecondResidenceCountry(value))}
+                        onClear={hasPair ? () => onRemoveCountry('second') : undefined}
                     />
                 )}
                 {/* Dual-residence comparison: facts about each residence, not a
@@ -379,57 +430,98 @@ const ResidenceStep = () => {
                     verification, so there is nothing to win by answering
                     untruthfully. Entirely client-derived (restriction tiers +
                     the same static rail map Unlock payments renders). */}
-                {showSecondCountry &&
-                    residenceCountry &&
-                    secondResidenceCountry &&
-                    residenceCountry !== secondResidenceCountry && (
-                        <div className="mt-2 flex flex-col gap-3">
-                            <div className="grid grid-cols-2 gap-2">
-                                {[residenceCountry, secondResidenceCountry].map((iso2) => {
-                                    const summary = residenceAvailability(restrictionSets, iso2)
-                                    const label = countryOptions.find((option) => option.value === iso2)?.label ?? iso2
-                                    return (
-                                        <div
-                                            key={iso2}
-                                            className="rounded-sm border border-border-default bg-background-default p-3"
-                                        >
-                                            <p className="mb-1 text-label-m">
-                                                {t('residenceStep.compare.cardTitle', { country: label })}
-                                            </p>
-                                            <ul className="space-y-2 text-body-xs text-foreground-secondary">
-                                                {summary.available.map((item) => (
-                                                    <li key={item}>{t(`residenceStep.compare.items.${item}`)}</li>
-                                                ))}
-                                                {summary.unavailable.map((item) => (
-                                                    <li key={item} className="text-foreground-secondary line-through">
+                {hasPair && (
+                    <div className="mt-2 flex flex-col gap-3">
+                        <div className="grid grid-cols-2 gap-2">
+                            {[residenceCountry, secondResidenceCountry].map((iso2) => {
+                                const summary = residenceAvailability(restrictionSets, iso2)
+                                const label = countryOptions.find((option) => option.value === iso2)?.label ?? iso2
+                                return (
+                                    <div
+                                        key={iso2}
+                                        className="rounded-sm border border-border-default bg-background-default p-3"
+                                    >
+                                        <p className="mb-1 text-label-m">
+                                            {t('residenceStep.compare.cardTitle', { country: label })}
+                                        </p>
+                                        {/* Drawn rather than list-disc: an outside marker hangs
+                                                left of the text column and an inside one re-indents
+                                                wrapped lines, and neither puts the dot on the card
+                                                title's own left edge. */}
+                                        <ul className="space-y-2 text-body-xs text-foreground-secondary">
+                                            {summary.available.map((item) => (
+                                                <li key={item} className={BULLET_ROW}>
+                                                    <span aria-hidden className={BULLET_MARKER}>
+                                                        <span className={BULLET_DOT} />
+                                                    </span>
+                                                    <span>{t(`residenceStep.compare.items.${item}`)}</span>
+                                                </li>
+                                            ))}
+                                            {summary.unavailable.map((item) => (
+                                                <li key={item} className={BULLET_ROW}>
+                                                    <span aria-hidden className={BULLET_MARKER}>
+                                                        <span className={BULLET_DOT} />
+                                                    </span>
+                                                    <span className="line-through">
                                                         {t(`residenceStep.compare.missing.${item}`)}
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                            {/* One verification enrols every rail in the region's
+                                                    </span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                        {/* One verification enrols every rail in the region's
                                                 set, but a rail in another currency only pays out
                                                 into an account on that network — so it is stated
                                                 as a condition, not as a benefit of living here. */}
-                                            {summary.multiCurrency && (
-                                                <p className="mt-2 text-body-xs text-foreground-secondary">
-                                                    {t('residenceStep.compare.multiCurrencyNote')}
-                                                </p>
-                                            )}
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                            <Notification priority="info" hideIcon title={t('residenceStep.compare.guideTitle')}>
-                                <p>{t('residenceStep.compare.guideDeclaration')}</p>
-                                <p className="mt-1">{t('residenceStep.compare.guideOrder')}</p>
-                                <p className="mt-1">{t('residenceStep.compare.guideSecond')}</p>
-                            </Notification>
+                                        {summary.multiCurrency && (
+                                            <p className="mt-2 text-body-xs text-foreground-secondary">
+                                                {t('residenceStep.compare.multiCurrencyNote')}
+                                            </p>
+                                        )}
+                                    </div>
+                                )
+                            })}
                         </div>
-                    )}
+                        {/* The title slot is a sentence-case Body/S line; this guidance
+                                labels a block of prose, so it takes the mini-header step. */}
+                        <Notification priority="info" hideIcon>
+                            <MiniHeader className="mb-1 text-inherit">
+                                {t('residenceStep.compare.guideTitle')}
+                            </MiniHeader>
+                            <p>{t('residenceStep.compare.guideDeclaration')}</p>
+                            <p className="mt-1">{t('residenceStep.compare.guideOrder')}</p>
+                        </Notification>
+                    </div>
+                )}
             </div>
-            <Button shadowSize="4" onClick={onContinue} disabled={!residenceCountry || isLoading} loading={isLoading}>
-                {t('next')}
-            </Button>
+            {/* One button per declared country: the tap IS the main-residence
+                declaration, so there is no separate order control to get wrong. */}
+            {hasPair ? (
+                <div className="flex w-full flex-col gap-3">
+                    {[residenceCountry, secondResidenceCountry].map((iso2) => (
+                        <Button
+                            key={iso2}
+                            shadowSize="4"
+                            variant={iso2 === residenceCountry ? 'purple' : 'stroke'}
+                            onClick={() => onSelectPrimary(iso2)}
+                            disabled={isLoading}
+                            loading={isLoading}
+                        >
+                            {t('residenceStep.compare.selectCountry', {
+                                country: countryOptions.find((option) => option.value === iso2)?.label ?? iso2,
+                            })}
+                        </Button>
+                    ))}
+                </div>
+            ) : (
+                <Button
+                    shadowSize="4"
+                    onClick={onContinue}
+                    disabled={!residenceCountry || isLoading}
+                    loading={isLoading}
+                >
+                    {t('next')}
+                </Button>
+            )}
         </div>
     )
 }

@@ -530,6 +530,19 @@
     min-height: inherit;
 }
 
+/* deposit panels and pick lists size against 60% of the viewport — named
+   utilities instead of the arbitrary *-[60vh] the DS lint counts as debt.
+   three utilities because one @utility cannot span three properties. */
+@utility h-screen-60 {
+    height: 60vh;
+}
+@utility min-h-screen-60 {
+    min-height: 60vh;
+}
+@utility max-h-screen-60 {
+    max-height: 60vh;
+}
+
 @utility font-roboto {
     font-family:
         var(--font-roboto), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',

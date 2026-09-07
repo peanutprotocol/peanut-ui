@@ -526,7 +526,8 @@
             "begShareText": "Bro… I'm on my knees. Peanut is invite-only and I'm locked outside. Save my life and send me your invite",
             "begForInvite": "Beg for an invite",
             "activityPrivateNote": "Activity is only visible for you, it is not public.",
-            "noInviteTitle": "No invite, no Peanut"
+            "noInviteTitle": "No invite, no Peanut",
+            "requestAction": "Request"
         },
         "iosCopy": {
             "menu": {
@@ -814,7 +815,7 @@
                     "arQr": "QR payments and transfers",
                     "spei": "SPEI transfers",
                     "usdAch": "USD transfers (ACH and wire)",
-                    "eurSepa": "SEPA bank transfers",
+                    "eurSepa": "bank transfers",
                     "gbpFps": "GBP bank transfers (Faster Payments)"
                 },
                 "continue": "Continue"
@@ -849,8 +850,8 @@
                 "multiCurrencyNote": "Transfers in another currency need a bank account in that currency.",
                 "guideTitle": "Which country goes first?",
                 "guideDeclaration": "Both entries must be countries where you genuinely hold legal residence. This is a declaration, and providers verify it during the ID check, including proof of address.",
-                "guideOrder": "If both countries are truly home, either order is honest. The order only changes what the app shows you first, never what you are eligible for. Eligibility is decided by the verification itself.",
-                "guideSecond": "Your second country stays on record. You can verify its payment rails anytime from Unlock payments, and change the order later."
+                "guideOrder": "If both countries are truly home, pick the one to record as your main residence. Eligibility follows the residence you verify — the address you prove at the ID check.",
+                "selectCountry": "Select {country}"
             }
         },
         "passkey": {
@@ -1859,14 +1860,15 @@
         },
         "confirm": {
             "recipientReceives": "Recipient receives",
-            "recipientReceivesInfo": "The full amount arrives on the destination chain. The cross-chain network fee is paid on top — see below.",
+            "recipientReceivesInfo": "Peanut covers the bridge cost. A small network cost may be deducted on delivery.",
             "tokenAndNetwork": "Token and network",
             "tokenOnChain": "{token} on <c>{chain}</c>",
             "tokenAlt": "token",
             "chainAlt": "chain",
             "to": "To",
             "networkFee": "Network fee",
-            "networkFeeInfo": "Cross-chain bridge fee (destination gas + Rhino's 0.07%). Paid on top of the amount withdrawn.",
+            "networkFeeInfo": "Peanut covers the bridge cost. A small network cost may be deducted on delivery.",
+            "networkFeeChargedInfo": "This route quotes a fee. It's already included in the amount you pay.",
             "youPay": "You pay",
             "highFeeWarning": "Note: the network fee is a large share of this withdrawal. Withdrawing a larger amount or choosing a cheaper network reduces it."
         },
@@ -2331,7 +2333,7 @@
         "shareText": "I earned {badge} badge on Peanut!\n\nJoin Peanut now and start earning points, unlocking achievements and moving money worldwide\n\n{link}",
         "toastSingle": "Badge unlocked: {name}",
         "toastMultiple": "You unlocked {count, plural, one {# badge} other {# badges}}",
-        "toastTapToView": "— tap to view",
+        "toastTapToView": "Tap to view",
         "catalog": {
             "FIRST_INVITE": {
                 "name": "First Invite",
@@ -3087,6 +3089,7 @@
     "global": {
         "amountInput": {
             "balance": "Balance:",
+            "useFullBalance": "Use full balance: {balance}",
             "switchCurrency": "Switch currency"
         },
         "tokenSelector": {
@@ -3497,7 +3500,8 @@
         },
         "countryCombobox": {
             "noResults": "No countries match",
-            "clear": "Clear search"
+            "clear": "Clear search",
+            "removeCountry": "Remove {country}"
         }
     },
     "errors": {
