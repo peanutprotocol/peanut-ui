@@ -13,6 +13,7 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
 import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query'
+import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { parseUnits } from 'viem'
 import type { RailCapability } from '@/types/capabilities'
 
@@ -542,6 +543,9 @@ jest.mock('@/context/loadingStates.context', () => ({
 }))
 
 function renderQrPay(params: Record<string, string> = {}) {
+    // the page reads ?qrCode/?t/?type through nuqs — the testing adapter is
+    // the URL (setSearchParams keeps the legacy useSearchParams mock in sync
+    // for anything else that still reads it)
     setSearchParams(params)
     const queryClient = createQueryClient()
     const { loadingStateContext } = require('@/context/loadingStates.context')
@@ -557,13 +561,15 @@ function renderQrPay(params: Record<string, string> = {}) {
     }
 
     return render(
-        <IntlWrapper>
-            <QueryClientProvider client={queryClient}>
-                <LoadingProvider>
-                    <QRPayPage />
-                </LoadingProvider>
-            </QueryClientProvider>
-        </IntlWrapper>
+        <NuqsTestingAdapter searchParams={params}>
+            <IntlWrapper>
+                <QueryClientProvider client={queryClient}>
+                    <LoadingProvider>
+                        <QRPayPage />
+                    </LoadingProvider>
+                </QueryClientProvider>
+            </IntlWrapper>
+        </NuqsTestingAdapter>
     )
 }
 

@@ -1,6 +1,6 @@
 {
     "$schema": "https://unpkg.com/knip@5.37.1/schema.json",
     "ignore": ["src/assets/**"],
-    "entry": ["src/**/*.{js,jsx,ts,tsx}"],
+    "entry": ["src/app/sw.ts"],
     "project": ["src/**/*.{js,jsx,ts,tsx}", "*.config.{js,ts}"]
 }

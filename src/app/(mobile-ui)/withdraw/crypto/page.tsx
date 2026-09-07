@@ -5,9 +5,14 @@ import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import AddressLink from '@/components/Global/AddressLink'
 import Loading from '@/components/Global/Loading'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
-import ConfirmWithdrawView from '@/components/Withdraw/views/Confirm.withdraw.view'
-import InitialWithdrawView from '@/components/Withdraw/views/Initial.withdraw.view'
-import { useWithdrawFlow, type WithdrawData } from '@/context/WithdrawFlowContext'
+import ConfirmWithdrawView from '@/features/withdraw/views/ConfirmWithdrawView'
+import InitialWithdrawView from '@/features/withdraw/views/InitialWithdrawView'
+import { useWithdrawFlow } from '@/features/withdraw/WithdrawFlowContext'
+import { useWithdrawAmount } from '@/features/withdraw/useWithdrawAmount'
+import { useFlowStepper } from '@/hooks/useFlowStepper'
+import { WITHDRAW_CRYPTO_STEPS, type WithdrawData } from '@/features/withdraw/types'
+import { cryptoStepGuards } from '@/features/withdraw/step-guards'
+import { validateCryptoWithdrawAmount } from '@/features/withdraw/amount-validation'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
@@ -20,7 +25,7 @@ import type {
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
 import { isWithdrawFeeDisproportionate, getMinWithdrawUsdForChain } from '@/utils/cross-chain-fee.utils'
 import { isAmountWithinBalance } from '@/utils/balance.utils'
-import { isBelowRhinoMinDeposit, resolveWithdrawAmount } from '@/utils/withdraw.utils'
+import { isBelowRhinoMinDeposit } from '@/utils/withdraw.utils'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
@@ -50,6 +55,7 @@ export default function WithdrawCryptoPage() {
     const router = useRouter()
     const t = useTranslations('withdraw')
     const tCommon = useTranslations('common')
+    const tErrors = useTranslations('errors')
     const tNav = useTranslations('navigation')
     const toFriendlyError = useFriendlyError()
     // Send → Exchange or Wallet lands here as /withdraw/crypto?method=crypto.
@@ -58,19 +64,14 @@ export default function WithdrawCryptoPage() {
     // Forward the marker verbatim rather than assuming crypto: entering as
     // /withdraw?method=bank and then picking Crypto lands here as method=bank,
     // and rewriting it to crypto would change the amount step's back behaviour.
+    // step=amount lands on the amount screen directly — the root stepper's
+    // guard falls back to method selection if the flow memory is gone.
     const { isFromSendFlow, sendFlowMethod } = useSendFlowOrigin()
-    const amountStepHref = isFromSendFlow ? `/withdraw?method=${sendFlowMethod}` : '/withdraw'
+    const amountStepHref = isFromSendFlow ? `/withdraw?step=amount&method=${sendFlowMethod}` : '/withdraw?step=amount'
     const onBack = useSafeBack(amountStepHref)
     const { address, sendTransactions, sendMoney, spendableBalance } = useWallet()
     const { resetTokenContextProvider } = useContext(tokenSelectorContext)
     const {
-        amountToWithdraw,
-        isMaxWithdrawal,
-        preparedAmount,
-        setPreparedAmount,
-        usdAmount,
-        currentView,
-        setCurrentView,
         withdrawData,
         setWithdrawData,
         showCompatibilityModal,
@@ -82,12 +83,32 @@ export default function WithdrawCryptoPage() {
         setError: setWithdrawError,
         chargeDetails,
         setChargeDetails,
+        transactionHash,
         setTransactionHash,
         paymentDetails,
         setPaymentDetails,
-        resetWithdrawFlow,
+        setRecipient,
+        setIsValidRecipient,
         recipient,
     } = useWithdrawFlow()
+
+    // the one typed amount (USD), carried in the URL from the shared amount step
+    const [amountToWithdraw] = useWithdrawAmount()
+    const usdAmount = amountToWithdraw
+
+    // recipient → review → success as named screen ids in the URL. The guards
+    // cover refresh/deep-link into a step whose prepared state (charge, route)
+    // did not survive — and the success step additionally demands EXECUTION
+    // proof (the broadcast transaction identifier), so a hand-edited
+    // ?step=success can never render a success screen for a transfer that
+    // never ran (Chip review, PR #2917).
+    const stepper = useFlowStepper({
+        steps: WITHDRAW_CRYPTO_STEPS,
+        guards: cryptoStepGuards({
+            prepared: !!(chargeDetails && withdrawData),
+            executed: !!transactionHash,
+        }),
+    })
 
     // hooks for route calculation and payment recording
     const {
@@ -120,10 +141,21 @@ export default function WithdrawCryptoPage() {
         strategy: 'collateral-only' | 'smart-only' | 'mixed' | undefined
     } | null>(null)
 
+    // The USD amount the request/charge rows were created for, pinned to the
+    // charge id. The confirm leg broadcasts THIS, not the still-editable
+    // `?amount=` — otherwise an edit between review and confirm moves a
+    // different amount on-chain than the records say (Chip review round 4).
+    const setupAmountRef = useRef<{ chargeId: string; amountUsd: string } | null>(null)
+
     const { triggerHaptic } = useAppHaptic()
 
     // local state for transaction execution
     const [isSendingTx, setIsSendingTx] = useState(false)
+    // The USD amount the executed withdrawal actually moved (the charge-pinned
+    // broadcast amount). The success screen and the completion analytics read
+    // THIS — `?amount=` stays user-editable after execution, and rendering it
+    // would let a URL edit forge the receipt (Chip round 7).
+    const [executedAmountUsd, setExecutedAmountUsd] = useState<string | null>(null)
 
     // combined processing state
     const isProcessing = useMemo(() => isSendingTx || isRecording, [isSendingTx, isRecording])
@@ -154,31 +186,14 @@ export default function WithdrawCryptoPage() {
         resetPaymentRecorder()
     }, [setChargeDetails, setTransactionHash, setPaymentDetails, resetRouteCalculation, resetPaymentRecorder])
 
-    // What a withdrawal prepared RIGHT NOW would move: the amount on screen,
-    // plus the sub-cent remainder when the user tapped "use full balance" and
-    // did not edit it. Tracks the live balance, so it is only read at the
-    // moment the charge is built. See resolveWithdrawAmount for the guard
-    // rails (TASK-21899).
-    const liveResolvedAmount = useMemo(
-        () => resolveWithdrawAmount(amountToWithdraw, spendableBalance, isMaxWithdrawal, PEANUT_WALLET_TOKEN_DECIMALS),
-        [amountToWithdraw, spendableBalance, isMaxWithdrawal]
-    )
-
-    // What THIS withdrawal moves. Once a charge exists, the amount it was built
-    // from is the only one that may be quoted, gated or sent — the charge is
-    // what the API validator settles against, and the live figure keeps moving
-    // under it. See WithdrawFlowContext.preparedAmount.
-    const effectiveAmount = preparedAmount ?? liveResolvedAmount
-
-    // clear errors when amount changes
+    // clear errors when amount changes (the charge pinned to the old amount
+    // goes with them; setupAmountRef only ever resolves against the live charge)
     useEffect(() => {
         if (amountToWithdraw) {
             clearErrors()
             setChargeDetails(null)
-            // The charge is gone, so the amount frozen against it is too.
-            setPreparedAmount(null)
         }
-    }, [amountToWithdraw, clearErrors, setChargeDetails, setPreparedAmount])
+    }, [amountToWithdraw, clearErrors, setChargeDetails])
 
     // propagate route/record errors
     useEffect(() => {
@@ -189,7 +204,7 @@ export default function WithdrawCryptoPage() {
     }, [routeError, recordError, setPaymentError])
 
     // Quote the route (Rhino preview + SDA / bridge quote, or the same-chain
-    // tx). Runs on entering the confirm view and again before signing when the
+    // tx). Runs on entering the review step and again before signing when the
     // quote on screen has expired.
     const quoteRoute = useCallback(() => {
         if (!chargeDetails || !withdrawData || !address) return Promise.resolve()
@@ -198,9 +213,14 @@ export default function WithdrawCryptoPage() {
                 address: address as Address,
                 tokenAddress: PEANUT_WALLET_TOKEN as Address,
                 chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                // effectiveAmount is USD-denominated; source token is USDC (1:1).
-                // It sizes the pay-mode quote on every cross-chain path.
-                tokenAmount: effectiveAmount,
+                // USD-denominated; source token is USDC (1:1). Required for
+                // the bridge path's 'pay' mode (cross-chain ETH/etc). Pinned
+                // to the amount the charge was created for — the URL param
+                // stays editable and must not re-route the quote.
+                tokenAmount:
+                    setupAmountRef.current?.chargeId === chargeDetails.uuid
+                        ? setupAmountRef.current.amountUsd
+                        : amountToWithdraw,
             },
             destination: {
                 recipientAddress: chargeDetails.requestLink.recipientAddress as Address,
@@ -215,12 +235,12 @@ export default function WithdrawCryptoPage() {
             senderPeanutWalletAddress: address as Address,
             skipGasEstimate: true, // peanut wallet handles gas
         })
-    }, [chargeDetails, withdrawData, calculateRoute, address, effectiveAmount])
+    }, [chargeDetails, withdrawData, calculateRoute, address, amountToWithdraw])
 
-    // prepare transaction when entering confirm view
+    // prepare transaction when entering the review step
     useEffect(() => {
-        if (currentView === 'CONFIRM') void quoteRoute()
-    }, [currentView, quoteRoute])
+        if (stepper.step === 'review') void quoteRoute()
+    }, [stepper.step, quoteRoute])
 
     const handleSetupReview = useCallback(
         async (data: Omit<WithdrawData, 'amount'>) => {
@@ -230,10 +250,24 @@ export default function WithdrawCryptoPage() {
                 return
             }
 
-            // Resolve ONCE, here. Everything this function decides — the minimum
-            // check, the destination token amount, the charge — must come from
-            // the same number, and that number is what gets frozen below.
-            const spendAmount = liveResolvedAmount
+            // `?amount=` is user-editable URL text — validate and normalize it
+            // BEFORE any request/charge is persisted (Chip review round 4):
+            // finite, positive, plain-decimal, within the loaded balance.
+            // Same-chain USDC has no rail minimum, so `0` and malformed values
+            // used to sail past the Rhino-only minimum check below and persist
+            // request+charge records that could never sign.
+            const amountCheck = validateCryptoWithdrawAmount(amountToWithdraw, spendableBalance)
+            if (!amountCheck.ok) {
+                setError(
+                    amountCheck.reason === 'insufficientBalance'
+                        ? tErrors('notEnoughBalanceAddFunds')
+                        : amountCheck.reason === 'balanceLoading'
+                          ? t('errors.prepareFailed')
+                          : t('errors.invalidAmount')
+                )
+                return
+            }
+            const amountUsd = amountCheck.normalized
 
             // Same-chain USDC is a direct transfer — no Rhino, no minimum
             // (parity with send-via-link). Every other destination/token rides
@@ -244,7 +278,7 @@ export default function WithdrawCryptoPage() {
                 data.chain.chainId.toString() === PEANUT_WALLET_CHAIN.id.toString() &&
                 data.token.address.toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase()
             if (!isSameChainUsdc) {
-                const usdToWithdraw = parseFloat(spendAmount)
+                const usdToWithdraw = parseFloat(amountUsd)
                 const minUsd = getMinWithdrawUsdForChain(data.chain.chainId)
                 if (!Number.isFinite(usdToWithdraw) || usdToWithdraw < minUsd) {
                     const minDisplay = minUsd % 1 === 0 ? `$${minUsd}` : `$${minUsd.toFixed(2)}`
@@ -257,9 +291,11 @@ export default function WithdrawCryptoPage() {
 
             clearErrors()
             setChargeDetails(null)
-            // Re-arm: this preparation decides the amount afresh from the live
-            // balance, then freezes it below.
-            setPreparedAmount(null)
+            // a NEW attempt invalidates the previous one's execution proof —
+            // without this, ?step=success re-renders the old success screen
+            // while the new attempt is mid-flight (Chip round 7)
+            setTransactionHash(null)
+            setExecutedAmountUsd(null)
             setIsPreparingReview(true)
 
             try {
@@ -268,10 +304,10 @@ export default function WithdrawCryptoPage() {
                 // units before persisting the request/charge — otherwise meta
                 // ends up with `tokenAmount: "1"` + `tokenSymbol: "ETH"` and
                 // history renders "1 ETH" for what was actually a $1 withdraw.
-                const usdValue = parseFloat(spendAmount)
+                const usdValue = parseFloat(amountUsd)
                 const tokenPrice = data.token.price ?? 0
                 const destinationTokenAmount =
-                    tokenPrice > 0 ? (usdValue / tokenPrice).toFixed(Number(data.token.decimals)) : spendAmount
+                    tokenPrice > 0 ? (usdValue / tokenPrice).toFixed(Number(data.token.decimals)) : amountUsd
 
                 const completeWithdrawData = { ...data, amount: destinationTokenAmount }
                 setWithdrawData(completeWithdrawData)
@@ -325,10 +361,10 @@ export default function WithdrawCryptoPage() {
 
                 const fullChargeDetails = await chargesApi.get(createdCharge.data.id)
 
-                // Frozen with the charge, not before it: a failure above leaves
-                // the flow re-armed rather than pinned to an amount that never
-                // reached the backend.
-                setPreparedAmount(spendAmount)
+                // the confirm leg broadcasts the amount these records were
+                // created for — never re-read from the editable URL
+                setupAmountRef.current = { chargeId: fullChargeDetails.uuid, amountUsd }
+
                 setChargeDetails(fullChargeDetails)
                 setShowCompatibilityModal(true)
             } catch (err) {
@@ -341,28 +377,29 @@ export default function WithdrawCryptoPage() {
         },
         [
             amountToWithdraw,
-            liveResolvedAmount,
-            setPreparedAmount,
+            spendableBalance,
             clearErrors,
             setChargeDetails,
+            setTransactionHash,
             setIsPreparingReview,
             setWithdrawData,
             setShowCompatibilityModal,
             setError,
             recipient,
             t,
+            tErrors,
         ]
     )
 
     const handleCompatibilityProceed = useCallback(() => {
         setShowCompatibilityModal(false)
         if (chargeDetails && withdrawData) {
-            setCurrentView('CONFIRM')
+            void stepper.goTo('review')
         } else {
             console.error('Proceeding to confirm, but charge details or withdraw data are missing.')
             setError(t('errors.confirmDetailsFailed'))
         }
-    }, [chargeDetails, withdrawData, setCurrentView, setShowCompatibilityModal, setError, t])
+    }, [chargeDetails, withdrawData, stepper, setShowCompatibilityModal, setError, t])
 
     // True when the withdraw needs a Rhino path (SDA or bridge swap) rather
     // than a direct USDC transfer. Crosses a chain boundary OR a token
@@ -407,6 +444,30 @@ export default function WithdrawCryptoPage() {
             return
         }
 
+        // Broadcast the amount the charge was created for (pinned at setup) —
+        // `?amount=` stays editable between review and confirm, and re-reading
+        // it here would move a different amount on-chain than the records say.
+        // Re-validate it against the LIVE balance right before the money moves
+        // (Chip review round 4). The record-only replay path is exempt: funds
+        // already moved for that charge and only the bookkeeping replays.
+        const pinnedAmount =
+            setupAmountRef.current?.chargeId === chargeDetails.uuid ? setupAmountRef.current.amountUsd : null
+        let broadcastAmount = pinnedAmount ?? amountToWithdraw
+        if (executedSpendRef.current?.chargeId !== chargeDetails.uuid) {
+            const amountCheck = validateCryptoWithdrawAmount(broadcastAmount, spendableBalance)
+            if (!amountCheck.ok) {
+                setError(
+                    amountCheck.reason === 'insufficientBalance'
+                        ? tErrors('notEnoughBalanceAddFunds')
+                        : amountCheck.reason === 'balanceLoading'
+                          ? t('errors.prepareFailed')
+                          : t('errors.invalidAmount')
+                )
+                return
+            }
+            broadcastAmount = amountCheck.normalized
+        }
+
         clearErrors()
         setIsSendingTx(true)
 
@@ -449,7 +510,7 @@ export default function WithdrawCryptoPage() {
                     txHash,
                     receipt: r,
                     strategy: s,
-                } = await sendMoney(withdrawData.address as Address, effectiveAmount, {
+                } = await sendMoney(withdrawData.address as Address, broadcastAmount, {
                     kind: 'CRYPTO_WITHDRAW',
                     // Lets the backend settle the charge directly when the spend
                     // routes through Rain card collateral (collateral-only): the
@@ -556,11 +617,13 @@ export default function WithdrawCryptoPage() {
 
             executedSpendRef.current = null
             setTransactionHash(finalTxHash)
+            setExecutedAmountUsd(broadcastAmount)
             setPaymentDetails(payment)
             triggerHaptic()
-            setCurrentView('STATUS')
+            void stepper.goTo('success')
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_COMPLETED, {
-                amount_usd: usdAmount,
+                // the amount that moved, not the still-editable URL param
+                amount_usd: broadcastAmount,
                 method_type: 'crypto',
             })
         } catch (err) {
@@ -591,7 +654,7 @@ export default function WithdrawCryptoPage() {
         chargeDetails,
         withdrawData,
         amountToWithdraw,
-        effectiveAmount,
+        spendableBalance,
         address,
         transactions,
         payAmount,
@@ -602,34 +665,60 @@ export default function WithdrawCryptoPage() {
         sendMoney,
         isCrossChainWithdrawal,
         recordPayment,
-        setCurrentView,
+        stepper,
         setTransactionHash,
         setPaymentDetails,
         clearErrors,
         setError,
         triggerHaptic,
         t,
+        tErrors,
         toFriendlyError,
     ])
 
     const handleBackFromConfirm = useCallback(() => {
-        setCurrentView('INITIAL')
+        void stepper.goTo('recipient')
         clearErrors()
         setChargeDetails(null)
-    }, [setCurrentView, clearErrors, setChargeDetails])
+    }, [stepper, clearErrors, setChargeDetails])
 
-    // reset withdraw flow when this component unmounts. Resetting on unmount (rather
-    // than in the success view's onComplete) avoids a race: a synchronous reset clears
-    // amountToWithdraw and flips currentView off STATUS, which re-triggers the guard
-    // below and pushes '/withdraw' over the '/home' navigation from "Back to home".
+    // Clear crypto-TRANSIENT flow memory when this page unmounts (charge,
+    // route, recipient, token selection) — on unmount rather than in the
+    // success view's onComplete to avoid a race with the '/home' navigation
+    // from "Back to home". Deliberately NOT resetWithdrawFlow(): back from the
+    // recipient screen is an intra-/withdraw transition, and nuking
+    // selectedMethod here made the root amount guard bounce that back-nav to
+    // method selection instead of the amount step (Chip review, PR #2917).
+    // Leaving /withdraw entirely unmounts the provider, which clears the rest.
     useEffect(() => {
         return () => {
             resetRouteCalculation()
             resetPaymentRecorder()
             resetTokenContextProvider() // reset token selector context to make sure previously selected token is not cached
-            resetWithdrawFlow()
+            setWithdrawData(null)
+            setChargeDetails(null)
+            setTransactionHash(null)
+            setPaymentDetails(null)
+            setRecipient({ address: '', name: '' })
+            setIsValidRecipient(false)
+            setPaymentError(null)
+            setWithdrawError({ showError: false, errorMessage: '' })
+            setShowCompatibilityModal(false)
         }
-    }, [resetRouteCalculation, resetPaymentRecorder, resetTokenContextProvider, resetWithdrawFlow])
+    }, [
+        resetRouteCalculation,
+        resetPaymentRecorder,
+        resetTokenContextProvider,
+        setWithdrawData,
+        setChargeDetails,
+        setTransactionHash,
+        setPaymentDetails,
+        setRecipient,
+        setIsValidRecipient,
+        setPaymentError,
+        setWithdrawError,
+        setShowCompatibilityModal,
+    ])
 
     // Display payment errors first (user actions), then route errors (system limitations)
     const displayError = paymentError
@@ -658,14 +747,18 @@ export default function WithdrawCryptoPage() {
     // sends the quote's pay side (`payAmount`, via requiredUsdcAmount); it is
     // null until the route resolves, so the gate simply doesn't fire while
     // calculating — the CTA is disabled by isCalculating anyway. Same-chain the
-    // kernel sends `effectiveAmount` (frozen with the charge), and `payAmount`
+    // kernel sends the amount pinned to the charge at setup, and `payAmount`
     // there is the CHARGE's
     // destination amount (`usdValue / token.price`) — so a routine USDC price of
     // 0.9999 makes it a few base units more than the balance on a full-balance
     // withdrawal, which would disable the CTA on a send that would have
-    // succeeded. Gating on the frozen amount is also what makes the gate honest:
+    // succeeded. Gating on the pinned amount is also what makes the gate honest:
     // it is the number that will actually leave the wallet.
-    const kernelSpend = isCrossChainWithdrawal ? payAmount : effectiveAmount
+    const kernelSpend = isCrossChainWithdrawal
+        ? payAmount
+        : chargeDetails && setupAmountRef.current?.chargeId === chargeDetails.uuid
+          ? setupAmountRef.current.amountUsd
+          : amountToWithdraw
     const insufficientBalance = useMemo<boolean>(
         () =>
             kernelSpend != null &&
@@ -690,9 +783,9 @@ export default function WithdrawCryptoPage() {
     // effect — navigating during render is a React violation ("Cannot update
     // Router while rendering WithdrawCryptoPage") that hard-errors the Next 16
     // dev overlay on direct entry/refresh of this route.
-    // Guard against STATUS view: resetWithdrawFlow() clears amountToWithdraw,
-    // which would override the router.push('/home') in handleDone
-    const needsAmountRedirect = !amountToWithdraw && currentView !== 'STATUS'
+    // Guard against the success step: it must stay rendered while the "Back to
+    // home" navigation is in flight.
+    const needsAmountRedirect = !amountToWithdraw && stepper.step !== 'success'
     useEffect(() => {
         if (needsAmountRedirect) router.push(amountStepHref)
     }, [needsAmountRedirect, router, amountStepHref])
@@ -703,7 +796,7 @@ export default function WithdrawCryptoPage() {
 
     return (
         <div className="mx-auto flex min-h-inherit w-full max-w-md flex-col gap-4 self-center">
-            {currentView === 'INITIAL' && (
+            {stepper.step === 'recipient' && (
                 <InitialWithdrawView
                     amount={usdAmount}
                     onReview={handleSetupReview}
@@ -713,7 +806,7 @@ export default function WithdrawCryptoPage() {
                 />
             )}
 
-            {currentView === 'CONFIRM' && withdrawData && chargeDetails && (
+            {stepper.step === 'review' && withdrawData && chargeDetails && (
                 <ConfirmWithdrawView
                     amount={usdAmount}
                     token={withdrawData.token}
@@ -736,13 +829,13 @@ export default function WithdrawCryptoPage() {
                 />
             )}
 
-            {currentView === 'STATUS' && withdrawData && chargeDetails && (
+            {stepper.step === 'success' && withdrawData && chargeDetails && (
                 <>
                     <PaymentSuccessView
                         headerTitle={isFromSendFlow ? tNav('send') : tNav('withdraw')}
                         recipientType="ADDRESS"
                         type="SEND"
-                        amount={usdAmount}
+                        amount={executedAmountUsd ?? usdAmount}
                         // Stays true even from the send flow: it also suppresses the
                         // recipient render (no recipientName is passed here) and picks
                         // the "to" prefix, both correct for a send to an address.
@@ -752,7 +845,7 @@ export default function WithdrawCryptoPage() {
                         redirectTo="/home"
                         chargeDetails={chargeDetails}
                         paymentDetails={paymentDetails}
-                        usdAmount={usdAmount}
+                        usdAmount={executedAmountUsd ?? usdAmount}
                         message={
                             <AddressLink
                                 className="text-body-s font-normal text-foreground-secondary no-underline"

@@ -5,13 +5,12 @@ import { Icon } from '../Global/Icons/Icon'
 import { Button } from '@/components/0_Bruddle/Button'
 import { twMerge } from '@/utils/tw'
 import { useGetBrowserType, BrowserType } from '@/hooks/useGetBrowserType'
-import { useAppDispatch } from '@/redux/hooks'
-import { setupActions } from '@/redux/slices/setup-slice'
 import { useTranslations } from 'next-intl'
+import { useIosPwaInstallGate } from '@/hooks/useIosPwaInstallGate'
 
 const ForceIOSPWAInstall = () => {
     const t = useTranslations('global')
-    const dispatch = useAppDispatch()
+    const { setShowIosPwaInstallScreen } = useIosPwaInstallGate()
     const { browserType, isLoading } = useGetBrowserType()
 
     const STAR_POSITIONS = [
@@ -88,7 +87,7 @@ const ForceIOSPWAInstall = () => {
                 </p>
                 {/* Installing is a nudge, not a gate: without this the screen has
                     no control at all and a user who can't install is stranded. */}
-                <Button variant="stroke" onClick={() => dispatch(setupActions.setShowIosPwaInstallScreen(false))}>
+                <Button variant="stroke" onClick={() => setShowIosPwaInstallScreen(false)}>
                     {t('forceIosPwaInstall.continueInBrowser')}
                 </Button>
             </section>

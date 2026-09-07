@@ -27,14 +27,21 @@ jest.mock('@/context/authContext', () => ({
         fetchUser: mockFetchUser,
     }),
 }))
-jest.mock('@/redux/hooks', () => ({ useAppDispatch: () => mockDispatch }))
-jest.mock('@/redux/slices/zerodev-slice', () => ({
-    zerodevActions: {
-        setIsRegistering: (payload: boolean) => ({ type: 'zerodev/registering', payload }),
-        setIsLoggingIn: (payload: boolean) => ({ type: 'zerodev/logging-in', payload }),
-        setIsKernelClientReady: (payload: boolean) => ({ type: 'zerodev/ready', payload }),
-        setAddress: (payload: string) => ({ type: 'zerodev/address', payload }),
-        resetZeroDevState: () => ({ type: 'zerodev/reset' }),
+jest.mock('@/hooks/useZeroDevFlow', () => ({
+    useZeroDevFlow: () => ({
+        isKernelClientReady: false,
+        isRegistering: false,
+        isLoggingIn: false,
+        isSendingUserOp: false,
+        address: undefined,
+    }),
+    zeroDevFlowActions: {
+        reset: () => mockDispatch({ type: 'zerodev/reset' }),
+        setIsRegistering: (payload: boolean) => mockDispatch({ type: 'zerodev/registering', payload }),
+        setIsLoggingIn: (payload: boolean) => mockDispatch({ type: 'zerodev/logging-in', payload }),
+        setIsKernelClientReady: (payload: boolean) => mockDispatch({ type: 'zerodev/ready', payload }),
+        setIsSendingUserOp: (payload: boolean) => mockDispatch({ type: 'zerodev/sending', payload }),
+        setAddress: (payload: string | undefined) => mockDispatch({ type: 'zerodev/address', payload }),
     },
 }))
 jest.mock('@/utils/general.utils', () => ({

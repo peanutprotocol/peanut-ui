@@ -11,7 +11,7 @@ jest.mock('@/hooks/useZeroDev', () => ({
 jest.mock('@/hooks/useLogin', () => ({ useLogin: () => ({ handleLoginClick: jest.fn(), isLoggingIn: false }) }))
 jest.mock('@/hooks/useSetupFlow', () => ({ useSetupFlow: () => ({ isLoading: false, handleNext: jest.fn() }) }))
 jest.mock('@/hooks/useGetDeviceType', () => ({ useDeviceType: () => ({ deviceType: 'Android' }) }))
-jest.mock('@/redux/hooks', () => ({ useSetupStore: () => ({ username: 'kim' }) }))
+jest.mock('@/features/setup/SetupFlowContext', () => ({ useSetupFlowContext: () => ({ username: 'kim' }) }))
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: (...args: unknown[]) => mockApiFetch(...args) }))
 jest.mock('@/utils/passkeyPreflight', () => ({ checkPasskeySupport: async () => ({ isSupported: true }) }))
 jest.mock('@/utils/passkeyDebug', () => ({ capturePasskeyDebugInfo: jest.fn() }))

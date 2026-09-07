@@ -1,24 +1,24 @@
 {
-    "rawHex": 27,
-    "rawHexFiles": 20,
+    "rawHex": 26,
+    "rawHexFiles": 19,
     "inlineStyle": 21,
     "stockTextSize": 8,
     "dsTextScale": 11,
-    "nonDsClassesInViews": 16,
-    "useSearchParamsFiles": 44,
-    "nuqsFiles": 23,
+    "nonDsClassesInViews": 19,
+    "useSearchParamsFiles": 41,
+    "nuqsFiles": 31,
     "legacyColorClasses": 0,
     "offRampPalette": 0,
     "deadLegacyTokens": 0,
     "consumedUndefinedTokens": 0,
-    "classNameSitesInPages": 312,
+    "classNameSitesInPages": 225,
     "fontWeightOnTypeToken": 47,
     "offScaleSpacing": 188,
-    "iconOffScale": 70,
+    "iconOffScale": 68,
     "offScaleRadius": 37,
     "rawDuration": 6,
-    "retypedCardLiteral": 17,
-    "hoverNoActiveFiles": 44,
+    "retypedCardLiteral": 16,
+    "hoverNoActiveFiles": 45,
     "arbitraryFontSize": 111,
     "rawErrorText": 25,
     "handRolledCloseGlyphFiles": 9,
@@ -52,6 +52,16 @@
             "date": "2026-09-04",
             "metrics": ["classNameSitesInPages 310 -> 312"],
             "reason": "dev-side, not authored here: the exchange-rate page gained 2 className sites in dev's exchange-currencies work (profile/exchange-rate/page.tsx), counted in on the merge. this branch touches no (mobile-ui) page.tsx at all."
+        },
+        {
+            "date": "2026-09-06",
+            "metrics": ["hoverNoActiveFiles 44 -> 45"],
+            "reason": "TASK-21457 qr-pay split: hover:text-black markup relocated verbatim from app/(mobile-ui)/qr-pay/page.tsx into features/payments/flows/qr-pay/views/ (now 2 files) — behavior-parity migration per design.md; inline styles stay exempt via the moved INLINE_STYLE_ALLOW entry"
+        },
+        {
+            "date": "2026-09-06",
+            "metrics": ["nonDsClassesInViews 16 -> 19"],
+            "reason": "dev-side, not authored here: min-h-[inherit] x3 in features/withdraw/views/WithdrawMethodView.tsx landed via the tech-debt merge (withdraw rebuild) and was never baselined there; qr-pay is net-zero for this metric. follow-up for the merge-back: use the native min-h-inherit utility from 51e84273c"
         }
     ]
 }

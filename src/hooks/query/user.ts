@@ -1,6 +1,4 @@
 import { type IUserProfile } from '@/interfaces/interfaces'
-import { useAppDispatch, useUserStore } from '@/redux/hooks'
-import { userActions } from '@/redux/slices/user-slice'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useQuery } from '@tanstack/react-query'
@@ -10,6 +8,7 @@ import { USER } from '@/constants/query.consts'
 import { apiFetch } from '@/utils/api-fetch'
 import { clearAuthToken, getAuthToken, getClearEpoch, setAuthToken } from '@/utils/auth-token'
 import { isDemoMode } from '@/utils/demo'
+import { DEMO_USER } from '@/constants/demo-data'
 import { isNativeBridge } from '@/utils/capacitor'
 
 // custom error class for backend errors (5xx) that should trigger retry
@@ -24,8 +23,6 @@ export class BackendError extends Error {
 
 export const useUserQuery = (dependsOn: boolean = true) => {
     const { deviceType } = useDeviceType()
-    const dispatch = useAppDispatch()
-    const { user: authUser } = useUserStore()
 
     const fetchUser = async (): Promise<IUserProfile | null> => {
         // Demo mode: no backend/JWT/passkey — the synthetic user, read through
@@ -36,7 +33,6 @@ export const useUserQuery = (dependsOn: boolean = true) => {
         if (isDemoMode()) {
             const { demoRespond } = await import('@/utils/demo-api')
             const payload: IUserProfile = await (await demoRespond('/users/me')).json()
-            dispatch(userActions.setUser(payload))
             return payload
         }
 
@@ -70,7 +66,6 @@ export const useUserQuery = (dependsOn: boolean = true) => {
                     isPwa: isNativeBridge() ? false : isStandaloneDisplayMode(),
                     deviceType,
                 })
-                dispatch(userActions.setUser(payload))
             }
             return payload
         }
@@ -99,9 +94,8 @@ export const useUserQuery = (dependsOn: boolean = true) => {
             await clearAuthToken()
         }
 
-        // 4xx = auth failure, clear stale redux so layout redirects to /setup
+        // 4xx = auth failure — resolve null so the layout redirects to /setup
         console.warn('Failed to fetch user, status:', userResponse.status)
-        dispatch(userActions.setUser(null))
         return null
     }
 
@@ -120,6 +114,10 @@ export const useUserQuery = (dependsOn: boolean = true) => {
         gcTime: 10 * 60 * 1000,
         refetchOnMount: true,
         refetchOnWindowFocus: true,
-        placeholderData: authUser || undefined,
+        // Demo mode: seed the synthetic user synchronously so `user` is never
+        // null on first render — prevents the protected-route layout racing a
+        // /setup redirect before the query settles. (Was the redux user
+        // slice's initialState seed — TASK-21462.)
+        placeholderData: isDemoMode() ? DEMO_USER : undefined,
     })
 }
