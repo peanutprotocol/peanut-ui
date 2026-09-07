@@ -429,7 +429,19 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
             if (entry.currency?.code) {
                 entry.currency.code = entry.currency.code.toUpperCase()
             }
-            if (usdAmount === entry.currency?.amount && entry.currency?.code && entry.currency?.code !== 'USD') {
+            // Bridge/Manteca mirror the USD amount into `currency.amount` while
+            // the intent is still in flight — the real fiat figure lands with
+            // the provider's receipt on completion (verified latent: 0 of
+            // 1,130 completed onramps ship without it). Fetching a live rate
+            // for a row that's about to get its real amount for free just
+            // hammers the FX endpoint on every pending render — skip it and
+            // let the completed re-render supply the real number.
+            if (
+                isFinalState(entry) &&
+                usdAmount === entry.currency?.amount &&
+                entry.currency?.code &&
+                entry.currency?.code !== 'USD'
+            ) {
                 try {
                     const price = await getCachedCurrencyPrice(entry.currency.code)
                     usdAmount = (Number(entry.currency.amount) / price.buy).toString()
@@ -456,7 +468,11 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
                 const currNum = hasCurrencyAmount ? Number(entry.currency.amount) : NaN
                 const approximatelyEqual = hasCurrencyAmount && isFinite(currNum) && Math.abs(currNum - usdNum) < 0.01
 
-                if (!hasCurrencyAmount || !isFinite(currNum) || approximatelyEqual) {
+                // See the ONRAMP branch above: an unconverted/mirrored amount
+                // on a still-pending row is expected and self-resolves once
+                // the provider's receipt lands, so only pay for a live-rate
+                // lookup once the row is actually final.
+                if (isFinalState(entry) && (!hasCurrencyAmount || !isFinite(currNum) || approximatelyEqual)) {
                     try {
                         const price = await getCachedCurrencyPrice(entry.currency.code)
                         const converted = Number.isFinite(usdNum) && price?.sell ? usdNum * price.sell : usdNum
