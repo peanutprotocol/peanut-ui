@@ -561,7 +561,7 @@ describe('useSumsubKycFlow — ACTION_REQUIRED during a multi-level session', ()
     // the held (now stale) transition would close it in the same breath and dump
     // the user on an ACTION_REQUIRED drawer for documents they just resubmitted.
     // handleSdkComplete consumes the deferred status instead.
-    it('a submission close consumes the deferred transition — the progress modal stays open', async () => {
+    it('an ambiguous multi-level completion replays the deferred transition', async () => {
         const { result } = await openSdkOverProgressModal('EU')
 
         await act(async () => {
@@ -575,7 +575,7 @@ describe('useSumsubKycFlow — ACTION_REQUIRED during a multi-level session', ()
         })
 
         expect(result.current.showWrapper).toBe(false)
-        expect(result.current.isVerificationProgressModalOpen).toBe(true)
+        expect(result.current.isVerificationProgressModalOpen).toBe(false)
     })
 
     // The counterpart: a MANUAL close always replays. handleSdkComplete is the
