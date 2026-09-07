@@ -588,7 +588,7 @@
             "title": "Language"
         },
         "deleteAccount": {
-            "button": "Delete My Account",
+            "button": "Delete my account",
             "confirmTitle": "Aw, you're leaving?",
             "confirmDescription": "Deleting your account is permanent. We'll switch it off right away and wipe your data within 30 days. This little guy would really rather you stayed.",
             "confirmCta": "Yes, delete it",
