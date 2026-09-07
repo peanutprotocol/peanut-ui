@@ -16,6 +16,8 @@ import { inflateWaitlistPosition } from '@/components/Card/doorTally.utils'
 import { Sparkle, Star } from '@/assets/illustrations'
 import { cardApi } from '@/services/card'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { MIGRATION_SURFACES } from '@/constants/migration.consts'
+import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { badgeCampaignsFromSearchParams, queuePendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 import { claimAndSettlePendingBadgeCampaigns, isConfirmedBadgeCampaignClaim } from '@/services/badge-campaigns'
 import { getBadgeIcon } from '@/components/Badges/badge.utils'
@@ -142,6 +144,10 @@ export default function ShhhhhLandingPage() {
     const t = useTranslations('shhhhh')
     const { user, fetchUser } = useAuth()
     const router = useRouter()
+    // pwa-sunset: the door's signup lives in the app now (see handleCTA)
+    const { interceptGuestCta, storeHandoffModal } = useGuestStoreHandoff({
+        surface: MIGRATION_SURFACES.LANDING_DOOR,
+    })
 
     // undefined = not joined; number|null = joined (null = joined but BE
     // returned no position). Drives the inline confirmation.
@@ -205,6 +211,13 @@ export default function ShhhhhLandingPage() {
             signed_in: !!user,
             campaign_tags: badgeCampaigns,
         })
+
+        // pwa-sunset: every signed-out door path below ends at a web signup that
+        // the migration window closes. Hand the visitor to the store instead —
+        // desktop opens the scan-to-download QR, phones deep-link — carrying
+        // /card so the app lands them back on the door's destination. Flag off
+        // (and in the native app) this is a no-op and the routes below run.
+        if (!user && interceptGuestCta({ dest: '/card' })) return
 
         if (badgeCampaigns.length > 0) {
             const queuedBadgeCampaigns = queuePendingBadgeCampaigns(badgeCampaigns, 30)
@@ -611,6 +624,7 @@ export default function ShhhhhLandingPage() {
             </section>
 
             {!isJoined && <StickyShhhhhCTA onClick={handleCTA} />}
+            {storeHandoffModal}
         </>
     )
 }

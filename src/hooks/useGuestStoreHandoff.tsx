@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import posthog from 'posthog-js'
 import ScanToDownloadModal from '@/components/Migration/ScanToDownloadModal'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { MIGRATION_SURFACES } from '@/constants/migration.consts'
+import { MIGRATION_SURFACES, type MigrationSurface } from '@/constants/migration.consts'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { isCapacitor } from '@/utils/capacitor'
@@ -18,10 +18,15 @@ import { openStore, type StoreHandoff } from '@/utils/migration.utils'
  * Returns `interceptGuestCta` (call it first in the CTA handler; true = the
  * click was handled here) and `storeHandoffModal` (render it next to the CTA).
  * Native app guests keep the normal in-app flow.
+ *
+ * `surface` labels the analytics for the CTA that was intercepted; it defaults
+ * to the guest claim/request funnel this hook was built for. Marketing pages
+ * that reuse the same hand-off pass their own (e.g. the /shhhhh door).
  */
 export function useGuestStoreHandoff({
     trackImpressionWhenGuest = false,
-}: { trackImpressionWhenGuest?: boolean } = {}) {
+    surface = MIGRATION_SURFACES.GUEST_FLOW,
+}: { trackImpressionWhenGuest?: boolean; surface?: MigrationSurface } = {}) {
     const migrationOn = useMigrationFlag()
     const { deviceType } = useDeviceType()
     const [qrOpen, setQrOpen] = useState(false)
@@ -34,8 +39,8 @@ export function useGuestStoreHandoff({
     useEffect(() => {
         if (!trackImpressionWhenGuest || !migrationOn || isCapacitor() || impressionFired.current) return
         impressionFired.current = true
-        posthog.capture(ANALYTICS_EVENTS.MIGRATION_GUEST_CTA_SHOWN, { surface: MIGRATION_SURFACES.GUEST_FLOW })
-    }, [trackImpressionWhenGuest, migrationOn])
+        posthog.capture(ANALYTICS_EVENTS.MIGRATION_GUEST_CTA_SHOWN, { surface })
+    }, [trackImpressionWhenGuest, migrationOn, surface])
 
     // handoff: deferred deep-link context the surface knows before any cookie is
     // written (claim page invite CTA). the desktop QR path can't carry it — the
@@ -46,12 +51,12 @@ export function useGuestStoreHandoff({
             setQrOpen(true)
             return true
         }
-        openStore(deviceType === DeviceType.ANDROID ? 'android' : 'ios', MIGRATION_SURFACES.GUEST_FLOW, handoff)
+        openStore(deviceType === DeviceType.ANDROID ? 'android' : 'ios', surface, handoff)
         return true
     }
 
     const storeHandoffModal = qrOpen ? (
-        <ScanToDownloadModal visible onClose={() => setQrOpen(false)} surface={MIGRATION_SURFACES.GUEST_FLOW} />
+        <ScanToDownloadModal visible onClose={() => setQrOpen(false)} surface={surface} />
     ) : null
 
     return { interceptGuestCta, storeHandoffModal }

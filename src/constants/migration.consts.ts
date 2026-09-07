@@ -68,6 +68,7 @@ export const MIGRATION_SURFACES = {
     SETUP: 'setup',
     GUEST_FLOW: 'guest_flow',
     PROFILE_UPDATE: 'profile_update',
+    LANDING_DOOR: 'landing_door',
 } as const
 
 export type MigrationSurface = (typeof MIGRATION_SURFACES)[keyof typeof MIGRATION_SURFACES]
