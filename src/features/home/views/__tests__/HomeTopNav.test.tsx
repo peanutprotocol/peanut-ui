@@ -6,11 +6,15 @@ jest.mock('@/hooks/useAppHaptic', () => ({ useAppHaptic: () => ({ triggerHaptic:
 jest.mock('@/components/Home/InvitesIcon', () => ({ __esModule: true, default: () => null }))
 
 describe('HomeTopNav', () => {
-    it('opens the profile through a labelled menu button', () => {
-        renderWithIntl(<HomeTopNav showRewards={false} />)
+    it('opens the profile through ONE labelled control', () => {
+        const { container } = renderWithIntl(<HomeTopNav showRewards={false} />)
 
-        const menu = screen.getByRole('button', { name: 'Open your profile' })
-        expect(menu.closest('a')).toHaveAttribute('href', '/profile')
+        const menu = screen.getByRole('link', { name: 'Open your profile' })
+        expect(menu).toHaveAttribute('href', '/profile')
+        // one element, one tab stop: a Link wrapping a Button is two, and axe
+        // calls that a nested-interactive violation
+        expect(container.querySelectorAll('a[href="/profile"]')).toHaveLength(1)
+        expect(screen.queryByRole('button')).not.toBeInTheDocument()
     })
 
     it('carries no avatar and no chevron (TASK-22142)', () => {

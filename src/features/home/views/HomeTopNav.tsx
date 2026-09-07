@@ -1,20 +1,27 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import InvitesIcon from '@/components/Home/InvitesIcon'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
+import { twMerge } from '@/utils/tw'
 import Link from 'next/link'
 
 interface HomeTopNavProps {
     showRewards: boolean
 }
 
-// board 17802:61534 top-nav circle button, the same recipe NavHeader uses:
-// 40px visual, no shadow, pseudo-element extends the hit area to 44px
-// (touch-target law)
-const navCircleBtn = 'relative size-10 w-10 p-0 shadow-none after:absolute after:-inset-0.5'
+// The stroke Button's recipe on a Link, not <Link><Button> — nesting them is
+// two tab stops and an axe nested-interactive violation, and this control
+// navigates, so the anchor is the honest element (precedent: Careers.tsx).
+// Line 1 is what Button.tsx composes around `btn`/`btn-stroke`; line 2 is the
+// board 17802:61534 top-nav circle NavHeader uses — 40px visual, no shadow,
+// pseudo-element extending the hit area to 44px (touch-target law). twMerge,
+// as in Button, is what resolves size-10/w-10 against the base w-full.
+const menuButton = twMerge(
+    'btn btn-stroke flex w-full items-center gap-2 transition-all duration-instant active:translate-x-1 active:translate-y-1 active:shadow-none',
+    'relative size-10 w-10 p-0 shadow-none after:absolute after:-inset-0.5'
+)
 
 /**
  * home top navigation row (figma home board 17830:75689): the menu button
@@ -31,12 +38,8 @@ export function HomeTopNav({ showRewards }: HomeTopNavProps) {
 
     return (
         <div className="flex items-center justify-between">
-            {/* No onClick here: Button fires the haptic itself, and the click
-                bubbles, so a second one would buzz every tap twice. */}
-            <Link href="/profile">
-                <Button variant="stroke" className={navCircleBtn} aria-label={t('openProfile')}>
-                    <Icon name="menu" size={20} />
-                </Button>
+            <Link href="/profile" onClick={() => triggerHaptic()} className={menuButton} aria-label={t('openProfile')}>
+                <Icon name="menu" size={20} />
             </Link>
             {showRewards && (
                 <Link
