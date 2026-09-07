@@ -47,7 +47,7 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
     const { user, fetchUser } = useAuth()
     const { toast } = useToast()
     // the badge the earn toast deep-linked with: its art leads the first hand
-    const [preferBadge] = useQueryState(AVATAR_PICKER_BADGE_PARAM, avatarPickerBadgeParser)
+    const [preferBadge, setPreferBadge] = useQueryState(AVATAR_PICKER_BADGE_PARAM, avatarPickerBadgeParser)
 
     const userId = user?.user.userId
     const username = user?.user.username ?? undefined
@@ -156,59 +156,67 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
         return { name: t.has(nameKey) ? t(nameKey) : capitalise(code), line: t.has(lineKey) ? t(lineKey) : '' }
     }
 
+    // the deep link is spent by the hand it dealt: left in the URL it would
+    // stack the same badge into every later open of the sheet
+    const setOpen = (next: boolean) => {
+        if (!next && preferBadge !== null) void setPreferBadge(null)
+        onOpenChange(next)
+    }
+
     return (
-        <Drawer open={open} onOpenChange={onOpenChange}>
+        <Drawer open={open} onOpenChange={setOpen}>
             {/* No header: the title is the drawer's accessible name only, and the
                 horizontal padding belongs to the SCROLL AREA so the hand pans
                 inside it rather than under the panel's own padding. */}
             <DrawerContent accessibleTitle={t('title')} className="pb-4" scrollAreaClassName="px-4">
-                <div
-                    role="radiogroup"
-                    aria-label={t('title')}
-                    className="grid grid-cols-3 gap-2"
-                    onKeyDown={roveAvatarTiles}
-                >
-                    {hand.map((key, index) => {
-                        const initial = key === null
-                        const checked = isChecked(key)
-                        const earned = !!key?.startsWith('badge.')
-                        const { name, line } = describe(key)
-                        return (
-                            <button
-                                key={key ?? 'initial'}
-                                type="button"
-                                role="radio"
-                                aria-checked={checked}
-                                tabIndex={index === focusIndex ? 0 : -1}
-                                onClick={() => save(initial ? initialKey : key)}
-                                className={twMerge(
-                                    // XL on top: the Earned tag sits in that band, clear of the sticker
-                                    'relative flex flex-col items-center rounded-sm border border-border-default bg-background-default px-1 pt-6 pb-3 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus',
-                                    checked && 'border-2 border-border-default'
-                                )}
-                            >
-                                {earned && (
-                                    <StatusBadge
-                                        status="custom"
-                                        customText={t('earned')}
-                                        className="absolute top-1 right-1"
+                <div className="grid grid-cols-3 gap-2">
+                    {/* `contents` so the tiles stay grid items: a radiogroup may only
+                        hold radios, and the die is a plain button beside them */}
+                    <div role="radiogroup" aria-label={t('title')} className="contents" onKeyDown={roveAvatarTiles}>
+                        {hand.map((key, index) => {
+                            const initial = key === null
+                            const checked = isChecked(key)
+                            const earned = !!key?.startsWith('badge.')
+                            const { name, line } = describe(key)
+                            return (
+                                <button
+                                    key={key ?? 'initial'}
+                                    type="button"
+                                    role="radio"
+                                    aria-checked={checked}
+                                    tabIndex={index === focusIndex ? 0 : -1}
+                                    onClick={() => save(initial ? initialKey : key)}
+                                    className={twMerge(
+                                        // XL on top: the Earned tag sits in that band, clear of the sticker
+                                        'relative flex flex-col items-center rounded-sm border border-border-default bg-background-default px-1 pt-6 pb-3 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus',
+                                        checked && 'border-2 border-border-default'
+                                    )}
+                                >
+                                    {earned && (
+                                        <StatusBadge
+                                            status="custom"
+                                            customText={t('earned')}
+                                            className="absolute top-1 right-1"
+                                        />
+                                    )}
+                                    {/* slot 1 draws FROM the username, so it is the one tile that needs
+                                        the name; on the rest the sticker is decorative and the tile's
+                                        own name and line label it */}
+                                    <UserAvatar
+                                        name={initial ? username : undefined}
+                                        avatarKey={initial ? initialKey : key}
+                                        size="medium"
                                     />
-                                )}
-                                {/* slot 1 draws FROM the username, so it is the one tile that needs
-                                    the name; on the rest the sticker is decorative and the tile's
-                                    own name and line label it */}
-                                <UserAvatar
-                                    name={initial ? username : undefined}
-                                    avatarKey={initial ? initialKey : key}
-                                    size="medium"
-                                />
-                                <span className="mt-1 w-full truncate text-label-m">{name}</span>
-                                {/* two lines whatever the copy: a ragged tile height across the
-                                    three rows is the one thing that breaks the grid */}
-                                <span className="line-clamp-2 h-8 text-body-xs text-foreground-secondary">{line}</span>
-                            </button>
-                        )
-                    })}
+                                    <span className="mt-1 w-full truncate text-label-m">{name}</span>
+                                    {/* two lines whatever the copy: a ragged tile height across the
+                                        three rows is the one thing that breaks the grid */}
+                                    <span className="line-clamp-2 h-8 text-body-xs text-foreground-secondary">
+                                        {line}
+                                    </span>
+                                </button>
+                            )
+                        })}
+                    </div>
                     <button
                         type="button"
                         onClick={roll}
