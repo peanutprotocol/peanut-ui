@@ -177,19 +177,15 @@ function countWeightStacksByRegex(text) {
  * reached the declaration alone. The overlap between producers (a builder call
  * nested inside a className attribute) collapses the same way.
  *
- * Falls back to the regex scanner if parsing throws. A metric that silently
- * returns 0 on a file it cannot read is a ratchet with the tension let out.
+ * Invalid syntax uses the legacy regex fallback. Unsupported CVA and analysis
+ * limits throw with a diagnostic instead of returning a misleading count.
+ * See ds-lint-contract.md for conservative policies and cardinality limits.
  */
 function countWeightStacks(text, filename = 'file.tsx') {
-    let sites
-    try {
-        sites = weightStackSites(text, filename, {
-            isToken: (value) => TYPE_TOKEN_RE.test(value),
-            isWeight: (value) => WEIGHT_STACK_RE.test(value),
-        })
-    } catch {
-        sites = null
-    }
+    const sites = weightStackSites(text, filename, {
+        isToken: (value) => TYPE_TOKEN_RE.test(value),
+        isWeight: (value) => WEIGHT_STACK_RE.test(value),
+    })
     // null = the file did not parse cleanly. A recovered tree can be missing
     // whole statements, so trusting it would under-report on exactly the files
     // we cannot read.
