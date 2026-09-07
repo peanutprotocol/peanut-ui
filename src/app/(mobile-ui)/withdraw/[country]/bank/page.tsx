@@ -592,6 +592,7 @@ export default function WithdrawBankPage() {
             />
 
             <InitiateKycModal
+                cooldownActive={!!sumsubFlow.errorCooldown}
                 visible={showKycModal}
                 onClose={() => {
                     // dismiss = abandon: clear the uplift latch so a later

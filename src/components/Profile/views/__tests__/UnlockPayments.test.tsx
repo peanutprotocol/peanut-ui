@@ -7,7 +7,7 @@
  * the residence anchor renders, and restricted residences read Not available.
  */
 import React from 'react'
-import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { IntlWrapper } from '@/test-utils/intl'
 import UnlockPayments from '@/components/Profile/views/UnlockPayments.view'
@@ -78,6 +78,7 @@ jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSu
 
 const mockInitiateKyc = jest.fn()
 const mockRestartIdentity = jest.fn()
+const mockDismissCooldown = jest.fn()
 let mockFlowCooldown: { retryAt?: string } | null = null
 let mockFlowError: string | null = null
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
@@ -88,12 +89,15 @@ jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
         isLoading: false,
         error: mockFlowError,
         errorCooldown: mockFlowCooldown,
+        dismissErrorCooldown: mockDismissCooldown,
     }),
 }))
 
 // Heavy children are irrelevant to the list contract under test.
 jest.mock('@/components/Home/PendingVerificationTasks', () => ({ __esModule: true, default: () => null }))
-jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
+jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({ SumsubKycWrapper: () => null }))
+jest.mock('@/components/Kyc/KycVerificationInProgressModal', () => ({ KycVerificationInProgressModal: () => null }))
+jest.mock('@/components/Global/IframeWrapper', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Kyc/modals/KycProcessingModal', () => ({ KycProcessingModal: () => null }))
 jest.mock('@/components/Kyc/modals/KycActionRequiredModal', () => ({ KycActionRequiredModal: () => null }))
 jest.mock('@/components/Kyc/modals/KycFailedModal', () => ({ KycFailedModal: () => null }))
@@ -236,7 +240,7 @@ describe('UnlockPayments', () => {
         expect(screen.queryByText('Contact support')).not.toBeInTheDocument()
         expect(screen.queryByText('Too many requests')).not.toBeInTheDocument()
         fireEvent.click(screen.getByText("I'll try later"))
-        await waitFor(() => expect(screen.queryByText('Give it a little time')).not.toBeInTheDocument())
+        expect(mockDismissCooldown).toHaveBeenCalled()
     })
 
     it('an active LATAM rail shows the inline monthly limit bar on Brazil', () => {

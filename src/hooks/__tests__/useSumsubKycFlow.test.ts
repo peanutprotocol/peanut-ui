@@ -985,3 +985,17 @@ it('clears cooldown details when a later restart fails for another reason', asyn
     expect(result.current.errorCooldown).toBeNull()
     expect(result.current.error).toBe('Verification changed, please retry')
 })
+
+it('routes restart throttles to the shared cooldown dialog and clears them on dismissal', async () => {
+    mockRestart.mockReset()
+    mockRestart.mockResolvedValueOnce({ error: 'Too many requests', cooldown: { retryAt: '2026-09-08T18:57:00Z' } })
+    const { result } = renderHook(() => useSumsubKycFlow({}))
+    await act(async () => {
+        await result.current.handleRestartIdentity()
+    })
+    expect(result.current.error).toBeNull()
+    expect(result.current.errorCooldown?.retryAt).toBe('2026-09-08T18:57:00Z')
+    act(() => result.current.dismissErrorCooldown())
+    expect(result.current.errorCooldown).toBeNull()
+    expect(result.current.error).toBeNull()
+})

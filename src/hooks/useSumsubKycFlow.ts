@@ -721,10 +721,13 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         [handleStartAction, handleSelfHealResubmit]
     )
 
+    const dismissErrorCooldown = useCallback(() => setError(null), [setError])
+
     return {
         isLoading,
-        error,
+        error: errorCooldown ? null : error,
         errorCooldown,
+        dismissErrorCooldown,
         isTerminalError,
         showWrapper,
         accessToken,

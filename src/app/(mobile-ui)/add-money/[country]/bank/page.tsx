@@ -454,6 +454,7 @@ function BridgeBankOnrampPage() {
                     rendered here, and without this the button was a dead end. */}
                 <SumsubKycModals flow={sumsubFlow} />
                 <InitiateKycModal
+                    cooldownActive={!!sumsubFlow.errorCooldown}
                     visible
                     presentation="page"
                     navTitle={tUnlock('title')}
@@ -558,6 +559,7 @@ function BridgeBankOnrampPage() {
                 />
 
                 <InitiateKycModal
+                    cooldownActive={!!sumsubFlow.errorCooldown}
                     visible={showKycModal}
                     onClose={() => {
                         // dismiss = abandon: clear the uplift latch so a later

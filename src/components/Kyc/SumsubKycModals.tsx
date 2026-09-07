@@ -1,3 +1,4 @@
+import { KycRestartCooldownModal } from './KycRestartCooldownModal'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { KycVerificationInProgressModal } from '@/components/Kyc/KycVerificationInProgressModal'
 import IframeWrapper from '@/components/Global/IframeWrapper'
@@ -17,6 +18,7 @@ interface SumsubKycModalsProps {
 export const SumsubKycModals = ({ flow }: SumsubKycModalsProps) => {
     return (
         <>
+            <KycRestartCooldownModal cooldown={flow.errorCooldown} onClose={flow.dismissErrorCooldown} />
             <SumsubKycWrapper
                 visible={flow.showWrapper}
                 accessToken={flow.accessToken}

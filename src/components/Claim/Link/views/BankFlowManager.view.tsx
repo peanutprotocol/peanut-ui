@@ -318,6 +318,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     // that refusal happens or the submit is a silent no-op.
     const kycModal = (
         <InitiateKycModal
+            cooldownActive={!!sumsubFlow.errorCooldown}
             visible={showKycModal}
             onClose={() => setShowKycModal(false)}
             onVerify={async () => {

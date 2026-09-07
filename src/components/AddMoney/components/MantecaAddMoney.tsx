@@ -269,6 +269,7 @@ const MantecaAddMoney: FC = () => {
         return (
             <>
                 <InitiateKycModal
+                    cooldownActive={!!sumsubFlow.errorCooldown}
                     prepPath="extended"
                     visible={showKycModal}
                     onClose={() => setShowKycModal(false)}
