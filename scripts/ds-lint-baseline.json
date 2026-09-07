@@ -1,7 +1,7 @@
 {
     "rawHex": 26,
     "rawHexFiles": 19,
-    "inlineStyle": 24,
+    "inlineStyle": 21,
     "stockTextSize": 8,
     "dsTextScale": 11,
     "nonDsClassesInViews": 19,
@@ -55,8 +55,13 @@
         },
         {
             "date": "2026-09-06",
-            "metrics": ["inlineStyle 21 -> 24", "nonDsClassesInViews 16 -> 19", "hoverNoActiveFiles 44 -> 45"],
-            "reason": "TASK-21457 qr-pay split: markup relocated verbatim from the allowlisted app/(mobile-ui)/qr-pay/page.tsx into features/payments/flows/qr-pay/views/ — behavior-parity migration per design.md; no new drift, flagged in the PR body"
+            "metrics": ["hoverNoActiveFiles 44 -> 45"],
+            "reason": "TASK-21457 qr-pay split: hover:text-black markup relocated verbatim from app/(mobile-ui)/qr-pay/page.tsx into features/payments/flows/qr-pay/views/ (now 2 files) — behavior-parity migration per design.md; inline styles stay exempt via the moved INLINE_STYLE_ALLOW entry"
+        },
+        {
+            "date": "2026-09-06",
+            "metrics": ["nonDsClassesInViews 16 -> 19"],
+            "reason": "dev-side, not authored here: min-h-[inherit] x3 in features/withdraw/views/WithdrawMethodView.tsx landed via the tech-debt merge (withdraw rebuild) and was never baselined there; qr-pay is net-zero for this metric. follow-up for the merge-back: use the native min-h-inherit utility from 51e84273c"
         }
     ]
 }
