@@ -89,7 +89,7 @@ function PeanutMascot({ compact }: { compact?: boolean }) {
             preload
             alt="Peanut Guy"
             className={`absolute left-1/2 z-10 h-auto max-h-[40vh] w-auto max-w-[90%] -translate-x-1/2 object-contain ${
-                compact ? 'md:max-h-[min(40vh,calc(100svh-34.5rem))]' : 'md:max-h-[min(40vh,calc(100svh-28rem))]'
+                compact ? 'md:max-h-[min(40vh,calc(100svh-38.5rem))]' : 'md:max-h-[min(40vh,calc(100svh-28rem))]'
             }`}
         />
     )
@@ -217,7 +217,10 @@ export function Hero({
             <CloudsCss className="hidden md:block" />
             <div className="relative mt-10 w-full md:mt-0">
                 {/* 23rem = the fixed stack below the artwork (h2 -> CTA) + 3rem slack, so the CTA stays inside the first fold on short laptop viewports.
-                    29.5rem is the same sum with the DESKTOP migration lockup in the CTA slot: the QR frame is ~164px where the single button was ~76px.
+                    33.5rem is the same sum with the DESKTOP migration lockup in the CTA slot. Measured, not guessed: that column is 476px tall in all four
+                    locales (the QR lockup adds 94px over the single button), and the hero adds 32px of its own padding (pt-4 + xl:pb-4) -> 508px = 31.75rem
+                    of fixed stack. 33.5rem keeps 28px of slack, which puts the marquee at 872px on a 1440x900 laptop and 740px on a 1366x768 one -- inside
+                    the fold on both, where 29.5rem left it at 936px, 36px under it. The mascot above keeps its +5rem offset over this cap, so 38.5rem.
                     md-scoped, like the mascot's twin above: the phone CTA barely changes height (one button + "Other store" for the button and Log In link
                     it replaces), so applying the laptop clamp there would cut up to ~100px of hero artwork off every short phone for nothing. */}
                 <Image
@@ -226,7 +229,7 @@ export function Hero({
                     sizes="(min-width: 768px) 50vw, 100vw"
                     className={`z-0 mx-auto h-auto w-full max-w-[1000px] object-contain md:w-[50%] ${
                         compactArtwork
-                            ? 'max-h-[calc(100svh-23rem)] md:max-h-[calc(100svh-29.5rem)]'
+                            ? 'max-h-[calc(100svh-23rem)] md:max-h-[calc(100svh-33.5rem)]'
                             : 'max-h-[calc(100svh-23rem)]'
                     }`}
                     alt="Global Cash Local Feel"
