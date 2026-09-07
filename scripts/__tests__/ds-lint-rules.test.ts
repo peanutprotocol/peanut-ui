@@ -1196,6 +1196,65 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
         expect(countWeightStacks("const style = 'text-body-m'; const c = clsx(style, 'font-semibold')")).toBe(1)
     })
 
+    it('composes finite computed builder key choices with sibling keys', () => {
+        for (const key of [
+            "enabled ? 'text-body-m' : 'underline'",
+            "'text-' + (enabled ? 'body-m' : 'other')",
+            "`text-${enabled ? 'body-m' : 'other'}`",
+        ]) {
+            expect(countWeightStacks(`clsx({ [${key}]: on, 'font-semibold': bold })`)).toBe(1)
+        }
+        expect(
+            countWeightStacks(`
+            const key = enabled ? 'text-body-m' : 'underline';
+            function f() { const enabled = false; return clsx({ [key]: on, 'font-semibold': bold }); }
+        `)
+        ).toBe(1)
+        expect(countWeightStacks(`clsx({ [enabled ? 'text-body-m' : 'font-semibold']: on })`)).toBe(0)
+        expect(countWeightStacks(`clsx({ [(enabled ? 'text-body-m' : 'x') + 'font-semibold']: on })`)).toBe(0)
+    })
+
+    it('retains compound structures through long finite const alias chains', () => {
+        for (const length of [11, 25, 100]) {
+            const aliases = Array.from({ length }, (_, i) => `const a${i + 1} = a${i};`).join('\n')
+            for (const array of [`a${length}`, `[...a${length}]`]) {
+                expect(
+                    countWeightStacks(`
+                    const a0 = [{ tone: 'loud', class: 'font-semibold' }]; ${aliases}
+                    cva('base', { variants: { tone: { loud: 'text-body-m' } }, compoundVariants: ${array} })
+                `)
+                ).toBe(1)
+            }
+            expect(
+                countWeightStacks(`
+                const a0 = [{ tone: 'quiet', class: 'font-semibold' }]; ${aliases}
+                cva('base', { variants: { tone: { loud: 'text-body-m', quiet: 'x' } }, compoundVariants: a${length} })
+            `)
+            ).toBe(0)
+            expect(
+                countWeightStacks(`
+                const a0 = { tone: 'loud', class: 'font-semibold' }; ${aliases}
+                cva('base', { variants: { tone: { loud: 'text-body-m' } }, compoundVariants: [a${length}] })
+            `)
+            ).toBe(1)
+        }
+    })
+
+    it('terminates cyclic structural aliases while retaining reachable entries', () => {
+        expect(
+            countWeightStacks(`
+            const a = enabled ? b : [{ class: 'text-body-m' }]; const b = a;
+            cva('font-semibold', { compoundVariants: b });
+        `)
+        ).toBe(1)
+        expect(
+            countWeightStacks(`
+            const a = [...a, { class: 'text-body-m' }];
+            cva('font-semibold', { compoundVariants: a });
+        `)
+        ).toBe(1)
+    })
+
     it('reads spread and conditional entries inside compound arrays', () => {
         for (const entries of [
             "...[{ tone: 'loud', class: 'font-semibold' }]",
