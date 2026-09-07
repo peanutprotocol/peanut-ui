@@ -85,18 +85,6 @@ export const AboutView = ({ appVersion }: { appVersion: string }) => {
 
             <p className="text-body-s">{t('intro')}</p>
 
-            <div>
-                <h1 className="mb-2 font-bold text-black">{t('policiesHeading')}</h1>
-                {LEGAL_POLICIES.map((doc, index) => (
-                    <Card key={doc.href} position={cardPosition(index, LEGAL_POLICIES.length)}>
-                        <DocsLink href={doc.href} className="flex cursor-pointer justify-between py-1">
-                            <span className="text-body-s text-black">{t(`policies.${doc.key}`)}</span>
-                            <NavigationArrow size={24} className="fill-black" />
-                        </DocsLink>
-                    </Card>
-                ))}
-            </div>
-
             {/* Native only: the web has no store listing to review against.
                 A row the user taps themselves, never a prompt — see
                 utils/app-review.ts for why that distinction is the whole rule. */}
@@ -107,14 +95,29 @@ export const AboutView = ({ appVersion }: { appVersion: string }) => {
                         <button
                             type="button"
                             onClick={() => void openStoreReviewPage(store)}
-                            className="flex w-full cursor-pointer justify-between py-1"
+                            className="flex w-full cursor-pointer items-center justify-between gap-3 py-1"
                         >
                             <span className="text-body-s text-black">{t('rate')}</span>
-                            <NavigationArrow size={24} className="fill-black" />
+                            <NavigationArrow size={24} className="shrink-0 fill-black" />
                         </button>
                     </Card>
                 </div>
             )}
+
+            <div>
+                <h1 className="mb-2 font-bold text-black">{t('policiesHeading')}</h1>
+                {LEGAL_POLICIES.map((doc, index) => (
+                    <Card key={doc.href} position={cardPosition(index, LEGAL_POLICIES.length)}>
+                        <DocsLink
+                            href={doc.href}
+                            className="flex cursor-pointer items-center justify-between gap-3 py-1"
+                        >
+                            <span className="text-body-s text-black">{t(`policies.${doc.key}`)}</span>
+                            <NavigationArrow size={24} className="shrink-0 fill-black" />
+                        </DocsLink>
+                    </Card>
+                ))}
+            </div>
 
             {betaRevealed && (
                 <div ref={betaCardRef}>
