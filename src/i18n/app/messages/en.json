@@ -299,25 +299,25 @@
         },
         "language": "Language",
         "menu": {
-            "inviteFriends": "Invite friends to Peanut",
+            "inviteFriends": "Invite Friends to Peanut",
             "yourCard": "Your Card",
             "peanutCard": "Peanut Card",
             "newBadge": "New!",
             "unlockBadge": "Unlock",
             "yourBadges": "Your Badges",
             "points": "Points",
-            "personalDetails": "Personal details",
-            "unlockedRegions": "Unlock payments",
+            "personalDetails": "Personal Details",
+            "unlockedRegions": "Payment Channels",
             "paymentLimits": "Payment limits",
             "showMyFullName": "Show my full name",
             "backup": "Backup",
-            "exchangeRatesAndFees": "Exchange rates and fees",
+            "exchangeRatesAndFees": "Exchange Rates and Fees",
             "starAlt": "star",
             "help": "Help Center",
             "about": "About Peanut",
-            "updateAvailable": "Update available"
+            "updateAvailable": "Update Available"
         },
-        "logOut": "Log out",
+        "logOut": "Log Out",
         "edit": {
             "title": "Edit Profile",
             "fields": {
@@ -358,7 +358,7 @@
             }
         },
         "unlockPayments": {
-            "title": "Unlock payments",
+            "title": "Payment Channels",
             "description": "Everything you can use today, and what opens after ID verification.",
             "residence": {
                 "label": "Residence: {country}",
@@ -673,7 +673,7 @@
         }
     },
     "exchangeRate": {
-        "title": "Exchange rate & fees",
+        "title": "Exchange Rates and Fees",
         "balanceNote": "Your Peanut balance is shown in USD. Where a local bank rail is supported, you can withdraw in that local currency.",
         "tryIt": "Withdraw now",
         "addMoneyCta": "Add money",
@@ -3193,7 +3193,7 @@
             "shareTitle": "Share your profile"
         },
         "inviteFriendsModal": {
-            "title": "Invite friends!",
+            "title": "Invite Friends!",
             "description": "Share your link. Every time a friend you brought makes a payment, you earn rewards.",
             "shareSheetTitle": "Share your invite link",
             "shareCta": "Share Invite Link",
