@@ -14,7 +14,7 @@ import { StickyMobileCTA } from '@/components/LandingPage/StickyMobileCTA'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import type { LandingStrings } from './landingStrings'
 import type { Locale } from '@/i18n/types'
-import StoreBadges from '@/components/Migration/StoreBadges'
+import { Button } from '@/components/0_Bruddle/Button'
 import { type CTAButton } from '@/components/LandingPage/landing.types'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
@@ -28,6 +28,9 @@ import type { LandingContentHrefs } from './landingContentHrefs'
 // SSR stays on so crawlers still see the tweets; only the client bundle moves
 // off the critical path.
 const TweetCarousel = dynamic(() => import('@/components/LandingPage/TweetCarousel'))
+
+// desktop-only, opened on demand — keep the QR modal off the landing critical path
+const ScanToDownloadModal = dynamic(() => import('@/components/Migration/ScanToDownloadModal'))
 
 type LandingPageClientProps = {
     heroConfig: {
@@ -79,10 +82,12 @@ export function LandingPageClient({
     const doorFoldOn = !underMaintenanceConfig.disableLandingCardFold
 
     // pwa-sunset hero CTAs are device-based: phones get one "Download now"
-    // with their store's mark deep-linking to it; desktop drops the primary
-    // and shows the equal store-button pair instead (customCta below).
+    // with their store's mark deep-linking to it; desktop gets one "Download
+    // now" opening the scan-to-download QR modal (the rule every other desktop
+    // download surface follows) — the store pair lives inside the modal.
     // the permanent flag-off CTA change goes through the content system
     // post-cutover (TASK-20600).
+    const [qrModalOpen, setQrModalOpen] = useState(false)
     const primaryCta = useMemo((): CTAButton | undefined => {
         if (!migrationOn) return heroConfig.primaryCta
         if (isDesktop) return undefined
@@ -281,7 +286,14 @@ export function LandingPageClient({
                 customCta={
                     migrationOn && isDesktop ? (
                         <div className="flex flex-col items-center">
-                            <StoreBadges surface={MIGRATION_SURFACES.LANDING_HERO} appearance="hero" />
+                            <Button
+                                shadowSize="4"
+                                icon="qr-code"
+                                className="bg-white px-7 py-3 text-base font-extrabold hover:bg-white/90 md:px-9 md:py-8 md:text-xl"
+                                onClick={() => setQrModalOpen(true)}
+                            >
+                                {tMigration('downloadNow')}
+                            </Button>
                             {heroConfig.primaryCta.subtext && (
                                 <span className="mt-2 block text-center text-sm italic text-n-1 md:text-base">
                                     {heroConfig.primaryCta.subtext}
@@ -291,6 +303,13 @@ export function LandingPageClient({
                     ) : undefined
                 }
             />
+            {qrModalOpen && (
+                <ScanToDownloadModal
+                    visible
+                    onClose={() => setQrModalOpen(false)}
+                    surface={MIGRATION_SURFACES.LANDING_HERO}
+                />
+            )}
             <Marquee {...marqueeProps} />
             {doorFoldOn && (
                 <>
