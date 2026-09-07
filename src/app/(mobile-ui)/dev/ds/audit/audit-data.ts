@@ -64,7 +64,7 @@ export const LAYER_STATS: LayerStat[] = [
     },
     {
         layer: 'primitives',
-        distinct: 74,
+        distinct: 73,
         target: 28,
     },
     {
@@ -3648,17 +3648,6 @@ export const AUDIT_ITEMS: AuditItem[] = [
         status: 'duplicate',
         source: 'src/components/Migration/ScanToDownloadModal.tsx',
         notes: 'NEW since June. It is MigrationDownloadModal minus the device/deadline logic — the two are surface variants of one download prompt.',
-    },
-    {
-        name: 'ReviewPromptModal',
-        cat: 'modals',
-        catLabel: 'Modals / dialogs',
-        layer: 'primitives',
-        role: 'ActionModal: app-store review ask, gated on transaction history and a migration flag.',
-        usages: 1,
-        status: 'variant',
-        source: 'src/components/Migration/ReviewPromptModal.tsx',
-        notes: 'NEW since June. Mounted from HomeModals. Clean ActionModal delegation; all of its 90 lines are gating logic, not chrome.',
     },
     {
         name: 'PageContainer (0_Bruddle/PageContainer.tsx)',
