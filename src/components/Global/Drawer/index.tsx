@@ -103,12 +103,12 @@ const DrawerContent = React.forwardRef<React.ElementRef<typeof DrawerPrimitive.C
             <DrawerPrimitive.Content
                 ref={ref}
                 className={twMerge(
-                    // chrome per the TX Details board (17490:115877): no border,
-                    // handle 32x5 sitting 8px from the top with 24px below.
+                    // chrome per the TX Details board (17490:115877): white background,
+                    // no border, handle 32x5 sitting 8px from the top with 24px below.
                     // tx-details board 17835:84492: 16px top corners (was a hardcoded 10px)
-                    // bg-background-page: the sheet matches the app page background
-                    // (kush ruling 2026-09-07, reverts the white surface from #2984)
-                    'fixed inset-x-0 bottom-0 z-50 mt-24 flex flex-col rounded-t-2xl bg-background-page',
+                    // bg-white is deliberate (#2984, kush ruling 2026-09-07): the sheet
+                    // is a clean white surface, not the page background
+                    'fixed inset-x-0 bottom-0 z-50 mt-24 flex flex-col rounded-t-2xl bg-white',
                     className
                 )}
                 aria-describedby={undefined}
