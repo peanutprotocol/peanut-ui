@@ -743,7 +743,24 @@ function cvaAlternatives(node, ctx, depth, seen) {
  */
 function cvaConfigAlternatives(configTable, ctx, depth, seen) {
     const configCtx = { ...ctx, scopes: configTable.scopes }
-    const configFields = objectFields(configTable, configCtx, depth, seen)
+    return cvaConfigFieldsAlternatives(objectFields(configTable, configCtx, depth, seen), ctx, depth, seen)
+}
+
+function cvaConfigFieldsAlternatives(configFields, ctx, depth, seen) {
+    // An unknown property name can designate either structural slot, or neither.
+    // Evaluate those roles separately, in source order, so normal last-wins
+    // handling and named-axis correlation still apply.
+    const dynamicIndex = configFields.findIndex((field) => field.dynamicKey)
+    if (dynamicIndex !== -1) {
+        let out = NOTHING
+        for (const key of [null, 'variants', 'compoundVariants']) {
+            const fields = [...configFields]
+            if (key === null) fields.splice(dynamicIndex, 1)
+            else fields[dynamicIndex] = { ...fields[dynamicIndex], key, dynamicKey: false }
+            out = union(out, cvaConfigFieldsAlternatives(fields, ctx, depth, seen))
+        }
+        return out
+    }
     let variants = [null]
     let compounds = [null]
     for (const field of effectiveFields(configFields)) {
@@ -837,11 +854,8 @@ function cvaConfigCandidateAlternatives(configFields, variants, compounds, ctx, 
     // compound against every alternative of every axis discarded that
     // constraint and stacked a compound weight onto a token from a sibling
     // option the compound never applies to.
-    const compoundCtx = compounds ? { ...ctx, scopes: compounds.scopes } : ctx
     const compoundCombinations = []
-    for (const entry of compounds?.elements ?? []) {
-        const compound = resolveToObjectLiteral(entry, compoundCtx, depth, seen)
-        if (!compound) continue
+    for (const { compound, choices } of compoundEntries(compounds, ctx, depth, seen)) {
         const entryCtx = { ...ctx, scopes: compound.scopes }
         let classes = NOTHING
         // axis name → option name → that option's class alternatives.
@@ -919,7 +933,7 @@ function cvaConfigCandidateAlternatives(configFields, variants, compounds, ctx, 
         // weight back beside a sibling option of a PINNED axis — the exact
         // constraint this loop exists to respect.
         if (impossible) continue
-        compoundCombinations.push({ axisOptions, classes })
+        compoundCombinations.push({ axisOptions, classes, choices })
     }
 
     // A compound renders beside base, the options it pins, and every axis it
@@ -966,6 +980,9 @@ function cvaConfigCandidateAlternatives(configFields, variants, compounds, ctx, 
         for (let j = i + 1; j < compoundCombinations.length; j++) {
             const a = compoundCombinations[i]
             const b = compoundCombinations[j]
+            // Candidates for the same conditional entry/spread are exclusive.
+            // Separate array elements still co-apply when their selectors match.
+            if ([...a.choices].some(([node, choice]) => b.choices.has(node) && b.choices.get(node) !== choice)) continue
             const axes = new Set([...a.axisOptions.keys(), ...b.axisOptions.keys()])
             let combination = baseAlts
             let compatible = true
@@ -992,6 +1009,33 @@ function cvaConfigCandidateAlternatives(configFields, variants, compounds, ctx, 
         }
     }
     return out
+}
+
+/**
+ * Flatten compound-array spreads while retaining each entry's declaring scope.
+ * Choice paths preserve exclusivity without enumerating a Cartesian product of
+ * whole arrays: only compatible pairs are needed by the token/weight metric.
+ */
+function* compoundEntries(table, ctx, depth, seen, choices = new Map()) {
+    if (!table || depth > MAX_DEPTH) return
+    const inner = { ...ctx, scopes: table.scopes }
+    for (const element of table.elements) {
+        if (ts.isSpreadElement(element)) {
+            const found = resolveToArrayLiterals(element.expression, inner, depth, seen)
+            for (const [index, candidate] of found.candidates.entries()) {
+                const next = new Map(choices)
+                next.set(element, index)
+                yield* compoundEntries(candidate, inner, depth + 1, seen, next)
+            }
+        } else {
+            const found = resolveToObjectLiterals(element, inner, depth, seen)
+            for (const [index, compound] of found.candidates.entries()) {
+                const next = new Map(choices)
+                next.set(element, index)
+                yield { compound, choices: next }
+            }
+        }
+    }
 }
 
 /**

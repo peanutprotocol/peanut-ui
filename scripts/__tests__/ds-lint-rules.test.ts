@@ -1196,6 +1196,85 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
         expect(countWeightStacks("const style = 'text-body-m'; const c = clsx(style, 'font-semibold')")).toBe(1)
     })
 
+    it('reads spread and conditional entries inside compound arrays', () => {
+        for (const entries of [
+            "...[{ tone: 'loud', class: 'font-semibold' }]",
+            "enabled ? { tone: 'loud', class: 'font-semibold' } : {}",
+            "enabled && { tone: 'loud', class: 'font-semibold' }",
+            "...(enabled ? [{ tone: 'loud', class: 'font-semibold' }] : [])",
+        ]) {
+            expect(
+                countWeightStacks(`cva('base', {
+                variants: { tone: { loud: 'text-body-m' } }, compoundVariants: [${entries}]
+            })`)
+            ).toBe(1)
+        }
+    })
+
+    it('keeps alternative entries and spread arrays mutually exclusive', () => {
+        for (const entries of [
+            "enabled ? { class: 'text-body-m' } : { class: 'font-semibold' }",
+            "...(enabled ? [{ class: 'text-body-m' }] : [{ class: 'font-semibold' }])",
+        ]) {
+            expect(countWeightStacks(`cva('base', { compoundVariants: [${entries}] })`)).toBe(0)
+            expect(
+                countWeightStacks(`cva('base', { compoundVariants: [${entries}, { class: 'font-semibold' }] })`)
+            ).toBe(1)
+        }
+        expect(
+            countWeightStacks(`cva('base', {
+            compoundVariants: [...[{ class: 'text-body-m' }, { class: 'font-semibold' }]]
+        })`)
+        ).toBe(1)
+    })
+
+    it('retains declaring scopes and selectors inside nested compound spreads', () => {
+        expect(
+            countWeightStacks(`
+            const classes = 'font-semibold';
+            const entries = [{ tone: 'loud', class: classes }];
+            function f() {
+                const classes = 'x';
+                return cva('base', { variants: { tone: { loud: 'text-body-m' } },
+                    compoundVariants: [...[...entries]] });
+            }
+        `)
+        ).toBe(1)
+        expect(
+            countWeightStacks(`cva('base', {
+            variants: { tone: { loud: 'text-body-m', quiet: 'x' } },
+            compoundVariants: [...[enabled ? { tone: 'quiet', class: 'font-semibold' } : {}]]
+        })`)
+        ).toBe(0)
+    })
+
+    it('interprets dynamic config fields in their possible structural roles', () => {
+        expect(
+            countWeightStacks(`function f(k) { return cva('base', {
+            [k]: { tone: { loud: 'text-body-m' } },
+            compoundVariants: [{ tone: 'loud', class: 'font-semibold' }]
+        }) }`)
+        ).toBe(1)
+        expect(
+            countWeightStacks(`function f(k) { return cva('base', {
+            variants: { tone: { loud: 'text-body-m' } },
+            [k]: [{ tone: 'loud', class: 'font-semibold' }]
+        }) }`)
+        ).toBe(1)
+        expect(
+            countWeightStacks(`function f(k) { return cva('base', {
+            [k]: { tone: { loud: 'text-body-m', quiet: 'x' } },
+            compoundVariants: [{ tone: 'quiet', class: 'font-semibold' }]
+        }) }`)
+        ).toBe(0)
+        expect(
+            countWeightStacks(`function f(k) { return cva('base', {
+            [k]: { tone: { loud: 'text-body-m' } }, variants: { tone: { loud: 'x' } },
+            compoundVariants: [{ tone: 'loud', class: 'font-semibold' }]
+        }) }`)
+        ).toBe(0)
+    })
+
     it('keeps conditional compound arrays mutually exclusive', () => {
         expect(
             countWeightStacks(`cva('base', {
