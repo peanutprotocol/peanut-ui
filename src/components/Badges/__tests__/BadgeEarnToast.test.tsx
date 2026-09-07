@@ -128,8 +128,18 @@ describe('BadgeEarnToast', () => {
 
         act(() => fireEvent.click(screen.getByRole('button', { name: /Choose avatar/ })))
         expect(mockDismissToast).toHaveBeenCalledWith('badge-earn:BUG_WHISPERER')
-        expect(mockRouterPush).toHaveBeenCalledWith('/profile?avatarPicker=true')
+        // the badge rides along so the first hand deals one of its avatars
+        expect(mockRouterPush).toHaveBeenCalledWith('/profile?avatarPicker=true&badge=BUG_WHISPERER')
         expect(screen.queryByTestId('badge-detail-modal')).not.toBeInTheDocument()
+    })
+
+    it('hands the picker the newest badge of a coalesced batch', () => {
+        mockPending = [badge('BUG_WHISPERER', 'Bug Whisperer'), badge('SHHHHH', 'Shhh')]
+        render(<BadgeEarnToast />)
+
+        render(mockToast.mock.calls[0][0].content)
+        act(() => fireEvent.click(screen.getByRole('button', { name: /Choose avatar/ })))
+        expect(mockRouterPush).toHaveBeenCalledWith('/profile?avatarPicker=true&badge=BUG_WHISPERER')
     })
 
     it('says nothing about avatars for a badge that has none', () => {
