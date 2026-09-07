@@ -14,7 +14,6 @@ import { StickyMobileCTA } from '@/components/LandingPage/StickyMobileCTA'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import type { LandingStrings } from './landingStrings'
 import type { Locale } from '@/i18n/types'
-import StoreBadges from '@/components/Migration/StoreBadges'
 import { Button } from '@/components/0_Bruddle/Button'
 import { type CTAButton } from '@/components/LandingPage/landing.types'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
@@ -83,9 +82,9 @@ export function LandingPageClient({
     const doorFoldOn = !underMaintenanceConfig.disableLandingCardFold
 
     // pwa-sunset hero CTAs are device-based: phones get one "Download now"
-    // with their store's mark deep-linking to it; desktop gets "Download now"
-    // opening the scan-to-download QR modal (the rule every other desktop
-    // download surface follows) plus the store-link pair (customCta below).
+    // with their store's mark deep-linking to it; desktop gets one "Download
+    // now" opening the scan-to-download QR modal (the rule every other desktop
+    // download surface follows) — the store pair lives inside the modal.
     // the permanent flag-off CTA change goes through the content system
     // post-cutover (TASK-20600).
     const [qrModalOpen, setQrModalOpen] = useState(false)
@@ -286,7 +285,7 @@ export function LandingPageClient({
                 locale={locale}
                 customCta={
                     migrationOn && isDesktop ? (
-                        <div className="flex flex-col items-center gap-4">
+                        <div className="flex flex-col items-center">
                             <Button
                                 shadowSize="4"
                                 icon="qr-code"
@@ -295,9 +294,8 @@ export function LandingPageClient({
                             >
                                 {tMigration('downloadNow')}
                             </Button>
-                            <StoreBadges surface={MIGRATION_SURFACES.LANDING_HERO} appearance="hero" />
                             {heroConfig.primaryCta.subtext && (
-                                <span className="block text-center text-sm italic text-n-1 md:text-base">
+                                <span className="mt-2 block text-center text-sm italic text-n-1 md:text-base">
                                     {heroConfig.primaryCta.subtext}
                                 </span>
                             )}
