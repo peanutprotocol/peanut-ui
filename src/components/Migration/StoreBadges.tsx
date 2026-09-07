@@ -1,5 +1,6 @@
 'use client'
-import { copyIOSHandoff, playStoreUrlWithReferrer } from '@/utils/deferred-link'
+import { useRef } from 'react'
+import { copyIOSHandoff, playStoreUrlWithReferrer, trackDeferredHandoffCreated } from '@/utils/deferred-link'
 import { Button } from '@/components/0_Bruddle/Button'
 import { STORE_NAME, STORE_URL, type MigrationSurface } from '@/constants/migration.consts'
 import { trackStoreClick } from '@/utils/migration.utils'
@@ -21,6 +22,13 @@ export default function StoreBadges({
     appearance?: 'compact' | 'hero' | 'stacked'
 }) {
     const isHero = appearance === 'hero'
+    const counted = useRef(new Set<string>())
+    const countHandoff = (store: 'ios' | 'android', handoff: string) => {
+        const key = `${store}:${handoff}`
+        if (counted.current.has(key)) return
+        counted.current.add(key)
+        trackDeferredHandoffCreated(store)
+    }
     const isStacked = appearance === 'stacked'
     const { deviceType } = useDeviceType()
     const thisPlatform = deviceType === DeviceType.IOS ? 'ios' : deviceType === DeviceType.ANDROID ? 'android' : null
@@ -35,7 +43,12 @@ export default function StoreBadges({
                     rel="noopener noreferrer"
                     onClick={() => {
                         trackStoreClick(s, surface, !!payload)
-                        if (payload && s === 'ios') void copyIOSHandoff(payload).catch(() => {})
+                        if (!payload) return
+                        if (s === 'android') countHandoff(s, payload)
+                        else
+                            void copyIOSHandoff(payload)
+                                .then(() => countHandoff(s, payload))
+                                .catch(() => {})
                     }}
                     className={isStacked ? 'w-full' : undefined}
                 >

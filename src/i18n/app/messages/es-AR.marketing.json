@@ -56,7 +56,9 @@
             "scanHint": "Escaneá con la cámara de tu celular para descargar."
         },
         "smartLink": {
-            "pickStore": "Elegí tu tienda y descargá la app."
+            "pickStore": "Elegí tu tienda y descargá la app.",
+            "loginTitle": "Iniciá sesión en la app de Peanut",
+            "loginHint": "¿Ya tenés Peanut? Abrila desde tu pantalla de inicio o tocá Abrir en el banner de Safari. ¿Necesitás la app? Descargala abajo."
         },
         "otherStore": "Otra tienda"
     },

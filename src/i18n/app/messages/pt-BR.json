@@ -3585,7 +3585,9 @@
         "downloadNow": "Baixar agora",
         "smartLink": {
             "redirecting": "Levando você para a loja…",
-            "pickStore": "Escolha sua loja e baixe o app."
+            "pickStore": "Escolha sua loja e baixe o app.",
+            "loginTitle": "Entre pelo app do Peanut",
+            "loginHint": "Já tem o Peanut? Abra pela tela inicial ou toque em Abrir no banner do Safari. Precisa do app? Baixe abaixo."
         },
         "otherStore": "Outra loja"
     },

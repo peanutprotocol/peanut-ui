@@ -59,18 +59,6 @@ export const STORE_NAME = {
     android: 'Google Play',
 } as const
 
-/**
- * Query param the /app smart link carries its calling surface in, so a scan
- * that lands on the store page is attributable to the QR that produced it:
- * /app reads it back (isMigrationSurface below) and reports it as `qr_surface`
- * on its own store-click and hand-off events, which is what joins a smart_link
- * click to the landing surface — hero vs app fold vs footer vs rates — whose QR
- * produced the scan. Stripped before the payload is re-emitted into the Play
- * install referrer, so it never reaches the app.
- * Short on purpose: it rides inside a QR, where every character costs modules.
- */
-export const MIGRATION_SURFACE_PARAM = 's'
-
 /** `surface` property for migration analytics events. */
 export const MIGRATION_SURFACES = {
     DOWNLOAD_MODAL: 'download_modal',
@@ -93,8 +81,4 @@ export const MIGRATION_SURFACES = {
 
 export type MigrationSurface = (typeof MIGRATION_SURFACES)[keyof typeof MIGRATION_SURFACES]
 
-/** guard for a surface arriving off a URL (the /app smart link's `?s=`). */
-export function isMigrationSurface(value: string | null | undefined): value is MigrationSurface {
-    return !!value && (Object.values(MIGRATION_SURFACES) as string[]).includes(value)
-}
 export type StoreKind = keyof typeof STORE_URL

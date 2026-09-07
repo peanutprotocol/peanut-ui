@@ -21,11 +21,10 @@ export function LandingAppLink({
     const { deviceType } = useDeviceType()
     const interceptAppCta = useAppModal()
     // Give the OS a real navigation to handle; a Next Link stays inside the SPA.
-    // Safari may keep same-domain links on the web, where /app supplies the store fallback.
+    // iOS stays on the login handoff page for Safari’s native Open banner.
     if (migrationOn && surface === MIGRATION_SURFACES.LANDING_LOGIN && deviceType !== DeviceType.WEB) {
         return (
-            // eslint-disable-next-line @next/next/no-html-link-for-pages -- OS app handoff needs a full navigation.
-            <a href="/app" className={className}>
+            <a href={deviceType === DeviceType.IOS ? '/app/login' : '/app'} className={className}>
                 {children}
             </a>
         )
