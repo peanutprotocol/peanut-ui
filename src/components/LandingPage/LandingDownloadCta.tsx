@@ -1,5 +1,6 @@
 'use client'
 import { useTranslations } from 'next-intl'
+import { trackStoreClick } from '@/utils/migration.utils'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useAppModal } from '@/components/Migration/AppModalProvider'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
@@ -29,7 +30,13 @@ export function LandingDownloadCta({ subtext }: { subtext?: string }) {
             </a>
             {subtext && <span className="mt-2 block text-center text-sm text-n-1 italic md:text-base">{subtext}</span>}
             {!isDesktop && (
-                <a className="mt-2 text-sm underline" href={STORE_URL[store === 'ios' ? 'android' : 'ios']}>
+                <a
+                    onClick={() =>
+                        trackStoreClick(store === 'ios' ? 'android' : 'ios', MIGRATION_SURFACES.LANDING_HERO)
+                    }
+                    className="mt-2 text-sm underline"
+                    href={STORE_URL[store === 'ios' ? 'android' : 'ios']}
+                >
                     {t('otherStore')}
                 </a>
             )}
