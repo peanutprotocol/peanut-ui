@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process'
 import {
     countOffScaleSpacing,
     countWeightStacks,
@@ -1194,6 +1195,72 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
         expect(countWeightStacks("var style = 'text-body-m'; const c = clsx(style, 'font-semibold')")).toBe(0)
         // the const equivalent still counts
         expect(countWeightStacks("const style = 'text-body-m'; const c = clsx(style, 'font-semibold')")).toBe(1)
+    })
+
+    it('does not borrow array classes from known invalid indices', () => {
+        for (const index of ['-1', '1.5', "'-1'", "'01'", "'1.0'", "'x'", '99', "'length'"]) {
+            expect(countWeightStacks(`const S = ['text-body-m']; clsx(S[${index}], 'font-semibold')`)).toBe(0)
+        }
+        for (const index of ['0', "'0'", '-0']) {
+            expect(countWeightStacks(`const S = ['text-body-m']; clsx(S[${index}], 'font-semibold')`)).toBe(1)
+        }
+        expect(countWeightStacks(`const S = [...unknown, 'text-body-m']; clsx(S[1], 'font-semibold')`)).toBe(1)
+    })
+
+    it('applies source-order overrides to conditional config spreads', () => {
+        const spread = "...(enabled ? { variants: { tone: { loud: 'text-body-m' } } } : {})"
+        expect(
+            countWeightStacks(`cva('font-semibold', { ${spread}, variants: { tone: { loud: 'underline' } } })`)
+        ).toBe(0)
+        expect(
+            countWeightStacks(`cva('font-semibold', { variants: { tone: { loud: 'underline' } }, ${spread} })`)
+        ).toBe(1)
+        expect(
+            countWeightStacks(`cva('base', {
+            ...(enabled ? { compoundVariants: [{ class: 'text-body-m' }] } : {}),
+            variants: { tone: { loud: 'font-semibold' } }, compoundVariants: []
+        })`)
+        ).toBe(0)
+        expect(
+            countWeightStacks(`cva('font-semibold', {
+            variants: { tone: { loud: 'text-body-m' } },
+            ...(enabled ? { variants: {} } : { variants: {} })
+        })`)
+        ).toBe(0)
+        expect(
+            countWeightStacks(`cva('font-semibold', {
+            variants: { tone: { loud: 'text-body-m' } }, ...(enabled && { variants: {} })
+        })`)
+        ).toBe(1)
+    })
+
+    it('retains static classes in partially dynamic computed keys', () => {
+        for (const key of ["'text-body-m ' + suffix", '`text-body-m ${suffix}`', "enabled ? 'text-body-m' : suffix"]) {
+            expect(
+                countWeightStacks(`function f(suffix) { return clsx({ [${key}]: on, 'font-semibold': bold }) }`)
+            ).toBe(1)
+        }
+    })
+
+    it('bounds computed-key expansion while retaining drift', () => {
+        // Run under a memory/time ceiling so a regression cannot exhaust Jest's
+        // process while trying to materialize 2^24 strings.
+        const spans = Array.from({ length: 24 }, (_, i) => `\${flag${i} ? 'a' : 'b'}`).join('')
+        const source = 'clsx({ [`text-body-m ' + spans + "`]: on, 'font-semibold': bold })"
+        const result = spawnSync(
+            process.execPath,
+            [
+                '--max-old-space-size=128',
+                '-e',
+                'console.log(require(process.argv[1]).countWeightStacks(process.argv[2]))',
+                require.resolve('../ds-lint-rules.cjs'),
+                source,
+            ],
+            { encoding: 'utf8', timeout: 5000 }
+        )
+        expect(result.error).toBeUndefined()
+        expect(result.status).toBe(0)
+        expect(result.stdout.trim()).toBe('1')
     })
 
     it('composes finite computed builder key choices with sibling keys', () => {

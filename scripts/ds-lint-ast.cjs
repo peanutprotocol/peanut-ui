@@ -356,43 +356,54 @@ function staticKeyName(name, ctx, depth = 0, seen = new Set()) {
     return null
 }
 
-/** Finite computed-key spellings. Concatenation must preserve class boundaries. */
+/** Finite computed-key spellings, bounded before any Cartesian expansion. */
 function keyTextChoices(node, ctx, depth, seen) {
-    if (!node || depth > MAX_DEPTH) return []
+    const unknown = { choices: [], complete: false }
+    if (!node || depth > MAX_DEPTH) return unknown
     const text = staticText(node, ctx, depth, seen)
-    if (text !== null) return [text]
+    if (text !== null) return { choices: [text], complete: true }
     if (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isSatisfiesExpression(node)) {
         return keyTextChoices(node.expression, ctx, depth + 1, seen)
     }
     if (ts.isIdentifier(node)) {
         const bound = lookup(ctx.scopes, node.text)
-        if (!bound || bound.value === OPAQUE || seen.has(bound.value)) return []
+        if (!bound || bound.value === OPAQUE || seen.has(bound.value)) return unknown
         const next = new Set(seen)
         next.add(bound.value)
         return keyTextChoices(bound.value, { ...ctx, scopes: bound.scopes }, depth + 1, next)
     }
     if (ts.isConditionalExpression(node)) {
-        return [
-            ...new Set([
-                ...keyTextChoices(node.whenTrue, ctx, depth + 1, seen),
-                ...keyTextChoices(node.whenFalse, ctx, depth + 1, seen),
-            ]),
-        ]
+        const left = keyTextChoices(node.whenTrue, ctx, depth + 1, seen)
+        const right = keyTextChoices(node.whenFalse, ctx, depth + 1, seen)
+        const choices = [...new Set([...left.choices, ...right.choices])]
+        return {
+            choices: choices.slice(0, MAX_ALTERNATIVES),
+            complete: left.complete && right.complete && choices.length <= MAX_ALTERNATIVES,
+        }
     }
-    const concat = (left, right) => [...new Set(left.flatMap((a) => right.map((b) => a + b)))]
+    const concat = (left, right) => {
+        const choices = new Set()
+        for (const a of left.choices) {
+            for (const b of right.choices) {
+                choices.add(a + b)
+                if (choices.size > MAX_ALTERNATIVES) return unknown
+            }
+        }
+        return { choices: [...choices], complete: left.complete && right.complete }
+    }
     if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken) {
         return concat(keyTextChoices(node.left, ctx, depth + 1, seen), keyTextChoices(node.right, ctx, depth + 1, seen))
     }
     if (ts.isTemplateExpression(node)) {
-        let choices = [node.head.text]
+        let result = { choices: [node.head.text], complete: true }
         for (const span of node.templateSpans) {
-            choices = concat(choices, keyTextChoices(span.expression, ctx, depth + 1, seen)).map(
-                (text) => text + span.literal.text
-            )
+            result = concat(result, keyTextChoices(span.expression, ctx, depth + 1, seen))
+            if (!result.complete) return unknown
+            result.choices = result.choices.map((text) => text + span.literal.text)
         }
-        return choices
+        return result
     }
-    return []
+    return unknown
 }
 
 /** Union the alternatives of every value a name can select, each in its own scope. */
@@ -554,8 +565,17 @@ function alternatives(node, ctx, depth = 0, seen = new Set(), mode = LOOKUP_OBJE
                     out = product(out, literalAlt(key, keyText, ctx))
                 } else if (key && ts.isComputedPropertyName(key)) {
                     let choices = NOTHING
-                    for (const text of keyTextChoices(key.expression, ctx, depth + 1, seen)) {
-                        choices = union(choices, literalAlt(key, text, ctx))
+                    const found = keyTextChoices(key.expression, ctx, depth + 1, seen)
+                    for (const text of found.choices) choices = union(choices, literalAlt(key, text, ctx))
+                    if (!found.complete) {
+                        // Preserve the same conservative fragments as ordinary
+                        // dynamic class concatenation. Normalize their provenance
+                        // to this key so finite and fallback readings dedupe.
+                        const fallback = alternatives(key.expression, ctx, depth + 1, seen, mode).map((alt) => ({
+                            token: alt.token === null ? null : startOf(key),
+                            weight: alt.weight === null ? null : startOf(key),
+                        }))
+                        choices = union(choices, fallback)
                     }
                     out = product(out, choices)
                 }
@@ -648,8 +668,12 @@ function alternatives(node, ctx, depth = 0, seen = new Set(), mode = LOOKUP_OBJE
                 return union(unionOfSelected(selected.values, ctx, depth, seen), whole)
             }
         }
-        if (index !== null) {
-            const selected = elementByIndex(node.expression, index, ctx, depth, seen)
+        if (keyText !== null && resolveToArrayLiteral(node.expression, ctx, depth, seen)) {
+            // Array indices are canonical nonnegative integer property names.
+            // Known non-index properties cannot borrow classes from index zero.
+            const arrayIndex = Number(keyText)
+            if (!Number.isInteger(arrayIndex) || arrayIndex < 0 || String(arrayIndex) !== keyText) return NOTHING
+            const selected = elementByIndex(node.expression, arrayIndex, ctx, depth, seen)
             if (selected) {
                 if (!selected.value) return NOTHING
                 return alternatives(selected.value, { ...ctx, scopes: selected.scopes }, depth + 1, seen, LOOKUP_OBJECT)
@@ -787,6 +811,23 @@ function cvaConfigAlternatives(configTable, ctx, depth, seen) {
 }
 
 function cvaConfigFieldsAlternatives(configFields, ctx, depth, seen) {
+    // Expand a conditional spread IN PLACE, before reducing winning keys.
+    // Its fields obey the same later-overrides-earlier rule as literal spreads.
+    for (const [index, field] of configFields.entries()) {
+        if (!field.opaqueSpread || seen.has(field.value)) continue
+        const found = resolveToObjectLiterals(field.value, field.ctx, depth, seen)
+        if (!found.candidates.length) continue
+        const next = new Set(seen)
+        next.add(field.value)
+        const candidates = found.candidates.map((candidate) => objectFields(candidate, field.ctx, depth, next))
+        if (found.mayBeAbsent) candidates.push([])
+        let out = NOTHING
+        for (const fields of candidates) {
+            const combined = [...configFields.slice(0, index), ...fields, ...configFields.slice(index + 1)]
+            out = union(out, cvaConfigFieldsAlternatives(combined, ctx, depth, next))
+        }
+        return out
+    }
     // An unknown property name can designate either structural slot, or neither.
     // Evaluate those roles separately, in source order, so normal last-wins
     // handling and named-axis correlation still apply.
@@ -1112,6 +1153,7 @@ function resolveStructuralLiterals(node, ctx, seen, matches) {
     const pending = [{ node, ctx }]
     const visited = new Set()
     const candidates = []
+    let mayBeAbsent = false
     while (pending.length) {
         const { node, ctx } = pending.pop()
         if (!node || visited.has(node)) continue
@@ -1131,16 +1173,17 @@ function resolveStructuralLiterals(node, ctx, seen, matches) {
             if (op === ts.SyntaxKind.BarBarToken || op === ts.SyntaxKind.QuestionQuestionToken) {
                 pending.push({ node: node.right, ctx }, { node: node.left, ctx })
             } else if (op === ts.SyntaxKind.AmpersandAmpersandToken) {
+                mayBeAbsent = true
                 pending.push({ node: node.right, ctx })
-            }
+            } else mayBeAbsent = true
         } else if (ts.isIdentifier(node)) {
             const bound = lookup(ctx.scopes, node.text)
             if (bound && bound.value !== OPAQUE && !seen.has(bound.value)) {
                 pending.push({ node: bound.value, ctx: { ...ctx, scopes: bound.scopes } })
-            }
-        }
+            } else mayBeAbsent = true
+        } else mayBeAbsent = true
     }
-    return { candidates }
+    return { candidates, mayBeAbsent }
 }
 
 /**
