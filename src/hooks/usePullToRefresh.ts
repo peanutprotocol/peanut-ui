@@ -166,8 +166,17 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
             setIndicator(0, true)
         }
 
+        const hasOpenDialog = () =>
+            !!document.querySelector(
+                '[role="dialog"]:not([data-state="closed"]):not([hidden]), [role="alertdialog"]:not([data-state="closed"]):not([hidden])'
+            )
+
         const onTouchStart = (e: TouchEvent) => {
-            if (refreshing || e.touches.length !== 1) return
+            if (refreshing) return
+            if (hasOpenDialog() || e.touches.length !== 1) {
+                resetPull()
+                return
+            }
             const allowed = shouldPullToRefreshRef.current ? shouldPullToRefreshRef.current() : window.scrollY === 0
             if (!allowed) return
             // a new pull can start inside the retract window — put the arrow back
@@ -183,6 +192,10 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
 
         const onTouchMove = (e: TouchEvent) => {
             if (!pulling || refreshing) return
+            if (hasOpenDialog()) {
+                resetPull()
+                return
+            }
             const dx = e.touches[0].clientX - startX
             const dy = e.touches[0].clientY - startY
             if (!axisLock && (Math.abs(dx) > AXIS_LOCK_SLOP_PX || Math.abs(dy) > AXIS_LOCK_SLOP_PX)) {
@@ -237,6 +250,10 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
 
         const onTouchEnd = () => {
             if (!pulling || refreshing) return
+            if (hasOpenDialog()) {
+                resetPull()
+                return
+            }
             const triggered = pullDistance >= DIST_RELOAD
             if (!triggered) {
                 resetPull()
@@ -273,13 +290,13 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
         document.addEventListener('touchstart', onTouchStart, listenerOptions)
         document.addEventListener('touchmove', onTouchMove, listenerOptions)
         document.addEventListener('touchend', onTouchEnd, listenerOptions)
-        document.addEventListener('touchcancel', onTouchEnd, listenerOptions)
+        document.addEventListener('touchcancel', resetPull, listenerOptions)
 
         return () => {
             document.removeEventListener('touchstart', onTouchStart)
             document.removeEventListener('touchmove', onTouchMove)
             document.removeEventListener('touchend', onTouchEnd)
-            document.removeEventListener('touchcancel', onTouchEnd)
+            document.removeEventListener('touchcancel', resetPull)
             timers.forEach(clearTimeout)
             spinAnimation?.cancel()
             indicator.remove()
