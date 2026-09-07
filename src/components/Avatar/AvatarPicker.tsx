@@ -2,199 +2,244 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { useQueryState } from 'nuqs'
 import { updateUserById } from '@/app/actions/users'
-import { Button } from '@/components/0_Bruddle/Button'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
+import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import { Drawer, DrawerContent } from '@/components/Global/Drawer'
 import { useAuth } from '@/context/authContext'
 import { twMerge } from '@/utils/tw'
-import { avatarGridColumns, badgeAvatarKeys, dealAvatars, letterAvatarKeys } from './avatar.utils'
+import { AVATAR_PICKER_BADGE_PARAM, avatarPickerBadgeParser } from './avatar.consts'
+import { badgeAvatarKeys, dealHand } from './avatar.utils'
 import { isLetterAvatarKey, storeLetterAvatar } from './avatar-letter.storage'
+import { useAvatarKey } from './useAvatarKey'
 import { roveAvatarTiles } from './avatarPicker.utils'
 import { UserAvatar } from './UserAvatar'
-import { DiceRoll } from './DiceRoll'
-import styles from './AvatarPicker.module.css'
 
 interface AvatarPickerProps {
     open: boolean
     onOpenChange: (open: boolean) => void
 }
 
+/** The dice-5 face: the four corners and the middle, one 6px pip each. */
+const DIE_PIPS = [
+    'top-1.5 left-1.5',
+    'top-1.5 right-1.5',
+    'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
+    'bottom-1.5 left-1.5',
+    'bottom-1.5 right-1.5',
+]
+
+const capitalise = (word: string) => word.charAt(0).toUpperCase() + word.slice(1)
+
+/**
+ * The profile avatar picker (TASK-22142): one hand of eight tiles plus the die,
+ * three across, with no header — the sheet is the hand. Slot 1 is always the
+ * user's own initial, slots 2-8 are dealt by `dealHand` (at least one earned
+ * badge avatar, the current pick kept, the rest from the basics) and slot 9
+ * rolls a new hand. A tap saves at once; rolling never changes the pick. The
+ * API validates the pick against the same pool, so a locked key never lands
+ * even if the manifest and the catalog drift.
+ *
+ * Slot 1 saves `letter.<x>`, a real pick that stays put, rather than the
+ * `avatarKey: null` a "use my initial instead" button used to write — that
+ * followed the username on rename. `null` remains the day-0 state of someone
+ * who never opened this, and is also what a name with no a-z initial saves.
+ *
+ * A letter the API still rejects falls back to a device-local mirror rather
+ * than an error toast — see avatar-letter.storage. Sticker picks have no
+ * fallback by design: their unlock is enforced server-side.
+ */
 export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
     const t = useTranslations('avatar')
-    const tCommon = useTranslations('common')
     const { user, fetchUser } = useAuth()
     const { toast } = useToast()
-    const username = user?.user.username ?? undefined
+    // the badge the earn toast deep-linked with: its art leads the first hand
+    const [preferBadge] = useQueryState(AVATAR_PICKER_BADGE_PARAM, avatarPickerBadgeParser)
+
     const userId = user?.user.userId
-    const unlocked = badgeAvatarKeys((user?.user.badges ?? []).map((badge) => badge.code))
-    const available = dealAvatars(unlocked, 16, () => 0).length
-    const initial = /^[a-z]/i.test(username?.trim() ?? '') ? `letter.${username!.trim()[0].toLowerCase()}` : null
-    const letters = letterAvatarKeys()
-    const start = Math.max(0, letters.indexOf(initial ?? ''))
-    const orderedLetters: (string | null)[] = initial
-        ? [...letters.slice(start), ...letters.slice(0, start)]
-        : [null, ...letters]
-    const [phase, setPhase] = useState<'initials' | 'rolling' | 'avatars'>('initials')
-    const [selected, setSelected] = useState<string | null>(initial)
-    const [offer, setOffer] = useState<string[]>([])
-    const [columns, setColumns] = useState(3)
-    const [saving, setSaving] = useState(false)
-    const savingRef = useRef(false)
-    const rowRef = useRef<HTMLDivElement>(null)
-    const titleRef = useRef<HTMLHeadingElement>(null)
-    const wasOpen = useRef(false)
-    const openedFor = useRef<string | undefined>(undefined)
+    const username = user?.user.username ?? undefined
+    // the effective pick: the server's, or the device-local letter fallback
+    const saved = useAvatarKey(user?.user.avatarKey, userId)
+    const badges = user?.user.badges ?? []
+    const held = badges.map((badge) => badge.code)
+    const badgeName = Object.fromEntries(badges.map((badge) => [badge.code, badge.name]))
+    const unlocked = badgeAvatarKeys(held)
 
-    useEffect(() => {
-        if (open && (!wasOpen.current || openedFor.current !== username)) {
-            setPhase('initials')
-            setSelected(initial)
-            if (rowRef.current) rowRef.current.scrollLeft = 0
-        }
-        wasOpen.current = open
-        openedFor.current = username
-    }, [open, initial, username])
+    // Slot 1 wears the first letter of the username. A name that does not start
+    // with a-z has no letter sticker to save, so that tile clears the key back
+    // to the day-0 state — which still draws that first character.
+    const first = username?.trim().charAt(0) ?? ''
+    const initialKey = /^[a-z]$/i.test(first) ? `letter.${first.toLowerCase()}` : null
 
-    useEffect(() => {
-        if (!open) return
-        const resize = () =>
-            setColumns(
-                avatarGridColumns(window.innerWidth, window.visualViewport?.height ?? window.innerHeight, available)
-            )
-        resize()
-        window.addEventListener('resize', resize)
-        window.visualViewport?.addEventListener('resize', resize)
-        return () => {
-            window.removeEventListener('resize', resize)
-            window.visualViewport?.removeEventListener('resize', resize)
-        }
-    }, [open, available])
+    // The tile moves on tap; the slot behind the drawer moves after fetchUser
+    // lands. `pending` overrides `saved` while a burst drains. Saves are
+    // SERIALIZED: one POST at a time, always the latest tap next, so the
+    // server can never commit an older key last. One refetch per burst, in
+    // a finally, so a thrown save cannot wedge the picker.
+    const [pending, setPending] = useState<string | null | undefined>(undefined)
+    const wanted = useRef<string | null | undefined>(undefined)
+    const draining = useRef(false)
+    const pick = pending === undefined ? saved : pending
 
-    useEffect(() => {
-        if (phase === 'avatars') titleRef.current?.focus()
-    }, [phase])
-
-    const save = async () => {
-        if (!userId || savingRef.current) return
-        savingRef.current = true
-        setSaving(true)
-        let accepted = false
+    const drain = async () => {
+        draining.current = true
         try {
-            const result = await updateUserById({ userId, avatarKey: selected })
-            if (result.error) throw new Error(result.error)
-            storeLetterAvatar(userId, null)
-            accepted = true
-        } catch {
-            if (isLetterAvatarKey(selected)) {
-                storeLetterAvatar(userId, selected, user?.user.avatarKey ?? null)
-                accepted = true
-            } else toast({ type: 'error', message: t('saveFailed') })
-        }
-        try {
-            if (accepted) {
+            // a tap that lands while the refetch is in flight queues on
+            // `wanted`; drain again rather than drop it with the finally
+            do {
+                while (wanted.current !== undefined) {
+                    const key = wanted.current
+                    wanted.current = undefined
+                    try {
+                        const { error } = await updateUserById({ userId, avatarKey: key })
+                        if (error) rememberOrReport(key)
+                        // the server now holds the pick, so a mirror could only
+                        // shadow it — this is also what promotes a letter to the
+                        // durable copy the day the API starts accepting one
+                        else storeLetterAvatar(userId, null)
+                    } catch {
+                        rememberOrReport(key)
+                    }
+                }
                 await fetchUser()
-                onOpenChange(false)
-            }
-        } catch {
-            toast({ type: 'error', message: t('saveFailed') })
+            } while (wanted.current !== undefined)
         } finally {
-            savingRef.current = false
-            setSaving(false)
+            draining.current = false
+            setPending(undefined)
         }
     }
 
+    /**
+     * A rejected letter is not a user-facing failure: the pick is kept on this
+     * device and upgrades itself on the next write the server does accept. A
+     * rejected sticker has nowhere to go, so it still reports.
+     */
+    const rememberOrReport = (key: string | null) => {
+        // stamped with the server key it stands in for, so a pick made on another
+        // device supersedes it as soon as this one refetches
+        if (isLetterAvatarKey(key)) storeLetterAvatar(userId, key, user?.user.avatarKey ?? null)
+        else toast({ type: 'error', message: t('saveFailed') })
+    }
+
+    const save = (key: string | null) => {
+        if (!userId) return
+        setPending(key)
+        wanted.current = key
+        if (!draining.current) void drain()
+    }
+
+    // the hand: dealt on open, dealt again by the die; the pick never moves with it
+    const [hand, setHand] = useState<(string | null)[]>([])
+    const [turns, setTurns] = useState(0)
+    useEffect(() => {
+        // deal from `pick`, not `saved`: reopening while a save is still in
+        // flight must keep the visibly selected avatar in the hand
+        if (open) setHand(dealHand(pick, unlocked, { prefer: preferBadge ?? undefined }))
+        // deal once per open; the pick joins the hand by being picked from it
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open])
     const roll = () => {
-        setSelected(null)
-        setOffer(dealAvatars(unlocked, 16))
-        setPhase('rolling')
+        setTurns((n) => n + 1)
+        setHand(dealHand(pick, unlocked))
     }
-    const label = (key: string | null) => {
-        if (!key) return username?.trim()[0]?.toUpperCase() ?? t('initials')
+
+    // Slot 1 reads checked while nothing is picked and while the pick IS that
+    // letter. A letter that is not the user's own is never dealt, so a legacy
+    // pick like that leaves the hand with nothing checked — deliberately: it is
+    // someone else's initial, and no tile claims to be it.
+    const isChecked = (key: string | null) => (key === null ? pick === null || pick === initialKey : key === pick)
+    const focusIndex = Math.max(0, hand.findIndex(isChecked))
+
+    // Slot 1 is the user's own initial and the basics are the cast. An earned
+    // avatar has no cast entry — it is named after its art and lined with the
+    // badge that unlocked it.
+    const describe = (key: string | null): { name: string; line: string } => {
+        if (!key) return { name: t('initialName', { letter: first.toUpperCase() }), line: t('initialLine') }
+        // for a basic, `code` is its slug and there is no `slug`
         const [kind, code, slug] = key.split('.')
-        return kind === 'letter' ? code.toUpperCase() : (slug ?? code).replaceAll('-', ' ')
+        if (kind === 'badge') return { name: capitalise(slug), line: badgeName[code] ?? code }
+        const nameKey = `cast.${code}.name` as Parameters<typeof t>[0]
+        const lineKey = `cast.${code}.line` as Parameters<typeof t>[0]
+        return { name: t.has(nameKey) ? t(nameKey) : capitalise(code), line: t.has(lineKey) ? t(lineKey) : '' }
     }
-    const keys = phase === 'initials' ? orderedLetters : offer.slice(0, columns * columns)
-    const focusIndex = Math.max(0, keys.indexOf(selected))
 
     return (
-        <Drawer
-            open={open}
-            onOpenChange={(next) => {
-                if (!savingRef.current) onOpenChange(next)
-            }}
-            hideBottomNav
-            shouldScaleBackground={false}
-        >
-            <DrawerContent
-                className={
-                    phase === 'rolling' ? styles.fullscreen : twMerge('py-4', phase === 'avatars' && styles.dealtDrawer)
-                }
-                scrollAreaClassName={phase === 'rolling' ? twMerge('px-0', styles.rollArea) : undefined}
-            >
-                {phase === 'rolling' ? (
-                    <>
-                        <DrawerTitle className="sr-only">{t('rolling')}</DrawerTitle>
-                        {open && (
-                            <DiceRoll onComplete={() => setPhase('avatars')} onCancel={() => onOpenChange(false)} />
-                        )}
-                    </>
-                ) : (
-                    <div className={twMerge('pb-2', styles.picker, columns === 4 && styles.fourColumns)}>
-                        <DrawerHeader className="p-0 pb-4 text-left">
-                            <DrawerTitle
-                                ref={titleRef}
-                                tabIndex={-1}
-                                className="text-heading-s text-foreground-primary outline-none"
+        <Drawer open={open} onOpenChange={onOpenChange}>
+            {/* No header: the title is the drawer's accessible name only, and the
+                horizontal padding belongs to the SCROLL AREA so the hand pans
+                inside it rather than under the panel's own padding. */}
+            <DrawerContent accessibleTitle={t('title')} className="pb-4" scrollAreaClassName="px-4">
+                <div
+                    role="radiogroup"
+                    aria-label={t('title')}
+                    className="grid grid-cols-3 gap-2"
+                    onKeyDown={roveAvatarTiles}
+                >
+                    {hand.map((key, index) => {
+                        const initial = key === null
+                        const checked = isChecked(key)
+                        const earned = !!key?.startsWith('badge.')
+                        const { name, line } = describe(key)
+                        return (
+                            <button
+                                key={key ?? 'initial'}
+                                type="button"
+                                role="radio"
+                                aria-checked={checked}
+                                tabIndex={index === focusIndex ? 0 : -1}
+                                onClick={() => save(initial ? initialKey : key)}
+                                className={twMerge(
+                                    // XL on top: the Earned tag sits in that band, clear of the sticker
+                                    'relative flex flex-col items-center rounded-sm border border-border-default bg-background-default px-1.5 pt-6 pb-3 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus',
+                                    checked && 'border-2 border-border-default'
+                                )}
                             >
-                                {phase === 'initials' ? t('initials') : t('chooseAvatar')}
-                            </DrawerTitle>
-                        </DrawerHeader>
-                        <div
-                            ref={rowRef}
-                            role="radiogroup"
-                            aria-label={phase === 'initials' ? t('initials') : t('chooseAvatar')}
-                            className={phase === 'initials' ? styles.initials : styles.grid}
-                            data-vaul-no-drag
-                            onKeyDown={(event) => roveAvatarTiles(event, phase === 'initials' ? 1 : columns)}
+                                {earned && (
+                                    <StatusBadge
+                                        status="custom"
+                                        customText={t('earned')}
+                                        className="absolute top-1 right-1"
+                                    />
+                                )}
+                                {/* slot 1 draws FROM the username, so it is the one tile that needs
+                                    the name; on the rest the sticker is decorative and the tile's
+                                    own name and line label it */}
+                                <UserAvatar
+                                    name={initial ? username : undefined}
+                                    avatarKey={initial ? initialKey : key}
+                                    size="medium"
+                                />
+                                <span className="mt-1 w-full truncate text-label-m">{name}</span>
+                                {/* two lines whatever the copy: a ragged tile height across the
+                                    three rows is the one thing that breaks the grid */}
+                                <span className="line-clamp-2 h-8 text-body-xs text-foreground-secondary">{line}</span>
+                            </button>
+                        )
+                    })}
+                    <button
+                        type="button"
+                        onClick={roll}
+                        className="flex flex-col items-center justify-center gap-2 rounded-sm border-[1.5px] border-dashed border-border-default bg-background-default px-2 py-4 text-button-s focus-visible:outline-[3px] focus-visible:outline-action-focus"
+                    >
+                        {/* one full turn per roll; class parity, so no inline style */}
+                        <span
+                            aria-hidden
+                            className={twMerge(
+                                'relative size-9 rounded-lg border-2 border-border-default bg-background-default motion-safe:transition-transform motion-safe:duration-slow motion-safe:ease-spring',
+                                turns % 2 ? 'rotate-360' : 'rotate-0'
+                            )}
                         >
-                            {keys.map((key, index) => (
-                                <button
-                                    key={key ?? 'initial'}
-                                    type="button"
-                                    role="radio"
-                                    aria-label={label(key)}
-                                    aria-checked={key === selected}
-                                    tabIndex={index === focusIndex ? 0 : -1}
-                                    disabled={saving}
-                                    onClick={() => setSelected(key)}
-                                    className={twMerge(
-                                        styles.tile,
-                                        'rounded-sm border border-border-disabled bg-background-default focus-visible:outline-[3px] focus-visible:outline-action-focus',
-                                        key === selected && 'border-2 border-border-default'
-                                    )}
-                                >
-                                    <UserAvatar name={username} avatarKey={key} size="small" className={styles.art} />
-                                </button>
+                            {DIE_PIPS.map((pip) => (
+                                <span
+                                    key={pip}
+                                    className={twMerge('absolute size-1.5 rounded-full bg-border-default', pip)}
+                                />
                             ))}
-                        </div>
-                        <div className="flex flex-col gap-2 pt-4 pb-2">
-                            <Button
-                                variant="purple"
-                                className="w-full"
-                                disabled={saving || !userId || (phase === 'avatars' && !keys.includes(selected))}
-                                loading={saving}
-                                onClick={() => void save()}
-                            >
-                                {phase === 'initials' ? t('useInitial') : t('useAvatar')}
-                            </Button>
-                            <span className="text-center text-body-s text-foreground-secondary">{tCommon('or')}</span>
-                            <Button variant="stroke" className="w-full" disabled={saving} onClick={roll}>
-                                {t('rollDice')}
-                            </Button>
-                        </div>
-                    </div>
-                )}
+                        </span>
+                        {t('rollDie')}
+                    </button>
+                </div>
             </DrawerContent>
         </Drawer>
     )
