@@ -442,6 +442,33 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
         ).toBe(0)
     })
 
+    it('recomposes an unreadable cva spread under cva semantics', () => {
+        // Each object the spread can be is a config in its own right, so its
+        // variants and its compounds combine with each other — flattening it
+        // into a bag of values reported neither together.
+        expect(
+            countWeightStacks(
+                "const CONFIG = enabled ? { variants: { tone: { loud: 'text-body-m' } }, compoundVariants: [{ tone: 'loud', class: 'font-semibold' }] } : {}; const c = cva('base', { ...CONFIG })"
+            )
+        ).toBe(1)
+        // one spread can hide SEVERAL axes, and those product rather than union
+        expect(
+            countWeightStacks(
+                "const V = enabled ? { tone: { loud: 'text-body-m' }, emphasis: { bold: 'font-semibold' } } : {}; const c = cva('base', { variants: { ...V } })"
+            )
+        ).toBe(1)
+        // an entry's `class` composes, so an array of classes is not alternatives
+        expect(
+            countWeightStacks(
+                "const C = enabled ? { tone: 'loud', class: ['text-body-m', 'font-semibold'] } : {}; const c = cva('base', { variants: { tone: { loud: 'x' } }, compoundVariants: [{ ...C }] })"
+            )
+        ).toBe(1)
+        // and a spread that resolves to NO object literal still falls back
+        expect(
+            countWeightStacks("const c = cva('base', { ...MAYBE, variants: { size: { sm: 'font-semibold' } } })")
+        ).toBe(0)
+    })
+
     it('reads an unreadable cva spread as config, not as a class builder', () => {
         // A config is nested tables whose leaves are the classes. Builder mode
         // reads an object's KEYS, so it returned `variants` and never descended

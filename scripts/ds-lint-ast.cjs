@@ -651,6 +651,43 @@ function selectorOptionNames(node, ctx, depth, seen) {
 }
 
 /**
+ * A variants table's classes: union WITHIN each axis, product ACROSS them.
+ *
+ * Used for a table hidden behind an unreadable spread, where the axes have no
+ * names to record. Unioning the whole table instead read two hidden axes as
+ * alternatives, so selecting one option from each never produced the stack they
+ * really render together.
+ */
+function variantsTableAlts(table, ctx, depth, seen) {
+    let out = NOTHING
+    const fields = objectFields(table, ctx, depth, seen)
+    for (const axis of effectiveFields(fields)) {
+        out = product(out, alternatives(axis.value, axis.ctx, depth + 1, seen, LOOKUP_OBJECT))
+    }
+    for (const opaque of opaqueFields(fields)) {
+        if (opaque.value) out = product(out, alternatives(opaque.value, opaque.ctx, depth + 1, seen, LOOKUP_OBJECT))
+    }
+    return out
+}
+
+/**
+ * A compound ENTRY's own classes — its `class`/`className` field, in BUILDER
+ * mode so an array of classes composes instead of reading as alternatives.
+ *
+ * Used for an entry hidden behind an unreadable spread. Reading the whole entry
+ * in lookup mode unioned its fields, which made `class: ['a', 'b']` — two
+ * classes cva renders together — look mutually exclusive.
+ */
+function compoundEntryClasses(table, ctx, depth, seen) {
+    let out = NOTHING
+    for (const field of effectiveFields(objectFields(table, ctx, depth, seen))) {
+        if (field.key !== 'class' && field.key !== 'className') continue
+        out = product(out, alternatives(field.value, field.ctx, depth + 1, seen, BUILDER_OBJECT))
+    }
+    return out
+}
+
+/**
  * `cva(base, config)` — the one builder whose config is not a flat bag of
  * conditional classes.
  *
@@ -663,11 +700,24 @@ function selectorOptionNames(node, ctx, depth, seen) {
 function cvaAlternatives(node, ctx, depth, seen) {
     const [base, config] = node.arguments
     const baseAlts = base ? alternatives(base, ctx, depth + 1, seen, BUILDER_OBJECT) : NOTHING
-    let out = baseAlts
-    if (!config) return out
+    if (!config) return baseAlts
 
     const configTable = resolveToObjectLiteral(config, ctx, depth, seen)
-    if (!configTable) return product(out, alternatives(config, ctx, depth + 1, seen, BUILDER_OBJECT))
+    if (!configTable) {
+        return product(baseAlts, alternatives(config, ctx, depth + 1, seen, BUILDER_OBJECT))
+    }
+    return product(baseAlts, cvaConfigAlternatives(configTable, ctx, depth, seen))
+}
+
+/**
+ * Everything one cva CONFIG object renders, with no base classes of its own.
+ *
+ * Split out so a config hidden behind an unreadable spread can be recomposed
+ * through exactly this path instead of being flattened into a bag of values.
+ */
+function cvaConfigAlternatives(configTable, ctx, depth, seen) {
+    const baseAlts = NOTHING
+    let out = baseAlts
     const configCtx = { ...ctx, scopes: configTable.scopes }
 
     let variants = null
@@ -682,13 +732,25 @@ function cvaAlternatives(node, ctx, depth, seen) {
     // any of these fields. Dropping it lost every axis it could have brought, so
     // its own alternatives are producted in: over-counting, the safe direction.
     //
-    // Read as CONFIG, not as a class builder. A cva config is nested tables
-    // whose leaves are the classes, so builder mode — which reads an object's
-    // KEYS — returned `variants` and `compoundVariants` and never descended to
-    // anything that renders. Lookup mode unions the values instead, which walks
-    // down to the class strings.
+    // Composed under cva's OWN semantics, not flattened. Each object the spread
+    // can be is a config in its own right — `variants` products across axes and
+    // a compound's classes ride on the options it pins — so the candidates are
+    // recomposed and unioned. Reading the spread as a bag of values instead lost
+    // every combination inside it: a config carrying both a variants table and a
+    // compound that selects from it reported neither together.
     for (const opaque of opaqueFields(configFields)) {
-        if (opaque.value) out = product(out, alternatives(opaque.value, opaque.ctx, depth + 1, seen, LOOKUP_OBJECT))
+        if (!opaque.value) continue
+        const candidates = resolveToObjectLiterals(opaque.value, opaque.ctx, depth, seen)
+        if (candidates.length === 0) {
+            out = product(out, alternatives(opaque.value, opaque.ctx, depth + 1, seen, LOOKUP_OBJECT))
+            continue
+        }
+        let composed = null
+        for (const candidate of candidates) {
+            const alts = cvaConfigAlternatives(candidate, { ...ctx, scopes: candidate.scopes }, depth + 1, seen)
+            composed = composed ? union(composed, alts) : alts
+        }
+        out = product(out, composed ?? NOTHING)
     }
     for (const { key, value: field, ctx: fieldCtx } of effectiveFields(configFields)) {
         if (key === 'variants') {
@@ -716,7 +778,16 @@ function cvaAlternatives(node, ctx, depth, seen) {
             // selector can ever match the key.
             for (const opaque of opaqueFields(variantFields)) {
                 if (!opaque.value) continue
-                const alts = alternatives(opaque.value, opaque.ctx, depth + 1, seen, LOOKUP_OBJECT)
+                const candidates = resolveToObjectLiterals(opaque.value, opaque.ctx, depth, seen)
+                let alts = null
+                for (const candidate of candidates) {
+                    // A TABLE, so its own axes product together — one spread can
+                    // hide several, and unioning them read independently
+                    // selected axes as alternatives.
+                    const composed = variantsTableAlts(candidate, { ...ctx, scopes: candidate.scopes }, depth + 1, seen)
+                    alts = alts ? union(alts, composed) : composed
+                }
+                if (!alts) alts = alternatives(opaque.value, opaque.ctx, depth + 1, seen, LOOKUP_OBJECT)
                 axisAlts.set(opaque.value, alts)
                 out = product(out, alts)
             }
@@ -754,13 +825,21 @@ function cvaAlternatives(node, ctx, depth, seen) {
         // axis from it — its classes compose against every axis instead, which
         // over-counts rather than losing the stack entirely.
         for (const opaque of opaqueFields(compoundFields)) {
-            if (opaque.value) {
-                // Lookup mode for the same reason as the config spread: the
-                // entry's fields are config, and its `class` field is the leaf
-                // that renders. Builder mode read the KEYS (`tone`, `class`) and
-                // never reached the classes at all.
-                classes = product(classes, alternatives(opaque.value, opaque.ctx, depth + 1, seen, LOOKUP_OBJECT))
+            if (!opaque.value) continue
+            const candidates = resolveToObjectLiterals(opaque.value, opaque.ctx, depth, seen)
+            let fromSpread = null
+            for (const candidate of candidates) {
+                // An ENTRY: only its `class` field renders, and it renders in
+                // BUILDER mode so `class: ['a', 'b']` composes. Reading the whole
+                // entry in lookup mode unioned its fields, which made two classes
+                // cva renders together look mutually exclusive.
+                const composed = compoundEntryClasses(candidate, { ...ctx, scopes: candidate.scopes }, depth + 1, seen)
+                fromSpread = fromSpread ? union(fromSpread, composed) : composed
             }
+            if (!fromSpread) {
+                fromSpread = alternatives(opaque.value, opaque.ctx, depth + 1, seen, LOOKUP_OBJECT)
+            }
+            classes = product(classes, fromSpread)
         }
         for (const prop of effectiveFields(compoundFields)) {
             const name = prop.key
@@ -883,6 +962,48 @@ function cvaAlternatives(node, ctx, depth, seen) {
         }
     }
     return out
+}
+
+/**
+ * EVERY object literal an expression can denote, with each one's scope chain.
+ *
+ * `resolveToObjectLiteral` answers "which one is it", which a conditional has no
+ * answer to. A cva table spread in from `cond ? A : {}` is one of A or nothing,
+ * and each candidate has to be composed under cva's own semantics — products
+ * across axes, a compound's classes against the options it pins. Unioning the
+ * spread's values instead flattened all of that into "one of these classes",
+ * which is why two axes hidden behind one spread never producted and an
+ * array-valued compound `class` read as mutually exclusive.
+ */
+function resolveToObjectLiterals(node, ctx, depth, seen, into = []) {
+    if (!node || depth > MAX_DEPTH || into.length > 8) return into
+    if (ts.isObjectLiteralExpression(node)) {
+        into.push({ node, scopes: ctx.scopes })
+        return into
+    }
+    if (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isSatisfiesExpression(node)) {
+        return resolveToObjectLiterals(node.expression, ctx, depth + 1, seen, into)
+    }
+    if (ts.isConditionalExpression(node)) {
+        resolveToObjectLiterals(node.whenTrue, ctx, depth + 1, seen, into)
+        return resolveToObjectLiterals(node.whenFalse, ctx, depth + 1, seen, into)
+    }
+    if (
+        ts.isBinaryExpression(node) &&
+        (node.operatorToken.kind === ts.SyntaxKind.BarBarToken ||
+            node.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken)
+    ) {
+        resolveToObjectLiterals(node.left, ctx, depth + 1, seen, into)
+        return resolveToObjectLiterals(node.right, ctx, depth + 1, seen, into)
+    }
+    if (ts.isIdentifier(node)) {
+        const bound = lookup(ctx.scopes, node.text)
+        if (!bound || bound.value === OPAQUE || seen.has(bound.value)) return into
+        const next = new Set(seen)
+        next.add(bound.value)
+        return resolveToObjectLiterals(bound.value, { ...ctx, scopes: bound.scopes }, depth + 1, next, into)
+    }
+    return into
 }
 
 /**
