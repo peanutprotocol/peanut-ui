@@ -1,6 +1,9 @@
 import Capacitor
 import PassKit
 import UIKit
+#if PEANUT_REQUIRE_PUSH_PROVISIONING && !canImport(MeaPushProvisioning)
+#error("Production releases require the MeaWallet SDK")
+#endif
 #if canImport(MeaPushProvisioning)
 import MeaPushProvisioning
 #endif

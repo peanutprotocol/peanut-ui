@@ -299,25 +299,25 @@
         },
         "language": "Language",
         "menu": {
-            "inviteFriends": "Invite friends to Peanut",
+            "inviteFriends": "Invite Friends to Peanut",
             "yourCard": "Your Card",
             "peanutCard": "Peanut Card",
             "newBadge": "New!",
             "unlockBadge": "Unlock",
             "yourBadges": "Your Badges",
             "points": "Points",
-            "personalDetails": "Personal details",
-            "unlockedRegions": "Unlock payments",
+            "personalDetails": "Personal Details",
+            "unlockedRegions": "Payment Channels",
             "paymentLimits": "Payment limits",
             "showMyFullName": "Show my full name",
             "backup": "Backup",
-            "exchangeRatesAndFees": "Exchange rates and fees",
+            "exchangeRatesAndFees": "Exchange Rates and Fees",
             "starAlt": "star",
             "help": "Help Center",
             "about": "About Peanut",
-            "updateAvailable": "Update available"
+            "updateAvailable": "Update Available"
         },
-        "logOut": "Log out",
+        "logOut": "Log Out",
         "edit": {
             "title": "Edit Profile",
             "fields": {
@@ -358,7 +358,7 @@
             }
         },
         "unlockPayments": {
-            "title": "Unlock payments",
+            "title": "Payment Channels",
             "description": "Everything you can use today, and what opens after ID verification.",
             "residence": {
                 "label": "Residence: {country}",
@@ -431,6 +431,12 @@
                 "monthlyLeft": "{remaining} of {limit} left this month",
                 "perTransfer": "Up to {amount} per transfer",
                 "p2pNoLimit": "No limits on Peanut-to-Peanut payments"
+            },
+            "cooldown": {
+                "title": "Give it a little time",
+                "until": "Verification attempts are temporarily limited. You can try again after {until}.",
+                "short": "Verification attempts are temporarily limited. Please try again in a little while.",
+                "dismiss": "I'll try later"
             }
         },
         "backup": {
@@ -556,7 +562,7 @@
                 "cardProhibitedActivities": "Prohibited Activities Policy",
                 "securityDisclosure": "Security Disclosure"
             },
-            "rateHeading": "Rate the app",
+            "rateHeading": "Liking it so far?",
             "rate": "Leave a review",
             "version": "Version {version}",
             "beta": {
@@ -588,7 +594,7 @@
             "title": "Language"
         },
         "deleteAccount": {
-            "button": "Delete My Account",
+            "button": "Delete my account",
             "confirmTitle": "Aw, you're leaving?",
             "confirmDescription": "Deleting your account is permanent. We'll switch it off right away and wipe your data within 30 days. This little guy would really rather you stayed.",
             "confirmCta": "Yes, delete it",
@@ -3195,7 +3201,7 @@
             "shareTitle": "Share your profile"
         },
         "inviteFriendsModal": {
-            "title": "Invite friends!",
+            "title": "Invite Friends!",
             "description": "Share your link. Every time a friend you brought makes a payment, you earn rewards.",
             "shareSheetTitle": "Share your invite link",
             "shareCta": "Share Invite Link",
@@ -3701,6 +3707,12 @@
         "noBadgeAvatars": "Earn a badge and its avatars appear here.",
         "rollDice": "Roll the dice",
         "change": "Change avatar",
-        "saveFailed": "Could not save your avatar. Try again."
+        "saveFailed": "Could not save your avatar. Try again.",
+        "useInitial": "Use the Initial",
+        "useAvatar": "Use the Avatar",
+        "chooseAvatar": "Choose your avatar",
+        "rolling": "Rolling the dice…",
+        "rollingHint": "A little luck. A whole new look.",
+        "cancelRoll": "Cancel roll"
     }
 }

@@ -78,6 +78,8 @@ jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSu
 
 const mockInitiateKyc = jest.fn()
 const mockRestartIdentity = jest.fn()
+const mockDismissCooldown = jest.fn()
+let mockFlowCooldown: { retryAt?: string } | null = null
 let mockFlowError: string | null = null
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => ({
@@ -86,12 +88,16 @@ jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
         handleRestartIdentity: mockRestartIdentity,
         isLoading: false,
         error: mockFlowError,
+        errorCooldown: mockFlowCooldown,
+        dismissErrorCooldown: mockDismissCooldown,
     }),
 }))
 
 // Heavy children are irrelevant to the list contract under test.
 jest.mock('@/components/Home/PendingVerificationTasks', () => ({ __esModule: true, default: () => null }))
-jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
+jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({ SumsubKycWrapper: () => null }))
+jest.mock('@/components/Kyc/KycVerificationInProgressModal', () => ({ KycVerificationInProgressModal: () => null }))
+jest.mock('@/components/Global/IframeWrapper', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Kyc/modals/KycProcessingModal', () => ({ KycProcessingModal: () => null }))
 jest.mock('@/components/Kyc/modals/KycActionRequiredModal', () => ({ KycActionRequiredModal: () => null }))
 jest.mock('@/components/Kyc/modals/KycFailedModal', () => ({ KycFailedModal: () => null }))
@@ -123,6 +129,7 @@ describe('UnlockPayments', () => {
         mockRegionRestricted = false
         mockKycDegraded = false
         mockFlowError = null
+        mockFlowCooldown = null
     })
 
     it('shows the in-review line with the submitted date while identity is processing', () => {
@@ -221,6 +228,19 @@ describe('UnlockPayments', () => {
         expect(mockRestartIdentity).toHaveBeenCalledTimes(2)
         expect(mockRestartIdentity).toHaveBeenLastCalledWith('LATAM')
         expect(mockInitiateKyc).not.toHaveBeenCalled()
+    })
+
+    it('shows a dated cooldown with one dismiss button', async () => {
+        mockFlowError = 'Too many requests'
+        mockFlowCooldown = { retryAt: '2026-09-08T18:57:00Z' }
+        render()
+        expect(screen.getByText('Give it a little time')).toBeInTheDocument()
+        expect(screen.getByText(/You can try again after/)).toHaveTextContent(/Sep 8/)
+        expect(screen.queryByText('Try again')).not.toBeInTheDocument()
+        expect(screen.queryByText('Contact support')).not.toBeInTheDocument()
+        expect(screen.queryByText('Too many requests')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByText("I'll try later"))
+        expect(mockDismissCooldown).toHaveBeenCalled()
     })
 
     it('an active LATAM rail shows the inline monthly limit bar on Brazil', () => {

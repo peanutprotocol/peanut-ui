@@ -12,7 +12,7 @@
     "deadLegacyTokens": 0,
     "consumedUndefinedTokens": 0,
     "classNameSitesInPages": 298,
-    "fontWeightOnTypeToken": 47,
+    "fontWeightOnTypeToken": 45,
     "offScaleSpacing": 188,
     "iconOffScale": 68,
     "offScaleRadius": 37,
@@ -52,6 +52,16 @@
             "date": "2026-09-04",
             "metrics": ["classNameSitesInPages 310 -> 312"],
             "reason": "dev-side, not authored here: the exchange-rate page gained 2 className sites in dev's exchange-currencies work (profile/exchange-rate/page.tsx), counted in on the merge. this branch touches no (mobile-ui) page.tsx at all."
+        },
+        {
+            "date": "2026-09-06",
+            "metrics": ["fontWeightOnTypeToken 47 -> 46"],
+            "reason": "scanner change, not a debt change: countWeightStacks now parses the file (scripts/ds-lint-ast.cjs) instead of regex-matching source regions, so it reaches class lists assembled through array .join, + concatenation and lookup maps, resolves same-file consts, and counts one drift per distinct pair of literals rather than per occurrence. the net -1 is a comment in 0_Bruddle/Section.tsx that the old per-line residue pass read as drift."
+        },
+        {
+            "date": "2026-09-07",
+            "metrics": ["fontWeightOnTypeToken 46 -> 45"],
+            "reason": "PR #3004 semantic contract: conditional branches are alternatives in all contexts. The only per-file count change is dev/_components/DevSegmented.tsx: font-bold in the small branch never co-applies with text-label-m in the other branch. CVA support is explicitly deferred with a diagnostic; there are no src consumers and its removal changes no counts. See scripts/ds-lint-contract.md."
         }
     ]
 }

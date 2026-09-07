@@ -54,6 +54,42 @@ export function offerBasics(pick: string | null, n = 5, random: () => number = M
     return [...keep, ...rest].slice(0, n)
 }
 
+const distinctArt = (keys: readonly string[]): string[] => {
+    const taken = new Set<string>()
+    return keys.filter((key) => {
+        const src = avatarSrc(key)
+        if (!src || taken.has(src)) return false
+        taken.add(src)
+        return true
+    })
+}
+
+/** PR #3014's art-deduped deal, adapted to a square, non-letter hand. */
+export function dealAvatars(unlocked: readonly string[], count: number, random: () => number = Math.random): string[] {
+    const deck = distinctArt([...basicAvatarKeys(), ...unlocked]).filter((key) => !key.startsWith('letter.'))
+    const earned = deck.filter((key) => unlocked.includes(key))
+    const hand: string[] = earned.length ? [earned[Math.floor(random() * earned.length)]] : []
+    const rest = deck.filter((key) => !hand.includes(key))
+    while (hand.length < count && rest.length) hand.push(rest.splice(Math.floor(random() * rest.length), 1)[0])
+    for (let i = hand.length - 1; i > 0; i--) {
+        const j = Math.floor(random() * (i + 1))
+        ;[hand[i], hand[j]] = [hand[j], hand[i]]
+    }
+    return hand
+}
+
+export function avatarGridColumns(width: number, height: number, available: number): number {
+    return Math.max(
+        3,
+        Math.min(
+            4,
+            Math.floor((Math.min(width, 576) - 24) / 80),
+            Math.floor((height * 0.8 - 220) / 80),
+            Math.floor(Math.sqrt(available))
+        )
+    )
+}
+
 /** Public path of the avatar art, or null for a key the manifest does not know. */
 export function avatarSrc(key: string | null | undefined): string | null {
     if (!key) return null

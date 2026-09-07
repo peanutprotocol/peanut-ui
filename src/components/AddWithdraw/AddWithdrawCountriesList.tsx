@@ -371,6 +371,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const sharedModals = (
         <>
             <InitiateKycModal
+                cooldownActive={!!sumsubFlow.errorCooldown}
                 visible={isKycModalOpen}
                 onClose={() => setIsKycModalOpen(false)}
                 onVerify={async () => {
@@ -413,7 +414,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 onComplete={() => setShowProvideEmail(false)}
                 onSkip={() => setShowProvideEmail(false)}
             />
-            <SumsubKycModals flow={sumsubFlow} />
+            <SumsubKycModals flow={sumsubFlow} onCooldownClose={() => setIsKycModalOpen(false)} />
         </>
     )
 

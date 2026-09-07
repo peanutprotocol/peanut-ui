@@ -144,7 +144,7 @@
     "profile": {
         "menu": {
             "inviteFriends": "Invitá amigos a Peanut",
-            "unlockedRegions": "Desbloqueá pagos",
+            "unlockedRegions": "Canales de pago",
             "help": "Centro de Ayuda",
             "about": "Acerca de Peanut",
             "updateAvailable": "Actualización disponible"
@@ -169,7 +169,7 @@
             }
         },
         "unlockPayments": {
-            "title": "Desbloqueá pagos",
+            "title": "Canales de pago",
             "description": "Todo lo que podés usar hoy, y lo que se abre después de verificar tu identidad.",
             "residence": {
                 "label": "Residencia: {country}",
@@ -242,6 +242,12 @@
                 "monthlyLeft": "Te quedan {remaining} de {limit} este mes",
                 "perTransfer": "Hasta {amount} por transferencia",
                 "p2pNoLimit": "Los pagos de Peanut a Peanut no tienen límite"
+            },
+            "cooldown": {
+                "title": "Esperá un poco",
+                "until": "Los intentos de verificación están limitados temporalmente. Podés volver a intentarlo después de {until}.",
+                "short": "Los intentos de verificación están limitados temporalmente. Volvé a intentarlo en un rato.",
+                "dismiss": "Lo intentaré más tarde"
             }
         },
         "backup": {
@@ -317,7 +323,7 @@
         "about": {
             "title": "Acerca de Peanut",
             "intro": "Peanut hace fáciles los dólares: guardá tu saldo, enviá a cualquier @usuario y mové dinero por rieles locales después de una sola verificación de identidad. Creado por Squirrel Labs.",
-            "policiesHeading": "Políticas",
+            "policiesHeading": "La parte oficial",
             "policies": {
                 "terms": "Términos de servicio",
                 "privacy": "Política de privacidad",
@@ -1619,5 +1625,13 @@
         "ready": {
             "subtitle": "Probá la puerta."
         }
+    },
+    "avatar": {
+        "useInitial": "Usar la inicial",
+        "useAvatar": "Usar el avatar",
+        "chooseAvatar": "Elegí tu avatar",
+        "rolling": "Tirando el dado…",
+        "rollingHint": "Un poco de suerte. Un nuevo look.",
+        "cancelRoll": "Cancelar tirada"
     }
 }

@@ -213,7 +213,8 @@ jobs:
                       echo "$MEA_CONFIG" | base64 -d > android/app/src/main/res/raw/mea_config
                       echo "mea_config written"
                   else
-                      echo "MEAWALLET_CONFIG_BASE64 not set — push provisioning stays stubbed"
+                      echo "::error::MEAWALLET_CONFIG_BASE64 is required for a production native release"
+                      exit 1
                   fi
 
             - name: Build signed AAB
@@ -223,8 +224,9 @@ jobs:
                   # the static export above; no new secret needed.
                   SENTRY_DSN_ANDROID: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
                   # MeaWallet MPP SDK — gradle gates both the dependency and the
-                  # plugin source on these; absent secrets build without the SDK.
+                  # plugin source on these; production must never compile the stub.
                   # Android-specific names: see the note in ios-release.yml.
+                  PEANUT_REQUIRE_PUSH_PROVISIONING: '1'
                   MEAWALLET_NEXUS_USER: ${{ secrets.MEAWALLET_NEXUS_USER_ANDROID }}
                   MEAWALLET_NEXUS_PASSWORD: ${{ secrets.MEAWALLET_NEXUS_PASSWORD_ANDROID }}
                   ANDROID_VERSION_NAME: ${{ steps.version.outputs.name }}

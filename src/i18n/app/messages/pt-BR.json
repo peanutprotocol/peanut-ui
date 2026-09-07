@@ -307,7 +307,7 @@
             "yourBadges": "Seus selos",
             "points": "Pontos",
             "personalDetails": "Dados pessoais",
-            "unlockedRegions": "Desbloqueie pagamentos",
+            "unlockedRegions": "Canais de pagamento",
             "paymentLimits": "Limites de pagamento",
             "showMyFullName": "Mostrar meu nome completo",
             "backup": "Backup",
@@ -358,7 +358,7 @@
             }
         },
         "unlockPayments": {
-            "title": "Desbloqueie pagamentos",
+            "title": "Canais de pagamento",
             "description": "Tudo o que você pode usar hoje, e o que se abre depois de verificar sua identidade.",
             "residence": {
                 "label": "Residência: {country}",
@@ -431,6 +431,12 @@
                 "monthlyLeft": "Restam {remaining} de {limit} neste mês",
                 "perTransfer": "Até {amount} por transferência",
                 "p2pNoLimit": "Os pagamentos de Peanut para Peanut não têm limite"
+            },
+            "cooldown": {
+                "title": "Espere um pouco",
+                "until": "As tentativas de verificação estão temporariamente limitadas. Você pode tentar novamente após {until}.",
+                "short": "As tentativas de verificação estão temporariamente limitadas. Tente novamente daqui a pouco.",
+                "dismiss": "Vou tentar mais tarde"
             }
         },
         "backup": {
@@ -545,7 +551,7 @@
         "about": {
             "title": "Sobre o Peanut",
             "intro": "O Peanut torna os dólares fáceis: guarde seu saldo, envie para qualquer @usuário e mova dinheiro pelos trilhos locais após uma única verificação de identidade. Criado pela Squirrel Labs.",
-            "policiesHeading": "Políticas",
+            "policiesHeading": "A parte oficial",
             "policies": {
                 "terms": "Termos de Serviço",
                 "privacy": "Política de Privacidade",
@@ -556,7 +562,7 @@
                 "cardProhibitedActivities": "Política de Atividades Proibidas",
                 "securityDisclosure": "Divulgação de Segurança"
             },
-            "rateHeading": "Avaliar o app",
+            "rateHeading": "Está gostando?",
             "rate": "Deixar uma avaliação",
             "version": "Versão {version}",
             "beta": {
@@ -3701,6 +3707,12 @@
         "noBadgeAvatars": "Ganhe um selo e seus avatares aparecem aqui.",
         "rollDice": "Jogar os dados",
         "change": "Trocar avatar",
-        "saveFailed": "Não foi possível salvar seu avatar. Tente de novo."
+        "saveFailed": "Não foi possível salvar seu avatar. Tente de novo.",
+        "useInitial": "Usar a inicial",
+        "useAvatar": "Usar o avatar",
+        "chooseAvatar": "Escolha seu avatar",
+        "rolling": "Rolando o dado…",
+        "rollingHint": "Um pouco de sorte. Um novo visual.",
+        "cancelRoll": "Cancelar rolagem"
     }
 }
