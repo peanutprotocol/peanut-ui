@@ -54,34 +54,24 @@ export enum EHistoryStatus {
     expired = 'expired',
     OPEN = 'OPEN',
     CLOSED = 'CLOSED',
-    // Bridge (peanut-api-ts BridgeTransferState) sends its lifecycle lowercase
-    // end to end — see src/bridge/transfers.ts on the API side, projected
-    // straight onto `status` (src/db/history.ts). `completed`/`refunded`/
-    // `canceled` above already double as this for other providers; these
-    // four have no existing lowercase member to reuse.
-    payment_processed = 'payment_processed',
-    error = 'error',
-    returned = 'returned',
-    undeliverable = 'undeliverable',
 }
 
+// Bridge's HistoryEntry.status is always the UPPER_CASE Prisma
+// BridgeTransferState (peanut-api-ts src/db/history.ts:844, `status:
+// bridgeState`) — Bridge's own webhook/API strings are lowercase, but
+// `bridgeStateFromString` normalizes them before that value is ever stored
+// or projected to the FE (peanut-api-ts src/bridge/ledger.ts). RETURNED and
+// UNDELIVERABLE are terminal Bridge states that were simply missing here.
 export const FINAL_STATES: HistoryStatus[] = [
     EHistoryStatus.COMPLETED,
-    EHistoryStatus.completed, // Bridge terminal state (lowercase)
     EHistoryStatus.EXPIRED,
     EHistoryStatus.CLAIMED,
     EHistoryStatus.PAYMENT_PROCESSED,
-    EHistoryStatus.payment_processed, // Bridge terminal state (lowercase)
     EHistoryStatus.REFUNDED,
-    EHistoryStatus.refunded, // Bridge terminal state (lowercase)
     EHistoryStatus.CANCELED,
-    EHistoryStatus.canceled, // Bridge terminal state (lowercase)
     EHistoryStatus.ERROR,
-    EHistoryStatus.error, // Bridge terminal state (lowercase)
     EHistoryStatus.RETURNED,
-    EHistoryStatus.returned, // Bridge terminal state (lowercase)
     EHistoryStatus.UNDELIVERABLE,
-    EHistoryStatus.undeliverable, // Bridge terminal state (lowercase)
     EHistoryStatus.CLOSED,
 ]
 

@@ -197,11 +197,13 @@ describe('completeHistoryEntry currency-price fallback (pending vs final)', () =
         expect(result.currency?.amount).toBe((2 * 0.9).toString())
     })
 
-    // Bridge's wire status is lowercase end to end (BridgeTransferState) —
-    // isFinalState must recognize it, or a genuinely-settled OFFRAMP row
-    // stays stuck treating its mirrored amount as pending forever.
-    it.each(['completed', 'payment_processed'])(
-        'treats OFFRAMP status=%s (Bridge lowercase terminal state) as final',
+    // Bridge's HistoryEntry.status is always the UPPER_CASE Prisma
+    // BridgeTransferState (peanut-api-ts src/db/history.ts:844) — Bridge's
+    // own webhook strings are lowercase, but the API normalizes them via
+    // `bridgeStateFromString` before that value is ever stored or sent to
+    // the FE, so isFinalState only ever needs to match the upper-case form.
+    it.each(['COMPLETED', 'PAYMENT_PROCESSED', 'REFUNDED', 'CANCELED', 'ERROR'])(
+        'treats OFFRAMP status=%s as final',
         async (status) => {
             const entry: HistoryEntry = {
                 ...baseEntry,
@@ -216,20 +218,24 @@ describe('completeHistoryEntry currency-price fallback (pending vs final)', () =
         }
     )
 
-    it.each(['canceled', 'error', 'returned', 'undeliverable', 'refunded'])(
-        'treats OFFRAMP status=%s (Bridge lowercase failure terminal) as final too',
-        async (status) => {
-            const entry: HistoryEntry = {
-                ...baseEntry,
-                status: status as HistoryEntry['status'],
-                amount: '2.00',
-                currency: { amount: '2.00', code: 'eur' },
-                extraData: { ...baseEntry.extraData, kind: 'OFFRAMP' },
-            }
-            await completeHistoryEntry(entry)
-            expect(mockGetCachedCurrencyPrice).toHaveBeenCalledWith('EUR')
+    // RETURNED/UNDELIVERABLE were missing from FINAL_STATES before this fix —
+    // the one genuinely-reachable enum change here (peanut-api-ts emits both
+    // for a failed Bridge payout). Without it a returned/undeliverable OFFRAMP
+    // stayed on the pending path forever: blanked currency.amount, and (via
+    // the shared isFinalState consumers) an endless 15s receipt poll and a
+    // PENDING_TTL PDF cache that never promotes to the final one.
+    it.each(['RETURNED', 'UNDELIVERABLE'])('treats OFFRAMP status=%s as final', async (status) => {
+        const entry: HistoryEntry = {
+            ...baseEntry,
+            status: status as HistoryEntry['status'],
+            amount: '2.00',
+            currency: { amount: '2.00', code: 'eur' },
+            extraData: { ...baseEntry.extraData, kind: 'OFFRAMP' },
         }
-    )
+        const result = await completeHistoryEntry(entry)
+        expect(mockGetCachedCurrencyPrice).toHaveBeenCalledWith('EUR')
+        expect(result.currency?.amount).toBe((2 * 0.9).toString())
+    })
 })
 
 /**
