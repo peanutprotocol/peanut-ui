@@ -682,6 +682,7 @@ const UnlockSection = ({
                     return (
                         <ListItem
                             key={row.id}
+                            className="min-h-18"
                             disabled={row.chip === 'notAvailable'}
                             leading={<IconBubble icon={row.icon as IconName} size="s" color={BUBBLE_COLOR[row.chip]} />}
                             title={<span className="break-words whitespace-normal">{t(`rows.${row.labelKey}`)}</span>}
