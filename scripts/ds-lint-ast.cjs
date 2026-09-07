@@ -263,6 +263,27 @@ function literalAlt(node, text, ctx) {
 }
 
 /**
+ * A numeric index an expression denotes, following same-file consts the way
+ * {@link staticText} does for strings. Null when it is not statically known.
+ */
+function staticIndex(node, ctx, depth = 0, seen = new Set()) {
+    if (!node || depth > MAX_DEPTH) return null
+    if (ts.isNumericLiteral(node)) return Number(node.text)
+    if (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isSatisfiesExpression(node)) {
+        return staticIndex(node.expression, ctx, depth + 1, seen)
+    }
+    if (ts.isIdentifier(node)) {
+        if (!ctx || seen.has(node.text)) return null
+        const bound = lookup(ctx.scopes, node.text)
+        if (!bound || bound.value === OPAQUE) return null
+        const next = new Set(seen)
+        next.add(node.text)
+        return staticIndex(bound.value, { ...ctx, scopes: bound.scopes }, depth + 1, next)
+    }
+    return null
+}
+
+/**
  * Every class list an expression can produce, as deduped ALTERNATIVES.
  *
  * Alternatives exist for lookup maps specifically. `{ sm: 'text-body-m', lg:
@@ -445,44 +466,22 @@ function alternatives(node, ctx, depth = 0, seen = new Set(), mode = LOOKUP_OBJE
         return alternatives(node.expression, ctx, depth + 1, seen, LOOKUP_OBJECT)
     }
     if (ts.isElementAccessExpression(node)) {
+        // A constant key SELECTS one entry, exactly as a property access does —
+        // whatever chain of same-file consts spells it. Unwrapping the key only
+        // one level left `const k = actual` reading as dynamic, and the union
+        // fallback then borrowed a class from an entry the key cannot reach.
         const arg = node.argumentExpression
-        let argText = null
-        let argNumber = null
-        if (arg) {
-            // Resolve const-backed argument
-            const boundArg = ts.isIdentifier(arg) ? lookup(ctx.scopes, arg.text) : null
-            const resolvedArg = boundArg && boundArg.value !== OPAQUE ? boundArg.value : arg
-            if (ts.isStringLiteral(resolvedArg)) {
-                argText = resolvedArg.text
-            } else if (ts.isNumericLiteral(resolvedArg)) {
-                argNumber = Number(resolvedArg.text)
-            }
-        }
-        if (argText !== null) {
-            const selected = propertyByName(node.expression, argText, ctx, depth, seen)
+        const keyText = staticText(arg, ctx, depth + 1, seen)
+        if (keyText !== null) {
+            const selected = propertyByName(node.expression, keyText, ctx, depth, seen)
             if (selected) {
                 return alternatives(selected.value, { ...ctx, scopes: selected.scopes }, depth + 1, seen, LOOKUP_OBJECT)
             }
         }
-        // A constant index picks ONE element, exactly as a constant key picks one
-        // property. Unioning the whole array for `S[1]` borrowed a token from a
-        // sibling entry the expression can never render.
-        if (argNumber !== null) {
-            const selected = elementByIndex(node.expression, argNumber, ctx, depth, seen)
-            if (selected) {
-                if (!selected.value) return NOTHING
-                return alternatives(selected.value, { ...ctx, scopes: selected.scopes }, depth + 1, seen, LOOKUP_OBJECT)
-            }
-        }
-        // Fallback to original behavior for unresolved arguments
-        if (arg && ts.isStringLiteral(arg)) {
-            const selected = propertyByName(node.expression, arg.text, ctx, depth, seen)
-            if (selected) {
-                return alternatives(selected.value, { ...ctx, scopes: selected.scopes }, depth + 1, seen, LOOKUP_OBJECT)
-            }
-        }
-        if (arg && ts.isNumericLiteral(arg)) {
-            const selected = elementByIndex(node.expression, Number(arg.text), ctx, depth, seen)
+        // The same for a constant index into an array.
+        const index = staticIndex(arg, ctx, depth + 1, seen)
+        if (index !== null) {
+            const selected = elementByIndex(node.expression, index, ctx, depth, seen)
             if (selected) {
                 if (!selected.value) return NOTHING
                 return alternatives(selected.value, { ...ctx, scopes: selected.scopes }, depth + 1, seen, LOOKUP_OBJECT)
@@ -599,7 +598,10 @@ function cvaAlternatives(node, ctx, depth, seen) {
         const entryCtx = { ...ctx, scopes: compound.scopes }
         let selected = NOTHING
         let classes = NOTHING
-        const pinned = new Set()
+        // axis name → the option names this compound fires for. Kept as names,
+        // not just "pinned", because two compounds only co-apply when every
+        // axis they BOTH constrain has an option in common.
+        const pinned = new Map()
         // A selector resolved to NO options can never match, so the compound's
         // classes never render alongside anything.
         let impossible = false
@@ -639,7 +641,7 @@ function cvaAlternatives(node, ctx, depth, seen) {
                 chosen = chosen ? union(chosen, alts) : alts
             }
             if (!chosen) continue
-            pinned.add(name)
+            pinned.set(name, new Set(optionNames))
             selected = product(selected, chosen)
         }
         // base + the pinned options + EVERY axis the compound leaves free + the
@@ -652,20 +654,53 @@ function cvaAlternatives(node, ctx, depth, seen) {
         // weight back beside a sibling option of a PINNED axis — the exact
         // constraint this loop exists to respect.
         if (impossible) continue
-        let combination = product(baseAlts, selected)
+        compoundCombinations.push({ pinned, selected, classes })
+    }
+
+    // A compound renders beside base, the options it pins, and every axis it
+    // leaves free — a compound constraining only `size` still lands next to
+    // whatever `tone` is set to.
+    //
+    // Built from `baseAlts`, never from `out`: by now `out` carries every axis
+    // unioned together, so producting against it would put a compound's weight
+    // beside a sibling option of an axis it PINS — the constraint this whole
+    // section exists to respect.
+    const withFreeAxes = (constrained, base) => {
+        let combination = base
         for (const [axisName, alts] of axisAlts) {
-            if (pinned.has(axisName)) continue
+            if (constrained.has(axisName)) continue
             combination = product(combination, alts)
         }
-        compoundCombinations.push(product(combination, classes))
+        return combination
     }
-    // Combine compatible compound variants that can co-apply
-    let compoundProduct = NOTHING
-    for (const combo of compoundCombinations) {
-        compoundProduct = product(compoundProduct, combo)
+    for (const entry of compoundCombinations) {
+        out = union(out, withFreeAxes(entry.pinned, product(product(baseAlts, entry.selected), entry.classes)))
     }
-    if (compoundProduct !== NOTHING) {
-        out = union(out, compoundProduct)
+
+    // Two compounds DO co-apply when a single selection satisfies both — the
+    // ordinary case being compounds that constrain different axes. Producting
+    // every compound together instead treated `{ tone: 'loud' }` and
+    // `{ tone: 'quiet' }` as simultaneous, which no runtime selection can be.
+    //
+    // Pairs are enough, and bounded. A larger co-applying set is only realizable
+    // when every pair inside it is, so any token/weight pair this metric asks
+    // about already shows up in some compatible PAIR (or in one compound alone,
+    // covered above).
+    for (let i = 0; i < compoundCombinations.length; i++) {
+        for (let j = i + 1; j < compoundCombinations.length; j++) {
+            const a = compoundCombinations[i]
+            const b = compoundCombinations[j]
+            const shared = [...a.pinned.keys()].filter((axisName) => b.pinned.has(axisName))
+            // Every axis they both constrain needs an option in common, or no
+            // single selection fires both.
+            const compatible = shared.every((axisName) =>
+                [...a.pinned.get(axisName)].some((option) => b.pinned.get(axisName).has(option))
+            )
+            if (!compatible) continue
+            const constrained = new Set([...a.pinned.keys(), ...b.pinned.keys()])
+            const both = product(product(product(baseAlts, a.selected), b.selected), product(a.classes, b.classes))
+            out = union(out, withFreeAxes(constrained, both))
+        }
     }
     return out
 }
@@ -736,6 +771,7 @@ function patternNames(name, into) {
 
 /** Record a declaration list's names, inlining only a plain `const x = <expr>`. */
 function recordDeclarationList(list, bindings) {
+    // eslint-disable-next-line no-bitwise
     const isConst = !!(list.flags & ts.NodeFlags.Const)
     for (const decl of list.declarations) {
         if (ts.isIdentifier(decl.name)) {
@@ -818,7 +854,8 @@ function hoistedVarNames(body) {
               ? node.initializer
               : null
         if (list) {
-        const isVar = !(list.flags & (ts.NodeFlags.Const | ts.NodeFlags.Let))
+            // eslint-disable-next-line no-bitwise
+            const isVar = !(list.flags & (ts.NodeFlags.Const | ts.NodeFlags.Let))
             if (isVar) for (const decl of list.declarations) patternNames(decl.name, names)
         }
         ts.forEachChild(node, walk)

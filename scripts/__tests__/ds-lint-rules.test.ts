@@ -404,6 +404,59 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
         ).toBe(1)
     })
 
+    it('combines two cva compounds only when one selection fires both', () => {
+        // Same axis, different options: no runtime selection matches both, so
+        // producting them invents a stack across two variants of a valid table.
+        expect(
+            countWeightStacks(
+                "const c = cva('base', { variants: { tone: { loud: 'x', quiet: 'y' } }, compoundVariants: [{ tone: 'loud', class: 'text-body-m' }, { tone: 'quiet', class: 'font-semibold' }] })"
+            )
+        ).toBe(0)
+        // Different axes are selected independently, so both really do render.
+        expect(
+            countWeightStacks(
+                "const c = cva('base', { variants: { tone: { loud: 'x' }, size: { sm: 'y' } }, compoundVariants: [{ tone: 'loud', class: 'text-body-m' }, { size: 'sm', class: 'font-semibold' }] })"
+            )
+        ).toBe(1)
+        // Same axis with an option in COMMON: `tone: 'quiet'` fires both.
+        expect(
+            countWeightStacks(
+                "const c = cva('base', { variants: { tone: { loud: 'x', quiet: 'y' } }, compoundVariants: [{ tone: ['loud', 'quiet'], class: 'text-body-m' }, { tone: 'quiet', class: 'font-semibold' }] })"
+            )
+        ).toBe(1)
+        // and a single compound carrying both still counts on its own
+        expect(
+            countWeightStacks(
+                "const c = cva('base', { variants: { tone: { loud: 'x' } }, compoundVariants: [{ tone: 'loud', class: 'text-body-m font-semibold' }] })"
+            )
+        ).toBe(1)
+    })
+
+    it('resolves a lookup key through a chain of consts', () => {
+        const map = "const S = { sm: 'underline', lg: 'text-body-m' }"
+        // `k` is `actual` is `'sm'` — the selected entry carries no type token
+        expect(
+            countWeightStacks(`const actual = 'sm'; const k = actual; ${map}; const c = clsx(S[k], 'font-semibold')`)
+        ).toBe(0)
+        expect(
+            countWeightStacks(`const actual = 'lg'; const k = actual; ${map}; const c = clsx(S[k], 'font-semibold')`)
+        ).toBe(1)
+        // the chain is read in each binding's own scope
+        expect(
+            countWeightStacks(
+                `const actual = 'sm'; const k = actual; ${map}; function f() { const actual = 'lg'; return clsx(S[k], 'font-semibold') }`
+            )
+        ).toBe(0)
+        // a genuinely dynamic key still unions the whole table
+        expect(countWeightStacks(`${map}; function f(k) { return clsx(S[k], 'font-semibold') }`)).toBe(1)
+        // and a const-backed numeric index selects too
+        expect(
+            countWeightStacks(
+                "const i = 1; const A = ['text-body-m', 'underline']; const c = clsx(A[i], 'font-semibold')"
+            )
+        ).toBe(0)
+    })
+
     it('drops a cva compound whose selector can never match', () => {
         // cva tests an array selector with `includes`, so [] matches nothing.
         const axes = "variants: { tone: { loud: 'text-body-m', quiet: 'x' } }"
