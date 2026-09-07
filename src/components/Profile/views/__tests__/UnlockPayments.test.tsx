@@ -7,7 +7,7 @@
  * the residence anchor renders, and restricted residences read Not available.
  */
 import React from 'react'
-import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { IntlWrapper } from '@/test-utils/intl'
 import UnlockPayments from '@/components/Profile/views/UnlockPayments.view'
@@ -78,6 +78,7 @@ jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSu
 
 const mockInitiateKyc = jest.fn()
 const mockRestartIdentity = jest.fn()
+let mockFlowCooldown: { retryAt?: string } | null = null
 let mockFlowError: string | null = null
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => ({
@@ -86,6 +87,7 @@ jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
         handleRestartIdentity: mockRestartIdentity,
         isLoading: false,
         error: mockFlowError,
+        errorCooldown: mockFlowCooldown,
     }),
 }))
 
@@ -123,6 +125,7 @@ describe('UnlockPayments', () => {
         mockRegionRestricted = false
         mockKycDegraded = false
         mockFlowError = null
+        mockFlowCooldown = null
     })
 
     it('shows the in-review line with the submitted date while identity is processing', () => {
@@ -221,6 +224,18 @@ describe('UnlockPayments', () => {
         expect(mockRestartIdentity).toHaveBeenCalledTimes(2)
         expect(mockRestartIdentity).toHaveBeenLastCalledWith('LATAM')
         expect(mockInitiateKyc).not.toHaveBeenCalled()
+    })
+
+    it('shows a dated cooldown with one dismiss button', async () => {
+        mockFlowError = 'Please wait'
+        mockFlowCooldown = { retryAt: '2026-09-08T18:57:00Z' }
+        render()
+        expect(screen.getByText('Give it a little time')).toBeInTheDocument()
+        expect(screen.getByText(/You can try again after/)).toHaveTextContent(/Sep 8/)
+        expect(screen.queryByText('Try again')).not.toBeInTheDocument()
+        expect(screen.queryByText('Contact support')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByText("I'll try later"))
+        await waitFor(() => expect(screen.queryByText('Give it a little time')).not.toBeInTheDocument())
     })
 
     it('an active LATAM rail shows the inline monthly limit bar on Brazil', () => {

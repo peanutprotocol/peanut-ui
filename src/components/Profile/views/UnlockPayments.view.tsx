@@ -565,42 +565,65 @@ const UnlockPayments = () => {
                 visible={!!flow.error && !errorAcknowledged}
                 onClose={() => setErrorAcknowledged(true)}
                 title={
-                    failedRegionRetriable
-                        ? tRegions('initError.retriableTitle')
-                        : tRegions('initError.notAvailableTitle')
+                    flow.errorCooldown
+                        ? t('cooldown.title')
+                        : failedRegionRetriable
+                          ? tRegions('initError.retriableTitle')
+                          : tRegions('initError.notAvailableTitle')
                 }
-                description={flow.error || tCommon('genericError')}
-                tone="error"
+                description={
+                    flow.errorCooldown
+                        ? flow.errorCooldown.retryAt
+                            ? t('cooldown.until', {
+                                  until: new Date(flow.errorCooldown.retryAt).toLocaleString(locale, {
+                                      month: 'short',
+                                      day: 'numeric',
+                                      hour: 'numeric',
+                                      minute: '2-digit',
+                                  }),
+                              })
+                            : t('cooldown.short')
+                        : flow.error || tCommon('genericError')
+                }
+                tone={flow.errorCooldown ? 'warning' : 'error'}
                 ctas={
-                    failedRegionRetriable
+                    flow.errorCooldown
                         ? [
                               {
-                                  text: tCommon('tryAgain'),
+                                  text: t('cooldown.dismiss'),
                                   variant: 'purple',
-                                  shadowSize: '4',
-                                  disabled: flow.isLoading,
-                                  onClick: () => {
-                                      if (reverifyRequested) void flow.handleRestartIdentity(activeRegionIntent)
-                                      else void flow.handleInitiateKyc(activeRegionIntent, undefined, true)
-                                  },
-                              },
-                              {
-                                  text: tCommon('contactSupport'),
-                                  variant: 'stroke',
-                                  onClick: () => {
-                                      setErrorAcknowledged(true)
-                                      setIsSupportModalOpen(true)
-                                  },
-                              },
-                          ]
-                        : [
-                              {
-                                  text: tCommon('gotIt'),
-                                  variant: 'purple',
-                                  shadowSize: '4',
                                   onClick: () => setErrorAcknowledged(true),
                               },
                           ]
+                        : failedRegionRetriable
+                          ? [
+                                {
+                                    text: tCommon('tryAgain'),
+                                    variant: 'purple',
+                                    shadowSize: '4',
+                                    disabled: flow.isLoading,
+                                    onClick: () => {
+                                        if (reverifyRequested) void flow.handleRestartIdentity(activeRegionIntent)
+                                        else void flow.handleInitiateKyc(activeRegionIntent, undefined, true)
+                                    },
+                                },
+                                {
+                                    text: tCommon('contactSupport'),
+                                    variant: 'stroke',
+                                    onClick: () => {
+                                        setErrorAcknowledged(true)
+                                        setIsSupportModalOpen(true)
+                                    },
+                                },
+                            ]
+                          : [
+                                {
+                                    text: tCommon('gotIt'),
+                                    variant: 'purple',
+                                    shadowSize: '4',
+                                    onClick: () => setErrorAcknowledged(true),
+                                },
+                            ]
                 }
             />
 

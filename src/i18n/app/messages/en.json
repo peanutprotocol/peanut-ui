@@ -431,6 +431,12 @@
                 "monthlyLeft": "{remaining} of {limit} left this month",
                 "perTransfer": "Up to {amount} per transfer",
                 "p2pNoLimit": "No limits on Peanut-to-Peanut payments"
+            },
+            "cooldown": {
+                "title": "Give it a little time",
+                "until": "Verification attempts are temporarily limited. You can try again after {until}.",
+                "short": "Verification attempts are temporarily limited. Please try again in a little while.",
+                "dismiss": "I'll try later"
             }
         },
         "backup": {
