@@ -227,13 +227,14 @@ describe('UnlockPayments', () => {
     })
 
     it('shows a dated cooldown with one dismiss button', async () => {
-        mockFlowError = 'Please wait'
+        mockFlowError = 'Too many requests'
         mockFlowCooldown = { retryAt: '2026-09-08T18:57:00Z' }
         render()
         expect(screen.getByText('Give it a little time')).toBeInTheDocument()
         expect(screen.getByText(/You can try again after/)).toHaveTextContent(/Sep 8/)
         expect(screen.queryByText('Try again')).not.toBeInTheDocument()
         expect(screen.queryByText('Contact support')).not.toBeInTheDocument()
+        expect(screen.queryByText('Too many requests')).not.toBeInTheDocument()
         fireEvent.click(screen.getByText("I'll try later"))
         await waitFor(() => expect(screen.queryByText('Give it a little time')).not.toBeInTheDocument())
     })
