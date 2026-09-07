@@ -53,6 +53,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     const tCommon = useTranslations('common')
     const tIdentity = useTranslations('identity')
     const tRegion = useTranslations('kyc.regionRestricted')
+    const tProviderRejection = useTranslations('profile.regions.providerRejection')
     const router = useRouter()
     const { setIsQRScannerOpen, openSupportWithMessage } = useModalsContext()
     const { rails, channelOf, nextActions } = useCapabilities()
@@ -117,6 +118,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         primaryRejectionCode,
         blockedRail,
         isEmailBlocked,
+        isRestartBlocked,
     } = useMemo(() => {
         const rejectableRails = rails.filter((rail) => {
             const channel = channelOf(rail)
@@ -155,6 +157,16 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             })(),
             blockedRail: blocked,
             isEmailBlocked: !!emailBlocked,
+            // Read off the rail the blocked arm ALREADY selected, rather than
+            // hunting for a restart-eligible rail among the blocked ones. That is
+            // `deriveGate`'s rule verbatim: the FIRST blocked verdict decides, so
+            // an account-wide terminal block still wins over a sibling's restart
+            // CTA — re-verifying cannot lift a terminal rail and it burns the
+            // user's Sumsub attempts.
+            isRestartBlocked:
+                !emailBlocked &&
+                !!blocked &&
+                railVerdict(blocked, actionByKey).blocking?.selfHealKind === 'restart-identity',
         }
     }, [rails, channelOf, nextActions])
 
@@ -317,6 +329,24 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     href: '/profile/identity-verification',
                 }
             }
+            // Blocked, but self-fixable by verifying again with a document that
+            // carries what the provider needs — a Brazilian whose ID has no CPF is
+            // the case this exists for. Offering support here contradicts a restart
+            // endpoint that already admits them.
+            //
+            // Copy comes from the profile catalog rather than a second `home.*`
+            // key: the strings would be identical, and the catalog drift test asks
+            // for one canonical key instead of two that can diverge.
+            if (isRestartBlocked) {
+                return {
+                    icon: 'globe-lock',
+                    iconBg: 'bg-action-primary',
+                    title: tProviderRejection('restartTitle'),
+                    description: localizedRejectionMessage || tProviderRejection('restartDescription'),
+                    ctaLabel: tProviderRejection('restartTitle'),
+                    href: '', // handled in onClick
+                }
+            }
             // blocked
             return {
                 icon: 'globe-lock',
@@ -348,6 +378,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         hasProviderRejection,
         hasFixableRejection,
         isEmailBlocked,
+        isRestartBlocked,
         localizedRejectionMessage,
         isIdentityProcessing,
         isIdentityActionRequired,
@@ -355,6 +386,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         hasCardAccess,
         isRegionRestricted,
         tRegion,
+        tProviderRejection,
     ])
 
     if (!step) return null
@@ -404,6 +436,11 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                             router.push(REGION_RESTRICTED_CTA_HREF)
                         } else if (isEmailBlocked) {
                             setShowProvideEmail(true)
+                        } else if (hasProviderRejection && isRestartBlocked && !hasFixableRejection) {
+                            // Self-fixable by a fresh ID check, so it must not open
+                            // support — same rank as the terminal arm below, only a
+                            // different destination.
+                            void kycFlow.handleRestartIdentity()
                         } else if (hasProviderRejection && hasBlockedRejection && !hasFixableRejection) {
                             // REQUIRES_SUPPORT class (or any blocked rail) — pre-fill Crisp
                             // with the failure context so support can dispatch without
