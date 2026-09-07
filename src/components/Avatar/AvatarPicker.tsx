@@ -130,7 +130,7 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                 className={
                     phase === 'rolling' ? styles.fullscreen : twMerge('py-4', phase === 'avatars' && styles.dealtDrawer)
                 }
-                scrollAreaClassName={phase === 'rolling' ? styles.rollArea : 'px-4'}
+                scrollAreaClassName={phase === 'rolling' ? twMerge('px-0', styles.rollArea) : undefined}
             >
                 {phase === 'rolling' ? (
                     <>
@@ -140,7 +140,7 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                         )}
                     </>
                 ) : (
-                    <div className={twMerge(styles.picker, columns === 4 && styles.fourColumns)}>
+                    <div className={twMerge('pb-2', styles.picker, columns === 4 && styles.fourColumns)}>
                         <DrawerHeader className="p-0 pb-4 text-left">
                             <DrawerTitle
                                 ref={titleRef}

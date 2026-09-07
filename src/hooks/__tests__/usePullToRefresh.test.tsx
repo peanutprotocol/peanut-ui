@@ -160,6 +160,32 @@ describe('usePullToRefresh', () => {
         expect(invalidateQueries).not.toHaveBeenCalled()
         expect(impactHaptic).not.toHaveBeenCalled()
     })
+
+    it('ignores touches that start on an open vaul drawer', () => {
+        const invalidateQueries = jest.spyOn(queryClient, 'invalidateQueries')
+        renderHook(() => usePullToRefresh(), { wrapper })
+
+        const sheet = document.createElement('div')
+        sheet.setAttribute('data-vaul-drawer', '')
+        const inner = document.createElement('button')
+        sheet.appendChild(inner)
+        document.body.appendChild(sheet)
+
+        const start = new Event('touchstart', { bubbles: true })
+        Object.defineProperty(start, 'touches', { value: [{ clientX: 0, clientY: 0 }] })
+        act(() => {
+            inner.dispatchEvent(start)
+        })
+
+        // a full downward drag on the sheet must not move the indicator
+        touch('touchmove', 200)
+        touch('touchend', 200)
+
+        expect(indicator()?.style.opacity).toBe('0')
+        expect(invalidateQueries).not.toHaveBeenCalled()
+        expect(impactHaptic).not.toHaveBeenCalled()
+        sheet.remove()
+    })
 })
 
 describe('overlay gesture isolation', () => {

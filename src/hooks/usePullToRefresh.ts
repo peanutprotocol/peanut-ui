@@ -177,6 +177,11 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
                 resetPull()
                 return
             }
+            const target = e.target as Element | null
+            if (target?.closest?.('[data-vaul-drawer],[data-vaul-overlay]')) {
+                resetPull()
+                return
+            }
             const allowed = shouldPullToRefreshRef.current ? shouldPullToRefreshRef.current() : window.scrollY === 0
             if (!allowed) return
             // a new pull can start inside the retract window — put the arrow back

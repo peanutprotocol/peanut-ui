@@ -763,6 +763,15 @@
     -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }
 
+/* the (mobile-ui) layout puts .app-no-callout on <body> (useLongPressGuard):
+   long-pressing an app-shell CTA or menu row must not pop the OS link
+   preview. anchors and buttons only — inputs and selectable text keep their
+   native menus. android's context menu is handled by the same hook in JS. */
+.app-no-callout a,
+.app-no-callout button {
+    -webkit-touch-callout: none;
+}
+
 /* shadow-4 is used with variants (sm:shadow-4, hover:shadow-4) — a plain
    @layer components class can't take variants in v4, so it lives here as a
    real utility. its siblings (shadow-2, shadow-primary/secondary-*) stay in

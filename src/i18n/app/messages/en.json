@@ -777,7 +777,7 @@
             "recoverWallet": "Need to recover your Peanut account?"
         },
         "waitlist": {
-            "inviterUsernamePlaceholder": "Their username",
+            "inviterUsernamePlaceholder": "Username",
             "inviterNotFound": "No Peanut member with that username. Double-check your inviter's exact handle.",
             "joinWaitlist": "Join waitlist",
             "loginCanceled": "Login was canceled. Please try again.",
@@ -785,7 +785,7 @@
             "loginUnexpectedError": "An unexpected error occurred during login."
         },
         "signupStep": {
-            "usernamePlaceholder": "Enter a username",
+            "usernamePlaceholder": "Username",
             "errors": {
                 "required": "Username is required",
                 "tooShort": "Username must be at least 4 characters long",
@@ -800,7 +800,7 @@
         },
         "residenceStep": {
             "countryPlaceholder": "Select your country",
-            "secondCountryPlaceholder": "Select your second country",
+            "secondCountryPlaceholder": "Second country",
             "multiDocLink": "Have documents from more than one country?",
             "errors": {
                 "invalidEmail": "Please enter a valid email address"
@@ -1062,7 +1062,7 @@
         "linkCreatedToast": "Link created successfully!",
         "linkCreatedAndCopiedToast": "Link created and copied to clipboard!",
         "requestUpdatedToast": "Request updated successfully!",
-        "recipientPlaceholder": "Enter a username, an address or ENS",
+        "recipientPlaceholder": "Username, address, or ENS",
         "errors": {
             "createFailed": "Failed to create link",
             "updateFailed": "Failed to update request",
@@ -1204,7 +1204,7 @@
         },
         "initial": {
             "receiveOn": "Receive on",
-            "recipientPlaceholder": "Enter a username, an address or ENS",
+            "recipientPlaceholder": "Username, address, or ENS",
             "usdcArbitrumOnly": "You can only claim USDC on Arbitrum for Peanut Wallet users."
         },
         "addressCompatible": {
@@ -1461,7 +1461,7 @@
             "canceledTitle": "Card canceled",
             "canceledBody": "It can no longer be used for payments. You can request a new card, subject to eligibility.",
             "feedbackLabel": "Help us improve our product for you",
-            "feedbackPlaceholder": "Why did you cancel the card?",
+            "feedbackPlaceholder": "Why did you cancel?",
             "submit": "Submit",
             "thanksTitle": "Thank you for the feedback",
             "thanksBody": "We appreciate your feedback, it helps us improve the experience of our app.",
@@ -1860,8 +1860,8 @@
             "bankTransfer": "Bank Transfer"
         },
         "initial": {
-            "placeholderEns": "Enter an address or ENS",
-            "placeholderAddress": "Enter an address",
+            "placeholderEns": "Address or ENS",
+            "placeholderAddress": "Address",
             "detailsMissing": "Withdrawal details are missing"
         },
         "confirm": {
@@ -1886,8 +1886,8 @@
         "pixKey": {
             "title": "Send with Pix",
             "heading": "Enter Pix key",
-            "placeholder": "PIX Key (Include +55 in case of phone number)",
-            "info": "Send to any Pix key — email, phone, CPF/CNPJ or random key.",
+            "placeholder": "PIX key",
+            "info": "Send to any Pix key — email, phone (include +55), CPF/CNPJ or random key.",
             "invalid": "Invalid Pix key"
         },
         "bank": {
@@ -3077,7 +3077,7 @@
         "selectToken": "Select a token to recover",
         "noTokens": "No tokens to recover",
         "noTokensDescription": "Tokens sent to your address on other networks will show up here.",
-        "recipientPlaceholder": "Enter the address where you want to receive the funds",
+        "recipientPlaceholder": "Destination address",
         "review": "Review",
         "youWillReceiveTo": "You will receive to",
         "sentTo": "Sent to",
@@ -3106,7 +3106,7 @@
             "crossChainUnavailable": "Cross-chain transactions are temporarily unavailable. You can use USDC on Arbitrum.",
             "selectANetwork": "Select a network",
             "moreNetworksButton": "more",
-            "searchTokenPlaceholder": "Search for a token or paste address",
+            "searchTokenPlaceholder": "Token or address",
             "sponsoredHint": "Transactions using USDC on Arbitrum are sponsored",
             "availableToken": "Available token",
             "searchResults": "Search Results",
@@ -3116,7 +3116,7 @@
             "noMatchingTokensDescription": "Try searching for a different token",
             "noPopularTokensTitle": "No popular tokens available",
             "moreNetworksTitle": "More networks",
-            "searchNetworkPlaceholder": "Search for a network",
+            "searchNetworkPlaceholder": "Search network",
             "noNetworksFoundTitle": "No networks found matching {search}",
             "noNetworksFoundDescription": "Try searching for a different network",
             "searchPlaceholder": "Search...",
