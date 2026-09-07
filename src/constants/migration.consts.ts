@@ -59,6 +59,13 @@ export const STORE_NAME = {
     android: 'Google Play',
 } as const
 
+/**
+ * Query param the /app smart link carries its calling surface in, so a scan
+ * that lands on the store page is attributable to the QR that produced it.
+ * Short on purpose: it rides inside a QR, where every character costs modules.
+ */
+export const MIGRATION_SURFACE_PARAM = 's'
+
 /** `surface` property for migration analytics events. */
 export const MIGRATION_SURFACES = {
     DOWNLOAD_MODAL: 'download_modal',
@@ -68,6 +75,14 @@ export const MIGRATION_SURFACES = {
     SETUP: 'setup',
     GUEST_FLOW: 'guest_flow',
     PROFILE_UPDATE: 'profile_update',
+    // the /app smart link itself: the store buttons a scanner lands on
+    SMART_LINK: 'smart_link',
+    // landing folds that get their own download CTA once the flag is on
+    LANDING_APP_FOLD: 'landing_app_fold',
+    LANDING_FOOTER: 'landing_footer',
+    LANDING_RATES: 'landing_rates',
+    LANDING_COUNTRIES: 'landing_countries',
+    LANDING_DOOR: 'landing_door',
 } as const
 
 export type MigrationSurface = (typeof MIGRATION_SURFACES)[keyof typeof MIGRATION_SURFACES]

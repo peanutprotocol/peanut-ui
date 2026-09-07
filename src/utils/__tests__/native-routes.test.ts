@@ -706,11 +706,12 @@ describe('NATIVE_EXPORT_ROOTS matches the pages the native export ships', () => 
     const PAGE_FILE = /^page\.(tsx|ts|jsx|js)$/
 
     // Exported, deliberately not in NATIVE_EXPORT_ROOTS:
-    // - `app`: the smart store link. It must open externally, never be pushed
-    //   in-app, so isNativeExportPath must keep saying no.
     // - `dev`: pruneExportedAssets() strips every /dev page but /dev/deferred,
     //   which is reached through the AASA, not from in-app anchors.
-    const WEB_ONLY_EXPORTED = ['app', 'dev']
+    // (`app` used to sit here: the smart store link was web-only. It is now
+    // claimed by App Links so a scan by an installed user opens the app, which
+    // means the deep-link mapper has to resolve it — see NATIVE_EXPORT_ROOTS.)
+    const WEB_ONLY_EXPORTED = ['dev']
 
     // A directory counts once it has a page file anywhere below it that the
     // native build does not disable — a disabled page/dir contributes nothing.

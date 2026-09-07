@@ -255,6 +255,10 @@ function mapDeepLinkPath(parsed: URL): string | null {
  */
 export const NATIVE_EXPORT_ROOTS: ReadonlySet<string> = new Set([
     'add-money',
+    // the /app smart link. App Links claim it (TASK-21788) so an installed
+    // user who scans a download QR opens the app instead of the store page —
+    // and /app's own native branch applies the deferred payload and routes on.
+    'app',
     'badges',
     'card',
     'card-payment',
