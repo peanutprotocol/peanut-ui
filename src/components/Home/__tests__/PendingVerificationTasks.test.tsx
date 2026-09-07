@@ -82,7 +82,7 @@ describe('PendingVerificationTasks', () => {
         mockNextActions = [sepaTosAction]
         render(<PendingVerificationTasks />)
 
-        expect(screen.getByText('Update bank transfer terms')).toBeInTheDocument()
+        expect(screen.getByText('Accept updated bank transfer provider terms')).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: /review terms/i }))
         expect(screen.getByTestId('tos-step')).toHaveTextContent('bridge_tos_v2_required')
     })
@@ -92,7 +92,7 @@ describe('PendingVerificationTasks', () => {
         render(<PendingVerificationTasks />)
 
         expect(screen.getByText('Accept Terms of Service')).toBeInTheDocument()
-        expect(screen.getByText('Update bank transfer terms')).toBeInTheDocument()
+        expect(screen.getByText('Accept updated bank transfer provider terms')).toBeInTheDocument()
 
         const buttons = screen.getAllByRole('button', { name: /review terms/i })
         fireEvent.click(buttons[1]) // sepa row (render order follows nextActions)
@@ -157,8 +157,10 @@ describe('PendingVerificationTasks', () => {
             mockNextActions = [advisoryTos, advisoryHosted]
             render(<PendingVerificationTasks dismissible />)
 
-            fireEvent.click(screen.getByRole('button', { name: /dismiss update bank transfer terms/i }))
-            expect(screen.queryByText('Update bank transfer terms')).not.toBeInTheDocument()
+            fireEvent.click(
+                screen.getByRole('button', { name: /dismiss accept updated bank transfer provider terms/i })
+            )
+            expect(screen.queryByText('Accept updated bank transfer provider terms')).not.toBeInTheDocument()
             expect(screen.getByText('Additional verification needed')).toBeInTheDocument()
             expect(mockUpdatePreferences).toHaveBeenCalledWith('user-1', {
                 pendingVerificationTasksDismissed: [advisoryTosFingerprint],
@@ -197,7 +199,7 @@ describe('PendingVerificationTasks', () => {
             mockStoredDismissal = [advisoryTosFingerprint]
             mockNextActions = [advisoryTos, advisoryHosted]
             render(<PendingVerificationTasks dismissible />)
-            expect(screen.queryByText('Update bank transfer terms')).not.toBeInTheDocument()
+            expect(screen.queryByText('Accept updated bank transfer provider terms')).not.toBeInTheDocument()
             expect(screen.getByText('Additional verification needed')).toBeInTheDocument()
         })
 
@@ -207,7 +209,7 @@ describe('PendingVerificationTasks', () => {
             // …and on Sep 1 Bridge reclassifies the same requirement as due now.
             mockNextActions = [{ ...sepaTosAction, requirementKey: 'tos_v2_acceptance' }]
             render(<PendingVerificationTasks dismissible />)
-            expect(screen.getByText('Update bank transfer terms')).toBeInTheDocument()
+            expect(screen.getByText('Accept updated bank transfer provider terms')).toBeInTheDocument()
         })
 
         it('a NEW requirement under the shared bridge-hosted key re-surfaces despite a dismissal', () => {
@@ -235,7 +237,7 @@ describe('PendingVerificationTasks', () => {
             mockUserId = 'user-2'
             mockStoredDismissal = undefined
             rerender(<PendingVerificationTasks dismissible />)
-            expect(screen.getByText('Update bank transfer terms')).toBeInTheDocument()
+            expect(screen.getByText('Accept updated bank transfer provider terms')).toBeInTheDocument()
             expect(screen.getByText('Additional verification needed')).toBeInTheDocument()
         })
 
@@ -243,7 +245,7 @@ describe('PendingVerificationTasks', () => {
             mockStoredDismissal = [advisoryTosFingerprint, advisoryHostedFingerprint]
             mockNextActions = [advisoryTos, advisoryHosted]
             render(<PendingVerificationTasks />)
-            expect(screen.getByText('Update bank transfer terms')).toBeInTheDocument()
+            expect(screen.getByText('Accept updated bank transfer provider terms')).toBeInTheDocument()
             expect(screen.queryByRole('button', { name: /dismiss/i })).not.toBeInTheDocument()
         })
     })
