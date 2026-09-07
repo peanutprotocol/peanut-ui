@@ -259,6 +259,16 @@ function primitiveLeaf(input, depth) {
                 input
             )
     }
+    if (
+        ts.isCallExpression(node) &&
+        ts.isPropertyAccessExpression(node.expression) &&
+        node.expression.name.text === 'join'
+    ) {
+        const separator = node.arguments[0] ? primitive(ref(node.arguments[0], ctx, seen), depth + 1) : ','
+        if (typeof separator === 'string' && separator.length > 0 && separator.trim() === '') {
+            return joinedArrayText(ref(node.expression.expression, ctx, seen), separator, depth + 1)
+        }
+    }
     if (ts.isTemplateExpression(node)) {
         let out = known(node.head.text)
         for (const span of node.templateSpans) {
@@ -325,16 +335,12 @@ function objectFields(input, depth = 0) {
             const shorthand = ts.isShorthandPropertyAssignment(prop)
             if (!ts.isPropertyAssignment(prop) && !shorthand) {
                 // Accessors/methods can override earlier data properties.
-                choices = [
-                    [
-                        {
-                            key:
-                                prop.name && !ts.isComputedPropertyName(prop.name) ? propertyNameText(prop.name) : null,
-                            value: ref(prop, ctx, seen),
-                            origin: prop,
-                        },
-                    ],
-                ]
+                const keys =
+                    prop.name && ts.isComputedPropertyName(prop.name)
+                        ? primitiveChoices(ref(prop.name.expression, ctx, seen), depth + 1)
+                        : { values: prop.name ? [propertyNameText(prop.name)] : [], complete: !!prop.name }
+                choices = keys.values.map((key) => [{ key: String(key), value: ref(prop, ctx, seen), origin: prop }])
+                if (!keys.complete) choices.push([{ key: null, value: ref(prop, ctx, seen), origin: prop }])
             } else {
                 const value = ref(shorthand ? prop.name : prop.initializer, ctx, seen)
                 const name = prop.name
@@ -499,26 +505,36 @@ function summarize(input, mode, depth = 0) {
 }
 // Array.join stringifies its items. Nested arrays use commas regardless of the
 // outer separator; objects are opaque coercions, never builder-key collections.
+function joinedArrayText(input, separator, depth) {
+    const out = { values: [], complete: true }
+    for (const candidate of resolve(input, depth + 1)) {
+        if (!ts.isArrayLiteralExpression(candidate.node)) {
+            out.complete = false
+            continue
+        }
+        for (const items of arrayItems(candidate, depth + 1)) {
+            let text = { values: [''], complete: true }
+            for (const [index, item] of items.entries()) {
+                text = combinePrimitives(
+                    text,
+                    joinItemText(item, depth + 1),
+                    (a, b) => a + (index ? separator : '') + b,
+                    input
+                )
+            }
+            out.values = distinctPrimitives([...out.values, ...text.values])
+            out.complete &&= text.complete
+            bounded(out.values, input.node, input.ctx)
+        }
+    }
+    return out
+}
 function joinItemText(input, depth) {
     let out = { values: [], complete: true }
     for (const candidate of resolve(input, depth + 1)) {
         let part
         if (ts.isArrayLiteralExpression(candidate.node)) {
-            part = { values: [], complete: true }
-            for (const items of arrayItems(candidate, depth + 1)) {
-                let text = { values: [''], complete: true }
-                for (const [index, item] of items.entries()) {
-                    text = combinePrimitives(
-                        text,
-                        joinItemText(item, depth + 1),
-                        (a, b) => a + (index ? ',' : '') + b,
-                        input
-                    )
-                }
-                part.values.push(...text.values)
-                part.complete &&= text.complete
-                bounded(part.values, input.node, input.ctx)
-            }
+            part = joinedArrayText(candidate, ',', depth + 1)
         } else if (ts.isOmittedExpression(candidate.node)) {
             part = { values: [''], complete: true }
         } else {

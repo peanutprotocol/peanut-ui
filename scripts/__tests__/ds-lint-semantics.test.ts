@@ -115,6 +115,7 @@ describe('generated class-expression semantics', () => {
         "return classNames([{'text-body-m':true},'font-semibold'].join(' '))",
         "return classNames([['text-body-m'],['font-semibold']].join(' '))",
         "return classNames([[['text-body-m']],'font-semibold'].join(' '))",
+        "return classNames([[['text-body-m'].join(' ')],'font-semibold'].join(' '))",
         "return classNames([null,undefined,,'text-body-m','font-semibold'].join(' '))",
         "return classNames([...(flag0 ? [['text-body-m']] : [['underline']]),'font-semibold'].join(' '))",
         "return classNames([(flag0 ? ['text-body-m'] : ['underline']),'font-semibold'].join(' '))",
@@ -122,6 +123,7 @@ describe('generated class-expression semantics', () => {
         "const S={1n:'text-body-m'};return classNames(S[1],'font-semibold')",
         "const S={1n:'text-body-m',1:'underline'};return classNames(S[1n],'font-semibold')",
         "const S={1:'text-body-m',get 1n(){return 'underline'}};return classNames(S[1n],'font-semibold')",
+        "const S={1:'text-body-m',[1n](){}};return classNames(S[1n],'font-semibold')",
         "const S=flag0?['text-body-m']:['underline'];return classNames(S[-1],'font-semibold')",
         "const S=flag0?{x:'text-body-m'}:{x:'font-semibold'};return classNames(S.x)",
     ])('matches new review cases: %s', (body) => {
