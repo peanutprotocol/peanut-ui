@@ -680,10 +680,15 @@ function cvaAlternatives(node, ctx, depth, seen) {
     const configFields = objectFields(configTable, configCtx, depth, seen)
     // A config spread we cannot resolve — `{ ...(cond ? A : B) }` — may carry
     // any of these fields. Dropping it lost every axis it could have brought, so
-    // its own alternatives are producted in: over-counting, the safe direction,
-    // and the same fallback an unresolvable config takes below.
+    // its own alternatives are producted in: over-counting, the safe direction.
+    //
+    // Read as CONFIG, not as a class builder. A cva config is nested tables
+    // whose leaves are the classes, so builder mode — which reads an object's
+    // KEYS — returned `variants` and `compoundVariants` and never descended to
+    // anything that renders. Lookup mode unions the values instead, which walks
+    // down to the class strings.
     for (const opaque of opaqueFields(configFields)) {
-        if (opaque.value) out = product(out, alternatives(opaque.value, opaque.ctx, depth + 1, seen, BUILDER_OBJECT))
+        if (opaque.value) out = product(out, alternatives(opaque.value, opaque.ctx, depth + 1, seen, LOOKUP_OBJECT))
     }
     for (const { key, value: field, ctx: fieldCtx } of effectiveFields(configFields)) {
         if (key === 'variants') {
@@ -703,13 +708,17 @@ function cvaAlternatives(node, ctx, depth, seen) {
                 out = product(out, alts)
             }
             // An axis table spread in from something unreadable co-applies with
-            // the ones named here, exactly as a named axis does. It cannot be
-            // recorded in `axisAlts` — it has no name for a compound to pin or
-            // leave free — so it composes into the output only.
+            // the ones named here, exactly as a named axis does. It has no name
+            // for a compound to PIN, but it is still a free axis for every
+            // compound — leaving it out of `axisAlts` meant a compound pinned
+            // elsewhere never combined with the classes it can carry. Keyed by
+            // the node so two unreadable spreads stay distinct, and no compound
+            // selector can ever match the key.
             for (const opaque of opaqueFields(variantFields)) {
-                if (opaque.value) {
-                    out = product(out, alternatives(opaque.value, opaque.ctx, depth + 1, seen, LOOKUP_OBJECT))
-                }
+                if (!opaque.value) continue
+                const alts = alternatives(opaque.value, opaque.ctx, depth + 1, seen, LOOKUP_OBJECT)
+                axisAlts.set(opaque.value, alts)
+                out = product(out, alts)
             }
         } else if (key === 'compoundVariants') {
             compounds = resolveToArrayLiteral(field, fieldCtx, depth, seen)
@@ -739,7 +748,21 @@ function cvaAlternatives(node, ctx, depth, seen) {
         // A selector resolved to NO options can never match, so the compound's
         // classes never render alongside anything.
         let impossible = false
-        for (const prop of effectiveFields(objectFields(compound, entryCtx, depth, seen))) {
+        const compoundFields = objectFields(compound, entryCtx, depth, seen)
+        // An entry spread in from something unreadable carries both the selector
+        // and the classes. It names neither, so the entry cannot be pinned to an
+        // axis from it — its classes compose against every axis instead, which
+        // over-counts rather than losing the stack entirely.
+        for (const opaque of opaqueFields(compoundFields)) {
+            if (opaque.value) {
+                // Lookup mode for the same reason as the config spread: the
+                // entry's fields are config, and its `class` field is the leaf
+                // that renders. Builder mode read the KEYS (`tone`, `class`) and
+                // never reached the classes at all.
+                classes = product(classes, alternatives(opaque.value, opaque.ctx, depth + 1, seen, LOOKUP_OBJECT))
+            }
+        }
+        for (const prop of effectiveFields(compoundFields)) {
             const name = prop.key
             const field = { initializer: prop.value }
             // Each flattened field carries the scopes it was WRITTEN in — a
@@ -766,12 +789,13 @@ function cvaAlternatives(node, ctx, depth, seen) {
             if (!axis) continue
             const byOption = new Map()
             for (const optionName of optionNames) {
-                const option = propertyByName(axis.value, optionName, { ...ctx, scopes: axis.scopes }, depth, seen)
-                if (!option) continue
-                byOption.set(
-                    optionName,
-                    alternatives(option.value, { ...ctx, scopes: option.scopes }, depth + 1, seen, LOOKUP_OBJECT)
-                )
+                // EVERY value the option can hold, not just the winner: a
+                // dynamic key in the axis table can alias this option, so
+                // committing to the spelled-out one reports a class list the
+                // selection can produce a different one of.
+                const found = propertiesByName(axis.value, optionName, { ...ctx, scopes: axis.scopes }, depth, seen)
+                if (found.values.length === 0) continue
+                byOption.set(optionName, unionOfSelected(found.values, ctx, depth, seen))
             }
             if (byOption.size === 0) continue
             axisOptions.set(name, byOption)

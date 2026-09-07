@@ -425,6 +425,50 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
         expect(countWeightStacks("const c = clsx('text-body-m ' + -1 + ' font-semibold')")).toBe(1)
     })
 
+    it('keeps an option a dynamic key could alias in a compound selection', () => {
+        // `k === 'loud'` renders the second value, so committing the compound to
+        // the spelled-out option reports a class list the selection can produce
+        // a different one of.
+        expect(
+            countWeightStacks(
+                "function f(k) { return cva('base', { variants: { tone: { loud: 'underline', [k]: 'text-body-m' } }, compoundVariants: [{ tone: 'loud', class: 'font-semibold' }] }) }"
+            )
+        ).toBe(1)
+        // a READABLE sibling key changes nothing — the compound still selects
+        expect(
+            countWeightStacks(
+                "const c = cva('base', { variants: { tone: { loud: 'underline', ['quiet']: 'text-body-m' } }, compoundVariants: [{ tone: 'loud', class: 'font-semibold' }] })"
+            )
+        ).toBe(0)
+    })
+
+    it('reads an unreadable cva spread as config, not as a class builder', () => {
+        // A config is nested tables whose leaves are the classes. Builder mode
+        // reads an object's KEYS, so it returned `variants` and never descended
+        // to anything that renders.
+        expect(
+            countWeightStacks(
+                "const CONFIG = enabled ? { variants: { tone: { loud: 'text-body-m' } } } : {}; const c = cva('font-semibold', { ...CONFIG })"
+            )
+        ).toBe(1)
+        // the same for an entry spread, whose `class` field is the leaf
+        expect(
+            countWeightStacks(
+                "const C = enabled ? { tone: 'loud', class: 'font-semibold' } : {}; const c = cva('text-body-m', { variants: { tone: { loud: 'x' } }, compoundVariants: [{ ...C }] })"
+            )
+        ).toBe(1)
+    })
+
+    it('treats an unnamed axis as free for every compound', () => {
+        // It has no name to PIN, but it is still selected independently, so a
+        // compound pinned elsewhere renders beside whatever it carries.
+        expect(
+            countWeightStacks(
+                "const TONE = enabled ? { tone: { loud: 'text-body-m' } } : {}; const c = cva('base', { variants: { ...TONE, size: { sm: 'x' } }, compoundVariants: [{ size: 'sm', class: 'font-semibold' }] })"
+            )
+        ).toBe(1)
+    })
+
     it('keeps composing an axis table spread in from something unreadable', () => {
         // The spread may carry a `tone` axis; dropping it lost every class it
         // could have brought. Over-counting is the safe direction here.
