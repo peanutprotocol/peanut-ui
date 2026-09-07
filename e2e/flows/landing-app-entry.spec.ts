@@ -36,6 +36,20 @@ for (const device of ['desktop', 'iphone', 'android'] as const) {
                   ? { userAgent: iphoneUA, viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 }
                   : { viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 }
         )
+        if (device !== 'desktop') {
+            test('login performs a document navigation to the app handoff', async ({ page }) => {
+                await landing(page, '/', true)
+                const appNavigation = page.waitForRequest(
+                    (request) => new URL(request.url()).pathname === '/app' && request.isNavigationRequest()
+                )
+                await page.route('**/app', (route) =>
+                    route.fulfill({ contentType: 'text/html', body: 'App handoff reached' })
+                )
+                await page.locator('#hero a[href="/app"]').last().click()
+                expect((await appNavigation).resourceType()).toBe('document')
+                await expect(page.locator('body')).toHaveText('App handoff reached')
+            })
+        }
         for (const route of ['/', '/es-419', '/es-ar', '/pt-br']) {
             for (const on of [false, true]) {
                 test(`${route} flag ${on}`, async ({ page }) => {
