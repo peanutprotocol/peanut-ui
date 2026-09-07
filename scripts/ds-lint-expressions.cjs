@@ -588,7 +588,11 @@ function summarizeLeaf(input, mode, depth) {
     ) {
         const rendered = primitiveLeaf(input, depth + 1)
         let out = []
-        for (const value of rendered.values) if (typeof value === 'string') out = union(out, literal(node, value, ctx))
+        // Complete folded values are actual class text, just like join output.
+        // A surrounding concatenation/template must not turn an embedded comma
+        // back into a class boundary.
+        for (const value of rendered.values)
+            if (typeof value === 'string') out = union(out, literal(node, value, ctx, true))
         if (rendered.complete) return out.length ? out : NOTHING
         // Opaque fragments retain the established conservative source policy.
         if (ts.isBinaryExpression(node)) return compose(sub(node.left), sub(node.right))

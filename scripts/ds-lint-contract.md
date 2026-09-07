@@ -43,6 +43,9 @@ conflict-removal rules. The other value-match metrics retain their regex rules.
   coercions remain opaque and never emit builder keys. Other or unknown separators
   retain the existing lookup-only policy. This does not implement general
   JavaScript string assembly via non-whitespace joins.
+- Joined and fully folded strings match whole whitespace-delimited classes,
+  including variant prefixes and important markers. A comma within a joined
+  element is not a class boundary, even after concatenation or template wrapping.
 
 Unknown class values contribute no invented classes. Known pieces of partially
 dynamic concatenations/templates/computed keys retain a conservative fragment
@@ -87,6 +90,8 @@ regex fallback; a missing parser or evaluator failure remains an error.
   seeds, across the eight assignments of three independent booleans. Only these
   generated closed programs execute in the test oracle, using the installed
   `classnames`; the production scanner never executes source.
+- Compare guard forms, static-block scope boundaries, joined-value wrappers and
+  property-key overrides against runtime fixtures in `ds-lint-review-boundaries.test.ts`.
 - Test intentional conservative policies and unsupported syntax separately from
   runtime-equality examples. Exercise expansion limits in child processes with
   time and memory ceilings.
