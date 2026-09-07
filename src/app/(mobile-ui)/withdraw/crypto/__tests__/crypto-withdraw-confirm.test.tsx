@@ -785,8 +785,18 @@ describe('crypto withdraw retry — after a route error (cross-chain cap 429, TA
     it('Retry recomputes the route instead of failing on the transactions the failed route never built', async () => {
         const m = mockCrossChainTransfer as unknown as { transactions: unknown; error: unknown; calculate: jest.Mock }
         const prev = { transactions: m.transactions, error: m.error }
+        const prevFlow = {
+            amountToWithdraw: mockWithdrawFlow.amountToWithdraw,
+            isMaxWithdrawal: mockWithdrawFlow.isMaxWithdrawal,
+            preparedAmount: mockWithdrawFlow.preparedAmount,
+        }
         m.transactions = null
         m.error = 'You reached the limit for withdrawals to other networks. Try again in about 50 minutes.'
+        Object.assign(mockWithdrawFlow, {
+            amountToWithdraw: '10.12',
+            isMaxWithdrawal: true,
+            preparedAmount: '10.126123',
+        })
         try {
             render(<WithdrawCryptoPage />)
             await waitFor(() => expect(m.calculate).toHaveBeenCalled())
@@ -796,6 +806,9 @@ describe('crypto withdraw retry — after a route error (cross-chain cap 429, TA
             fireEvent.click(screen.getByTestId('confirm-withdraw'))
 
             await waitFor(() => expect(m.calculate.mock.calls.length).toBe(calculateCalls + 1))
+            expect(m.calculate.mock.calls.at(-1)?.[0]).toEqual(
+                expect.objectContaining({ source: expect.objectContaining({ tokenAmount: '10.126123' }) })
+            )
             expect(mockSendMoney).not.toHaveBeenCalled()
             expect(mockSendTransactions).not.toHaveBeenCalled()
             // Retry only clears errors (null); it never sets "transaction not prepared"
@@ -804,6 +817,30 @@ describe('crypto withdraw retry — after a route error (cross-chain cap 429, TA
         } finally {
             m.transactions = prev.transactions
             m.error = prev.error
+            Object.assign(mockWithdrawFlow, prevFlow)
+        }
+    })
+
+    it('quotes the frozen max-withdrawal amount when entering confirm', async () => {
+        Object.assign(mockWithdrawFlow, {
+            amountToWithdraw: '10.12',
+            isMaxWithdrawal: true,
+            preparedAmount: '10.126123',
+        })
+
+        try {
+            render(<WithdrawCryptoPage />)
+
+            await waitFor(() => expect(mockCrossChainTransfer.calculate).toHaveBeenCalled())
+            expect(mockCrossChainTransfer.calculate.mock.calls[0][0]).toEqual(
+                expect.objectContaining({ source: expect.objectContaining({ tokenAmount: '10.126123' }) })
+            )
+        } finally {
+            Object.assign(mockWithdrawFlow, {
+                amountToWithdraw: '50',
+                isMaxWithdrawal: false,
+                preparedAmount: null,
+            })
         }
     })
 

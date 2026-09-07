@@ -228,9 +228,11 @@ export default function WithdrawCryptoPage() {
                     address: address as Address,
                     tokenAddress: PEANUT_WALLET_TOKEN as Address,
                     chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                    // amountToWithdraw is USD-denominated; source token is USDC (1:1).
-                    // Required for the bridge path's 'pay' mode (cross-chain ETH/etc).
-                    tokenAmount: amountToWithdraw,
+                    // effectiveAmount is USD-denominated; source token is USDC (1:1).
+                    // Use the amount frozen into the charge, including the
+                    // sub-cent remainder for max withdrawals. Required for the
+                    // bridge path's 'pay' mode (cross-chain ETH/etc).
+                    tokenAmount: effectiveAmount,
                 },
                 destination: {
                     recipientAddress: chargeDetails.requestLink.recipientAddress as Address,
@@ -246,7 +248,7 @@ export default function WithdrawCryptoPage() {
                 skipGasEstimate: true, // peanut wallet handles gas
             })
         }
-    }, [currentView, chargeDetails, withdrawData, calculateRoute, address, amountToWithdraw])
+    }, [currentView, chargeDetails, withdrawData, calculateRoute, address, effectiveAmount])
 
     useEffect(() => {
         calculateCurrentRoute()
