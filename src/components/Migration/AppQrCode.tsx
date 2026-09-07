@@ -5,6 +5,7 @@ import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { type MigrationSurface } from '@/constants/migration.consts'
 import { buildDeferredPayload } from '@/utils/deferred-link'
+import { type StoreHandoff } from '@/utils/migration.utils'
 import { twMerge } from '@/utils/tw'
 
 /*
@@ -32,10 +33,13 @@ export default function AppQrCode({
     surface,
     /** module-area width in px */
     size = 160,
+    handoff,
     className,
 }: {
     surface: MigrationSurface
     size?: keyof typeof FRAME_WIDTH
+    /** where the scanning phone should land after install (fold 4's `dest=/send`, the door's `/card`) */
+    handoff?: StoreHandoff
     className?: string
 }) {
     const [url, setUrl] = useState('')
@@ -45,12 +49,12 @@ export default function AppQrCode({
     useEffect(() => {
         let payload = ''
         try {
-            payload = buildDeferredPayload()
+            payload = buildDeferredPayload(handoff?.dest, handoff?.invite)
         } catch {
             // a payload failure must never cost the visitor the download link
         }
         setUrl(`${window.location.origin}/app?${payload ? `${payload}&` : ''}s=${surface}`)
-    }, [surface])
+    }, [surface, handoff?.dest, handoff?.invite])
 
     // impression, not render: the landing page stacks three of these, and only
     // the one a visitor actually scrolls to should count.
@@ -78,7 +82,7 @@ export default function AppQrCode({
     }, [surface, url])
 
     return (
-        <div ref={rootRef} className={twMerge('w-full', FRAME_WIDTH[size], className)}>
+        <div data-testid="app-qr-code" ref={rootRef} className={twMerge('w-full', FRAME_WIDTH[size], className)}>
             <QRCodeWrapper url={url} className={FRAME_WIDTH[size]} />
         </div>
     )

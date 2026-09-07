@@ -19,8 +19,9 @@ import { isPwaSunsetOn } from '@/utils/migration.utils'
  *   in the console (persists for the session; posthog-js >=1.3xx requires the
  *   `flags` wrapper — a flat object is silently ignored). Clear with
  *   `overrideFeatureFlags(false)`.
- * - Local dev (posthog never inits): `localStorage.setItem('pwa-sunset', 'true')`
- *   + reload; cutover via `localStorage.setItem('pwa-sunset-cutover', '2020-01-01')`.
+ * - Anywhere but the peanut.me domain (local dev, CI, previews — none of which
+ *   reliably init posthog): `localStorage.setItem('pwa-sunset', 'true')` + reload;
+ *   cutover via `localStorage.setItem('pwa-sunset-cutover', '2020-01-01')` in dev.
  *   See isPwaSunsetOn / getMigrationCutoverTime.
  */
 export function useMigrationFlag(): boolean {

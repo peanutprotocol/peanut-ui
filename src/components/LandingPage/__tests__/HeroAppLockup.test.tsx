@@ -1,6 +1,7 @@
 import { screen } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { HeroAppLockup } from '../HeroAppLockup'
+import type { LandingMigrationStrings } from '../landingStrings'
 
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@/utils/deferred-link', () => ({ buildDeferredPayload: () => 'pnutdl=1&invite=ABC123' }))
@@ -13,16 +14,25 @@ jest.mock('@/components/Global/QRCodeWrapper', () => ({
     default: ({ url }: { url: string }) => <div data-testid="qr">{url}</div>,
 }))
 
+// the URL-locale copy the server hands down, standing in for /es-419 etc.
+const strings: LandingMigrationStrings = {
+    getTheApp: 'GET THE APP.',
+    qrTitle: 'Get the Peanut app',
+    scanHint: 'Scan with your phone camera to download.',
+    downloadNow: 'Download now',
+    otherStore: 'Other store',
+}
+
 describe('HeroAppLockup', () => {
     it('encodes the hero surface and the hand-off payload in the QR', () => {
-        renderWithIntl(<HeroAppLockup subtext="Join +10,000 cool people" />)
+        renderWithIntl(<HeroAppLockup strings={strings} subtext="Join +10,000 cool people" />)
         expect(screen.getByTestId('qr')).toHaveTextContent(
             `${window.location.origin}/app?pnutdl=1&invite=ABC123&s=landing_hero`
         )
     })
 
     it('shows the scan hint, both stores and the content subtext', () => {
-        renderWithIntl(<HeroAppLockup subtext="Join +10,000 cool people" />)
+        renderWithIntl(<HeroAppLockup strings={strings} subtext="Join +10,000 cool people" />)
         expect(screen.getByText('Scan with your phone camera to download.')).toBeInTheDocument()
         expect(screen.getByRole('link', { name: /app store/i })).toHaveAttribute('href', 'https://store.example/ios')
         expect(screen.getByRole('link', { name: /google play/i })).toHaveAttribute(

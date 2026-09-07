@@ -1,7 +1,7 @@
 'use client'
 import { Button } from '@/components/0_Bruddle/Button'
 import { STORE_NAME, type MigrationSurface, type StoreKind } from '@/constants/migration.consts'
-import { onStoreAnchorClick, storeAnchorHref } from '@/utils/migration.utils'
+import { onStoreAnchorClick, storeAnchorHref, type StoreHandoff } from '@/utils/migration.utils'
 import { twMerge } from '@/utils/tw'
 
 const STORES: StoreKind[] = ['ios', 'android']
@@ -20,10 +20,13 @@ const STORES: StoreKind[] = ['ios', 'android']
 export default function AppStorePair({
     surface,
     layout = 'row',
+    handoff,
     className,
 }: {
     surface: MigrationSurface
     layout?: 'row' | 'column' | 'footer'
+    /** carried into the install: android on the href, iOS on the clipboard inside the tap */
+    handoff?: StoreHandoff
     className?: string
 }) {
     const isFooter = layout === 'footer'
@@ -31,7 +34,7 @@ export default function AppStorePair({
     return (
         <div
             className={twMerge(
-                'flex w-full max-w-[27.5rem] flex-wrap items-center justify-center gap-3',
+                'flex w-full max-w-[26rem] flex-wrap items-center justify-center gap-3',
                 isColumn && 'max-w-[13rem] flex-col',
                 isFooter && 'justify-start',
                 className
@@ -40,10 +43,10 @@ export default function AppStorePair({
             {STORES.map((store) => (
                 <a
                     key={store}
-                    href={storeAnchorHref(store)}
+                    href={storeAnchorHref(store, handoff)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={() => onStoreAnchorClick(store, surface)}
+                    onClick={() => onStoreAnchorClick(store, surface, handoff)}
                     className={isColumn ? 'w-full' : 'w-full sm:w-auto'}
                 >
                     <Button

@@ -17,7 +17,11 @@ jest.mock('@/utils/migration.utils', () => ({
 }))
 jest.mock('@/components/Migration/ScanToDownloadModal', () => ({
     __esModule: true,
-    default: ({ surface }: { surface: string }) => <div data-testid="qr-modal">{surface}</div>,
+    default: ({ surface, handoff }: { surface: string; handoff?: { dest?: string } }) => (
+        <div data-testid="qr-modal" data-handoff={handoff?.dest ?? ''}>
+            {surface}
+        </div>
+    ),
 }))
 
 let handled: boolean | undefined
@@ -58,6 +62,9 @@ describe('AppModalProvider', () => {
 
         expect(handled).toBe(true)
         expect(screen.getByTestId('qr-modal')).toHaveTextContent('landing_rates')
+        // the hand-off has to survive the desktop branch too: it is what the
+        // modal's QR encodes, so the scanning phone lands on /send after install
+        expect(screen.getByTestId('qr-modal')).toHaveAttribute('data-handoff', '/send')
         expect(mockOpenStore).not.toHaveBeenCalled()
     })
 

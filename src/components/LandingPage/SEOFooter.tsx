@@ -3,7 +3,7 @@ import manifest from '@/content/generated/footer-manifest.json'
 import { getTranslations, t } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale, type Translations } from '@/i18n/types'
 import { resolveContentHref } from '@/lib/content'
-import { STORE_URL } from '@/constants/migration.consts'
+import { MIGRATION_CUTOVER_DATE, STORE_URL } from '@/constants/migration.consts'
 
 // Server-only SEO footer driven by the content manifest
 // (peanut-content/generated/footer-manifest.json). The manifest is bundled at
@@ -52,11 +52,20 @@ const RESOURCE_NAME_OVERRIDES: Record<string, string> = { pricing: 'Fees and Pri
  * follow — these plain anchors are what puts the listings in the site's link
  * graph. Untranslated for the same reason as the names above: they sit in a
  * column of English siblings, and the store names themselves are constants.
+ *
+ * Gated on the cutover DATE, not on `pwa-sunset`. This footer is a server
+ * component on every marketing page in all four locales, and the flag is
+ * client-only — reading it here would either leave the links out of the HTML a
+ * crawler sees (defeating the point) or, as they shipped ungated, advertise the
+ * listings site-wide before launch, which breaks "renders identically to today
+ * when the flag is off". A date is the one gate the server can answer.
  */
 const STORE_LISTINGS = [
     { slug: 'app-store', href: STORE_URL.ios, name: 'Peanut on the App Store' },
     { slug: 'google-play', href: STORE_URL.android, name: 'Peanut on Google Play' },
 ]
+
+const storeListings = () => (Date.now() >= MIGRATION_CUTOVER_DATE.getTime() ? STORE_LISTINGS : [])
 
 /**
  * Every published legal document, in the order a reader needs them: the two
@@ -178,7 +187,7 @@ export function SEOFooter({ locale = DEFAULT_LOCALE }: { locale?: Locale } = {})
                                 {entry.name}
                             </FooterLink>
                         ))}
-                        {STORE_LISTINGS.map((entry) => (
+                        {storeListings().map((entry) => (
                             <FooterLink key={entry.slug} href={entry.href} external>
                                 {entry.name}
                             </FooterLink>

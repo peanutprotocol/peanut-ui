@@ -81,7 +81,7 @@ export function LandingPageContent({ locale }: { locale: Locale }) {
                     yourMoneySlot={<YourMoney locale={locale} />}
                     securitySlot={<SecurityBuiltIn locale={locale} />}
                     sendInSecondsSlot={<SendInSeconds locale={locale} />}
-                    footerSlot={<Footer locale={locale} />}
+                    footerSlot={<Footer locale={locale} showGetTheApp />}
                     faqSlot={
                         <FAQs
                             heading={faqData.heading}

@@ -3,10 +3,15 @@
 import Image from 'next/image'
 import payZeroFees from '@/assets/illustrations/pay-zero-fees.svg'
 import mobileSendInSeconds from '@/assets/illustrations/mobile-send-in-seconds.svg'
+import dynamic from 'next/dynamic'
 import { SendInSecondsCTA } from './SendInSecondsCTA'
-import { GetTheAppFold } from './GetTheAppFold'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import type { LandingStrings } from './landingStrings'
+
+// Split out: it drags AppQrCode -> QRCodeWrapper -> react-qr-code and the
+// scanner capture behind it, and it cannot render before mount (the flag is
+// false until then), so there is no SSR or hydration cost to deferring it.
+const GetTheAppFold = dynamic(() => import('./GetTheAppFold').then((m) => m.GetTheAppFold), { ssr: false })
 
 /**
  * Fold 10's body, which the migration flag swaps whole: today's "send in
@@ -26,7 +31,7 @@ export function SendInSecondsBody({
 }) {
     const migrationOn = useMigrationFlag()
 
-    if (migrationOn) return <GetTheAppFold tagline={tagline} subtext={subtext} />
+    if (migrationOn) return <GetTheAppFold strings={strings.migration} tagline={tagline} subtext={subtext} />
 
     return (
         <>

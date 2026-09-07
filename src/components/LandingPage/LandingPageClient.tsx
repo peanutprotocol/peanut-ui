@@ -16,8 +16,6 @@ import underMaintenanceConfig from '@/config/underMaintenance.config'
 import type { LandingStrings } from './landingStrings'
 import type { Locale } from '@/i18n/types'
 import { AppModalProvider } from '@/components/Migration/AppModalProvider'
-import { HeroAppLockup } from '@/components/LandingPage/HeroAppLockup'
-import { PhoneAppCta } from '@/components/LandingPage/PhoneAppCta'
 import { type CTAButton } from '@/components/LandingPage/landing.types'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
@@ -29,6 +27,17 @@ import type { LandingContentHrefs } from './landingContentHrefs'
 // SSR stays on so crawlers still see the tweets; only the client bundle moves
 // off the critical path.
 const TweetCarousel = dynamic(() => import('@/components/LandingPage/TweetCarousel'))
+
+// Same reasoning as the carousel, plus: neither can render before mount, since
+// useMigrationFlag is false until then. Statically imported they dragged
+// AppQrCode -> QRCodeWrapper -> react-qr-code into the landing page's main
+// chunk for every visitor, flag off included.
+const HeroAppLockup = dynamic(() => import('@/components/LandingPage/HeroAppLockup').then((m) => m.HeroAppLockup), {
+    ssr: false,
+})
+const PhoneAppCta = dynamic(() => import('@/components/LandingPage/PhoneAppCta').then((m) => m.PhoneAppCta), {
+    ssr: false,
+})
 
 type LandingPageClientProps = {
     heroConfig: {
@@ -132,6 +141,21 @@ export function LandingPageClient({
     }, [])
 
     useEffect(() => {
+        /*
+         * With the flag on there is no #sticky-button-target: fold 10 swaps its
+         * CTA for the get-the-app lockup. The handler below bails on a missing
+         * target BEFORE any of the unfreeze paths, so a visitor already parked
+         * at fold 10 when the flag resolves (scroll restoration on reload or a
+         * back-navigation) would be left with body overflow:hidden and no event
+         * able to clear it. Release the machinery instead — PR 3 deletes it.
+         */
+        if (migrationOn) {
+            document.body.style.overflow = ''
+            setIsScrollFrozen(false)
+            setButtonScale(1)
+            return
+        }
+
         const handleScroll = () => {
             if (sendInSecondsRef.current) {
                 const targetElement = document.getElementById('sticky-button-target')
@@ -212,7 +236,7 @@ export function LandingPageClient({
             window.removeEventListener('touchmove', handleTouchMove)
             document.body.style.overflow = ''
         }
-    }, [handleScrollDelta])
+    }, [handleScrollDelta, migrationOn])
 
     // Only the words with a real article behind them become links; the rest
     // stay plain text. Words come from the content system's marquee list, so an
@@ -264,15 +288,16 @@ export function LandingPageClient({
                 strings={strings}
                 locale={locale}
                 compactArtwork={migrationOn}
-                hideLogIn={migrationOn}
+                loginToApp={migrationOn}
                 customCtaFullWidth={migrationOn && !isDesktop}
                 customCta={
                     migrationOn ? (
                         isDesktop ? (
-                            <HeroAppLockup subtext={heroConfig.primaryCta.subtext} />
+                            <HeroAppLockup strings={strings.migration} subtext={heroConfig.primaryCta.subtext} />
                         ) : (
                             <PhoneAppCta
                                 surface={MIGRATION_SURFACES.LANDING_HERO}
+                                strings={strings.migration}
                                 subtext={heroConfig.primaryCta.subtext}
                                 showOtherStore
                             />

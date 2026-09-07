@@ -4,6 +4,21 @@ import type { LandingProblemStrings, LandingSupportedRailsStrings } from './land
 // Narrowed copy bag handed from the server landing page down through
 // LandingPageClient. Keeps the client bundle from importing all locale
 // catalogs (same reason ContentLanding/HelpLanding take `strings`).
+/**
+ * The download-lockup copy, handed down from the server like every other
+ * landing string. It exists in the app catalog too (`migration.*`), but
+ * next-intl resolves that against the DEVICE locale, which is independent of
+ * the /es-419 | /es-ar | /pt-br segment the page was requested on — a Spanish
+ * phone on /pt-br rendered a Spanish headline inside a Portuguese fold.
+ */
+export interface LandingMigrationStrings {
+    getTheApp: string
+    qrTitle: string
+    scanHint: string
+    downloadNow: string
+    otherStore: string
+}
+
 export interface LandingStrings {
     signUp: string
     logIn: string
@@ -32,6 +47,8 @@ export interface LandingStrings {
     problem: LandingProblemStrings
     /** Headings for the rich supported-rails FAQ body (SupportedRailsFaqAnswer). */
     supportedRails: LandingSupportedRailsStrings
+    /** pwa-sunset download copy, resolved against the URL locale (see LandingMigrationStrings). */
+    migration: LandingMigrationStrings
     /** Passed straight through to ExchangeRateWidget's `labels`. */
     exchange: {
         youSend: string
@@ -88,6 +105,13 @@ export function landingStrings(i18n: Translations): LandingStrings {
             banks: i18n.landingSupportedRailsBanks,
             free: i18n.landingSupportedRailsFree,
             joinAnd: i18n.listJoinAnd,
+        },
+        migration: {
+            getTheApp: i18n.migrationGetTheApp,
+            qrTitle: i18n.migrationQrTitle,
+            scanHint: i18n.migrationScanHint,
+            downloadNow: i18n.migrationDownloadNow,
+            otherStore: i18n.migrationOtherStore,
         },
         exchange: {
             youSend: i18n.exchangeYouSend,

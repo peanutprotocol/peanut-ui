@@ -1,12 +1,12 @@
 'use client'
 
 import Image from 'next/image'
-import { useTranslations } from 'next-intl'
 import appScanScreen from '@/assets/illustrations/app-scan-screen.png'
 import AppQrCode from '@/components/Migration/AppQrCode'
 import AppStorePair from '@/components/Migration/AppStorePair'
 import { PhoneAppCta } from './PhoneAppCta'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
+import type { LandingMigrationStrings } from './landingStrings'
 
 /**
  * Fold 10 with the flag on: "Send in seconds" becomes "Get the app". The
@@ -18,13 +18,19 @@ import { MIGRATION_SURFACES } from '@/constants/migration.consts'
  * frame dates the moment the hardware changes, and the mock-up review rejected
  * anything beyond it.
  */
-export function GetTheAppFold({ tagline, subtext }: { tagline: React.ReactNode; subtext?: string }) {
-    const t = useTranslations('migration')
-
+export function GetTheAppFold({
+    strings,
+    tagline,
+    subtext,
+}: {
+    strings: LandingMigrationStrings
+    tagline: React.ReactNode
+    subtext?: string
+}) {
     return (
         <>
             <h1 className="font-roboto-flex-extrabold text-6xl font-extraBlack text-black md:text-headingMedium">
-                {t('getTheApp')}
+                {strings.getTheApp}
             </h1>
 
             <p
@@ -34,7 +40,11 @@ export function GetTheAppFold({ tagline, subtext }: { tagline: React.ReactNode; 
                 {tagline}
             </p>
 
-            <div className="mt-8 flex flex-col items-center justify-center gap-10 md:mt-0 md:flex-row md:items-center md:gap-14">
+            {/* gap tightens at md and only opens up at lg: at exactly 768px the row
+                needs 220 (phone) + 228 (QR frame) + 208 (store column) + 2 gaps, which
+                overflows the 736px content box at gap-14 and silently shrinks the QR
+                below the 192px module area the fold is specified at. */}
+            <div className="mt-8 flex flex-col items-center justify-center gap-10 md:mt-0 md:flex-row md:items-center md:gap-8 lg:gap-14">
                 {/* the capture is a 960x2082 screenshot downscaled to 360px wide;
                     the frame crops it to the phone's aspect rather than squashing it */}
                 <div className="relative h-[360px] w-[180px] shrink-0 overflow-hidden rounded-[24px] border-2 border-black bg-black shadow-[6px_6px_0_#000] md:h-[440px] md:w-[220px] md:rounded-[28px]">
@@ -50,7 +60,7 @@ export function GetTheAppFold({ tagline, subtext }: { tagline: React.ReactNode; 
                 {/* desktop only: a QR is useless on the phone that would scan it */}
                 <div className="hidden flex-col items-center gap-3 md:flex">
                     <AppQrCode surface={MIGRATION_SURFACES.LANDING_APP_FOLD} size={192} />
-                    <span className="text-sm text-grey-1">{t('qr.scanHint')}</span>
+                    <span className="text-sm text-grey-1">{strings.scanHint}</span>
                 </div>
 
                 <div className="hidden flex-col items-center gap-3 md:flex">
@@ -59,7 +69,7 @@ export function GetTheAppFold({ tagline, subtext }: { tagline: React.ReactNode; 
                 </div>
 
                 <div className="flex w-full max-w-sm md:hidden">
-                    <PhoneAppCta surface={MIGRATION_SURFACES.LANDING_APP_FOLD} subtext={subtext} />
+                    <PhoneAppCta surface={MIGRATION_SURFACES.LANDING_APP_FOLD} strings={strings} subtext={subtext} />
                 </div>
             </div>
         </>

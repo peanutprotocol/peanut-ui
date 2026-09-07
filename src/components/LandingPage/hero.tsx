@@ -127,11 +127,13 @@ type HeroProps = {
     /** the custom CTA fills the column instead of shrink-wrapping (phone download button) */
     customCtaFullWidth?: boolean
     /**
-     * Drops the "Log In" link under the CTA. Flag-on only: /setup is closed
-     * during the migration window and logging back in happens in the app, the
-     * same call StickyMobileCTA already makes.
+     * Points the "Log In" link at /app instead of /setup?step=login. Flag-on
+     * only: /setup is closed during the migration window and logging back in
+     * happens in the app, which /app routes a returning phone straight into.
+     * The link itself stays — removing it would take the only re-entry path a
+     * returning visitor has AND change the CTA column's height on mount.
      */
-    hideLogIn?: boolean
+    loginToApp?: boolean
     /**
      * Buys back the extra height the migration CTA lockup costs, so the marquee
      * still sits inside the first fold on a 1366x768 laptop. Only the flag-on
@@ -169,7 +171,7 @@ export function Hero({
     customCta,
     customCtaFullWidth,
     compactArtwork,
-    hideLogIn,
+    loginToApp,
     strings,
     locale,
 }: HeroProps) {
@@ -218,13 +220,17 @@ export function Hero({
             <CloudsCss className="hidden md:block" />
             <div className="relative mt-10 w-full md:mt-0">
                 {/* 23rem = the fixed stack below the artwork (h2 -> CTA) + 3rem slack, so the CTA stays inside the first fold on short laptop viewports.
-                    29.5rem is the same sum with the migration lockup in the CTA slot: the QR frame is ~164px where the single button was ~76px. */}
+                    29.5rem is the same sum with the DESKTOP migration lockup in the CTA slot: the QR frame is ~164px where the single button was ~76px.
+                    md-scoped, like the mascot's twin above: the phone CTA barely changes height (one button + "Other store" for the button and Log In link
+                    it replaces), so applying the laptop clamp there would cut up to ~100px of hero artwork off every short phone for nothing. */}
                 <Image
                     src={GlobalCashLocalFeel}
                     preload
                     sizes="(min-width: 768px) 50vw, 100vw"
                     className={`z-0 mx-auto h-auto w-full max-w-[1000px] object-contain md:w-[50%] ${
-                        compactArtwork ? 'max-h-[calc(100svh-29.5rem)]' : 'max-h-[calc(100svh-23rem)]'
+                        compactArtwork
+                            ? 'max-h-[calc(100svh-23rem)] md:max-h-[calc(100svh-29.5rem)]'
+                            : 'max-h-[calc(100svh-23rem)]'
                     }`}
                     alt="Global Cash Local Feel"
                 />
@@ -278,16 +284,15 @@ export function Hero({
                 {secondaryCta && renderCTAButton(secondaryCta, 'secondary')}
                 {/* Returning users with an expired session had no way back in from the
                     marketing site: every CTA pointed at signup. `?step=login` lands on
-                    the passkey Log In step (setup-entry.ts). */}
-                {!hideLogIn && (
-                    <Link
-                        prefetch={false}
-                        href="/setup?step=login"
-                        className="mt-4 block text-center text-body-s text-n-1 underline"
-                    >
-                        {strings.logIn}
-                    </Link>
-                )}
+                    the passkey Log In step (setup-entry.ts); during the migration window
+                    /setup is closed, so the same link routes into the app via /app. */}
+                <Link
+                    prefetch={false}
+                    href={loginToApp ? '/app' : '/setup?step=login'}
+                    className="mt-4 block text-center text-body-s text-n-1 underline"
+                >
+                    {strings.logIn}
+                </Link>
                 <AnimateOnView
                     className="absolute bottom-[-4%] left-[1%] w-8 sm:bottom-[11%] sm:left-[12%] md:bottom-[18%] md:left-[5%] md:w-12"
                     y="20px"

@@ -30,13 +30,16 @@ export function useAppModal(): AppModalValue {
 export function AppModalProvider({ children }: { children: ReactNode }) {
     const migrationOn = useMigrationFlag()
     const { deviceType } = useDeviceType()
-    const [surface, setSurface] = useState<MigrationSurface | null>(null)
+    // surface AND hand-off together: the desktop modal's QR has to encode where
+    // the scanning phone should land, so dropping the hand-off here would make
+    // `dest` a phone-only feature.
+    const [pending, setPending] = useState<{ surface: MigrationSurface; handoff?: StoreHandoff } | null>(null)
 
     const interceptAppCta = useCallback<AppModalValue>(
         (nextSurface, handoff) => {
             if (!migrationOn || isCapacitor()) return false
             if (deviceType === DeviceType.WEB) {
-                setSurface(nextSurface)
+                setPending({ surface: nextSurface, handoff })
                 return true
             }
             openStore(deviceType === DeviceType.ANDROID ? 'android' : 'ios', nextSurface, handoff)
@@ -51,7 +54,14 @@ export function AppModalProvider({ children }: { children: ReactNode }) {
     return (
         <AppModalContext.Provider value={value}>
             {children}
-            {surface && <ScanToDownloadModal visible onClose={() => setSurface(null)} surface={surface} />}
+            {pending && (
+                <ScanToDownloadModal
+                    visible
+                    onClose={() => setPending(null)}
+                    surface={pending.surface}
+                    handoff={pending.handoff}
+                />
+            )}
         </AppModalContext.Provider>
     )
 }

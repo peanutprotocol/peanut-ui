@@ -23,7 +23,17 @@ jest.mock('@/components/Global/QRCodeWrapper', () => ({
     default: ({ url }: { url: string }) => <div data-testid="qr">{url}</div>,
 }))
 
-const strings = { sendNow: 'SEND NOW' } as LandingStrings
+const strings = {
+    sendNow: 'SEND NOW',
+    // resolved against the URL locale on the server, not next-intl's device locale
+    migration: {
+        getTheApp: 'GET THE APP.',
+        qrTitle: 'Get the Peanut app',
+        scanHint: 'Scan with your phone camera to download.',
+        downloadNow: 'Download now',
+        otherStore: 'Other store',
+    },
+} as LandingStrings
 
 const renderFold = () =>
     renderWithIntl(<SendInSecondsBody strings={strings} tagline="Move money worldwide." subtext="Join +10,000" />)
@@ -45,11 +55,12 @@ describe('SendInSecondsBody', () => {
         expect(container.querySelector('#sticky-button-target')).toBeInTheDocument()
     })
 
-    it('becomes the get-the-app fold with the flag on, with no /send left', () => {
+    // the fold is code-split (next/dynamic, ssr:false), so it arrives a tick late
+    it('becomes the get-the-app fold with the flag on, with no /send left', async () => {
         mockMigrationOn.mockReturnValue(true)
         const { container } = renderFold()
 
-        expect(screen.getByText('GET THE APP.')).toBeInTheDocument()
+        expect(await screen.findByText('GET THE APP.')).toBeInTheDocument()
         expect(screen.queryByText('SEND NOW')).not.toBeInTheDocument()
         expect(hrefs(container)).not.toContain('/send')
         expect(hrefs(container)).toEqual(
@@ -57,9 +68,9 @@ describe('SendInSecondsBody', () => {
         )
     })
 
-    it('encodes the app fold surface in its QR', () => {
+    it('encodes the app fold surface in its QR', async () => {
         mockMigrationOn.mockReturnValue(true)
         renderFold()
-        expect(screen.getByTestId('qr')).toHaveTextContent('/app?pnutdl=1&s=landing_app_fold')
+        expect(await screen.findByTestId('qr')).toHaveTextContent('/app?pnutdl=1&s=landing_app_fold')
     })
 })

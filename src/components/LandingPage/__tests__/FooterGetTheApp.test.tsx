@@ -1,6 +1,6 @@
-import { screen } from '@testing-library/react'
-import { renderWithIntl } from '@/test-utils/intl'
+import { render, screen } from '@testing-library/react'
 import { FooterGetTheApp } from '../FooterGetTheApp'
+import type { LandingMigrationStrings } from '../landingStrings'
 import { DeviceType } from '@/hooks/useGetDeviceType'
 
 const mockMigrationOn = jest.fn(() => true)
@@ -22,6 +22,16 @@ jest.mock('@/components/Global/QRCodeWrapper', () => ({
     default: ({ url }: { url: string }) => <div data-testid="qr">{url}</div>,
 }))
 
+// the block reads the URL locale's copy, handed down by FooterChrome, not
+// next-intl's device locale — so no intl provider is needed here
+const strings: LandingMigrationStrings = {
+    getTheApp: 'GET THE APP.',
+    qrTitle: 'Get the Peanut app',
+    scanHint: 'Scan with your phone camera to download.',
+    downloadNow: 'Download now',
+    otherStore: 'Other store',
+}
+
 describe('FooterGetTheApp', () => {
     beforeEach(() => {
         mockMigrationOn.mockReturnValue(true)
@@ -30,12 +40,12 @@ describe('FooterGetTheApp', () => {
 
     it('renders nothing with the flag off, so today’s footer is untouched', () => {
         mockMigrationOn.mockReturnValue(false)
-        const { container } = renderWithIntl(<FooterGetTheApp />)
+        const { container } = render(<FooterGetTheApp strings={strings} />)
         expect(container).toBeEmptyDOMElement()
     })
 
     it('gives a laptop the QR and the store pair, tagged as the footer', () => {
-        renderWithIntl(<FooterGetTheApp />)
+        render(<FooterGetTheApp strings={strings} />)
         expect(screen.getByText('Get the Peanut app')).toBeInTheDocument()
         expect(screen.getByTestId('qr')).toHaveTextContent('/app?pnutdl=1&s=landing_footer')
         expect(screen.getByRole('link', { name: /app store/i })).toHaveAttribute('href', 'https://store.example/ios')
@@ -47,7 +57,7 @@ describe('FooterGetTheApp', () => {
 
     it('gives a phone one button and no QR it could not scan', () => {
         mockDeviceType.mockReturnValue(DeviceType.IOS)
-        renderWithIntl(<FooterGetTheApp />)
+        render(<FooterGetTheApp strings={strings} />)
         expect(screen.getByRole('link', { name: /download now/i })).toHaveAttribute('href', 'https://store.example/ios')
         expect(screen.queryByRole('link', { name: /google play/i })).not.toBeInTheDocument()
         expect(screen.queryByTestId('qr')).not.toBeInTheDocument()
