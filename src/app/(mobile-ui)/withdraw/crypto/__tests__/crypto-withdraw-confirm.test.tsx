@@ -777,3 +777,102 @@ describe('crypto withdraw — the spend is frozen with the charge', () => {
         expect(mockSendMoney).toHaveBeenCalledWith(RECIPIENT, '10.126123', expect.anything())
     })
 })
+
+describe('crypto withdraw retry — after a route error (cross-chain cap 429, TASK-22154)', () => {
+    // The cap answers the SDA provision with 429 while the route is being
+    // prepared, so the confirm view renders the error with no transactions
+    // built. Retry must recompute the route, not fail on "not prepared".
+    it('Retry recomputes the route instead of failing on the transactions the failed route never built', async () => {
+        const m = mockCrossChainTransfer as unknown as { transactions: unknown; error: unknown; calculate: jest.Mock }
+        const prev = { transactions: m.transactions, error: m.error }
+        const prevFlow = {
+            amountToWithdraw: mockWithdrawFlow.amountToWithdraw,
+            isMaxWithdrawal: mockWithdrawFlow.isMaxWithdrawal,
+            preparedAmount: mockWithdrawFlow.preparedAmount,
+        }
+        m.transactions = null
+        m.error = 'You reached the limit for withdrawals to other networks. Try again in about 50 minutes.'
+        Object.assign(mockWithdrawFlow, {
+            amountToWithdraw: '10.12',
+            isMaxWithdrawal: true,
+            preparedAmount: '10.126123',
+        })
+        try {
+            render(<WithdrawCryptoPage />)
+            await waitFor(() => expect(m.calculate).toHaveBeenCalled())
+            const calculateCalls = m.calculate.mock.calls.length
+            const errorCalls = mockSetPaymentError.mock.calls.length
+
+            fireEvent.click(screen.getByTestId('confirm-withdraw'))
+
+            await waitFor(() => expect(m.calculate.mock.calls.length).toBe(calculateCalls + 1))
+            expect(m.calculate.mock.calls.at(-1)?.[0]).toEqual(
+                expect.objectContaining({ source: expect.objectContaining({ tokenAmount: '10.126123' }) })
+            )
+            expect(mockSendMoney).not.toHaveBeenCalled()
+            expect(mockSendTransactions).not.toHaveBeenCalled()
+            // Retry only clears errors (null); it never sets "transaction not prepared"
+            const afterClick = mockSetPaymentError.mock.calls.slice(errorCalls).map((c) => c[0])
+            expect(afterClick.every((v) => v === null)).toBe(true)
+        } finally {
+            m.transactions = prev.transactions
+            m.error = prev.error
+            Object.assign(mockWithdrawFlow, prevFlow)
+        }
+    })
+
+    it('quotes the frozen max-withdrawal amount when entering confirm', async () => {
+        Object.assign(mockWithdrawFlow, {
+            amountToWithdraw: '10.12',
+            isMaxWithdrawal: true,
+            preparedAmount: '10.126123',
+        })
+
+        try {
+            render(<WithdrawCryptoPage />)
+
+            await waitFor(() => expect(mockCrossChainTransfer.calculate).toHaveBeenCalled())
+            expect(mockCrossChainTransfer.calculate.mock.calls[0][0]).toEqual(
+                expect.objectContaining({ source: expect.objectContaining({ tokenAmount: '10.126123' }) })
+            )
+        } finally {
+            Object.assign(mockWithdrawFlow, {
+                amountToWithdraw: '50',
+                isMaxWithdrawal: false,
+                preparedAmount: null,
+            })
+        }
+    })
+
+    it('Retry does nothing while a recalculation is already in flight (a double tap must not provision twice)', async () => {
+        const m = mockCrossChainTransfer as unknown as {
+            transactions: unknown
+            error: unknown
+            isCalculating: boolean
+            calculate: jest.Mock
+        }
+        const prev = { transactions: m.transactions, error: m.error, isCalculating: m.isCalculating }
+        m.transactions = null
+        m.error = 'You reached the limit for withdrawals to other networks. Try again in about 50 minutes.'
+        m.isCalculating = true
+        try {
+            render(<WithdrawCryptoPage />)
+            await waitFor(() => expect(m.calculate).toHaveBeenCalled())
+            const calculateCalls = m.calculate.mock.calls.length
+            const errorCalls = mockSetPaymentError.mock.calls.length
+
+            fireEvent.click(screen.getByTestId('confirm-withdraw'))
+            fireEvent.click(screen.getByTestId('confirm-withdraw'))
+            await new Promise((r) => setTimeout(r, 50))
+
+            expect(m.calculate.mock.calls.length).toBe(calculateCalls)
+            expect(mockSendMoney).not.toHaveBeenCalled()
+            const afterClick = mockSetPaymentError.mock.calls.slice(errorCalls).map((c) => c[0])
+            expect(afterClick.every((v) => v === null)).toBe(true)
+        } finally {
+            m.transactions = prev.transactions
+            m.error = prev.error
+            m.isCalculating = prev.isCalculating
+        }
+    })
+})

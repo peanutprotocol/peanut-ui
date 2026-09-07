@@ -11,6 +11,7 @@
  */
 
 import { apiFetch } from '@/utils/api-fetch'
+import { apiErrorFromResponse } from '@/services/api-error'
 import type { Address } from 'viem'
 
 export type RhinoTransferContext = 'withdraw' | 'pay-request' | 'claim-xchain'
@@ -111,28 +112,10 @@ async function postRhino<TReq, TRes>(path: string, body: TReq, errorLabel: strin
         method: 'POST',
         body: JSON.stringify(body),
     })
-    if (!response.ok) {
-        const text = await response.text().catch(() => '')
-        // Surface the backend's own message (and wire `code`) verbatim so callers
-        // can show it directly — e.g. the sub-minimum rejection ("Amount ($2.00)
-        // is below the $5 minimum to bridge to ETHEREUM.") reaches the confirm
-        // view instead of a `${errorLabel}: 400 {json}` blob. Falls back to the
-        // labelled status line for a non-JSON or empty body.
-        let message = `${errorLabel}: ${response.status} ${text}`
-        let code: string | undefined
-        try {
-            const parsed = JSON.parse(text) as { error?: unknown; message?: unknown; code?: unknown }
-            if (typeof parsed.error === 'string' && parsed.error) message = parsed.error
-            else if (typeof parsed.message === 'string' && parsed.message) message = parsed.message
-            if (typeof parsed.code === 'string' && parsed.code) code = parsed.code
-        } catch {
-            // non-JSON body — keep the labelled fallback message
-        }
-        const error = new Error(message) as Error & { status?: number; code?: string }
-        error.status = response.status
-        if (code) error.code = code
-        throw error
-    }
+    // ApiError keeps the backend's `error` text as the message and carries its
+    // `code` / `retryAfterSec`, so friendlyError can localize a 429 instead of
+    // the UI echoing a "Failed to …: 429 {json}" string.
+    if (!response.ok) throw await apiErrorFromResponse(response, errorLabel)
     return (await response.json()) as TRes
 }
 

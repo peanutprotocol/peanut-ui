@@ -27,6 +27,7 @@ import { encodeFunctionData, erc20Abi, parseUnits, type Address, type Hex } from
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { prepareRequestLinkFulfillmentTransaction } from '@/utils/peanut-claim.utils'
 import { estimateTransactionCostUsd } from '@/app/actions/tokens'
+import { useFriendlyError } from '@/hooks/useFriendlyError'
 import {
     provisionSdaTransfer,
     previewSdaTransfer,
@@ -176,6 +177,7 @@ function inferTokenSymbol(chainId: string, tokenAddress: string): RhinoSupported
 }
 
 export function useCrossChainTransfer(): UseCrossChainTransferReturn {
+    const toFriendlyError = useFriendlyError()
     const [transactions, setTransactions] = useState<PreparedTransaction[] | null>(null)
     const [sdaAddress, setSdaAddress] = useState<Address | null>(null)
     const [receiveAmount, setReceiveAmount] = useState<string | null>(null)
@@ -325,6 +327,8 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
                         sourceRhinoChain,
                         destRhinoChain,
                         tokenSymbol,
+                        context,
+                        contextId,
                         setTransactions: live(setTransactions),
                         setReceiveAmount: live(setReceiveAmount),
                         setPayAmount: live(setPayAmount),
@@ -392,10 +396,12 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
                 })
                 if (isCurrent()) setPath('sda')
             } catch (err) {
-                const message = err instanceof Error ? err.message : 'failed to calculate cross-chain transfer'
                 // A superseded quote's failure is not the user's problem — the
                 // newer one owns the screen, including whether it errored.
-                live(setError)(message)
+                // A payer cannot switch to Arbitrum — the request fixed the destination.
+                live(setError)(
+                    toFriendlyError(err, { crossChainSurface: context === 'pay-request' ? 'payment' : 'withdraw' })
+                )
                 live(setIsFeeEstimationError)(true)
                 captureException(err)
             } finally {
@@ -404,7 +410,7 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
                 if (isCurrent()) setIsCalculating(false)
             }
         },
-        []
+        [toFriendlyError]
     )
 
     return {
@@ -437,6 +443,8 @@ interface BridgePathParams {
     sourceRhinoChain: string
     destRhinoChain: string
     tokenSymbol: string
+    context: RhinoTransferContext
+    contextId: string
     setTransactions: (tx: PreparedTransaction[] | null) => void
     setReceiveAmount: (v: string | null) => void
     setPayAmount: (v: string | null) => void
@@ -458,6 +466,8 @@ async function runBridgePath({
     sourceRhinoChain,
     destRhinoChain,
     tokenSymbol,
+    context,
+    contextId,
     setTransactions,
     setReceiveAmount,
     setPayAmount,
@@ -493,13 +503,21 @@ async function runBridgePath({
         recipient: destination.recipientAddress,
         depositor: source.address,
         mode,
+        // Names the charge so the API counts this bridge against the caller's
+        // cross-chain cap, same as the SDA path. claim-xchain has no charge.
+        ...(context !== 'claim-xchain' ? { context, contextId } : {}),
     })
 
     // Always present here: the bridge route sends depositor/recipient, so its
     // quote is always the authenticated one. Asserted rather than assumed —
     // committing `undefined` would fail deep inside Rhino instead of here.
     if (!quote.quoteId) throw new Error('Rhino returned a bridge quote with no quoteId — cannot commit')
-    const commit: BridgeCommitResponse = await commitBridgeQuote(quote.quoteId, quote.isSwap, isSameChainSwap)
+    const commit: BridgeCommitResponse = await commitBridgeQuote(
+        quote.quoteId,
+        quote.isSwap,
+        isSameChainSwap,
+        context !== 'claim-xchain' ? { context, contextId } : undefined
+    )
 
     if (!commit.contractAddress) {
         throw new Error('Rhino did not return a bridge contract address — cannot construct tx')
