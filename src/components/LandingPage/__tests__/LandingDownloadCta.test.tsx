@@ -1,10 +1,19 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { LandingDownloadCta } from '../LandingDownloadCta'
+import { FooterStoreLinks } from '../FooterStoreLinks'
+import { StickyMobileCTA } from '../StickyMobileCTA'
+import type { LandingStrings } from '../landingStrings'
 import { LandingAppLink } from '../LandingAppLink'
 import { STORE_URL } from '@/constants/migration.consts'
 
 let mockDevice = 'web'
 let mockMigration = true
+const mockTrackStoreClick = jest.fn()
+jest.mock('@/utils/migration.utils', () => ({
+    trackStoreClick: (...args: unknown[]) => mockTrackStoreClick(...args),
+    storeAnchorHref: () => '/store',
+    onStoreAnchorClick: jest.fn(),
+}))
 const mockIntercept = jest.fn(() => true)
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 jest.mock('@/hooks/useGetDeviceType', () => ({
@@ -21,6 +30,8 @@ beforeEach(() => {
     mockDevice = 'web'
     mockMigration = true
     mockIntercept.mockClear()
+    mockTrackStoreClick.mockClear()
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 })
 })
 
 it('has one desktop download action and delegates to the shared modal', () => {
@@ -42,6 +53,8 @@ it.each(['ios', 'android'])('offers the opposite store on %s', (device) => {
         'href',
         STORE_URL[device === 'ios' ? 'android' : 'ios']
     )
+    fireEvent.click(screen.getByRole('link', { name: 'otherStore' }))
+    expect(mockTrackStoreClick).toHaveBeenCalledWith(device === 'ios' ? 'android' : 'ios', 'landing_hero')
 })
 it('keeps web login when the flag is off and changes its fallback URL when on', () => {
     mockMigration = false
@@ -72,4 +85,29 @@ it('lets phone login follow the app link instead of intercepting it into a store
     fireEvent.click(screen.getByRole('link'))
     expect(mockIntercept).not.toHaveBeenCalled()
     expect(screen.getByRole('link')).toHaveAttribute('href', '/app/login')
+})
+
+it.each(['ios', 'android'])('tracks the %s footer store link without changing its destination', (store) => {
+    render(<FooterStoreLinks />)
+    const link = screen.getByRole('link', { name: store === 'ios' ? 'App Store' : 'Google Play' })
+    expect(link).toHaveAttribute('href', STORE_URL[store as 'ios' | 'android'])
+    fireEvent.click(link)
+    expect(mockTrackStoreClick).toHaveBeenCalledWith(store, 'landing_footer')
+})
+
+it('hides footer stores while migration is off', () => {
+    mockMigration = false
+    render(<FooterStoreLinks />)
+    expect(screen.queryAllByRole('link')).toHaveLength(0)
+    expect(mockTrackStoreClick).not.toHaveBeenCalled()
+})
+
+it.each(['ios', 'android'])('tracks the sticky other-store fallback on %s', (device) => {
+    mockDevice = device
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 400 })
+    render(<StickyMobileCTA strings={{} as LandingStrings} />)
+    const link = screen.getByRole('link', { name: 'otherStore' })
+    expect(link).toHaveAttribute('href', STORE_URL[device === 'ios' ? 'android' : 'ios'])
+    fireEvent.click(link)
+    expect(mockTrackStoreClick).toHaveBeenCalledWith(device === 'ios' ? 'android' : 'ios', 'landing_hero')
 })

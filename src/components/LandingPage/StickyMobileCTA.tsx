@@ -8,7 +8,7 @@ import { STORE_URL, MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { useTranslations } from 'next-intl'
-import { onStoreAnchorClick, storeAnchorHref } from '@/utils/migration.utils'
+import { onStoreAnchorClick, storeAnchorHref, trackStoreClick } from '@/utils/migration.utils'
 
 export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
     const [visible, setVisible] = useState(false)
@@ -96,6 +96,12 @@ export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
                             <a
                                 className="pointer-events-auto mt-2 block text-center text-sm underline"
                                 href={STORE_URL[store === 'ios' ? 'android' : 'ios']}
+                                onClick={() =>
+                                    trackStoreClick(
+                                        store === 'ios' ? 'android' : 'ios',
+                                        MIGRATION_SURFACES.LANDING_HERO
+                                    )
+                                }
                             >
                                 {tMigration('otherStore')}
                             </a>
