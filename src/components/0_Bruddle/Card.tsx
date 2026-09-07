@@ -8,6 +8,14 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
     color?: ShadowColor
 }
 
+/**
+ * The card surface itself, board 17802:61536 — white bg, near-black
+ * border-default, 2px radius, no shadow. Exported because `Card` is a `div`:
+ * a surface that has to be an interactive element (a `role="radio"` tile, say)
+ * cannot compose the component and would otherwise retype these classes.
+ */
+export const CARD_SURFACE = 'rounded-sm border border-border-default bg-background-default'
+
 const shadowClasses: Record<ShadowColor, Record<ShadowSize, string>> = {
     primary: {
         '4': 'shadow-4',
@@ -27,12 +35,7 @@ const Card = ({ children, className, shadowSize, color = 'primary', ...props }: 
     return (
         <div
             // Tailwind merge makes sure classes added through className by component caller are merged and overrides the default classes
-            className={twMerge(
-                // board 17802:61536: white bg, border-default (#161616), 2px radius, no shadow by default
-                `flex flex-col rounded-sm border border-border-default bg-background-default`,
-                shadowClass,
-                className
-            )}
+            className={twMerge(`flex flex-col ${CARD_SURFACE}`, shadowClass, className)}
             {...props}
         >
             {children}

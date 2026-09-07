@@ -2333,7 +2333,7 @@
         "shareText": "Ganhei o selo {badge} no Peanut!\n\nEntre no Peanut e comece a ganhar pontos, desbloquear conquistas e movimentar dinheiro pelo mundo\n\n{link}",
         "toastSingle": "Selo desbloqueado: {name}",
         "toastMultiple": "Você desbloqueou {count, plural, one {# selo} other {# selos}}",
-        "toastTapToView": "— toque para ver",
+        "toastTapToView": "Toque para ver",
         "catalog": {
             "FIRST_INVITE": {
                 "name": "Primeiro convite",

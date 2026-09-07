@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useQueryState } from 'nuqs'
 import { updateUserById } from '@/app/actions/users'
+import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { Drawer, DrawerContent } from '@/components/Global/Drawer'
@@ -200,8 +201,12 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                     tabIndex={index === focusIndex ? 0 : -1}
                                     onClick={() => save(initial ? initialKey : key)}
                                     className={twMerge(
-                                        // XL on top: the Earned tag sits in that band, clear of the sticker
-                                        'relative flex flex-col items-center rounded-sm border border-border-default bg-background-default px-1 pt-6 pb-3 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus',
+                                        // Card's own surface — a role="radio" must be a
+                                        // <button>, so the component (a div) cannot be
+                                        // composed and the chrome is imported instead.
+                                        // XL on top: the Earned tag sits in that band,
+                                        // clear of the sticker.
+                                        `relative flex flex-col items-center ${CARD_SURFACE} px-1 pt-6 pb-3 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus`,
                                         checked && 'border-2 border-border-default'
                                     )}
                                 >
