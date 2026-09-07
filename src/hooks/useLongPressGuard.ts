@@ -18,6 +18,9 @@ export function useLongPressGuard(): void {
     useEffect(() => {
         document.body.classList.add('app-no-callout')
         const onContextMenu = (e: Event) => {
+            // touch environments only: on desktop the contextmenu is the
+            // right-click menu (open in new tab, copy link) — keep it
+            if (!window.matchMedia?.('(any-pointer: coarse)').matches) return
             const target = e.target as Element | null
             if (!target?.closest) return
             if (target.closest('input,textarea,[contenteditable="true"]')) return

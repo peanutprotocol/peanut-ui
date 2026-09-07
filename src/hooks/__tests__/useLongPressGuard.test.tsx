@@ -7,7 +7,13 @@ const fireContextMenu = (el: Element) => {
     return event
 }
 
+// jsdom has no matchMedia; the hook gates on (any-pointer: coarse)
+const setPointer = (coarse: boolean) => {
+    window.matchMedia = jest.fn().mockReturnValue({ matches: coarse }) as unknown as typeof window.matchMedia
+}
+
 describe('useLongPressGuard', () => {
+    beforeEach(() => setPointer(true))
     it('adds the body class while mounted and removes it on unmount', () => {
         const { unmount } = renderHook(() => useLongPressGuard())
         expect(document.body.classList.contains('app-no-callout')).toBe(true)
@@ -32,5 +38,14 @@ describe('useLongPressGuard', () => {
         button.remove()
         input.remove()
         p.remove()
+    })
+
+    it('leaves the desktop right-click menu alone (fine pointer)', () => {
+        setPointer(false)
+        renderHook(() => useLongPressGuard())
+        const a = document.createElement('a')
+        document.body.appendChild(a)
+        expect(fireContextMenu(a).defaultPrevented).toBe(false)
+        a.remove()
     })
 })
