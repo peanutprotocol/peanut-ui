@@ -29,6 +29,7 @@ import {
     ChevronDown,
     ChevronRight,
     ChevronUp,
+    Dices,
     DollarSign,
     Download,
     ExternalLink,
@@ -45,6 +46,7 @@ import {
     Link as LinkIcon,
     LogOut,
     Lock,
+    Menu,
     MessageCircleQuestionMark,
     MoreHorizontal,
     Paperclip,
@@ -102,6 +104,7 @@ export type IconName =
     | 'meter'
     | 'cancel'
     | 'ban'
+    | 'dice'
     | 'download'
     | 'double-check'
     | 'eye'
@@ -164,6 +167,7 @@ export type IconName =
     | 'alert-filled'
     | 'paste'
     | 'credit-card'
+    | 'menu'
     | 'more-horizontal'
     | 'trash'
 export interface IconProps extends SVGProps<SVGSVGElement> {
@@ -286,6 +290,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     star: (props) => <LucideWrapper Icon={Star} {...props} />,
     'user-plus': (props) => <LucideWrapper Icon={UserPlus} {...props} />,
     copy: (props) => <LucideWrapper Icon={Copy} {...props} />,
+    dice: (props) => <LucideWrapper Icon={Dices} {...props} />,
     cancel: (props) => <LucideWrapper Icon={X} {...props} />,
     ban: (props) => <LucideWrapper Icon={Ban} {...props} />,
     'qr-code': (props) => <LucideWrapper Icon={QrCode} boostKey="qr-code" {...props} />,
@@ -330,6 +335,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'alert-filled': (props) => <LucideWrapper Icon={AlertTriangle} {...props} filled />,
     paste: (props) => <LucideWrapper Icon={Clipboard} {...props} />,
     'credit-card': (props) => <LucideWrapper Icon={CreditCard} {...props} />,
+    menu: (props) => <LucideWrapper Icon={Menu} {...props} />,
     'more-horizontal': (props) => <LucideWrapper Icon={MoreHorizontal} {...props} />,
     trash: (props) => <LucideWrapper Icon={Trash2} {...props} />,
 }

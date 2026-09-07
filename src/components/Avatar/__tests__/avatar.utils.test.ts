@@ -1,7 +1,8 @@
 import { existsSync } from 'fs'
 import { join } from 'path'
 import badgeAssets from '@/types/badge-assets.json'
-import { avatarPool, avatarSrc, badgeAvatarKeys, basicAvatarKeys, letterAvatarSrc, offerBasics } from '../avatar.utils'
+import en from '@/i18n/app/messages/en.json'
+import { avatarPool, avatarSrc, badgeAvatarKeys, basicAvatarKeys, dealHand, letterAvatarSrc } from '../avatar.utils'
 
 describe('avatar catalog', () => {
     // the manifest is the API's contract: every slug it names must be real art
@@ -68,21 +69,94 @@ describe('avatar catalog', () => {
         expect(avatarSrc(undefined)).toBeNull()
     })
 
-    it('offers one row of five basics that always holds the pick', () => {
-        const seeded = (seed: number) => () => (seed = (seed * 9301 + 49297) % 233280) / 233280
-        const row = offerBasics('basic.sun', 5, seeded(1))
-        expect(row).toHaveLength(5)
-        expect(row).toContain('basic.sun')
-        expect(new Set(row).size).toBe(5)
-        for (const key of row) expect(basicAvatarKeys()).toContain(key)
+    // every basic tile prints a name and a line, so a slug the API adds before
+    // the copy lands would show as a bare capitalised slug with no line
+    it('names and lines every basic in the cast catalog', () => {
+        const cast: Record<string, { name: string; line: string }> = en.avatar.cast
+        for (const slug of badgeAssets.avatars.basics) {
+            expect({ slug, named: !!cast[slug]?.name, lined: !!cast[slug]?.line }).toEqual({
+                slug,
+                named: true,
+                lined: true,
+            })
+        }
+    })
+})
 
-        // the dice deals a different row and never touches the pick
-        const rerolled = offerBasics('basic.sun', 5, seeded(2))
-        expect(rerolled).not.toEqual(row)
-        expect(rerolled).toContain('basic.sun')
+describe('dealHand', () => {
+    const seeded = (seed: number) => () => (seed = (seed * 9301 + 49297) % 233280) / 233280
+    const unlocked = badgeAvatarKeys(['BUG_WHISPERER'])
+    const isBadge = (key: string | null) => !!key?.startsWith('badge.')
 
-        // a badge pick is not a basic: five random basics, nothing kept
-        expect(offerBasics('badge.BUG_WHISPERER.beetle', 5, seeded(3))).toHaveLength(5)
-        expect(offerBasics(null, 5, seeded(4))).toHaveLength(5)
+    it('deals the initial first, then seven distinct keys from the pool', () => {
+        const hand = dealHand(null, unlocked, { random: seeded(1) })
+        expect(hand).toHaveLength(8)
+        expect(hand[0]).toBeNull()
+        expect(new Set(hand).size).toBe(8)
+        for (const key of hand.slice(1)) expect(avatarPool(['BUG_WHISPERER'])).toContain(key)
+    })
+
+    it('keeps the pick in the hand and always deals at least one earned avatar', () => {
+        for (const pick of ['basic.sun', 'badge.BUG_WHISPERER.beetle']) {
+            const hand = dealHand(pick, unlocked, { random: seeded(2) })
+            expect(hand).toContain(pick)
+            // a worn badge avatar does not count: the guarantee is a second earned card
+            expect(hand.filter((key) => isBadge(key) && key !== pick).length).toBeGreaterThan(0)
+        }
+    })
+
+    it('does not deal a pick this manifest does not know', () => {
+        const hand = dealHand('basic.peanut', unlocked, { random: seeded(7) })
+        expect(hand).toHaveLength(8)
+        expect(hand).not.toContain('basic.peanut')
+    })
+
+    // slot 1 draws the initial itself, so a letter in slots 2-8 would be the
+    // same sticker twice, with both tiles checked
+    it('does not deal a letter pick', () => {
+        const hand = dealHand('letter.k', unlocked, { random: seeded(8) })
+        expect(hand).toHaveLength(8)
+        expect(hand).not.toContain('letter.k')
+        expect(hand.map(avatarSrc)).not.toContain('/avatars/letter/k.webp')
+    })
+
+    it('deals only basics to a user with no badges', () => {
+        const hand = dealHand(null, [], { random: seeded(3) })
+        expect(hand).toHaveLength(8)
+        expect(hand.slice(1).every((key) => key?.startsWith('basic.'))).toBe(true)
+    })
+
+    it('prefers the named badge for the guaranteed card and falls back to any earned one', () => {
+        const both = badgeAvatarKeys(['BUG_WHISPERER', 'OG_2025_10_12'])
+        for (let seed = 1; seed <= 20; seed++) {
+            const hand = dealHand(null, both, { prefer: 'OG_2025_10_12', random: seeded(seed) })
+            expect(hand.some((key) => key?.startsWith('badge.OG_2025_10_12.'))).toBe(true)
+        }
+        // a badge with no art, or one the user does not hold, changes nothing
+        expect(dealHand(null, unlocked, { prefer: 'FIRST_INVITE', random: seeded(4) }).some(isBadge)).toBe(true)
+    })
+
+    // the same badge code twice unlocks the same files twice: one drawing, one tile
+    it('never deals two tiles that draw the same art', () => {
+        const twice = badgeAvatarKeys(['BUG_WHISPERER', 'BUG_WHISPERER'])
+        expect(twice).toHaveLength(6)
+        for (let seed = 1; seed <= 20; seed++) {
+            const art = dealHand('basic.sun', twice, { random: seeded(seed) })
+                .slice(1)
+                .map(avatarSrc)
+            expect(art).toHaveLength(7)
+            expect(new Set(art).size).toBe(7)
+            expect(art).not.toContain(null)
+        }
+    })
+
+    it('is deterministic for a seed; the die deals a new hand and never touches the pick', () => {
+        const hand = dealHand('basic.sun', unlocked, { random: seeded(5) })
+        expect(dealHand('basic.sun', unlocked, { random: seeded(5) })).toEqual(hand)
+
+        const rolled = dealHand('basic.sun', unlocked, { random: seeded(6) })
+        expect(rolled).not.toEqual(hand)
+        expect(rolled).toContain('basic.sun')
+        expect(rolled[0]).toBeNull()
     })
 })

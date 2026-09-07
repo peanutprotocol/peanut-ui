@@ -2,13 +2,15 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { useQueryState } from 'nuqs'
 import { updateUserById } from '@/app/actions/users'
-import { Button } from '@/components/0_Bruddle/Button'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
+import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import { Drawer, DrawerContent } from '@/components/Global/Drawer'
 import { useAuth } from '@/context/authContext'
 import { twMerge } from '@/utils/tw'
-import { badgeAvatarKeys, letterAvatarKeys, offerBasics } from './avatar.utils'
+import { AVATAR_PICKER_BADGE_PARAM, avatarPickerBadgeParser } from './avatar.consts'
+import { badgeAvatarKeys, dealHand } from './avatar.utils'
 import { isLetterAvatarKey, storeLetterAvatar } from './avatar-letter.storage'
 import { useAvatarKey } from './useAvatarKey'
 import { roveAvatarTiles } from './avatarPicker.utils'
@@ -19,27 +21,41 @@ interface AvatarPickerProps {
     onOpenChange: (open: boolean) => void
 }
 
+/** The dice-5 face: the four corners and the middle, one 6px pip each. */
+const DIE_PIPS = [
+    'top-1.5 left-1.5',
+    'top-1.5 right-1.5',
+    'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
+    'bottom-1.5 left-1.5',
+    'bottom-1.5 right-1.5',
+]
+
+const capitalise = (word: string) => word.charAt(0).toUpperCase() + word.slice(1)
+
 /**
- * The profile avatar picker (TASK-22142): the a-z initials everyone has, then
- * what the user's badges unlocked, then one row of the basics. A tap saves at
- * once; the dice rerolls the offered row and never the pick. The API validates
- * the pick against the same pool, so a locked key never lands even if the
- * manifest and the catalog drift.
+ * The profile avatar picker (TASK-22142): one hand of eight tiles plus the die,
+ * three across, with no header — the sheet is the hand. Slot 1 is always the
+ * user's own initial, slots 2-8 are dealt by `dealHand` (at least one earned
+ * badge avatar, the current pick kept, the rest from the basics) and slot 9
+ * rolls a new hand. A tap saves at once; rolling never changes the pick. The
+ * API validates the pick against the same pool, so a locked key never lands
+ * even if the manifest and the catalog drift.
  *
- * The initials grid replaced a "use my initial instead" text button. That
- * button wrote `avatarKey: null`, which renders the first letter of the
- * USERNAME and follows it on rename; a `letter.<a-z>` pick is a real pick and
- * stays put. `null` remains the day-0 state of someone who never opened this.
+ * Slot 1 saves `letter.<x>`, a real pick that stays put, rather than the
+ * `avatarKey: null` a "use my initial instead" button used to write — that
+ * followed the username on rename. `null` remains the day-0 state of someone
+ * who never opened this, and is also what a name with no a-z initial saves.
  *
- * A letter the API still rejects (until peanut-api-ts#1529 ships) falls back to
- * a device-local mirror rather than an error toast — see avatar-letter.storage.
- * Sticker picks have no fallback by design: their unlock is enforced server-side.
+ * A letter the API still rejects falls back to a device-local mirror rather
+ * than an error toast — see avatar-letter.storage. Sticker picks have no
+ * fallback by design: their unlock is enforced server-side.
  */
 export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
     const t = useTranslations('avatar')
-    const tCommon = useTranslations('common')
     const { user, fetchUser } = useAuth()
     const { toast } = useToast()
+    // the badge the earn toast deep-linked with: its art leads the first hand
+    const [preferBadge] = useQueryState(AVATAR_PICKER_BADGE_PARAM, avatarPickerBadgeParser)
 
     const userId = user?.user.userId
     const username = user?.user.username ?? undefined
@@ -49,6 +65,12 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
     const held = badges.map((badge) => badge.code)
     const badgeName = Object.fromEntries(badges.map((badge) => [badge.code, badge.name]))
     const unlocked = badgeAvatarKeys(held)
+
+    // Slot 1 wears the first letter of the username. A name that does not start
+    // with a-z has no letter sticker to save, so that tile clears the key back
+    // to the day-0 state — which still draws that first character.
+    const first = username?.trim().charAt(0) ?? ''
+    const initialKey = /^[a-z]$/i.test(first) ? `letter.${first.toLowerCase()}` : null
 
     // The tile moves on tap; the slot behind the drawer moves after fetchUser
     // lands. `pending` overrides `saved` while a burst drains. Saves are
@@ -107,103 +129,116 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
         if (!draining.current) void drain()
     }
 
-    const letters = letterAvatarKeys()
-
-    // the offered row of five basics: dealt on open, redealt by the dice
-    const [offer, setOffer] = useState<string[]>([])
+    // the hand: dealt on open, dealt again by the die; the pick never moves with it
+    const [hand, setHand] = useState<(string | null)[]>([])
+    const [turns, setTurns] = useState(0)
     useEffect(() => {
-        if (open) setOffer(offerBasics(saved))
-        // deal once per open; the pick joins the row by being picked from it
+        // deal from `pick`, not `saved`: reopening while a save is still in
+        // flight must keep the visibly selected avatar in the hand
+        if (open) setHand(dealHand(pick, unlocked, { prefer: preferBadge ?? undefined }))
+        // deal once per open; the pick joins the hand by being picked from it
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open])
-    const rollDice = () => setOffer(offerBasics(pick))
-
-    // human labels: "Bug Whisperer · beetle" for a badge avatar, the slug for a basic
-    const label = (key: string) => {
-        const [kind, code, slug] = key.split('.')
-        if (kind === 'badge') return `${badgeName[code] ?? code} · ${slug}`
-        return kind === 'letter' ? code.toUpperCase() : code
+    const roll = () => {
+        setTurns((n) => n + 1)
+        setHand(dealHand(pick, unlocked))
     }
 
-    // Five columns for every group, initials included. Seven fitted the 26
-    // letters in four rows but left ~42px per track at 375px and ~34px at 320px,
-    // under both the 48px tile and the 44px touch target — and the roving helper
-    // steps by AVATAR_PICKER_COLUMNS, so a second column count would also have
-    // desynced arrow keys from the visual rows.
-    const tiles = (keys: string[], groupLabel: string) => {
-        const focusIndex = Math.max(0, keys.indexOf(pick ?? ''))
-        return (
-            <div
-                role="radiogroup"
-                aria-label={groupLabel}
-                className="grid grid-cols-5 gap-2"
-                onKeyDown={roveAvatarTiles}
-            >
-                {keys.map((key, index) => {
-                    const checked = key === pick
-                    return (
-                        <button
-                            key={key}
-                            type="button"
-                            role="radio"
-                            aria-checked={checked}
-                            aria-label={label(key)}
-                            tabIndex={index === focusIndex ? 0 : -1}
-                            onClick={() => save(key)}
-                            className={twMerge(
-                                'flex min-h-11 items-center justify-center rounded-sm border border-border-disabled bg-background-default p-1 focus-visible:outline-[3px] focus-visible:outline-action-focus',
-                                checked && 'border-2 border-border-default shadow-4'
-                            )}
-                        >
-                            <UserAvatar name={username} avatarKey={key} size="small" />
-                        </button>
-                    )
-                })}
-            </div>
-        )
+    // Slot 1 reads checked while nothing is picked and while the pick IS that
+    // letter. A letter that is not the user's own is never dealt, so a legacy
+    // pick like that leaves the hand with nothing checked — deliberately: it is
+    // someone else's initial, and no tile claims to be it.
+    const isChecked = (key: string | null) => (key === null ? pick === null || pick === initialKey : key === pick)
+    const focusIndex = Math.max(0, hand.findIndex(isChecked))
+
+    // Slot 1 is the user's own initial and the basics are the cast. An earned
+    // avatar has no cast entry — it is named after its art and lined with the
+    // badge that unlocked it.
+    const describe = (key: string | null): { name: string; line: string } => {
+        if (!key) return { name: t('initialName', { letter: first.toUpperCase() }), line: t('initialLine') }
+        // for a basic, `code` is its slug and there is no `slug`
+        const [kind, code, slug] = key.split('.')
+        if (kind === 'badge') return { name: capitalise(slug), line: badgeName[code] ?? code }
+        const nameKey = `cast.${code}.name` as Parameters<typeof t>[0]
+        const lineKey = `cast.${code}.line` as Parameters<typeof t>[0]
+        return { name: t.has(nameKey) ? t(nameKey) : capitalise(code), line: t.has(lineKey) ? t(lineKey) : '' }
     }
 
     return (
         <Drawer open={open} onOpenChange={onOpenChange}>
-            {/* The horizontal padding belongs to the SCROLL AREA, not to the panel
-                around it: the panel's padding sits outside the overflow-auto box,
-                so a w-full button's 4px offset shadow fell past the scroll edge
-                and got clipped. The matching pb-2 below covers the bottom. */}
-            <DrawerContent className="py-4" scrollAreaClassName="px-4">
-                <DrawerHeader className="p-0 pb-4 text-left">
-                    <DrawerTitle className="text-heading-s text-foreground-primary">{t('title')}</DrawerTitle>
-                    <DrawerDescription>{t('description')}</DrawerDescription>
-                </DrawerHeader>
-                <div className="flex flex-col gap-6 pb-2">
-                    <section className="flex flex-col gap-2">
-                        <div className="text-label-m text-foreground-secondary uppercase">{t('initials')}</div>
-                        {tiles(letters, t('initials'))}
-                    </section>
-                    <section className="flex flex-col gap-2">
-                        <div className="flex items-baseline justify-between text-label-m text-foreground-secondary uppercase">
-                            <span>{t('fromBadges')}</span>
-                            {unlocked.length > 0 && (
-                                <span className="normal-case">{t('unlocked', { count: unlocked.length })}</span>
+            {/* No header: the title is the drawer's accessible name only, and the
+                horizontal padding belongs to the SCROLL AREA so the hand pans
+                inside it rather than under the panel's own padding. */}
+            <DrawerContent accessibleTitle={t('title')} className="pb-4" scrollAreaClassName="px-4">
+                <div
+                    role="radiogroup"
+                    aria-label={t('title')}
+                    className="grid grid-cols-3 gap-2"
+                    onKeyDown={roveAvatarTiles}
+                >
+                    {hand.map((key, index) => {
+                        const initial = key === null
+                        const checked = isChecked(key)
+                        const earned = !!key?.startsWith('badge.')
+                        const { name, line } = describe(key)
+                        return (
+                            <button
+                                key={key ?? 'initial'}
+                                type="button"
+                                role="radio"
+                                aria-checked={checked}
+                                tabIndex={index === focusIndex ? 0 : -1}
+                                onClick={() => save(initial ? initialKey : key)}
+                                className={twMerge(
+                                    // XL on top: the Earned tag sits in that band, clear of the sticker
+                                    'relative flex flex-col items-center rounded-sm border border-border-default bg-background-default px-1.5 pt-6 pb-3 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus',
+                                    checked && 'border-2 border-border-default'
+                                )}
+                            >
+                                {earned && (
+                                    <StatusBadge
+                                        status="custom"
+                                        customText={t('earned')}
+                                        className="absolute top-1 right-1"
+                                    />
+                                )}
+                                {/* slot 1 draws FROM the username, so it is the one tile that needs
+                                    the name; on the rest the sticker is decorative and the tile's
+                                    own name and line label it */}
+                                <UserAvatar
+                                    name={initial ? username : undefined}
+                                    avatarKey={initial ? initialKey : key}
+                                    size="medium"
+                                />
+                                <span className="mt-1 w-full truncate text-label-m">{name}</span>
+                                {/* two lines whatever the copy: a ragged tile height across the
+                                    three rows is the one thing that breaks the grid */}
+                                <span className="line-clamp-2 h-8 text-body-xs text-foreground-secondary">{line}</span>
+                            </button>
+                        )
+                    })}
+                    <button
+                        type="button"
+                        onClick={roll}
+                        className="flex flex-col items-center justify-center gap-2 rounded-sm border-[1.5px] border-dashed border-border-default bg-background-default px-2 py-4 text-button-s focus-visible:outline-[3px] focus-visible:outline-action-focus"
+                    >
+                        {/* one full turn per roll; class parity, so no inline style */}
+                        <span
+                            aria-hidden
+                            className={twMerge(
+                                'relative size-9 rounded-lg border-2 border-border-default bg-background-default motion-safe:transition-transform motion-safe:duration-slow motion-safe:ease-spring',
+                                turns % 2 ? 'rotate-360' : 'rotate-0'
                             )}
-                        </div>
-                        {unlocked.length > 0 ? (
-                            tiles(unlocked, t('fromBadges'))
-                        ) : (
-                            <p className="text-body-s text-foreground-secondary">{t('noBadgeAvatars')}</p>
-                        )}
-                    </section>
-                    <section className="flex flex-col gap-2">
-                        <div className="text-label-m text-foreground-secondary uppercase">{t('basics')}</div>
-                        {tiles(offer, t('basics'))}
-                    </section>
-                    <div className="flex flex-col gap-2">
-                        <Button variant="stroke" className="w-full" onClick={rollDice}>
-                            {t('rollDice')}
-                        </Button>
-                        <Button variant="purple" className="w-full" onClick={() => onOpenChange(false)}>
-                            {tCommon('done')}
-                        </Button>
-                    </div>
+                        >
+                            {DIE_PIPS.map((pip) => (
+                                <span
+                                    key={pip}
+                                    className={twMerge('absolute size-1.5 rounded-full bg-border-default', pip)}
+                                />
+                            ))}
+                        </span>
+                        {t('rollDie')}
+                    </button>
                 </div>
             </DrawerContent>
         </Drawer>

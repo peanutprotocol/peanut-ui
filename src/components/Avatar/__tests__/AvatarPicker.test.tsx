@@ -9,17 +9,25 @@ jest.mock('next/image', () => ({
     default: ({ unoptimized, ...rest }: ComponentProps<'img'> & { unoptimized?: boolean }) => <img {...rest} />,
 }))
 
-// vaul needs a real layout; the picker's own logic is what is under test
-jest.mock('@/components/Global/Drawer', () => {
-    const Passthrough = ({ children }: { children?: ReactNode }) => <div>{children}</div>
-    return {
-        Drawer: ({ open, children }: { open: boolean; children?: ReactNode }) => (open ? <div>{children}</div> : null),
-        DrawerContent: Passthrough,
-        DrawerHeader: Passthrough,
-        DrawerTitle: Passthrough,
-        DrawerDescription: Passthrough,
-    }
-})
+// vaul needs a real layout; the picker's own logic is what is under test. The
+// accessible title is captured rather than rendered, so a test can prove the
+// sheet carries no title of its own while the drawer still gets one.
+const mockDrawer: { accessibleTitle?: string } = {}
+jest.mock('@/components/Global/Drawer', () => ({
+    Drawer: ({ open, children }: { open: boolean; children?: ReactNode }) => (open ? <div>{children}</div> : null),
+    DrawerContent: ({ accessibleTitle, children }: { accessibleTitle?: string; children?: ReactNode }) => {
+        mockDrawer.accessibleTitle = accessibleTitle
+        return <div>{children}</div>
+    },
+}))
+
+// the badge-earned toast's deep link, read straight off the URL by the picker
+let mockBadgeParam: string | null = null
+jest.mock('nuqs', () => ({
+    parseAsBoolean: { withDefault: () => ({}) },
+    parseAsString: {},
+    useQueryState: () => [mockBadgeParam, jest.fn()],
+}))
 
 const mockToast = jest.fn()
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ toast: mockToast }) }))
@@ -33,11 +41,17 @@ let mockUser: {
 }
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser, fetchUser: mockFetchUser }) }))
 
-const radio = (key: string) => screen.getByRole('radio', { name: key })
-const A = 'Bug Whisperer · beetle'
-const B = 'Bug Whisperer · shell'
-const KEY_A = 'badge.BUG_WHISPERER.beetle'
-const KEY_B = 'badge.BUG_WHISPERER.shell'
+const tiles = () => screen.getAllByRole('radio')
+const tile = (name: RegExp) => screen.getByRole('radio', { name })
+const die = () => screen.getByRole('button', { name: 'Roll the die' })
+
+// Math.random is pinned to 0 for the suite, which deals a fixed hand: the
+// initial, then apple, avocado, cactus, cloud, cube, donut and one earned
+// beetle. The cast copy is what a tile prints, so the tiles are named by it.
+const A = /Jackpot Cherry/
+const B = /Watermelon Slice/
+const KEY_A = 'basic.apple'
+const KEY_B = 'basic.avocado'
 
 // A server model: every POST is recorded in order and settled by hand, in any
 // order; the last write the server COMMITS is what the refetch hands back.
@@ -69,6 +83,8 @@ beforeEach(() => {
     jest.clearAllMocks()
     window.localStorage.clear()
     resetLetterAvatarCache()
+    jest.spyOn(Math, 'random').mockReturnValue(0)
+    mockBadgeParam = null
     mockUpdateUserById.mockResolvedValue({ data: {} })
     mockFetchUser.mockResolvedValue(null)
     mockUser = {
@@ -81,35 +97,120 @@ beforeEach(() => {
     }
 })
 
+afterEach(() => jest.restoreAllMocks())
+
 describe('AvatarPicker', () => {
-    it('lists one row of five basics and only the avatars of badges the user holds', () => {
+    it('deals a hand of eight tiles and the die', () => {
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        // scoped per group: the 26 initials are always on top of these
-        expect(
-            screen.getByRole('radiogroup', { name: 'From your badges' }).querySelectorAll('[role="radio"]')
-        ).toHaveLength(3)
-        // human labels, not keys: badge name + slug, or the slug alone
-        expect(radio(A)).toBeInTheDocument()
-        expect(screen.getByRole('radiogroup', { name: 'Basics' }).querySelectorAll('[role="radio"]')).toHaveLength(5)
-        expect(screen.queryByRole('radio', { name: /Offramp/ })).not.toBeInTheDocument()
-        expect(screen.getByRole('radiogroup', { name: 'From your badges' })).toBeInTheDocument()
+        expect(tiles()).toHaveLength(8)
+        expect(die()).toBeInTheDocument()
     })
 
-    it('tells a user with no badges where avatars come from', () => {
+    it('is the hand and nothing else: no title, no description, no header', () => {
+        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        // the drawer still names itself for assistive tech; the sheet does not
+        expect(mockDrawer.accessibleTitle).toBe('Your avatar')
+        expect(screen.queryByText('Your avatar')).not.toBeInTheDocument()
+        expect(screen.queryByText(/Pick one, or roll the dice/)).not.toBeInTheDocument()
+        expect(screen.queryByTestId('drawer-header')).not.toBeInTheDocument()
+        expect(screen.queryByRole('heading')).not.toBeInTheDocument()
+    })
+
+    it('names and lines every tile', () => {
+        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        expect(tile(A)).toHaveTextContent('Two short of rich')
+        expect(tile(/Grumpy Raincloud/)).toHaveTextContent('Complains, still comes')
+        for (const el of tiles()) expect(el.textContent?.trim()).not.toBe('')
+    })
+
+    it('opens on the initial, and saves it as a letter pick rather than a cleared key', async () => {
+        mockUser.user.avatarKey = KEY_A
+        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        const initial = tiles()[0]
+        expect(initial).toHaveTextContent('Just S')
+        expect(initial).toHaveTextContent('Your initial')
+
+        fireEvent.click(initial)
+
+        expect(mockUpdateUserById).toHaveBeenCalledWith({ userId: 'u1', avatarKey: 'letter.s' })
+        expect(initial).toHaveAttribute('aria-checked', 'true')
+        await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
+    })
+
+    it('reads the initial as checked while nothing is picked', () => {
+        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        expect(tiles()[0]).toHaveAttribute('aria-checked', 'true')
+    })
+
+    // slot 1 is the user's OWN letter; someone wearing another one is not
+    // claiming an initial, so no tile claims to be it either
+    it('leaves nothing checked when the pick is a letter that is not the initial', () => {
+        mockUser.user.avatarKey = 'letter.k'
+        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        expect(tiles().filter((el) => el.getAttribute('aria-checked') === 'true')).toHaveLength(0)
+    })
+
+    it('deals an earned avatar, tagged, to a user who holds a badge — and none to one who does not', () => {
+        const { unmount } = renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        const earned = tiles().filter((el) => el.textContent?.includes('Earned'))
+        expect(earned.length).toBeGreaterThan(0)
+        // named after its art, lined with the badge that unlocked it
+        expect(earned[0]).toHaveTextContent('Beetle')
+        expect(earned[0]).toHaveTextContent('Bug Whisperer')
+
+        unmount()
         mockUser.user.badges = []
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        expect(screen.getByRole('radiogroup', { name: 'Basics' }).querySelectorAll('[role="radio"]')).toHaveLength(5)
-        expect(screen.getByText('Earn a badge and its avatars appear here.')).toBeInTheDocument()
+        expect(screen.queryByText('Earned')).not.toBeInTheDocument()
+    })
+
+    it('deals the badge the deep link names', () => {
+        mockBadgeParam = 'OG_2025_10_12'
+        mockUser.user.badges = [
+            { code: 'BUG_WHISPERER', name: 'Bug Whisperer' },
+            { code: 'OG_2025_10_12', name: 'OG' },
+        ]
+        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        expect(tile(/Coin/)).toHaveTextContent('OG')
+    })
+
+    it('keeps the current pick in the hand, checked', () => {
+        mockUser.user.avatarKey = 'basic.cactus'
+        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        expect(tile(/Bold Chili/)).toHaveAttribute('aria-checked', 'true')
+        expect(tiles()[0]).toHaveAttribute('aria-checked', 'false')
+    })
+
+    it('deals a new hand on the die and never changes the pick', () => {
+        mockUser.user.avatarKey = 'basic.cactus'
+        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+        const handOf = () => tiles().map((el) => el.textContent)
+        const before = handOf()
+
+        jest.spyOn(Math, 'random').mockReturnValue(0.99)
+        act(() => fireEvent.click(die()))
+
+        expect(handOf()).not.toEqual(before)
+        expect(tile(/Bold Chili/)).toHaveAttribute('aria-checked', 'true')
+        expect(mockUpdateUserById).not.toHaveBeenCalled()
     })
 
     it('saves a tap at once and refreshes the user', async () => {
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        fireEvent.click(radio(B))
+        fireEvent.click(tile(B))
 
-        expect(radio(B)).toHaveAttribute('aria-checked', 'true')
+        expect(tile(B)).toHaveAttribute('aria-checked', 'true')
         expect(mockUpdateUserById).toHaveBeenCalledWith({ userId: 'u1', avatarKey: KEY_B })
         await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
     })
@@ -119,9 +220,9 @@ describe('AvatarPicker', () => {
         mockUpdateUserById.mockResolvedValue({ error: 'Avatar not unlocked' })
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        fireEvent.click(radio(B))
+        fireEvent.click(tile(B))
 
-        await waitFor(() => expect(radio(A)).toHaveAttribute('aria-checked', 'true'))
+        await waitFor(() => expect(tile(A)).toHaveAttribute('aria-checked', 'true'))
         expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }))
         // the server is the truth after a burst, failed or not
         expect(mockFetchUser).toHaveBeenCalledTimes(1)
@@ -133,12 +234,12 @@ describe('AvatarPicker', () => {
         const server = fakeServer()
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        fireEvent.click(radio(A))
-        fireEvent.click(radio(B))
+        fireEvent.click(tile(A))
+        fireEvent.click(tile(B))
 
         // (a) the second POST is not sent before the first settles
         expect(server.posts.map((p) => p.key)).toEqual([KEY_A])
-        expect(radio(B)).toHaveAttribute('aria-checked', 'true')
+        expect(tile(B)).toHaveAttribute('aria-checked', 'true')
 
         await server.settle(0)
         expect(server.posts.map((p) => p.key)).toEqual([KEY_A, KEY_B])
@@ -149,8 +250,8 @@ describe('AvatarPicker', () => {
         // (b) the server's last write is the last tap, refetched once
         await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
         expect(server.committed()).toBe(KEY_B)
-        expect(radio(B)).toHaveAttribute('aria-checked', 'true')
-        expect(radio(A)).toHaveAttribute('aria-checked', 'false')
+        expect(tile(B)).toHaveAttribute('aria-checked', 'true')
+        expect(tile(A)).toHaveAttribute('aria-checked', 'false')
     })
 
     it('a tap during the closing refetch is sent, not dropped', async () => {
@@ -168,11 +269,11 @@ describe('AvatarPicker', () => {
         )
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        fireEvent.click(radio(A))
+        fireEvent.click(tile(A))
         await server.settle(0)
         await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
 
-        fireEvent.click(radio(B))
+        fireEvent.click(tile(B))
         expect(server.posts.map((p) => p.key)).toEqual([KEY_A])
         await act(async () => releaseFetch())
 
@@ -182,15 +283,15 @@ describe('AvatarPicker', () => {
         await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(2))
         await act(async () => releaseFetch())
         expect(server.committed()).toBe(KEY_B)
-        expect(radio(B)).toHaveAttribute('aria-checked', 'true')
+        expect(tile(B)).toHaveAttribute('aria-checked', 'true')
     })
 
     it('a rejected first save still lets the second go through and clears pending', async () => {
         const server = fakeServer()
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        fireEvent.click(radio(A))
-        fireEvent.click(radio(B))
+        fireEvent.click(tile(A))
+        fireEvent.click(tile(B))
         await server.reject(0)
 
         expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }))
@@ -200,61 +301,31 @@ describe('AvatarPicker', () => {
 
         await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
         expect(server.committed()).toBe(KEY_B)
-        expect(radio(B)).toHaveAttribute('aria-checked', 'true')
+        expect(tile(B)).toHaveAttribute('aria-checked', 'true')
         // pending is cleared: a later refetch that says otherwise wins
         mockUser.user.avatarKey = KEY_A
-        fireEvent.click(screen.getByRole('button', { name: 'Roll the dice' }))
-        expect(radio(A)).toHaveAttribute('aria-checked', 'true')
-    })
-
-    it('the dice redeals the basics row and never changes the pick', () => {
-        mockUser.user.avatarKey = 'basic.apple'
-        const random = jest.spyOn(Math, 'random').mockReturnValue(0)
-        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
-        const rowOf = () =>
-            Array.from(screen.getByRole('radiogroup', { name: 'Basics' }).querySelectorAll('[role="radio"]')).map(
-                (el) => el.getAttribute('aria-label')
-            )
-        const before = rowOf()
-
-        random.mockReturnValue(0.99)
-        act(() => fireEvent.click(screen.getByRole('button', { name: 'Roll the dice' })))
-
-        expect(rowOf()).not.toEqual(before)
-        expect(rowOf()).toContain('apple')
-        expect(radio('apple')).toHaveAttribute('aria-checked', 'true')
-        expect(mockUpdateUserById).not.toHaveBeenCalled()
-        random.mockRestore()
-    })
-
-    it('offers every letter as its own pick, ahead of the sticker groups', () => {
-        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
-        const groups = screen.getAllByRole('radiogroup').map((el) => el.getAttribute('aria-label'))
-
-        expect(groups[0]).toBe('Initials')
-        expect(screen.getByRole('radiogroup', { name: 'Initials' }).querySelectorAll('[role="radio"]')).toHaveLength(26)
-        expect(screen.getByRole('radio', { name: 'A' })).toBeInTheDocument()
-        expect(screen.getByRole('radio', { name: 'Z' })).toBeInTheDocument()
+        act(() => fireEvent.click(die()))
+        expect(tile(A)).toHaveAttribute('aria-checked', 'true')
     })
 
     it('keeps a letter this API build still rejects, on the device, without an error toast', async () => {
         const server = fakeServer()
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        fireEvent.click(screen.getByRole('radio', { name: 'K' }))
+        fireEvent.click(tiles()[0])
         await server.settle(0, { error: 'body/avatarKey must match pattern' })
 
         // the pick survives the rejection and the user is not told off for it
-        await waitFor(() => expect(readLetterAvatar('u1')?.key).toBe('letter.k'))
+        await waitFor(() => expect(readLetterAvatar('u1')?.key).toBe('letter.s'))
         expect(mockToast).not.toHaveBeenCalled()
-        await waitFor(() => expect(radio('K')).toHaveAttribute('aria-checked', 'true'))
+        await waitFor(() => expect(tiles()[0]).toHaveAttribute('aria-checked', 'true'))
     })
 
     it('still reports a rejected sticker — those have no device-local fallback', async () => {
         const server = fakeServer()
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        fireEvent.click(radio(A))
+        fireEvent.click(tile(A))
         await server.settle(0, { error: 'Avatar not unlocked' })
 
         expect(mockToast).toHaveBeenCalledWith({ type: 'error', message: 'Could not save your avatar. Try again.' })
@@ -265,33 +336,14 @@ describe('AvatarPicker', () => {
         const server = fakeServer()
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        fireEvent.click(screen.getByRole('radio', { name: 'K' }))
+        fireEvent.click(tiles()[0])
         await server.settle(0, { error: 'body/avatarKey must match pattern' })
-        await waitFor(() => expect(readLetterAvatar('u1')?.key).toBe('letter.k'))
+        await waitFor(() => expect(readLetterAvatar('u1')?.key).toBe('letter.s'))
 
-        // the API now accepts it (peanut-api-ts#1529 deployed)
-        fireEvent.click(screen.getByRole('radio', { name: 'M' }))
+        fireEvent.click(tile(A))
         await server.settle(1)
 
         await waitFor(() => expect(readLetterAvatar('u1')).toBeNull())
-        expect(server.committed()).toBe('letter.m')
-    })
-
-    it('a letter is a real pick, not a clear back to the username initial', () => {
-        mockUser.user.avatarKey = 'basic.apple'
-        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
-
-        fireEvent.click(screen.getByRole('radio', { name: 'K' }))
-
-        expect(mockUpdateUserById).toHaveBeenCalledWith({ userId: 'u1', avatarKey: 'letter.k' })
-    })
-
-    it('closes on done', () => {
-        const onOpenChange = jest.fn()
-        renderWithIntl(<AvatarPicker open onOpenChange={onOpenChange} />)
-
-        fireEvent.click(screen.getByRole('button', { name: 'Done' }))
-
-        expect(onOpenChange).toHaveBeenCalledWith(false)
+        expect(server.committed()).toBe(KEY_A)
     })
 })
