@@ -51,8 +51,9 @@ describe('SendInSecondsBody', () => {
         const { container } = renderFold()
         expect(screen.getByText('SEND NOW')).toBeInTheDocument()
         expect(hrefs(container)).toContain('/send')
-        // the scroll-jack still has its anchor while the flag is off
-        expect(container.querySelector('#sticky-button-target')).toBeInTheDocument()
+        // the scroll-jack (and its #sticky-button-target anchor) is gone in
+        // both flag states — see ctaScrollJackRemnants.test.tsx
+        expect(container.querySelector('#sticky-button-target')).toBeNull()
     })
 
     // the fold is code-split (next/dynamic, ssr:false), so it arrives a tick late

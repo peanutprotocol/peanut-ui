@@ -2,7 +2,7 @@
 
 import { useFooterVisibility } from '@/context/footerVisibility'
 import { useTranslations } from 'next-intl'
-import { Suspense, useEffect, useMemo, useState, useRef, useCallback, type ReactNode } from 'react'
+import { Suspense, useEffect, useMemo, useState, type ReactNode } from 'react'
 // Imported directly, not through the barrel: `export *` pulls every sibling
 // into this chunk, including dropLink's nine repeat: Infinity animations,
 // which the landing page never renders.
@@ -93,25 +93,6 @@ export function LandingPageClient({
     const primaryCta = migrationOn ? undefined : heroConfig.primaryCta
 
     const [buttonVisible, setButtonVisible] = useState(true)
-    const [isScrollFrozen, setIsScrollFrozen] = useState(false)
-    const [buttonScale, setButtonScale] = useState(1)
-    const [animationComplete, setAnimationComplete] = useState(false)
-    const [shrinkingPhase, setShrinkingPhase] = useState(false)
-    const [hasGrown, setHasGrown] = useState(false)
-    const sendInSecondsRef = useRef<HTMLDivElement>(null)
-    const frozenScrollY = useRef(0)
-    const virtualScrollY = useRef(0)
-    const touchStartY = useRef(0)
-
-    // Use refs to avoid re-attaching listeners on every state change
-    const isScrollFrozenRef = useRef(isScrollFrozen)
-    const animationCompleteRef = useRef(animationComplete)
-    const shrinkingPhaseRef = useRef(shrinkingPhase)
-    const hasGrownRef = useRef(hasGrown)
-    isScrollFrozenRef.current = isScrollFrozen
-    animationCompleteRef.current = animationComplete
-    shrinkingPhaseRef.current = shrinkingPhase
-    hasGrownRef.current = hasGrown
 
     useEffect(() => {
         if (isFooterVisible) {
@@ -120,123 +101,6 @@ export function LandingPageClient({
             setButtonVisible(true)
         }
     }, [isFooterVisible])
-
-    // Shared logic: accumulate virtual scroll delta and animate the button scale
-    const handleScrollDelta = useCallback((deltaY: number) => {
-        if (!isScrollFrozenRef.current || animationCompleteRef.current) return
-        if (deltaY <= 0) return
-
-        virtualScrollY.current += deltaY
-
-        const maxVirtualScroll = 500
-        const newScale = Math.min(1.5, 1 + (virtualScrollY.current / maxVirtualScroll) * 0.5)
-        setButtonScale(newScale)
-
-        if (newScale >= 1.5) {
-            setAnimationComplete(true)
-            setHasGrown(true)
-            document.body.style.overflow = ''
-            setIsScrollFrozen(false)
-        }
-    }, [])
-
-    useEffect(() => {
-        /*
-         * With the flag on there is no #sticky-button-target: fold 10 swaps its
-         * CTA for the get-the-app lockup. The handler below bails on a missing
-         * target BEFORE any of the unfreeze paths, so a visitor already parked
-         * at fold 10 when the flag resolves (scroll restoration on reload or a
-         * back-navigation) would be left with body overflow:hidden and no event
-         * able to clear it. Release the machinery instead — PR 3 deletes it.
-         */
-        if (migrationOn) {
-            document.body.style.overflow = ''
-            setIsScrollFrozen(false)
-            setButtonScale(1)
-            return
-        }
-
-        const handleScroll = () => {
-            if (sendInSecondsRef.current) {
-                const targetElement = document.getElementById('sticky-button-target')
-                if (!targetElement) return
-
-                const targetRect = targetElement.getBoundingClientRect()
-                const currentScrollY = window.scrollY
-
-                const stickyButtonTop = window.innerHeight - 16 - 52
-                const stickyButtonBottom = window.innerHeight - 16
-
-                const shouldFreeze =
-                    targetRect.top <= stickyButtonBottom - 60 &&
-                    targetRect.bottom >= stickyButtonTop - 60 &&
-                    !animationCompleteRef.current &&
-                    !shrinkingPhaseRef.current &&
-                    !hasGrownRef.current
-
-                if (shouldFreeze && !isScrollFrozenRef.current) {
-                    setIsScrollFrozen(true)
-                    frozenScrollY.current = currentScrollY
-                    virtualScrollY.current = 0
-                    document.body.style.overflow = 'hidden'
-                    window.scrollTo(0, frozenScrollY.current)
-                } else if (isScrollFrozenRef.current && !animationCompleteRef.current) {
-                    window.scrollTo(0, frozenScrollY.current)
-                } else if (
-                    animationCompleteRef.current &&
-                    !shrinkingPhaseRef.current &&
-                    currentScrollY > frozenScrollY.current + 50
-                ) {
-                    setShrinkingPhase(true)
-                } else if (shrinkingPhaseRef.current) {
-                    const shrinkDistance = Math.max(0, currentScrollY - (frozenScrollY.current + 50))
-                    const maxShrinkDistance = 200
-                    const shrinkProgress = Math.min(1, shrinkDistance / maxShrinkDistance)
-                    const newScale = 1.5 - shrinkProgress * 0.5
-                    setButtonScale(Math.max(1, newScale))
-                } else if (animationCompleteRef.current && currentScrollY < frozenScrollY.current - 100) {
-                    setAnimationComplete(false)
-                    setShrinkingPhase(false)
-                    setButtonScale(1)
-                    setHasGrown(false)
-                }
-            }
-        }
-
-        const handleWheel = (event: WheelEvent) => {
-            if (isScrollFrozenRef.current && !animationCompleteRef.current) {
-                event.preventDefault()
-                handleScrollDelta(event.deltaY)
-            }
-        }
-
-        const handleTouchStart = (event: TouchEvent) => {
-            touchStartY.current = event.touches[0].clientY
-        }
-
-        const handleTouchMove = (event: TouchEvent) => {
-            if (isScrollFrozenRef.current && !animationCompleteRef.current) {
-                event.preventDefault()
-                const deltaY = touchStartY.current - event.touches[0].clientY
-                touchStartY.current = event.touches[0].clientY
-                handleScrollDelta(deltaY)
-            }
-        }
-
-        window.addEventListener('scroll', handleScroll)
-        window.addEventListener('wheel', handleWheel, { passive: false })
-        window.addEventListener('touchstart', handleTouchStart, { passive: true })
-        window.addEventListener('touchmove', handleTouchMove, { passive: false })
-        handleScroll()
-
-        return () => {
-            window.removeEventListener('scroll', handleScroll)
-            window.removeEventListener('wheel', handleWheel)
-            window.removeEventListener('touchstart', handleTouchStart)
-            window.removeEventListener('touchmove', handleTouchMove)
-            document.body.style.overflow = ''
-        }
-    }, [handleScrollDelta, migrationOn])
 
     // Only the words with a real article behind them become links; the rest
     // stay plain text. Words come from the content system's marquee list, so an
@@ -259,8 +123,6 @@ export function LandingPageClient({
         }
     }, [contentHrefs, marqueeMessages])
 
-    // Memoized because this component re-renders per scroll frame while the
-    // send button grows.
     const doorMarqueeProps = useMemo(
         () => ({
             visible: true,
@@ -284,7 +146,6 @@ export function LandingPageClient({
             <Hero
                 primaryCta={primaryCta}
                 buttonVisible={buttonVisible}
-                buttonScale={buttonScale}
                 strings={strings}
                 locale={locale}
                 compactArtwork={migrationOn}
@@ -331,7 +192,7 @@ export function LandingPageClient({
             <Marquee {...marqueeProps} />
             {securitySlot}
             <Marquee {...marqueeProps} />
-            <div ref={sendInSecondsRef}>{sendInSecondsSlot}</div>
+            {sendInSecondsSlot}
             <Marquee {...marqueeProps} />
             {faqSlot}
             <Marquee {...marqueeProps} />

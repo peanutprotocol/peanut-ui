@@ -61,9 +61,7 @@ export function SendInSecondsBody({
                 {tagline}
             </p>
 
-            <div id="sticky-button-target">
-                <SendInSecondsCTA strings={strings} />
-            </div>
+            <SendInSecondsCTA strings={strings} />
         </>
     )
 }

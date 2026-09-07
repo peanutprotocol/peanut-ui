@@ -121,7 +121,6 @@ type HeroProps = {
     primaryCta?: CTAButton
     secondaryCta?: CTAButton
     buttonVisible?: boolean
-    buttonScale?: number
     /** replaces the primary button entirely (store-button pair on desktop during the migration window) */
     customCta?: React.ReactNode
     /** the custom CTA fills the column instead of shrink-wrapping (phone download button) */
@@ -147,12 +146,11 @@ type HeroProps = {
  * framer-motion animate/whileHover pair. Same values, but the transform runs on
  * the compositor instead of a main-thread rAF loop.
  */
-const getCtaStyle = (variant: 'primary' | 'secondary', buttonVisible?: boolean, buttonScale?: number): CSSProperties =>
+const getCtaStyle = (variant: 'primary' | 'secondary', buttonVisible?: boolean): CSSProperties =>
     ({
         '--cta-x': buttonVisible ? '0px' : '20px',
         '--cta-y': buttonVisible ? '0px' : '20px',
         '--cta-r': buttonVisible ? '0deg' : '1deg',
-        '--cta-scale': buttonScale || 1,
         '--cta-hover-x': variant === 'primary' ? '0px' : '3px',
         opacity: buttonVisible ? 1 : 0,
         pointerEvents: buttonVisible ? 'auto' : 'none',
@@ -167,7 +165,6 @@ export function Hero({
     primaryCta,
     secondaryCta,
     buttonVisible,
-    buttonScale = 1,
     customCta,
     customCtaFullWidth,
     compactArtwork,
@@ -179,7 +176,7 @@ export function Hero({
         return (
             <div
                 className={`${getButtonContainerClasses(variant)} cta-motion`}
-                style={getCtaStyle(variant, buttonVisible, buttonScale)}
+                style={getCtaStyle(variant, buttonVisible)}
             >
                 <a
                     href={cta.href}
@@ -205,7 +202,7 @@ export function Hero({
     const renderCustomCta = () => (
         <div
             className={`${getButtonContainerClasses('primary', customCtaFullWidth)} cta-motion`}
-            style={getCtaStyle('primary', buttonVisible, buttonScale)}
+            style={getCtaStyle('primary', buttonVisible)}
         >
             {customCta}
         </div>
