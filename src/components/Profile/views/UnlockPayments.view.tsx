@@ -684,7 +684,7 @@ const UnlockSection = ({
                             key={row.id}
                             disabled={row.chip === 'notAvailable'}
                             leading={<IconBubble icon={row.icon as IconName} size="s" color={BUBBLE_COLOR[row.chip]} />}
-                            title={t(`rows.${row.labelKey}`)}
+                            title={<span className="break-words whitespace-normal">{t(`rows.${row.labelKey}`)}</span>}
                             trailing={rowTrailing(row)}
                             chevron={tappable}
                             onClick={tappable ? () => onRowClick(row) : undefined}

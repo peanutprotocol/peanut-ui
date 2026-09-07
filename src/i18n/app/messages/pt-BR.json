@@ -387,7 +387,7 @@
                 "arQr": "Pagamentos QR (Argentina)",
                 "arBank": "Transferências bancárias (Argentina)",
                 "naBank": "ACH, Wire (EUA) e SPEI (México)",
-                "sepa": "Transferências SEPA"
+                "sepa": "Transferências bancárias"
             },
             "chips": {
                 "active": "Ativo",
