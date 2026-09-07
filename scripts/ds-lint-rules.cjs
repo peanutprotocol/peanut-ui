@@ -66,6 +66,11 @@ const WEIGHT_STACK_RE =
     /\bfont-(?:thin|extralight|light|normal|medium|semibold|extrabold|extraBlack|bold|black|\[[0-9]+(?:\.[0-9]+)?\]|\[weight:[^\]]+\]|\(weight:[^)]+\)|\(--[^)]+\))(?![a-zA-Z0-9-])/
 const TYPE_TOKEN_RE = /\btext-(?:body|heading|label|button)-[a-z-]+\b/
 
+// Coerced join output is actual class text: commas inside a class are not
+// separators. Keep variant prefixes and important markers around a whole utility.
+const JOINED_TYPE_TOKEN_RE = new RegExp(`^(?:.*:)?!?${TYPE_TOKEN_RE.source}!?$`)
+const JOINED_WEIGHT_STACK_RE = new RegExp(`^(?:.*:)?!?${WEIGHT_STACK_RE.source}!?$`)
+
 function classNameExpressions(text) {
     const regions = []
     // any JSX prop ending in ClassName (titleClassName, iconClassName, …)
@@ -183,8 +188,10 @@ function countWeightStacksByRegex(text) {
  */
 function countWeightStacks(text, filename = 'file.tsx') {
     const sites = weightStackSites(text, filename, {
-        isToken: (value) => TYPE_TOKEN_RE.test(value),
-        isWeight: (value) => WEIGHT_STACK_RE.test(value),
+        isToken: (value, joined = false) =>
+            joined ? value.split(/\s+/).some((cls) => JOINED_TYPE_TOKEN_RE.test(cls)) : TYPE_TOKEN_RE.test(value),
+        isWeight: (value, joined = false) =>
+            joined ? value.split(/\s+/).some((cls) => JOINED_WEIGHT_STACK_RE.test(cls)) : WEIGHT_STACK_RE.test(value),
     })
     // null = the file did not parse cleanly. A recovered tree can be missing
     // whole statements, so trusting it would under-report on exactly the files

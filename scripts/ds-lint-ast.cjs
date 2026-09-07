@@ -222,8 +222,8 @@ function weightStackSites(text, filename, { isToken, isWeight }) {
         // parameters are walked under the parameter scope alone and the body
         // vars are added afterwards, for the body's own traversal.
         let hoistedScope = null
-        if (isFunctionLike(node)) {
-            scopes.push(parameterBindings(node))
+        if (isFunctionLike(node) || ts.isClassStaticBlockDeclaration(node)) {
+            if (isFunctionLike(node)) scopes.push(parameterBindings(node))
             const hoisted = node.body ? hoistedVarNames(node.body) : []
             if (hoisted.length > 0) {
                 hoistedScope = new Map()

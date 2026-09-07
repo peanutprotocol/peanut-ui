@@ -12,7 +12,7 @@ conflict-removal rules. The other value-match metrics retain their regex rules.
   Names identify builders; the scanner does not resolve their imported implementations.
 - Same-file plain `const` bindings resolve in their declaration scope. Parameters,
   imports, destructuring, `let` and `var` stop resolution. Lexical shadows, including
-  function-hoisted vars, are retained. Mutation and control-flow assignment tracking
+  function-hoisted and class-static-block vars, are retained. Mutation and control-flow assignment tracking
   are outside this source-initializer analysis.
 - Parentheses, `as`, `satisfies`, angle-bracket assertions in `.ts`, and non-null
   assertions are transparent wrappers everywhere, including keys and guards.
@@ -38,9 +38,11 @@ conflict-removal rules. The other value-match metrics retain their regex rules.
   Lookup tables themselves contain alternatives, not co-applying sibling classes.
 - Builder objects emit truthy keys, not their condition values. Known false
   conditions are excluded. Arrays passed to builders compose their items.
-- Whitespace `.join` is treated as class-list composition; other or unknown
-  separators retain the existing lookup-only policy. This does not implement
-  general JavaScript string assembly via non-whitespace joins.
+- Whitespace `.join` composes top-level elements after primitive string coercion.
+  Nested arrays stringify with commas, including holes and nullish entries; object
+  coercions remain opaque and never emit builder keys. Other or unknown separators
+  retain the existing lookup-only policy. This does not implement general
+  JavaScript string assembly via non-whitespace joins.
 
 Unknown class values contribute no invented classes. Known pieces of partially
 dynamic concatenations/templates/computed keys retain a conservative fragment

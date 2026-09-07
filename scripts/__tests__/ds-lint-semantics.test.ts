@@ -104,6 +104,46 @@ describe('generated class-expression semantics', () => {
     )
 
     it.each([
+        "return classNames((class {} ? 'underline' : 'text-body-m'), 'font-semibold')",
+        "return classNames((/x/ ? 'underline' : 'text-body-m'), 'font-semibold')",
+        "return classNames((new Object() ? 'underline' : 'text-body-m'), 'font-semibold')",
+        "return classNames(!(class {}) ? 'text-body-m' : 'underline', 'font-semibold')",
+        "return classNames((/x/ ?? 'text-body-m'), 'font-semibold')",
+        "return classNames((class {} || 'text-body-m'), 'font-semibold')",
+        "return classNames((/x/ && 'text-body-m'), 'font-semibold')",
+        "return classNames([['text-body-m','x'],['font-semibold']].join(' '))",
+        "return classNames([{'text-body-m':true},'font-semibold'].join(' '))",
+        "return classNames([['text-body-m'],['font-semibold']].join(' '))",
+        "return classNames([[['text-body-m']],'font-semibold'].join(' '))",
+        "return classNames([null,undefined,,'text-body-m','font-semibold'].join(' '))",
+        "return classNames([...(flag0 ? [['text-body-m']] : [['underline']]),'font-semibold'].join(' '))",
+        "return classNames([(flag0 ? ['text-body-m'] : ['underline']),'font-semibold'].join(' '))",
+        "const S={1n:'text-body-m'};return classNames(S[1n],'font-semibold')",
+        "const S={1n:'text-body-m'};return classNames(S[1],'font-semibold')",
+        "const S={1n:'text-body-m',1:'underline'};return classNames(S[1n],'font-semibold')",
+        "const S={1:'text-body-m',get 1n(){return 'underline'}};return classNames(S[1n],'font-semibold')",
+        "const S=flag0?['text-body-m']:['underline'];return classNames(S[-1],'font-semibold')",
+        "const S=flag0?{x:'text-body-m'}:{x:'font-semibold'};return classNames(S.x)",
+    ])('matches new review cases: %s', (body) => {
+        const source = `function fixture(flag0,flag1,flag2){${body}}`
+        expect(countWeightStacks(source, 'fixture.ts') > 0).toBe(runtimeExists(source))
+    })
+
+    it('hoists vars within a class static block without leaking to sibling blocks', () => {
+        expect(
+            countWeightStacks(`const style='text-body-m'; class C { static {
+            if (flag) { var style='underline' } clsx(style,'font-semibold')
+        } }`)
+        ).toBe(0)
+        expect(
+            countWeightStacks(`const style='text-body-m'; class C {
+            static { if (flag) { var style='underline' } }
+            static { clsx(style,'font-semibold') }
+        }`)
+        ).toBe(1)
+    })
+
+    it.each([
         "const S={2:'text-body-m',11:'underline'};return classNames(S[1+1],'font-semibold')",
         "const S={2:'text-body-m',11:'underline'};return classNames(S[3-1],'font-semibold')",
         "const S={2:'text-body-m',11:'underline'};return classNames(S[4/2],'font-semibold')",

@@ -132,7 +132,11 @@ function predicate(input, depth, test) {
             ts.isObjectLiteralExpression(node) ||
             ts.isArrayLiteralExpression(node) ||
             ts.isFunctionExpression(node) ||
-            ts.isArrowFunction(node)
+            ts.isArrowFunction(node) ||
+            ts.isClassExpression(node) ||
+            ts.isRegularExpressionLiteral(node) ||
+            ts.isNewExpression(node) ||
+            (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword)
         ) {
             answer = test === 'truth' // objects are truthy and never nullish
         } else {
@@ -270,6 +274,10 @@ function primitiveLeaf(input, depth) {
     return unknownPrimitive()
 }
 
+function propertyNameText(name) {
+    return ts.isBigIntLiteral(name) ? String(BigInt(name.text.replace(/n$/, ''))) : name.text
+}
+
 // Object alternatives retain field order, declaring scopes and absence. Unknown
 // spreads/keys remain explicit wildcard records; they cannot prove a key absent.
 function objectFields(input, depth = 0) {
@@ -320,7 +328,8 @@ function objectFields(input, depth = 0) {
                 choices = [
                     [
                         {
-                            key: prop.name && !ts.isComputedPropertyName(prop.name) ? prop.name.text : null,
+                            key:
+                                prop.name && !ts.isComputedPropertyName(prop.name) ? propertyNameText(prop.name) : null,
                             value: ref(prop, ctx, seen),
                             origin: prop,
                         },
@@ -336,7 +345,10 @@ function objectFields(input, depth = 0) {
                         choices.push([
                             { key: null, value, origin: name, keyExpression: ref(name.expression, ctx, seen) },
                         ])
-                } else choices = [[{ key: name.text, value, origin: name }]]
+                } else {
+                    const key = propertyNameText(name)
+                    choices = [[{ key, value, origin: name }]]
+                }
             }
         }
         if (choices.length === 1) {
@@ -475,9 +487,9 @@ function product(left, right, input, depth) {
     for (const a of left) for (const b of right) out.push({ token: a.token ?? b.token, weight: a.weight ?? b.weight })
     return normalize(out.length ? out : NOTHING)
 }
-function literal(node, text, ctx) {
+function literal(node, text, ctx, joined = false) {
     const pos = node.getStart()
-    return [{ token: ctx.isToken(text) ? pos : null, weight: ctx.isWeight(text) ? pos : null }]
+    return [{ token: ctx.isToken(text, joined) ? pos : null, weight: ctx.isWeight(text, joined) ? pos : null }]
 }
 function summarize(input, mode, depth = 0) {
     let out = []
@@ -485,6 +497,68 @@ function summarize(input, mode, depth = 0) {
         out = union(out, summarizeLeaf(candidate, candidate.lookup ? 'lookup' : mode, depth + 1))
     return out.length ? out : NOTHING
 }
+// Array.join stringifies its items. Nested arrays use commas regardless of the
+// outer separator; objects are opaque coercions, never builder-key collections.
+function joinItemText(input, depth) {
+    let out = { values: [], complete: true }
+    for (const candidate of resolve(input, depth + 1)) {
+        let part
+        if (ts.isArrayLiteralExpression(candidate.node)) {
+            part = { values: [], complete: true }
+            for (const items of arrayItems(candidate, depth + 1)) {
+                let text = { values: [''], complete: true }
+                for (const [index, item] of items.entries()) {
+                    text = combinePrimitives(
+                        text,
+                        joinItemText(item, depth + 1),
+                        (a, b) => a + (index ? ',' : '') + b,
+                        input
+                    )
+                }
+                part.values.push(...text.values)
+                part.complete &&= text.complete
+                bounded(part.values, input.node, input.ctx)
+            }
+        } else if (ts.isOmittedExpression(candidate.node)) {
+            part = { values: [''], complete: true }
+        } else {
+            const scalar = primitiveLeaf(candidate, depth + 1)
+            part = {
+                values: scalar.values.map((value) => (value == null ? '' : String(value))),
+                complete: scalar.complete,
+            }
+        }
+        out.values = distinctPrimitives([...out.values, ...part.values])
+        out.complete &&= part.complete
+        bounded(out.values, input.node, input.ctx)
+    }
+    return out
+}
+function summarizeJoin(input, depth) {
+    let out = []
+    for (const candidate of resolve(input, depth + 1)) {
+        if (!ts.isArrayLiteralExpression(candidate.node)) continue
+        for (const items of arrayItems(candidate, depth + 1)) {
+            let option = NOTHING
+            for (const item of items) {
+                const text = joinItemText(item, depth + 1)
+                let alts = []
+                for (const value of text.values) alts = union(alts, literal(item.node, value, item.ctx, true))
+                if (!text.complete) {
+                    for (const fragment of resolve(item, depth + 1)) {
+                        if (ts.isArrayLiteralExpression(fragment.node) || ts.isObjectLiteralExpression(fragment.node))
+                            continue
+                        alts = union(alts, summarize(fragment, 'lookup', depth + 1))
+                    }
+                }
+                option = product(option, alts.length ? alts : NOTHING, input, depth)
+            }
+            out = union(out, option)
+        }
+    }
+    return out.length ? out : NOTHING
+}
+
 function summarizeLeaf(input, mode, depth) {
     if (input.absent || input.unknown || Object.hasOwn(input, 'scalar')) return NOTHING
     const { node, ctx, seen } = input
@@ -561,7 +635,9 @@ function summarizeLeaf(input, mode, depth) {
         if (name === 'join' && ts.isPropertyAccessExpression(callee)) {
             const separator = node.arguments[0] ? primitive(ref(node.arguments[0], ctx, seen), depth + 1) : ','
             const whitespace = typeof separator === 'string' && separator.length > 0 && separator.trim() === ''
-            return sub(callee.expression, whitespace ? 'builder' : 'lookup')
+            return whitespace
+                ? summarizeJoin(ref(callee.expression, ctx, seen), depth + 1)
+                : sub(callee.expression, 'lookup')
         }
         if (BUILDERS.has(name)) {
             let out = NOTHING
