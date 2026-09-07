@@ -779,7 +779,7 @@
             "loginUnexpectedError": "An unexpected error occurred during login."
         },
         "signupStep": {
-            "usernamePlaceholder": "Enter a username",
+            "usernamePlaceholder": "Username",
             "errors": {
                 "required": "Username is required",
                 "tooShort": "Username must be at least 4 characters long",

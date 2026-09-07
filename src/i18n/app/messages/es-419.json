@@ -754,7 +754,7 @@
         "installPwa": {
             "openPeanutApp": "Abrir la app de Peanut",
             "installing": "Instalando",
-            "addToHomeScreen": "Agregar Peanut a la pantalla de inicio",
+            "addToHomeScreen": "Agregar a la pantalla de inicio",
             "installCancelled": "Instalación cancelada. Puedes intentar agregarlo a la pantalla de inicio de nuevo.",
             "manualInstallHint": "Para instalar la app, agrégala a tu pantalla de inicio desde el menú de tu navegador.",
             "mobileFirstTitle": "¡Peanut está hecho para el celular!",
@@ -779,7 +779,7 @@
             "loginUnexpectedError": "Ocurrió un error inesperado al iniciar sesión."
         },
         "signupStep": {
-            "usernamePlaceholder": "Escribe un nombre de usuario",
+            "usernamePlaceholder": "Tu usuario",
             "errors": {
                 "required": "El nombre de usuario es obligatorio",
                 "tooShort": "El nombre de usuario debe tener al menos 4 caracteres",
