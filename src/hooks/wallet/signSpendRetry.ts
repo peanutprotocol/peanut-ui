@@ -21,11 +21,15 @@ export function requiresPasskeyRetry(account: string): boolean {
 function recordFailure(artifact: object, failure: unknown): void {
     const account = ephemeralAccounts.get(artifact)
     if (!account || !failure || typeof failure !== 'object') return
-    const { message, error } = failure as { message?: unknown; error?: unknown }
+    const { message, error, code } = failure as { message?: unknown; error?: unknown; code?: unknown }
     const detail = typeof message === 'string' ? message : error
     // These are the confirmed-revert messages from the withdraw and QR
     // broadcasters. Timeouts and transport failures may still move funds.
-    if (typeof detail !== 'string' || !/^(USER_OP_REVERTED:|UserOp reverted on chain — no funds moved$)/.test(detail))
+    if (
+        code !== 'USER_OP_REVERTED' &&
+        error !== 'USER_OP_REVERTED' &&
+        (typeof detail !== 'string' || !detail.startsWith('USER_OP_REVERTED:'))
+    )
         return
     passkeyAccounts.add(account)
     try {

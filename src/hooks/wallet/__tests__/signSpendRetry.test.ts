@@ -14,7 +14,7 @@ it('records a returned withdraw revert and scopes fallback to its account', asyn
 
 it('records a thrown QR revert without retrying the payment', async () => {
     const artifact = registerEphemeralArtifact({}, '0xQR')
-    const error = new Error('UserOp reverted on chain — no funds moved')
+    const error = Object.assign(new Error('Operation failed'), { code: 'USER_OP_REVERTED' })
     const submit = jest.fn(async () => {
         throw error
     })

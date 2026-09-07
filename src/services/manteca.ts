@@ -222,7 +222,10 @@ export const mantecaApi = {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}))
-            throw new Error(errorData?.message || errorData?.error || `QR payment failed: ${response.statusText}`)
+            throw Object.assign(
+                new Error(errorData?.message || errorData?.error || `QR payment failed: ${response.statusText}`),
+                { code: errorData?.code || errorData?.error }
+            )
         }
 
         return response.json()
