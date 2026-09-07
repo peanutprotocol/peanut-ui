@@ -13,6 +13,8 @@ import { AnimateOnView } from '@/components/Global/AnimateOnView'
 import { CloudsCss } from './CloudsCss'
 import type { LandingStrings } from './landingStrings'
 import type { LandingContentHrefs } from './landingContentHrefs'
+import { useAppModal } from '@/components/Migration/AppModalProvider'
+import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 
 export function NoFees({
     className,
@@ -24,6 +26,7 @@ export function NoFees({
     contentHrefs: LandingContentHrefs
 }) {
     const router = useRouter()
+    const interceptAppCta = useAppModal()
 
     // One vw ramp can't serve every locale: "TRANSFER" only clips under ~340px,
     // while "TRANSFERENCIA"/"TRANSFERÊNCIA" (both 491px at 60px) need ~545px.
@@ -49,6 +52,11 @@ export function NoFees({
      * page there is a bootstrap shell that redirects away before this matters.
      */
     const handleCtaAction = async (sourceCurrency: string, destinationCurrency: string) => {
+        // migration window: sending happens in the app, so this CTA becomes the
+        // download hand-off — desktop gets the QR modal, phones their store,
+        // both carrying /send as the destination to land on after install.
+        if (interceptAppCta(MIGRATION_SURFACES.LANDING_RATES, { dest: '/send' })) return
+
         const signedIn = typeof document !== 'undefined' && /(^|;\s*)jwt-token=/.test(document.cookie)
         if (!signedIn) {
             router.push('/setup')

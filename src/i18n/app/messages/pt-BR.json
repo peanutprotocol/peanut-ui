@@ -3586,7 +3586,9 @@
         "smartLink": {
             "redirecting": "Levando você para a loja…",
             "pickStore": "Escolha sua loja e baixe o app."
-        }
+        },
+        "otherStore": "Outra loja",
+        "getTheApp": "BAIXE O APP."
     },
     "shhhhh": {
         "hero": {

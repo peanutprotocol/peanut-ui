@@ -1,6 +1,7 @@
 'use client'
 
 import { useFooterVisibility } from '@/context/footerVisibility'
+import { useTranslations } from 'next-intl'
 import { Suspense, useEffect, useMemo, useState, useRef, useCallback, type ReactNode } from 'react'
 // Imported directly, not through the barrel: `export *` pulls every sibling
 // into this chunk, including dropLink's nine repeat: Infinity animations,
@@ -14,13 +15,13 @@ import { StickyMobileCTA } from '@/components/LandingPage/StickyMobileCTA'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import type { LandingStrings } from './landingStrings'
 import type { Locale } from '@/i18n/types'
-import StoreBadges from '@/components/Migration/StoreBadges'
+import { AppModalProvider } from '@/components/Migration/AppModalProvider'
+import { HeroAppLockup } from '@/components/LandingPage/HeroAppLockup'
+import { PhoneAppCta } from '@/components/LandingPage/PhoneAppCta'
 import { type CTAButton } from '@/components/LandingPage/landing.types'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
-import { useTranslations } from 'next-intl'
-import { onStoreAnchorClick, storeAnchorHref } from '@/utils/migration.utils'
 import type { LandingContentHrefs } from './landingContentHrefs'
 
 // Split out: the carousel drags the whole testimonials manifest (~64 KB of
@@ -66,9 +67,6 @@ export function LandingPageClient({
 }: LandingPageClientProps) {
     const { isFooterVisible } = useFooterVisibility()
     const migrationOn = useMigrationFlag()
-    // app-locale translation (LatAm-first funnel); the flag-off label still
-    // comes from the content system per landing locale
-    const tMigration = useTranslations('migration')
     // the strip under the door fold speaks /shhhhh's vocabulary, not the
     // product one every other strip repeats
     const tDoorMarquee = useTranslations('shhhhh.marquee')
@@ -78,28 +76,12 @@ export function LandingPageClient({
     // promise, so they go dark together.
     const doorFoldOn = !underMaintenanceConfig.disableLandingCardFold
 
-    // pwa-sunset hero CTAs are device-based: phones get one "Download now"
-    // with their store's mark deep-linking to it; desktop drops the primary
-    // and shows the equal store-button pair instead (customCta below).
-    // the permanent flag-off CTA change goes through the content system
-    // post-cutover (TASK-20600).
-    const primaryCta = useMemo((): CTAButton | undefined => {
-        if (!migrationOn) return heroConfig.primaryCta
-        if (isDesktop) return undefined
-        const store = deviceType === DeviceType.ANDROID ? 'android' : 'ios'
-        return {
-            label: tMigration('downloadNow'),
-            href: storeAnchorHref(store),
-            isExternal: true,
-            icon: store === 'ios' ? 'apple-logo' : 'google-play',
-            // keep the content-system subtext (e.g. "Join +10,000 cool people")
-            subtext: heroConfig.primaryCta.subtext,
-            // the anchor navigates itself (works even where window.open is
-            // suppressed — in-app browsers); android's hand-off rides the href,
-            // ios' rides the clipboard written here inside the tap
-            onClick: () => onStoreAnchorClick(store, MIGRATION_SURFACES.LANDING_HERO),
-        }
-    }, [migrationOn, deviceType, isDesktop, heroConfig.primaryCta, tMigration])
+    // pwa-sunset hero CTAs are device-based: the whole CTA slot becomes a
+    // custom lockup — the S-full QR + store pair on desktop, one full-width
+    // download button on phones — so the content-system primary CTA drops out
+    // entirely. The permanent flag-off CTA change goes through the content
+    // system post-cutover (TASK-20600).
+    const primaryCta = migrationOn ? undefined : heroConfig.primaryCta
 
     const [buttonVisible, setButtonVisible] = useState(true)
     const [isScrollFrozen, setIsScrollFrozen] = useState(false)
@@ -271,23 +253,30 @@ export function LandingPageClient({
     )
 
     return (
-        <>
+        // one scan-to-download modal for the whole page: every re-pointed CTA
+        // below — including the ones inside server-rendered folds — opens this
+        // instance and only says which surface it is calling from
+        <AppModalProvider>
             <Hero
                 primaryCta={primaryCta}
                 buttonVisible={buttonVisible}
                 buttonScale={buttonScale}
                 strings={strings}
                 locale={locale}
+                compactArtwork={migrationOn}
+                hideLogIn={migrationOn}
+                customCtaFullWidth={migrationOn && !isDesktop}
                 customCta={
-                    migrationOn && isDesktop ? (
-                        <div className="flex flex-col items-center">
-                            <StoreBadges surface={MIGRATION_SURFACES.LANDING_HERO} appearance="hero" />
-                            {heroConfig.primaryCta.subtext && (
-                                <span className="mt-2 block text-center text-sm text-n-1 italic md:text-base">
-                                    {heroConfig.primaryCta.subtext}
-                                </span>
-                            )}
-                        </div>
+                    migrationOn ? (
+                        isDesktop ? (
+                            <HeroAppLockup subtext={heroConfig.primaryCta.subtext} />
+                        ) : (
+                            <PhoneAppCta
+                                surface={MIGRATION_SURFACES.LANDING_HERO}
+                                subtext={heroConfig.primaryCta.subtext}
+                                showOtherStore
+                            />
+                        )
                     ) : undefined
                 }
             />
@@ -323,6 +312,6 @@ export function LandingPageClient({
             <Marquee {...marqueeProps} />
             {footerSlot}
             <StickyMobileCTA strings={strings} />
-        </>
+        </AppModalProvider>
     )
 }

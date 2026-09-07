@@ -3,6 +3,7 @@ import manifest from '@/content/generated/footer-manifest.json'
 import { getTranslations, t } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale, type Translations } from '@/i18n/types'
 import { resolveContentHref } from '@/lib/content'
+import { STORE_URL } from '@/constants/migration.consts'
 
 // Server-only SEO footer driven by the content manifest
 // (peanut-content/generated/footer-manifest.json). The manifest is bundled at
@@ -44,6 +45,18 @@ const ARTICLES_DROPPED_AS_DUPLICATES = new Set(['fees-pricing'])
  *  this override follows suit rather than translating one item in a column of
  *  untranslated siblings. */
 const RESOURCE_NAME_OVERRIDES: Record<string, string> = { pricing: 'Fees and Pricing' }
+
+/**
+ * The two store listings, crawlable. Every other download CTA on the page is a
+ * script-driven bounce that carries a hand-off payload, which a crawler cannot
+ * follow — these plain anchors are what puts the listings in the site's link
+ * graph. Untranslated for the same reason as the names above: they sit in a
+ * column of English siblings, and the store names themselves are constants.
+ */
+const STORE_LISTINGS = [
+    { slug: 'app-store', href: STORE_URL.ios, name: 'Peanut on the App Store' },
+    { slug: 'google-play', href: STORE_URL.android, name: 'Peanut on Google Play' },
+]
 
 /**
  * Every published legal document, in the order a reader needs them: the two
@@ -162,6 +175,11 @@ export function SEOFooter({ locale = DEFAULT_LOCALE }: { locale?: Locale } = {})
                         <FooterLink href={`/${locale}/status`}>{i18n.footerStatus}</FooterLink>
                         {articles.map((entry) => (
                             <FooterLink key={entry.slug} href={link(entry)}>
+                                {entry.name}
+                            </FooterLink>
+                        ))}
+                        {STORE_LISTINGS.map((entry) => (
+                            <FooterLink key={entry.slug} href={entry.href} external>
                                 {entry.name}
                             </FooterLink>
                         ))}

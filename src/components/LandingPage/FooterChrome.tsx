@@ -9,6 +9,7 @@ import handWaving from '@/assets/illustrations/hand-waving.svg'
 import handPeace from '@/assets/illustrations/hand-peace.svg'
 import handMiddleFinger from '@/assets/illustrations/hand-middle-finger.svg'
 import { LocaleSwitcher } from '@/components/Marketing/LocaleSwitcher'
+import { FooterGetTheApp } from './FooterGetTheApp'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 
@@ -65,6 +66,8 @@ export const FooterChrome = ({
     return (
         // Nav is on its own row because translated labels have different widths.
         <footer className="bg-black px-8 py-8 md:px-20">
+            {/* renders nothing with the flag off, so the footer is unchanged today */}
+            <FooterGetTheApp />
             <div className="mb-6 flex justify-center md:hidden">
                 <HandSigns />
             </div>

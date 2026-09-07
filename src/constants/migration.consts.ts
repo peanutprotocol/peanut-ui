@@ -68,7 +68,21 @@ export const MIGRATION_SURFACES = {
     SETUP: 'setup',
     GUEST_FLOW: 'guest_flow',
     PROFILE_UPDATE: 'profile_update',
+    SMART_LINK: 'smart_link',
+    LANDING_APP_FOLD: 'landing_app_fold',
+    LANDING_FOOTER: 'landing_footer',
+    LANDING_RATES: 'landing_rates',
+    LANDING_COUNTRIES: 'landing_countries',
+    LANDING_DOOR: 'landing_door',
 } as const
+
+/**
+ * Dormant sub-flag for the hero QR lockup. Reserved so the QR half of the hero
+ * can be turned off independently of `pwa-sunset` once there is traffic to
+ * split; nothing reads it yet, and the lockup ships unconditionally under the
+ * parent flag until it does.
+ */
+export const LANDING_HERO_QR_FLAG = 'landing-hero-qr'
 
 export type MigrationSurface = (typeof MIGRATION_SURFACES)[keyof typeof MIGRATION_SURFACES]
 export type StoreKind = keyof typeof STORE_URL
