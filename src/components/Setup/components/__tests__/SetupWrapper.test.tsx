@@ -71,6 +71,15 @@ describe('SetupWrapper navigation', () => {
         expect(svg).toHaveAttribute('stroke', 'currentColor')
     })
 
+    it('offsets the navigation row by the measured safe-area inset', () => {
+        // The row's containing block is the initial one, so a bare top-8 is 32px
+        // from the viewport — under the status bar (and under the shell's inset
+        // cover) on any device whose inset runs deeper than that.
+        renderWrapper({ showBackButton: true, onBack: jest.fn() })
+        const row = screen.getByRole('button', { name: 'Go back' }).closest('div.absolute')
+        expect(row?.className).toContain('top-[max(2rem,calc(var(--safe-top)_+_0.5rem))]')
+    })
+
     it('fires onBack from the back button', () => {
         const onBack = jest.fn()
         renderWrapper({ showBackButton: true, onBack })

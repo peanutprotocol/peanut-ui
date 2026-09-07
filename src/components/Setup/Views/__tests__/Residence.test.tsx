@@ -132,6 +132,67 @@ describe('ResidenceStep', () => {
         expect(screen.getByText(/genuinely hold legal residence/)).toBeInTheDocument()
     })
 
+    it('replaces Next with one main-residence button per declared country', () => {
+        mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
+        render(<ResidenceStep />)
+        expect(screen.queryByRole('button', { name: 'Next' })).not.toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Select Brazil' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Select Germany' })).toBeInTheDocument()
+    })
+
+    it('promotes the picked country to main residence before continuing', () => {
+        // The tap IS the declaration: picking the second entry swaps the pair's
+        // order, and the outcome must be evaluated against the picked country —
+        // not the store value this render closed over.
+        mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
+        render(<ResidenceStep />)
+        fireEvent.click(screen.getByRole('button', { name: 'Select Germany' }))
+        expect(mockSetResidenceCountry).toHaveBeenCalledWith('DE')
+        expect(mockSetSecondResidenceCountry).toHaveBeenCalledWith('BR')
+        expect(mockedCapture).toHaveBeenCalledWith(
+            ANALYTICS_EVENTS.SIGNUP_RESIDENCE_SELECTED,
+            expect.objectContaining({ residence_country: 'DE', second_residence_country: 'BR' })
+        )
+    })
+
+    it('clearing the first country leaves the second as the only residence', () => {
+        mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
+        render(<ResidenceStep />)
+        fireEvent.click(screen.getByRole('button', { name: 'Remove Brazil' }))
+        expect(mockSetResidenceCountry).toHaveBeenCalledWith('DE')
+        expect(mockSetSecondResidenceCountry).toHaveBeenCalledWith('')
+        expect(screen.queryByText('Available with Brazil')).not.toBeInTheDocument()
+    })
+
+    it('stops attributing a promoted country to the geo suggestion', () => {
+        // BR was suggested by geo; the user added DE and then cleared BR. DE was
+        // typed, so continuing must not report it as a prefilled geo match.
+        mockGeoCountry = 'br'
+        const view = render(<ResidenceStep />)
+        // the geo effect prefilled BR and latched the flag
+        expect(mockSetResidenceCountry).toHaveBeenCalledWith('BR')
+        mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
+        view.rerender(<ResidenceStep />)
+        fireEvent.click(screen.getByText('Have documents from more than one country?'))
+        fireEvent.click(screen.getByRole('button', { name: 'Remove Brazil' }))
+        mockSetupState = { residenceCountry: 'DE', secondResidenceCountry: '' }
+        view.rerender(<ResidenceStep />)
+        fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+        expect(mockedCapture).toHaveBeenCalledWith(
+            ANALYTICS_EVENTS.SIGNUP_RESIDENCE_SELECTED,
+            expect.objectContaining({ residence_country: 'DE', was_prefilled: false })
+        )
+    })
+
+    it('clearing the second country keeps the first and collapses the pair', () => {
+        mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
+        render(<ResidenceStep />)
+        fireEvent.click(screen.getByRole('button', { name: 'Remove Germany' }))
+        expect(mockSetResidenceCountry).not.toHaveBeenCalledWith('DE')
+        expect(mockSetSecondResidenceCountry).toHaveBeenCalledWith('')
+        expect(screen.queryByText('Available with Germany')).not.toBeInTheDocument()
+    })
+
     it('shows the congrats screen for an unrestricted residence and continues on demand', () => {
         mockSetupState.residenceCountry = 'BR'
         render(<ResidenceStep />)
@@ -221,7 +282,7 @@ describe('ResidenceStep', () => {
         // silently, like the flow did before the congrats screen existed.
         mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'GB' }
         render(<ResidenceStep />)
-        fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Select Brazil' }))
         expect(mockHandleNext).toHaveBeenCalled()
         expect(screen.queryByText('Good news')).not.toBeInTheDocument()
         expect(mockedCapture).not.toHaveBeenCalledWith(
