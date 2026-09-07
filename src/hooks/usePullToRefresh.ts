@@ -168,6 +168,11 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
 
         const onTouchStart = (e: TouchEvent) => {
             if (refreshing || e.touches.length !== 1) return
+            // a touch on an open vaul sheet (or its overlay) is a drawer
+            // gesture, never a pull — without this, dragging the sheet moved
+            // the page behind it (the listeners here are on document)
+            const target = e.target as Element | null
+            if (target?.closest?.('[data-vaul-drawer],[data-vaul-overlay]')) return
             const allowed = shouldPullToRefreshRef.current ? shouldPullToRefreshRef.current() : window.scrollY === 0
             if (!allowed) return
             // a new pull can start inside the retract window — put the arrow back

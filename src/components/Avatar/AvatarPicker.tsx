@@ -165,11 +165,11 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
 
     return (
         <Drawer open={open} onOpenChange={onOpenChange}>
-            {/* The horizontal padding belongs to the SCROLL AREA, not to the panel
-                around it: the panel's padding sits outside the overflow-auto box,
-                so a w-full button's 4px offset shadow fell past the scroll edge
-                and got clipped. The matching pb-2 below covers the bottom. */}
-            <DrawerContent className="py-4" scrollAreaClassName="px-4">
+            {/* DrawerContent's scroll area owns the horizontal padding now
+                (shadow-clip fix) — only the vertical padding is ours. The
+                pb-2 on the content below keeps the last button's bottom
+                shadow inside the scroll box. */}
+            <DrawerContent className="py-4">
                 <DrawerHeader className="p-0 pb-4 text-left">
                     <DrawerTitle className="text-heading-s text-foreground-primary">{t('title')}</DrawerTitle>
                     <DrawerDescription>{t('description')}</DrawerDescription>
