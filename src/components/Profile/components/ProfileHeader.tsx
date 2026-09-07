@@ -1,6 +1,8 @@
 import { Icon } from '@/components/Global/Icons/Icon'
 import ShareButton from '@/components/Global/ShareButton'
+import { useToast } from '@/components/0_Bruddle/Toast'
 import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
+import { copyTextToClipboard } from '@/utils/clipboard.utils'
 import { shareableUrl } from '@/utils/url.utils'
 import posthog from 'posthog-js'
 import React, { useEffect, useRef } from 'react'
@@ -14,6 +16,9 @@ import { useAuth } from '@/context/authContext'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 
 const REFERRAL_PILL_PROPS = { source: REFERRAL_SOURCES.PROFILE_HEADER, link_type: 'profile' } as const
+// The pill's two segments are plain hit areas: the frame draws the border and
+// the shadow, each segment only keeps the DS focus ring.
+const SEGMENT_FOCUS = 'focus-visible:outline-[3px] focus-visible:outline-action-focus'
 
 interface ProfileHeaderProps {
     name: string
@@ -37,6 +42,9 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 }) => {
     const { user: authenticatedUser } = useAuth()
     const tAvatar = useTranslations('avatar')
+    const tGlobal = useTranslations('global')
+    const tKyc = useTranslations('kyc')
+    const toast = useToast()
     // The self-profile verified badge means "this person's ID was confirmed" —
     // NOT "this person has an enabled payment rail." It reads identityVerification
     // (Sumsub-cleared), matching the counterparty badge logic (`isVerified` on
@@ -45,11 +53,22 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     const ownAvatarKey = useAvatarKey(authenticatedUser?.user.avatarKey, authenticatedUser?.user.userId)
     const isAuthenticatedUserVerified = selfIsIdentityVerified && authenticatedUser?.user.username === username
     const isSelfProfile = authenticatedUser?.user.username?.toLowerCase() === username.toLowerCase()
-    const ownAvatar = <UserAvatar name={username} avatarKey={ownAvatarKey} size="large" />
+    const ownAvatar = (size: 'small' | 'large') => <UserAvatar name={username} avatarKey={ownAvatarKey} size={size} />
 
     // `shareableUrl` reads the live origin, so preview and staging share
     // themselves — the old BASE_URL import is non-null-asserted with no fallback.
     const profileUrl = shareableUrl(`/${username}`)
+    // The url is already in hand, so the write stays inside the click and keeps
+    // its user activation — no ClipboardItem reservation needed here.
+    const copyProfileUrl = async () => {
+        if (!(await copyTextToClipboard(profileUrl))) {
+            toast.error(tGlobal('copyToClipboard.copyFailed'))
+            return
+        }
+        toast.info(tGlobal('shareButton.linkCopied'))
+        // success only, same as the share segment's REFERRAL_CTA_CLICKED
+        posthog.capture(ANALYTICS_EVENTS.PROFILE_LINK_COPIED, REFERRAL_PILL_PROPS)
+    }
 
     // Once per continuous visibility, re-armed when the pill hides: the
     // [...recipient] route reuses this component instance across profile
@@ -72,19 +91,24 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             <div className={twMerge('space-y-2 flex flex-col items-center', className)}>
                 {/* Own profile shows the first letter of the username; someone
                     else's public profile keeps initials (letters identify others).
-                    The generated face (497ab2a5e) is parked until avatar v2. */}
+                    The generated face (497ab2a5e) is parked until avatar v2.
+                    With a picker to open, the sticker sits at 48px inside a 64px
+                    round button, so the tap target reads as one (TASK-22142). */}
                 {isSelfProfile ? (
                     onChangeAvatar ? (
                         <button
                             type="button"
                             onClick={onChangeAvatar}
                             aria-label={tAvatar('change')}
-                            className="rounded-full focus-visible:outline-[3px] focus-visible:outline-action-focus"
+                            className={twMerge(
+                                'flex size-16 items-center justify-center rounded-full border border-border-default bg-background-default shadow-4',
+                                SEGMENT_FOCUS
+                            )}
                         >
-                            {ownAvatar}
+                            {ownAvatar('small')}
                         </button>
                     ) : (
-                        ownAvatar
+                        ownAvatar('large')
                     )
                 ) : (
                     <AvatarWithBadge name={name || username} />
@@ -111,21 +135,50 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 )}
                 {/* `isSelfProfile` guards wrong attribution: `showShareButton`
                     defaults to true, so a caller on someone else's profile would
-                    share that other handle. */}
+                    share that other handle. The pill keeps the chrome it shipped
+                    with and splits into two hit areas: the handle copies the
+                    link, the icon shares it. Never a button inside a button, so
+                    the frame is a div. */}
                 {pillVisible && (
-                    <ShareButton
-                        url={profileUrl}
-                        title=""
-                        variant="primary-soft"
-                        showIcon={false}
-                        onSuccess={() => posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, REFERRAL_PILL_PROPS)}
-                        className="h-10 w-fit rounded-full py-3 pr-4 pl-6"
-                    >
-                        <div className="text-label-l">{profileUrl.replace('https://', '')}</div>
-                        <div className="-ml-2">
+                    <div className="flex h-10 max-w-full items-center rounded-full border border-border-default bg-background-default pr-4 pl-6 shadow-4">
+                        <button
+                            type="button"
+                            onClick={copyProfileUrl}
+                            className={twMerge('flex h-full min-w-0 items-center rounded-full', SEGMENT_FOCUS)}
+                        >
+                            {/* the url alone reads as a link, not as an action */}
+                            <span className="sr-only">{tGlobal('copyToClipboard.copyProfileLink')}</span>
+                            <span className="truncate text-label-l">{profileUrl.replace('https://', '')}</span>
+                            {/* inside the copy segment, as the mockup draws it:
+                                the check is not its own hit area. Only without a
+                                name row — its check already says it (7 Sep). */}
+                            {isVerified && !name && (
+                                <>
+                                    <Icon name="check" size={16} className="ml-1 shrink-0 text-green-500" aria-hidden />
+                                    <span className="sr-only">{tKyc('verified')}</span>
+                                </>
+                            )}
+                        </button>
+                        {/* 16px icon on a 32px box, hit area extended to 44px as
+                            the nav circles do. The frame draws the chrome, so no
+                            border, no shadow and no press translate of its own. */}
+                        <ShareButton
+                            url={profileUrl}
+                            title=""
+                            variant="transparent"
+                            showIcon={false}
+                            onSuccess={() =>
+                                posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, REFERRAL_PILL_PROPS)
+                            }
+                            className={twMerge(
+                                'relative ml-1 size-8 w-8 shrink-0 p-0 shadow-none after:absolute after:-inset-1.5 active:translate-x-0 active:translate-y-0',
+                                SEGMENT_FOCUS
+                            )}
+                        >
+                            <span className="sr-only">{tGlobal('shareButton.share')}</span>
                             <Icon name="share" size={16} fill="black" />
-                        </div>
-                    </ShareButton>
+                        </ShareButton>
+                    </div>
                 )}
             </div>
         </>
