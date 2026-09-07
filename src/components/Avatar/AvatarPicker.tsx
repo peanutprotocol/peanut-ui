@@ -127,7 +127,9 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
             shouldScaleBackground={false}
         >
             <DrawerContent
-                className={phase === 'rolling' ? styles.fullscreen : 'py-4'}
+                className={
+                    phase === 'rolling' ? styles.fullscreen : twMerge('py-4', phase === 'avatars' && styles.dealtDrawer)
+                }
                 scrollAreaClassName={phase === 'rolling' ? styles.rollArea : 'px-4'}
             >
                 {phase === 'rolling' ? (

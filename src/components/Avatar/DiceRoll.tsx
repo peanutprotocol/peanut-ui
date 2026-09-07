@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { impactHaptic, heavyImpactHaptic, cancelHaptic } from '@/utils/haptics'
 import styles from './AvatarPicker.module.css'
 import { Icon } from '@/components/Global/Icons/Icon'
+import { Button } from '@/components/0_Bruddle/Button'
 
 const PIPS = [[5], [1, 9], [1, 5, 9], [1, 3, 7, 9], [1, 3, 5, 7, 9], [1, 3, 4, 6, 7, 9]]
 export const DICE_ROLL_MS = 2400
@@ -17,7 +18,7 @@ export function DiceRoll({ onComplete, onCancel }: { onComplete: () => void; onC
         const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
         const pulses = reduced
             ? []
-            : [180, 430, 720, 1080, 1510, 1900].map((delay, index) =>
+            : [180, 430, 720, 1080, 1510, 1920].map((delay, index) =>
                   window.setTimeout(() => {
                       if (index === 5) heavyImpactHaptic()
                       else impactHaptic()
@@ -32,11 +33,15 @@ export function DiceRoll({ onComplete, onCancel }: { onComplete: () => void; onC
     }, [])
     return (
         <div className={styles.rollStage}>
-            <button type="button" className={styles.close} onClick={onCancel} aria-label={t('cancelRoll')}>
+            <Button
+                variant="stroke"
+                shape="square"
+                className={styles.close}
+                onClick={onCancel}
+                aria-label={t('cancelRoll')}
+            >
                 <Icon name="cancel" size={20} />
-            </button>
-            <div className={styles.halo} aria-hidden="true" />
-            <div className={styles.orbit} aria-hidden="true" />
+            </Button>
             <div className={styles.scene} aria-hidden="true">
                 <div className={styles.bounce}>
                     <div className={styles.die}>
@@ -50,6 +55,12 @@ export function DiceRoll({ onComplete, onCancel }: { onComplete: () => void; onC
                     </div>
                 </div>
                 <div className={styles.shadow} />
+                <div className={styles.impact}>
+                    <i />
+                    <i />
+                    <i />
+                    <i />
+                </div>
             </div>
             <div className={styles.rollCopy} role="status">
                 <p className="text-heading-l">{t('rolling')}</p>
