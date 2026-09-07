@@ -1,4 +1,5 @@
 import { act } from '@testing-library/react'
+import type { ReactElement } from 'react'
 import { renderHookWithIntl } from '@/test-utils/intl'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { DeviceType } from '@/hooks/useGetDeviceType'
@@ -9,6 +10,7 @@ const mockCapture = jest.fn()
 let mockMigrationOn = true
 let mockDeviceType: DeviceType = DeviceType.WEB
 let mockIsCapacitor = false
+const mockBuildDeferredPayload = jest.fn((dest?: string, _invite?: string) => `pnutdl=1&dest=${dest ?? ''}`)
 
 jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => mockMigrationOn }))
 jest.mock('@/hooks/useGetDeviceType', () => {
@@ -19,10 +21,15 @@ jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => mockIsCapacitor }))
 jest.mock('@/utils/migration.utils', () => ({
     openStore: (...args: unknown[]) => mockOpenStore(...args),
 }))
+jest.mock('@/utils/deferred-link', () => ({
+    buildDeferredPayload: (dest?: string, invite?: string) => mockBuildDeferredPayload(dest, invite),
+}))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: (...a: unknown[]) => mockCapture(...a) } }))
 jest.mock('@/components/Migration/ScanToDownloadModal', () => ({
     __esModule: true,
-    default: ({ surface }: { surface: string }) => <div data-testid="scan-modal" data-surface={surface} />,
+    default: ({ surface, payload }: { surface: string; payload?: string }) => (
+        <div data-testid="scan-modal" data-surface={surface} data-payload={payload ?? ''} />
+    ),
 }))
 
 beforeEach(() => {
@@ -69,6 +76,58 @@ describe('useGuestStoreHandoff surface', () => {
 
         expect(mockOpenStore).not.toHaveBeenCalled()
         expect(result.current.storeHandoffModal).not.toBeNull()
+    })
+
+    it('carries the caller handoff into the desktop QR payload', () => {
+        const { result, rerender } = renderHookWithIntl(() =>
+            useGuestStoreHandoff({ surface: MIGRATION_SURFACES.LANDING_DOOR })
+        )
+
+        act(() => {
+            result.current.interceptGuestCta({ dest: '/card' })
+        })
+        rerender()
+
+        expect(mockBuildDeferredPayload).toHaveBeenCalledWith('/card', undefined)
+        const modal = result.current.storeHandoffModal as ReactElement<{ payload?: string }>
+        expect(modal.props.payload).toBe('pnutdl=1&dest=/card')
+    })
+
+    it('leaves the desktop QR bare when the caller passes no handoff', () => {
+        const { result, rerender } = renderHookWithIntl(() => useGuestStoreHandoff())
+
+        act(() => {
+            result.current.interceptGuestCta()
+        })
+        rerender()
+
+        expect(mockBuildDeferredPayload).not.toHaveBeenCalled()
+        const modal = result.current.storeHandoffModal as ReactElement<{ payload?: string }>
+        expect(modal.props.payload).toBeUndefined()
+    })
+
+    it('never intercepts inside the native app', () => {
+        mockIsCapacitor = true
+        mockDeviceType = DeviceType.IOS
+        const { result } = renderHookWithIntl(() => useGuestStoreHandoff({ surface: MIGRATION_SURFACES.LANDING_DOOR }))
+
+        let handled = true
+        act(() => {
+            handled = result.current.interceptGuestCta({ dest: '/card' })
+        })
+
+        expect(handled).toBe(false)
+        expect(mockOpenStore).not.toHaveBeenCalled()
+        expect(result.current.storeHandoffModal).toBeNull()
+    })
+
+    it('does not track the guest impression inside the native app', () => {
+        mockIsCapacitor = true
+        renderHookWithIntl(() =>
+            useGuestStoreHandoff({ trackImpressionWhenGuest: true, surface: MIGRATION_SURFACES.LANDING_DOOR })
+        )
+
+        expect(mockCapture).not.toHaveBeenCalled()
     })
 
     it('does not intercept while the migration flag is off', () => {

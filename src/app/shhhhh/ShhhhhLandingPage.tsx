@@ -142,12 +142,8 @@ function StickyShhhhhCTA({ onClick }: { onClick: () => void }) {
 
 export default function ShhhhhLandingPage() {
     const t = useTranslations('shhhhh')
-    const { user, fetchUser } = useAuth()
+    const { user, isFetchingUser, fetchUser } = useAuth()
     const router = useRouter()
-    // pwa-sunset: the door's signup lives in the app now (see handleCTA)
-    const { interceptGuestCta, storeHandoffModal } = useGuestStoreHandoff({
-        surface: MIGRATION_SURFACES.LANDING_DOOR,
-    })
 
     // undefined = not joined; number|null = joined (null = joined but BE
     // returned no position). Drives the inline confirmation.
@@ -156,6 +152,15 @@ export default function ShhhhhLandingPage() {
     const [joinError, setJoinError] = useState(false)
     const [showAllBadges, setShowAllBadges] = useState(false)
     const isJoined = joinedPosition !== undefined
+
+    // pwa-sunset: the door's signup lives in the app now (see handleCTA). The
+    // impression only counts once auth has settled and the door is the CTA on
+    // screen, so the pre-auth flash (every visitor briefly looks logged-out)
+    // never inflates the denominator.
+    const { interceptGuestCta, storeHandoffModal } = useGuestStoreHandoff({
+        surface: MIGRATION_SURFACES.LANDING_DOOR,
+        trackImpressionWhenGuest: !isFetchingUser && !user && !isJoined,
+    })
 
     const joinWaitlist = useCallback(async () => {
         setCtaBusy(true)
@@ -202,6 +207,12 @@ export default function ShhhhhLandingPage() {
     }, [user])
 
     const handleCTA = async () => {
+        // Auth has not resolved yet: every visitor looks logged-out for one
+        // round-trip. Acting now would bounce a returning signed-in user to the
+        // store (a full-page navigation on a phone, unrecoverable in-tab) or
+        // misroute them through /setup. Wait for the settled state.
+        if (isFetchingUser) return
+
         // Read opaque campaign identities at click time (client-only) to avoid
         // bailing static prerendering. The backend resolves award semantics;
         // provenance is audit-only and does not weaken an earned skip badge.
@@ -212,6 +223,12 @@ export default function ShhhhhLandingPage() {
             campaign_tags: badgeCampaigns,
         })
 
+        // Queue the campaign tag BEFORE any hand-off: the cookie queue is what
+        // buildDeferredPayload reads, so the tag rides the install referrer /
+        // QR payload and applyDeferredPayload re-queues it inside the app.
+        // Same call the campaign branch below already made, just hoisted.
+        const queuedBadgeCampaigns = badgeCampaigns.length > 0 ? queuePendingBadgeCampaigns(badgeCampaigns, 30) : []
+
         // pwa-sunset: every signed-out door path below ends at a web signup that
         // the migration window closes. Hand the visitor to the store instead —
         // desktop opens the scan-to-download QR, phones deep-link — carrying
@@ -220,7 +237,6 @@ export default function ShhhhhLandingPage() {
         if (!user && interceptGuestCta({ dest: '/card' })) return
 
         if (badgeCampaigns.length > 0) {
-            const queuedBadgeCampaigns = queuePendingBadgeCampaigns(badgeCampaigns, 30)
             if (!user) {
                 queueShhhhhCampaignContinuation()
                 router.push(shhhhhCampaignSignupRoute())
@@ -623,7 +639,9 @@ export default function ShhhhhLandingPage() {
                 </div>
             </section>
 
-            {!isJoined && <StickyShhhhhCTA onClick={handleCTA} />}
+            {/* the sticky bar is fixed z-50 and would paint over the QR
+                sheet's own close/store CTAs on a narrow desktop-mode phone */}
+            {!isJoined && !storeHandoffModal && <StickyShhhhhCTA onClick={handleCTA} />}
             {storeHandoffModal}
         </>
     )

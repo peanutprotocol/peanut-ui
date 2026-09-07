@@ -7,6 +7,7 @@ import { MIGRATION_SURFACES, type MigrationSurface } from '@/constants/migration
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { isCapacitor } from '@/utils/capacitor'
+import { buildDeferredPayload } from '@/utils/deferred-link'
 import { openStore, type StoreHandoff } from '@/utils/migration.utils'
 
 /**
@@ -30,6 +31,10 @@ export function useGuestStoreHandoff({
     const migrationOn = useMigrationFlag()
     const { deviceType } = useDeviceType()
     const [qrOpen, setQrOpen] = useState(false)
+    // deferred payload for the desktop QR, built at click time (the click
+    // handler is the only place the caller's handoff and the cookies are both
+    // available). null = no handoff was passed, so the QR stays the bare /app.
+    const [qrPayload, setQrPayload] = useState<string | null>(null)
 
     // guest-funnel impression (TASK-20939): fires once per mount when the CTA
     // is actually shown to a logged-out web visitor during the window. The
@@ -43,11 +48,13 @@ export function useGuestStoreHandoff({
     }, [trackImpressionWhenGuest, migrationOn, surface])
 
     // handoff: deferred deep-link context the surface knows before any cookie is
-    // written (claim page invite CTA). the desktop QR path can't carry it — the
-    // payload would need to live on the phone that scans, not this browser.
+    // written (claim page invite CTA, the /shhhhh door's dest). Phones carry it
+    // on the install referrer / clipboard; desktop encodes it in the QR so the
+    // phone that scans lands on the same destination.
     const interceptGuestCta = (handoff?: StoreHandoff): boolean => {
         if (!migrationOn || isCapacitor()) return false
         if (deviceType === DeviceType.WEB) {
+            setQrPayload(handoff ? buildDeferredPayload(handoff.dest, handoff.invite) : null)
             setQrOpen(true)
             return true
         }
@@ -56,7 +63,12 @@ export function useGuestStoreHandoff({
     }
 
     const storeHandoffModal = qrOpen ? (
-        <ScanToDownloadModal visible onClose={() => setQrOpen(false)} surface={surface} />
+        <ScanToDownloadModal
+            visible
+            onClose={() => setQrOpen(false)}
+            surface={surface}
+            payload={qrPayload ?? undefined}
+        />
     ) : null
 
     return { interceptGuestCta, storeHandoffModal }

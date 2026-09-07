@@ -10,7 +10,7 @@ import { type MigrationSurface } from '@/constants/migration.consts'
 
 // one smart QR instead of a per-store toggle: it encodes /app, which
 // redirects to the store of whichever phone scans it.
-export default function DownloadQR({ surface }: { surface: MigrationSurface }) {
+export default function DownloadQR({ surface, payload }: { surface: MigrationSurface; payload?: string }) {
     const t = useTranslations('migration')
 
     useEffect(() => {
@@ -24,7 +24,7 @@ export default function DownloadQR({ surface }: { surface: MigrationSurface }) {
 
     return (
         <div className="flex w-full flex-col items-center gap-3 py-2">
-            <QRCodeWrapper url={`${origin}/app`} />
+            <QRCodeWrapper url={payload ? `${origin}/app?${payload}` : `${origin}/app`} />
             <span className="text-body-xs text-foreground-secondary">{t('qr.scanHint')}</span>
             {/* desktop can install directly too (e.g. Google Play from the browser) */}
             <StoreBadges surface={surface} appearance="stacked" />

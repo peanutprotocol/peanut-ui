@@ -10,10 +10,13 @@ export default function ScanToDownloadModal({
     visible,
     onClose,
     surface,
+    payload,
 }: {
     visible: boolean
     onClose: () => void
     surface: MigrationSurface
+    /** deferred-link querystring, so the scanning phone lands on the caller's dest */
+    payload?: string
 }) {
     const t = useTranslations('migration')
     const tCommon = useTranslations('common')
@@ -23,7 +26,7 @@ export default function ScanToDownloadModal({
             onClose={onClose}
             icon="qr-code"
             title={t('qr.title')}
-            content={<DownloadQR surface={surface} />}
+            content={<DownloadQR surface={surface} payload={payload} />}
             ctas={[
                 {
                     text: tCommon('close'),
