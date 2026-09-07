@@ -168,7 +168,7 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
 
         const hasOpenDialog = () =>
             !!document.querySelector(
-                '[role="dialog"]:not([data-state="closed"]):not([hidden]), [role="alertdialog"]:not([data-state="closed"]):not([hidden])'
+                ':is([role="dialog"], [role="alertdialog"]):is([data-state="open"], [aria-modal="true"]):not([hidden])'
             )
 
         const onTouchStart = (e: TouchEvent) => {

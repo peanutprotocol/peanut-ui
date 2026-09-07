@@ -230,3 +230,15 @@ describe('overlay gesture isolation', () => {
         expect(invalidate).not.toHaveBeenCalled()
     })
 })
+
+it('allows refresh with the closed always-mounted support dialog', () => {
+    const invalidate = jest.spyOn(queryClient, 'invalidateQueries').mockResolvedValue(undefined)
+    renderHook(() => usePullToRefresh(), { wrapper })
+    const support = document.createElement('div')
+    support.setAttribute('role', 'dialog')
+    support.setAttribute('aria-modal', 'false')
+    document.body.appendChild(support)
+    pullPastThreshold()
+    touch('touchend', 200)
+    expect(invalidate).toHaveBeenCalledTimes(1)
+})
