@@ -2333,7 +2333,7 @@
         "shareText": "¡Gané la insignia {badge} en Peanut!\n\nÚnete a Peanut y empieza a ganar puntos, desbloquear logros y mover dinero por todo el mundo\n\n{link}",
         "toastSingle": "Insignia desbloqueada: {name}",
         "toastMultiple": "¡Desbloqueaste {count, plural, one {# insignia} other {# insignias}}!",
-        "toastTapToView": "— toca para ver",
+        "toastTapToView": "Toca para ver",
         "catalog": {
             "FIRST_INVITE": {
                 "name": "Primera invitación",

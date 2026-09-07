@@ -6,7 +6,9 @@
  * Globally mounted (ClientProviders), self-contained. When the signed-in user
  * lands on /home with freshly-earned badges they haven't seen, it fires ONE
  * coalesced toast ("Badge unlocked: X" / "You unlocked N badges") that taps
- * through to the shared BadgeDetailModal (or the badges list for several).
+ * through to the shared BadgeDetailModal (or the badges list for several). A
+ * badge that ships avatars (TASK-22142) gets a SECOND toast, 500ms later, so
+ * the two announcements read as sequential events rather than one crowded card.
  *
  * Why a toast (not a fullscreen): every badge that fires at/around the card
  * launch is incidental — BETA_TESTER (signup), SHHHHH (everyone getting the
@@ -31,6 +33,8 @@ import { badgeAvatarKeys } from '@/components/Avatar/avatar.utils'
 import { AVATAR_PICKER_PATH } from '@/components/Avatar/avatar.consts'
 
 const HOME_PATH = '/home'
+/** Gap between the badge toast and the avatar-unlock toast that follows it. */
+const AVATAR_TOAST_DELAY_MS = 500
 
 type ModalBadge = { code: string; title: string; description: string; logo: string }
 
@@ -42,9 +46,14 @@ export default function BadgeEarnToast() {
     const { toast, dismiss } = useToast()
     const { pending, markSeen } = useBadgeEarnToast()
     const [modalBadge, setModalBadge] = useState<ModalBadge | null>(null)
-    // Id of the toast currently on screen, so we can dismiss it when the user
-    // navigates away from /home (it would otherwise linger over the next route).
-    const liveToastIdRef = useRef<string | null>(null)
+    // Ids of the toast(s) currently on screen, so we can dismiss them when the
+    // user navigates away from /home (they'd otherwise linger over the next route).
+    const liveToastIdsRef = useRef<string[]>([])
+    // Pending timers for delayed avatar toasts, so a route change (or unmount)
+    // before one fires can cancel it instead of popping a toast on the wrong
+    // page. A Set (not a single ref) because a later batch's effect run must
+    // not clobber an earlier batch's still-pending timer.
+    const avatarTimeoutsRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set())
 
     useEffect(() => {
         // Only surface on /home (never mid-onboarding) and only when there's
@@ -64,10 +73,10 @@ export default function BadgeEarnToast() {
         // seen but never shown. Keying on the codes lets a distinct later batch
         // surface, while still de-duping a re-render of the same batch.
         const toastId = `badge-earn:${codes.join(',')}`
+        const avatarToastId = `badge-earn-avatar:${codes.join(',')}`
 
         const openInspect = () => {
             dismiss(toastId)
-            liveToastIdRef.current = null
             posthog.capture(ANALYTICS_EVENTS.BADGE_EARN_TOAST_TAPPED, { count, target: 'badge_detail' })
             if (count === 1) {
                 setModalBadge({
@@ -83,13 +92,12 @@ export default function BadgeEarnToast() {
 
         const label = count === 1 ? t('toastSingle', { name: newestName }) : t('toastMultiple', { count })
 
-        // A badge that ships avatars (TASK-22142) announces the unlock and
-        // links to the picker. The badge tap keeps its detail view, so these
-        // are two controls.
+        // A badge that ships avatars (TASK-22142) gets its own follow-up toast
+        // linking to the picker, fired AVATAR_TOAST_DELAY_MS after the badge
+        // toast so the two announcements read as sequential events.
         const avatarCount = badgeAvatarKeys(codes).length
         const chooseAvatar = () => {
-            dismiss(toastId)
-            liveToastIdRef.current = null
+            dismiss(avatarToastId)
             posthog.capture(ANALYTICS_EVENTS.BADGE_EARN_TOAST_TAPPED, { count, target: 'avatar_picker' })
             router.push(AVATAR_PICKER_PATH)
         }
@@ -103,44 +111,69 @@ export default function BadgeEarnToast() {
             // priority icon by construction (ToastStack), no hideIcon needed.
             className: 'border border-action-secondary bg-background-default',
             content: (
-                <div className="flex flex-col gap-1">
-                    <button type="button" onClick={openInspect} className="flex items-center gap-3 text-left">
-                        <BadgeImage
-                            src={newestIcon}
-                            alt=""
-                            width={28}
-                            height={28}
-                            className="size-7 shrink-0 object-contain"
-                            unoptimized
-                        />
-                        <span className="text-label-l">
-                            {label} <span className="font-medium underline">{t('toastTapToView')}</span>
-                        </span>
-                    </button>
-                    {avatarCount > 0 && (
-                        <button type="button" onClick={chooseAvatar} className="min-h-11 pl-10 text-left text-label-l">
-                            {t('toastAvatars', { count: avatarCount })}{' '}
-                            <span className="font-medium underline">{t('toastChooseAvatar')}</span>
-                        </button>
-                    )}
-                </div>
+                <button type="button" onClick={openInspect} className="flex items-center gap-3 text-left">
+                    <BadgeImage
+                        src={newestIcon}
+                        alt=""
+                        width={28}
+                        height={28}
+                        className="size-7 shrink-0 object-contain"
+                        unoptimized
+                    />
+                    <span className="text-label-l">
+                        {label}
+                        <br />
+                        <span className="font-medium underline">{t('toastTapToView')}</span>
+                    </span>
+                </button>
             ),
         })
-        liveToastIdRef.current = toastId
+        liveToastIdsRef.current.push(toastId)
         posthog.capture(ANALYTICS_EVENTS.BADGE_EARN_TOAST_SHOWN, { count })
+
+        if (avatarCount > 0) {
+            const avatarTimeout = setTimeout(() => {
+                avatarTimeoutsRef.current.delete(avatarTimeout)
+                toast({
+                    id: avatarToastId,
+                    type: 'success',
+                    duration: 6000,
+                    className: 'border border-action-secondary bg-background-default',
+                    content: (
+                        <button type="button" onClick={chooseAvatar} className="text-left text-label-l">
+                            {t('toastAvatars', { count: avatarCount })}
+                            <br />
+                            <span className="font-medium underline">{t('toastChooseAvatar')}</span>
+                        </button>
+                    ),
+                })
+                liveToastIdsRef.current.push(avatarToastId)
+            }, AVATAR_TOAST_DELAY_MS)
+            avatarTimeoutsRef.current.add(avatarTimeout)
+        }
+
         markSeen(codes)
     }, [pathname, pending, toast, dismiss, markSeen, router, t, badgeCopy])
 
-    // Dismiss the toast when the user leaves /home so it doesn't ride over the
-    // next route for its remaining duration. Guarded on pathname so the
-    // markSeen-triggered re-render (still on /home) never kills the live toast.
+    // Dismiss the toast(s) when the user leaves /home so they don't ride over
+    // the next route for their remaining duration, and cancel a not-yet-fired
+    // avatar toast so it can't pop up on the new page. Guarded on pathname so
+    // the markSeen-triggered re-render (still on /home) never kills the live
+    // toast.
     useEffect(() => {
         if (pathname === HOME_PATH) return
-        if (liveToastIdRef.current) {
-            dismiss(liveToastIdRef.current)
-            liveToastIdRef.current = null
-        }
+        avatarTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout))
+        avatarTimeoutsRef.current.clear()
+        liveToastIdsRef.current.forEach((id) => dismiss(id))
+        liveToastIdsRef.current = []
     }, [pathname, dismiss])
+
+    // Unmount-only: cancel any still-pending avatar toast timers.
+    useEffect(() => {
+        return () => {
+            avatarTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout))
+        }
+    }, [])
 
     return modalBadge ? (
         <BadgeDetailModal

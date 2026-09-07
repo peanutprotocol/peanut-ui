@@ -2333,7 +2333,7 @@
         "shareText": "I earned {badge} badge on Peanut!\n\nJoin Peanut now and start earning points, unlocking achievements and moving money worldwide\n\n{link}",
         "toastSingle": "Badge unlocked: {name}",
         "toastMultiple": "You unlocked {count, plural, one {# badge} other {# badges}}",
-        "toastTapToView": "— tap to view",
+        "toastTapToView": "Tap to view",
         "catalog": {
             "FIRST_INVITE": {
                 "name": "First Invite",
