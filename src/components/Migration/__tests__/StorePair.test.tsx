@@ -96,8 +96,26 @@ describe('StorePair', () => {
         expect(screen.getAllByRole('link')).toHaveLength(2)
     })
 
+    /*
+     * Geometry, not just classes: the hero pair is a ROW at >= sm and the row's
+     * own max-width is the thing that decides it. Two sm:w-52 anchors (208px)
+     * plus gap-3 (12px) need 428px; a 26rem/416px cap wrapped them onto two
+     * lines at every desktop width, including 1440. jsdom has no layout, so the
+     * arithmetic is asserted directly.
+     */
     it('hero anchors go full-width before they would overflow a phone', () => {
         render(<StorePair surface={MIGRATION_SURFACES.LANDING_HERO} appearance="hero" />)
         expect(link(/app store/i)).toHaveClass('w-full', 'sm:w-52')
+    })
+
+    it('gives the hero row room for both buttons on one line', () => {
+        const { container } = render(<StorePair surface={MIGRATION_SURFACES.LANDING_HERO} appearance="hero" />)
+        const row = container.firstElementChild as HTMLElement
+        const cap = row.className.match(/max-w-\[([\d.]+)rem\]/)
+        expect(cap).not.toBeNull()
+        const capPx = parseFloat(cap![1]) * 16
+        const ANCHOR_PX = 208 // sm:w-52
+        const GAP_PX = 12 // gap-3
+        expect(capPx).toBeGreaterThanOrEqual(ANCHOR_PX * 2 + GAP_PX)
     })
 })

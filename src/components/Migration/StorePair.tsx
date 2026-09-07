@@ -1,4 +1,5 @@
 'use client'
+import { useMemo } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { STORE_NAME, type MigrationSurface } from '@/constants/migration.consts'
 import { onStoreAnchorClick, storeAnchorHref, type StoreHandoff } from '@/utils/migration.utils'
@@ -30,20 +31,32 @@ export default function StorePair({
     const { deviceType } = useDeviceType()
     const thisPlatform = deviceType === DeviceType.IOS ? 'ios' : deviceType === DeviceType.ANDROID ? 'android' : null
     const stores = isStacked && thisPlatform ? ([thisPlatform] as const) : (['ios', 'android'] as const)
+    // built once per handoff, not per render: the android href runs
+    // buildDeferredPayload (cookie + badge-campaign + location reads) and the
+    // hero pair lives inside LandingPageClient, which re-renders on every
+    // scroll-driven animation frame. Same reason StickyMobileCTA memoizes it.
+    const hrefs = useMemo(
+        () => ({ ios: storeAnchorHref('ios', handoff), android: storeAnchorHref('android', handoff) }),
+        [handoff?.dest, handoff?.invite] // eslint-disable-line react-hooks/exhaustive-deps
+    )
     return (
         <div
             className={
                 isStacked
                     ? 'flex w-full flex-col gap-3'
-                    : // wraps rather than overflows: two 208px hero buttons plus the gap
-                      // need 428px, more than a 390px phone has, so they stack there
-                      'mx-auto flex w-full max-w-[26rem] flex-wrap items-center justify-center gap-3'
+                    : isHero
+                      ? // 27.5rem = 440px, the width two 208px (sm:w-52) hero buttons
+                        // plus the 12px gap need to sit on one line. A 26rem cap here
+                        // would wrap them at EVERY viewport >= sm, including 1440.
+                        // Below sm the anchors are w-full and stack by design.
+                        'mx-auto flex w-full max-w-[27.5rem] flex-wrap items-center justify-center gap-3'
+                      : 'mx-auto flex w-full max-w-[26rem] flex-wrap items-center justify-center gap-3'
             }
         >
             {stores.map((s) => (
                 <a
                     key={s}
-                    href={storeAnchorHref(s, handoff)}
+                    href={hrefs[s]}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => onStoreAnchorClick(s, surface, handoff)}

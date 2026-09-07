@@ -115,7 +115,34 @@ describe('/app smart store link', () => {
         renderPage()
         // the surface tag is ours, not the app's — it must not ride along
         expect(locationReplace).toHaveBeenCalledWith(`${STORE_URL.android}&referrer=${encodeURIComponent(PAYLOAD)}`)
-        expect(mockTrackHandoffCreated).toHaveBeenCalledWith('android')
+        // the tag never reaches the app, but it does reach our own analytics:
+        // otherwise every smart_link event looks the same and the hero, app
+        // fold, footer and rates QRs are indistinguishable in the funnel
+        expect(mockTrackHandoffCreated).toHaveBeenCalledWith('android', { qr_surface: 'landing_hero' })
+    })
+
+    /*
+     * DEFERRED_LINK_HANDOFF_CREATED is the denominator for
+     * DEFERRED_LINK_RESTORED. The auto-redirect counts one; when the store
+     * intent does not take over the buttons come back clickable, and a tap
+     * used to count a second for the same visit — deflating the match rate on
+     * exactly the devices where the bounce is flaky.
+     */
+    it('counts the android hand-off once per visit, redirect plus tap', () => {
+        mockDeviceType = 'android'
+        visit(`?${PAYLOAD}&s=landing_footer`)
+        renderPage()
+        expect(mockTrackHandoffCreated).toHaveBeenCalledTimes(1)
+        fireEvent.click(link(/google play/i))
+        expect(mockTrackHandoffCreated).toHaveBeenCalledTimes(1)
+    })
+
+    it('ignores a surface tag that is not a known surface', () => {
+        mockDeviceType = 'ios'
+        visit(`?${PAYLOAD}&s=not_a_surface`)
+        renderPage()
+        fireEvent.click(link(/app store/i))
+        expect(trackStoreClick).toHaveBeenCalledWith('ios', 'smart_link', true, null)
     })
 
     it('never auto-redirects iOS with a payload — the clipboard needs the tap', () => {
@@ -128,7 +155,15 @@ describe('/app smart store link', () => {
 
         fireEvent.click(link(/app store/i))
         expect(mockCopyIOSHandoff).toHaveBeenCalledWith(PAYLOAD)
-        expect(trackStoreClick).toHaveBeenCalledWith('ios', 'smart_link', true)
+        expect(trackStoreClick).toHaveBeenCalledWith('ios', 'smart_link', true, null)
+    })
+
+    it('attributes the tap to the QR that produced the scan', () => {
+        mockDeviceType = 'ios'
+        visit(`?${PAYLOAD}&s=landing_app_fold`)
+        renderPage()
+        fireEvent.click(link(/app store/i))
+        expect(trackStoreClick).toHaveBeenCalledWith('ios', 'smart_link', true, 'landing_app_fold')
     })
 
     it('ignores a querystring without the marker', () => {

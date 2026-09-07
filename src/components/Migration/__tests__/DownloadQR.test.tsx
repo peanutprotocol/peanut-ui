@@ -23,7 +23,9 @@ jest.mock('@/components/Global/QRCodeWrapper', () => ({
 
 jest.mock('@/components/Migration/StorePair', () => ({
     __esModule: true,
-    default: ({ surface }: { surface: string }) => <div data-testid="store-pair" data-surface={surface} />,
+    default: ({ surface, handoff }: { surface: string; handoff?: { dest?: string } }) => (
+        <div data-testid="store-pair" data-surface={surface} data-dest={handoff?.dest ?? ''} />
+    ),
 }))
 
 import posthog from 'posthog-js'
@@ -77,11 +79,26 @@ describe('DownloadQR', () => {
         expect(qrUrl()).toBe(`${window.location.origin}/app?pnutdl=1&lang=pt-br&dest=%2Fsend&s=landing_hero`)
     })
 
-    it('renders at 160px by default and 192px when asked', () => {
+    /*
+     * One context channel: a surface hands DownloadQR a `handoff` and the QR
+     * derives its own payload from it, so the code and the buttons under it can
+     * never disagree about where the scanner was heading (they used to be two
+     * independent props, and passing one without the other silently dropped the
+     * context from whichever channel was left out).
+     */
+    it('derives the QR payload from handoff and gives the buttons the same context', () => {
+        render_(<DownloadQR surface={MIGRATION_SURFACES.LANDING_RATES} handoff={{ dest: '/send' }} />)
+        expect(qrUrl()).toBe(`${window.location.origin}/app?pnutdl=1&dest=%2Fsend&s=landing_rates`)
+        expect(screen.getByTestId('store-pair')).toHaveAttribute('data-dest', '/send')
+    })
+
+    it('renders at 160px by default, and at the larger frames when asked', () => {
         const { rerender } = render_(<DownloadQR surface={MIGRATION_SURFACES.DOWNLOAD_MODAL} />)
         expect(screen.getByTestId('qr')).toHaveAttribute('data-class', 'max-w-[160px]')
-        rerender(<DownloadQR surface={MIGRATION_SURFACES.LANDING_APP_FOLD} size={192} />)
+        rerender(<DownloadQR surface={MIGRATION_SURFACES.LANDING_HERO} size={192} />)
         expect(screen.getByTestId('qr')).toHaveAttribute('data-class', 'max-w-[192px]')
+        rerender(<DownloadQR surface={MIGRATION_SURFACES.LANDING_APP_FOLD} size={224} />)
+        expect(screen.getByTestId('qr')).toHaveAttribute('data-class', 'max-w-[224px]')
     })
 
     it('counts an impression once the code is half visible, and only once', () => {
@@ -99,6 +116,15 @@ describe('DownloadQR', () => {
 
         intersect(1)
         expect(posthog.capture).toHaveBeenCalledTimes(1)
+    })
+
+    it('reports hasContext true for a handoff-derived payload', () => {
+        render_(<DownloadQR surface={MIGRATION_SURFACES.LANDING_RATES} handoff={{ dest: '/send' }} />)
+        intersect(1)
+        expect(posthog.capture).toHaveBeenCalledWith('migration_qr_shown', {
+            surface: 'landing_rates',
+            hasContext: true,
+        })
     })
 
     it('reports hasContext false for a context-free QR', () => {

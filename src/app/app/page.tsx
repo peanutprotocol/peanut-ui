@@ -29,7 +29,7 @@
 // state (mounted guard) — deriving the redirect state from useDeviceType at
 // first render tripped React #418 on phones (device is WEB on the server).
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { notFound, useRouter } from 'next/navigation'
 import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
@@ -37,10 +37,12 @@ import { Button } from '@/components/0_Bruddle/Button'
 import Loading from '@/components/Global/Loading'
 import MigrationHero from '@/components/Migration/MigrationHero'
 import {
+    isMigrationSurface,
     MIGRATION_SURFACES,
     MIGRATION_SURFACE_PARAM,
     STORE_NAME,
     STORE_URL,
+    type MigrationSurface,
     type StoreKind,
 } from '@/constants/migration.consts'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
@@ -79,10 +81,18 @@ export default function SmartStoreRedirect() {
     // read after mount, never during render: window.location.search does not
     // exist on the server and a payload-derived first render would not match
     const [payload, setPayload] = useState<string | null>(null)
+    // the landing surface whose QR produced this scan (?s=). Reported as
+    // `qr_surface` on this page's events — without it every smart_link click
+    // looks the same and the hero / app fold / footer / rates QRs cannot be
+    // told apart in the funnel. Validated against the known surfaces so a
+    // hand-edited url can't inject a property value.
+    const [qrSurface, setQrSurface] = useState<MigrationSurface | null>(null)
     useEffect(() => {
         setMounted(true)
         const search = window.location.search
         const parsed = parseDeferredPayload(search)
+        const tag = new URLSearchParams(search).get(MIGRATION_SURFACE_PARAM)
+        if (isMigrationSurface(tag)) setQrSurface(tag)
         if (parsed) setPayload(readHandoffPayload(search))
         if (!isNativeBridge()) return
         // already installed: no install to defer to, so apply the context now
@@ -123,18 +133,30 @@ export default function SmartStoreRedirect() {
         [payload]
     )
 
+    // DEFERRED_LINK_HANDOFF_CREATED is the denominator for
+    // DEFERRED_LINK_RESTORED, so one visit must contribute at most one: the
+    // auto-redirect fires it, and if the store intent never takes over
+    // (blocked, offline, Play missing) the 4s fallback hands the visitor
+    // clickable buttons that would fire it a second time.
+    const handoffCounted = useRef(false)
+    const countHandoff = (platform: 'ios' | 'android') => {
+        if (handoffCounted.current) return
+        handoffCounted.current = true
+        trackDeferredHandoffCreated(platform, qrSurface ? { qr_surface: qrSurface } : undefined)
+    }
+
     // must stay synchronous up to the clipboard call: a web clipboard write
     // only succeeds inside the user gesture that triggered it
     const onStoreTap = (store: StoreKind) => {
-        trackStoreClick(store, MIGRATION_SURFACES.SMART_LINK, !!payload)
+        trackStoreClick(store, MIGRATION_SURFACES.SMART_LINK, !!payload, qrSurface)
         if (!payload) return
         if (store === 'android') {
             // the referrer is already in the href — count the hand-off at the tap
-            trackDeferredHandoffCreated('android')
+            countHandoff('android')
             return
         }
         void copyIOSHandoff(payload)
-            .then(() => trackDeferredHandoffCreated('ios'))
+            .then(() => countHandoff('ios'))
             .catch(() => {})
     }
 
@@ -145,12 +167,16 @@ export default function SmartStoreRedirect() {
         // picks the store themselves. android's referrer rides the url, so it
         // can still bounce; so can any device with nothing to hand off.
         if (payload && targetStore === 'ios') return
+        // counted before the navigation, and only once per visit
+        if (payload && targetStore === 'android') countHandoff('android')
         setRedirecting(true)
-        if (payload && targetStore === 'android') trackDeferredHandoffCreated('android')
         window.location.replace(storeHref(targetStore))
         // if the store didn't take over (blocked, offline), settle to buttons
         const fallback = setTimeout(() => setRedirecting(false), 4000)
         return () => clearTimeout(fallback)
+        // countHandoff is a stable ref-guarded closure over qrSurface; re-running
+        // this effect on a qrSurface change would re-trigger the redirect
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [inNativeApp, settled, migrationOn, targetStore, payload, storeHref])
 
     if (inNativeApp) return <Loading variant="mascot" coverFullScreen />

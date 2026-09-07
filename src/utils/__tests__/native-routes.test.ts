@@ -686,6 +686,23 @@ describe('native-routes', () => {
             const sample = SAMPLE_BY_ROOT[root] ?? `/${root}`
             expect(deepLinkToNativePath(`https://peanut.me${sample}`)).not.toBeNull()
         })
+
+        /*
+         * The claim is `/app` + `/app/*`, but only `/app` is a real page — on
+         * the web app and in the static export alike. The wildcard therefore has
+         * to collapse rather than pass through, or an installed user opening
+         * peanut.me/app/anything gets the SPA's missing-route → home bounce,
+         * which reads as a dropped tap.
+         */
+        it('collapses the /app wildcard onto the one real page', () => {
+            expect(deepLinkToNativePath('https://peanut.me/app')).toBe('/app')
+            expect(deepLinkToNativePath('https://peanut.me/app/anything')).toBe('/app')
+            expect(deepLinkToNativePath('https://peanut.me/app/x?pnutdl=1&dest=%2Fsend')).toBe(
+                '/app?pnutdl=1&dest=%2Fsend'
+            )
+            mockIsCapacitor.mockReturnValue(false)
+            expect(deepLinkToNativePath('https://peanut.me/app/anything')).toBe('/app')
+        })
     })
 })
 
