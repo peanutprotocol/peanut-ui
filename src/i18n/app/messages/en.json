@@ -3699,6 +3699,12 @@
         "noBadgeAvatars": "Earn a badge and its avatars appear here.",
         "rollDice": "Roll the dice",
         "change": "Change avatar",
-        "saveFailed": "Could not save your avatar. Try again."
+        "saveFailed": "Could not save your avatar. Try again.",
+        "useInitial": "Use the Initial",
+        "useAvatar": "Use the Avatar",
+        "chooseAvatar": "Choose your avatar",
+        "rolling": "Rolling the dice…",
+        "rollingHint": "A little luck. A whole new look.",
+        "cancelRoll": "Cancel roll"
     }
 }

@@ -1,0 +1,294 @@
+.picker {
+    --avatar-columns: 3;
+    --avatar-tile: max(
+        56px,
+        min(
+            88px,
+            calc((100vw - 40px - (var(--avatar-columns) - 1) * 8px) / var(--avatar-columns)),
+            calc((80dvh - 232px) / var(--avatar-columns) - 8px)
+        )
+    );
+}
+.initials {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 4px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin;
+}
+.grid {
+    display: grid;
+    grid-template-columns: repeat(var(--avatar-columns), var(--avatar-tile));
+    justify-content: center;
+    gap: 8px;
+    padding: 4px;
+    animation: reveal 400ms ease-out both;
+}
+.tile {
+    width: var(--avatar-tile);
+    height: var(--avatar-tile);
+    flex: 0 0 var(--avatar-tile);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    scroll-snap-align: start;
+    transition:
+        border-color 150ms,
+        background 150ms;
+}
+.tile[aria-checked='true'] {
+    background: var(--color-background-secondary, #f3edff);
+}
+.art {
+    width: 85%;
+    height: 85%;
+}
+.fullscreen {
+    height: 100dvh;
+    margin-top: 0;
+    border-radius: 0;
+    overflow: hidden;
+    background: #211032;
+}
+.fullscreen > div:first-child {
+    display: none;
+}
+.rollArea {
+    max-height: none;
+    max-width: none;
+    height: 100dvh;
+    overflow: hidden;
+    padding: 0;
+}
+.rollStage {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    color: #fff;
+    background: radial-gradient(ellipse at 50% 40%, #70409b 0%, #352048 45%, #180e23 100%);
+}
+.close {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 16px);
+    right: 20px;
+    z-index: 2;
+    width: 44px;
+    height: 44px;
+    border: 1px solid #ffffff60;
+    border-radius: 50%;
+    font-size: 28px;
+}
+.close:focus-visible {
+    outline: 3px solid #d8c2ff;
+    outline-offset: 4px;
+}
+.halo {
+    position: absolute;
+    width: min(85vw, 480px);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle, #d7a3ff40, transparent 68%);
+    animation: glow 2400ms ease-in-out both;
+}
+.orbit {
+    position: absolute;
+    width: min(75vw, 400px);
+    aspect-ratio: 1;
+    border: 1px solid #ffffff25;
+    border-radius: 50%;
+    transform: rotateX(65deg);
+    animation: ripple 2400ms ease-out both;
+}
+.scene {
+    position: relative;
+    width: 144px;
+    height: 144px;
+    perspective: 800px;
+    margin-bottom: 90px;
+}
+.bounce {
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    animation: bounce 2400ms both;
+}
+.die {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    animation: tumble 2400ms both;
+}
+.face {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+    gap: 13px;
+    padding: 23px;
+    border: 2px solid #372442;
+    border-radius: 24px;
+    background: #e6caff;
+    backface-visibility: hidden;
+    box-shadow: inset 0 0 18px #fff8;
+}
+.face[data-face='0'] {
+    transform: translateZ(72px);
+    background: #f0dfff;
+}
+.face[data-face='1'] {
+    transform: rotateY(180deg) translateZ(72px);
+}
+.face[data-face='2'] {
+    transform: rotateY(90deg) translateZ(72px);
+    background: #c698eb;
+}
+.face[data-face='3'] {
+    transform: rotateY(-90deg) translateZ(72px);
+}
+.face[data-face='4'] {
+    transform: rotateX(90deg) translateZ(72px);
+    background: #fcf2df;
+}
+.face[data-face='5'] {
+    transform: rotateX(-90deg) translateZ(72px);
+}
+.pip {
+    border-radius: 50%;
+    background: #352048;
+    box-shadow: inset 0 2px 3px #0005;
+}
+.shadow {
+    position: absolute;
+    top: 210px;
+    left: -5%;
+    width: 110%;
+    height: 20px;
+    border-radius: 50%;
+    background: #10061980;
+    filter: blur(10px);
+    animation: shadow 2400ms both;
+}
+.rollCopy {
+    position: absolute;
+    bottom: max(15%, env(safe-area-inset-bottom));
+    text-align: center;
+    padding: 0 24px;
+    animation: reveal 500ms ease-out both;
+}
+.rollCopy p + p {
+    color: #e0cce9;
+}
+@keyframes tumble {
+    0% {
+        transform: rotateX(-20deg) rotateY(-25deg) scale(0.4);
+    }
+    30% {
+        transform: rotateX(310deg) rotateY(240deg) scale(1.1);
+    }
+    60% {
+        transform: rotateX(610deg) rotateY(490deg);
+    }
+    80% {
+        transform: rotateX(710deg) rotateY(685deg);
+    }
+    90%,
+    100% {
+        transform: rotateX(700deg) rotateY(695deg);
+    }
+}
+@keyframes bounce {
+    0% {
+        translate: 0 90px;
+    }
+    30% {
+        translate: 0 -55px;
+    }
+    60% {
+        translate: 0 15px;
+    }
+    75% {
+        translate: 0 -25px;
+    }
+    80% {
+        translate: 0 0;
+    }
+    88% {
+        translate: 0 -8px;
+    }
+    100% {
+        translate: 0 0;
+    }
+}
+@keyframes shadow {
+    0%,
+    60%,
+    80%,
+    100% {
+        scale: 1;
+        opacity: 0.7;
+    }
+    30%,
+    75% {
+        scale: 0.6;
+        opacity: 0.25;
+    }
+}
+@keyframes glow {
+    0% {
+        scale: 0.3;
+        opacity: 0;
+    }
+    45% {
+        scale: 1.2;
+        opacity: 1;
+    }
+    100% {
+        scale: 1;
+        opacity: 0.8;
+    }
+}
+@keyframes ripple {
+    0%,
+    60% {
+        scale: 0.4;
+        opacity: 0;
+    }
+    80% {
+        opacity: 1;
+    }
+    100% {
+        scale: 1.5;
+        opacity: 0;
+    }
+}
+@keyframes reveal {
+    from {
+        opacity: 0;
+        translate: 0 10px;
+    }
+    to {
+        opacity: 1;
+        translate: 0 0;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .grid,
+    .rollStage *,
+    .tile {
+        animation: none;
+        transition: none;
+    }
+    .die {
+        transform: rotateX(-20deg) rotateY(-25deg);
+    }
+}
+
+.fourColumns {
+    --avatar-columns: 4;
+}

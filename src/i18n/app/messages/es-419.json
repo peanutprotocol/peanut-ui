@@ -3699,6 +3699,12 @@
         "noBadgeAvatars": "Gana una insignia y sus avatares aparecen aquí.",
         "rollDice": "Tirar los dados",
         "change": "Cambiar avatar",
-        "saveFailed": "No pudimos guardar tu avatar. Inténtalo de nuevo."
+        "saveFailed": "No pudimos guardar tu avatar. Inténtalo de nuevo.",
+        "useInitial": "Usar la inicial",
+        "useAvatar": "Usar el avatar",
+        "chooseAvatar": "Elige tu avatar",
+        "rolling": "Lanzando el dado…",
+        "rollingHint": "Un poco de suerte. Un nuevo look.",
+        "cancelRoll": "Cancelar lanzamiento"
     }
 }

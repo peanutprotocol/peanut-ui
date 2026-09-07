@@ -3699,6 +3699,12 @@
         "noBadgeAvatars": "Ganhe um selo e seus avatares aparecem aqui.",
         "rollDice": "Jogar os dados",
         "change": "Trocar avatar",
-        "saveFailed": "Não foi possível salvar seu avatar. Tente de novo."
+        "saveFailed": "Não foi possível salvar seu avatar. Tente de novo.",
+        "useInitial": "Usar a inicial",
+        "useAvatar": "Usar o avatar",
+        "chooseAvatar": "Escolha seu avatar",
+        "rolling": "Rolando o dado…",
+        "rollingHint": "Um pouco de sorte. Um novo visual.",
+        "cancelRoll": "Cancelar rolagem"
     }
 }
