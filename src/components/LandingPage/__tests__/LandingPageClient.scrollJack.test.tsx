@@ -37,9 +37,9 @@ jest.mock('@/utils/migration.utils', () => ({
     onStoreAnchorClick: jest.fn(),
 }))
 
-jest.mock('@/components/Migration/StoreBadges', () => ({
+jest.mock('@/components/Migration/StorePair', () => ({
     __esModule: true,
-    default: () => <div data-testid="store-badges" />,
+    default: () => <div data-testid="store-pair" />,
 }))
 
 jest.mock('../hero', () => ({

@@ -2,10 +2,11 @@
 
 import Image from 'next/image'
 import appScanScreen from '@/assets/illustrations/app-scan-screen.png'
-import AppQrCode from '@/components/Migration/AppQrCode'
-import AppStorePair from '@/components/Migration/AppStorePair'
+import DownloadQR from '@/components/Migration/DownloadQR'
+import StorePair from '@/components/Migration/StorePair'
 import { PhoneAppCta } from './PhoneAppCta'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
+import { AMBIENT_HANDOFF } from '@/utils/migration.utils'
 import type { LandingMigrationStrings } from './landingStrings'
 
 /**
@@ -59,12 +60,21 @@ export function GetTheAppFold({
 
                 {/* desktop only: a QR is useless on the phone that would scan it */}
                 <div className="hidden flex-col items-center gap-3 md:flex">
-                    <AppQrCode surface={MIGRATION_SURFACES.LANDING_APP_FOLD} size={192} />
+                    <DownloadQR
+                        surface={MIGRATION_SURFACES.LANDING_APP_FOLD}
+                        size={224}
+                        bare
+                        handoff={AMBIENT_HANDOFF}
+                    />
                     <span className="text-sm text-grey-1">{strings.scanHint}</span>
                 </div>
 
                 <div className="hidden flex-col items-center gap-3 md:flex">
-                    <AppStorePair surface={MIGRATION_SURFACES.LANDING_APP_FOLD} layout="column" />
+                    <StorePair
+                        surface={MIGRATION_SURFACES.LANDING_APP_FOLD}
+                        appearance="stacked"
+                        className="max-w-[13rem]"
+                    />
                     {subtext && <span className="block text-center text-base text-n-1 italic">{subtext}</span>}
                 </div>
 

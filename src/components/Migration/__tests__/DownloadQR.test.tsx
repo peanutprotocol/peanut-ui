@@ -6,6 +6,10 @@
  * (a dropped payload silently breaks deferred deep linking for every scan) and
  * the impression event, which only counts once the code is actually on screen —
  * the app fold and the footer render theirs far below the fold.
+ *
+ * The `bare` cases came from AppQrCode.test.tsx: the landing branch shipped its
+ * own frame-only QR component before this one existed, and the consolidation
+ * folded it into `bare` here.
  */
 import React from 'react'
 import { render, screen, act } from '@testing-library/react'
@@ -21,6 +25,13 @@ jest.mock('@/components/Global/QRCodeWrapper', () => ({
     ),
 }))
 
+// real implementation by default, so the URL assertions below stay exact; the
+// mock exists only so one case can make the payload build throw
+jest.mock('@/utils/deferred-link', () => {
+    const actual = jest.requireActual('@/utils/deferred-link')
+    return { ...actual, buildDeferredPayload: jest.fn((...args: unknown[]) => actual.buildDeferredPayload(...args)) }
+})
+
 jest.mock('@/components/Migration/StorePair', () => ({
     __esModule: true,
     default: ({ surface, handoff }: { surface: string; handoff?: { dest?: string } }) => (
@@ -29,6 +40,7 @@ jest.mock('@/components/Migration/StorePair', () => ({
 }))
 
 import posthog from 'posthog-js'
+import { buildDeferredPayload } from '@/utils/deferred-link'
 import DownloadQR from '../DownloadQR'
 
 const render_ = (ui: React.ReactElement) => render(ui, { wrapper: IntlWrapper })
@@ -90,6 +102,26 @@ describe('DownloadQR', () => {
         render_(<DownloadQR surface={MIGRATION_SURFACES.LANDING_RATES} handoff={{ dest: '/send' }} />)
         expect(qrUrl()).toBe(`${window.location.origin}/app?pnutdl=1&dest=%2Fsend&s=landing_rates`)
         expect(screen.getByTestId('store-pair')).toHaveAttribute('data-dest', '/send')
+    })
+
+    // migrated from AppQrCode.test.tsx
+    it('still encodes a scannable url when the payload cannot be built', () => {
+        ;(buildDeferredPayload as jest.Mock).mockImplementationOnce(() => {
+            throw new Error('no cookies')
+        })
+        render_(<DownloadQR surface={MIGRATION_SURFACES.LANDING_FOOTER} handoff={{ dest: '/card' }} />)
+        expect(qrUrl()).toBe(`${window.location.origin}/app?s=landing_footer`)
+    })
+
+    // migrated from AppQrCode.test.tsx: the landing lockups place the hint and
+    // the store pair themselves, so they render the frame alone.
+    it('renders the frame alone in bare mode', () => {
+        const { rerender } = render_(<DownloadQR surface={MIGRATION_SURFACES.LANDING_HERO} size={192} bare />)
+        expect(screen.getByTestId('qr')).toHaveAttribute('data-class', 'max-w-[192px]')
+        expect(screen.queryByTestId('store-pair')).not.toBeInTheDocument()
+
+        rerender(<DownloadQR surface={MIGRATION_SURFACES.LANDING_HERO} size={192} />)
+        expect(screen.getByTestId('store-pair')).toBeInTheDocument()
     })
 
     it('renders at 160px by default, and at the larger frames when asked', () => {

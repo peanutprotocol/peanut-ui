@@ -1,9 +1,10 @@
 'use client'
 
-import AppQrCode from '@/components/Migration/AppQrCode'
-import AppStorePair from '@/components/Migration/AppStorePair'
+import DownloadQR from '@/components/Migration/DownloadQR'
+import StorePair from '@/components/Migration/StorePair'
 import { PhoneAppCta } from './PhoneAppCta'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
+import { AMBIENT_HANDOFF } from '@/utils/migration.utils'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import type { LandingMigrationStrings } from './landingStrings'
@@ -33,7 +34,7 @@ export function FooterGetTheApp({ strings }: { strings: LandingMigrationStrings 
                 <h2 className="text-xl font-bold text-white">{strings.qrTitle}</h2>
                 <p className="text-xs text-white/70">{strings.scanHint}</p>
                 {isDesktop ? (
-                    <AppStorePair surface={MIGRATION_SURFACES.LANDING_FOOTER} layout="footer" className="mt-1" />
+                    <StorePair surface={MIGRATION_SURFACES.LANDING_FOOTER} appearance="footer" className="mt-1" />
                 ) : (
                     <PhoneAppCta surface={MIGRATION_SURFACES.LANDING_FOOTER} strings={strings} />
                 )}
@@ -42,7 +43,7 @@ export function FooterGetTheApp({ strings }: { strings: LandingMigrationStrings 
                 and mounting it there would count an impression nobody can see */}
             {isDesktop && (
                 <div className="hidden md:block">
-                    <AppQrCode surface={MIGRATION_SURFACES.LANDING_FOOTER} size={192} />
+                    <DownloadQR surface={MIGRATION_SURFACES.LANDING_FOOTER} size={224} bare handoff={AMBIENT_HANDOFF} />
                 </div>
             )}
         </div>

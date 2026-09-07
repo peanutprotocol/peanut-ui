@@ -107,6 +107,16 @@ export interface StoreHandoff {
 }
 
 /**
+ * "Give this QR the ambient deferred context, but I have no destination of my
+ * own." The landing lockups (hero, get-the-app fold, footer) want the locale,
+ * the invite cookie and any queued badge campaign to ride the scan even though
+ * the fold is not sending anyone anywhere in particular — a bare `/app` there
+ * would drop a /pt-br visitor's language and their invite code.
+ * Module-level and frozen so it keeps a stable identity across renders.
+ */
+export const AMBIENT_HANDOFF: StoreHandoff = Object.freeze({})
+
+/**
  * navigate to the app store, tracking which surface sent the user there.
  * on web the deferred deep-link payload (TASK-20772) rides along: android via
  * the Play install referrer, iOS via the clipboard hand-off. both the clipboard

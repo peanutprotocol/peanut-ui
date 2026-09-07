@@ -1,8 +1,9 @@
 'use client'
 
-import AppQrCode from '@/components/Migration/AppQrCode'
-import AppStorePair from '@/components/Migration/AppStorePair'
+import DownloadQR from '@/components/Migration/DownloadQR'
+import StorePair from '@/components/Migration/StorePair'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
+import { AMBIENT_HANDOFF } from '@/utils/migration.utils'
 import type { LandingMigrationStrings } from './landingStrings'
 
 /**
@@ -17,12 +18,18 @@ import type { LandingMigrationStrings } from './landingStrings'
 export function HeroAppLockup({ strings, subtext }: { strings: LandingMigrationStrings; subtext?: string }) {
     return (
         <div className="flex flex-col items-center gap-4 lg:flex-row lg:items-center lg:gap-7">
-            <AppQrCode surface={MIGRATION_SURFACES.LANDING_HERO} size={160} className="shrink-0" />
+            <DownloadQR
+                surface={MIGRATION_SURFACES.LANDING_HERO}
+                size={192}
+                bare
+                handoff={AMBIENT_HANDOFF}
+                className="shrink-0"
+            />
             <div className="flex flex-col items-center gap-3 lg:items-start">
                 <span className="text-center text-sm text-n-1 lg:text-left lg:text-lg lg:font-bold">
                     {strings.scanHint}
                 </span>
-                <AppStorePair surface={MIGRATION_SURFACES.LANDING_HERO} />
+                <StorePair surface={MIGRATION_SURFACES.LANDING_HERO} appearance="hero" />
                 {subtext && <span className="block text-center text-sm text-n-1 italic md:text-base">{subtext}</span>}
             </div>
         </div>

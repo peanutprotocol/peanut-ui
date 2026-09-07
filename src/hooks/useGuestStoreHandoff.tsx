@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import posthog from 'posthog-js'
 import ScanToDownloadModal from '@/components/Migration/ScanToDownloadModal'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { MIGRATION_SURFACES } from '@/constants/migration.consts'
+import { MIGRATION_SURFACES, type MigrationSurface } from '@/constants/migration.consts'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { isCapacitor } from '@/utils/capacitor'
@@ -18,13 +18,23 @@ import { openStore, type StoreHandoff } from '@/utils/migration.utils'
  * Returns `interceptGuestCta` (call it first in the CTA handler; true = the
  * click was handled here) and `storeHandoffModal` (render it next to the CTA).
  * Native app guests keep the normal in-app flow.
+ *
+ * `surface` labels the analytics for the CTA that was intercepted; it defaults
+ * to the guest claim/request funnel this hook was built for. Marketing pages
+ * that reuse the same hand-off pass their own (e.g. the /shhhhh door).
  */
 export function useGuestStoreHandoff({
     trackImpressionWhenGuest = false,
-}: { trackImpressionWhenGuest?: boolean } = {}) {
+    surface = MIGRATION_SURFACES.GUEST_FLOW,
+}: { trackImpressionWhenGuest?: boolean; surface?: MigrationSurface } = {}) {
     const migrationOn = useMigrationFlag()
     const { deviceType } = useDeviceType()
     const [qrOpen, setQrOpen] = useState(false)
+    // the caller's hand-off, held for the desktop QR. DownloadQR derives the
+    // deferred payload from it after mount and gives the same one to the store
+    // buttons under the code, so the two can never disagree. undefined = no
+    // hand-off was passed and the QR stays the bare /app.
+    const [qrHandoff, setQrHandoff] = useState<StoreHandoff | undefined>(undefined)
 
     // guest-funnel impression (TASK-20939): fires once per mount when the CTA
     // is actually shown to a logged-out web visitor during the window. The
@@ -34,24 +44,26 @@ export function useGuestStoreHandoff({
     useEffect(() => {
         if (!trackImpressionWhenGuest || !migrationOn || isCapacitor() || impressionFired.current) return
         impressionFired.current = true
-        posthog.capture(ANALYTICS_EVENTS.MIGRATION_GUEST_CTA_SHOWN, { surface: MIGRATION_SURFACES.GUEST_FLOW })
-    }, [trackImpressionWhenGuest, migrationOn])
+        posthog.capture(ANALYTICS_EVENTS.MIGRATION_GUEST_CTA_SHOWN, { surface })
+    }, [trackImpressionWhenGuest, migrationOn, surface])
 
     // handoff: deferred deep-link context the surface knows before any cookie is
-    // written (claim page invite CTA). the desktop QR path can't carry it — the
-    // payload would need to live on the phone that scans, not this browser.
+    // written (claim page invite CTA, the /shhhhh door's dest). Phones carry it
+    // on the install referrer / clipboard; desktop encodes it in the QR so the
+    // phone that scans lands on the same destination.
     const interceptGuestCta = (handoff?: StoreHandoff): boolean => {
         if (!migrationOn || isCapacitor()) return false
         if (deviceType === DeviceType.WEB) {
+            setQrHandoff(handoff)
             setQrOpen(true)
             return true
         }
-        openStore(deviceType === DeviceType.ANDROID ? 'android' : 'ios', MIGRATION_SURFACES.GUEST_FLOW, handoff)
+        openStore(deviceType === DeviceType.ANDROID ? 'android' : 'ios', surface, handoff)
         return true
     }
 
     const storeHandoffModal = qrOpen ? (
-        <ScanToDownloadModal visible onClose={() => setQrOpen(false)} surface={MIGRATION_SURFACES.GUEST_FLOW} />
+        <ScanToDownloadModal visible onClose={() => setQrOpen(false)} surface={surface} handoff={qrHandoff} />
     ) : null
 
     return { interceptGuestCta, storeHandoffModal }

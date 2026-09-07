@@ -30,7 +30,7 @@ const TweetCarousel = dynamic(() => import('@/components/LandingPage/TweetCarous
 
 // Same reasoning as the carousel, plus: neither can render before mount, since
 // useMigrationFlag is false until then. Statically imported they dragged
-// AppQrCode -> QRCodeWrapper -> react-qr-code into the landing page's main
+// DownloadQR -> QRCodeWrapper -> react-qr-code into the landing page's main
 // chunk for every visitor, flag off included.
 const HeroAppLockup = dynamic(() => import('@/components/LandingPage/HeroAppLockup').then((m) => m.HeroAppLockup), {
     ssr: false,

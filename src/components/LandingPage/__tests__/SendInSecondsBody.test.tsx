@@ -17,6 +17,9 @@ jest.mock('@/utils/deferred-link', () => ({ buildDeferredPayload: () => 'pnutdl=
 jest.mock('@/utils/migration.utils', () => ({
     storeAnchorHref: (store: string) => `https://store.example/${store}`,
     onStoreAnchorClick: jest.fn(),
+    // the lockups pass this to DownloadQR to ask for the ambient deferred
+    // context (locale, invite cookie) with no destination of their own
+    AMBIENT_HANDOFF: {},
 }))
 jest.mock('@/components/Global/QRCodeWrapper', () => ({
     __esModule: true,

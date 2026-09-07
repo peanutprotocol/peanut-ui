@@ -8,7 +8,7 @@ import { SendInSecondsCTA } from './SendInSecondsCTA'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import type { LandingStrings } from './landingStrings'
 
-// Split out: it drags AppQrCode -> QRCodeWrapper -> react-qr-code and the
+// Split out: it drags DownloadQR -> QRCodeWrapper -> react-qr-code and the
 // scanner capture behind it, and it cannot render before mount (the flag is
 // false until then), so there is no SSR or hydration cost to deferring it.
 const GetTheAppFold = dynamic(() => import('./GetTheAppFold').then((m) => m.GetTheAppFold), { ssr: false })

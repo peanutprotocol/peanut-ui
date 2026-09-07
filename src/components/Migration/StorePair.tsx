@@ -4,13 +4,16 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { STORE_NAME, type MigrationSurface } from '@/constants/migration.consts'
 import { onStoreAnchorClick, storeAnchorHref, type StoreHandoff } from '@/utils/migration.utils'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
+import { twMerge } from '@/utils/tw'
 
 // store-button pair. compact: under download CTAs and QRs, same design
 // language as /app (purple App Store, stroke Google Play). hero: the landing
 // hero's desktop CTA row — two equal white buttons on the pink hero. stacked:
 // inside a modal, where the platform is usually known — one full-width white
 // button for the device you are on, falling back to both, one under the other,
-// when it is not.
+// when it is not. footer: the same pair on the black footer chrome — white
+// fill, black border, no offset shadow, which is invisible on black and is the
+// treatment the LocaleSwitcher already uses two rows below.
 //
 // the buttons are real anchors carrying `storeAnchorHref` (android's install
 // referrer rides the url) with `onStoreAnchorClick` for tracking + the iOS
@@ -21,13 +24,16 @@ export default function StorePair({
     surface,
     appearance = 'compact',
     handoff,
+    className,
 }: {
     surface: MigrationSurface
-    appearance?: 'compact' | 'hero' | 'stacked'
+    appearance?: 'compact' | 'hero' | 'stacked' | 'footer'
     handoff?: StoreHandoff
+    className?: string
 }) {
     const isHero = appearance === 'hero'
     const isStacked = appearance === 'stacked'
+    const isFooter = appearance === 'footer'
     const { deviceType } = useDeviceType()
     const thisPlatform = deviceType === DeviceType.IOS ? 'ios' : deviceType === DeviceType.ANDROID ? 'android' : null
     const stores = isStacked && thisPlatform ? ([thisPlatform] as const) : (['ios', 'android'] as const)
@@ -41,7 +47,7 @@ export default function StorePair({
     )
     return (
         <div
-            className={
+            className={twMerge(
                 isStacked
                     ? 'flex w-full flex-col gap-3'
                     : isHero
@@ -50,8 +56,11 @@ export default function StorePair({
                         // would wrap them at EVERY viewport >= sm, including 1440.
                         // Below sm the anchors are w-full and stack by design.
                         'mx-auto flex w-full max-w-[27.5rem] flex-wrap items-center justify-center gap-3'
-                      : 'mx-auto flex w-full max-w-[26rem] flex-wrap items-center justify-center gap-3'
-            }
+                      : isFooter
+                        ? 'flex w-full max-w-[26rem] flex-wrap items-center justify-start gap-3'
+                        : 'mx-auto flex w-full max-w-[26rem] flex-wrap items-center justify-center gap-3',
+                className
+            )}
         >
             {stores.map((s) => (
                 <a
@@ -60,19 +69,23 @@ export default function StorePair({
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => onStoreAnchorClick(s, surface, handoff)}
-                    className={isStacked ? 'w-full' : isHero ? 'w-full sm:w-52' : undefined}
+                    className={isStacked ? 'w-full' : isHero || isFooter ? 'w-full sm:w-52' : undefined}
                 >
                     <Button
-                        variant={isHero || isStacked ? 'stroke' : s === 'ios' ? 'purple' : 'stroke'}
-                        shadowSize="4"
-                        size={isHero ? undefined : 'small'}
+                        variant={isHero || isStacked || isFooter ? 'stroke' : s === 'ios' ? 'purple' : 'stroke'}
+                        // no offset shadow on black: it is invisible there and
+                        // only fattens the control
+                        shadowSize={isFooter ? undefined : '4'}
+                        size={isHero || isFooter ? undefined : 'small'}
                         icon={s === 'ios' ? 'apple-logo' : 'google-play'}
                         className={
                             isHero
                                 ? 'w-full bg-white px-6 py-3 text-button-m hover:bg-white/90 md:py-7 md:text-button-l'
-                                : isStacked
-                                  ? 'w-full justify-center bg-white hover:bg-white/90'
-                                  : 'w-auto px-4'
+                                : isFooter
+                                  ? 'w-full border-n-1 bg-white px-6 text-button-m shadow-none hover:bg-white/90 hover:shadow-none md:text-button-l'
+                                  : isStacked
+                                    ? 'w-full justify-center bg-white hover:bg-white/90'
+                                    : 'w-auto px-4'
                         }
                     >
                         {STORE_NAME[s]}

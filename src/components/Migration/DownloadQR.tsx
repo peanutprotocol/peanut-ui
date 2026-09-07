@@ -9,6 +9,7 @@ import { SELF_URL } from '@/constants/general.consts'
 import { type MigrationSurface } from '@/constants/migration.consts'
 import { buildDeferredPayload } from '@/utils/deferred-link'
 import type { StoreHandoff } from '@/utils/migration.utils'
+import { twMerge } from '@/utils/tw'
 
 /** QR frame width in px — the value QRCodeWrapper's `max-w-*` resolves to.
  *  Static class strings: a template literal would not survive Tailwind's scan.
@@ -31,6 +32,14 @@ export type QRSize = keyof typeof FRAME_WIDTH
 type DownloadQRProps = {
     surface: MigrationSurface
     size?: QRSize
+    /**
+     * Frame only — no scan hint, no store pair. The landing lockups (hero,
+     * get-the-app fold, footer) place those themselves, around a layout the
+     * packaged unit cannot express; the modal and every other surface keep the
+     * packaged QR + hint + pair.
+     */
+    bare?: boolean
+    className?: string
 } & (
     | {
           /** deferred-link querystring from `buildDeferredPayload()`, for a caller
@@ -50,8 +59,15 @@ type DownloadQRProps = {
 
 // one smart QR instead of a per-store toggle: it encodes /app, which
 // redirects to the store of whichever phone scans it.
-export default function DownloadQR({ surface, payload, size = 160, handoff }: DownloadQRProps) {
+/* the only text in this component. Its own child so `bare` — which renders no
+ * copy at all — does not drag an intl provider requirement into the landing
+ * lockups, which place their own hint. */
+function ScanHint() {
     const t = useTranslations('migration')
+    return <span className="text-body-xs text-foreground-secondary">{t('qr.scanHint')}</span>
+}
+
+export default function DownloadQR({ surface, payload, size = 160, handoff, bare, className }: DownloadQRProps) {
     const frameRef = useRef<HTMLDivElement>(null)
 
     // one context channel, two consumers. `handoff` is the input; the querystring
@@ -118,12 +134,22 @@ export default function DownloadQR({ surface, payload, size = 160, handoff }: Do
     // and hands it to the store bounce, so context survives the install
     const qrUrl = `${origin}/app?${effectivePayload ? `${effectivePayload}&` : ''}s=${encodeURIComponent(surface)}`
 
+    const frame = (
+        <div
+            data-testid="app-qr-code"
+            ref={frameRef}
+            className={twMerge('w-full', bare && FRAME_WIDTH[size], className)}
+        >
+            <QRCodeWrapper url={qrUrl} className={FRAME_WIDTH[size]} />
+        </div>
+    )
+
+    if (bare) return frame
+
     return (
         <div className="flex w-full flex-col items-center gap-3 py-2">
-            <div ref={frameRef} className="w-full">
-                <QRCodeWrapper url={qrUrl} className={FRAME_WIDTH[size]} />
-            </div>
-            <span className="text-body-xs text-foreground-secondary">{t('qr.scanHint')}</span>
+            {frame}
+            <ScanHint />
             {/* desktop can install directly too (e.g. Google Play from the browser) */}
             <StorePair surface={surface} appearance="stacked" handoff={handoff} />
         </div>
