@@ -411,6 +411,18 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
         // ...and with real separators around it, both classes still land
         expect(countWeightStacks("const c = clsx('text-body-m ' + 1 + ' font-semibold')")).toBe(1)
         expect(countWeightStacks("const c = clsx('text-body-m' + true + 'font-semibold')")).toBe(0)
+        // Every statically known primitive, or the ones left out reach the
+        // dynamic product and invent the boundaries again.
+        expect(countWeightStacks("const c = clsx('text-body-m' + undefined + 'font-semibold')")).toBe(0)
+        expect(countWeightStacks("const c = clsx('text-body-m' + 1n + 'font-semibold')")).toBe(0)
+        expect(countWeightStacks("const c = clsx('text-body-m' + -1 + 'font-semibold')")).toBe(0)
+        // `undefined` is an ordinary identifier: a binding that shadows it has
+        // a value we do not know, so the conservative product is right there
+        expect(
+            countWeightStacks("function f(undefined) { return clsx('text-body-m' + undefined + 'font-semibold') }")
+        ).toBe(1)
+        // ...and a real separator around one still leaves two classes
+        expect(countWeightStacks("const c = clsx('text-body-m ' + -1 + ' font-semibold')")).toBe(1)
     })
 
     it('keeps composing an axis table spread in from something unreadable', () => {

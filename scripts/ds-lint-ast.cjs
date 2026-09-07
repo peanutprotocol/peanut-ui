@@ -282,11 +282,24 @@ function staticText(node, ctx, depth = 0, seen = new Set()) {
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return node.text
     // A primitive operand coerces rather than separating: `'a' + 1 + 'b'` is the
     // single class `a1b`, and refusing the number invented two class boundaries
-    // that do not exist.
+    // that do not exist. Every statically known primitive folds, or the ones
+    // left out reach the dynamic product and invent the boundaries again.
     if (ts.isNumericLiteral(node)) return String(Number(node.text))
+    // `1n` renders `1` — the literal's text carries the suffix.
+    if (ts.isBigIntLiteral(node)) return node.text.replace(/n$/, '')
     if (node.kind === ts.SyntaxKind.TrueKeyword) return 'true'
     if (node.kind === ts.SyntaxKind.FalseKeyword) return 'false'
     if (node.kind === ts.SyntaxKind.NullKeyword) return 'null'
+    // `-1` is a unary expression, not a negative literal.
+    if (
+        ts.isPrefixUnaryExpression(node) &&
+        (node.operator === ts.SyntaxKind.MinusToken || node.operator === ts.SyntaxKind.PlusToken) &&
+        (ts.isNumericLiteral(node.operand) || ts.isBigIntLiteral(node.operand))
+    ) {
+        const magnitude = staticText(node.operand, ctx, depth + 1, seen)
+        if (magnitude === null) return null
+        return node.operator === ts.SyntaxKind.MinusToken ? String(-Number(magnitude)) : magnitude
+    }
     if (ts.isTemplateExpression(node)) {
         let text = node.head.text
         for (const span of node.templateSpans) {
@@ -302,6 +315,10 @@ function staticText(node, ctx, depth = 0, seen = new Set()) {
     if (ts.isIdentifier(node)) {
         if (!ctx) return null
         const bound = lookup(ctx.scopes, node.text)
+        // `undefined` is an ordinary identifier, so it only renders `undefined`
+        // while nothing shadows it — a parameter named `undefined` is a real
+        // binding whose value we do not know.
+        if (!bound && node.text === 'undefined') return 'undefined'
         if (!bound || bound.value === OPAQUE || seen.has(bound.value)) return null
         const next = new Set(seen)
         next.add(bound.value)
