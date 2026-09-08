@@ -9,6 +9,8 @@ import { useAppHaptic } from '@/hooks/useAppHaptic'
 interface ListItemProps {
     title: React.ReactNode
     body?: React.ReactNode
+    /** allow a string body to wrap instead of using the default one-line ellipsis */
+    bodyWrap?: boolean
     /** leading slot: IconBubble, Icon, avatar, flag… (board leading content) */
     leading?: React.ReactNode
     /** trailing slot: value, toggle, badge… renders before the chevron */
@@ -35,6 +37,7 @@ interface ListItemProps {
 export const ListItem = ({
     title,
     body,
+    bodyWrap = false,
     leading,
     trailing,
     chevron,
@@ -95,7 +98,14 @@ export const ListItem = ({
                     )}
                     {body &&
                         (typeof body === 'string' ? (
-                            <span className="truncate text-body-s text-foreground-secondary">{body}</span>
+                            <span
+                                className={twMerge(
+                                    'text-body-s text-foreground-secondary',
+                                    bodyWrap ? 'break-words whitespace-normal' : 'truncate'
+                                )}
+                            >
+                                {body}
+                            </span>
                         ) : (
                             <div className="min-w-0 text-body-s text-foreground-secondary">{body}</div>
                         ))}
