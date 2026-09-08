@@ -114,13 +114,16 @@ export const getRegionIntent = (regionPath: string): KYCRegionIntent => {
 
 /**
  * Region intent for a BANK flow (Bridge bank deposit / withdraw, bank claim).
- * Mexico is `region: 'latam'` for the region picker, but its bank rail (SPEI)
- * is a Bridge rail. Sending LATAM + MX asks the Manteca path for a country it
- * does not serve; the BE rejects it and the UI collapsed that into "contact
- * support" (TASK-22333). Route it as NA (Bridge), like the US.
+ * A `latam` picker country whose bank rail is Bridge (today: Mexico / SPEI)
+ * must unlock as NA (Bridge), like the US. Sending LATAM + MX asks the Manteca
+ * path for a country it does not serve; the BE rejects it and the UI collapsed
+ * that into "contact support" (TASK-22333). Every other country keeps the
+ * picker-region intent.
  */
 export const getBankRegionIntent = (country: Pick<CountryData, 'id' | 'region'> | null | undefined): KYCRegionIntent =>
-    country?.id === 'MX' ? 'NA' : getRegionIntent(country?.region ?? 'rest-of-the-world')
+    country?.region === 'latam' && isBridgeSupportedCountry(country.id)
+        ? 'NA'
+        : getRegionIntent(country?.region ?? 'rest-of-the-world')
 
 /**
  * Which provider serves a region intent — an exact FE mirror of the BE registry
