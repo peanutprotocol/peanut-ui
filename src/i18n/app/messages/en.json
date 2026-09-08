@@ -1162,7 +1162,8 @@
             "invalidPaymentUrlTitle": "This payment link doesn't work",
             "invalidPaymentUrlDescription": "The link is incomplete or mistyped. Ask the sender to share it again.",
             "requestNotFoundTitle": "Request not found",
-            "requestNotFoundDescription": "This payment request doesn't exist or was removed. Ask the sender for a new link."
+            "requestNotFoundDescription": "This payment request doesn't exist or was removed. Ask the sender for a new link.",
+            "selfRequestPayment": "You cannot pay your own request."
         }
     },
     "claim": {
@@ -1305,7 +1306,7 @@
         },
         "info": {
             "exchangeRate": "Exchange Rate",
-            "exchangeRateTooltip": "Rate shown is current but may vary slightly (~$1-5 ARS) until payment is confirmed.",
+            "exchangeRateTooltip": "Rate shown is current but may vary slightly until payment is confirmed.",
             "saveVsCard": "Save vs card",
             "saveVsCardTooltipBrl": "Foreign cards pay IOF (~3.5%) plus a typical ~3% issuer FX fee. Peanut routes via PIX at the current market rate.",
             "saveVsCardTooltipArs": "Foreign cards apply the official rate plus a typical ~3% issuer FX fee. Peanut routes via MercadoPago at the current market rate."
@@ -1353,7 +1354,11 @@
             "maxQrAmount": "QR payment amount exceeds maximum limit of ${amount}",
             "minQrAmount": "QR payment amount must be at least ${amount}",
             "genericQrDetails": "An error occurred while getting the QR details.",
-            "authError": "Couldn't verify your session. Please try again."
+            "authError": "Couldn't verify your session. Please try again.",
+            "maxTransferAmount": "Transfer amount exceeds maximum limit of ${amount}",
+            "minTransferAmount": "Transfer amount must be at least ${amount}",
+            "paymentStatusUnknown": "We couldn't confirm the payment status. Check Activity before trying again. If the status is unclear, contact support.",
+            "paymentCancelled": "The provider cancelled this payment before funds were sent. Scan a new QR code to try again."
         },
         "claim": {
             "navTitle": "Claim QR Code",
@@ -1393,6 +1398,25 @@
             },
             "claimSuccess": {
                 "stickerDescription": "Stick it on your laptop, water bottle, or anywhere you want people to find you. Anyone who scans will be able to join Peanut with your invite."
+            }
+        },
+        "result": {
+            "viewActivity": "View activity",
+            "cancelled": {
+                "title": "Payment cancelled",
+                "description": "This payment was cancelled. Check Activity for the status of any funds returned before trying again."
+            },
+            "refunded": {
+                "title": "Payment refunded",
+                "description": "Your funds have been returned. You can see the refund in Activity."
+            },
+            "failed": {
+                "title": "Payment did not complete",
+                "description": "Check Activity for the payment and any refund before trying again."
+            },
+            "processing": {
+                "title": "Payment is processing",
+                "description": "The payment has not been confirmed yet. Check Activity before trying again."
             }
         }
     },
@@ -1522,7 +1546,7 @@
             "noLimitSet": "No limit set",
             "edit": "Edit",
             "editTitle": "Change limit",
-            "invalidAmount": "Enter a valid amount",
+            "invalidAmount": "Enter an amount from {minimum} to {maximum}, with no more than two decimal places.",
             "saveFailed": "Failed to save limit",
             "saveChanges": "Save changes",
             "noActiveCard": "No active card to manage limits for."
@@ -1678,6 +1702,10 @@
             "noActiveCard": "No active card found on this account — please contact support.",
             "regrantFailed": "Re-enabling did not complete — please try again or contact support.",
             "diagnostics": "Diagnostics: nonce {nonce} / floor {floor}"
+        },
+        "reveal": {
+            "loadFailed": "Could not load card details. Please try again or contact support.",
+            "rateLimited": "Card details are temporarily unavailable. Please try again later."
         }
     },
     "addMoney": {
@@ -1918,7 +1946,7 @@
             "redirecting": "Redirecting...",
             "lockingRate": "Locking rate...",
             "exchangeRate": "Exchange Rate",
-            "exchangeRateInfo": "Rate shown is current but may vary slightly (~$1-5 ARS) until payment is confirmed.",
+            "exchangeRateInfo": "Rate shown is current but may vary slightly until payment is confirmed.",
             "flagAlt": "flag",
             "increaseLimitsMessage": "Hi, I would like to increase my payment limits."
         },
@@ -3564,6 +3592,7 @@
         "logoutFailed": "Couldn’t log out. Please try again.",
         "loginIncomplete": "Login didn’t complete. Please try again.",
         "rateUnavailable": "Exchange rates are temporarily unavailable. Please try again in a moment.",
+        "transferTemporarilyUnavailable": "Transfers are temporarily unavailable. Please check Activity before trying again.",
         "userOpReverted": "This payment could not be completed. Please try again."
     },
     "appLock": {

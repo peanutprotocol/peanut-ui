@@ -643,7 +643,8 @@
             "logInToContinue": "iniciá sesión para continuar",
             "userNotFoundDescription": "No encontramos a @{username} en Peanut. Revisá el nombre de usuario e intentá de nuevo.",
             "invalidPaymentUrlDescription": "El enlace está incompleto o mal escrito. Pedile a quien lo envió que lo comparta de nuevo.",
-            "requestNotFoundDescription": "Esta solicitud de pago no existe o fue eliminada. Pedile un nuevo enlace a quien la envió."
+            "requestNotFoundDescription": "Esta solicitud de pago no existe o fue eliminada. Pedile un nuevo enlace a quien la envió.",
+            "selfRequestPayment": "No podés pagar tu propia solicitud."
         }
     },
     "claim": {
@@ -727,7 +728,9 @@
             "sessionExpired": "La sesión de pago expiró. Escaneá el código QR de nuevo.",
             "restartScan": "No pudimos iniciar este pago. Escaneá el código QR de nuevo.",
             "merchantNotSupported": "Este código QR o comercio no es compatible. Intentalo de nuevo con otro código QR.",
-            "completeFailed": "No se pudo completar el pago. Escaneá el código QR de nuevo. Si el problema persiste, contactá a soporte"
+            "completeFailed": "No se pudo completar el pago. Escaneá el código QR de nuevo. Si el problema persiste, contactá a soporte",
+            "paymentStatusUnknown": "No pudimos confirmar el estado del pago. Revisá tu actividad antes de volver a intentarlo. Si el estado no está claro, contactá a soporte.",
+            "paymentCancelled": "El proveedor canceló este pago antes de enviar la plata. Escaneá un nuevo código QR para volver a intentarlo."
         },
         "claim": {
             "inviteQrDescription": "Compartilo donde sea. Los puntos siguen llegando por la actividad de tus amigos y sus amigos.",
@@ -751,6 +754,25 @@
             },
             "claimSuccess": {
                 "stickerDescription": "Pegalo en tu laptop, botella de agua o donde quieras que la gente te encuentre. Cualquiera que lo escanee podrá unirse a Peanut con tu invitación."
+            }
+        },
+        "result": {
+            "viewActivity": "Ver actividad",
+            "cancelled": {
+                "title": "Pago cancelado",
+                "description": "Este pago se canceló. Antes de volver a intentarlo, revisá en Actividad si se devolvió la plata."
+            },
+            "refunded": {
+                "title": "Pago reembolsado",
+                "description": "Tu plata ya fue devuelta. Podés ver el reembolso en Actividad."
+            },
+            "failed": {
+                "title": "El pago no se completó",
+                "description": "Antes de volver a intentarlo, revisá el pago y cualquier reembolso en Actividad."
+            },
+            "processing": {
+                "title": "Pago en proceso",
+                "description": "El pago todavía no se confirmó. Revisá Actividad antes de volver a intentarlo."
             }
         }
     },
@@ -809,7 +831,7 @@
         },
         "limits": {
             "subtitle": "Definí tu límite de gasto por transacción.",
-            "invalidAmount": "Ingresá un monto válido",
+            "invalidAmount": "Ingresá un monto entre {minimum} y {maximum}, con un máximo de dos decimales.",
             "noActiveCard": "No tenés una tarjeta activa para gestionar límites."
         },
         "pin": {
@@ -850,6 +872,10 @@
         "recovery": {
             "failed": "Falló la recuperación — intentalo de nuevo",
             "title": "Recuperá el colateral de tu tarjeta"
+        },
+        "reveal": {
+            "loadFailed": "No se pudieron cargar los datos de la tarjeta. Intentá de nuevo o contactá a soporte.",
+            "rateLimited": "Por ahora no se pueden mostrar los datos de la tarjeta. Intentá más tarde."
         }
     },
     "addMoney": {
@@ -1567,6 +1593,7 @@
         "logoutFailed": "No pudimos cerrar tu sesión. Intentalo de nuevo.",
         "loginIncomplete": "No se completó el inicio de sesión. Intentalo de nuevo.",
         "rateUnavailable": "Los tipos de cambio no están disponibles por el momento. Intentalo de nuevo en un momento.",
+        "transferTemporarilyUnavailable": "Las transferencias no están disponibles por el momento. Revisá tu actividad antes de volver a intentarlo.",
         "userOpReverted": "No se pudo completar el pago. Intentá de nuevo."
     },
     "appLock": {

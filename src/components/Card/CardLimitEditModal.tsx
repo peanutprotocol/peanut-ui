@@ -1,7 +1,7 @@
 'use client'
 import { type FC, useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useTranslations } from 'next-intl'
+import { useFormatter, useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import ActionModal from '@/components/Global/ActionModal'
@@ -10,6 +10,7 @@ import { RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
 import { useReturnExcessCollateral } from '@/hooks/wallet/useReturnExcessCollateral'
 
 export const CARD_LIMITS_QUERY_KEY = 'rain-card-limits'
+const MAX_CARD_LIMIT_CENTS = 2_147_483_647
 
 interface Props {
     cardId: string
@@ -22,6 +23,7 @@ interface Props {
 
 const CardLimitEditModal: FC<Props> = ({ cardId, frequency, label, initialAmountCents, isOpen, onClose }) => {
     const t = useTranslations('card.limits')
+    const format = useFormatter()
     const queryClient = useQueryClient()
     const { returnExcess } = useReturnExcessCollateral()
     const [value, setValue] = useState<string>(initialAmountCents != null ? (initialAmountCents / 100).toFixed(2) : '')
@@ -41,11 +43,21 @@ const CardLimitEditModal: FC<Props> = ({ cardId, frequency, label, initialAmount
 
     const save = async () => {
         const dollars = Number(value)
-        if (!Number.isFinite(dollars) || dollars < 0) {
-            setError(t('invalidAmount'))
+        const amountCents = Math.round(dollars * 100)
+        if (
+            !Number.isFinite(dollars) ||
+            amountCents < 1 ||
+            amountCents > MAX_CARD_LIMIT_CENTS ||
+            Math.abs(dollars * 100 - amountCents) > 0.000001
+        ) {
+            setError(
+                t('invalidAmount', {
+                    minimum: format.number(0.01, { style: 'currency', currency: 'USD' }),
+                    maximum: format.number(MAX_CARD_LIMIT_CENTS / 100, { style: 'currency', currency: 'USD' }),
+                })
+            )
             return
         }
-        const amountCents = Math.round(dollars * 100)
         setSaving(true)
         setError(null)
         try {
@@ -89,6 +101,10 @@ const CardLimitEditModal: FC<Props> = ({ cardId, frequency, label, initialAmount
             })
             onClose()
         } catch (e) {
+            await Promise.allSettled([
+                queryClient.invalidateQueries({ queryKey: [CARD_LIMITS_QUERY_KEY, cardId] }),
+                queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] }),
+            ])
             const message = e instanceof Error ? e.message : t('saveFailed')
             setError(message)
             posthog.capture(ANALYTICS_EVENTS.CARD_LIMIT_CHANGE_FAILED, { frequency, error_message: message })
@@ -119,7 +135,8 @@ const CardLimitEditModal: FC<Props> = ({ cardId, frequency, label, initialAmount
                             value={value}
                             onChange={(e) => setValue(e.target.value)}
                             className="w-full bg-transparent text-body-m focus:outline-none"
-                            min={0}
+                            min={0.01}
+                            max={MAX_CARD_LIMIT_CENTS / 100}
                             step="0.01"
                             disabled={saving}
                         />

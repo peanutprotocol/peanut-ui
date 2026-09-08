@@ -8344,6 +8344,18 @@ export interface paths {
                     };
                 };
                 /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
                 502: {
                     headers: {
                         [name: string]: unknown;

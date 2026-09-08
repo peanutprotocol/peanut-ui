@@ -23,3 +23,13 @@ describe('posthogErrorMirror', () => {
         expect(inner).toHaveBeenCalledWith(real)
     })
 })
+
+it('redacts QR copies before the Sentry event reaches the PostHog integration', () => {
+    const inner = jest.fn((event) => event)
+    mockSentryIntegration.mockReturnValue({ name: 'posthog', processEvent: inner })
+    const url = '/qr-pay?qrCode=private-payload'
+    const event = { message: url, request: { url }, exception: { values: [{ value: url }] } } as never
+    posthogErrorMirror().processEvent?.(event)
+    expect(inner).toHaveBeenCalledTimes(1)
+    expect(JSON.stringify(inner.mock.calls)).not.toContain('private-payload')
+})

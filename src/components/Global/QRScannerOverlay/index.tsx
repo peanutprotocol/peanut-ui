@@ -19,7 +19,7 @@ import { openExternalUrl } from '@/utils/capacitor'
 import { pixKeyToQrPayUrl } from '@/utils/pix.utils'
 import { extractPaymentValue } from '@/utils/clipboard-extract.utils'
 import { recipientPayUrl, qrClaimUrl, deepLinkToNativePath } from '@/utils/native-routes'
-import * as Sentry from '@sentry/nextjs'
+import { qrTelemetry, reportQrScanError } from '@/components/Global/QRScanner/utils'
 import { useTranslations } from 'next-intl'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import posthog from 'posthog-js'
@@ -239,22 +239,7 @@ export default function QRScannerOverlay() {
         // checksum must stay rejectable instead of laundered into a payable address.
         const recognized = recognizeQr(data) ?? (data === data.toUpperCase() ? recognizeQr(normalized) : null)
 
-        const getLogData = () => {
-            if (recognized === EQrType.PIX_KEY) {
-                const trimmed = data.trim()
-                if (trimmed.startsWith('+') || /^55\d/.test(trimmed)) return 'pix:phone'
-                if (/^\d{11}$/.test(trimmed)) return 'pix:cpf'
-                if (/^\d{14}$/.test(trimmed)) return 'pix:cnpj'
-                if (trimmed.includes('@')) return 'pix:email'
-                if (/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(trimmed)) return 'pix:uuid'
-                return 'pix:unknown'
-            }
-            if (recognized === EQrType.PEANUT_URL && normalized.includes('/claim')) {
-                return 'peanut:claim-link'
-            }
-            return data
-        }
-        posthog.capture(ANALYTICS_EVENTS.QR_SCANNED, { qr_type: recognized, data: getLogData() })
+        posthog.capture(ANALYTICS_EVENTS.QR_SCANNED, { qr_type: recognized, ...qrTelemetry(data) })
         if (!recognized) {
             // Pasted text is often prose with an address embedded ("...0xabc... is
             // the Arbitrum address..."). Pull a valid EVM address out and re-process
@@ -283,6 +268,7 @@ export default function QRScannerOverlay() {
                         try {
                             const response = await serverFetch(`/qr/${redirectQrCode}`, {
                                 method: 'GET',
+                                redactTelemetry: true,
                             })
                             const lookup = await response.json()
 
@@ -294,8 +280,8 @@ export default function QRScannerOverlay() {
                             } else {
                                 redirectUrl = qrClaimUrl(redirectQrCode)
                             }
-                        } catch (error) {
-                            console.error('Error checking redirect QR:', error)
+                        } catch {
+                            reportQrScanError(data)
                             redirectUrl = qrClaimUrl(redirectQrCode)
                         }
                     } else {
@@ -333,9 +319,9 @@ export default function QRScannerOverlay() {
                             }
                         }
                         toConfirmUrl = recipientPayUrl(path)
-                    } catch (error) {
+                    } catch {
                         toast.error(t('qrScannerOverlay.eip681ParseError'))
-                        Sentry.captureException(error)
+                        reportQrScanError(data)
                     }
                 }
                 break

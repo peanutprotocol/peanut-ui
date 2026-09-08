@@ -1162,7 +1162,8 @@
             "invalidPaymentUrlTitle": "Este link de pagamento não funciona",
             "invalidPaymentUrlDescription": "O link está incompleto ou digitado errado. Peça para quem enviou compartilhar de novo.",
             "requestNotFoundTitle": "Cobrança não encontrada",
-            "requestNotFoundDescription": "Esta cobrança não existe ou foi removida. Peça um novo link para quem enviou."
+            "requestNotFoundDescription": "Esta cobrança não existe ou foi removida. Peça um novo link para quem enviou.",
+            "selfRequestPayment": "Você não pode pagar sua própria solicitação."
         }
     },
     "claim": {
@@ -1305,7 +1306,7 @@
         },
         "info": {
             "exchangeRate": "Taxa de câmbio",
-            "exchangeRateTooltip": "A taxa mostrada é a atual, mas pode variar um pouco (~$1-5 ARS) até o pagamento ser confirmado.",
+            "exchangeRateTooltip": "A taxa mostrada é a atual, mas pode variar um pouco até o pagamento ser confirmado.",
             "saveVsCard": "Economia vs. cartão",
             "saveVsCardTooltipBrl": "Cartões estrangeiros pagam IOF (~3,5%) mais uma taxa de câmbio típica do emissor de ~3%. O Peanut usa o PIX na taxa atual de mercado.",
             "saveVsCardTooltipArs": "Cartões estrangeiros aplicam a taxa oficial mais uma taxa de câmbio típica do emissor de ~3%. O Peanut usa o MercadoPago na taxa atual de mercado."
@@ -1353,7 +1354,11 @@
             "maxQrAmount": "O valor do pagamento QR ultrapassa o limite máximo de ${amount}",
             "minQrAmount": "O valor do pagamento QR deve ser de pelo menos ${amount}",
             "genericQrDetails": "Ocorreu um erro ao obter os detalhes do QR.",
-            "authError": "Não foi possível verificar sua sessão. Tente novamente."
+            "authError": "Não foi possível verificar sua sessão. Tente novamente.",
+            "maxTransferAmount": "O valor da transferência ultrapassa o limite máximo de ${amount}",
+            "minTransferAmount": "O valor da transferência deve ser de pelo menos ${amount}",
+            "paymentStatusUnknown": "Não foi possível confirmar o status do pagamento. Confira sua atividade antes de tentar novamente. Se o status não estiver claro, entre em contato com o suporte.",
+            "paymentCancelled": "O provedor cancelou este pagamento antes do envio do dinheiro. Escaneie um novo código QR para tentar novamente."
         },
         "claim": {
             "navTitle": "Resgatar código QR",
@@ -1393,6 +1398,25 @@
             },
             "claimSuccess": {
                 "stickerDescription": "Cole no seu notebook, na garrafa de água ou onde quiser que as pessoas te encontrem. Quem escanear vai poder entrar no Peanut com o seu convite."
+            }
+        },
+        "result": {
+            "viewActivity": "Ver atividade",
+            "cancelled": {
+                "title": "Pagamento cancelado",
+                "description": "Este pagamento foi cancelado. Antes de tentar novamente, confira em Atividade se o dinheiro foi devolvido."
+            },
+            "refunded": {
+                "title": "Pagamento reembolsado",
+                "description": "Seu dinheiro foi devolvido. Você pode ver o reembolso em Atividade."
+            },
+            "failed": {
+                "title": "O pagamento não foi concluído",
+                "description": "Antes de tentar novamente, confira o pagamento e qualquer reembolso em Atividade."
+            },
+            "processing": {
+                "title": "Pagamento em processamento",
+                "description": "O pagamento ainda não foi confirmado. Confira Atividade antes de tentar novamente."
             }
         }
     },
@@ -1522,7 +1546,7 @@
             "noLimitSet": "Nenhum limite definido",
             "edit": "Editar",
             "editTitle": "Alterar limite",
-            "invalidAmount": "Informe um valor válido",
+            "invalidAmount": "Informe um valor entre {minimum} e {maximum}, com até duas casas decimais.",
             "saveFailed": "Não foi possível salvar o limite",
             "saveChanges": "Salvar alterações",
             "noActiveCard": "Você não tem um cartão ativo para gerenciar limites."
@@ -1678,6 +1702,10 @@
             "noActiveCard": "Nenhum cartão ativo encontrado nesta conta — entre em contato com o suporte.",
             "regrantFailed": "A reativação não foi concluída — tente novamente ou entre em contato com o suporte.",
             "diagnostics": "Diagnóstico: nonce {nonce} / piso {floor}"
+        },
+        "reveal": {
+            "loadFailed": "Não foi possível carregar os dados do cartão. Tente novamente ou fale com o suporte.",
+            "rateLimited": "Os dados do cartão estão temporariamente indisponíveis. Tente novamente mais tarde."
         }
     },
     "addMoney": {
@@ -1918,7 +1946,7 @@
             "redirecting": "Redirecionando...",
             "lockingRate": "Travando a taxa...",
             "exchangeRate": "Taxa de câmbio",
-            "exchangeRateInfo": "A taxa mostrada é a atual, mas pode variar um pouco (~$1-5 ARS) até o pagamento ser confirmado.",
+            "exchangeRateInfo": "A taxa mostrada é a atual, mas pode variar um pouco até o pagamento ser confirmado.",
             "flagAlt": "bandeira",
             "increaseLimitsMessage": "Oi, eu gostaria de aumentar meus limites de pagamento."
         },
@@ -3564,6 +3592,7 @@
         "logoutFailed": "Não foi possível sair da sua conta. Tente novamente.",
         "loginIncomplete": "O login não foi concluído. Tente novamente.",
         "rateUnavailable": "As taxas de câmbio estão indisponíveis no momento. Tente de novo em instantes.",
+        "transferTemporarilyUnavailable": "As transferências estão temporariamente indisponíveis. Confira sua atividade antes de tentar novamente.",
         "userOpReverted": "Não foi possível concluir o pagamento. Tente novamente."
     },
     "appLock": {

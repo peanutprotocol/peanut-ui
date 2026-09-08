@@ -140,7 +140,6 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
 
             if (bankAccounts.length > 0) {
                 setSavedAccounts(bankAccounts as unknown as Account[])
-                if (!hasAppliedDefaultView.current) setShouldShowAllMethods(false)
             } else {
                 setSavedAccounts([])
             }

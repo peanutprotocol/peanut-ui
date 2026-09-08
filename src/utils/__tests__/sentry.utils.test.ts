@@ -578,3 +578,67 @@ describe('fetchWithSentry — one report per endpoint per outage window', () => 
         expect(reportNetworkError).toHaveBeenCalledWith('https://api.peanut.me/users/me')
     })
 })
+
+describe('sensitive QR lookup telemetry', () => {
+    const secret = 'private-qr-id#p=private-link-secret'
+    const url = `https://api.peanut.me/qr/${secret}`
+    let info: jest.SpyInstance
+    beforeEach(() => {
+        jest.clearAllMocks()
+        jest.mocked(require('../connectivity').hasRecentFailure).mockReturnValue(false)
+        info = jest.spyOn(console, 'info').mockImplementation(() => {})
+    })
+    afterEach(() => {
+        info.mockRestore()
+        jest.useRealTimers()
+    })
+    const assertPrivate = () => {
+        const calls = [
+            jest.mocked(Sentry.captureMessage).mock.calls,
+            jest.mocked(Sentry.captureException).mock.calls,
+            info.mock.calls,
+        ]
+        const serialized = JSON.stringify(calls, (_key, value) =>
+            value instanceof Error ? { message: value.message, stack: value.stack, cause: value.cause } : value
+        )
+        expect(serialized).not.toContain(secret)
+        expect(serialized).not.toContain('private-response')
+    }
+    it('reports a failed status without the request URL or echoed response, preserving the response', async () => {
+        const response = {
+            ok: false,
+            status: 500,
+            clone: jest.fn(() => ({ json: async () => ({ error: 'private-response' }) })),
+        } as unknown as Response
+        global.fetch = jest.fn().mockResolvedValue(response)
+        expect(await fetchWithSentry(url, { redactTelemetry: true })).toBe(response)
+        expect(response.clone).not.toHaveBeenCalled()
+        expect(Sentry.captureMessage).toHaveBeenCalledWith('Request failed with status 500', {
+            level: 'error',
+            extra: { method: 'GET', status: 500 },
+        })
+        expect(global.fetch).toHaveBeenCalledWith(url, expect.not.objectContaining({ redactTelemetry: true }))
+        assertPrivate()
+    })
+    it('replaces network errors that echo the scanned URL', async () => {
+        global.fetch = jest.fn().mockRejectedValue(new Error(secret))
+        await expect(fetchWithSentry(url, { redactTelemetry: true })).rejects.toThrow('Something went wrong')
+        expect(Sentry.captureException).toHaveBeenCalledWith(
+            new Error('Request failed'),
+            expect.objectContaining({ extra: expect.objectContaining({ url: '[redacted]' }) })
+        )
+        assertPrivate()
+    })
+    it('redacts both timeout retry logs and the final report', async () => {
+        jest.useFakeTimers()
+        global.fetch = jest.fn().mockRejectedValue(Object.assign(new Error(secret), { name: 'AbortError' }))
+        const failed = expect(fetchWithSentry(url, { redactTelemetry: true }, 1000)).rejects.toThrow(
+            'Peanut is taking too long'
+        )
+        await jest.runAllTimersAsync()
+        await failed
+        expect(global.fetch).toHaveBeenCalledTimes(2)
+        expect(Sentry.captureException).toHaveBeenCalled()
+        assertPrivate()
+    })
+})

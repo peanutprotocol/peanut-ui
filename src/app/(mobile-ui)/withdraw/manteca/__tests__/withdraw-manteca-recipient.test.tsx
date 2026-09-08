@@ -27,12 +27,14 @@ jest.mock('next/image', () => (props: Record<string, unknown>) => {
     return React.createElement('img', props as object)
 })
 
+let mockBalance: bigint | undefined = 1_000_000_000n
+let mockLayoutTap: (() => void) | null = null
 const mockSignSpend = jest.fn()
 jest.mock('@/hooks/wallet/useSignSpendBundle', () => ({
     useSignSpendBundle: () => ({ signSpend: mockSignSpend }),
 }))
 jest.mock('@/hooks/wallet/useWallet', () => ({
-    useWallet: () => ({ spendableBalance: 1_000_000_000n, formattedSpendableBalance: '1000.00' }),
+    useWallet: () => ({ spendableBalance: mockBalance, formattedSpendableBalance: '1000.00' }),
 }))
 jest.mock('@/hooks/wallet/useStaleSessionGuard', () => ({
     useStaleSessionGuard: () => jest.fn(async () => false),
@@ -156,6 +158,15 @@ import MantecaWithdrawPage from '../page'
 const SERVED_ADDRESS = '0x49200bF84dC26349C86ce040019063FeCE88CB1c'
 const LEGACY_ADDRESS = '0x959e088a09f61aB01cb83b0eBCc74b2CF6d62053'
 
+function TapBeforePassiveEffects() {
+    React.useLayoutEffect(() => {
+        const tap = mockLayoutTap
+        mockLayoutTap = null
+        tap?.()
+    })
+    return null
+}
+
 function renderPage() {
     mockSearchParams.clear()
     mockSearchParams.set('country', 'argentina')
@@ -163,13 +174,16 @@ function renderPage() {
     mockSearchParams.set('destination', '0000003100064523644259')
     mockSearchParams.set('isSavedAccount', 'true')
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    render(
+    const view = () => (
         <IntlWrapper>
             <QueryClientProvider client={queryClient}>
                 <MantecaWithdrawPage />
+                <TapBeforePassiveEffects />
             </QueryClientProvider>
         </IntlWrapper>
     )
+    const result = render(view())
+    return () => result.rerender(view())
 }
 
 async function driveToWithdraw(priceLock: Record<string, unknown>) {
@@ -188,6 +202,8 @@ async function driveToWithdraw(priceLock: Record<string, unknown>) {
 }
 
 beforeEach(() => {
+    mockBalance = 1_000_000_000n
+    mockLayoutTap = null
     jest.clearAllMocks()
     mockSignSpend.mockResolvedValue({
         strategy: 'smart-only',
@@ -227,4 +243,69 @@ describe('bank-withdraw recipient at the signing boundary', () => {
 
         expect(mockSignSpend).toHaveBeenCalledWith(expect.objectContaining({ recipient: LEGACY_ADDRESS }))
     })
+})
+
+describe('current balance at Manteca submission boundaries', () => {
+    test.each([5_000_000n, undefined])(
+        'does not lock a price when the loaded balance becomes %s before its effect',
+        async (balance) => {
+            const rerender = renderPage()
+            fireEvent.change(await screen.findByTestId('amount-input'), { target: { value: '10' } })
+            expect(screen.getByRole('button', { name: /continue/i })).toBeEnabled()
+            mockBalance = balance
+            mockLayoutTap = () => screen.getByRole('button', { name: /continue/i }).click()
+            rerender()
+            expect(mockInitiateWithdraw).not.toHaveBeenCalled()
+            expect(mockSignSpend).not.toHaveBeenCalled()
+        }
+    )
+
+    test.each([5_000_000n, undefined])(
+        'does not sign when the review balance becomes %s before its effect',
+        async (balance) => {
+            mockInitiateWithdraw.mockResolvedValue({
+                data: {
+                    priceLockCode: 'pl-drop',
+                    price: '1300',
+                    expiresAt: '2026-09-14T00:00:00Z',
+                    usdAmount: '10',
+                    fiatAmount: '13000.00',
+                    currency: 'ars',
+                    depositAddress: SERVED_ADDRESS,
+                },
+            })
+            const rerender = renderPage()
+            fireEvent.change(await screen.findByTestId('amount-input'), { target: { value: '10' } })
+            fireEvent.click(screen.getByRole('button', { name: /continue/i }))
+            await screen.findByRole('button', { name: /withdraw/i })
+            mockBalance = balance
+            mockLayoutTap = () => screen.getByRole('button', { name: /withdraw/i }).click()
+            rerender()
+            expect(mockInitiateWithdraw).toHaveBeenCalledTimes(1)
+            expect(mockSignSpend).not.toHaveBeenCalled()
+            expect(mockWithdrawWithSignedTx).not.toHaveBeenCalled()
+        }
+    )
+})
+
+it('shows localized service-unavailable guidance instead of corporate debt-limit prose', async () => {
+    mockWithdrawWithSignedTx.mockResolvedValue({
+        error: 'Manteca withdraw failed',
+        message: 'Company has exceeded their debt limit',
+        code: 'MANTECA_TEMPORARILY_UNAVAILABLE',
+    })
+    await driveToWithdraw({
+        priceLockCode: 'pl-1',
+        price: '1300',
+        expiresAt: '2026-09-14T00:00:00Z',
+        usdAmount: '10',
+        fiatAmount: '13000.00',
+        currency: 'ars',
+        depositAddress: SERVED_ADDRESS,
+    })
+    expect(
+        await screen.findByText('Transfers are temporarily unavailable. Please check Activity before trying again.')
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/Company has exceeded/)).not.toBeInTheDocument()
+    expect(mockWithdrawWithSignedTx).toHaveBeenCalledTimes(1)
 })

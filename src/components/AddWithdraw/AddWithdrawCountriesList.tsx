@@ -68,7 +68,13 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     // hooks
     const { deviceType } = useDeviceType()
     const { user, fetchUser } = useAuth()
-    const { setSelectedBankAccount, amountToWithdraw, setSelectedMethod, setAmountToWithdraw } = useWithdrawFlow()
+    const {
+        setSelectedBankAccount,
+        amountToWithdraw,
+        setSelectedMethod,
+        setAmountToWithdraw,
+        setShowAllWithdrawMethods,
+    } = useWithdrawFlow()
     const dispatch = useAppDispatch()
 
     // inline sumsub kyc flow for bridge bank users who need verification
@@ -552,18 +558,11 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     setAmountToWithdraw('')
                     if (flow === 'add') {
                         router.push('/add-money?method=bank')
-                    } else if (isBankFromSend) {
-                        // if coming from bank send flow: set method and go to amount input view
-                        setSelectedMethod({
-                            type: 'bridge',
-                            countryPath: currentCountry.path,
-                            currency: currentCountry.currency,
-                            title: 'To Bank',
-                        })
-                        router.push(`/withdraw?method=${methodParam}`)
                     } else {
                         setSelectedMethod(null)
-                        onBack()
+                        setSelectedBankAccount(null)
+                        setShowAllWithdrawMethods(true)
+                        router.push(isBankFromSend ? `/withdraw?method=${methodParam}` : '/withdraw')
                     }
                 }}
             />

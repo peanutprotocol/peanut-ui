@@ -111,6 +111,7 @@
         "logoutFailed": "Couldn’t log out. Please try again.",
         "loginIncomplete": "Login didn’t complete. Please try again.",
         "rateUnavailable": "Exchange rates are temporarily unavailable. Please try again in a moment.",
+        "transferTemporarilyUnavailable": "Transfers are temporarily unavailable. Please check Activity before trying again.",
         "userOpReverted": "This payment could not be completed. Please try again."
     },
     "migration": {

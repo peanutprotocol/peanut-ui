@@ -1,10 +1,13 @@
 import React from 'react'
-import { screen } from '@testing-library/react'
+import { screen, fireEvent } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import ConfirmWithdrawView from '../Confirm.withdraw.view'
 
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
-jest.mock('@/components/Global/PeanutActionDetailsCard', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/components/Global/PeanutActionDetailsCard', () => ({
+    __esModule: true,
+    default: ({ amount }: { amount: string }) => <div data-testid="spend-amount">{amount}</div>,
+}))
 jest.mock('@/components/Global/AddressLink', () => ({
     __esModule: true,
     default: ({ address }: { address: string }) => <span>{address}</span>,
@@ -59,5 +62,24 @@ describe('ConfirmWithdrawView — network fee row', () => {
         renderWithIntl(<ConfirmWithdrawView {...baseProps} networkFee={0.51} payAmount="10.51" />)
         expect(screen.getByText('$0.51')).toBeInTheDocument()
         expect(screen.queryByText('Sponsored by Peanut!')).not.toBeInTheDocument()
+    })
+})
+
+describe('USDC confirmation precision', () => {
+    it.each(['0.000001', '0.100001', '12.345678'])('preserves all six decimals for %s', (amount) => {
+        const onConfirm = jest.fn()
+        renderWithIntl(
+            <ConfirmWithdrawView
+                {...baseProps}
+                amount={amount}
+                payAmount={amount}
+                receiveAmount={amount}
+                onConfirm={onConfirm}
+            />
+        )
+        expect(screen.getByTestId('spend-amount')).toHaveTextContent(amount)
+        expect(screen.getAllByText(`$${amount}`)).toHaveLength(2)
+        fireEvent.click(screen.getByRole('button', { name: /withdraw/i }))
+        expect(onConfirm).toHaveBeenCalledTimes(1)
     })
 })

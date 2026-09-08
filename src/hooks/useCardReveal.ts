@@ -5,6 +5,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { rainApi, RainCardRateLimitError, type RainCardDetailsResponse } from '@/services/rain'
 import { isCapacitor } from '@/utils/capacitor'
+import { useTranslations } from 'next-intl'
 
 interface UseCardRevealArgs {
     cardId: string
@@ -36,6 +37,7 @@ const DEFAULT_AUTO_MASK_MS = 30_000
  * let it be recomputed on the next reveal.
  */
 export function useCardReveal({ cardId, autoMaskMs = DEFAULT_AUTO_MASK_MS }: UseCardRevealArgs): UseCardRevealResult {
+    const t = useTranslations('card.reveal')
     const [revealed, setRevealed] = useState<RainCardDetailsResponse | null>(null)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -79,14 +81,14 @@ export function useCardReveal({ cardId, autoMaskMs = DEFAULT_AUTO_MASK_MS }: Use
         } catch (e) {
             if (e instanceof RainCardRateLimitError) {
                 setIsRateLimited(true)
-                setError(e.message)
+                setError(t('rateLimited'))
                 posthog.capture(ANALYTICS_EVENTS.CARD_PAN_RATE_LIMITED)
             } else {
                 // Never surface the raw error to the UI: the backend forwards
                 // internal/upstream detail in its message (e.g. a raw Rain 500
                 // body), and CardFace renders the error string verbatim on the
                 // card. Show a friendly, actionable message instead.
-                setError('Could not load card details. Please try again or contact support.')
+                setError(t('loadFailed'))
                 // Telemetry gets a bounded slice for segmenting failures — not the
                 // full message, to keep raw upstream error bodies out of client
                 // analytics. The complete, sanitized detail is already in Sentry
@@ -98,7 +100,7 @@ export function useCardReveal({ cardId, autoMaskMs = DEFAULT_AUTO_MASK_MS }: Use
             inFlightRef.current = false
             setIsLoading(false)
         }
-    }, [cardId, autoMaskMs])
+    }, [cardId, autoMaskMs, t])
 
     const toggle = useCallback(async () => {
         if (revealed) {

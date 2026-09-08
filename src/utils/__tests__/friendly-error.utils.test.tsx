@@ -490,3 +490,14 @@ describe('cross-chain withdraw cap (XCHAIN_WITHDRAW_LIMIT_REACHED)', () => {
         expect(msg).toContain('Arbitrum')
     })
 })
+
+test('corporate rejection codes select localized availability guidance without matching provider prose', () => {
+    expect(
+        friendlyError(
+            new ApiError('Company has exceeded their debt limit', {
+                status: 500,
+                code: 'MANTECA_TEMPORARILY_UNAVAILABLE',
+            })
+        )
+    ).toEqual({ kind: 'code', code: 'transferTemporarilyUnavailable' })
+})

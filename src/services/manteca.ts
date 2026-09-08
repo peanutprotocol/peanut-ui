@@ -5,7 +5,7 @@ import {
     type CreateMantecaOnrampParams,
 } from '@/types/manteca.types'
 import { serverFetch } from '@/utils/api-fetch'
-import { ApiError } from '@/services/api-error'
+import { ApiError, apiErrorFromResponse } from '@/services/api-error'
 import { isNetworkLayerFailure } from '@/utils/network-triage'
 import { jsonStringify } from '@/utils/general.utils'
 import type { Address } from 'viem'
@@ -231,11 +231,7 @@ export const mantecaApi = {
         })
 
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}))
-            throw Object.assign(
-                new Error(errorData?.message || errorData?.error || `QR payment failed: ${response.statusText}`),
-                { code: errorData?.code || errorData?.error }
-            )
+            throw await apiErrorFromResponse(response, `QR payment failed: ${response.statusText}`)
         }
 
         return response.json()
@@ -336,6 +332,7 @@ export const mantecaApi = {
                 return {
                     error: result.error || 'Failed to create manteca withdraw.',
                     message: result.message,
+                    ...(typeof result.code === 'string' ? { code: result.code } : {}),
                 }
             }
 
@@ -358,7 +355,7 @@ export const mantecaApi = {
     initiateWithdraw: async (params: {
         amount: string
         currency: string
-    }): Promise<{ data?: WithdrawPriceLock; error?: string }> => {
+    }): Promise<{ data?: WithdrawPriceLock; error?: string; code?: string }> => {
         try {
             const response = await serverFetch('/manteca/withdraw/init', {
                 method: 'POST',
@@ -367,7 +364,10 @@ export const mantecaApi = {
 
             const result = await response.json()
             if (!response.ok) {
-                return { error: result.error || result.message || 'Failed to lock withdraw price.' }
+                return {
+                    error: result.error || result.message || 'Failed to lock withdraw price.',
+                    ...(typeof result.code === 'string' ? { code: result.code } : {}),
+                }
             }
 
             return { data: result }

@@ -1,5 +1,7 @@
 'use client'
 
+import { verifiedPixKeyLabel } from '@/utils/pix.utils'
+
 import { submitSignedSpend } from '@/hooks/wallet/signSpendRetry'
 import { railUserMessage, railVerdict } from '@/utils/capability-gate'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
@@ -12,9 +14,11 @@ import { useState, useCallback, useMemo, useEffect, useContext, useRef } from 'r
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
 import Card from '@/components/Global/Card'
+import { QRPaymentStatusView } from '@/components/QRPay/QRPaymentStatusView'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { mantecaApi } from '@/services/manteca'
+import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import type { QrPayment, QrPaymentLock } from '@/services/manteca'
 import NavHeader from '@/components/Global/NavHeader'
 import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
@@ -34,7 +38,12 @@ import { pickMantecaDepositAddress } from '@/utils/manteca.utils'
 import { rainCentsToUsdcUnits, isAmountWithinBalance } from '@/utils/balance.utils'
 import { formatNumberForDisplay } from '@/utils/general.utils'
 import { getShakeClass, type ShakeIntensity } from '@/utils/perk.utils'
-import { calculateSavingsInCents, hasCardMarkupComparison, qrInitIdempotencyKey } from '@/utils/qr-payment.utils'
+import {
+    calculateSavingsInCents,
+    hasCardMarkupComparison,
+    qrInitIdempotencyKey,
+    qrPaymentDisplayStatus,
+} from '@/utils/qr-payment.utils'
 import { useCardMarkupRate } from '@/hooks/useCardMarkupRate'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { PERK_HOLD_DURATION_MS } from '@/constants/general.consts'
@@ -125,6 +134,7 @@ export default function QRPayPage() {
     const qrCode = decodeURIComponent(searchParams.get('qrCode') || '')
     const timestamp = searchParams.get('t')
     const qrType = searchParams.get('type')
+    const pixKeyLabel = verifiedPixKeyLabel(qrCode, searchParams.get('pixKey'))
     // Rail name for outage copy. Defined here rather than reusing
     // `paymentMethodName` below because the failure-copy maps need it.
     const qrMethodName = (qrType && NAME_BY_QR_TYPE[qrType as QrType]) || 'QR'
@@ -647,7 +657,7 @@ export default function QRPayPage() {
             },
             initials: 'QR',
             currencySymbol: currency.symbol,
-            status: 'completed',
+            status: qrPaymentDisplayStatus(qrPayment.status),
             date: now,
             createdAt: now,
             extraDataForDrawer: {
@@ -818,8 +828,8 @@ export default function QRPayPage() {
 
     const merchantName = useMemo(() => {
         if (!paymentLock) return null
-        return paymentLock.paymentRecipientName
-    }, [paymentLock])
+        return pixKeyLabel ?? paymentLock.paymentRecipientName
+    }, [paymentLock, pixKeyLabel])
 
     const handleMantecaPayment = useCallback(async () => {
         if (!paymentLock || !qrCode || !currencyAmount) return
@@ -984,6 +994,12 @@ export default function QRPayPage() {
             }
 
             setQrPayment(qrPayment)
+            if (qrPaymentDisplayStatus(qrPayment.status) !== 'completed') {
+                setIsSuccess(false)
+                setLoadingState('Idle')
+                queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+                return
+            }
 
             // all eligible perks go through hold-to-claim — no auto-claiming.
             // this ensures a consistent reward experience regardless of amount.
@@ -1000,6 +1016,16 @@ export default function QRPayPage() {
                 clearTimeout(payingStateTimerRef.current)
                 payingStateTimerRef.current = null
             }
+            if (wireErrorCode(error) === API_ERROR_CODES.MANTECA_TEMPORARILY_UNAVAILABLE) {
+                setErrorMessage(tErrors('transferTemporarilyUnavailable'))
+                setIsSuccess(false)
+                return
+            }
+            if (wireErrorCode(error) === API_ERROR_CODES.QR_PAYMENT_CANCELLED) {
+                setErrorMessage(t('errors.paymentCancelled'))
+                setIsSuccess(false)
+                return
+            }
             // Wrong-passkey session: backend rejected the signed UserOp with
             // AA24 / wapk. Unrecoverable without re-auth — force a clean logout.
             if (handleStaleSession(error)) return
@@ -1013,16 +1039,17 @@ export default function QRPayPage() {
                 setErrorMessage(t('errors.accountStateChanged'))
             } else if (errorMsg.toLowerCase().includes('expired') || errorMsg.toLowerCase().includes('stale')) {
                 setErrorMessage(t('errors.sessionExpired'))
-            } else if (qrType === EQrType.PIX) {
-                setErrorMessage(t('errors.merchantNotSupported'))
             } else {
-                setErrorMessage(t('errors.completeFailed'))
+                // An untyped failure can come from an older API or an ambiguous
+                // submission. It proves neither merchant rejection nor that no funds moved.
+                setErrorMessage(t('errors.paymentStatusUnknown'))
             }
             setIsSuccess(false)
         } finally {
             setLoadingState('Idle')
         }
     }, [
+        queryClient,
         paymentLock,
         signSpend,
         rainCardOverview,
@@ -1035,6 +1062,7 @@ export default function QRPayPage() {
         qrType,
         handleStaleSession,
         t,
+        tErrors,
         toFriendlyError,
         setErrorMessage,
     ])
@@ -1191,7 +1219,12 @@ export default function QRPayPage() {
 
     // Check user balance and payment limits
     useEffect(() => {
-        if (!usdAmount || usdAmount === '0.00' || isNaN(Number(usdAmount)) || balance === undefined) {
+        if (
+            (!Number(usdAmount) && !Number(currencyAmount)) ||
+            !usdAmount ||
+            isNaN(Number(usdAmount)) ||
+            balance === undefined
+        ) {
             setBalanceErrorMessage(null)
             return
         }
@@ -1200,7 +1233,11 @@ export default function QRPayPage() {
         // Manteca-specific validation (PIX, MercadoPago, QR3)
         if (paymentProcessor === 'MANTECA') {
             if (paymentAmount < parseUnits(MIN_MANTECA_QR_PAYMENT_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
-                setBalanceErrorMessage(t('errors.minMantecaAmount', { amount: MIN_MANTECA_QR_PAYMENT_AMOUNT }))
+                setBalanceErrorMessage(
+                    t(pixKeyLabel ? 'errors.minTransferAmount' : 'errors.minMantecaAmount', {
+                        amount: MIN_MANTECA_QR_PAYMENT_AMOUNT,
+                    })
+                )
                 return
             }
             // PIX rail enforces a 1 BRL minimum, stricter than the USD floor above
@@ -1212,9 +1249,13 @@ export default function QRPayPage() {
 
         // Common validations for all payment processors
         if (paymentAmount > parseUnits(MAX_QR_PAYMENT_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
-            setBalanceErrorMessage(t('errors.maxQrAmount', { amount: MAX_QR_PAYMENT_AMOUNT }))
+            setBalanceErrorMessage(
+                t(pixKeyLabel ? 'errors.maxTransferAmount' : 'errors.maxQrAmount', { amount: MAX_QR_PAYMENT_AMOUNT })
+            )
         } else if (paymentAmount < parseUnits(MIN_QR_PAYMENT_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
-            setBalanceErrorMessage(t('errors.minQrAmount', { amount: MIN_QR_PAYMENT_AMOUNT }))
+            setBalanceErrorMessage(
+                t(pixKeyLabel ? 'errors.minTransferAmount' : 'errors.minQrAmount', { amount: MIN_QR_PAYMENT_AMOUNT })
+            )
         } else if (!isAmountWithinBalance(usdAmount, balance)) {
             // gate on the displayed total; an in-transit shortfall passes here and
             // fails late with the settling message at execution.
@@ -1222,7 +1263,7 @@ export default function QRPayPage() {
         } else {
             setBalanceErrorMessage(null)
         }
-    }, [usdAmount, balance, paymentProcessor, currency?.code, currencyAmount, t, tErrors])
+    }, [usdAmount, balance, paymentProcessor, currency?.code, currencyAmount, pixKeyLabel, t, tErrors])
 
     // Use points confetti hook for animation - must be called unconditionally
     usePointsConfetti(isSuccess && pointsData?.estimatedPoints ? pointsData.estimatedPoints : undefined, pointsDivRef)
@@ -1531,6 +1572,20 @@ export default function QRPayPage() {
         return <Loading variant="mascot" />
     }
 
+    const paymentStatus = qrPaymentDisplayStatus(qrPayment?.status)
+    if (qrPayment && paymentStatus !== 'completed') {
+        return (
+            <>
+                <QRPaymentStatusView status={paymentStatus} onViewActivity={() => router.push('/history')} />
+                <TransactionDetailsDrawer
+                    isOpen={isTransactionSelected(receiptTransaction?.id)}
+                    onClose={closeTransactionDetails}
+                    transaction={receiptTransaction}
+                />
+            </>
+        )
+    }
+
     //Success
     if (isSuccess && paymentProcessor === 'MANTECA' && !qrPayment) {
         return null
@@ -1799,7 +1854,11 @@ export default function QRPayPage() {
                                 <p className="flex items-center gap-1 text-center text-body-s">
                                     <Icon name="arrow-up-right" size={10} /> {t('youArePaying')}
                                 </p>
-                                <p className="text-heading-xs break-words">{merchantName}</p>
+                                <p
+                                    className={`text-heading-xs break-words ${pixKeyLabel ? 'ph-mask ph-no-capture' : ''}`}
+                                >
+                                    {merchantName}
+                                </p>
                             </div>
                         </div>
                     </Card>
@@ -1862,7 +1921,7 @@ export default function QRPayPage() {
                         <PaymentInfoRow
                             label={t('info.exchangeRate')}
                             value={`1 USD = ${currency.price} ${currency.code.toUpperCase()}`}
-                            moreInfoText={t('info.exchangeRateTooltip')}
+                            moreInfoText={t('info.exchangeRateTooltip', { currency: currency?.code ?? '' })}
                         />
                         {(() => {
                             if (!hasCardMarkupComparison(currency.code)) return null

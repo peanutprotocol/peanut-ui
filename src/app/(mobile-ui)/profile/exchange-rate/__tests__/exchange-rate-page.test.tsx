@@ -64,8 +64,8 @@ jest.mock('@/components/Global/NavHeader', () => ({
 // tests below exercise the page's own defensive clamp independently of that.
 jest.mock('@/components/Global/ExchangeRateWidget', () => ({
     __esModule: true,
-    default: ({ ctaAction, ctaLabel }: any) => (
-        <button data-testid="widget-cta" onClick={() => ctaAction(mockPair.from, mockPair.to)}>
+    default: ({ ctaAction, ctaLabel, ctaDisabled }: any) => (
+        <button disabled={ctaDisabled} data-testid="widget-cta" onClick={() => ctaAction(mockPair.from, mockPair.to)}>
             {ctaLabel}
         </button>
     ),
@@ -86,12 +86,36 @@ beforeEach(() => {
     jest.clearAllMocks()
     mockPair.from = 'USD'
     mockPair.to = 'EUR'
-    mockUseWallet.mockReturnValue({ balance: 0n })
+    mockUseWallet.mockReturnValue({ spendableBalance: 0n, isFetchingSpendableBalance: false })
     mockUseCapabilities.mockReturnValue({ rails: [] })
     mockGetRedirectRoute.mockReturnValue('/add-money')
 })
 
 describe('exchange-rate CTA', () => {
+    it('waits for spendable balance instead of treating unresolved funds as zero', () => {
+        mockUseWallet.mockReturnValue({ balance: 0n, spendableBalance: undefined, isFetchingSpendableBalance: true })
+        renderPage()
+        expect(screen.getByTestId('widget-cta')).toBeDisabled()
+        fireEvent.click(screen.getByTestId('widget-cta'))
+        expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
+    it.each([0n, 5_000_000n])(
+        'routes USD/EUR using resolved spendable funds %s, including card collateral',
+        (funds) => {
+            mockUseWallet.mockReturnValue({ balance: 0n, spendableBalance: funds, isFetchingSpendableBalance: false })
+            mockGetRedirectRoute.mockImplementation(
+                jest.requireActual('@/utils/exchangeRateWidget.utils').getExchangeRateWidgetRedirectRoute
+            )
+            renderPage()
+            fireEvent.click(screen.getByTestId('widget-cta'))
+            const destination = new URL(mockRouterPush.mock.calls[0][0], 'https://peanut.test')
+            expect(destination.pathname.startsWith(funds > 0n ? '/withdraw' : '/add-money')).toBe(true)
+            expect(destination.searchParams.get('returnTo')).toBe('/profile/exchange-rate')
+            expect(mockGetRedirectRoute).toHaveBeenLastCalledWith('USD', 'EUR', Number(funds) / 1_000_000, [])
+        }
+    )
+
     it('tells the destination to send the user back here', () => {
         renderPage()
 

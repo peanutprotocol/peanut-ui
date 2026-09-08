@@ -24,6 +24,8 @@ export const API_ERROR_CODES = {
     NO_COLLATERAL_CONTRACT: 'NO_COLLATERAL_CONTRACT',
     CARD_SECRETS_RATE_LIMITED: 'CARD_SECRETS_RATE_LIMITED',
     MANTECA_KYC_REQUIRED: 'MANTECA_KYC_REQUIRED',
+    MANTECA_TEMPORARILY_UNAVAILABLE: 'MANTECA_TEMPORARILY_UNAVAILABLE',
+    QR_PAYMENT_CANCELLED: 'QR_PAYMENT_CANCELLED',
     TRANSFER_ALREADY_CONFIRMED: 'TRANSFER_ALREADY_CONFIRMED',
     CHAIN_INFRA_UNAVAILABLE: 'CHAIN_INFRA_UNAVAILABLE',
     LINK_ALREADY_CLAIMED: 'LINK_ALREADY_CLAIMED',
@@ -109,6 +111,8 @@ export async function apiErrorFromResponse(response: Response, fallbackMessage: 
         if (typeof parsed.message === 'string' && parsed.message) message = parsed.message
         else if (typeof parsed.error === 'string' && parsed.error) message = parsed.error
         if (typeof parsed.code === 'string' && parsed.code) code = parsed.code
+        // Older submit routes put the wire discriminant in `error`.
+        else if (Object.values(API_ERROR_CODES).some((value) => value === parsed.error)) code = parsed.error as string
         if (
             typeof parsed.retryAfterSec === 'number' &&
             Number.isFinite(parsed.retryAfterSec) &&

@@ -663,7 +663,7 @@ describe('GROUP 5: Navigation', () => {
         expect(mockRouterPush).toHaveBeenCalledWith('/send')
     })
 
-    test('Back from bank withdraw resets method and goes to method selection', () => {
+    test('Back from a selected bank country returns to the country list', () => {
         mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
         renderWithdraw()
 
@@ -671,6 +671,12 @@ describe('GROUP 5: Navigation', () => {
         expect(mockSetSelectedMethod).toHaveBeenCalledWith(null)
         expect(mockSetAmountToWithdraw).toHaveBeenCalledWith('')
         expect(mockSetSelectedBankAccount).toHaveBeenCalledWith(null)
+        expect(mockSetShowAllWithdrawMethods).toHaveBeenCalledWith(true)
+    })
+
+    test('a bank-send return does not reset an explicit country-list choice', () => {
+        renderWithdraw({ method: 'bank' })
+        expect(mockSetShowAllWithdrawMethods).not.toHaveBeenCalledWith(false)
     })
 })
 

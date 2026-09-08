@@ -10,13 +10,7 @@ import InitialWithdrawView from '@/components/Withdraw/views/Initial.withdraw.vi
 import { useWithdrawFlow, type WithdrawData } from '@/context/WithdrawFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { chargesApi } from '@/services/charges'
-import { requestsApi } from '@/services/requests'
-import type {
-    CreateChargeRequest,
-    CreateRequestRequest as CreateRequestPayloadServices,
-    TCharge,
-    TRequestResponse,
-} from '@/services/services.types'
+import type { CreateChargeRequest, TCharge } from '@/services/services.types'
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
 import { isWithdrawFeeDisproportionate, getMinWithdrawUsdForChain } from '@/utils/cross-chain-fee.utils'
 import { isAmountWithinBalance } from '@/utils/balance.utils'
@@ -307,31 +301,11 @@ export default function WithdrawCryptoPage() {
 
                 const completeWithdrawData = { ...data, amount: destinationTokenAmount }
                 setWithdrawData(completeWithdrawData)
-                const apiRequestPayload: CreateRequestPayloadServices = {
-                    recipientAddress: completeWithdrawData.address,
-                    chainId: completeWithdrawData.chain.chainId.toString(),
-                    tokenAddress: completeWithdrawData.token.address,
-                    tokenType: String(
-                        completeWithdrawData.token.address.toLowerCase() === NATIVE_TOKEN_ADDRESS.toLowerCase()
-                            ? peanutInterfaces.EPeanutLinkType.native
-                            : peanutInterfaces.EPeanutLinkType.erc20
-                    ),
-                    tokenAmount: destinationTokenAmount,
-                    tokenDecimals: completeWithdrawData.token.decimals.toString(),
-                    tokenSymbol: completeWithdrawData.token.symbol,
-                }
-                const newRequest: TRequestResponse = await requestsApi.create(apiRequestPayload)
-
-                if (!newRequest || !newRequest.uuid) {
-                    throw new Error(t('errors.requestFailed'))
-                }
-
                 const recipientEnsName = recipient.name?.trim().toLowerCase()
                 const chargePayload: CreateChargeRequest = {
                     pricing_type: 'fixed_price',
                     local_price: { amount: usdValue.toString(), currency: 'USD' },
                     baseUrl: appBaseUrl(),
-                    requestId: newRequest.uuid,
                     requestProps: {
                         chainId: completeWithdrawData.chain.chainId.toString(),
                         tokenAmount: destinationTokenAmount,
@@ -364,7 +338,7 @@ export default function WithdrawCryptoPage() {
                 setChargeDetails(fullChargeDetails)
                 setShowCompatibilityModal(true)
             } catch (err) {
-                console.error('Error during setup review (request/charge creation):', err)
+                console.error('Error during setup review (charge creation):', err)
                 const errorMessage = err instanceof Error && err.message ? err.message : t('errors.prepareFailed')
                 setError(errorMessage)
             } finally {

@@ -70,7 +70,7 @@ jest.mock('posthog-js', () => ({
 
 // Sound player — no-op
 jest.mock('@/components/Global/SoundPlayer', () => ({
-    SoundPlayer: () => null,
+    SoundPlayer: () => <div data-testid="success-sound" />,
 }))
 
 // Confetti — no-op
@@ -162,7 +162,9 @@ jest.mock('@/hooks/useTransactionHistory', () => ({
 }))
 
 jest.mock('@/components/TransactionDetails/TransactionDetailsDrawer', () => ({
-    TransactionDetailsDrawer: () => null,
+    TransactionDetailsDrawer: ({ transaction }: { transaction: { status: string } | null }) => (
+        <div data-testid="receipt-status">{transaction?.status}</div>
+    ),
 }))
 
 // Stubbed to keep the QR canvas out of jsdom. The props are the contract that
@@ -332,6 +334,7 @@ jest.mock('@/utils/network-triage', () => ({
     captureNetworkTriagedFailure: (...args: unknown[]) => mockCaptureNetworkTriagedFailure(...args),
 }))
 
+let mockUsdScale = 1
 jest.mock('@/components/Global/AmountInput', () => ({
     __esModule: true,
     default: (props: any) => (
@@ -341,7 +344,9 @@ jest.mock('@/components/Global/AmountInput', () => ({
                 value={props.initialAmount ?? ''}
                 onChange={(e) => {
                     props.setPrimaryAmount?.(e.target.value)
-                    props.setSecondaryAmount?.(e.target.value)
+                    props.setSecondaryAmount?.(
+                        mockUsdScale === 1 ? e.target.value : (Number(e.target.value) * mockUsdScale).toFixed(2)
+                    )
                 }}
                 disabled={props.disabled}
             />
@@ -672,6 +677,7 @@ function applyDefaults() {
 // ---------- test suites ----------
 
 beforeEach(() => {
+    mockUsdScale = 1
     jest.clearAllMocks()
     mockCooldown = null
     mockSearchParams.clear()
@@ -890,6 +896,25 @@ describe('GROUP 2: Payment Form States', () => {
         }
         mockMantecaApi.initiateQrPayment.mockResolvedValue(defaultLock)
     }
+
+    test('a positive BRL amount that rounds to zero USD still shows its minimum error', async () => {
+        setupMantecaPayment({ code: '' })
+        renderQrPay({ qrCode: 'pix://payment?id=123', type: 'PIX', t: '1' })
+        await screen.findByText('PIX Merchant')
+        mockUsdScale = 0.05
+        fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '0.05' } })
+        await waitFor(() => expect(screen.getByText(/must be at least/i)).toBeInTheDocument())
+    })
+
+    test('PIX-key transfer keeps the full recipient and uses transfer limit copy', async () => {
+        setupMantecaPayment({ code: '' })
+        const { pixKeyToBRCode } = require('@/utils/pix.utils')
+        const pixKey = 'verylongemailaddress@verylongdomain.com.br'
+        renderQrPay({ qrCode: pixKeyToBRCode(pixKey), pixKey, type: 'PIX', t: '1' })
+        expect(await screen.findByText(pixKey)).toHaveClass('ph-mask', 'ph-no-capture')
+        fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '2500' } })
+        await waitFor(() => expect(screen.getByText(/Transfer amount exceeds maximum/i)).toBeInTheDocument())
+    })
 
     test('Manteca PIX form ready shows merchant card + amount input + pay button', async () => {
         setupMantecaPayment()
@@ -1154,6 +1179,25 @@ describe('GROUP 4: Success States', () => {
 
         return baseQrPayment
     }
+
+    test.each([
+        ['CANCELLED', 'Payment cancelled', 'cancelled'],
+        ['REFUNDED', 'Payment refunded', 'refunded'],
+        ['FAILED', 'Payment did not complete', 'failed'],
+        ['ACTIVE', 'Payment is processing', 'processing'],
+        ['UNRECOGNIZED', 'Payment is processing', 'processing'],
+    ])('a 200 %s result cannot show payment success', async (status, title, receiptStatus) => {
+        await completeMantecaPayment({ status, perk: { eligible: true, amountSponsored: 5 } })
+        await waitFor(() => expect(screen.getByText(title)).toBeInTheDocument())
+        expect(screen.queryByText(/You paid/)).not.toBeInTheDocument()
+        expect(screen.queryByTestId('success-sound')).not.toBeInTheDocument()
+        expect(screen.getByTestId('receipt-status')).toHaveTextContent(receiptStatus)
+        expect(screen.queryByText(/You earned/)).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Pay' })).not.toBeInTheDocument()
+        expect(posthog.capture).not.toHaveBeenCalledWith('card_withdraw_succeeded', expect.anything())
+        fireEvent.click(screen.getByRole('button', { name: 'View activity' }))
+        expect(mockRouterPush).toHaveBeenCalledWith('/history')
+    })
 
     test('Manteca success, no perk shows success card, no reward', async () => {
         await completeMantecaPayment()
@@ -1494,6 +1538,56 @@ const reconnectLock = {
 }
 
 describe('GROUP 5: Error States', () => {
+    test('a corporate provider rejection shows localized availability guidance', async () => {
+        mockMantecaApi.completeQrPaymentWithSignedTx.mockRejectedValue(
+            Object.assign(new Error('Company has exceeded their debt limit'), {
+                name: 'ApiError',
+                status: 500,
+                code: 'MANTECA_TEMPORARILY_UNAVAILABLE',
+            })
+        )
+        renderQrPay({ qrCode: '000201-payment', type: 'PIX', t: '1' })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+        await waitFor(() => expect(screen.getByText(en.errors.transferTemporarilyUnavailable)).toBeInTheDocument())
+        expect(screen.queryByText(/Company has exceeded/)).not.toBeInTheDocument()
+        expect(screen.queryByTestId('success-sound')).not.toBeInTheDocument()
+    })
+
+    test.each(['PIX', 'MERCADO_PAGO'])(
+        'an untyped %s submission failure asks users to check Activity without claiming cancellation',
+        async (type) => {
+            mockMantecaApi.completeQrPaymentWithSignedTx.mockRejectedValue(
+                Object.assign(new Error('Payment verification failed'), { name: 'ApiError', status: 500 })
+            )
+            renderQrPay({ qrCode: '000201-payment', type, t: '1' })
+            await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+            await act(async () => {
+                fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+            })
+            await waitFor(() => expect(screen.getByText(en.qrPay.errors.paymentStatusUnknown)).toBeInTheDocument())
+            expect(screen.queryByText(en.qrPay.errors.paymentCancelled)).not.toBeInTheDocument()
+            expect(screen.queryByText(en.qrPay.errors.merchantNotSupported)).not.toBeInTheDocument()
+            expect(screen.queryByTestId('success-sound')).not.toBeInTheDocument()
+        }
+    )
+
+    test('a typed pre-broadcast cancellation shows retry guidance without success or merchant blame', async () => {
+        mockMantecaApi.completeQrPaymentWithSignedTx.mockRejectedValue(
+            Object.assign(new Error('Cancelled'), { name: 'ApiError', status: 400, code: 'QR_PAYMENT_CANCELLED' })
+        )
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+        await waitFor(() => expect(screen.getByText(en.qrPay.errors.paymentCancelled)).toBeInTheDocument())
+        expect(screen.queryByText(/You paid/)).not.toBeInTheDocument()
+        expect(screen.queryByTestId('success-sound')).not.toBeInTheDocument()
+    })
+
     // The offline test below flips global online state; a failure mid-test
     // would otherwise leave every later suite running as if disconnected.
     afterEach(() => onlineManager.setOnline(true))

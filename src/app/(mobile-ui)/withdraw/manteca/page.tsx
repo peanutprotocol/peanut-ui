@@ -1,5 +1,7 @@
 'use client'
 
+import { API_ERROR_CODES } from '@/services/api-error'
+
 import { submitSignedSpend } from '@/hooks/wallet/signSpendRetry'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
@@ -11,7 +13,7 @@ import { SessionKeyGrantRequiredError } from '@/hooks/wallet/spendPreflight'
 import { friendlyError } from '@/utils/friendly-error.utils'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { resolveOfframpSpendRecipient } from '@/utils/manteca.utils'
-import { rainCentsToUsdcUnits, isAmountWithinBalance } from '@/utils/balance.utils'
+import { rainCentsToUsdcUnits, isAmountWithinBalance, parseUsdAmountToUnits } from '@/utils/balance.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useState, useMemo, useContext, useEffect, useCallback, useId } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -295,9 +297,28 @@ function MantecaBankWithdrawFlow() {
         )
     }, [selectedBank, accountType, countryConfig, destinationAddress, setErrorMessage])
 
+    const validateSubmissionAmount = useCallback(() => {
+        const units = parseUsdAmountToUnits(usdAmount ?? '')
+        if (
+            units === null ||
+            units < parseUnits(MIN_MANTECA_WITHDRAW_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)
+        ) {
+            setErrorMessage(t('errors.minWithdrawAmount', { amount: MIN_MANTECA_WITHDRAW_AMOUNT }))
+            return false
+        }
+        if (!isAmountWithinBalance(usdAmount!, balance)) {
+            setErrorMessage(
+                balance === undefined ? tErrors('balanceSettling') : tErrors('notEnoughBalanceAddFunds'),
+                balance === undefined ? 'balanceSettling' : null
+            )
+            return false
+        }
+        return true
+    }, [usdAmount, balance, t, tErrors, setErrorMessage])
+
     const handleBankDetailsSubmit = useCallback(async () => {
         // prevent duplicate requests from rapid clicks
-        if (isLockingPrice) return
+        if (isLockingPrice || !validateSubmissionAmount()) return
 
         if (!destinationAddress.trim()) {
             setFieldError(t('errors.enterAccountAddress'))
@@ -328,7 +349,11 @@ function MantecaBankWithdrawFlow() {
 
             if (result.error) {
                 if (handleOnboardingError(result.error)) return
-                setErrorMessage(result.error)
+                setErrorMessage(
+                    result.code === API_ERROR_CODES.MANTECA_TEMPORARILY_UNAVAILABLE
+                        ? tErrors('transferTemporarilyUnavailable')
+                        : result.error
+                )
                 return
             }
 
@@ -359,13 +384,16 @@ function MantecaBankWithdrawFlow() {
         currencyAmount,
         isUserMantecaKycApprovedForCountry,
         isLockingPrice,
+        validateSubmissionAmount,
         handleOnboardingError,
         t,
+        tErrors,
         setErrorMessage,
     ])
 
     const handleWithdraw = async () => {
         if (!destinationAddress || !usdAmount || !currencyCode || !priceLock) return
+        if (!validateSubmissionAmount()) return
 
         posthog.capture(ANALYTICS_EVENTS.WITHDRAW_CONFIRMED, {
             amount_usd: usdAmount,
@@ -478,6 +506,11 @@ function MantecaBankWithdrawFlow() {
                     error_message: result.error,
                 })
 
+                if (result.code === API_ERROR_CODES.MANTECA_TEMPORARILY_UNAVAILABLE) {
+                    setErrorMessage(tErrors('transferTemporarilyUnavailable'))
+                    return
+                }
+
                 // Wrong-passkey session: backend rejected the signed UserOp with
                 // AA24 / wapk. Unrecoverable without re-auth — force a clean logout.
                 if (handleStaleSession(result.message ?? result.error)) return
@@ -560,7 +593,12 @@ function MantecaBankWithdrawFlow() {
             return
         }
 
-        if (!usdAmount || usdAmount === '0.00' || isNaN(Number(usdAmount)) || balance === undefined) {
+        if (
+            (!Number(usdAmount) && !Number(currencyAmount)) ||
+            !usdAmount ||
+            isNaN(Number(usdAmount)) ||
+            balance === undefined
+        ) {
             setBalanceErrorMessage(null)
             return
         }
@@ -575,7 +613,7 @@ function MantecaBankWithdrawFlow() {
         } else {
             setBalanceErrorMessage(null)
         }
-    }, [usdAmount, balance, hasPendingTransactions, isLoading, t, tErrors])
+    }, [usdAmount, currencyAmount, balance, hasPendingTransactions, isLoading, t, tErrors])
 
     // Fetch points early to avoid latency penalty - fetch as soon as we have usdAmount
     // Use flowId as uniqueId to prevent cache collisions between different withdrawal flows
@@ -976,7 +1014,7 @@ function MantecaBankWithdrawFlow() {
                         <PaymentInfoRow
                             label={t('manteca.exchangeRate')}
                             value={`1 USD = ${priceLock?.price ?? currencyPrice!.sell} ${currencyCode!.toUpperCase()}`}
-                            moreInfoText={t('manteca.exchangeRateInfo')}
+                            moreInfoText={t('manteca.exchangeRateInfo', { currency: currencyCode ?? '' })}
                         />
                         <PaymentInfoRow
                             label={tCommon('peanutFee')}

@@ -14,6 +14,7 @@
  */
 
 import { useCallback, useMemo, useEffect, useContext } from 'react'
+import { isSelfRequestPayment } from '../../shared/is-self-request-payment'
 import { parseUnits, type Address, type Hash } from 'viem'
 import { useSemanticRequestFlowContext } from './SemanticRequestFlowContext'
 import { useChargeManager } from '@/features/payments/shared/hooks/useChargeManager'
@@ -95,6 +96,13 @@ export function useSemanticRequestFlow() {
         isFetchingSpendableBalance,
     } = useWallet()
 
+    const isSelfPayment = isSelfRequestPayment(
+        walletAddress,
+        user?.user?.userId,
+        charge?.requestLink?.recipientAddress ?? recipient?.resolvedAddress,
+        charge?.requestLink?.recipientAccount?.userId
+    )
+
     // use token selector context for ui integration
     const { selectedChainID, selectedTokenAddress, selectedTokenData, setSelectedChainID, setSelectedTokenAddress } =
         useContext(tokenSelectorContext)
@@ -166,12 +174,12 @@ export function useSemanticRequestFlow() {
 
     // check if can proceed to confirm/payment
     const canProceed = useMemo(() => {
-        if (!amount || !recipient) return false
+        if (!amount || !recipient || isSelfPayment) return false
         const amountNum = parseFloat(amount)
         if (isNaN(amountNum) || amountNum <= 0) return false
         if (!selectedTokenAddress || !selectedChainID) return false
         return true
-    }, [amount, recipient, selectedTokenAddress, selectedChainID])
+    }, [amount, recipient, selectedTokenAddress, selectedChainID, isSelfPayment])
 
     // check if has sufficient balance for current amount
     const hasEnoughBalance = useMemo(() => {
@@ -250,6 +258,11 @@ export function useSemanticRequestFlow() {
         ): Promise<{ success: boolean }> => {
             if (!recipient || !amount || !selectedTokenAddress || !selectedChainID || !selectedTokenData) {
                 setError({ showError: true, errorMessage: t('errors.missingData') })
+                return { success: false }
+            }
+
+            if (isSelfPayment) {
+                setError({ showError: true, errorMessage: t('errors.selfRequestPayment') })
                 return { success: false }
             }
 
@@ -358,6 +371,7 @@ export function useSemanticRequestFlow() {
         },
         [
             recipient,
+            isSelfPayment,
             amount,
             usdAmount,
             attachment,
@@ -489,6 +503,11 @@ export function useSemanticRequestFlow() {
             return
         }
 
+        if (isSelfPayment) {
+            setError({ showError: true, errorMessage: t('errors.selfRequestPayment') })
+            return
+        }
+
         // The prepared route carries Rhino's quote only until it expires.
         // Decided at the tap (a render-time flag goes stale on an open screen):
         // past expiry, re-quote and let the user confirm the fresh numbers
@@ -591,6 +610,7 @@ export function useSemanticRequestFlow() {
         }
     }, [
         recipient,
+        isSelfPayment,
         amount,
         walletAddress,
         charge,
@@ -642,7 +662,7 @@ export function useSemanticRequestFlow() {
         charge,
         payment,
         txHash,
-        error,
+        error: isSelfPayment ? { showError: true, errorMessage: t('errors.selfRequestPayment') } : error,
         isLoading: isLoading || isCreatingCharge || isFetchingCharge || isRecording || isCalculatingRoute,
         isSuccess,
         isFetchingCharge,

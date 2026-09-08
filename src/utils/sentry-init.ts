@@ -1,3 +1,4 @@
+import { redactQrTelemetry } from './qr-telemetry-privacy'
 import { beforeSendHandler } from '../../sentry.utils'
 import { posthogErrorMirror, withoutNoise } from '@/utils/sentry-posthog-mirror'
 import { inferSentryEnvironment } from '@/utils/sentry-env'
@@ -77,7 +78,8 @@ export function initSentry(): void {
             // A client-side navigation can enter a private route after init.
             beforeSend: (event) =>
                 isPaymentNetworkExplorerPath(window.location.pathname) ? null : beforeSendHandler(event),
-            beforeSendTransaction: (event) => (isPaymentNetworkExplorerPath(window.location.pathname) ? null : event),
+            beforeSendTransaction: (event) =>
+                isPaymentNetworkExplorerPath(window.location.pathname) ? null : redactQrTelemetry(event),
 
             integrations: [
                 Sentry.captureConsoleIntegration({
