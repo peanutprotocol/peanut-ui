@@ -21,6 +21,8 @@ import { IntlWrapper } from '@/test-utils/intl'
 const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
 import type { GrantSessionKeyError } from '@/hooks/wallet/useGrantSessionKey'
 
+let mockKernelReady = true
+jest.mock('@/redux/hooks', () => ({ useZerodevStore: () => ({ isKernelClientReady: mockKernelReady }) }))
 const mockGrant = jest.fn<Promise<{ ok: boolean; overviewFresh?: boolean }>, []>()
 let mockLastError: GrantSessionKeyError | null = null
 jest.mock('@/hooks/wallet/useGrantSessionKey', () => ({
@@ -45,12 +47,16 @@ import * as Sentry from '@sentry/nextjs'
 
 jest.mock('@/components/Global/ActionModal', () => ({
     __esModule: true,
-    default: (props: { visible: boolean; description?: string; ctas?: { text: string; onClick: () => void }[] }) =>
+    default: (props: {
+        visible: boolean
+        description?: string
+        ctas?: { text: string; onClick: () => void; disabled?: boolean }[]
+    }) =>
         props.visible ? (
             <div data-testid="modal">
                 <p>{props.description}</p>
                 {props.ctas?.map((c) => (
-                    <button key={c.text} onClick={c.onClick}>
+                    <button key={c.text} onClick={c.onClick} disabled={c.disabled}>
                         {c.text}
                     </button>
                 ))}
@@ -61,6 +67,7 @@ jest.mock('@/components/Global/ActionModal', () => ({
 import EnableAutoBalanceBanner from '../EnableAutoBalanceBanner'
 
 beforeEach(() => {
+    mockKernelReady = true
     jest.clearAllMocks()
     mockLastError = null
     mockGrant.mockResolvedValue({ ok: false })
@@ -227,4 +234,23 @@ describe('EnableAutoBalanceBanner', () => {
         expect(screen.queryByText('Try again')).not.toBeInTheDocument()
         expect(screen.queryByText('Skip for now')).not.toBeInTheDocument()
     })
+})
+
+it('allows wallet initialization to retry and exposes Skip if it fails', async () => {
+    mockKernelReady = false
+    mockCards = [{ id: 'active', status: 'ACTIVE', hasWithdrawApproval: false }]
+    mockGrant.mockImplementation(async () => {
+        mockLastError = { kind: 'unexpected', message: 'Wallet initialization failed' }
+        return { ok: false }
+    })
+    render(<EnableAutoBalanceBanner />)
+    const button = screen.getByRole('button', { name: 'Continue' })
+    expect(button).toBeEnabled()
+    await act(async () => {
+        fireEvent.click(button)
+    })
+    expect(mockGrant).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeEnabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }))
+    expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
 })

@@ -510,10 +510,22 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             }
         }
 
+        // No caller may sign with a cached client from the previous key
+        // while this credential is being initialized.
+        clearClients()
+        inFlightRef.current.clear()
+        dispatch(zerodevActions.setIsKernelClientReady(false))
+        dispatch(zerodevActions.setAddress(undefined))
+        const primaryChainId = PEANUT_WALLET_CHAIN.id.toString()
+        const seq = ++buildSeqRef.current
+        const buildSequences = latestBuildSeqRef.current
+        buildSequences.set(primaryChainId, seq)
+        const isCurrentBuild = () => isMounted && buildSequences.get(primaryChainId) === seq
+
         const initializeClients = async () => {
+            if (!isCurrentBuild()) return
             // Recovery chains (mainnet/base/linea) are lazy-built via
             // ensureClientForChain — only /recover-funds needs them.
-            const primaryChainId = PEANUT_WALLET_CHAIN.id.toString()
             const entry = PUBLIC_CLIENTS_BY_CHAIN[primaryChainId]
             if (!entry) {
                 throw new Error(`Primary chain ${primaryChainId} missing from PUBLIC_CLIENTS_BY_CHAIN`)
@@ -532,15 +544,21 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                           | Address
                           | undefined),
                 { bundlerUrl: entry.bundlerUrl, paymasterUrl: entry.paymasterUrl }
-            )
+            ).then((client) => {
+                if (!isCurrentBuild()) throw new DOMException('The operation was aborted.', 'AbortError')
+                return client
+            })
             inFlightRef.current.set(primaryChainId, buildPromise as Promise<GenericSmartAccountClient>)
 
             let kernelClient: GenericSmartAccountClient
             try {
                 kernelClient = (await buildPromise) as GenericSmartAccountClient
             } finally {
-                inFlightRef.current.delete(primaryChainId)
+                if (inFlightRef.current.get(primaryChainId) === buildPromise) {
+                    inFlightRef.current.delete(primaryChainId)
+                }
             }
+            if (!isCurrentBuild()) return
 
             // Guard: the restored WebAuthnKey must belong to the logged-in user.
             // On a shared device with two Peanut accounts (two passkeys for the
@@ -578,7 +596,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
 
         let stopWaitingForReconnect: (() => void) | undefined
         retryAsync(initializeClients, { maxRetries: 4, baseDelay: 1000, maxDelay: 15000 }).catch((error: unknown) => {
-            if (!isMounted) return
+            if (!isCurrentBuild()) return
             dispatch(zerodevActions.setIsRegistering(false))
             dispatch(zerodevActions.setIsLoggingIn(false))
             if (isStaleKeyError(error)) {
@@ -602,6 +620,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
 
         return () => {
             isMounted = false
+            if (buildSequences.get(primaryChainId) === seq) buildSequences.delete(primaryChainId)
             stopWaitingForReconnect?.()
         }
         // Intentionally excluding `user` from deps: `useUserQuery` refetches on
@@ -665,9 +684,9 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
         (chainId: string) => {
             // Read through the ref so closures captured before a mid-session
             // rebuild (root-validator migration) still resolve the fresh client.
-            const client = clientsRef.current[chainId] ?? clientsByChain[chainId]
+            const client = clientsRef.current[chainId]
             if (!client) {
-                const availableChains = Object.keys(clientsByChain).join(', ')
+                const availableChains = Object.keys(clientsRef.current).join(', ')
                 console.error(
                     `[KernelClient] No client found for chain ${chainId}. Available chains: ${availableChains || 'none'}`
                 )
@@ -677,7 +696,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             }
             return assertClientOwnedByUser(client)
         },
-        [clientsByChain, assertClientOwnedByUser]
+        [assertClientOwnedByUser]
     )
 
     // Kicks off a fresh client build for `chainId`, stores the result in the
@@ -711,15 +730,22 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                 { bundlerUrl: entry.bundlerUrl, paymasterUrl: entry.paymasterUrl }
             )
                 .then((kernelClient) => {
-                    // Superseded (logout cleared the map, or a newer build /
-                    // rebuild started): return the client to OUR caller but do
-                    // not store it — the cache belongs to the latest build.
-                    if (latestBuildSeqRef.current.get(chainId) === seq) {
-                        storeClient(chainId, kernelClient)
+                    // A superseded build must neither publish a stale signing
+                    // client nor invalidate the session that replaced it.
+                    if (latestBuildSeqRef.current.get(chainId) !== seq) {
+                        throw new DOMException('The operation was aborted.', 'AbortError')
                     }
-                    return assertClientOwnedByUser(kernelClient)
+                    const ownedClient = assertClientOwnedByUser(kernelClient)
+                    storeClient(chainId, ownedClient)
+                    if (chainId === PEANUT_WALLET_CHAIN.id.toString()) {
+                        dispatch(zerodevActions.setIsKernelClientReady(true))
+                        dispatch(zerodevActions.setIsRegistering(false))
+                        dispatch(zerodevActions.setIsLoggingIn(false))
+                    }
+                    return ownedClient
                 })
                 .catch((error) => {
+                    if (latestBuildSeqRef.current.get(chainId) !== seq) throw error
                     console.error(`Error lazy-building kernel client for chain ${chainId}:`, error)
                     if (isStaleKeyError(error)) {
                         purgeStoredCredential()
@@ -749,12 +775,13 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             logoutUser,
             purgeStoredCredential,
             storeClient,
+            dispatch,
         ]
     )
 
     const ensureClientForChain = useCallback(
         async (chainId: string): Promise<GenericSmartAccountClient> => {
-            const cached = clientsRef.current[chainId] ?? clientsByChain[chainId]
+            const cached = clientsRef.current[chainId]
             if (cached) return assertClientOwnedByUser(cached)
 
             const inFlight = inFlightRef.current.get(chainId)
@@ -762,7 +789,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
 
             return startClientBuild(chainId)
         },
-        [clientsByChain, assertClientOwnedByUser, startClientBuild]
+        [assertClientOwnedByUser, startClientBuild]
     )
 
     const rebuildClientForChain = useCallback(

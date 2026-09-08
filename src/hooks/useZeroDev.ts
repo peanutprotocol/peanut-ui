@@ -24,7 +24,6 @@ import {
     currentCeremonyId,
     guardPasskeyCeremony,
     isCeremonyGuardError,
-    isPasskeyShimInstalled,
 } from '@/utils/passkeyCeremony.utils'
 import { toWebAuthnKey, WebAuthnMode } from '@zerodev/passkey-validator'
 import { useCallback, useContext } from 'react'
@@ -67,9 +66,11 @@ class PasskeyError extends Error {
     }
 }
 
+let loginTransitionInFlight = false
+
 export const useZeroDev = () => {
     const dispatch = useAppDispatch()
-    const { user, logoutUser } = useAuth()
+    const { user, logoutUser, hydrateLoginSession } = useAuth()
     const { isKernelClientReady, isRegistering, isLoggingIn, isSendingUserOp, address } = useZerodevStore()
     const { setWebAuthnKey, getClientForChain, ensureClientForChain } = useKernelClient()
     const { setLoadingState } = useContext(loadingStateContext)
@@ -89,7 +90,7 @@ export const useZeroDev = () => {
          * how one impatient double-tap turned into a run of
          * CeremonyConflictErrors (PEANUT-UI-T09).
          */
-        if (currentCeremonyId() !== null) {
+        if (loginTransitionInFlight || currentCeremonyId() !== null) {
             const conflict = new CeremonyConflictError()
             captureCeremonyGuardError(conflict, 'register')
             throw conflict
@@ -273,9 +274,6 @@ export const useZeroDev = () => {
                 return
             }
             const err = normalizeNativePasskeyError(e) as Error
-            console.error('[useZeroDev] registration failed:', err.name, err.message, err, {
-                shimInstalled: isPasskeyShimInstalled(),
-            })
             if (isCeremonyGuardError(err)) {
                 captureCeremonyGuardError(err, 'register')
             }
@@ -290,6 +288,11 @@ export const useZeroDev = () => {
 
     // login function
     const handleLogin = async () => {
+        if (loginTransitionInFlight || currentCeremonyId() !== null) {
+            const { code, message } = classifyPasskeyError(new CeremonyConflictError())
+            throw new PasskeyError(message, code)
+        }
+        loginTransitionInFlight = true
         dispatch(zerodevActions.setIsLoggingIn(true))
         const ceremonyStartedAt = Date.now()
         try {
@@ -319,8 +322,9 @@ export const useZeroDev = () => {
                 )
             )
 
-            setWebAuthnKey(webAuthnKey)
             saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
+            await hydrateLoginSession()
+            setWebAuthnKey(webAuthnKey)
         } catch (e) {
             const err = normalizePasskeyServerError(e)
             const { code, message } = classifyPasskeyError(err)
@@ -347,6 +351,8 @@ export const useZeroDev = () => {
                 captureException(err, { level: 'warning', tags: { error_type: 'login_canceled_native' } })
             }
             throw new PasskeyError(message, code)
+        } finally {
+            loginTransitionInFlight = false
         }
     }
 
