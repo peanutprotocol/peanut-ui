@@ -30,11 +30,16 @@ export async function fetchTokenPrice(tokenAddress: string, chainId: string): Pr
 export async function fetchWalletBalances(
     address: string
 ): Promise<{ balances: IUserBalance[]; totalBalance: number }> {
+    // No 404 → empty mapping here, unlike fetchTokenPrice: the API answers a
+    // genuinely empty wallet with 200 { balances: [] } and reserves 404 for
+    // "portfolio unavailable" (Mobula down/quota). Mapping 404 to an empty
+    // list told recover-funds users "no tokens to recover" whenever the
+    // upstream was down — a false statement about their money (TASK-21829).
     const qs = `address=${encodeURIComponent(address)}`
-    const result = await getJson<{ balances: IUserBalance[]; totalBalance: number }>(
-        `/tokens/wallet-portfolio?${qs}`,
-        'Failed to fetch wallet balances',
-        true
-    )
-    return result ?? { balances: [], totalBalance: 0 }
+    const response = await apiFetch(`/tokens/wallet-portfolio?${qs}`, { method: 'GET', includeAuth: true })
+    if (!response.ok) {
+        const text = await response.text().catch(() => '')
+        throw new Error(`Failed to fetch wallet balances: ${response.status} ${text}`)
+    }
+    return (await response.json()) as { balances: IUserBalance[]; totalBalance: number }
 }
