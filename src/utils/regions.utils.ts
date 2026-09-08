@@ -2,7 +2,7 @@ import { EUROPE_GLOBE_ICON, LATAM_GLOBE_ICON, NORTH_AMERICA_GLOBE_ICON, REST_OF_
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import { type RailCapability } from '@/types/capabilities'
-import { BRIDGE_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
+import { BRIDGE_ALPHA3_TO_ALPHA2, type CountryData } from '@/components/AddMoney/consts'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { BANKING_RESTRICTED_RESIDENCE_ISO2, RESTRICTED_RESIDENCE_ISO2 } from '@/constants/residence.consts'
 import type { StaticImageData } from 'next/image'
@@ -234,6 +234,15 @@ const RAIL_COUNTRY_TO_REGION_PATH: Record<string, string> = {
     BR: 'latam',
     CO: 'latam',
 }
+
+/**
+ * Resolve the KYC intent for a bank destination from its rail jurisdiction.
+ * Mexico remains in the LATAM picker, but SPEI is a Bridge rail and therefore
+ * belongs to the North America intent. Countries without a bank-rail entry
+ * retain their picker-region intent.
+ */
+export const getBankRegionIntent = (country: Pick<CountryData, 'id' | 'region'> | null | undefined): KYCRegionIntent =>
+    getRegionIntent(RAIL_COUNTRY_TO_REGION_PATH[country?.id ?? ''] ?? country?.region ?? 'rest-of-the-world')
 
 /**
  * Region picker paths with a mid-flight bank rail (`pending` = BE provisioning,

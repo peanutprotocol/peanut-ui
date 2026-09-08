@@ -1,6 +1,7 @@
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
+import { type CountryData } from '@/components/AddMoney/consts'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
-import { getRegionIntent } from '@/utils/regions.utils'
+import { getBankRegionIntent, getRegionIntent } from '@/utils/regions.utils'
 import { useCallback } from 'react'
 
 /**
@@ -21,11 +22,19 @@ import { useCallback } from 'react'
  * can verify under a second, unrestricted residence keeps the destination
  * intent, because a bank level is still winnable for them.
  */
-export const useBankRegionIntent = (): ((regionPath: string) => KYCRegionIntent) => {
+export const useBankRegionIntent = (): ((
+    countryOrRegionPath: CountryData | string | null | undefined
+) => KYCRegionIntent) => {
     const { banking: isBankRestricted } = useResidenceRestrictions()
 
     return useCallback(
-        (regionPath: string) => (isBankRestricted ? 'ROW' : getRegionIntent(regionPath)),
+        (countryOrRegionPath: CountryData | string | null | undefined) => {
+            const intent =
+                typeof countryOrRegionPath === 'string'
+                    ? getRegionIntent(countryOrRegionPath)
+                    : getBankRegionIntent(countryOrRegionPath)
+            return isBankRestricted ? 'ROW' : intent
+        },
         [isBankRestricted]
     )
 }

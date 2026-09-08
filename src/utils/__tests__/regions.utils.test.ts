@@ -1,4 +1,5 @@
 import {
+    getBankRegionIntent,
     getRegionIntent,
     pendingBankRailRegionPaths,
     providerForRegionIntent,
@@ -17,6 +18,24 @@ describe('getRegionIntent', () => {
     it('falls back to ROW for unknown paths', () => {
         expect(getRegionIntent('mars')).toBe('ROW')
         expect(getRegionIntent('')).toBe('ROW')
+    })
+})
+
+describe('getBankRegionIntent', () => {
+    it('routes Mexico bank flows through the North America intent', () => {
+        expect(getBankRegionIntent({ id: 'MX', region: 'latam' })).toBe('NA')
+    })
+
+    it('uses the rail jurisdiction for other bank destinations', () => {
+        expect(getBankRegionIntent({ id: 'AR', region: 'latam' })).toBe('LATAM')
+        expect(getBankRegionIntent({ id: 'BR', region: 'latam' })).toBe('LATAM')
+        expect(getBankRegionIntent({ id: 'CO', region: 'latam' })).toBe('LATAM')
+        expect(getBankRegionIntent({ id: 'GB', region: 'europe' })).toBe('EU')
+        expect(getBankRegionIntent({ id: 'US', region: 'north-america' })).toBe('NA')
+        expect(getBankRegionIntent({ id: 'DE', region: 'europe' })).toBe('EU')
+        expect(getBankRegionIntent({ id: 'NG', region: 'rest-of-the-world' })).toBe('ROW')
+        expect(getBankRegionIntent({ id: 'XX' })).toBe('ROW')
+        expect(getBankRegionIntent(undefined)).toBe('ROW')
     })
 })
 
