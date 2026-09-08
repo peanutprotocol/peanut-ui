@@ -1525,7 +1525,7 @@
             "noLimitSet": "No limit set",
             "edit": "Edit",
             "editTitle": "Change limit",
-            "invalidAmount": "Enter a valid amount",
+            "invalidAmount": "Enter an amount from {minimum} to {maximum}, with no more than two decimal places.",
             "saveFailed": "Failed to save limit",
             "saveChanges": "Save changes",
             "noActiveCard": "No active card to manage limits for."

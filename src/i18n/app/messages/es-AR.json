@@ -810,7 +810,7 @@
         },
         "limits": {
             "subtitle": "Definí tu límite de gasto por transacción.",
-            "invalidAmount": "Ingresá un monto válido",
+            "invalidAmount": "Ingresá un monto entre {minimum} y {maximum}, con un máximo de dos decimales.",
             "noActiveCard": "No tenés una tarjeta activa para gestionar límites."
         },
         "pin": {

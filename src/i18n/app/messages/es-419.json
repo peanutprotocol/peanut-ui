@@ -1525,7 +1525,7 @@
             "noLimitSet": "Sin límite definido",
             "edit": "Editar",
             "editTitle": "Cambiar límite",
-            "invalidAmount": "Ingresa un monto válido",
+            "invalidAmount": "Ingresa un monto entre {minimum} y {maximum}, con un máximo de dos decimales.",
             "saveFailed": "No se pudo guardar el límite",
             "saveChanges": "Guardar cambios",
             "noActiveCard": "No tienes una tarjeta activa para gestionar límites."
