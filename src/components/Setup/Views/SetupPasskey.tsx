@@ -130,6 +130,7 @@ const SetupPasskey = () => {
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED, {
                 device_type: deviceType,
                 error_name: 'UsernameTaken',
+                error_code: 'USERNAME_TAKEN',
             })
             return
         }
@@ -141,12 +142,18 @@ const SetupPasskey = () => {
             await withWebAuthnRetry(() => handleRegister(username), 'passkey-registration')
             // success - useEffect below will handle navigation
         } catch (error) {
+            registrationInitiatedRef.current = false
             const err = error as Error
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED, {
                 device_type: deviceType,
                 error_name: err.name,
-                error_code: classifyPasskeyError(err).code,
+                error_code: err.name === 'UsernameTaken' ? 'USERNAME_TAKEN' : classifyPasskeyError(err).code,
             })
+
+            if (err.name === 'UsernameTaken') {
+                setUsernameTaken(true)
+                return
+            }
 
             // Ceremony-guard errors (shim race / timeout, TASK-21782) are already
             // reported with a discriminating tag inside handleRegister — surface

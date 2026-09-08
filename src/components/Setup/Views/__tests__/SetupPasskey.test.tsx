@@ -7,11 +7,12 @@ import SetupPasskey from '../SetupPasskey'
 
 const mockHandleRegister = jest.fn()
 const mockApiFetch = jest.fn()
+const mockLogin = jest.fn()
 
 jest.mock('@/hooks/useZeroDev', () => ({
     useZeroDev: () => ({ handleRegister: mockHandleRegister, address: undefined, isRegistering: false }),
 }))
-jest.mock('@/hooks/useLogin', () => ({ useLogin: () => ({ handleLoginClick: jest.fn(), isLoggingIn: false }) }))
+jest.mock('@/hooks/useLogin', () => ({ useLogin: () => ({ handleLoginClick: mockLogin, isLoggingIn: false }) }))
 jest.mock('@/hooks/useSetupFlow', () => ({ useSetupFlow: () => ({ isLoading: false, handleNext: jest.fn() }) }))
 jest.mock('@/hooks/useGetDeviceType', () => ({ useDeviceType: () => ({ deviceType: 'Android' }) }))
 jest.mock('@/redux/hooks', () => ({ useSetupStore: () => ({ username: 'kim' }) }))
@@ -65,6 +66,24 @@ describe('passkey failure telemetry', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         mockApiFetch.mockResolvedValue({ status: 404 })
+    })
+    it('recovers from a username collision after the availability check without another ceremony', async () => {
+        mockHandleRegister.mockRejectedValue(
+            Object.assign(new Error('Username already taken'), { name: 'UsernameTaken' })
+        )
+        renderWithIntl(<SetupPasskey />)
+        fireEvent.click(screen.getByRole('button'))
+        expect(await screen.findByText(/This username is already registered/)).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: /log in/i }))
+        expect(mockLogin).toHaveBeenCalledTimes(1)
+        expect(mockHandleRegister).toHaveBeenCalledTimes(1)
+        expect(Sentry.captureException).not.toHaveBeenCalled()
+        const failed = (posthog.capture as jest.Mock).mock.calls.filter(
+            ([event]) => event === ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED
+        )
+        expect(failed).toEqual([
+            [ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED, expect.objectContaining({ error_code: 'USERNAME_TAKEN' })],
+        ])
     })
     it.each(['NotAllowedError', 'NotReadableError'])(
         'reports %s once without console or Sentry exception amplification',
