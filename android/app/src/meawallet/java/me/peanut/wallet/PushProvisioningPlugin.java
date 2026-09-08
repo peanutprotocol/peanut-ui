@@ -69,7 +69,15 @@ public class PushProvisioningPlugin extends Plugin {
         // reports the card as addable, so the UI would swap the manual flow for
         // a one-tap action that fetches PAN-equivalent credentials and can only
         // fail. Rule it out before the lookup.
-        if (!hasMeaConfig() || !initialize(getContext()) || !MeaPushProvisioning.GooglePay.isWalletAvailable(getContext())) {
+        boolean walletAvailable = false;
+        if (hasMeaConfig() && initialize(getContext())) {
+            try {
+                walletAvailable = MeaPushProvisioning.GooglePay.isWalletAvailable(getContext());
+            } catch (Exception ignored) {
+                // Treat SDK availability failures the same as an unavailable wallet.
+            }
+        }
+        if (!walletAvailable) {
             JSObject out = new JSObject();
             out.put("available", false);
             out.put("alreadyInWallet", false);
@@ -84,32 +92,40 @@ public class PushProvisioningPlugin extends Plugin {
             call.resolve(out);
             return;
         }
-        MeaPushProvisioning.GooglePay.checkWalletForCardSuffix(last4, new GooglePayRegisteredTokensListener() {
-            @Override
-            public void onSuccess(@NonNull List<TokenInfo> tokens) {
-                boolean provisioned = false;
-                for (TokenInfo token : tokens) {
-                    if (isProvisioned(token.getTokenState())) {
-                        provisioned = true;
-                        break;
+        try {
+            MeaPushProvisioning.GooglePay.checkWalletForCardSuffix(last4, new GooglePayRegisteredTokensListener() {
+                @Override
+                public void onSuccess(@NonNull List<TokenInfo> tokens) {
+                    boolean provisioned = false;
+                    for (TokenInfo token : tokens) {
+                        if (isProvisioned(token.getTokenState())) {
+                            provisioned = true;
+                            break;
+                        }
                     }
+                    JSObject out = new JSObject();
+                    out.put("available", !provisioned);
+                    out.put("alreadyInWallet", provisioned);
+                    call.resolve(out);
                 }
-                JSObject out = new JSObject();
-                out.put("available", !provisioned);
-                out.put("alreadyInWallet", provisioned);
-                call.resolve(out);
-            }
 
-            @Override
-            public void onFailure(@NonNull MppError error) {
-                // Can't tell — let the button show; the push flow surfaces the
-                // real error if the card is genuinely already tokenized.
-                JSObject out = new JSObject();
-                out.put("available", true);
-                out.put("alreadyInWallet", false);
-                call.resolve(out);
-            }
-        });
+                @Override
+                public void onFailure(@NonNull MppError error) {
+                    // Can't tell — let the button show; the push flow surfaces the
+                    // real error if the card is genuinely already tokenized.
+                    JSObject out = new JSObject();
+                    out.put("available", true);
+                    out.put("alreadyInWallet", false);
+                    call.resolve(out);
+                }
+            });
+        } catch (Exception ignored) {
+            // A synchronous lookup failure is no worse than not looking up first.
+            JSObject out = new JSObject();
+            out.put("available", true);
+            out.put("alreadyInWallet", false);
+            call.resolve(out);
+        }
     }
 
     /**
@@ -145,7 +161,13 @@ public class PushProvisioningPlugin extends Plugin {
             return;
         }
 
-        MppCardDataParameters cardParams = MppCardDataParameters.withCardSecret(cardId, cardSecret);
+        final MppCardDataParameters cardParams;
+        try {
+            cardParams = MppCardDataParameters.withCardSecret(cardId, cardSecret);
+        } catch (Exception e) {
+            call.reject("Unable to prepare card for MeaWallet SDK", "SDK_ERROR");
+            return;
+        }
         String displayName = call.getString("displayName", "Peanut Card");
         UserAddress userAddress = buildUserAddress(call);
 
@@ -154,50 +176,58 @@ public class PushProvisioningPlugin extends Plugin {
         // the user can finish identity verification. Look the token up first and
         // branch; anything we can't classify falls through to the normal push, so
         // a lookup failure is never worse than not looking.
-        MeaPushProvisioning.GooglePay.checkWalletForCardToken(cardParams, new GooglePayTokenListener() {
-            @Override
-            public void onSuccess(@NonNull GooglePayTokenInfo token) {
-                switch (token.getTokenState()) {
-                    case TOKEN_STATE_NEEDS_IDENTITY_VERIFICATION:
-                    case TOKEN_STATE_PENDING:
-                    case TOKEN_STATE_FELICA_PENDING_PROVISIONING:
-                        resumeTokenization(call, token, displayName, activity);
-                        return;
-                    case TOKEN_STATE_ACTIVE:
-                    case TOKEN_STATE_SUSPENDED: {
-                        JSObject out = new JSObject();
-                        out.put("added", false);
-                        out.put("alreadyInWallet", true);
-                        call.resolve(out);
-                        return;
+        try {
+            MeaPushProvisioning.GooglePay.checkWalletForCardToken(cardParams, new GooglePayTokenListener() {
+                @Override
+                public void onSuccess(@NonNull GooglePayTokenInfo token) {
+                    switch (token.getTokenState()) {
+                        case TOKEN_STATE_NEEDS_IDENTITY_VERIFICATION:
+                        case TOKEN_STATE_PENDING:
+                        case TOKEN_STATE_FELICA_PENDING_PROVISIONING:
+                            resumeTokenization(call, token, displayName, activity);
+                            return;
+                        case TOKEN_STATE_ACTIVE:
+                        case TOKEN_STATE_SUSPENDED: {
+                            JSObject out = new JSObject();
+                            out.put("added", false);
+                            out.put("alreadyInWallet", true);
+                            call.resolve(out);
+                            return;
+                        }
+                        default:
+                            pushNewCard(call, cardParams, displayName, userAddress, activity);
                     }
-                    default:
-                        pushNewCard(call, cardParams, displayName, userAddress, activity);
                 }
-            }
 
-            @Override
-            public void onFailure(@NonNull MppError error) {
-                pushNewCard(call, cardParams, displayName, userAddress, activity);
-            }
-        });
+                @Override
+                public void onFailure(@NonNull MppError error) {
+                    pushNewCard(call, cardParams, displayName, userAddress, activity);
+                }
+            });
+        } catch (Exception e) {
+            pushNewCard(call, cardParams, displayName, userAddress, activity);
+        }
     }
 
     /** Yellow path: the token exists but Google still needs the ID&V challenge. */
     private static void resumeTokenization(PluginCall call, GooglePayTokenInfo token, String displayName, Activity activity) {
-        MeaPushProvisioning.GooglePay.tokenize(token, displayName, activity, new GooglePayTokenizeListener() {
-            @Override
-            public void onSuccess() {
-                JSObject out = new JSObject();
-                out.put("added", true);
-                call.resolve(out);
-            }
+        try {
+            MeaPushProvisioning.GooglePay.tokenize(token, displayName, activity, new GooglePayTokenizeListener() {
+                @Override
+                public void onSuccess() {
+                    JSObject out = new JSObject();
+                    out.put("added", true);
+                    call.resolve(out);
+                }
 
-            @Override
-            public void onFailure(@NonNull MppError error) {
-                call.resolve(failure(error));
-            }
-        });
+                @Override
+                public void onFailure(@NonNull MppError error) {
+                    call.resolve(failure(error));
+                }
+            });
+        } catch (Exception e) {
+            call.resolve(failure(e.getMessage()));
+        }
     }
 
     private static void pushNewCard(PluginCall call, MppCardDataParameters cardParams, String displayName, UserAddress userAddress, Activity activity) {
@@ -208,20 +238,24 @@ public class PushProvisioningPlugin extends Plugin {
         // Rain confirms UPP support + the Google UPP onboarding is done.
         // Intermediate results come back through onActivityResult —
         // MainActivity forwards them to handleGooglePayActivityResult above.
-        MeaPushProvisioning.GooglePay.pushCard(cardParams, displayName, userAddress, activity, new MppPushCardToGooglePayListener() {
-            @Override
-            public void onSuccess(String tokenReferenceId, String cardLastFourDigits, MppPaymentNetwork cardNetwork) {
-                JSObject out = new JSObject();
-                out.put("added", true);
-                out.put("last4", cardLastFourDigits);
-                call.resolve(out);
-            }
+        try {
+            MeaPushProvisioning.GooglePay.pushCard(cardParams, displayName, userAddress, activity, new MppPushCardToGooglePayListener() {
+                @Override
+                public void onSuccess(String tokenReferenceId, String cardLastFourDigits, MppPaymentNetwork cardNetwork) {
+                    JSObject out = new JSObject();
+                    out.put("added", true);
+                    out.put("last4", cardLastFourDigits);
+                    call.resolve(out);
+                }
 
-            @Override
-            public void onFailure(MppError error) {
-                call.resolve(failure(error));
-            }
-        });
+                @Override
+                public void onFailure(MppError error) {
+                    call.resolve(failure(error));
+                }
+            });
+        } catch (Exception e) {
+            call.resolve(failure(e.getMessage()));
+        }
     }
 
     /**
@@ -237,6 +271,13 @@ public class PushProvisioningPlugin extends Plugin {
             return out;
         }
         out.put("error", error != null ? error.getMessage() : "unknown");
+        return out;
+    }
+
+    private static JSObject failure(String message) {
+        JSObject out = new JSObject();
+        out.put("added", false);
+        out.put("error", message != null ? message : "unknown");
         return out;
     }
 
