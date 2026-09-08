@@ -14,7 +14,6 @@
  */
 
 import { useCallback, useMemo } from 'react'
-import { isSelfRequestPayment } from '../../shared/is-self-request-payment'
 import { type Address } from 'viem'
 import { useContributePotFlowContext } from './ContributePotFlowContext'
 import { useChargeManager } from '@/features/payments/shared/hooks/useChargeManager'
@@ -73,7 +72,6 @@ export function useContributePotFlow() {
     } = useWallet()
 
     const isLoggedIn = !!user?.user?.userId
-    const isSelfPayment = isSelfRequestPayment(walletAddress, user?.user?.userId, recipient?.address, recipient?.userId)
 
     // set amount (for peanut wallet, amount is always in usd)
     const handleSetAmount = useCallback(
@@ -91,11 +89,11 @@ export function useContributePotFlow() {
 
     // check if can proceed
     const canProceed = useMemo(() => {
-        if (!amount || !recipient || !request || isSelfPayment) return false
+        if (!amount || !recipient || !request) return false
         const amountNum = parseFloat(amount)
         if (isNaN(amountNum) || amountNum <= 0) return false
         return true
-    }, [amount, recipient, request, isSelfPayment])
+    }, [amount, recipient, request])
 
     // check if has sufficient balance for current amount
     const hasEnoughBalance = useMemo(() => {
@@ -171,11 +169,6 @@ export function useContributePotFlow() {
                 return { success: false }
             }
 
-            if (isSelfPayment) {
-                setError({ showError: true, errorMessage: t('errors.selfRequestPayment') })
-                return { success: false }
-            }
-
             setIsLoading(true)
             clearError()
 
@@ -240,7 +233,6 @@ export function useContributePotFlow() {
         },
         [
             recipient,
-            isSelfPayment,
             amount,
             usdAmount,
             attachment,
@@ -273,7 +265,7 @@ export function useContributePotFlow() {
         charge,
         payment,
         txHash,
-        error: isSelfPayment ? { showError: true, errorMessage: t('errors.selfRequestPayment') } : error,
+        error,
         isLoading: isLoading || isCreatingCharge || isRecording,
         isSuccess,
         isExternalWalletPayment,

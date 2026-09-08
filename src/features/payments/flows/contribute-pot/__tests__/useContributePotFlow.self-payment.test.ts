@@ -53,22 +53,37 @@ beforeEach(() => {
     mockRecordPayment.mockResolvedValue({ uuid: 'payment-1' })
 })
 
-test.each(['address', 'userId'])('blocks own %s before charge creation and sponsored payment', async (identity) => {
-    ctx.recipient =
-        identity === 'address'
-            ? { address: wallet.toUpperCase().replace('0X', '0x'), userId: 'other' }
-            : { address: peer, userId: 'payer-user' }
-    const { result } = renderHookWithIntl(() => useContributePotFlow())
-    expect(result.current.canProceed).toBe(false)
-    expect(result.current.error).toEqual({ showError: true, errorMessage: 'You cannot pay your own request.' })
-    await act(async () => {
-        expect(await result.current.executeContribution()).toEqual({ success: false })
-    })
-    expect(mockCreateCharge).not.toHaveBeenCalled()
-    expect(mockSendMoney).not.toHaveBeenCalled()
-    expect(mockRecordPayment).not.toHaveBeenCalled()
-    expect(ctx.setError).toHaveBeenCalledWith({ showError: true, errorMessage: 'You cannot pay your own request.' })
-})
+test.each(['address', 'userId'])(
+    'creates, sends and records a contribution to the payer own request (%s)',
+    async (identity) => {
+        ctx.recipient =
+            identity === 'address'
+                ? { address: wallet.toUpperCase().replace('0X', '0x'), userId: 'other' }
+                : { address: peer, userId: 'payer-user' }
+        const { result } = renderHookWithIntl(() => useContributePotFlow())
+        expect(result.current.canProceed).toBe(true)
+        expect(result.current.error.showError).toBe(false)
+        await act(async () => {
+            expect(await result.current.executeContribution()).toEqual({ success: true })
+        })
+        expect(mockCreateCharge).toHaveBeenCalledWith(
+            expect.objectContaining({
+                requestId: 'request-1',
+                transactionType: 'REQUEST',
+                tokenAmount: '10',
+                recipientAddress: ctx.recipient.address,
+            })
+        )
+        expect(mockSendMoney).toHaveBeenCalledWith(ctx.recipient.address, '10', {
+            kind: 'REQUEST_PAY',
+            chargeId: 'charge-1',
+        })
+        expect(mockRecordPayment).toHaveBeenCalledWith(
+            expect.objectContaining({ chargeId: 'charge-1', txHash: '0xhash', payerAddress: wallet })
+        )
+        expect(ctx.setIsSuccess).toHaveBeenCalledWith(true)
+    }
+)
 
 test('a peer contribution still creates, sends and records', async () => {
     const { result } = renderHookWithIntl(() => useContributePotFlow())
@@ -79,4 +94,15 @@ test('a peer contribution still creates, sends and records', async () => {
     expect(mockCreateCharge).toHaveBeenCalledTimes(1)
     expect(mockSendMoney).toHaveBeenCalledWith(peer, '10', { kind: 'REQUEST_PAY', chargeId: 'charge-1' })
     expect(mockRecordPayment).toHaveBeenCalledTimes(1)
+})
+
+test('creates an own-request charge for payment from an external wallet', async () => {
+    ctx.recipient = { address: wallet, userId: 'payer-user' }
+    const { result } = renderHookWithIntl(() => useContributePotFlow())
+    await act(async () => {
+        expect(await result.current.executeContribution(true)).toEqual({ success: true })
+    })
+    expect(mockCreateCharge).toHaveBeenCalledTimes(1)
+    expect(mockSendMoney).not.toHaveBeenCalled()
+    expect(mockRecordPayment).not.toHaveBeenCalled()
 })
