@@ -22,8 +22,9 @@
  * `navigator.share()` must run inside the user gesture. Capturing on tap
  * (html-to-image, 1–3s) expired WebKit's gesture window → NotAllowedError.
  * So on devices that can share files we PRE-capture the PNG once the asset
- * is ready and the tap handler shares the cached blob synchronously. The
- * capture-on-tap path stays as fallback when the cache is empty.
+ * is ready and the tap handler shares the cached blob synchronously. A
+ * failed pre-capture retries in the background (buttons stay disabled);
+ * only after all attempts fail does capture-on-tap return as the fallback.
  */
 
 import { type FC, type RefObject, useEffect, useRef, useState } from 'react'
@@ -143,20 +144,37 @@ export const ShareAssetActions: FC<Props> = ({
         const node = captureRef.current
         if (!node) return
         let stale = false
+        let retryTimer: ReturnType<typeof setTimeout> | undefined
         setIsPrecapturing(true)
-        captureShareAsset(node)
-            .then((blob) => {
-                if (!stale) cachedBlobRef.current = blob
-            })
-            .catch(() => {
-                // quiet: buttons re-enable and the tap-time fallback re-captures
-                // and reports — worst case equals the old capture-on-tap path.
-            })
-            .finally(() => {
-                if (!stale) setIsPrecapturing(false)
-            })
+        const attempt = (retriesLeft: number): void => {
+            captureShareAsset(node)
+                .then((blob) => {
+                    if (stale) return
+                    cachedBlobRef.current = blob
+                    setIsPrecapturing(false)
+                })
+                .catch(() => {
+                    if (stale) return
+                    if (retriesLeft > 0) {
+                        // transient failures (an image mid-decode, a font race)
+                        // often clear on retry — keep the buttons gated so a tap
+                        // can't fall into the slow capture-on-tap path and hit
+                        // the gesture-window error this cache exists to fix.
+                        retryTimer = setTimeout(() => attempt(retriesLeft - 1), 500)
+                        return
+                    }
+                    // three failed captures: a tap-time capture would fail the
+                    // same way, so the gesture window no longer matters. quiet
+                    // here — re-enable and let the tap-time fallback surface
+                    // the existing error message instead of leaving the
+                    // buttons dead forever.
+                    setIsPrecapturing(false)
+                })
+        }
+        attempt(2)
         return () => {
             stale = true
+            if (retryTimer) clearTimeout(retryTimer)
         }
     }, [ready, hideUsername, captureRef])
 

@@ -6,7 +6,7 @@
  * shared at all. The SAVED event only fires once the chosen path resolved.
  */
 import React, { type ComponentProps, createRef } from 'react'
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import posthog from 'posthog-js'
 import { renderWithIntl } from '@/test-utils/intl'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -175,17 +175,60 @@ describe('ShareAssetActions share pre-capture', () => {
         })
     })
 
-    it('falls back to capture-on-tap when pre-capture failed', async () => {
-        mockCaptureShareAsset.mockImplementationOnce(() => Promise.reject(new Error('precapture broke')))
-        renderActions()
-        await waitFor(() => expect(mockCaptureShareAsset).toHaveBeenCalledTimes(1))
-        // failure re-enables the button — the tap is the retry path
-        await waitFor(() => expect(shareButton()).toBeEnabled())
-        fireEvent.click(shareButton())
-        await waitFor(() => expect(mockShare).toHaveBeenCalledTimes(1))
-        // no cached blob, so the tap captured again — share still works
-        expect(mockCaptureShareAsset).toHaveBeenCalledTimes(2)
-        expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    it('stays gated through retries; after the final failure the tap falls back to capture-on-tap', async () => {
+        jest.useFakeTimers()
+        try {
+            mockCaptureShareAsset
+                .mockImplementationOnce(() => Promise.reject(new Error('a')))
+                .mockImplementationOnce(() => Promise.reject(new Error('b')))
+                .mockImplementationOnce(() => Promise.reject(new Error('c')))
+            renderActions()
+            // attempt 1 rejects; the retry timer is armed — still gated
+            await act(async () => {})
+            expect(shareButton()).toBeDisabled()
+            // attempt 2 fires and rejects — still gated
+            await act(async () => {
+                jest.advanceTimersByTime(500)
+            })
+            expect(mockCaptureShareAsset).toHaveBeenCalledTimes(2)
+            expect(shareButton()).toBeDisabled()
+            // attempt 3 fires and rejects — final failure, buttons re-enable
+            await act(async () => {
+                jest.advanceTimersByTime(500)
+            })
+            expect(mockCaptureShareAsset).toHaveBeenCalledTimes(3)
+            expect(shareButton()).toBeEnabled()
+            // no cached blob, so the tap captures again (default impl resolves)
+            fireEvent.click(shareButton())
+            await act(async () => {})
+            expect(mockShare).toHaveBeenCalledTimes(1)
+            expect(mockCaptureShareAsset).toHaveBeenCalledTimes(4)
+            expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+        } finally {
+            jest.useRealTimers()
+        }
+    })
+
+    it('a successful retry fills the cache and the tap shares without capturing', async () => {
+        jest.useFakeTimers()
+        try {
+            mockCaptureShareAsset.mockImplementationOnce(() => Promise.reject(new Error('first broke')))
+            renderActions()
+            await act(async () => {})
+            expect(shareButton()).toBeDisabled()
+            // retry (default impl) resolves and caches the blob
+            await act(async () => {
+                jest.advanceTimersByTime(500)
+            })
+            expect(shareButton()).toBeEnabled()
+            fireEvent.click(shareButton())
+            await act(async () => {})
+            expect(mockShare).toHaveBeenCalledTimes(1)
+            // 2 captures total: failed first attempt + successful retry — none on tap
+            expect(mockCaptureShareAsset).toHaveBeenCalledTimes(2)
+        } finally {
+            jest.useRealTimers()
+        }
     })
 
     it('disables Share while pre-capture is pending and enables once cached', async () => {
@@ -195,16 +238,6 @@ describe('ShareAssetActions share pre-capture', () => {
         // a tap here would miss the cache and reproduce the gesture-window bug
         expect(shareButton()).toBeDisabled()
         resolveCapture(new Blob(['png'], { type: 'image/png' }))
-        await waitFor(() => expect(shareButton()).toBeEnabled())
-    })
-
-    it('re-enables the buttons when pre-capture fails', async () => {
-        let rejectCapture!: (err: Error) => void
-        mockCaptureShareAsset.mockImplementationOnce(() => new Promise<Blob>((_, reject) => (rejectCapture = reject)))
-        renderActions()
-        expect(shareButton()).toBeDisabled()
-        rejectCapture(new Error('precapture broke'))
-        // never leave the buttons dead — capture-on-tap is the retry path
         await waitFor(() => expect(shareButton()).toBeEnabled())
     })
 
