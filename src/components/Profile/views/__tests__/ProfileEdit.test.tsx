@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { ProfileEditView } from '../ProfileEdit.view'
 import { updateUserById } from '@/app/actions/users'
@@ -22,7 +22,9 @@ jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
 
 const save = () => fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
 const change = async (label: string, value: string) => {
-    fireEvent.change(screen.getByLabelText(label), { target: { value } })
+    await act(async () => {
+        fireEvent.change(screen.getByLabelText(label), { target: { value } })
+    })
     await waitFor(() => expect(screen.getByRole('button', { name: 'Save Changes' })).toBeEnabled())
 }
 
@@ -82,11 +84,11 @@ test('email-only save does not require a missing name', async () => {
 })
 
 test('shows server failures and retains edits without navigating', async () => {
-    jest.mocked(updateUserById).mockResolvedValue({ error: 'This email is already associated with another account' })
+    jest.mocked(updateUserById).mockResolvedValue({ error: 'Could not save your profile' })
     renderWithIntl(<ProfileEditView />)
     await change('Email', 'new@example.com')
     save()
-    expect(await screen.findByText('This email is already associated with another account')).toBeVisible()
+    expect(await screen.findByText('Could not save your profile')).toBeVisible()
     expect(screen.getByLabelText('Email')).toHaveValue('new@example.com')
     expect(mockReplace).not.toHaveBeenCalled()
 })
@@ -112,4 +114,20 @@ test('late auth hydrates without enabling a no-op save', async () => {
     view.rerender(<ProfileEditView />)
     expect(screen.getByLabelText('Email')).toHaveValue('old@example.com')
     expect(screen.getByRole('button', { name: 'Save Changes' })).toBeDisabled()
+})
+
+test('a duplicate email error is linked to its input and can be corrected', async () => {
+    jest.mocked(updateUserById).mockResolvedValueOnce({
+        error: 'This email is already associated with another account',
+    })
+    renderWithIntl(<ProfileEditView />)
+    await change('Email', 'taken@example.com')
+    save()
+    expect(await screen.findByText('This email is already associated with another account.')).toBeVisible()
+    expect(screen.getByLabelText('Email')).toHaveAccessibleDescription(
+        'This email is already associated with another account.'
+    )
+    await change('Email', 'available@example.com')
+    save()
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/profile'))
 })

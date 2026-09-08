@@ -332,7 +332,8 @@
             "saveChanges": "Save Changes",
             "errors": {
                 "nameRequired": "Please provide your name.",
-                "invalidEmail": "Please enter a valid email address."
+                "invalidEmail": "Please enter a valid email address.",
+                "emailInUse": "This email is already associated with another account."
             },
             "verifiedNameHelp": "Your name comes from your identity verification and cannot be edited here. Contact support if it needs correcting."
         },

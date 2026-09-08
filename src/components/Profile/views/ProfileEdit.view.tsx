@@ -41,6 +41,7 @@ export const ProfileEditView = () => {
         handleSubmit,
         reset,
         resetField,
+        setError,
         formState: { dirtyFields, isSubmitting },
     } = useForm<ProfileFields>({
         defaultValues: { name: '', surname: '', email: '' },
@@ -81,6 +82,10 @@ export const ProfileEditView = () => {
                 ...(dirtyFields.email ? { email: values.email.trim() } : {}),
             })
             if (result?.error) {
+                if (result.error === 'This email is already associated with another account') {
+                    setError('email', { type: 'server', message: t('errors.emailInUse') }, { shouldFocus: true })
+                    return
+                }
                 setErrorMessage(result.error)
                 return
             }
