@@ -3401,6 +3401,7 @@
         },
         "copyToClipboard": {
             "copyCode": "Copiar código",
+            "copyProfileLink": "Copiar link do perfil",
             "copyFailed": "Não foi possível copiar"
         },
         "copyField": {
@@ -3733,20 +3734,93 @@
     },
     "avatar": {
         "title": "Seu avatar",
-        "description": "Escolha um ou jogue os dados para ver outros básicos.",
-        "initials": "Iniciais",
-        "fromBadges": "Dos seus selos",
-        "basics": "Básicos",
-        "unlocked": "{count} desbloqueados",
-        "noBadgeAvatars": "Ganhe um selo e seus avatares aparecem aqui.",
-        "rollDice": "Jogar os dados",
         "change": "Trocar avatar",
         "saveFailed": "Não foi possível salvar seu avatar. Tente de novo.",
-        "useInitial": "Usar a inicial",
-        "useAvatar": "Usar o avatar",
-        "chooseAvatar": "Escolha seu avatar",
-        "rolling": "Rolando o dado…",
-        "rollingHint": "Um pouco de sorte. Um novo visual.",
-        "cancelRoll": "Cancelar rolagem"
+        "earned": "Ganho",
+        "rollDie": "Jogar o dado",
+        "initialName": "Só {letter}",
+        "initialLine": "Sua inicial",
+        "cast": {
+            "apple": {
+                "name": "Cereja premiada",
+                "line": "Faltam duas para ficar rica"
+            },
+            "avocado": {
+                "name": "Fatia de melancia",
+                "line": "Dá para onze pessoas"
+            },
+            "cactus": {
+                "name": "Pimenta corajosa",
+                "line": "Escolheu a mais picante"
+            },
+            "cloud": {
+                "name": "Nuvem rabugenta",
+                "line": "Reclama, mas vem"
+            },
+            "cube": {
+                "name": "Dado da sorte",
+                "line": "Resolve todo empate"
+            },
+            "donut": {
+                "name": "Rosquinha glaceada",
+                "line": "Falta o meio"
+            },
+            "drop": {
+                "name": "Copo de bubble tea",
+                "line": "Bebe em pleno drama"
+            },
+            "egg": {
+                "name": "Biscoito da sorte",
+                "line": "Vago de propósito"
+            },
+            "fish": {
+                "name": "Baiacu inflado",
+                "line": "Exagera na hora certa"
+            },
+            "flower": {
+                "name": "Joaninha da sorte",
+                "line": "Pousa na conta"
+            },
+            "frog": {
+                "name": "Axolote sorridente",
+                "line": "Nunca diz não"
+            },
+            "gem": {
+                "name": "Ferradura da sorte",
+                "line": "Pesada, mas dá sorte"
+            },
+            "ghost": {
+                "name": "Gato da sorte",
+                "line": "Sorri para o acaso"
+            },
+            "heart": {
+                "name": "Capivara serena",
+                "line": "Topa qualquer coisa"
+            },
+            "leaf": {
+                "name": "Pretzel torcido",
+                "line": "Pensa demais no plano"
+            },
+            "moon": {
+                "name": "Tigela de ramen",
+                "line": "Cura a ressaca"
+            },
+            "mushroom": {
+                "name": "Ouriço espinhoso",
+                "line": "Fofo por baixo"
+            },
+            "planet": {
+                "name": "Caranguejo de lado",
+                "line": "Desvia da pergunta"
+            },
+            "star": {
+                "name": "Estrela dos desejos",
+                "line": "Realiza metade"
+            },
+            "sun": {
+                "name": "Ganso mandão",
+                "line": "Junta a turma"
+            }
+        }
     }
 }

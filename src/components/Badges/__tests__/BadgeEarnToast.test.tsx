@@ -139,8 +139,38 @@ describe('BadgeEarnToast', () => {
 
         act(() => fireEvent.click(screen.getByRole('button', { name: /Choose avatar/ })))
         expect(mockDismissToast).toHaveBeenCalledWith('badge-earn-avatar:BUG_WHISPERER')
-        expect(mockRouterPush).toHaveBeenCalledWith('/profile?avatarPicker=true')
+        // the badge rides along so the first hand deals one of its avatars
+        expect(mockRouterPush).toHaveBeenCalledWith('/profile?avatarPicker=true&badge=BUG_WHISPERER')
         expect(screen.queryByTestId('badge-detail-modal')).not.toBeInTheDocument()
+        jest.useRealTimers()
+    })
+
+    it('hands the picker the newest badge of a coalesced batch', () => {
+        jest.useFakeTimers()
+        mockPending = [badge('BUG_WHISPERER', 'Bug Whisperer'), badge('SHHHHH', 'Shhh')]
+        render(<BadgeEarnToast />)
+
+        act(() => jest.advanceTimersByTime(500))
+        render(mockToast.mock.calls[1][0].content)
+        act(() => fireEvent.click(screen.getByRole('button', { name: /Choose avatar/ })))
+        expect(mockRouterPush).toHaveBeenCalledWith('/profile?avatarPicker=true&badge=BUG_WHISPERER')
+        jest.useRealTimers()
+    })
+
+    // Most badges ship no avatar art, so this batch is the common one: the
+    // newest badge has none and an older one carries the three the toast
+    // announces. Naming the artless code would deal any avatar already held.
+    it('hands the picker the newest badge that actually has avatars', () => {
+        jest.useFakeTimers()
+        mockPending = [badge('PRODUCT_HUNT', 'Product Hunt'), badge('SHHHHH', 'Shhh')]
+        render(<BadgeEarnToast />)
+
+        act(() => jest.advanceTimersByTime(500))
+        render(mockToast.mock.calls[1][0].content)
+        expect(screen.getByText(/3 new avatars unlocked/)).toBeInTheDocument()
+
+        act(() => fireEvent.click(screen.getByRole('button', { name: /Choose avatar/ })))
+        expect(mockRouterPush).toHaveBeenCalledWith('/profile?avatarPicker=true&badge=SHHHHH')
         jest.useRealTimers()
     })
 

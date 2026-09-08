@@ -389,12 +389,12 @@ export const FIXTURES: Record<string, Fixture> = {
     // ---------------------------------------------------------------------
     'home-avatar': {
         route: '/home',
-        about: 'Home top nav wearing a picked basic avatar instead of the initial.',
+        about: 'Home top nav: the menu button that replaced the avatar chip — the picked sticker now shows on /profile.',
         responses: { 'GET /users/me': { user: { avatarKey: 'basic.frog' } } },
     },
     'avatar-picker': {
         route: AVATAR_PICKER_PATH,
-        about: 'Avatar picker open: three Bug Whisperer avatars unlocked above the twenty basics, beetle selected.',
+        about: 'Avatar picker open: a hand of eight with the initial first and a Bug Whisperer avatar guaranteed, beetle selected.',
         responses: {
             'GET /users/me': {
                 user: {

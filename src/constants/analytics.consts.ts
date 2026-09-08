@@ -140,6 +140,10 @@ export const ANALYTICS_EVENTS = {
     // ── Referral Funnel ──
     REFERRAL_CTA_SHOWN: 'referral_cta_shown',
     REFERRAL_CTA_CLICKED: 'referral_cta_clicked',
+    // the profile pill's handle segment copied peanut.me/<handle>; the share
+    // segment beside it still reports REFERRAL_CTA_CLICKED. Same props, so the
+    // two hit areas of one pill compare directly.
+    PROFILE_LINK_COPIED: 'profile_link_copied',
 
     // ── Notifications ──
     NOTIFICATION_PERMISSION_REQUESTED: 'notification_permission_requested',
@@ -394,7 +398,7 @@ export const MODAL_TYPES = {
 
 /**
  * Valid source values for REFERRAL_CTA_SHOWN / REFERRAL_CTA_CLICKED /
- * INVITE_LINK_SHARED events.
+ * PROFILE_LINK_COPIED / INVITE_LINK_SHARED events.
  *
  * Referral events also carry a `link_type` property so PostHog can compare
  * which link shape converts: 'invite_code' (/invite?code=<u>, credits the
