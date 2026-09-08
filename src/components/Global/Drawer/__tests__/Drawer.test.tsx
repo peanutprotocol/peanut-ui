@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from '..'
+import { Drawer, DrawerClose, DrawerContent, DrawerTitle, DrawerTrigger } from '..'
 import { dispatchBackPress, resetBackHandlersForTests } from '@/utils/back-handler'
 import { resetBottomNavVisibilityForTests, useBottomNavHidden } from '@/utils/bottom-nav-visibility'
 
@@ -22,6 +23,35 @@ beforeAll(() => {
 })
 
 describe('DrawerContent accessibility', () => {
+    it('focuses the dialog without activating an input and restores its trigger on close', async () => {
+        function Preview() {
+            const [open, setOpen] = useState(false)
+            return (
+                <Drawer open={open} onOpenChange={setOpen}>
+                    <DrawerTrigger>Open payment details</DrawerTrigger>
+                    {/* jsdom does not finish Vaul's exit animation. Unmount the
+                        content on close to exercise the focus-scope cleanup. */}
+                    {open && (
+                        <DrawerContent accessibleTitle="Payment details">
+                            <input aria-label="Amount" />
+                            <DrawerClose>Close payment details</DrawerClose>
+                        </DrawerContent>
+                    )}
+                </Drawer>
+            )
+        }
+        render(<Preview />)
+
+        const trigger = screen.getByRole('button', { name: 'Open payment details' })
+        trigger.focus()
+        fireEvent.click(trigger)
+        await waitFor(() => expect(screen.getByRole('dialog')).toHaveFocus())
+        expect(screen.getByRole('textbox', { name: 'Amount' })).not.toHaveFocus()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Close payment details' }))
+        await waitFor(() => expect(trigger).toHaveFocus())
+    })
+
     it('renders a visually hidden DialogTitle from accessibleTitle', () => {
         render(
             <Drawer open>

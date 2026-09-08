@@ -133,6 +133,7 @@ export const Profile = () => {
                     </ListGroup>
 
                     <ListGroup>
+                        <ProfileMenuItem icon="eye" label={t('accessibility')} href="/settings/accessibility" />
                         <ProfileMenuItem
                             icon="globe"
                             label={t('language')}

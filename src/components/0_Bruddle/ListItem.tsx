@@ -21,6 +21,7 @@ interface ListItemProps {
     className?: string
     'data-testid'?: string
     'aria-label'?: string
+    'aria-pressed'?: boolean
 }
 
 /**
@@ -44,6 +45,7 @@ export const ListItem = ({
     className,
     'data-testid': dataTestId,
     'aria-label': ariaLabel,
+    'aria-pressed': ariaPressed,
 }: ListItemProps) => {
     const { triggerHaptic } = useAppHaptic()
     const titleColor = disabled ? 'text-foreground-secondary' : 'text-foreground-primary'
@@ -56,6 +58,7 @@ export const ListItem = ({
         : undefined
     return (
         <Card
+            asButton={!!onClick}
             position={position}
             onClick={disabled ? undefined : handleClick}
             role={onClick ? 'button' : undefined}
@@ -72,6 +75,7 @@ export const ListItem = ({
             }
             aria-disabled={disabled || undefined}
             aria-label={ariaLabel}
+            aria-pressed={ariaPressed}
             data-testid={dataTestId}
             className={twMerge(
                 'flex items-center justify-between gap-3 p-4',
@@ -82,20 +86,20 @@ export const ListItem = ({
                 className
             )}
         >
-            <div className="flex min-w-0 items-center gap-3">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
                 {leading}
                 {/* plain strings get the board one-line truncation; custom nodes render
                     in a block wrapper untruncated (a div inside a span is invalid html
                     and truncate only ellipsizes text anyway) */}
                 <div className="flex min-w-0 flex-col gap-0.5">
                     {typeof title === 'string' ? (
-                        <span className={twMerge('truncate text-body-m-semibold', titleColor)}>{title}</span>
+                        <span className={twMerge('a11y-wrap truncate text-body-m-semibold', titleColor)}>{title}</span>
                     ) : (
                         <div className={twMerge('min-w-0 text-body-m-semibold', titleColor)}>{title}</div>
                     )}
                     {body &&
                         (typeof body === 'string' ? (
-                            <span className="truncate text-body-s text-foreground-secondary">{body}</span>
+                            <span className="a11y-wrap truncate text-body-s text-foreground-secondary">{body}</span>
                         ) : (
                             <div className="min-w-0 text-body-s text-foreground-secondary">{body}</div>
                         ))}

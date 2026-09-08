@@ -1,3 +1,4 @@
+import { prefersReducedMotion } from '@/utils/accessibility-preferences'
 import type { CreateTypes, Shape } from 'canvas-confetti'
 import { isCapacitor } from '@/utils/capacitor'
 
@@ -47,9 +48,6 @@ const REDUCED_MOTION_MIN_PARTICLES = 8
 // Read per burst, never cached at module load: the native document outlives
 // any single setting, so a value latched at boot would be days stale by the
 // time the user toggles Reduce Motion.
-function prefersReducedMotion(): boolean {
-    return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
-}
 
 /*
  * Rendering runs on a worker-backed OffscreenCanvas so star drawing never

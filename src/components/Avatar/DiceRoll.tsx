@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { useReducedMotion } from '@/hooks/useAccessibility'
 import { useTranslations } from 'next-intl'
 import { impactHaptic, heavyImpactHaptic, cancelHaptic } from '@/utils/haptics'
 import styles from './AvatarPicker.module.css'
@@ -12,10 +13,10 @@ export const DICE_ROLL_MS = 2400
 
 export function DiceRoll({ onComplete, onCancel }: { onComplete: () => void; onCancel: () => void }) {
     const t = useTranslations('avatar')
+    const reduced = useReducedMotion()
     const completeRef = useRef(onComplete)
     completeRef.current = onComplete
     useEffect(() => {
-        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
         const pulses = reduced
             ? []
             : [180, 430, 720, 1080, 1510, 1920].map((delay, index) =>
@@ -30,7 +31,7 @@ export function DiceRoll({ onComplete, onCancel }: { onComplete: () => void; onC
             window.clearTimeout(done)
             cancelHaptic()
         }
-    }, [])
+    }, [reduced])
     return (
         <div className={styles.rollStage}>
             <Button

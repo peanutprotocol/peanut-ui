@@ -3,7 +3,14 @@
         "fundsOnTheWay": "Fondos en camino",
         "genericError": "Algo salió mal. Intentá de nuevo o contactá soporte.",
         "tryDifferentCountry": "Probá con otro país.",
-        "slideToProceed": "Deslizá para continuar"
+        "slideToProceed": "Deslizá para continuar",
+        "accessibility": {
+            "embeddedFlow": "Verificación",
+            "feedback": "Comentarios",
+            "proceed": "Continuar",
+            "lock": "Bloquear tarjeta",
+            "cancelCard": "Cancelar tarjeta"
+        }
     },
     "home": {
         "activation": {
@@ -81,8 +88,10 @@
             "iosCopy": {
                 "surpriseDescriptionFirst": "Mirá tu cashback y cómo ganar más.",
                 "surpriseDescriptionNext": "Mirá tu cashback y cómo ganar más.",
-                "holdToUnwrap": "Mantené presionado para abrir tu cashback"
-            }
+                "holdToUnwrap": "Mantené presionado para abrir tu cashback",
+                "unwrap": "Abrir cashback"
+            },
+            "unwrap": "Abrir recompensa"
         },
         "carousel": {
             "usedPeanutTapToClaim": "<name>{inviteeName}</name> usó Peanut. Tocá para reclamar.",
@@ -360,7 +369,8 @@
         },
         "showFullNameConfirm": {
             "description": "Tu nombre completo se vuelve público en tu perfil, junto a tu nombre de usuario. Cualquier persona con tu enlace de Peanut puede verlo. Podés desactivarlo cuando quieras."
-        }
+        },
+        "accessibility": "Accesibilidad"
     },
     "settings": {
         "deleteAccount": {
@@ -369,6 +379,29 @@
             "blockedCta": "Mover mi plata",
             "doneDescription": "Tu cuenta está desactivada y tus datos desaparecerán en un plazo de 30 días. Gracias por abrir Peanut con nosotros — ¡cuidate mucho!",
             "error": "No pudimos eliminar tu cuenta. Intentá de nuevo."
+        },
+        "accessibility": {
+            "title": "Accesibilidad",
+            "largerText": "Texto más grande",
+            "largerTextDescription": "Facilita la lectura del texto en todo Peanut.",
+            "reduceMotion": "Reducir movimiento",
+            "reduceMotionDescription": "Reduce los movimientos y efectos animados.",
+            "motionSystem": "Seguir la configuración del dispositivo",
+            "on": "Activado",
+            "off": "Desactivado",
+            "highContrast": "Aumentar contraste",
+            "highContrastDescription": "Distingue mejor el texto secundario, los bordes y los indicadores de enfoque.",
+            "simplifiedConfirmations": "Confirmaciones simplificadas",
+            "simplifiedConfirmationsDescription": "Usá botones en lugar de deslizar o mantener presionado. Seguirás revisando un paso de confirmación separado.",
+            "preview": "Vista previa del texto",
+            "previewText": "Tus preferencias se aplican en todo Peanut y se guardan en este dispositivo.",
+            "deviceFeatures": "Funciones de accesibilidad del dispositivo",
+            "deviceFeaturesDescription": "Activa el lector de pantalla o el control por voz en la configuración de tu dispositivo. También puedes usar el tamaño de texto del dispositivo y el zoom del navegador.",
+            "alwaysOnDescription": "Las etiquetas claras y los estados en texto siempre están activados. No necesitan configuración adicional.",
+            "reportIssue": "Reportar un problema de accesibilidad",
+            "confirmDescription": "Confirmá esta acción para continuar. Podés cancelar para volver.",
+            "confirm": "Confirmar",
+            "cancel": "Cancelar"
         }
     },
     "limits": {
@@ -1520,6 +1553,11 @@
             "noResults": "Ningún país coincide",
             "clear": "Borrar búsqueda",
             "removeCountry": "Quitar {country}"
+        },
+        "validatedInput": {
+            "valid": "Todo listo",
+            "invalid": "Revisá este dato e intentá de nuevo.",
+            "label": "Destinatario"
         }
     },
     "errors": {

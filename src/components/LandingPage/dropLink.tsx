@@ -1,6 +1,6 @@
 'use client'
 import Image from 'next/image'
-import { motion } from 'framer-motion'
+import { motion } from '@/components/Accessibility/motion'
 import { Button } from '@/components/0_Bruddle/Button'
 import iphoneDropALink from '@/assets/iphone-ss/iphone-drop-a-link.webp'
 import iphoneDropALinkMobile from '@/assets/iphone-ss/iphone-drop-a-link-mobile.webp'

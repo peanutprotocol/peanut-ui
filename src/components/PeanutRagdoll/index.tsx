@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { useReducedMotion } from '@/hooks/useAccessibility'
 import { startRagdoll } from './ragdoll'
 
 // Canvas + ragdoll engine. Sized to the wrapping div, so the host — not the
@@ -28,6 +29,7 @@ import { startRagdoll } from './ragdoll'
 //     step flips done, then gone.
 //   • Card activation — peanut + card + coins in one physics box.
 export default function PeanutRagdoll() {
+    const reduced = useReducedMotion()
     const hostRef = useRef<HTMLDivElement>(null)
     const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -42,7 +44,7 @@ export default function PeanutRagdoll() {
             console.error('PeanutRagdoll failed to start', err)
             return
         }
-    }, [])
+    }, [reduced])
 
     useEffect(() => {
         const host = hostRef.current

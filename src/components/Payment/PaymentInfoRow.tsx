@@ -38,11 +38,10 @@ export const PaymentInfoRow = ({
                 hideBottomBorder && 'border-none',
                 onClick && 'cursor-pointer transition-colors duration-instant active:bg-background-disabled'
             )}
-            onClick={onClick}
             translate="no"
         >
             <div className="relative flex items-center">
-                <label className="text-body-xs font-semibold text-foreground-primary">{label}</label>
+                <span className="text-body-xs font-semibold text-foreground-primary">{label}</span>
                 {moreInfoText && (
                     <div className="relative z-20 flex items-center justify-center px-2">
                         <Tooltip content={moreInfoText} position="right">
@@ -61,7 +60,18 @@ export const PaymentInfoRow = ({
                         break-word only activates when a word can't fit, so
                         normal values render unchanged. */}
                     <div className="flex w-fit min-w-0 justify-end text-body-s font-bold break-words">
-                        <span className="min-w-0">{value}</span>
+                        {onClick ? (
+                            <button
+                                type="button"
+                                onClick={onClick}
+                                className="min-w-0 text-left underline underline-offset-2"
+                            >
+                                <span className="sr-only">{label}: </span>
+                                {value}
+                            </button>
+                        ) : (
+                            <span className="min-w-0">{value}</span>
+                        )}
                     </div>
                     {allowCopy && typeof value === 'string' && (
                         <CopyToClipboard textToCopy={copyValue ?? value} fill="black" iconSize="4" />

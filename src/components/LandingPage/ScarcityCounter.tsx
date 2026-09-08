@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { motion, useReducedMotion } from 'framer-motion'
+import { motion } from '@/components/Accessibility/motion'
+import { useReducedMotion } from '@/hooks/useAccessibility'
 import { ADMISSIONS_PER_WEEK } from '@/components/Card/doorTally.utils'
 
 // The counter starts one above the real weekly rate and ticks down once, so

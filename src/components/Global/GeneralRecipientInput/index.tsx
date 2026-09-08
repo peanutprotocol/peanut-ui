@@ -161,8 +161,8 @@ const GeneralRecipientInput = ({
 
     return (
         <div className="w-full">
-            <label className="mb-2 block text-left text-label-l">{t('generalRecipientInput.walletAddress')}</label>
             <ValidatedInput
+                label={t('generalRecipientInput.walletAddress')}
                 value={recipient.name ?? recipient.address}
                 placeholder={placeholder}
                 validate={checkAddress}

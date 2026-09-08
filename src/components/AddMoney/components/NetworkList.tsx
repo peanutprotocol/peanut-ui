@@ -75,14 +75,16 @@ const NetworkList = ({ onSelect, showEvmChips = false }: NetworkListProps) => {
                             className="overflow-hidden rounded-sm border border-border-default bg-background-default"
                         >
                             {item}
-                            <div
+                            <button
+                                type="button"
+                                aria-label={title}
                                 onClick={() => onSelect('EVM')}
-                                className="mx-4 border-t border-dashed border-border-default py-3"
+                                className="mx-4 block w-[calc(100%-2rem)] border-t border-dashed border-border-default py-3"
                             >
                                 <div className="flex flex-wrap gap-2">
                                     <EvmChainChips />
                                 </div>
-                            </div>
+                            </button>
                         </div>
                     )
                 }

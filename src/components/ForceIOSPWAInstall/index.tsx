@@ -7,9 +7,11 @@ import { twMerge } from '@/utils/tw'
 import { useGetBrowserType, BrowserType } from '@/hooks/useGetBrowserType'
 import { useAppDispatch } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
+import { useReducedMotion } from '@/hooks/useAccessibility'
 import { useTranslations } from 'next-intl'
 
 const ForceIOSPWAInstall = () => {
+    const reduced = useReducedMotion()
     const t = useTranslations('global')
     const dispatch = useAppDispatch()
     const { browserType, isLoading } = useGetBrowserType()
@@ -57,11 +59,12 @@ const ForceIOSPWAInstall = () => {
                 {!isLoading && (
                     <video
                         className="h-full max-h-96 w-full max-w-96 object-contain"
-                        autoPlay
+                        autoPlay={!reduced}
+                        controls={reduced}
                         loop
                         muted
                         playsInline
-                        key={videoSource}
+                        key={`${videoSource}-${reduced}`}
                     >
                         <source src={videoSource} type="video/quicktime" />
                         {t('forceIosPwaInstall.videoUnsupported')}

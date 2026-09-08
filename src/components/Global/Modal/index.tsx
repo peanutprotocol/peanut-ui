@@ -1,4 +1,4 @@
-import { Dialog, DialogBackdrop, DialogPanel, Transition } from '@headlessui/react'
+import { Dialog, DialogBackdrop, DialogPanel, DialogTitle, Transition } from '@headlessui/react'
 import { Fragment, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { twMerge } from '@/utils/tw'
@@ -12,6 +12,7 @@ type ModalProps = {
     classOverlay?: string
     classButtonClose?: string
     title?: string
+    accessibleTitle?: string
     visible: boolean
     onClose: () => void
     initialFocus?: React.MutableRefObject<HTMLElement | null>
@@ -28,6 +29,7 @@ const Modal = ({
     classOverlay,
     classButtonClose,
     title,
+    accessibleTitle,
     visible,
     onClose,
     initialFocus,
@@ -93,24 +95,25 @@ const Modal = ({
                             // transform-gpu + will-change promote the panel to its own
                             // compositor layer up front, so the scale/opacity enter tween
                             // doesn't hitch on first-frame rasterization (Android WebView)
-                            `relative bottom-0 z-10 mx-0 w-full max-w-[26rem] transform-gpu self-end rounded-md border-0 bg-white will-change-transform outline-none sm:m-auto sm:self-auto dark:bg-black ${
+                            `relative bottom-0 z-10 mx-0 max-h-[calc(100dvh-2rem)] w-full max-w-[26rem] transform-gpu self-end overflow-y-auto rounded-md border-0 bg-white will-change-transform outline-none sm:m-auto sm:self-auto dark:bg-black ${
                                 video
                                     ? 'static aspect-video max-w-[64rem] overflow-hidden bg-black shadow-[0_2.5rem_8rem_rgba(0,0,0,0.5)] dark:border-transparent'
                                     : ''
                             } ${classWrap}`
                         )}
                     >
+                        {accessibleTitle && !title && <DialogTitle className="sr-only">{accessibleTitle}</DialogTitle>}
                         {!hideOverlay ? (
                             <>
                                 {title ? (
                                     <>
-                                        <div
+                                        <DialogTitle
                                             className={
                                                 'border-b border-border-default px-4 py-4 text-start text-heading-card dark:border-white'
                                             }
                                         >
                                             {title}
-                                        </div>
+                                        </DialogTitle>
                                         <div className={classNameWrapperDiv}>{children}</div>
                                     </>
                                 ) : (
@@ -121,30 +124,34 @@ const Modal = ({
                                     top corner — no circle, border or shadow. The box is
                                     still 40px for the touch target, inset so the glyph
                                     lands ~16px from the panel edge. */}
-                                {video ? (
-                                    <button
-                                        type="button"
-                                        aria-label={tCommon('close')}
-                                        className={twMerge(
-                                            'absolute top-3 right-3 h-14 w-14 fill-white p-2 text-0',
-                                            classButtonClose
-                                        )}
-                                        onClick={onClose}
-                                    >
-                                        <Icon name="cancel" size={24} className="transition-colors" />
-                                    </button>
-                                ) : (
-                                    <Button
-                                        type="button"
-                                        variant="transparent"
-                                        size="small"
-                                        shape="square"
-                                        aria-label={tCommon('close')}
-                                        icon={<Icon name="cancel" size={20} className="transition-colors" />}
-                                        className={twMerge('absolute top-1 right-1 z-10 w-10 text-0', classButtonClose)}
-                                        onClick={onClose}
-                                    />
-                                )}
+                                {!preventClose &&
+                                    (video ? (
+                                        <button
+                                            type="button"
+                                            aria-label={tCommon('close')}
+                                            className={twMerge(
+                                                'absolute top-3 right-3 h-14 w-14 fill-white p-2 text-0',
+                                                classButtonClose
+                                            )}
+                                            onClick={onClose}
+                                        >
+                                            <Icon name="cancel" size={24} className="transition-colors" />
+                                        </button>
+                                    ) : (
+                                        <Button
+                                            type="button"
+                                            variant="transparent"
+                                            size="small"
+                                            shape="square"
+                                            aria-label={tCommon('close')}
+                                            icon={<Icon name="cancel" size={20} className="transition-colors" />}
+                                            className={twMerge(
+                                                'absolute top-1 right-1 z-10 w-10 text-0',
+                                                classButtonClose
+                                            )}
+                                            onClick={onClose}
+                                        />
+                                    ))}
                             </>
                         ) : (
                             <> {children}</>

@@ -13,6 +13,7 @@ import { useAppVersion } from '@/hooks/useAppVersion'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { openStoreReviewPage } from '@/utils/app-review'
 import { isNativeBridge } from '@/utils/capacitor'
+import { useReducedMotion } from '@/hooks/useAccessibility'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useTranslations } from 'next-intl'
 import { useEffect, useRef, useState } from 'react'
@@ -22,6 +23,7 @@ const TAP_WINDOW_MS = 2_000
 
 export const AboutView = ({ appVersion }: { appVersion: string }) => {
     const t = useTranslations('profile.about')
+    const reduced = useReducedMotion()
     const onBack = useSafeBack('/profile', { replace: true })
     // the bundled version is only the web value and the pre-bridge fallback
     const version = useAppVersion(appVersion)
@@ -40,8 +42,9 @@ export const AboutView = ({ appVersion }: { appVersion: string }) => {
     useEffect(() => setIsNative(isNativeBridge()), [])
 
     useEffect(() => {
-        if (betaRevealed) betaCardRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' })
-    }, [betaRevealed])
+        if (betaRevealed)
+            betaCardRef.current?.scrollIntoView?.({ behavior: reduced ? 'instant' : 'smooth', block: 'nearest' })
+    }, [betaRevealed, reduced])
 
     /**
      * The tap is what earns PEANUT_TEAM, and the badge is what the switch reads

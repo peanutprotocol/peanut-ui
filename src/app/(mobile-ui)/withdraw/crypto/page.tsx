@@ -826,7 +826,11 @@ export default function WithdrawCryptoPage() {
                 icon="alert"
                 footer={
                     <div className="w-full">
-                        <SlideToConfirm label={tCommon('slideToProceed')} onConfirm={handleCompatibilityProceed} />
+                        <SlideToConfirm
+                            confirmLabel={tCommon('accessibility.proceed')}
+                            label={tCommon('slideToProceed')}
+                            onConfirm={handleCompatibilityProceed}
+                        />
                     </div>
                 }
             />

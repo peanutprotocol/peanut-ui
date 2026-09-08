@@ -5,6 +5,7 @@ import { useFooterVisibility } from '@/context/footerVisibility'
 import { Widget } from '@typeform/embed-react'
 import { Roboto_Flex } from 'next/font/google'
 import React, { useEffect, useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import Modal from '../Modal'
 type LayoutProps = {
     children: React.ReactNode
@@ -19,6 +20,7 @@ const roboto = Roboto_Flex({
 })
 
 const Layout = ({ children, className }: LayoutProps) => {
+    const tCommon = useTranslations('common')
     const [isReady, setIsReady] = useState(false)
     const [showModal, setShowModal] = useState(false)
 
@@ -46,6 +48,7 @@ const Layout = ({ children, className }: LayoutProps) => {
                         </div>
                         <FooterVisibilityObserver />
                         <Modal
+                            accessibleTitle={tCommon('accessibility.feedback')}
                             visible={showModal}
                             onClose={() => {
                                 setShowModal(false)

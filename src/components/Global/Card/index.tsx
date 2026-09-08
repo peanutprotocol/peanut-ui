@@ -3,6 +3,7 @@ import { twMerge } from '@/utils/tw'
 import { type CardPosition } from './card.utils'
 
 interface CardProps {
+    asButton?: boolean
     children: React.ReactNode
     position?: CardPosition
     className?: string
@@ -15,10 +16,12 @@ interface CardProps {
     onKeyDown?: React.KeyboardEventHandler<HTMLDivElement>
     'aria-disabled'?: boolean
     'aria-label'?: string
+    'aria-pressed'?: boolean
 }
 
 const Card: React.FC<CardProps> = ({
     children,
+    asButton = false,
     position = 'single',
     className = '',
     onClick,
@@ -30,6 +33,7 @@ const Card: React.FC<CardProps> = ({
     onKeyDown,
     'aria-disabled': ariaDisabled,
     'aria-label': ariaLabel,
+    'aria-pressed': ariaPressed,
 }) => {
     const getBorderRadius = () => {
         switch (position) {
@@ -75,20 +79,28 @@ const Card: React.FC<CardProps> = ({
           }
         : undefined
 
+    const Element = asButton ? 'button' : 'div'
     return (
-        <div
-            ref={ref}
-            className={twMerge('w-full bg-white px-4 py-2', getBorderRadius(), getBorder(), className)}
+        <Element
+            type={asButton ? 'button' : undefined}
+            disabled={asButton ? ariaDisabled : undefined}
+            ref={ref as React.Ref<HTMLDivElement & HTMLButtonElement>}
+            className={twMerge('w-full bg-white px-4 py-2 text-left', getBorderRadius(), getBorder(), className)}
             onClick={onClick}
             data-testid={dataTestId}
             role={role ?? (interactive ? 'button' : undefined)}
             tabIndex={tabIndex ?? (interactive ? 0 : undefined)}
-            onKeyDown={onKeyDown ?? defaultKeyDown}
+            onKeyDown={
+                (asButton ? undefined : (onKeyDown ?? defaultKeyDown)) as
+                    | React.KeyboardEventHandler<HTMLDivElement & HTMLButtonElement>
+                    | undefined
+            }
             aria-disabled={ariaDisabled}
             aria-label={ariaLabel}
+            aria-pressed={ariaPressed}
         >
             {children}
-        </div>
+        </Element>
     )
 }
 

@@ -57,7 +57,14 @@
         },
         "exchangeRate": "Exchange rate",
         "slideToProceed": "Slide to Proceed",
-        "userAvatarAlt": "Avatar for {username}"
+        "userAvatarAlt": "Avatar for {username}",
+        "accessibility": {
+            "embeddedFlow": "Verification",
+            "feedback": "Feedback",
+            "proceed": "Continue",
+            "lock": "Lock card",
+            "cancelCard": "Cancel card"
+        }
     },
     "navigation": {
         "home": "Home",
@@ -209,8 +216,10 @@
                 "surpriseDescriptionNext": "Check out your cashback and how to earn more.",
                 "usedPeanut": "<name>{inviteeName}</name> paid with Peanut",
                 "rewardClaimed": "Cashback claimed!",
-                "holdToUnwrap": "Hold to unwrap your cashback"
-            }
+                "holdToUnwrap": "Hold to unwrap your cashback",
+                "unwrap": "Open cashback"
+            },
+            "unwrap": "Unwrap reward"
         },
         "carousel": {
             "rewardReady": "<b>+${amount}</b> reward ready!",
@@ -587,7 +596,8 @@
                 "revealed": "Beta updates switch revealed below.",
                 "appOnly": "Beta updates are only available in the Peanut app."
             }
-        }
+        },
+        "accessibility": "Accessibility"
     },
     "settings": {
         "language": {
@@ -610,6 +620,29 @@
             "sadPeanutAlt": "Sad peanut",
             "pointingPeanutAlt": "Peanut pointing",
             "cryingPeanutAlt": "Crying peanut"
+        },
+        "accessibility": {
+            "title": "Accessibility",
+            "largerText": "Larger text",
+            "largerTextDescription": "Make text easier to read throughout Peanut.",
+            "reduceMotion": "Reduce motion",
+            "reduceMotionDescription": "Reduce movement and animated effects.",
+            "motionSystem": "Follow device settings",
+            "on": "On",
+            "off": "Off",
+            "highContrast": "Increase contrast",
+            "highContrastDescription": "Make secondary text, borders, and focus indicators more distinct.",
+            "simplifiedConfirmations": "Simplified confirmations",
+            "simplifiedConfirmationsDescription": "Use buttons instead of sliding or holding. You will still review a separate confirmation step.",
+            "preview": "Text preview",
+            "previewText": "Your preferences apply throughout Peanut and are saved on this device.",
+            "deviceFeatures": "Using your device’s accessibility features",
+            "deviceFeaturesDescription": "Enable your screen reader or voice control in your device settings. Device text settings and browser zoom are also available.",
+            "alwaysOnDescription": "Clear labels and status text are always enabled. No extra setting is needed.",
+            "reportIssue": "Report an accessibility issue",
+            "confirmDescription": "Confirm this action to continue. You can cancel to go back.",
+            "confirm": "Confirm",
+            "cancel": "Cancel"
         }
     },
     "limits": {
@@ -3419,7 +3452,10 @@
             "addReference": "Add reference (optional)"
         },
         "validatedInput": {
-            "paste": "Paste <value></value>"
+            "paste": "Paste <value></value>",
+            "valid": "Looks good",
+            "invalid": "Check this value and try again.",
+            "label": "Recipient"
         },
         "progressBar": {
             "goalExceeded": "Goal exceeded!",

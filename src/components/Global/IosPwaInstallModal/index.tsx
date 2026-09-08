@@ -1,4 +1,5 @@
 import React from 'react'
+import { useReducedMotion } from '@/hooks/useAccessibility'
 import { useTranslations } from 'next-intl'
 
 import ActionModal from '../ActionModal'
@@ -6,6 +7,7 @@ import { BrowserType, useGetBrowserType } from '@/hooks/useGetBrowserType'
 import { useModalsContext } from '@/context/ModalsContext'
 
 const IosPwaInstallModal = () => {
+    const reduced = useReducedMotion()
     const t = useTranslations('global')
     const { browserType, isLoading } = useGetBrowserType()
     const { setIsIosPwaInstallModalOpen, isIosPwaInstallModalOpen } = useModalsContext()
@@ -32,7 +34,15 @@ const IosPwaInstallModal = () => {
 
     const videoContent =
         !isFirefox && !isLoading ? (
-            <video className="max-h-[60vh] w-full object-contain" autoPlay loop muted playsInline key={videoSource}>
+            <video
+                className="max-h-[60vh] w-full object-contain"
+                autoPlay={!reduced}
+                controls={reduced}
+                loop
+                muted
+                playsInline
+                key={`${videoSource}-${reduced}`}
+            >
                 {/* .mov assets are H.264 in a QuickTime container — Chrome/Edge/Firefox
                     play them under video/mp4 but reject video/quicktime. mp4 first;
                     quicktime stays as a fallback for older Safari. */}

@@ -1,6 +1,6 @@
 'use client'
 
-import StatusBadge, { type StatusType } from '@/components/Global/Badges/StatusBadge'
+import StatusBadge, { STATUS_LABEL_KEYS, type StatusType } from '@/components/Global/Badges/StatusBadge'
 import { isOpenRequestDisplay, isTestTransaction, PENDING_AMOUNT_STATUSES } from '@/utils/history.utils'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { type TransactionDirection, type TransactionType } from '@/components/TransactionDetails/transaction-types'
@@ -220,6 +220,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
 }) => {
     const router = useRouter()
     const t = useTranslations('transaction')
+    const tCommon = useTranslations('common')
     // FE-generated labels carry a catalog key — localize for every display
     // surface below; raw `userName` stays for data uses (test-tx marker,
     // profile URL, verification lookups).
@@ -342,7 +343,14 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                         </h1>
                     )}
                 </div>
-                {showBadge && <StatusBadge status={status!} size="medium" />}
+                <div role="status" aria-atomic="true">
+                    {showBadge ? (
+                        <StatusBadge status={status!} size="medium" />
+                    ) : (
+                        status &&
+                        !isOpenRequest && <span className="sr-only">{tCommon(STATUS_LABEL_KEYS[status])}</span>
+                    )}
+                </div>
             </div>
         </div>
     )

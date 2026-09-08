@@ -314,14 +314,16 @@ interface GiftBoxContentProps {
  */
 function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProps) {
     const t = useAppTranslations('home.perk')
-    const { holdProgress, isShaking, shakeIntensity, buttonProps } = useHoldToClaim({
-        onComplete: onHoldComplete,
-        disabled: claimPhase !== 'idle',
-        enableTapMode: true,
-        tapProgress: 12,
-        holdProgressPerSec: 80,
-        decayRate: 8,
-    })
+    const { holdProgress, isShaking, shakeIntensity, buttonProps, confirmationDialog, simplifiedConfirmations } =
+        useHoldToClaim({
+            onComplete: onHoldComplete,
+            label: t('unwrap'),
+            disabled: claimPhase !== 'idle',
+            enableTapMode: true,
+            tapProgress: 12,
+            holdProgressPerSec: 80,
+            decayRate: 8,
+        })
 
     // Ribbon opens outward based on hold progress (max 30deg spread)
     const ribbonSpread = (holdProgress / 100) * 30
@@ -359,7 +361,13 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
                 />
 
                 {/* Gift box container */}
-                <div {...buttonProps} className="relative cursor-pointer touch-none select-none">
+                <button
+                    type="button"
+                    aria-label={t('unwrap')}
+                    disabled={claimPhase !== 'idle'}
+                    {...buttonProps}
+                    className="relative cursor-pointer touch-manipulation select-none"
+                >
                     {/* Gift box */}
                     <div
                         className={`gift-box-shine relative h-32 w-44 overflow-hidden rounded-xl border-4 border-action-primary bg-gradient-to-br from-action-primary/20 via-white to-action-primary/20 shadow-xl transition-transform ${holdProgress > 0 ? 'scale-[0.98]' : ''}`}
@@ -454,11 +462,14 @@ function GiftBoxContent({ perk, onHoldComplete, claimPhase }: GiftBoxContentProp
                             </div>
                         </>
                     )}
-                </div>
+                </button>
             </div>
+            {confirmationDialog}
 
             {/* Instructions */}
-            <p className="mt-6 text-center text-body-s text-foreground-secondary">{t('holdToUnwrap')}</p>
+            <p className="mt-6 text-center text-body-s text-foreground-secondary">
+                {simplifiedConfirmations ? t('unwrap') : t('holdToUnwrap')}
+            </p>
         </div>
     )
 }

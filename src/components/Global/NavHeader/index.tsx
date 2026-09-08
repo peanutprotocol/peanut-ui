@@ -83,19 +83,17 @@ const NavHeader = ({
                 {hideBackBtn ? (
                     <div />
                 ) : !onPrev ? (
-                    <Link href={href ?? '/home'}>
-                        <Button
-                            variant="stroke"
-                            className={navCircleBtn}
-                            aria-label={tCommon('back')}
-                            data-testid="nav-back"
-                        >
-                            <Icon
-                                name={icon}
-                                size={20}
-                                className={twMerge(icon === 'chevron-up' && '-rotate-90') || undefined}
-                            />
-                        </Button>
+                    <Link
+                        href={href ?? '/home'}
+                        className={twMerge('btn btn-stroke', navCircleBtn)}
+                        aria-label={tCommon('back')}
+                        data-testid="nav-back"
+                    >
+                        <Icon
+                            name={icon}
+                            size={20}
+                            className={twMerge(icon === 'chevron-up' && '-rotate-90') || undefined}
+                        />
                     </Link>
                 ) : (
                     <Button
@@ -114,7 +112,7 @@ const NavHeader = ({
                     </Button>
                 )}
                 {!hideLabel && (
-                    <div
+                    <h1
                         className={twMerge(
                             // board 17343:1781 title is Heading/S. The stock size +
                             // weight pair used here happened to render the same
@@ -122,12 +120,12 @@ const NavHeader = ({
                             // moment Heading/S moves.
                             // min-w-max let a long title run under the 40px side buttons
                             // on 360px screens; cap it to the space between them instead
-                            'absolute top-1/2 left-1/2 max-w-[calc(100%-8rem)] -translate-x-1/2 -translate-y-1/2 transform truncate pb-1 text-heading-s',
+                            'a11y-nav-title absolute top-1/2 left-1/2 max-w-[calc(100%-8rem)] -translate-x-1/2 -translate-y-1/2 transform truncate pb-1 text-heading-s',
                             titleClassName
                         )}
                     >
                         {label}
-                    </div>
+                    </h1>
                 )}
 
                 {rightElement}

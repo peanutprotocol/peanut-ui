@@ -68,7 +68,11 @@ export const OnrampConfirmationModal = ({
                     </div>
                     {/* data-vaul-no-drag: the horizontal slide gesture must not start a drawer drag */}
                     <div className="mt-4 w-full" data-vaul-no-drag>
-                        <SlideToConfirm label={tCommon('slideToProceed')} onConfirm={onConfirm} />
+                        <SlideToConfirm
+                            confirmLabel={tCommon('accessibility.proceed')}
+                            label={tCommon('slideToProceed')}
+                            onConfirm={onConfirm}
+                        />
                     </div>
                 </div>
             </DrawerContent>

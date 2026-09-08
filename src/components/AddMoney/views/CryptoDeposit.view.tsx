@@ -179,14 +179,7 @@ const CryptoDepositView = ({
                             </div>
 
                             {/* supported networks section */}
-                            <div
-                                onClick={() => {
-                                    if (isEvm) {
-                                        setShowSupportedNetworks(true)
-                                    }
-                                }}
-                                className={`border-t border-border-default p-4 ${isEvm ? 'cursor-pointer' : ''}`}
-                            >
+                            <div className={`border-t border-border-default p-4 ${isEvm ? 'cursor-pointer' : ''}`}>
                                 <p className="mb-2 text-label-l">{t('supportedNetworks')}</p>
                                 <div className="flex items-center gap-2">
                                     <div className="flex flex-wrap gap-2">
@@ -212,6 +205,8 @@ const CryptoDepositView = ({
                                     </div>
                                     {isEvm && (
                                         <Button
+                                            onClick={() => setShowSupportedNetworks(true)}
+                                            aria-label={t('supportedNetworks')}
                                             shadowSize="4"
                                             size="small"
                                             className="ml-auto h-6 w-6 flex-shrink-0 rounded-full p-0 shadow-[0.12rem_0.12rem_0_var(--color-shadow-primary)]"

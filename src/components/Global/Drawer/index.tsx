@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { twMerge } from '@/utils/tw'
 import { Drawer as DrawerPrimitive } from 'vaul'
+import { useReducedMotion } from '@/hooks/useAccessibility'
 import { useBackHandler } from '@/hooks/useBackHandler'
 import { acquireBottomNavHide } from '@/utils/bottom-nav-visibility'
 
@@ -35,6 +36,7 @@ const Drawer = ({
     modal = true,
     ...props
 }: DrawerProps) => {
+    const reduced = useReducedMotion()
     const [uncontrolledOpen, setUncontrolledOpen] = React.useState(defaultOpen ?? false)
     const isControlled = open !== undefined
     const isOpen = isControlled ? open : uncontrolledOpen
@@ -60,7 +62,8 @@ const Drawer = ({
     const Root = nested ? DrawerPrimitive.NestedRoot : DrawerPrimitive.Root
     return (
         <Root
-            shouldScaleBackground={shouldScaleBackground}
+            autoFocus
+            shouldScaleBackground={!reduced && shouldScaleBackground}
             snapToSequentialPoint
             open={isOpen}
             defaultOpen={defaultOpen}
@@ -97,52 +100,72 @@ type DrawerContentProps = React.ComponentPropsWithoutRef<typeof DrawerPrimitive.
 }
 
 const DrawerContent = React.forwardRef<React.ElementRef<typeof DrawerPrimitive.Content>, DrawerContentProps>(
-    ({ className, children, accessibleTitle, scrollAreaClassName, scrollAreaRef, ...props }, ref) => (
-        <DrawerPortal>
-            <DrawerOverlay />
-            <DrawerPrimitive.Content
-                ref={ref}
-                className={twMerge(
-                    // chrome per the TX Details board (17490:115877): white background,
-                    // no border, handle 32x5 sitting 8px from the top with 24px below.
-                    // tx-details board 17835:84492: 16px top corners (was a hardcoded 10px)
-                    // bg-white is deliberate (#2984, kush ruling 2026-09-07): the sheet
-                    // is a clean white surface, not the page background
-                    'fixed inset-x-0 bottom-0 z-50 mt-24 flex flex-col rounded-t-2xl bg-white',
-                    className
-                )}
-                aria-describedby={undefined}
-                {...props}
-                // no onTouchMove stopPropagation here: it silenced vaul's own
-                // document-level touchmove handlers (scroll containment + drag
-                // coordination), which broke dragging the sheet from its body.
-                // pull-to-refresh ignores drawer touches itself (usePullToRefresh).
-            >
-                {accessibleTitle && <DrawerTitle className="sr-only">{accessibleTitle}</DrawerTitle>}
-                <div className="mx-auto mt-2 mb-6 h-[5px] w-8 rounded-round bg-foreground-secondary" />
-                <div className="flex w-full justify-center">
-                    {/* The scroll wrapper owns the horizontal L/16 container
-                     * padding (design.md spacing table). It must live HERE,
-                     * inside the overflow box: overflow-auto clips painting at
-                     * its own edge, so padding on the panel around it leaves a
-                     * w-full button's 4px offset shadow outside the clip box —
-                     * cut off in a straight line. Consumers must not re-add
-                     * horizontal padding on the panel or on their content. */}
-                    <div
-                        ref={scrollAreaRef}
-                        className={twMerge(
-                            // scrollbar-none: android flashes a scrollbar on this
-                            // container while the sheet itself is being dragged
-                            'scrollbar-none max-h-[80vh] w-full overflow-auto px-4 pb-safe-bottom md:max-w-xl',
-                            scrollAreaClassName
-                        )}
-                    >
-                        {children}
+    ({ className, children, accessibleTitle, scrollAreaClassName, scrollAreaRef, ...props }, ref) => {
+        const contentRef = React.useRef<HTMLDivElement | null>(null)
+        const returnFocusRef = React.useRef<HTMLElement | null>(null)
+        return (
+            <DrawerPortal>
+                <DrawerOverlay />
+                <DrawerPrimitive.Content
+                    ref={(node) => {
+                        contentRef.current = node
+                        if (typeof ref === 'function') ref(node)
+                        else if (ref) ref.current = node
+                    }}
+                    onOpenAutoFocus={(event) => {
+                        returnFocusRef.current =
+                            document.activeElement instanceof HTMLElement ? document.activeElement : null
+                        event.preventDefault()
+                        contentRef.current?.focus()
+                    }}
+                    onCloseAutoFocus={(event) => {
+                        if (returnFocusRef.current?.isConnected) {
+                            event.preventDefault()
+                            returnFocusRef.current.focus()
+                        }
+                    }}
+                    className={twMerge(
+                        // chrome per the TX Details board (17490:115877): white background,
+                        // no border, handle 32x5 sitting 8px from the top with 24px below.
+                        // tx-details board 17835:84492: 16px top corners (was a hardcoded 10px)
+                        // bg-white is deliberate (#2984, kush ruling 2026-09-07): the sheet
+                        // is a clean white surface, not the page background
+                        'fixed inset-x-0 bottom-0 z-50 mt-24 flex flex-col rounded-t-2xl bg-white',
+                        className
+                    )}
+                    aria-describedby={undefined}
+                    {...props}
+                    // no onTouchMove stopPropagation here: it silenced vaul's own
+                    // document-level touchmove handlers (scroll containment + drag
+                    // coordination), which broke dragging the sheet from its body.
+                    // pull-to-refresh ignores drawer touches itself (usePullToRefresh).
+                >
+                    {accessibleTitle && <DrawerTitle className="sr-only">{accessibleTitle}</DrawerTitle>}
+                    <div className="mx-auto mt-2 mb-6 h-[5px] w-8 rounded-round bg-foreground-secondary" />
+                    <div className="flex w-full justify-center">
+                        {/* The scroll wrapper owns the horizontal L/16 container
+                         * padding (design.md spacing table). It must live HERE,
+                         * inside the overflow box: overflow-auto clips painting at
+                         * its own edge, so padding on the panel around it leaves a
+                         * w-full button's 4px offset shadow outside the clip box —
+                         * cut off in a straight line. Consumers must not re-add
+                         * horizontal padding on the panel or on their content. */}
+                        <div
+                            ref={scrollAreaRef}
+                            className={twMerge(
+                                // scrollbar-none: android flashes a scrollbar on this
+                                // container while the sheet itself is being dragged
+                                'scrollbar-none max-h-[80vh] w-full overflow-auto px-4 pb-safe-bottom md:max-w-xl',
+                                scrollAreaClassName
+                            )}
+                        >
+                            {children}
+                        </div>
                     </div>
-                </div>
-            </DrawerPrimitive.Content>
-        </DrawerPortal>
-    )
+                </DrawerPrimitive.Content>
+            </DrawerPortal>
+        )
+    }
 )
 DrawerContent.displayName = 'DrawerContent'
 

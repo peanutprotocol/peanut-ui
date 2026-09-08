@@ -64,14 +64,16 @@ export const HoldToClaimButton: FC<Props> = ({
     onShakeChange,
     ariaLabel,
 }) => {
-    const { holdProgress, isShaking, shakeIntensity, buttonProps } = useHoldToClaim({
-        onComplete,
-        disabled: disabled || loading,
-        enableTapMode,
-        tapProgress,
-        holdProgressPerSec,
-        decayRate,
-    })
+    const { holdProgress, isShaking, shakeIntensity, buttonProps, confirmationDialog, simplifiedConfirmations } =
+        useHoldToClaim({
+            onComplete,
+            label: children || ariaLabel,
+            disabled: disabled || loading,
+            enableTapMode,
+            tapProgress,
+            holdProgressPerSec,
+            decayRate,
+        })
 
     // Surface shake state to the parent. Use a latest-ref so inline
     // arrow-fn callers don't cause an infinite render loop (their callback
@@ -88,24 +90,30 @@ export const HoldToClaimButton: FC<Props> = ({
     }, [isShaking, shakeIntensity])
 
     return (
-        <Button
-            {...buttonProps}
-            variant="purple"
-            shadowSize="4"
-            disabled={disabled || loading}
-            loading={loading}
-            aria-label={ariaLabel}
-            className={`${buttonProps.className ?? ''} w-full`}
-        >
-            {/* Solid black overlay fills left→right with holdProgress.
+        <>
+            <Button
+                {...buttonProps}
+                variant="purple"
+                shadowSize="4"
+                disabled={disabled || loading}
+                loading={loading}
+                aria-label={ariaLabel}
+                className={`${buttonProps.className ?? ''} w-full`}
+            >
+                {/* Solid black overlay fills left→right with holdProgress.
                 Matches the QR-claim button exactly: bg-black (not /30),
                 transition-all duration-instant. */}
-            <div
-                className="absolute inset-0 bg-black transition-all duration-instant"
-                style={{ width: `${holdProgress}%`, left: 0 }}
-            />
-            <span className="relative z-10">{children}</span>
-        </Button>
+                {!simplifiedConfirmations && (
+                    <div
+                        aria-hidden="true"
+                        className="absolute inset-0 bg-black transition-all duration-instant"
+                        style={{ width: `${holdProgress}%`, left: 0 }}
+                    />
+                )}
+                <span className="relative z-10">{children}</span>
+            </Button>
+            {confirmationDialog}
+        </>
     )
 }
 

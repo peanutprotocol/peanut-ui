@@ -45,6 +45,14 @@ jest.mock('@/services/rain', () => ({
     },
 }))
 // Modal chrome and the slide gesture are not under test — render passthroughs.
+jest.mock('@headlessui/react', () => ({
+    ...jest.requireActual('@headlessui/react'),
+    DialogTitle: ({ as: _as, ...props }: React.HTMLAttributes<HTMLHeadingElement> & { as?: string }) => (
+        <h3 {...props} />
+    ),
+    Description: ({ as: _as, ...props }: React.HTMLAttributes<HTMLDivElement> & { as?: string }) => <div {...props} />,
+}))
+
 jest.mock('@/components/Global/Modal', () => ({
     __esModule: true,
     default: ({ visible, children }: { visible: boolean; children: React.ReactNode }) =>

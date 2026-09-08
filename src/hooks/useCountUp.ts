@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { animate } from 'framer-motion'
+import { useReducedMotion } from '@/hooks/useAccessibility'
 
 const STORAGE_PREFIX = 'peanut_points_'
 
@@ -23,6 +24,7 @@ interface UseCountUpOptions {
  * - Returns the current animated integer value.
  */
 export function useCountUp(target: number, options: UseCountUpOptions = {}): number {
+    const reduced = useReducedMotion()
     const { storageKey, duration = 1.5, enabled = true } = options
 
     const [display, setDisplay] = useState(() => {
@@ -38,6 +40,12 @@ export function useCountUp(target: number, options: UseCountUpOptions = {}): num
     const prevTargetRef = useRef(target)
 
     useEffect(() => {
+        if (reduced) {
+            controlsRef.current?.stop()
+            isAnimating.current = false
+            setDisplay(target)
+            return
+        }
         if (!enabled || hasAnimated.current) return
 
         const from = display
@@ -75,7 +83,7 @@ export function useCountUp(target: number, options: UseCountUpOptions = {}): num
             isAnimating.current = false
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps -- display intentionally excluded to avoid re-triggering
-    }, [enabled, target, duration, storageKey])
+    }, [enabled, target, duration, storageKey, reduced])
 
     // if target changes after animation completed (e.g. refetch), snap to new value
     useEffect(() => {

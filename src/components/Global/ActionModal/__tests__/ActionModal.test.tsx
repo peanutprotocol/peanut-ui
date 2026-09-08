@@ -9,6 +9,14 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import ActionModal from '@/components/Global/ActionModal'
 
+jest.mock('@headlessui/react', () => ({
+    ...jest.requireActual('@headlessui/react'),
+    DialogTitle: ({ as: _as, ...props }: React.HTMLAttributes<HTMLHeadingElement> & { as?: string }) => (
+        <h3 {...props} />
+    ),
+    Description: ({ as: _as, ...props }: React.HTMLAttributes<HTMLDivElement> & { as?: string }) => <div {...props} />,
+}))
+
 jest.mock('@/components/Global/Modal', () => ({
     __esModule: true,
     default: ({ visible, children }: { visible: boolean; children: React.ReactNode }) =>

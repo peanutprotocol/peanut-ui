@@ -42,6 +42,7 @@ const COPY_KEYS = {
 
 const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
     const t = useTranslations('card')
+    const tCommon = useTranslations('common')
     const [phase, setPhase] = useState<Phase>('prompt')
     const [error, setError] = useState<string | null>(null)
     const queryClient = useQueryClient()
@@ -129,6 +130,7 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
             {showError && <p className="text-body-s text-foreground-error">{error}</p>}
             {showSlide && (
                 <SlideToConfirm
+                    confirmLabel={tCommon('accessibility.lock')}
                     label={phase === 'loading' ? t('lockModal.locking') : t('lockModal.slideToLock')}
                     onConfirm={run}
                     disabled={phase === 'loading'}

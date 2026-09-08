@@ -1214,6 +1214,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 footer={
                     <div className="space-y-3 w-full">
                         <SlideToConfirm
+                            confirmLabel={tCommon('accessibility.proceed')}
                             label={tCommon('slideToProceed')}
                             onConfirm={() => {
                                 // for cross-chain claims, advance to the confirm screen first

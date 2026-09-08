@@ -1,6 +1,8 @@
 'use client'
 
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { AnimatePresence } from 'framer-motion'
+import { motion } from '@/components/Accessibility/motion'
+import { useReducedMotion } from '@/hooks/useAccessibility'
 import React, { useEffect } from 'react'
 import { Notification } from './Notification'
 import type { ToastMessage } from './Toast'

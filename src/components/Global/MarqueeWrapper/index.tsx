@@ -1,5 +1,6 @@
 'use client'
 
+import { useReducedMotion } from '@/hooks/useAccessibility'
 import Image from 'next/image'
 import Link from 'next/link'
 import Marquee from 'react-fast-marquee'
@@ -22,12 +23,13 @@ export function MarqueeWrapper({
     direction = 'left',
     className = 'border-b-1 border-black border',
 }: MarqueeWrapperProps) {
+    const reduced = useReducedMotion()
     const baseClass = `${className} ${backgroundColor}`
     const _className = onClick ? `${baseClass} cursor-pointer` : baseClass
 
     return (
         <div className={_className} onClick={onClick}>
-            <Marquee autoFill speed={30} direction={direction}>
+            <Marquee play={!reduced} autoFill speed={30} direction={direction}>
                 <div className="flex flex-row items-center">{children}</div>
             </Marquee>
         </div>

@@ -3,16 +3,19 @@ import MoreInfo from '@/components/Global/MoreInfo'
 import { createSmartPasteHandler, type PasteFieldKind } from '@/utils/clipboard-extract.utils'
 import { useClipboardSuggestion } from '@/hooks/useClipboardSuggestion'
 import { useDebounce } from '@/hooks/useDebounce'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence } from 'framer-motion'
+import { motion } from '@/components/Accessibility/motion'
 import * as Sentry from '@sentry/nextjs'
 import { useTranslations } from 'next-intl'
-import { type ChangeEvent, useEffect, useRef, useState } from 'react'
+import { type ChangeEvent, useEffect, useId, useRef, useState } from 'react'
 import { twMerge } from '@/utils/tw'
 import { Icon } from '../Icons/Icon'
 import Loading from '../Loading'
+import { useReducedMotion } from '@/hooks/useAccessibility'
 
 type ValidatedInputProps = {
     value: string
+    label?: string
     placeholder?: string
     debounceTime?: number
     validate: (value: string) => Promise<boolean>
@@ -36,6 +39,7 @@ export type InputUpdate = {
 
 const ValidatedInput = ({
     placeholder = '',
+    label,
     value,
     debounceTime = 750,
     onUpdate,
@@ -51,6 +55,8 @@ const ValidatedInput = ({
     smartPasteKind,
 }: ValidatedInputProps) => {
     const t = useTranslations('global')
+    const inputId = useId()
+    const reduced = useReducedMotion()
     const [isValid, setIsValid] = useState(false)
     const [isValidating, setIsValidating] = useState(false)
     const debouncedValue = useDebounce(value, debounceTime)
@@ -169,8 +175,19 @@ const ValidatedInput = ({
         })
     }
 
+    const settled =
+        !!value &&
+        !isInputChanging &&
+        !isValidating &&
+        debouncedValue === value &&
+        (!shouldValidate || shouldValidate(value))
+    const invalid = settled && !isValid
+    const status = settled ? (isValid ? t('validatedInput.valid') : t('validatedInput.invalid')) : ''
     return (
         <div className="w-full">
+            <label htmlFor={inputId} className={label ? 'mb-2 block text-body-s' : 'sr-only'}>
+                {label || placeholder || name || t('validatedInput.label')}
+            </label>
             <div
                 className={twMerge(
                     // the composed box IS the input chrome: DS states only, callers
@@ -178,7 +195,7 @@ const ValidatedInput = ({
                     // same state model as .input: 3px blue ring replaces the border
                     // on focus; base outline-color stops the black->blue flash
                     'relative w-full rounded-sm border border-border-default bg-background-default outline-action-focus focus-within:border-transparent focus-within:outline-[3px] focus-within:outline-action-focus focus-within:outline-solid',
-                    value && !isValidating && !isValid && debouncedValue === value ? 'border-border-error' : '',
+                    invalid ? 'border-border-error' : '',
                     className
                 )}
                 translate="no"
@@ -194,6 +211,10 @@ const ValidatedInput = ({
                 <div className="notranslate flex w-full items-center" translate="no">
                     <BaseInput
                         ref={inputRef}
+                        id={inputId}
+                        aria-invalid={invalid || undefined}
+                        aria-describedby={`${inputId}-status`}
+                        aria-busy={isValidating || undefined}
                         type="text"
                         value={formatDisplayValue ? formatDisplayValue(value) : value}
                         onChange={handleChange}
@@ -240,7 +261,7 @@ const ValidatedInput = ({
                                 </div>
                             ) : !!isSetupFlow && !!isValid && !isInputChanging ? (
                                 <div className="mr-2 flex size-5 items-center justify-center rounded-full bg-background-icon-bubble-green">
-                                    <Icon size={12} className="rounded-full p-0 text-white" name="check" />
+                                    <Icon size={12} className="rounded-full p-0 text-foreground-primary" name="check" />
                                 </div>
                             ) : (
                                 <button
@@ -259,13 +280,21 @@ const ValidatedInput = ({
                     )}
                 </div>
             </div>
+            <p
+                id={`${inputId}-status`}
+                role="status"
+                aria-atomic="true"
+                className={invalid ? 'mt-1 text-body-s text-foreground-error' : 'sr-only'}
+            >
+                {status}
+            </p>
             <AnimatePresence initial={false}>
                 {smartPasteKind && suggestion && !value && (
                     <motion.div
                         initial={{ height: 0, opacity: 0, marginTop: 0 }}
                         animate={{ height: 'auto', opacity: 1, marginTop: 4 }}
                         exit={{ height: 0, opacity: 0, marginTop: 0 }}
-                        transition={{ duration: 0.25, ease: 'easeOut' }}
+                        transition={{ duration: reduced ? 0 : 0.25, ease: 'easeOut' }}
                         className="overflow-hidden"
                     >
                         <button

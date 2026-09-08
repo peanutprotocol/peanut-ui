@@ -75,6 +75,7 @@ function detectPlatform(): Platform {
 
 export default function BalanceWarningModal({ visible, onCloseAction }: BalanceWarningModalProps) {
     const t = useTranslations('global')
+    const tCommon = useTranslations('common')
     const platformInfo = useMemo(() => {
         const platform = detectPlatform()
         return PLATFORM_INFO[platform]
@@ -135,6 +136,7 @@ export default function BalanceWarningModal({ visible, onCloseAction }: BalanceW
             footer={
                 <div className="w-full">
                     <SlideToConfirm
+                        confirmLabel={tCommon('accessibility.proceed')}
                         onConfirm={() => {
                             posthog.capture(ANALYTICS_EVENTS.MODAL_CTA_CLICKED, {
                                 modal_type: MODAL_TYPES.BALANCE_WARNING,

@@ -141,8 +141,6 @@ const robotoFlexBold = localFont({
 export const viewport: Viewport = {
     width: 'device-width',
     initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
     colorScheme: 'light',
     viewportFit: 'cover',
     // Renders <meta name="theme-color">, which Android Chrome applies
