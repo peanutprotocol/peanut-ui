@@ -31,7 +31,7 @@ function Consumer() {
     return (
         <button
             onClick={() => {
-                handled = interceptAppCta(MIGRATION_SURFACES.LANDING_RATES, { dest: '/send' })
+                handled = interceptAppCta(MIGRATION_SURFACES.LANDING_RATES)
             }}
         >
             cta
@@ -54,8 +54,6 @@ describe('AppModalProvider', () => {
         mockOpenStore.mockClear()
     })
 
-    // the modal is code-split (next/dynamic, ssr:false) so the QR library stays
-    // out of the landing page's main chunk — it arrives a tick after the click
     it('opens one modal, tagged with the calling surface, on desktop', async () => {
         renderCta()
         expect(screen.queryByTestId('qr-modal')).not.toBeInTheDocument()
@@ -64,20 +62,18 @@ describe('AppModalProvider', () => {
 
         expect(handled).toBe(true)
         expect(await screen.findByTestId('qr-modal')).toHaveTextContent('landing_rates')
-        // the hand-off has to survive the desktop branch too: it is what the
-        // modal's QR encodes, so the scanning phone lands on /send after install
-        expect(screen.getByTestId('qr-modal')).toHaveAttribute('data-handoff', '/send')
+        expect(screen.getByTestId('qr-modal')).toHaveAttribute('data-handoff', '')
         expect(mockOpenStore).not.toHaveBeenCalled()
     })
 
-    it('bounces a phone straight to its store, carrying the hand-off', () => {
+    it('opens the phone store with the calling surface', () => {
         mockDeviceType.mockReturnValue(DeviceType.ANDROID)
         renderCta()
 
         fireEvent.click(screen.getByRole('button', { name: 'cta' }))
 
         expect(handled).toBe(true)
-        expect(mockOpenStore).toHaveBeenCalledWith('android', 'landing_rates', { dest: '/send' })
+        expect(mockOpenStore).toHaveBeenCalledWith('android', 'landing_rates')
         expect(screen.queryByTestId('qr-modal')).not.toBeInTheDocument()
     })
 

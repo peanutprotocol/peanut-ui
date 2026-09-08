@@ -7,12 +7,10 @@ import StoreBadges from '@/components/Migration/StoreBadges'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { SELF_URL } from '@/constants/general.consts'
 import { type MigrationSurface } from '@/constants/migration.consts'
-
 import { buildDeferredPayload } from '@/utils/deferred-link'
 import type { StoreHandoff } from '@/utils/migration.utils'
 
-// one smart QR instead of a per-store toggle: it encodes /app, which
-// redirects to the store of whichever phone scans it.
+/** Generic downloads encode bare /app; explicit guest handoffs also carry their campaign and destination. */
 export default function DownloadQR({ surface, handoff }: { surface: MigrationSurface; handoff?: StoreHandoff }) {
     const t = useTranslations('migration')
     const [payload, setPayload] = useState<string>()
@@ -24,17 +22,14 @@ export default function DownloadQR({ surface, handoff }: { surface: MigrationSur
         posthog.capture(ANALYTICS_EVENTS.MIGRATION_QR_SHOWN, { surface })
     }, [surface])
 
-    // the serving origin, not SELF_URL: a preview's QR must point at the
-    // preview (SELF_URL would send scanners to prod) and a LAN-served dev
-    // build must encode the LAN address so a real phone can scan it
+    // Keep preview and LAN scans on the same server as the displayed QR.
     const origin = typeof window !== 'undefined' ? window.location.origin : SELF_URL
 
     return (
         <div className="flex w-full flex-col items-center gap-3 py-2">
             <QRCodeWrapper url={`${origin}/app${payload ? `?${payload}` : ''}`} />
             <span className="text-body-xs text-foreground-secondary">{t('qr.scanHint')}</span>
-            {/* desktop can install directly too (e.g. Google Play from the browser) */}
-            <StoreBadges surface={surface} appearance="stacked" payload={payload} />
+            <StoreBadges surface={surface} payload={payload} />
         </div>
     )
 }

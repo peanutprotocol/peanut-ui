@@ -1,34 +1,20 @@
 'use client'
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useState, type ReactNode } from 'react'
 import dynamic from 'next/dynamic'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { isCapacitor } from '@/utils/capacitor'
-import { openStore, type StoreHandoff } from '@/utils/migration.utils'
+import { openStore } from '@/utils/migration.utils'
 import { type MigrationSurface } from '@/constants/migration.consts'
 
-/**
- * One scan-to-download modal for the whole landing page, hoisted above the
- * server-rendered folds so every re-pointed CTA — the rates widget, the
- * countries illustration, the get-the-app fold — opens the same instance and
- * only has to say which surface it is calling from.
- *
- * `interceptAppCta` is the whole contract: call it first in a CTA handler and
- * bail when it returns true. Desktop opens the modal, phones bounce straight to
- * their store carrying the hand-off, and with the flag off (or inside the
- * native app) it returns false and the CTA does whatever it did before.
- */
-// Split out: this provider wraps every landing fold, so a static import puts
-// ScanToDownloadModal -> DownloadQR -> QRCodeWrapper -> react-qr-code in the
-// landing page's main chunk for every visitor, flag off included. The modal
-// only ever renders after a click, so deferring it costs nothing.
+// Load the QR library only after a desktop CTA is clicked.
 const ScanToDownloadModal = dynamic(() => import('@/components/Migration/ScanToDownloadModal'), { ssr: false })
 
-type AppModalValue = (surface: MigrationSurface, handoff?: StoreHandoff) => boolean
+type AppModalValue = (surface: MigrationSurface) => boolean
 
 const AppModalContext = createContext<AppModalValue>(() => false)
 
-/** Safe outside a provider: the fold keeps its flag-off behaviour. */
+/** The returned handler reports whether the store or QR modal handled the click; false leaves navigation to the caller. */
 export function useAppModal(): AppModalValue {
     return useContext(AppModalContext)
 }
@@ -36,38 +22,25 @@ export function useAppModal(): AppModalValue {
 export function AppModalProvider({ children }: { children: ReactNode }) {
     const migrationOn = useMigrationFlag()
     const { deviceType } = useDeviceType()
-    // surface AND hand-off together: the desktop modal's QR has to encode where
-    // the scanning phone should land, so dropping the hand-off here would make
-    // `dest` a phone-only feature.
-    const [pending, setPending] = useState<{ surface: MigrationSurface; handoff?: StoreHandoff } | null>(null)
+    const [surface, setSurface] = useState<MigrationSurface | null>(null)
 
     const interceptAppCta = useCallback<AppModalValue>(
-        (nextSurface, handoff) => {
+        (nextSurface) => {
             if (!migrationOn || isCapacitor()) return false
             if (deviceType === DeviceType.WEB) {
-                setPending({ surface: nextSurface, handoff })
+                setSurface(nextSurface)
                 return true
             }
-            openStore(deviceType === DeviceType.ANDROID ? 'android' : 'ios', nextSurface, handoff)
+            openStore(deviceType === DeviceType.ANDROID ? 'android' : 'ios', nextSurface)
             return true
         },
         [migrationOn, deviceType]
     )
 
-    // the identity is what every fold's click handler closes over
-    const value = useMemo(() => interceptAppCta, [interceptAppCta])
-
     return (
-        <AppModalContext.Provider value={value}>
+        <AppModalContext.Provider value={interceptAppCta}>
             {children}
-            {pending && (
-                <ScanToDownloadModal
-                    visible
-                    onClose={() => setPending(null)}
-                    surface={pending.surface}
-                    handoff={pending.handoff}
-                />
-            )}
+            {surface && <ScanToDownloadModal visible onClose={() => setSurface(null)} surface={surface} />}
         </AppModalContext.Provider>
     )
 }
