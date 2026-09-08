@@ -292,7 +292,7 @@ function BridgeBankOnrampPage() {
             await sumsubFlow.handleSelfHealResubmit('BRIDGE')
         } else {
             await sumsubFlow.handleInitiateKyc(
-                bankRegionIntent(selectedCountry?.region ?? 'rest-of-the-world'),
+                bankRegionIntent(selectedCountry),
                 undefined,
                 gate.kind === 'needs-enrollment' || undefined,
                 selectedCountry?.id

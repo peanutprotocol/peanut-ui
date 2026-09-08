@@ -15,7 +15,7 @@ import useClaimLink from '../../useClaimLink'
 import { type AddBankAccountPayload } from '@/app/actions/types/users.types'
 import { useAuth } from '@/context/authContext'
 import { type TCreateOfframpRequest, type TCreateOfframpResponse } from '@/services/services.types'
-import { getOfframpConfigFromAccount } from '@/utils/bridge.utils'
+import { getBankRailCountryFromAccount, getCountryFromAccount, getOfframpConfigFromAccount } from '@/utils/bridge.utils'
 import { getBridgeChainName, getBridgeTokenName } from '@/utils/bridge-accounts.utils'
 import { generateKeysFromString, getParamsFromLink } from '@/utils/peanut-link.utils'
 import { getContractAddress } from '@/utils/peanut-claim.utils'
@@ -70,6 +70,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         flowStep: claimBankFlowStep,
         setFlowStep: setClaimBankFlowStep,
         selectedCountry,
+        setSelectedCountry,
         setClaimType,
         setBankDetails,
         justCompletedKyc,
@@ -90,7 +91,27 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     const { gateFor } = useCapabilities()
     const bankRegionIntent = useBankRegionIntent()
     const { banking: isBankRestricted } = useResidenceRestrictions()
-    const gate = useMemo(() => gateFor('deposit', { channel: 'bank' }), [gateFor])
+    // local states for this component
+    const [localBankDetails, setLocalBankDetails] = useState<BankAccountWithId | null>(null)
+    const [receiverFullName, setReceiverFullName] = useState<string>('')
+    const [error, setError] = useState<string | null>(null)
+    const formRef = useRef<{ handleSubmit: () => void }>(null)
+    const [isProcessingKycSuccess, setIsProcessingKycSuccess] = useState(false)
+    const [_offrampData, setOfframpData] = useState<TCreateOfframpResponse | null>(null)
+
+    const bankRailCountry = useMemo(
+        () =>
+            localBankDetails
+                ? getBankRailCountryFromAccount(localBankDetails)
+                : selectedCountry
+                  ? getBankRailCountryFromAccount({ country: selectedCountry.iso2 ?? selectedCountry.id })
+                  : undefined,
+        [localBankDetails, selectedCountry]
+    )
+    const gate = useMemo(
+        () => gateFor('deposit', { channel: 'bank', country: bankRailCountry }),
+        [bankRailCountry, gateFor]
+    )
     const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
     const [showKycModal, setShowKycModal] = useState(false)
     const { setIsSupportModalOpen } = useModalsContext()
@@ -108,14 +129,6 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         },
         onManualClose: () => setIsKycModalOpen(false),
     })
-
-    // local states for this component
-    const [localBankDetails, setLocalBankDetails] = useState<BankAccountWithId | null>(null)
-    const [receiverFullName, setReceiverFullName] = useState<string>('')
-    const [error, setError] = useState<string | null>(null)
-    const formRef = useRef<{ handleSubmit: () => void }>(null)
-    const [isProcessingKycSuccess, setIsProcessingKycSuccess] = useState(false)
-    const [_offrampData, setOfframpData] = useState<TCreateOfframpResponse | null>(null)
 
     /**
      * @name handleConfirmClaim
@@ -329,7 +342,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                         await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                     } else {
                         await sumsubFlow.handleInitiateKyc(
-                            bankRegionIntent(selectedCountry?.region ?? 'rest-of-the-world'),
+                            bankRegionIntent(bankRailCountry ?? selectedCountry),
                             undefined,
                             gate.kind === 'needs-enrollment' || undefined,
                             selectedCountry?.id
@@ -371,7 +384,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 return {}
             }
             await sumsubFlow.handleInitiateKyc(
-                bankRegionIntent(selectedCountry?.region ?? 'rest-of-the-world'),
+                bankRegionIntent(bankRailCountry ?? selectedCountry),
                 undefined,
                 undefined,
                 selectedCountry?.id
@@ -572,6 +585,8 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
 
                         setLocalBankDetails(bankDetails)
                         setBankDetails(bankDetails)
+                        const resolvedCountry = getCountryFromAccount(account)
+                        if (resolvedCountry) setSelectedCountry(resolvedCountry)
 
                         const isGuestFlow = bankClaimType === BankClaimType.GuestBankClaim
                         const userForOfframp = isGuestFlow
