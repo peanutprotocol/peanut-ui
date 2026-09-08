@@ -1,4 +1,4 @@
-name: Android Release (Play)
+name: App Release Android
 
 # Builds a SIGNED Android App Bundle and uploads it to Google Play.
 # Removes the "release only builds on one laptop" gap: the upload keystore lives
@@ -116,7 +116,7 @@ jobs:
                   # NEXT_PUBLIC_* values are baked into the static export at build time.
                   # rpId MUST be peanut.me (passkeys + assetlinks/AASA).
                   # Keep this block identical to ios-release.yml / android-release.yml /
-                  # capgo-deploy.yml. CAPACITOR_BUILD / IS_NATIVE_BUILD / GIT_COMMIT_HASH
+                  # release-ota.yml. CAPACITOR_BUILD / IS_NATIVE_BUILD / GIT_COMMIT_HASH
                   # are auto-baked by next.config.native.js.
                   # Delimiter is quoted: a secret holding $ or a backtick must land in the
                   # file verbatim, not be expanded — or executed — by the shell.
@@ -269,7 +269,7 @@ jobs:
             # into this binary (native:release leaves it in out/) under the binary's own
             # version — the lanes can no longer drift apart. A failure here is the floor
             # guard firing: the job goes red instead of the fleet going silently dark.
-            # Upload flags in lockstep with capgo-deploy.yml; ios-release.yml publishes
+            # Upload flags in lockstep with release-ota.yml; ios-release.yml publishes
             # the same version from the same tag, which --version-exists-ok turns into a
             # verified no-op.
             - name: Publish matching production OTA bundle

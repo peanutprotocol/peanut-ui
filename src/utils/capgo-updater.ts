@@ -388,9 +388,9 @@ function recordFailureStreak(message: string): number {
     return count
 }
 
-// The channel every merge to `dev` publishes to (capgo-deploy.yml). Testers opt
-// in from the About screen; every other install stays on the app's default
-// channel (production) and never sees these bundles.
+// The channel used for opt-in beta updates. Testers opt in from the About screen;
+// every other install stays on the app's default channel (production) and never
+// sees these bundles.
 export const BETA_OTA_CHANNEL = 'staging'
 
 // The app's default channel (ios-release.yml / android-release.yml / release-ota.yml).

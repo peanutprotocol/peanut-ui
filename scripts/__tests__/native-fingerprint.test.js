@@ -67,7 +67,7 @@ function makeFixture() {
 }
 
 // The script is a CI entrypoint: its contract is stdout + exit code, so run it
-// the way capgo-deploy.yml does instead of reaching into its internals. (Jest
+// the way release-ota.yml does instead of reaching into its internals. (Jest
 // runs CJS here, so a dynamic import of the .mjs would not load anyway — same
 // reason semver-newer.test.js and release-version.test.js spawn it.)
 function run(root, ...args) {

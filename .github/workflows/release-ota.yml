@@ -1,4 +1,4 @@
-name: Release OTA
+name: App Release OTA
 
 # The single entry point for a production OTA. Click "Run workflow" on `dev`; the
 # bundle version is resolved from the channel's current bundle, not typed.
@@ -117,17 +117,150 @@ jobs:
                   VERSION="$(node scripts/release-version.mjs ota --current "$CURRENT")"
                   echo "version=$VERSION" >> "$GITHUB_OUTPUT"
                   echo "Production serves $CURRENT — next OTA is $VERSION"
-                  echo "## OTA $VERSION" >> "$GITHUB_STEP_SUMMARY"
-                  echo "- **Replaces:** $CURRENT" >> "$GITHUB_STEP_SUMMARY"
-                  echo "- **Commit:** ${GITHUB_SHA:0:7}" >> "$GITHUB_STEP_SUMMARY"
+                  {
+                    echo "## OTA $VERSION"
+                    echo "- **Replaces:** $CURRENT"
+                    echo "- **Commit:** ${GITHUB_SHA:0:7}"
+                  } >> "$GITHUB_STEP_SUMMARY"
 
     deploy:
         needs: resolve
-        uses: ./.github/workflows/capgo-deploy.yml
-        secrets: inherit
-        with:
-            channel: production
-            version: ${{ needs.resolve.outputs.version }}
+        runs-on: ubuntu-latest
+        environment: Production
+        steps:
+            - uses: actions/checkout@v7
+              with:
+                  submodules: true
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
+                  fetch-depth: 0
+
+            - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+
+            - uses: actions/setup-node@v6
+              with:
+                  node-version: '20'
+                  cache: 'pnpm'
+
+            - name: Install dependencies
+              run: pnpm install
+
+            # NEXT_PUBLIC_* values are baked into the static export at build time.
+            # rpId MUST be peanut.me (passkeys + assetlinks/AASA). CAPACITOR_BUILD /
+            # IS_NATIVE_BUILD / GIT_COMMIT_HASH are auto-baked by next.config.native.js.
+            # Delimiter is quoted: a secret holding $ or a backtick must land in the
+            # file verbatim, not be expanded — or executed — by the shell.
+            - name: Bake production NEXT_PUBLIC_* into the static export
+              run: |
+                  cat > .env.production.local <<'EOF'
+                  NEXT_PUBLIC_BASE_URL=https://peanut.me
+                  NEXT_PUBLIC_PEANUT_API_URL=${{ vars.NEXT_PUBLIC_PEANUT_API_URL }}
+                  NEXT_PUBLIC_NATIVE_RP_ID=peanut.me
+                  NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL=${{ secrets.NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL }}
+                  NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL=${{ secrets.NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL }}
+                  NEXT_PUBLIC_ZERO_DEV_PASSKEY_PROJECT_ID=${{ secrets.NEXT_PUBLIC_ZERO_DEV_PASSKEY_PROJECT_ID }}
+                  NEXT_PUBLIC_ZERO_DEV_RECOVERY_BUNDLER_URL=${{ secrets.NEXT_PUBLIC_ZERO_DEV_RECOVERY_BUNDLER_URL }}
+                  NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN=peanut.me
+                  NEXT_PUBLIC_SENTRY_DSN=${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
+                  NEXT_PUBLIC_POSTHOG_KEY=${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
+                  NEXT_PUBLIC_POSTHOG_HOST=${{ vars.NEXT_PUBLIC_POSTHOG_HOST }}
+                  NEXT_PUBLIC_GA_KEY=${{ vars.NEXT_PUBLIC_GA_KEY }}
+                  NEXT_PUBLIC_ONESIGNAL_APP_ID=${{ secrets.NEXT_PUBLIC_ONESIGNAL_APP_ID }}
+                  NEXT_PUBLIC_SAFARI_WEB_ID=${{ vars.NEXT_PUBLIC_SAFARI_WEB_ID }}
+                  NEXT_PUBLIC_ONESIGNAL_WEBHOOK=${{ vars.NEXT_PUBLIC_ONESIGNAL_WEBHOOK }}
+                  EOF
+
+            - name: Build native static export
+              run: node scripts/native-build.js
+
+            - name: Verify build output
+              run: |
+                  test -d out && test -f out/index.html || (echo "ERROR: out/ directory missing or incomplete" && exit 1)
+                  echo "Bundle ready. File count: $(find out -type f | wc -l)"
+
+            - name: Resolve bundle version
+              id: version
+              env:
+                  VERSION: ${{ needs.resolve.outputs.version }}
+              run: |
+                  if [ -z "$VERSION" ]; then
+                      echo "::error::the OTA resolver did not provide a bundle version" >&2
+                      exit 1
+                  fi
+                  echo "name=$VERSION" >> "$GITHUB_OUTPUT"
+                  echo "Uploading as bundle version $VERSION to production"
+
+            # Resolve the floor from the release tags and fail closed when none is
+            # visible. The bundle must target the newest native shell it can safely
+            # run on.
+            - name: Resolve native floor
+              id: native_floor
+              run: |
+                  FLOOR="$(node scripts/release-version.mjs native-floor)"
+                  echo "name=$FLOOR" >> "$GITHUB_OUTPUT"
+                  echo "Bundle requires native $FLOOR or newer"
+
+            # A bundle's version says nothing about the native surface it needs, so
+            # verify that the JS being published still matches the released binary.
+            - name: Check the native surface still matches that binary
+              env:
+                  FLOOR: ${{ steps.native_floor.outputs.name }}
+              run: |
+                  if ! git rev-parse -q --verify "refs/tags/v$FLOOR" >/dev/null; then
+                      echo "::error::no v$FLOOR tag in this checkout — cannot prove the bundle fits the binary it targets (needs fetch-depth: 0 and tags)" >&2
+                      exit 1
+                  fi
+                  node scripts/check-native-capabilities.mjs "v$FLOOR"
+                  if ! node scripts/native-fingerprint.mjs --diff "v$FLOOR"; then
+                      echo "::error::this tree's native surface differs from the v$FLOOR binary, so the JS about to ship was built against native code no released binary has. Cut a native release (Actions -> App Release Android & iOS) before OTA'ing this tree." >&2
+                      exit 1
+                  fi
+
+            - name: Upload bundle to Capgo
+              env:
+                  CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
+                  CAPGO_PRIVATE_KEY: ${{ secrets.CAPGO_PRIVATE_KEY }}
+                  COMMIT_MSG: ${{ github.event.head_commit.message }}
+                  CHANNEL: production
+                  VERSION: ${{ steps.version.outputs.name }}
+                  NATIVE_FLOOR: ${{ steps.native_floor.outputs.name }}
+              run: |
+                  echo "Uploading bundle $VERSION to channel $CHANNEL"
+                  COMMENT="${GITHUB_SHA:0:7} — $(printf '%s' "${COMMIT_MSG:-Manual deploy}" | head -n1)"
+                  npx @capgo/cli@8.42.4 bundle upload \
+                    --channel "$CHANNEL" \
+                    --apikey "$CAPGO_API_KEY" \
+                    --key-data-v2 "$CAPGO_PRIVATE_KEY" \
+                    --path ./out \
+                    --bundle "$VERSION" \
+                    --min-update-version "$NATIVE_FLOOR" \
+                    --version-exists-ok \
+                    --comment "$COMMENT"
+
+            # --version-exists-ok makes re-running the same resolved release safe;
+            # this assertion still fails if that run did not actually serve it.
+            - name: Verify channel serves the new bundle
+              env:
+                  CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
+                  CHANNEL: production
+                  EXPECTED: ${{ steps.version.outputs.name }}
+              run: |
+                  CURRENT="$(npx @capgo/cli@8.42.4 channel currentBundle "$CHANNEL" \
+                    --apikey "$CAPGO_API_KEY" --quiet | grep -oE '[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?' | tail -n1 || true)"
+                  if [ "$CURRENT" != "$EXPECTED" ]; then
+                    echo "ERROR: channel $CHANNEL serves '${CURRENT:-<none>}', expected $EXPECTED — nothing shipped" >&2
+                    exit 1
+                  fi
+                  echo "Channel $CHANNEL now serves $EXPECTED"
+
+            - name: Deployment summary
+              run: |
+                  {
+                    echo "## OTA Deployment"
+                    echo "- **Channel:** production"
+                    echo "- **Bundle version:** ${{ steps.version.outputs.name }}"
+                    echo "- **Commit:** ${{ github.sha }}"
+                    echo "- **Branch:** ${{ github.ref_name }}"
+                  } >> "$GITHUB_STEP_SUMMARY"
 
     tag:
         needs: [resolve, deploy]

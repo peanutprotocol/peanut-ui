@@ -1,4 +1,4 @@
-name: Release Native
+name: App Release Android & iOS
 
 # The single entry point for a store build. Click "Run workflow" on `dev`; the
 # version is resolved here, not typed, and both platforms build from that one
