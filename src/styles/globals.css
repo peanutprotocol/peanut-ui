@@ -1054,10 +1054,40 @@
     }
     /* input board 17802:61538 / set 17360:4441: pink action-primary border
        on pointer focus, 3px blue action-focus ring on keyboard focus, red on
-       aria-invalid, gray fill + subtle border when disabled. The focus-visible
-       ring replaces the border so the states never stack. */
+       aria-invalid, gray fill + subtle border when disabled. The keyboard ring
+       replaces the border so the states never stack. */
     .input {
-        @apply h-12 w-full rounded-sm border border-border-default bg-background-default px-4 text-sm font-bold text-foreground-primary transition-colors outline-none placeholder:text-foreground-secondary focus:border-action-primary focus:outline-none focus-visible:border-transparent focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid disabled:border-border-subtle disabled:bg-background-disabled disabled:text-foreground-secondary aria-invalid:border-border-error;
+        @apply h-12 w-full rounded-sm border border-border-default bg-background-default px-4 text-sm font-bold text-foreground-primary transition-colors outline-none placeholder:text-foreground-secondary focus:border-action-primary focus:outline-none disabled:border-border-subtle disabled:bg-background-disabled disabled:text-foreground-secondary aria-invalid:border-border-error;
+    }
+    /* :focus-visible is not a reliable pointer/keyboard discriminator for text
+       inputs: Chromium also matches it after tapping an editable control. The
+       provider records the last modality on the root so both states remain
+       reachable. */
+    :root[data-input-modality='pointer'] .input:focus {
+        border-color: var(--color-action-primary);
+        outline: none;
+    }
+    :root[data-input-modality='keyboard'] .input:focus {
+        border-color: transparent;
+        outline: 3px solid var(--color-action-focus);
+        outline-style: solid;
+    }
+    :root[data-input-modality='pointer'] [data-input-container]:focus-within {
+        border-color: var(--color-action-primary);
+        outline: none;
+    }
+    :root[data-input-modality='keyboard'] [data-input-container]:focus-within {
+        border-color: transparent;
+        outline: 3px solid var(--color-action-focus);
+        outline-style: solid;
+    }
+    :root[data-input-modality='pointer'] [data-input-clear]:focus,
+    :root[data-input-modality='pointer'] [data-input-clear]:focus-visible {
+        outline: none;
+    }
+    :root[data-input-modality='keyboard'] [data-input-clear]:focus {
+        outline: 3px solid var(--color-action-focus);
+        outline-style: solid;
     }
     .bg-peanut-repeat-normal {
         @apply bg-[url('../assets/bg/peanut-bg.svg')] bg-[length:100px_100px] bg-repeat;

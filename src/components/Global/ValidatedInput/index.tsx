@@ -177,12 +177,13 @@ const ValidatedInput = ({
                     // pass layout classes at most (input board has no valid state).
                     // The composed box owns the focus border so it encloses both
                     // the text field and the trailing clear (×) affordance.
-                    // Pointer focus is pink; keyboard focus gets the shared 3px
-                    // blue ring, replacing the border rather than stacking it.
-                    'relative w-full rounded-sm border border-border-default bg-background-default focus-within:border-action-primary has-[:focus-visible]:border-transparent has-[:focus-visible]:outline-[3px] has-[:focus-visible]:outline-action-focus has-[:focus-visible]:outline-solid',
+                    // Pointer focus is pink; InputModalityProvider applies the
+                    // shared 3px blue ring for keyboard focus.
+                    'relative w-full rounded-sm border border-border-default bg-background-default focus-within:border-action-primary',
                     value && !isValidating && !isValid && debouncedValue === value ? 'border-border-error' : '',
                     className
                 )}
+                data-input-container="true"
                 translate="no"
             >
                 <div className="absolute top-1/2 left-1 z-10 flex -translate-y-1/2 items-center gap-1">
@@ -252,7 +253,8 @@ const ValidatedInput = ({
                                         e.preventDefault()
                                         onUpdate({ value: '', isValid: false, isChanging: false })
                                     }}
-                                    className="relative flex h-full w-6 items-center justify-center pr-2 transition-opacity duration-instant after:absolute after:-inset-x-3 focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid active:opacity-60 md:w-8 md:pr-0"
+                                    className="relative flex h-full w-6 items-center justify-center pr-2 transition-opacity duration-instant after:absolute after:-inset-x-3 active:opacity-60 md:w-8 md:pr-0"
+                                    data-input-clear="true"
                                 >
                                     <Icon className="h-6 w-6" name="cancel" />
                                 </button>
