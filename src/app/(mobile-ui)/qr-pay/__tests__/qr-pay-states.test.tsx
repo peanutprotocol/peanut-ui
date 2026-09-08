@@ -70,7 +70,7 @@ jest.mock('posthog-js', () => ({
 
 // Sound player — no-op
 jest.mock('@/components/Global/SoundPlayer', () => ({
-    SoundPlayer: () => null,
+    SoundPlayer: () => <div data-testid="success-sound" />,
 }))
 
 // Confetti — no-op
@@ -162,7 +162,9 @@ jest.mock('@/hooks/useTransactionHistory', () => ({
 }))
 
 jest.mock('@/components/TransactionDetails/TransactionDetailsDrawer', () => ({
-    TransactionDetailsDrawer: () => null,
+    TransactionDetailsDrawer: ({ transaction }: { transaction: { status: string } | null }) => (
+        <div data-testid="receipt-status">{transaction?.status}</div>
+    ),
 }))
 
 // Stubbed to keep the QR canvas out of jsdom. The props are the contract that
@@ -1178,6 +1180,25 @@ describe('GROUP 4: Success States', () => {
         return baseQrPayment
     }
 
+    test.each([
+        ['CANCELLED', 'Payment cancelled', 'cancelled'],
+        ['REFUNDED', 'Payment refunded', 'refunded'],
+        ['FAILED', 'Payment did not complete', 'failed'],
+        ['ACTIVE', 'Payment is processing', 'processing'],
+        ['UNRECOGNIZED', 'Payment is processing', 'processing'],
+    ])('a 200 %s result cannot show payment success', async (status, title, receiptStatus) => {
+        await completeMantecaPayment({ status, perk: { eligible: true, amountSponsored: 5 } })
+        await waitFor(() => expect(screen.getByText(title)).toBeInTheDocument())
+        expect(screen.queryByText(/You paid/)).not.toBeInTheDocument()
+        expect(screen.queryByTestId('success-sound')).not.toBeInTheDocument()
+        expect(screen.getByTestId('receipt-status')).toHaveTextContent(receiptStatus)
+        expect(screen.queryByText(/You earned/)).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Pay' })).not.toBeInTheDocument()
+        expect(posthog.capture).not.toHaveBeenCalledWith('card_withdraw_succeeded', expect.anything())
+        fireEvent.click(screen.getByRole('button', { name: 'View activity' }))
+        expect(mockRouterPush).toHaveBeenCalledWith('/history')
+    })
+
     test('Manteca success, no perk shows success card, no reward', async () => {
         await completeMantecaPayment()
 
@@ -1517,6 +1538,20 @@ const reconnectLock = {
 }
 
 describe('GROUP 5: Error States', () => {
+    test('a typed pre-broadcast cancellation shows retry guidance without success or merchant blame', async () => {
+        mockMantecaApi.completeQrPaymentWithSignedTx.mockRejectedValue(
+            Object.assign(new Error('Cancelled'), { name: 'ApiError', status: 400, code: 'QR_PAYMENT_CANCELLED' })
+        )
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+        await waitFor(() => expect(screen.getByText(en.qrPay.errors.paymentCancelled)).toBeInTheDocument())
+        expect(screen.queryByText(/You paid/)).not.toBeInTheDocument()
+        expect(screen.queryByTestId('success-sound')).not.toBeInTheDocument()
+    })
+
     // The offline test below flips global online state; a failure mid-test
     // would otherwise leave every later suite running as if disconnected.
     afterEach(() => onlineManager.setOnline(true))

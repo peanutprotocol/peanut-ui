@@ -1356,7 +1356,8 @@
             "genericQrDetails": "Ocorreu um erro ao obter os detalhes do QR.",
             "authError": "Não foi possível verificar sua sessão. Tente novamente.",
             "maxTransferAmount": "O valor da transferência ultrapassa o limite máximo de ${amount}",
-            "minTransferAmount": "O valor da transferência deve ser de pelo menos ${amount}"
+            "minTransferAmount": "O valor da transferência deve ser de pelo menos ${amount}",
+            "paymentCancelled": "O provedor cancelou este pagamento antes do envio do dinheiro. Escaneie um novo código QR para tentar novamente."
         },
         "claim": {
             "navTitle": "Resgatar código QR",
@@ -1396,6 +1397,25 @@
             },
             "claimSuccess": {
                 "stickerDescription": "Cole no seu notebook, na garrafa de água ou onde quiser que as pessoas te encontrem. Quem escanear vai poder entrar no Peanut com o seu convite."
+            }
+        },
+        "result": {
+            "viewActivity": "Ver atividade",
+            "cancelled": {
+                "title": "Pagamento cancelado",
+                "description": "Este pagamento foi cancelado. Antes de tentar novamente, confira em Atividade se o dinheiro foi devolvido."
+            },
+            "refunded": {
+                "title": "Pagamento reembolsado",
+                "description": "Seu dinheiro foi devolvido. Você pode ver o reembolso em Atividade."
+            },
+            "failed": {
+                "title": "O pagamento não foi concluído",
+                "description": "Antes de tentar novamente, confira o pagamento e qualquer reembolso em Atividade."
+            },
+            "processing": {
+                "title": "Pagamento em processamento",
+                "description": "O pagamento ainda não foi confirmado. Confira Atividade antes de tentar novamente."
             }
         }
     },

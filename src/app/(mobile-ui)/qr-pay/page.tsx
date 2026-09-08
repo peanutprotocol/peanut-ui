@@ -16,6 +16,7 @@ import Card from '@/components/Global/Card'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { mantecaApi } from '@/services/manteca'
+import { wireErrorCode } from '@/services/api-error'
 import type { QrPayment, QrPaymentLock } from '@/services/manteca'
 import NavHeader from '@/components/Global/NavHeader'
 import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
@@ -35,7 +36,12 @@ import { pickMantecaDepositAddress } from '@/utils/manteca.utils'
 import { rainCentsToUsdcUnits, isAmountWithinBalance } from '@/utils/balance.utils'
 import { formatNumberForDisplay } from '@/utils/general.utils'
 import { getShakeClass, type ShakeIntensity } from '@/utils/perk.utils'
-import { calculateSavingsInCents, hasCardMarkupComparison, qrInitIdempotencyKey } from '@/utils/qr-payment.utils'
+import {
+    calculateSavingsInCents,
+    hasCardMarkupComparison,
+    qrInitIdempotencyKey,
+    qrPaymentDisplayStatus,
+} from '@/utils/qr-payment.utils'
 import { useCardMarkupRate } from '@/hooks/useCardMarkupRate'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { PERK_HOLD_DURATION_MS } from '@/constants/general.consts'
@@ -649,7 +655,7 @@ export default function QRPayPage() {
             },
             initials: 'QR',
             currencySymbol: currency.symbol,
-            status: 'completed',
+            status: qrPaymentDisplayStatus(qrPayment.status),
             date: now,
             createdAt: now,
             extraDataForDrawer: {
@@ -984,6 +990,12 @@ export default function QRPayPage() {
             }
 
             setQrPayment(qrPayment)
+            if (qrPaymentDisplayStatus(qrPayment.status) !== 'completed') {
+                setIsSuccess(false)
+                setLoadingState('Idle')
+                queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+                return
+            }
 
             // all eligible perks go through hold-to-claim — no auto-claiming.
             // this ensures a consistent reward experience regardless of amount.
@@ -999,6 +1011,11 @@ export default function QRPayPage() {
             if (payingStateTimerRef.current) {
                 clearTimeout(payingStateTimerRef.current)
                 payingStateTimerRef.current = null
+            }
+            if (wireErrorCode(error) === 'QR_PAYMENT_CANCELLED') {
+                setErrorMessage(t('errors.paymentCancelled'))
+                setIsSuccess(false)
+                return
             }
             // Wrong-passkey session: backend rejected the signed UserOp with
             // AA24 / wapk. Unrecoverable without re-auth — force a clean logout.
@@ -1023,6 +1040,7 @@ export default function QRPayPage() {
             setLoadingState('Idle')
         }
     }, [
+        queryClient,
         paymentLock,
         signSpend,
         rainCardOverview,
@@ -1542,6 +1560,25 @@ export default function QRPayPage() {
             return <QrPayPageLoading message={tLoading(loadingStateKey(loadingState))} />
         }
         return <Loading variant="mascot" />
+    }
+
+    const paymentStatus = qrPaymentDisplayStatus(qrPayment?.status)
+    if (qrPayment && paymentStatus !== 'completed') {
+        return (
+            <div className="flex min-h-inherit flex-col gap-8">
+                <NavHeader title={tNav('pay')} />
+                <Card className="my-auto space-y-4 p-4">
+                    <h1 className="text-heading-xs">{t(`result.${paymentStatus}.title`)}</h1>
+                    <p className="text-body-s">{t(`result.${paymentStatus}.description`)}</p>
+                </Card>
+                <Button onClick={() => router.push('/history')}>{t('result.viewActivity')}</Button>
+                <TransactionDetailsDrawer
+                    isOpen={isTransactionSelected(receiptTransaction?.id)}
+                    onClose={closeTransactionDetails}
+                    transaction={receiptTransaction}
+                />
+            </div>
+        )
     }
 
     //Success

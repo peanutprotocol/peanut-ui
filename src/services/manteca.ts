@@ -5,7 +5,7 @@ import {
     type CreateMantecaOnrampParams,
 } from '@/types/manteca.types'
 import { serverFetch } from '@/utils/api-fetch'
-import { ApiError } from '@/services/api-error'
+import { ApiError, apiErrorFromResponse } from '@/services/api-error'
 import { isNetworkLayerFailure } from '@/utils/network-triage'
 import { jsonStringify } from '@/utils/general.utils'
 import type { Address } from 'viem'
@@ -231,8 +231,7 @@ export const mantecaApi = {
         })
 
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}))
-            throw new Error(errorData?.message || errorData?.error || `QR payment failed: ${response.statusText}`)
+            throw await apiErrorFromResponse(response, `QR payment failed: ${response.statusText}`)
         }
 
         return response.json()

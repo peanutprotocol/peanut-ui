@@ -728,7 +728,8 @@
             "sessionExpired": "La sesión de pago expiró. Escaneá el código QR de nuevo.",
             "restartScan": "No pudimos iniciar este pago. Escaneá el código QR de nuevo.",
             "merchantNotSupported": "Este código QR o comercio no es compatible. Intentalo de nuevo con otro código QR.",
-            "completeFailed": "No se pudo completar el pago. Escaneá el código QR de nuevo. Si el problema persiste, contactá a soporte"
+            "completeFailed": "No se pudo completar el pago. Escaneá el código QR de nuevo. Si el problema persiste, contactá a soporte",
+            "paymentCancelled": "El proveedor canceló este pago antes de enviar la plata. Escaneá un nuevo código QR para volver a intentarlo."
         },
         "claim": {
             "inviteQrDescription": "Compartilo donde sea. Los puntos siguen llegando por la actividad de tus amigos y sus amigos.",
@@ -752,6 +753,25 @@
             },
             "claimSuccess": {
                 "stickerDescription": "Pegalo en tu laptop, botella de agua o donde quieras que la gente te encuentre. Cualquiera que lo escanee podrá unirse a Peanut con tu invitación."
+            }
+        },
+        "result": {
+            "viewActivity": "Ver actividad",
+            "cancelled": {
+                "title": "Pago cancelado",
+                "description": "Este pago se canceló. Antes de volver a intentarlo, revisá en Actividad si se devolvió la plata."
+            },
+            "refunded": {
+                "title": "Pago reembolsado",
+                "description": "Tu plata ya fue devuelta. Podés ver el reembolso en Actividad."
+            },
+            "failed": {
+                "title": "El pago no se completó",
+                "description": "Antes de volver a intentarlo, revisá el pago y cualquier reembolso en Actividad."
+            },
+            "processing": {
+                "title": "Pago en proceso",
+                "description": "El pago todavía no se confirmó. Revisá Actividad antes de volver a intentarlo."
             }
         }
     },

@@ -1356,7 +1356,8 @@
             "genericQrDetails": "An error occurred while getting the QR details.",
             "authError": "Couldn't verify your session. Please try again.",
             "maxTransferAmount": "Transfer amount exceeds maximum limit of ${amount}",
-            "minTransferAmount": "Transfer amount must be at least ${amount}"
+            "minTransferAmount": "Transfer amount must be at least ${amount}",
+            "paymentCancelled": "The provider cancelled this payment before funds were sent. Scan a new QR code to try again."
         },
         "claim": {
             "navTitle": "Claim QR Code",
@@ -1396,6 +1397,25 @@
             },
             "claimSuccess": {
                 "stickerDescription": "Stick it on your laptop, water bottle, or anywhere you want people to find you. Anyone who scans will be able to join Peanut with your invite."
+            }
+        },
+        "result": {
+            "viewActivity": "View activity",
+            "cancelled": {
+                "title": "Payment cancelled",
+                "description": "This payment was cancelled. Check Activity for the status of any funds returned before trying again."
+            },
+            "refunded": {
+                "title": "Payment refunded",
+                "description": "Your funds have been returned. You can see the refund in Activity."
+            },
+            "failed": {
+                "title": "Payment did not complete",
+                "description": "Check Activity for the payment and any refund before trying again."
+            },
+            "processing": {
+                "title": "Payment is processing",
+                "description": "The payment has not been confirmed yet. Check Activity before trying again."
             }
         }
     },
