@@ -606,7 +606,7 @@ export default function WithdrawBankPage() {
                             getBankRegionIntent(countryFromPath),
                             undefined,
                             gate.kind === 'needs-enrollment' || undefined,
-                            getCountryFromPath(country)?.id
+                            countryFromPath?.id
                         )
                     }
                 }}

@@ -1476,7 +1476,9 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
             fireEvent.click(screen.getByTestId('kyc-verify-button'))
         })
 
-        expect(handleInitiateKyc).toHaveBeenCalledWith('NA', undefined, true, 'MX')
+        // intent + crossRegion are what the BE routes on; the 4th arg (country) is
+        // dropped by useSumsubKycFlow for non-Manteca countries, so don't pin it
+        expect(handleInitiateKyc.mock.calls[0].slice(0, 3)).toEqual(['NA', undefined, true])
     })
 
     test('fresh user needs KYC before Bridge deposit confirmation', async () => {

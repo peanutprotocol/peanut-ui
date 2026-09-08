@@ -32,6 +32,9 @@ describe('getBankRegionIntent', () => {
 
     it('falls back to the region intent for every other country', () => {
         expect(getBankRegionIntent({ id: 'AR', region: 'latam' })).toBe('LATAM')
+        expect(getBankRegionIntent({ id: 'BR', region: 'latam' })).toBe('LATAM')
+        expect(getBankRegionIntent({ id: 'CO', region: 'latam' })).toBe('LATAM')
+        expect(getBankRegionIntent({ id: 'GB', region: 'europe' })).toBe('EU')
         expect(getBankRegionIntent({ id: 'US', region: 'north-america' })).toBe('NA')
         expect(getBankRegionIntent({ id: 'DE', region: 'europe' })).toBe('EU')
         expect(getBankRegionIntent({ id: 'NG', region: 'rest-of-the-world' })).toBe('ROW')

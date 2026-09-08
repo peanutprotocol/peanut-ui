@@ -113,19 +113,6 @@ export const getRegionIntent = (regionPath: string): KYCRegionIntent => {
 }
 
 /**
- * Region intent for a BANK flow (Bridge bank deposit / withdraw, bank claim).
- * A `latam` picker country whose bank rail is Bridge (today: Mexico / SPEI)
- * must unlock as NA (Bridge), like the US. Sending LATAM + MX asks the Manteca
- * path for a country it does not serve; the BE rejects it and the UI collapsed
- * that into "contact support" (TASK-22333). Every other country keeps the
- * picker-region intent.
- */
-export const getBankRegionIntent = (country: Pick<CountryData, 'id' | 'region'> | null | undefined): KYCRegionIntent =>
-    country?.region === 'latam' && isBridgeSupportedCountry(country.id)
-        ? 'NA'
-        : getRegionIntent(country?.region ?? 'rest-of-the-world')
-
-/**
  * Which provider serves a region intent — an exact FE mirror of the BE registry
  * (`crossRegionProvider` in peanut-api-ts `src/kyc/level-registry.ts`). Used for
  * DISPLAY only (which provider rail backs a clicked region); the BE stays the
@@ -226,6 +213,18 @@ const RAIL_COUNTRY_TO_REGION_PATH: Record<string, string> = {
     BR: 'latam',
     CO: 'latam',
 }
+
+/**
+ * Region intent for a BANK flow (Bridge bank deposit / withdraw, bank claim).
+ * The picker region is not the rail jurisdiction: Mexico is `region: 'latam'`
+ * for the picker, but its bank rail (SPEI) is Bridge, and the jurisdiction
+ * table above says `north-america`. Sending LATAM + MX asked the Manteca path
+ * for a country it does not serve; the BE rejects it and the UI collapsed that
+ * into "contact support" (TASK-22333). Countries with no rail entry keep the
+ * picker region.
+ */
+export const getBankRegionIntent = (country: Pick<CountryData, 'id' | 'region'> | null | undefined): KYCRegionIntent =>
+    getRegionIntent(RAIL_COUNTRY_TO_REGION_PATH[country?.id ?? ''] ?? country?.region ?? 'rest-of-the-world')
 
 /**
  * Region picker paths with a mid-flight bank rail (`pending` = BE provisioning,

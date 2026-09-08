@@ -15,7 +15,7 @@ import useClaimLink from '../../useClaimLink'
 import { type AddBankAccountPayload } from '@/app/actions/types/users.types'
 import { useAuth } from '@/context/authContext'
 import { type TCreateOfframpRequest, type TCreateOfframpResponse } from '@/services/services.types'
-import { getOfframpConfigFromAccount } from '@/utils/bridge.utils'
+import { getCountryFromAccount, getOfframpConfigFromAccount } from '@/utils/bridge.utils'
 import { getBridgeChainName, getBridgeTokenName } from '@/utils/bridge-accounts.utils'
 import { generateKeysFromString, getParamsFromLink } from '@/utils/peanut-link.utils'
 import { getContractAddress } from '@/utils/peanut-claim.utils'
@@ -69,6 +69,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         flowStep: claimBankFlowStep,
         setFlowStep: setClaimBankFlowStep,
         selectedCountry,
+        setSelectedCountry,
         setClaimType,
         setBankDetails,
         justCompletedKyc,
@@ -522,6 +523,10 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
 
                         setLocalBankDetails(bankDetails)
                         setBankDetails(bankDetails)
+                        // only the country list sets selectedCountry; a saved
+                        // account skips it, so the unlock CTA below derived a
+                        // rest-of-world intent. The account is the destination.
+                        setSelectedCountry(getCountryFromAccount(account) ?? null)
 
                         const isGuestFlow = bankClaimType === BankClaimType.GuestBankClaim
                         const userForOfframp = isGuestFlow
