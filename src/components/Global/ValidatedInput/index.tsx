@@ -3,6 +3,7 @@ import MoreInfo from '@/components/Global/MoreInfo'
 import { createSmartPasteHandler, type PasteFieldKind } from '@/utils/clipboard-extract.utils'
 import { useClipboardSuggestion } from '@/hooks/useClipboardSuggestion'
 import { useDebounce } from '@/hooks/useDebounce'
+import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { AnimatePresence } from 'framer-motion'
 import { motion } from '@/components/Accessibility/motion'
 import * as Sentry from '@sentry/nextjs'
@@ -280,14 +281,15 @@ const ValidatedInput = ({
                     )}
                 </div>
             </div>
-            <p
-                id={`${inputId}-status`}
-                role="status"
-                aria-atomic="true"
-                className={invalid ? 'mt-1 text-body-s text-foreground-error' : 'sr-only'}
-            >
-                {status}
-            </p>
+            <div id={`${inputId}-status`} role="status" aria-atomic="true">
+                {invalid ? (
+                    <FieldError role={undefined} className="mt-1 text-body-s">
+                        {status}
+                    </FieldError>
+                ) : (
+                    <span className="sr-only">{status}</span>
+                )}
+            </div>
             <AnimatePresence initial={false}>
                 {smartPasteKind && suggestion && !value && (
                     <motion.div

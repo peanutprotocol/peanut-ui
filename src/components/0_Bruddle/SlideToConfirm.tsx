@@ -118,13 +118,13 @@ const SlideToConfirm: FC<SlideToConfirmProps> = ({ label, confirmLabel, onConfir
             <div
                 ref={trackRef}
                 className={twMerge(
-                    'relative flex h-12 w-full items-center overflow-hidden rounded-round border border-border-button-secondary bg-background-default shadow-4',
+                    'a11y-slide relative flex h-12 w-full items-center overflow-hidden rounded-round border border-border-button-secondary bg-background-default shadow-4',
                     disabled && 'opacity-40',
                     className
                 )}
                 aria-label={label}
             >
-                <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-button-l text-foreground-primary">
+                <span className="a11y-slide-label pointer-events-none absolute inset-0 flex items-center justify-center text-button-l text-foreground-primary">
                     {label}
                 </span>
                 <motion.div

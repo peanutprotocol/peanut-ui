@@ -204,3 +204,42 @@ it('applies the preference when reads work but storage writes fail', () => {
     set.mockRestore()
     act(() => updateAccessibilityPreferences(DEFAULT_ACCESSIBILITY))
 })
+
+it('requires a sustained pointer hold unless simplified confirmations are enabled', () => {
+    jest.useFakeTimers()
+    try {
+        const onComplete = jest.fn()
+        const view = render(wrap(<HoldToClaimButton onComplete={onComplete}>Claim preview</HoldToClaimButton>))
+        const button = screen.getByRole('button', { name: 'Claim preview' })
+        fireEvent.pointerDown(button)
+        fireEvent.pointerUp(button)
+        fireEvent.click(button, { detail: 1 })
+        act(() => jest.advanceTimersByTime(5000))
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        expect(onComplete).not.toHaveBeenCalled()
+
+        fireEvent.pointerDown(button)
+        act(() => jest.advanceTimersByTime(5000))
+        fireEvent.pointerUp(button)
+        fireEvent.click(button, { detail: 1 })
+        expect(onComplete).toHaveBeenCalledTimes(1)
+        fireEvent.pointerDown(button)
+        act(() => jest.advanceTimersByTime(5000))
+        fireEvent.pointerUp(button)
+        expect(onComplete).toHaveBeenCalledTimes(1)
+        view.unmount()
+    } finally {
+        jest.useRealTimers()
+    }
+})
+
+it('offers a cancellable confirmation for a pointer tap when simplified confirmations are enabled', () => {
+    updateAccessibilityPreferences({ simplifiedConfirmations: true })
+    const onComplete = jest.fn()
+    render(wrap(<HoldToClaimButton onComplete={onComplete}>Claim preview</HoldToClaimButton>))
+    fireEvent.click(screen.getByRole('button', { name: 'Claim preview' }), { detail: 1 })
+    expect(screen.getByRole('dialog', { name: 'Claim preview' })).toBeInTheDocument()
+    expect(onComplete).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(onComplete).not.toHaveBeenCalled()
+})

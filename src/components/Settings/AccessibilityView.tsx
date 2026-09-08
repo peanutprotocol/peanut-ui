@@ -1,5 +1,6 @@
 'use client'
 
+import Card from '@/components/Global/Card'
 import { useId } from 'react'
 import { useTranslations } from 'next-intl'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
@@ -24,7 +25,7 @@ function PreferenceToggle({
 }) {
     const id = useId()
     return (
-        <div className="flex items-center justify-between gap-4 border-b border-border-disabled py-5 last:border-b-0">
+        <div className="flex items-center justify-between gap-4 border-b border-border-disabled py-4 last:border-b-0">
             <div className="min-w-0">
                 <p id={`${id}-title`} className="text-body-m-semibold">
                     {title}
@@ -51,14 +52,14 @@ export function AccessibilityView() {
     return (
         <PageStack gap="6" className="h-full bg-background">
             <NavHeader title={t('title')} onPrev={onBack} />
-            <div className="rounded-sm border border-border-default bg-background-default px-4">
+            <Card className="bg-background-default px-4 py-0">
                 <PreferenceToggle
                     title={t('largerText')}
                     description={t('largerTextDescription')}
                     checked={preferences.largerText}
                     onChange={(largerText) => preferences.updatePreferences({ largerText })}
                 />
-                <div className="border-b border-border-disabled py-5">
+                <div className="border-b border-border-disabled py-4">
                     <label htmlFor="accessibility-motion" className="text-body-m-semibold">
                         {t('reduceMotion')}
                     </label>
@@ -91,15 +92,14 @@ export function AccessibilityView() {
                     checked={preferences.simplifiedConfirmations}
                     onChange={(simplifiedConfirmations) => preferences.updatePreferences({ simplifiedConfirmations })}
                 />
-            </div>
-            <section
-                aria-labelledby="accessibility-preview"
-                className="rounded-sm border border-border-default bg-background-default p-4"
-            >
-                <h2 id="accessibility-preview" className="text-heading-card">
-                    {t('preview')}
-                </h2>
-                <p className="mt-2 text-body-m">{t('previewText')}</p>
+            </Card>
+            <section aria-labelledby="accessibility-preview">
+                <Card className="bg-background-default p-4">
+                    <h2 id="accessibility-preview" className="text-heading-card">
+                        {t('preview')}
+                    </h2>
+                    <p className="mt-2 text-body-m">{t('previewText')}</p>
+                </Card>
             </section>
             <section aria-labelledby="accessibility-help" className="space-y-2">
                 <h2 id="accessibility-help" className="text-heading-card">

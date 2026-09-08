@@ -40,6 +40,13 @@ jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({ isQRScannerOpen: true, setIsQRScannerOpen: jest.fn() }),
 }))
 jest.mock('@/components/Global/QRBottomDrawer', () => ({ __esModule: true, default: () => null }))
+// These scanner tests isolate modal layout; keep its title semantics without
+// requiring the Headless UI portal/focus implementation in the modal stub.
+jest.mock('@headlessui/react', () => ({
+    ...jest.requireActual('@headlessui/react'),
+    DialogTitle: ({ children, ...props }: any) => <h3 {...props}>{children}</h3>,
+    Description: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+}))
 jest.mock('@/components/Global/Modal', () => ({
     __esModule: true,
     default: ({ title, visible, children }: { title?: string; visible: boolean; children: React.ReactNode }) =>

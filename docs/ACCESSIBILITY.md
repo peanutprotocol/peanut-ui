@@ -23,7 +23,8 @@ accessibility support; this implementation does not generate recorded speech.
 
 `/dev/accessibility` is a local/preview-only fixture using the real settings,
 confirmation controls, status badges and drawer. Its actions increment a local
-counter and do not send money. The preview drawer uses 24px horizontal and bottom
+counter and do not send money. A sample row also exercises separate transaction
+and profile actions without nesting controls. The preview drawer uses 24px horizontal and bottom
 padding, with 16px gaps between its content.
 
 Automated coverage includes preference persistence and device changes, restricted
@@ -44,3 +45,8 @@ Before release, check real device behavior with VoiceOver and Voice Control:
 
 Browser keyboard and accessibility-tree checks are not a substitute for these
 native assistive-technology checks.
+
+Browser verification on the accessibility PR also covered a 320px viewport with
+larger text: the drawer retained its padding, the slider label wrapped clear of
+its handle, there was no horizontal page overflow, drawer focus returned to its
+trigger, and row/profile actions worked independently with pointer and keyboard.

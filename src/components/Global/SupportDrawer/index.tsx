@@ -461,14 +461,15 @@ const SupportDrawer = () => {
                     transition: isDragging ? 'none' : 'transform 300ms ease-out',
                 }}
             >
-                <button
+                <Button
                     type="button"
+                    variant="transparent"
+                    shape="square"
                     onClick={() => setIsSupportModalOpen(false)}
                     aria-label={tCommon('close')}
-                    className="absolute top-1 right-2 flex size-11 items-center justify-center rounded-full"
-                >
-                    <Icon name="cancel" size={20} />
-                </button>
+                    className="absolute top-1 right-2 size-11"
+                    icon={<Icon name="cancel" size={20} />}
+                />
                 {/* drag handle */}
                 <div
                     className="flex cursor-grab items-center justify-center pb-4 active:cursor-grabbing"

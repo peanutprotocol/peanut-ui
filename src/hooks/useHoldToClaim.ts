@@ -332,7 +332,7 @@ export function useHoldToClaim({
             if (disabled || isCompleteRef.current) return
             // A keyboard, screen reader or voice command produces click without
             // requiring a sustained key or pointer gesture.
-            if (simplifiedConfirmations || event.detail === 0 || !enableTapMode) requestConfirmation()
+            if (simplifiedConfirmations || event.detail === 0) requestConfirmation()
         },
         onPointerDown: simplifiedConfirmations ? () => {} : startHold,
         onPointerUp: cancelHold,

@@ -3,7 +3,14 @@
         "fundsOnTheWay": "Fondos en camino",
         "genericError": "Algo salió mal. Intentá de nuevo o contactá soporte.",
         "tryDifferentCountry": "Probá con otro país.",
-        "slideToProceed": "Deslizá para continuar"
+        "slideToProceed": "Deslizá para continuar",
+        "accessibility": {
+            "embeddedFlow": "Verificación",
+            "feedback": "Comentarios",
+            "proceed": "Continuar",
+            "lock": "Bloquear tarjeta",
+            "cancelCard": "Cancelar tarjeta"
+        }
     },
     "errors": {
         "balanceSettling": "Tu saldo aún no está totalmente disponible. Intentalo de nuevo en unos segundos.",

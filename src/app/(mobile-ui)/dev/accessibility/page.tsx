@@ -8,12 +8,14 @@ import { HoldToClaimButton } from '@/components/Global/HoldToClaimButton'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { Drawer, DrawerClose, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 
 /** Local/preview fixture: real shared controls, no API or money movement. */
 export default function AccessibilityPreview() {
     const [drawer, setDrawer] = useState(false)
     const [completed, setCompleted] = useState(0)
+    const [rowAction, setRowAction] = useState('No row action yet')
     return (
         <main className="mx-auto space-y-8 w-full max-w-md p-4">
             <AccessibilityView />
@@ -38,6 +40,20 @@ export default function AccessibilityPreview() {
                     <StatusBadge status="pending" />
                     <StatusBadge status="failed" />
                 </div>
+                <ListItem
+                    interactiveContent
+                    title={
+                        <button type="button" onClick={() => setRowAction('Profile selected')}>
+                            Sample profile
+                        </button>
+                    }
+                    body="Transaction details"
+                    trailing="$25"
+                    onClick={() => setRowAction('Transaction details selected')}
+                />
+                <p role="status" className="text-body-m">
+                    {rowAction}
+                </p>
                 <Button variant="stroke" onClick={() => setDrawer(true)}>
                     Open preview drawer
                 </Button>

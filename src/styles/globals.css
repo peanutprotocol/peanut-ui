@@ -2128,3 +2128,19 @@ input::placeholder {
     text-align: center;
     overflow-wrap: anywhere;
 }
+
+/* The row action follows the grouped Card corners without enclosing slot controls. */
+.a11y-row-action {
+    border-radius: inherit;
+}
+
+:root[data-larger-text='true'] .a11y-slide {
+    height: auto;
+    min-height: 3rem;
+}
+:root[data-larger-text='true'] .a11y-slide-label {
+    position: relative;
+    width: 100%;
+    padding: 0.75rem 3rem;
+    text-align: center;
+}
