@@ -18,6 +18,9 @@ interface WithdrawAmountViewProps {
     heading: string
     initialAmount: string
     walletBalance: string
+    /** Full-precision spendable balance — tapping the balance row fills the field with it (floored to cents). */
+    balanceFillAmount: number
+    onBalanceFilled: (value: string) => void
     onAmountChange: (value: string | undefined) => void
     onBack: () => void
     onContinue: () => void
@@ -33,6 +36,8 @@ export const WithdrawAmountView: FC<WithdrawAmountViewProps> = ({
     heading,
     initialAmount,
     walletBalance,
+    balanceFillAmount,
+    onBalanceFilled,
     onAmountChange,
     onBack,
     onContinue,
@@ -63,6 +68,8 @@ export const WithdrawAmountView: FC<WithdrawAmountViewProps> = ({
                         decimals: 6, // we want USDC decimals to be able to pay exactly
                     }}
                     walletBalance={walletBalance}
+                    balanceFillAmount={balanceFillAmount}
+                    onBalanceFilled={onBalanceFilled}
                     hideCurrencyToggle
                 />
 

@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
@@ -22,12 +23,17 @@ export function QrPayProviderRejectionView() {
 
     const isFixable = kycGateState === QrKycState.PROVIDER_REJECTION_FIXABLE
     const isRestartIdentity = kycGateState === QrKycState.PROVIDER_RESTART_IDENTITY
+    // A restart cooldown replaces the rejection prompt: the cooldown modal
+    // (from SumsubKycModals below) is the one actionable surface, and
+    // dismissing it leaves the flow rather than re-offering a restart that
+    // the backend refuses anyway.
+    const [kycPromptDismissed, setKycPromptDismissed] = useState(false)
 
     return (
         <div className="flex min-h-inherit flex-col gap-8">
             <NavHeader title={tNav('pay')} />
             <ActionModal
-                visible
+                visible={!kycPromptDismissed && !sumsubFlow.errorCooldown}
                 onClose={onBack}
                 title={
                     isFixable
@@ -76,7 +82,13 @@ export function QrPayProviderRejectionView() {
                             },
                 ]}
             />
-            <SumsubKycModals flow={sumsubFlow} />
+            <SumsubKycModals
+                flow={sumsubFlow}
+                onCooldownClose={() => {
+                    setKycPromptDismissed(true)
+                    onBack()
+                }}
+            />
         </div>
     )
 }

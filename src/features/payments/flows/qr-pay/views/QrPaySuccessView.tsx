@@ -296,7 +296,7 @@ export function QrPaySuccessView() {
                     {user?.user.username && !rewardClaimable && (
                         <button
                             onClick={() => setShowInviteFriendsModal(true)}
-                            className="flex w-full items-center justify-center gap-2 text-body-s text-foreground-secondary underline transition-colors hover:text-black"
+                            className="flex w-full items-center justify-center gap-2 text-body-s text-foreground-secondary underline transition-colors hover:text-black active:text-black"
                         >
                             <Icon name="invite-heart" size={16} className="text-foreground-secondary" />
                             {t('success.inviteFriendsCta')}

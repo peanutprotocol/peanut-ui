@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
@@ -22,12 +23,20 @@ export function QrPayKycGateView() {
     const tCommon = useTranslations('common')
     const { gate, methodIcon, targetMantecaCountry, onBack } = useQrPayFlow()
     const { kycGateState, sumsubFlow, isKycApproved } = gate
+    // A restart cooldown replaces the unlock prompt: the cooldown modal (from
+    // SumsubKycModals below) is the one actionable surface, and dismissing it
+    // leaves the flow rather than re-offering a verification that cannot start.
+    const [kycPromptDismissed, setKycPromptDismissed] = useState(false)
 
     return (
         <div className="flex min-h-inherit flex-col gap-8">
             <NavHeader title={tNav('pay')} />
             <ActionModal
-                visible={kycGateState === QrKycState.REQUIRES_IDENTITY_VERIFICATION}
+                visible={
+                    !kycPromptDismissed &&
+                    !sumsubFlow.errorCooldown &&
+                    kycGateState === QrKycState.REQUIRES_IDENTITY_VERIFICATION
+                }
                 onClose={onBack}
                 title={t('kyc.unlockTitle')}
                 description={t('kyc.unlockDescription')}
@@ -85,7 +94,13 @@ export function QrPayKycGateView() {
                     },
                 ]}
             />
-            <SumsubKycModals flow={sumsubFlow} />
+            <SumsubKycModals
+                flow={sumsubFlow}
+                onCooldownClose={() => {
+                    setKycPromptDismissed(true)
+                    onBack()
+                }}
+            />
         </div>
     )
 }

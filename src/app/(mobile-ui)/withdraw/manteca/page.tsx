@@ -52,11 +52,11 @@ import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import PointsCard from '@/components/Common/PointsCard'
 import {
     MANTECA_COUNTRIES_CONFIG,
-    MANTECA_DEPOSIT_ADDRESS,
     MantecaAccountType,
     isMantecaSupportedCountryCode,
     type MantecaBankCode,
 } from '@/constants/manteca.consts'
+import { resolveOfframpSpendRecipient } from '@/utils/manteca.utils'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
@@ -491,7 +491,10 @@ function MantecaBankWithdrawFlow() {
                 const requiredUsdcAmount = parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS)
                 signedArtifact = await signSpend({
                     requiredUsdcAmount,
-                    recipient: MANTECA_DEPOSIT_ADDRESS,
+                    // Entity-aware deposit address served by /withdraw/init
+                    // (per-entity balances from 2026-09-14); the constant is
+                    // only the fallback for an older API without the field.
+                    recipient: resolveOfframpSpendRecipient(priceLock),
                     rainSpendingPower: rainCentsToUsdcUnits(rainCardOverview?.balance?.spendingPower),
                     kind: 'FIAT_OFFRAMP',
                 })

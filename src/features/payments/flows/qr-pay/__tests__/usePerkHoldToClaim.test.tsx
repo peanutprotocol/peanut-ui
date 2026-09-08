@@ -89,3 +89,16 @@ test('no dismissal when the perk was never shown', () => {
     })
     expect(posthog.capture).not.toHaveBeenCalledWith('reward_claim_dismissed')
 })
+
+test('a keyed remount (same flow re-keyed by qrCode|timestamp) does not fire a phantom dismissal', () => {
+    // qr-pay/page.tsx remounts the whole flow under a new key — a NEW hook
+    // instance mounts while the previous one unmounts. The cancel must span
+    // instances, or every re-scan/refresh inflates reward_claim_dismissed.
+    const { rerender } = render(<Harness key="scan-1" qrPayment={eligibleQrPayment} />)
+    rerender(<Harness key="scan-2" qrPayment={eligibleQrPayment} />)
+
+    act(() => {
+        jest.runOnlyPendingTimers()
+    })
+    expect(posthog.capture).not.toHaveBeenCalledWith('reward_claim_dismissed')
+})

@@ -18,7 +18,10 @@ export const QrPayPageLoading = ({ message }: { message: string }) => {
                     alt={t('peanutManAlt')}
                     width={128}
                     height={128}
-                    className="absolute z-0 h-32 w-32 -translate-y-20 object-contain"
+                    // spans the card wrapper (the modern equivalent of the old
+                    // layout="fill") so object-contain centers the mascot over
+                    // the card instead of parking it at the top-left corner
+                    className="absolute inset-0 z-0 h-full w-full -translate-y-20 object-contain"
                 />
 
                 <Card className="relative z-10 flex w-full flex-col items-center gap-4 p-4">
