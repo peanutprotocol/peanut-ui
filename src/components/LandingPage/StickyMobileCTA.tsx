@@ -4,11 +4,12 @@ import { useEffect, useRef, useState, useMemo } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/0_Bruddle/Button'
 import type { LandingStrings } from './landingStrings'
-import { STORE_URL, MIGRATION_SURFACES } from '@/constants/migration.consts'
+import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { useTranslations } from 'next-intl'
-import { onStoreAnchorClick, storeAnchorHref, trackStoreClick } from '@/utils/migration.utils'
+import { onStoreAnchorClick, storeAnchorHref } from '@/utils/migration.utils'
+import { LandingAppLink } from './LandingAppLink'
 
 export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
     const [visible, setVisible] = useState(false)
@@ -69,19 +70,20 @@ export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
         <>
             {
                 <div
+                    data-testid="sticky-mobile-cta"
                     className={`pointer-events-none fixed right-0 bottom-0 left-0 z-50 border-t-2 border-n-1 bg-white px-4 py-3 md:hidden ${
                         visible ? 'sticky-cta-in' : 'sticky-cta-out'
                     }`}
                 >
-                    {migrationOn ? (
-                        // this bar is md:hidden so the visitor is on a phone —
-                        // deep-link their store during the migration window
-                        <div>
+                    <div className="pointer-events-auto flex items-center gap-4">
+                        {migrationOn ? (
+                            // this bar is md:hidden so the visitor is on a phone —
+                            // deep-link their store during the migration window
                             <a
                                 href={storeHref}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="pointer-events-auto block"
+                                className="block flex-1"
                                 onClick={() => onStoreAnchorClick(store, MIGRATION_SURFACES.LANDING_HERO)}
                             >
                                 <Button
@@ -93,21 +95,7 @@ export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
                                     {tMigration('downloadNow')}
                                 </Button>
                             </a>
-                            <a
-                                className="pointer-events-auto mt-2 block text-center text-sm underline"
-                                href={STORE_URL[store === 'ios' ? 'android' : 'ios']}
-                                onClick={() =>
-                                    trackStoreClick(
-                                        store === 'ios' ? 'android' : 'ios',
-                                        MIGRATION_SURFACES.LANDING_HERO
-                                    )
-                                }
-                            >
-                                {tMigration('otherStore')}
-                            </a>
-                        </div>
-                    ) : (
-                        <div className="pointer-events-auto flex items-center gap-4">
+                        ) : (
                             <Link prefetch={false} href="/setup" className="block flex-1">
                                 <Button
                                     variant="purple"
@@ -117,15 +105,15 @@ export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
                                     {strings.signUpNow}
                                 </Button>
                             </Link>
-                            <Link
-                                prefetch={false}
-                                href="/setup?step=login"
-                                className="shrink-0 text-body-s text-n-1 underline"
-                            >
-                                {strings.logIn}
-                            </Link>
-                        </div>
-                    )}
+                        )}
+                        <LandingAppLink
+                            surface={MIGRATION_SURFACES.LANDING_LOGIN}
+                            href="/setup?step=login"
+                            className="shrink-0 text-body-s text-n-1 underline"
+                        >
+                            {strings.logIn}
+                        </LandingAppLink>
+                    </div>
                 </div>
             }
         </>

@@ -17,6 +17,13 @@ async function landing(page: Page, route: string, on: boolean) {
     if (on) await expect(page.getByTestId('landing-download-cta')).toBeVisible()
     else await expect(page.locator('#hero a[href="/setup?step=login"]')).toBeVisible()
 }
+// with the flag on, the phone login entry is the sticky bar, which appears after a scroll
+async function stickyLogin(page: Page, handoffPath: string) {
+    await page.evaluate(() => window.scrollTo(0, 600))
+    const link = page.getByTestId('sticky-mobile-cta').locator(`a[href="${handoffPath}"]`)
+    await expect(link).toBeVisible()
+    return link
+}
 
 test.beforeAll(async () => {
     await mkdir(shots, { recursive: true })
@@ -46,7 +53,7 @@ for (const device of ['desktop', 'iphone', 'android'] as const) {
                 await page.route(`**${handoffPath}`, (route) =>
                     route.fulfill({ contentType: 'text/html', body: 'App handoff reached' })
                 )
-                await page.locator(`#hero a[href="${handoffPath}"]`).last().click()
+                await (await stickyLogin(page, handoffPath)).click()
                 expect((await appNavigation).resourceType()).toBe('document')
                 await expect(page.locator('body')).toHaveText('App handoff reached')
             })
@@ -59,7 +66,7 @@ for (const device of ['desktop', 'iphone', 'android'] as const) {
                     storeRequests.push(route.request().url())
                     return route.fulfill({ contentType: 'text/html', body: 'Unexpected automatic store navigation' })
                 })
-                await page.locator('#hero a[href="/app/login"]').click()
+                await (await stickyLogin(page, '/app/login')).click()
                 await expect(page).toHaveURL(/\/app\/login$/)
                 await expect(page.getByRole('heading', { name: 'Log in with the Peanut app' })).toBeVisible()
                 await expect(page.locator('meta[name="apple-itunes-app"]')).toHaveAttribute(

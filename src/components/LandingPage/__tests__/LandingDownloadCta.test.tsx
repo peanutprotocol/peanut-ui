@@ -42,19 +42,14 @@ it('has one desktop download action and delegates to the shared modal', () => {
     fireEvent.click(link)
     expect(mockIntercept).toHaveBeenCalledWith('landing_hero')
 })
-it.each(['ios', 'android'])('offers the opposite store on %s', (device) => {
+it.each(['ios', 'android'])('has one store download action on %s', (device) => {
     mockDevice = device
     render(<LandingDownloadCta />)
+    expect(screen.getAllByRole('link')).toHaveLength(1)
     expect(screen.getByRole('link', { name: 'downloadNow' })).toHaveAttribute(
         'href',
         STORE_URL[device as 'ios' | 'android']
     )
-    expect(screen.getByRole('link', { name: 'otherStore' })).toHaveAttribute(
-        'href',
-        STORE_URL[device === 'ios' ? 'android' : 'ios']
-    )
-    fireEvent.click(screen.getByRole('link', { name: 'otherStore' }))
-    expect(mockTrackStoreClick).toHaveBeenCalledWith(device === 'ios' ? 'android' : 'ios', 'landing_hero')
 })
 it('keeps web login when the flag is off and changes its fallback URL when on', () => {
     mockMigration = false
@@ -102,12 +97,13 @@ it('hides footer stores while migration is off', () => {
     expect(mockTrackStoreClick).not.toHaveBeenCalled()
 })
 
-it.each(['ios', 'android'])('tracks the sticky other-store fallback on %s', (device) => {
+it.each([
+    ['ios', '/app/login'],
+    ['android', '/app'],
+])('keeps the phone login entry in the sticky bar on %s', (device, handoff) => {
     mockDevice = device
     Object.defineProperty(window, 'scrollY', { configurable: true, value: 400 })
-    render(<StickyMobileCTA strings={{} as LandingStrings} />)
-    const link = screen.getByRole('link', { name: 'otherStore' })
-    expect(link).toHaveAttribute('href', STORE_URL[device === 'ios' ? 'android' : 'ios'])
-    fireEvent.click(link)
-    expect(mockTrackStoreClick).toHaveBeenCalledWith(device === 'ios' ? 'android' : 'ios', 'landing_hero')
+    render(<StickyMobileCTA strings={{ logIn: 'Log in' } as LandingStrings} />)
+    expect(screen.getByRole('link', { name: 'downloadNow' })).toHaveAttribute('href', '/store')
+    expect(screen.getByRole('link', { name: 'Log in' })).toHaveAttribute('href', handoff)
 })
