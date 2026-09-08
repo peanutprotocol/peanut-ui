@@ -7,6 +7,7 @@ import '../styles/globals.css'
 import { PEANUT_API_URL, BASE_URL } from '@/constants/general.consts'
 import { CHUNK_ERROR_RECOVERY_SCRIPT } from '@/utils/chunk-error-recovery'
 import { NATIVE_APP_READY_SCRIPT } from '@/utils/native-app-ready'
+import { ACCESSIBILITY_BOOTSTRAP_SCRIPT } from '@/utils/accessibility-bootstrap'
 import { isProductionDomain } from '@/constants/seo-route-policy'
 import { type Metadata } from 'next'
 
@@ -157,6 +158,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return (
         <html
             lang="en"
+            // The pre-paint script sets saved accessibility attributes before hydration.
+            suppressHydrationWarning
             style={{ colorScheme: 'light' }}
             data-theme="light"
             className={`${roboto.variable} ${knerdOutline.variable} ${knerdFilled.variable} ${sniglet.variable} ${robotoFlexBold.variable}`}
@@ -180,6 +183,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     anything behind an import() never runs (see src/utils/native-app-ready.ts).
                     No-op off native: the bridge stub it calls only exists in the WebView. */}
                 <script id="native-app-ready" dangerouslySetInnerHTML={{ __html: NATIVE_APP_READY_SCRIPT }} />
+
+                <script
+                    id="accessibility-preferences"
+                    dangerouslySetInnerHTML={{ __html: ACCESSIBILITY_BOOTSTRAP_SCRIPT }}
+                />
 
                 {/* Chunk-load failure recovery: MUST be a raw inline script — error boundaries
                     are lazy chunks themselves and fail to load in the exact conditions that need
