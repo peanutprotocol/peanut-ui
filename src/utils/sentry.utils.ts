@@ -496,8 +496,20 @@ export const sanitizeUrl = (url: string) => {
  */
 export const routeTag = (url: string): string => sanitizeUrl(url).replace(/^https?:\/\/[^/]+/, '') || '/'
 
-const reportNonOkResponse = async (url: string, options: RequestInit, response: Response): Promise<void> => {
+const reportNonOkResponse = async (
+    url: string,
+    options: RequestInit,
+    response: Response,
+    redactTelemetry = false
+): Promise<void> => {
     if (response.ok) return
+    if (redactTelemetry) {
+        Sentry.captureMessage(`Request failed with status ${response.status}`, {
+            level: getErrorLevelFromStatus(response.status),
+            extra: { method: options.method || 'GET', status: response.status },
+        })
+        return
+    }
     // Skip both the console warn AND Sentry submission for expected
     // non-2xx responses (username availability 404, get-user-from-cookie
     // 401 on cleared session, etc). Logging them clutters DevTools and
@@ -548,6 +560,8 @@ const reportNonOkResponse = async (url: string, options: RequestInit, response: 
 }
 
 export type FetchWithSentryOptions = RequestInit & {
+    /** Report only status/method and static errors for sensitive requests. */
+    redactTelemetry?: boolean
     preferNativeTransport?: boolean
     /*
      * Opt out of the Sentry capture on timeout. For call sites that own a
@@ -565,7 +579,9 @@ export const fetchWithSentry = async (
     optionsWithTransport: FetchWithSentryOptions = {},
     timeoutMs: number = DEFAULT_TIMEOUT_MS
 ): Promise<Response> => {
-    const { preferNativeTransport, silentTimeout, ...options } = optionsWithTransport
+    const { preferNativeTransport, silentTimeout, redactTelemetry, ...options } = optionsWithTransport
+    const telemetryUrl = redactTelemetry ? '[redacted]' : url
+    const telemetryOptions: RequestInit = redactTelemetry ? { method: options.method } : options
 
     // Idempotent requests get one silent retry on timeout: stalled-transport
     // failures (Android webview, flaky mobile networks) usually clear on a
@@ -613,7 +629,7 @@ export const fetchWithSentry = async (
     if (preferNativeTransport && canUseNativeHttp(url, options) && legTimeoutMs() >= minLegMs) {
         try {
             const response = await nativeHttpRequest(url, options, legTimeoutMs())
-            await reportNonOkResponse(url, options, response)
+            await reportNonOkResponse(url, options, response, redactTelemetry)
             return response
         } catch {
             // OS client failed — the WebView path below is the report of record
@@ -645,7 +661,7 @@ export const fetchWithSentry = async (
                 if (attempt < maxAttempts && error instanceof Error && error.name === 'AbortError') {
                     // console.info, not warn: captureConsoleIntegration listens on
                     // warn, and the retry outcome is reported explicitly below.
-                    console.info(`Request to ${String(url).replace(/[\r\n]/g, '')} timed out — retrying`)
+                    console.info(`Request to ${String(telemetryUrl).replace(/[\r\n]/g, '')} timed out — retrying`)
                     await new Promise((resolve) => setTimeout(resolve, TRANSPORT_TIMEOUT_RETRY_DELAY_MS))
                     continue
                 }
@@ -659,7 +675,7 @@ export const fetchWithSentry = async (
     try {
         const response = await attemptFetch()
 
-        await reportNonOkResponse(url, options, response)
+        await reportNonOkResponse(url, options, response, redactTelemetry)
 
         return response
     } catch (error: unknown) {
@@ -670,7 +686,7 @@ export const fetchWithSentry = async (
         if (canUseNativeHttp(url, options) && legTimeoutMs() >= minLegMs) {
             try {
                 const response = await nativeHttpRequest(url, options, legTimeoutMs())
-                await reportNonOkResponse(url, options, response)
+                await reportNonOkResponse(url, options, response, redactTelemetry)
                 return response
             } catch {
                 // fallback failed too — report the original WebView error below
@@ -693,7 +709,8 @@ export const fetchWithSentry = async (
          * an incident actually is; the sliding window is keyed by sanitized url
          * for exactly this dedupe and is already pruned on read.
          */
-        const endpoint = sanitizeUrl(url)
+        const errorForTelemetry = redactTelemetry ? new Error('Request failed') : error
+        const endpoint = sanitizeUrl(telemetryUrl)
         /*
          * Mutations are never deduped. The connectivity window is keyed by url
          * alone — it exists to count distinct failing endpoints for the banner —
@@ -713,7 +730,7 @@ export const fetchWithSentry = async (
         // console.info, not error: captureConsoleIntegration would turn an
         // error-level log into a second Sentry event on top of the explicit
         // captures below.
-        console.info(error)
+        console.info(errorForTelemetry)
 
         if (error instanceof Error && error.name === 'AbortError') {
             /*
@@ -731,18 +748,18 @@ export const fetchWithSentry = async (
             if (!repeatFailure && !silentTimeout) {
                 Sentry.withScope((scope) => {
                     scope.setFingerprint(['timeout'])
-                    scope.setTag('route', routeTag(url))
+                    scope.setTag('route', routeTag(telemetryUrl))
                     scope.setTag('http.method', method)
                     if (timeoutFeatureTag) scope.setTag('feature', timeoutFeatureTag)
 
                     Sentry.captureException(timeoutError, {
                         level: 'error',
                         extra: {
-                            url,
+                            url: telemetryUrl,
                             method,
                             timeoutMs,
-                            requestHeaders: sanitizeHeaders(options.headers || {}),
-                            requestBody: sanitizeRequestBody(url, options.body),
+                            requestHeaders: sanitizeHeaders(telemetryOptions.headers || {}),
+                            requestBody: sanitizeRequestBody(telemetryUrl, telemetryOptions.body),
                         },
                     })
                 })
@@ -754,7 +771,7 @@ export const fetchWithSentry = async (
                     category: 'fetch',
                     level: 'warning',
                     message: 'Request timed out (silent)',
-                    data: { route: routeTag(url), method, timeoutMs },
+                    data: { route: routeTag(telemetryUrl), method, timeoutMs },
                 })
             }
 
@@ -773,12 +790,12 @@ export const fetchWithSentry = async (
         let errorName: string
         let errorStack: string | undefined
 
-        if (error instanceof Error) {
-            errorMessage = error.message
-            errorName = error.name
-            errorStack = error.stack
+        if (errorForTelemetry instanceof Error) {
+            errorMessage = errorForTelemetry.message
+            errorName = errorForTelemetry.name
+            errorStack = errorForTelemetry.stack
         } else {
-            errorMessage = String(error)
+            errorMessage = String(errorForTelemetry)
             errorName = 'Unknown Error'
         }
 
@@ -786,17 +803,17 @@ export const fetchWithSentry = async (
         if (!repeatFailure) {
             Sentry.withScope((scope) => {
                 // Set fingerprint for network errors
-                scope.setFingerprint(['network-error', sanitizeUrl(url), options.method || 'GET'])
-                scope.setTag('route', routeTag(url))
+                scope.setFingerprint(['network-error', sanitizeUrl(telemetryUrl), options.method || 'GET'])
+                scope.setTag('route', routeTag(telemetryUrl))
                 scope.setTag('http.method', method)
                 if (networkFeatureTag) scope.setTag('feature', networkFeatureTag)
 
-                Sentry.captureException(error, {
+                Sentry.captureException(errorForTelemetry, {
                     extra: {
-                        url,
+                        url: telemetryUrl,
                         method: options.method || 'GET',
-                        requestHeaders: sanitizeHeaders(options.headers || {}),
-                        requestBody: sanitizeRequestBody(url, options.body),
+                        requestHeaders: sanitizeHeaders(telemetryOptions.headers || {}),
+                        requestBody: sanitizeRequestBody(telemetryUrl, telemetryOptions.body),
                         errorMessage,
                         errorName,
                         errorStack,
@@ -807,7 +824,7 @@ export const fetchWithSentry = async (
 
         const userError = new Error('Something went wrong. Please try again.')
         userError.name = 'ServiceUnavailableError'
-        userError.cause = error
+        userError.cause = errorForTelemetry
         throw userError
     }
 }

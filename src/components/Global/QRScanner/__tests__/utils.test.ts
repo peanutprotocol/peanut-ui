@@ -1,29 +1,30 @@
 import { captureException } from '@sentry/nextjs'
-import { reportQrScanError } from '../utils'
+import { qrTelemetry, reportQrScanError } from '../utils'
 
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
-
-const mockCaptureException = captureException as jest.MockedFunction<typeof captureException>
-const CLAIM_URL = 'https://peanut.me/claim?id=42#p=secret'
-
+const mockCaptureException = jest.mocked(captureException)
 beforeEach(() => jest.clearAllMocks())
 
 it.each([
-    ['pix', '00020101021226' + '0014br.gov.bcb.pix' + 'x'.repeat(68)],
-    ['emv', '000201' + '0014com.mercadolibre' + 'x'.repeat(20)],
-    ['url', CLAIM_URL],
-    ['other', '0xab5801a7d398351b8be11c439e05c5b3259aec9b'],
-])('classifies a payload as %s and sends it in full', (kind, payload) => {
-    reportQrScanError(new Error('boom'), payload)
-    expect(mockCaptureException.mock.calls[0][1]).toEqual({
+    ['pix', '000201010212260014br.gov.bcb.pix' + 'private-bank-value'.repeat(5), '64-255'],
+    ['emv', '0002010014com.mercadolibreprivate-merchant', '1-63'],
+    ['url', 'https://peanut.me/claim?id=42#p=secret', '1-63'],
+    ['base64-like', 'cHJpdmF0ZS1wYXltZW50'.repeat(22) + 'AAAA', '256-1023'],
+    ['other', 'private-user@example.test', '1-63'],
+    ['other', '', 'empty'],
+])('reports only finite metadata for %s', (kind, payload, bucket) => {
+    reportQrScanError(payload)
+    const [error, context] = mockCaptureException.mock.calls[0]
+    expect(error).toEqual(new Error('QR scan processing failed'))
+    expect(error).not.toHaveProperty('cause')
+    expect(context).toEqual({
         tags: { error_type: 'qr_scan_processing' },
-        extra: { qrLength: payload.length, qrKind: kind, qrPayload: payload },
+        extra: { qrKind: kind, qrLengthBucket: bucket },
     })
+    expect(context).not.toHaveProperty('extra.qrPayload')
+    if (payload) expect(JSON.stringify(context)).not.toContain(payload)
 })
 
-it('sends the full payload, claim-link fragment included — accepted trade-off (PR #2757)', () => {
-    reportQrScanError(new Error('boom'), CLAIM_URL)
-    expect(mockCaptureException.mock.calls[0][1]).toEqual(
-        expect.objectContaining({ extra: expect.objectContaining({ qrPayload: CLAIM_URL }) })
-    )
+it('coarsens long payloads without retaining identifiers or exact lengths', () => {
+    expect(qrTelemetry('sensitive '.repeat(200))).toEqual({ qrKind: 'other', qrLengthBucket: '1024+' })
 })

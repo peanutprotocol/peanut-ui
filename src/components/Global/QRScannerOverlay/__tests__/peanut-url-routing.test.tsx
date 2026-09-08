@@ -113,3 +113,14 @@ describe('scanned peanut.me links on web', () => {
         expect(mockPush).toHaveBeenCalledWith('/alice/10USDC?id=req-123')
     })
 })
+
+it.each([true, false])('opts QR lookups into private telemetry on native=%s', async (native) => {
+    mockIsCapacitor.mockReturnValue(native)
+    mockServerFetch.mockResolvedValue({ json: async () => ({ claimed: false }) })
+    await scan('https://peanut.me/qr/private-id#p=secret')
+    expect(mockServerFetch).toHaveBeenCalledWith('/qr/private-id#p=secret', {
+        method: 'GET',
+        redactTelemetry: true,
+    })
+    expect(mockPush).toHaveBeenCalled()
+})

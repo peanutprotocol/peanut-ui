@@ -346,11 +346,8 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
     const scanValue = async (data: string) => {
         try {
             await onScan(data)
-        } catch (err) {
-            // console.info, not error: captureConsoleIntegration would turn an
-            // error-level log into a second Sentry event on top of the capture below.
-            console.info('Error processing QR code:', err)
-            reportQrScanError(err, data)
+        } catch {
+            reportQrScanError(data)
             toast.error(t('qrScanner.qrProcessingError'))
         }
     }

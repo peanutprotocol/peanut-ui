@@ -131,10 +131,10 @@ it('camera scan: onScan failure is captured with the qr_scan_processing tag', as
 
     expect(onScan).toHaveBeenCalledWith(PIX_PAYLOAD)
     expect(captureException).toHaveBeenCalledWith(
-        error,
+        new Error('QR scan processing failed'),
         expect.objectContaining({
             tags: { error_type: 'qr_scan_processing' },
-            extra: { qrLength: 100, qrKind: 'pix', qrPayload: PIX_PAYLOAD },
+            extra: { qrLengthBucket: '64-255', qrKind: 'pix' },
         })
     )
 })

@@ -1,27 +1,31 @@
 import { captureException } from '@sentry/nextjs'
 
-type QrKind = 'pix' | 'emv' | 'url' | 'other'
-
-// Coarse family of the payload, for filtering in Sentry.
-function qrKind(data: string): QrKind {
-    if (data.startsWith('000201')) return data.includes('br.gov.bcb.pix') ? 'pix' : 'emv'
-    if (/^https?:\/\//i.test(data)) return 'url'
-    return 'other'
+export function qrTelemetry(data: string) {
+    const qrKind = data.startsWith('000201')
+        ? data.includes('br.gov.bcb.pix')
+            ? 'pix'
+            : 'emv'
+        : /^https?:\/\//i.test(data)
+          ? 'url'
+          : data.length > 0 && data.length % 4 === 0 && /^[A-Za-z0-9+/]+={0,2}$/.test(data)
+            ? 'base64-like'
+            : 'other'
+    const qrLengthBucket =
+        data.length === 0
+            ? 'empty'
+            : data.length < 64
+              ? '1-63'
+              : data.length < 256
+                ? '64-255'
+                : data.length < 1024
+                  ? '256-1023'
+                  : '1024+'
+    return { qrKind, qrLengthBucket }
 }
 
-/**
- * Reports an onScan throw to Sentry under its own tag so the family is
- * searchable (error_type:qr_scan_processing), with the full scanned payload.
- *
- * Deliberate: scan failures cannot be diagnosed without the payload, and it
- * carries payee/merchant data (Pix keys, merchant names), a claim link's
- * fragment, or whatever the paste path hands in. Sentry is a private processor
- * already trusted with user identity; the trade-off was accepted by the code
- * owner (PR #2757).
- */
-export function reportQrScanError(err: unknown, data: string): void {
-    captureException(err, {
+export function reportQrScanError(data: string): void {
+    captureException(new Error('QR scan processing failed'), {
         tags: { error_type: 'qr_scan_processing' },
-        extra: { qrLength: data.length, qrKind: qrKind(data), qrPayload: data },
+        extra: qrTelemetry(data),
     })
 }
