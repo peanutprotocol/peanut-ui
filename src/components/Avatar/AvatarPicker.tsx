@@ -52,6 +52,7 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
 
     const drain = async () => {
         draining.current = true
+        let serverKey = user?.user.avatarKey ?? null
         try {
             // A tap during refetch queues another write.
             do {
@@ -60,10 +61,13 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                     wanted.current = undefined
                     try {
                         const { error } = await updateUserById({ userId, avatarKey: key })
-                        if (error) rememberOrReport(key)
-                        else storeLetterAvatar(userId, null)
+                        if (error) rememberOrReport(key, serverKey)
+                        else {
+                            serverKey = key
+                            storeLetterAvatar(userId, null)
+                        }
                     } catch {
-                        rememberOrReport(key)
+                        rememberOrReport(key, serverKey)
                     }
                 }
                 await fetchUser()
@@ -75,9 +79,9 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
     }
 
     // Older APIs reject letter keys. Keep those locally; sticker failures still report an error.
-    const rememberOrReport = (key: string | null) => {
+    const rememberOrReport = (key: string | null, serverKey: string | null) => {
         // A changed server key invalidates this fallback after a pick on another device.
-        if (isLetterAvatarKey(key)) storeLetterAvatar(userId, key, user?.user.avatarKey ?? null)
+        if (isLetterAvatarKey(key)) storeLetterAvatar(userId, key, serverKey)
         else toast({ type: 'error', message: t('saveFailed') })
     }
 

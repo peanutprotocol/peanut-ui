@@ -405,6 +405,35 @@ describe('AvatarPicker', () => {
         await waitFor(() => expect(tiles()[0]).toHaveAttribute('aria-checked', 'true'))
     })
 
+    it.each(['API rejection', 'network failure'])(
+        'keeps a queued initial after a sticker saves and the initial encounters %s',
+        async (failure) => {
+            mockUser.user.avatarKey = KEY_A
+            const server = fakeServer()
+            const view = renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+            fireEvent.click(tile(B))
+            fireEvent.click(tiles()[0])
+            await server.settle(0)
+            expect(server.posts.map((post) => post.key)).toEqual([KEY_B, 'letter.s'])
+
+            if (failure === 'API rejection') await server.settle(1, { error: 'body/avatarKey must match pattern' })
+            else await server.reject(1)
+
+            await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
+            expect(server.committed()).toBe(KEY_B)
+            expect(readLetterAvatar('u1')).toEqual({ key: 'letter.s', serverKey: KEY_B })
+            expect(tiles()[0]).toHaveAttribute('aria-checked', 'true')
+            expect(tile(B)).toHaveAttribute('aria-checked', 'false')
+            expect(mockToast).not.toHaveBeenCalled()
+
+            view.unmount()
+            resetLetterAvatarCache()
+            renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+            expect(tiles()[0]).toHaveAttribute('aria-checked', 'true')
+        }
+    )
+
     it('still reports a rejected sticker — those have no device-local fallback', async () => {
         const server = fakeServer()
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
