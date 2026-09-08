@@ -22,7 +22,8 @@ export default function ExchangeRatePage() {
     const tCommon = useTranslations('common')
     const router = useRouter()
     const onBack = useSafeBack('/profile', { replace: true })
-    const { balance } = useWallet()
+    const { spendableBalance, isFetchingSpendableBalance } = useWallet()
+    const balancePending = isFetchingSpendableBalance || spendableBalance === undefined
     const { rails } = useCapabilities()
     const unlockedRegionPaths = useMemo(
         () => deriveRegionAccess(rails).unlockedRegions.map((region) => region.path),
@@ -51,7 +52,7 @@ export default function ExchangeRatePage() {
     // &to=USD` used to resolve here to USD/USD while the widget (also
     // restricted) resolved it to EUR/USD, so the label and the tap disagreed.
     const [routableFrom, routableTo] = resolveExchangeCurrencyPair(from, to, toSupportedExchangeCurrency)
-    const formattedBalance = parseFloat(printableUsdc(balance ?? 0n))
+    const formattedBalance = parseFloat(printableUsdc(spendableBalance ?? 0n))
     const destination = getExchangeRateWidgetRedirectRoute(
         routableFrom,
         routableTo,
@@ -61,6 +62,7 @@ export default function ExchangeRatePage() {
     const goesToAddMoney = destination.startsWith('/add-money')
 
     const handleCtaAction = (sourceCurrency: string, destinationCurrency: string) => {
+        if (balancePending) return
         // The widget is rendered below with `restrictToRoutable`, so these
         // arguments are already a resolved, non-colliding pair — resolved
         // again here, through the same function, so the route can never
@@ -98,6 +100,7 @@ export default function ExchangeRatePage() {
                         ctaIcon="arrow-down"
                         ctaLabel={goesToAddMoney ? t('addMoneyCta') : t('tryIt')}
                         ctaAction={handleCtaAction}
+                        ctaDisabled={balancePending}
                         restrictToRoutable
                         shadow={false}
                         labels={{
