@@ -6,6 +6,20 @@
 import { act } from '@testing-library/react'
 import { renderHookWithIntl } from '@/test-utils/intl'
 
+const originalCharge = {
+    uuid: 'charge-1',
+    chainId: '8453',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    tokenAmount: '10',
+    tokenDecimals: 6,
+    tokenType: '1',
+    tokenSymbol: 'USDC',
+    requestLink: {
+        recipientAddress: '0x1111111111111111111111111111111111111111',
+        recipientAccount: { userId: 'peer-user' },
+    },
+}
+
 const ctx = {
     amount: '10',
     setAmount: jest.fn(),
@@ -25,18 +39,9 @@ const ctx = {
     isChainFromUrl: false,
     urlToken: null,
     isTokenDenominated: false,
-    attachment: null,
+    attachment: {},
     setAttachment: jest.fn(),
-    charge: {
-        uuid: 'charge-1',
-        chainId: '8453',
-        tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
-        tokenAmount: '10',
-        tokenDecimals: 6,
-        tokenType: '1',
-        tokenSymbol: 'USDC',
-        requestLink: { recipientAddress: '0x1111111111111111111111111111111111111111' },
-    },
+    charge: originalCharge as typeof originalCharge | null,
     setCharge: jest.fn(),
     payment: null,
     setPayment: jest.fn(),
@@ -54,12 +59,19 @@ const ctx = {
 }
 jest.mock('../SemanticRequestFlowContext', () => ({ useSemanticRequestFlowContext: () => ctx }))
 
+const mockCreateCharge = jest.fn()
 jest.mock('@/features/payments/shared/hooks/useChargeManager', () => ({
-    useChargeManager: () => ({ createCharge: jest.fn(), fetchCharge: jest.fn(), isCreating: false, isFetching: false }),
+    useChargeManager: () => ({
+        createCharge: mockCreateCharge,
+        fetchCharge: jest.fn(),
+        isCreating: false,
+        isFetching: false,
+    }),
 }))
+const mockRecordPayment = jest.fn().mockResolvedValue({ uuid: 'p1' })
 jest.mock('@/features/payments/shared/hooks/usePaymentRecorder', () => ({
     usePaymentRecorder: () => ({
-        recordPayment: jest.fn().mockResolvedValue({ uuid: 'p1' }),
+        recordPayment: mockRecordPayment,
         isRecording: false,
         reset: jest.fn(),
     }),
@@ -95,21 +107,22 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
     }),
 }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'u1' } } }) }))
+const mockTokenSelection = {
+    selectedChainID: '8453',
+    selectedTokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    selectedTokenData: {
+        address: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+        chainId: '8453',
+        decimals: 6,
+        symbol: 'USDC',
+    },
+    setSelectedChainID: jest.fn(),
+    setSelectedTokenAddress: jest.fn(),
+}
 jest.mock('@/context/tokenSelector.context', () => {
     const ReactActual = jest.requireActual('react')
     return {
-        tokenSelectorContext: ReactActual.createContext({
-            selectedChainID: '8453',
-            selectedTokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
-            selectedTokenData: {
-                address: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
-                chainId: '8453',
-                decimals: 6,
-                symbol: 'USDC',
-            },
-            setSelectedChainID: jest.fn(),
-            setSelectedTokenAddress: jest.fn(),
-        }),
+        tokenSelectorContext: ReactActual.createContext(mockTokenSelection),
     }
 })
 jest.mock('@/constants/zerodev.consts', () => ({
@@ -118,7 +131,9 @@ jest.mock('@/constants/zerodev.consts', () => ({
     PEANUT_WALLET_TOKEN_DECIMALS: 6,
 }))
 jest.mock('@/hooks/useFriendlyError', () => ({ useFriendlyError: () => (e: unknown) => String(e) }))
-jest.mock('@tanstack/react-query', () => ({ useQueryClient: () => ({ invalidateQueries: jest.fn() }) }))
+jest.mock('@tanstack/react-query', () => ({
+    useQueryClient: () => ({ invalidateQueries: jest.fn(), refetchQueries: jest.fn() }),
+}))
 jest.mock('@/constants/query.consts', () => ({ TRANSACTIONS: 'transactions' }))
 jest.mock('@/utils/settled-tx-hash.utils', () => ({
     resolveSettledTxHash: (r: { txHash?: string }) => ({ hash: r.txHash ?? '0xmined' }),
@@ -164,35 +179,78 @@ describe('useSemanticRequestFlow — quote expiry is decided at the tap', () => 
     })
 })
 
-describe('existing request self-payment guard', () => {
-    test('explains a disabled self-payment action before a tap and clears when the recipient changes', () => {
+describe('request self-contributions', () => {
+    beforeEach(() => {
         jest.clearAllMocks()
-        ctx.charge.requestLink.recipientAddress = '0x2222222222222222222222222222222222222222'
-        const { result, rerender } = renderHookWithIntl(() => useSemanticRequestFlow())
-        expect(result.current.canProceed).toBe(false)
-        expect(result.current.error).toEqual({ showError: true, errorMessage: 'You cannot pay your own request.' })
-        expect(mockSendMoney).not.toHaveBeenCalled()
-        expect(mockSendTransactions).not.toHaveBeenCalled()
-        ctx.charge.requestLink.recipientAddress = '0x1111111111111111111111111111111111111111'
-        rerender()
-        expect(result.current.canProceed).toBe(true)
-        expect(result.current.error.showError).toBe(false)
+        ctx.charge = { ...originalCharge, requestLink: { ...originalCharge.requestLink } }
+        ctx.recipient.resolvedAddress = '0x2222222222222222222222222222222222222222'
+        ctx.currentView = 'CONFIRM'
+        ctx.charge.requestLink.recipientAddress = ctx.recipient.resolvedAddress
+        route.quoteExpiresAt = null
+        mockSendMoney.mockResolvedValue({ txHash: '0xmined' })
+        mockSendTransactions.mockResolvedValue({ txHash: '0xmined' })
+        mockCreateCharge.mockResolvedValue(ctx.charge)
+        mockTokenSelection.selectedChainID = '8453'
     })
 
-    afterEach(() => {
-        ctx.charge.requestLink.recipientAddress = '0x1111111111111111111111111111111111111111'
-        ctx.charge.chainId = '8453'
-    })
-    test.each(['42161', '8453'])('blocks an existing own request on chain %s before submission', async (chainId) => {
-        jest.clearAllMocks()
-        ctx.charge.chainId = chainId
-        ctx.charge.requestLink.recipientAddress = '0x2222222222222222222222222222222222222222'
+    test.each(['42161', '8453'])('submits and records an existing own request on chain %s', async (chainId) => {
+        ctx.charge!.chainId = chainId
         const { result } = renderHookWithIntl(() => useSemanticRequestFlow())
+        expect(result.current.canProceed).toBe(true)
+        expect(result.current.error.showError).toBe(false)
         await act(async () => {
             await result.current.executePayment()
         })
-        expect(mockSendMoney).not.toHaveBeenCalled()
-        expect(mockSendTransactions).not.toHaveBeenCalled()
-        expect(ctx.setError).toHaveBeenCalledWith({ showError: true, errorMessage: 'You cannot pay your own request.' })
+        if (chainId === '42161') {
+            expect(mockSendMoney).toHaveBeenCalledWith(ctx.recipient.resolvedAddress, '10', {
+                kind: 'REQUEST_PAY',
+                chargeId: 'charge-1',
+            })
+        } else {
+            expect(mockSendTransactions).toHaveBeenCalledTimes(1)
+        }
+        expect(mockRecordPayment).toHaveBeenCalledWith(
+            expect.objectContaining({
+                chargeId: 'charge-1',
+                txHash: '0xmined',
+                payerAddress: ctx.recipient.resolvedAddress,
+            })
+        )
+        expect(ctx.setIsSuccess).toHaveBeenCalledWith(true)
+        expect(ctx.setError).not.toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+    })
+
+    test('allows an existing request belonging to the same user through another wallet', async () => {
+        ctx.charge!.requestLink = {
+            recipientAddress: originalCharge.requestLink.recipientAddress,
+            recipientAccount: { userId: 'u1' },
+        }
+        const { result } = renderHookWithIntl(() => useSemanticRequestFlow())
+        expect(result.current.canProceed).toBe(true)
+        await act(async () => {
+            await result.current.executePayment()
+        })
+        expect(mockSendTransactions).toHaveBeenCalledTimes(1)
+        expect(mockRecordPayment).toHaveBeenCalledTimes(1)
+        expect(ctx.setIsSuccess).toHaveBeenCalledWith(true)
+    })
+
+    test.each([false, true])('creates an own-request charge (external wallet: %s)', async (externalWallet) => {
+        ctx.charge = null
+        ctx.currentView = 'INITIAL'
+        mockTokenSelection.selectedChainID = '42161'
+        const { result } = renderHookWithIntl(() => useSemanticRequestFlow())
+        await act(async () => {
+            expect(await result.current.handlePayment(externalWallet)).toEqual({ success: true })
+        })
+        expect(mockCreateCharge).toHaveBeenCalledWith(
+            expect.objectContaining({
+                recipientAddress: ctx.recipient.resolvedAddress,
+                tokenAmount: '10',
+                transactionType: 'REQUEST',
+            })
+        )
+        expect(mockSendMoney).toHaveBeenCalledTimes(externalWallet ? 0 : 1)
+        expect(mockRecordPayment).toHaveBeenCalledTimes(externalWallet ? 0 : 1)
     })
 })
