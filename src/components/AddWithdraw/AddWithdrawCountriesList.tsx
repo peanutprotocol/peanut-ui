@@ -262,7 +262,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         // name and email are now collected by sumsub sdk — no need to save them beforehand
         if (!isUserKycApproved) {
             await sumsubFlow.handleInitiateKyc(
-                bankRegionIntent(currentCountry?.region ?? 'rest-of-the-world'),
+                bankRegionIntent(currentCountry),
                 undefined,
                 undefined,
                 currentCountry?.id
@@ -379,7 +379,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                         await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                     } else {
                         await sumsubFlow.handleInitiateKyc(
-                            bankRegionIntent(currentCountry?.region ?? 'rest-of-the-world'),
+                            bankRegionIntent(currentCountry),
                             undefined,
                             gate.kind === 'needs-enrollment' || undefined,
                             currentCountry?.id
