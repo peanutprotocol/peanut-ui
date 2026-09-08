@@ -306,7 +306,7 @@
             "unlockBadge": "Desbloquear",
             "yourBadges": "Seus selos",
             "points": "Pontos",
-            "personalDetails": "Dados pessoais",
+            "personalDetails": "Editar perfil",
             "unlockedRegions": "Canais de pagamento",
             "paymentLimits": "Limites de pagamento",
             "showMyFullName": "Mostrar meu nome completo",
@@ -331,8 +331,10 @@
             "soonBadge": "Em breve!",
             "saveChanges": "Salvar alterações",
             "errors": {
-                "nameRequired": "Informe seu nome."
-            }
+                "nameRequired": "Informe seu nome.",
+                "invalidEmail": "Digite um endereço de e-mail válido."
+            },
+            "verifiedNameHelp": "Seu nome vem da verificação de identidade e não pode ser editado aqui. Fale com o suporte se precisar corrigi-lo."
         },
         "regions": {
             "title": "Regiões e verificação",

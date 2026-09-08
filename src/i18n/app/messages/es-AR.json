@@ -151,8 +151,10 @@
         },
         "edit": {
             "errors": {
-                "nameRequired": "Por favor ingresá tu nombre."
-            }
+                "nameRequired": "Por favor ingresá tu nombre.",
+                "invalidEmail": "Ingresá una dirección de correo válida."
+            },
+            "verifiedNameHelp": "Tu nombre proviene de la verificación de identidad y no se puede editar acá. Contactá a soporte si necesitás corregirlo."
         },
         "regions": {
             "description": "Transferí y recibí desde cualquier cuenta bancaria y usá los métodos de pago disponibles.",

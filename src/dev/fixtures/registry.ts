@@ -139,7 +139,12 @@ export const FIXTURES: Record<string, Fixture> = {
     // ---------------------------------------------------------------------
     home: { route: '/home', about: 'Home: balance, activity and CTAs for a verified user.' },
     profile: { route: '/profile', about: 'Profile menu, verified user, card row present.' },
-    'profile-edit': { route: '/profile/edit', about: 'Personal details form, pre-filled.' },
+    'profile-edit': { route: '/profile/edit', about: 'Verified name locked, account email editable.' },
+    'profile-edit-unverified': {
+        route: '/profile/edit',
+        about: 'Name and email editable before identity verification.',
+        responses: { 'GET /users/me': { identityVerification: { status: 'not_started' } } },
+    },
     'identity-verification': {
         route: '/profile/identity-verification',
         about: 'Unlocked regions for a user whose ID check passed.',
