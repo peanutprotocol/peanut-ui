@@ -78,7 +78,7 @@ const KEY_B = 'basic.avocado'
 type Settle = (result: { data?: object; error?: string }) => void
 function fakeServer() {
     const posts: { key: string | null; resolve: Settle; reject: (e: Error) => void }[] = []
-    let committed: string | null = null
+    let committed: string | null = mockUser.user.avatarKey
     mockUpdateUserById.mockImplementation(
         ({ avatarKey }: { avatarKey: string | null }) =>
             new Promise((resolve, reject) => posts.push({ key: avatarKey, resolve, reject }))
@@ -414,6 +414,37 @@ describe('AvatarPicker', () => {
 
         expect(mockToast).toHaveBeenCalledWith({ type: 'error', message: 'Could not save your avatar. Try again.' })
         expect(readLetterAvatar('u1')).toBeNull()
+    })
+
+    it('restores the saved badge to the hand when a save fails after a roll', async () => {
+        mockUser.user.avatarKey = 'badge.BUG_WHISPERER.shell'
+        const server = fakeServer()
+        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        fireEvent.click(tile(A))
+        fireEvent.click(die())
+        expect(screen.queryByRole('radio', { name: /Shell/ })).not.toBeInTheDocument()
+
+        await server.settle(0, { error: 'Could not save' })
+
+        await waitFor(() => expect(tile(/Shell/)).toHaveAttribute('aria-checked', 'true'))
+        expect(tiles()).toHaveLength(8)
+        expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }))
+    })
+
+    it('keeps the dealt hand when a save succeeds after a roll', async () => {
+        mockUser.user.avatarKey = 'badge.BUG_WHISPERER.shell'
+        const server = fakeServer()
+        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
+
+        fireEvent.click(tile(A))
+        fireEvent.click(die())
+        const hand = tiles().map((el) => el.textContent)
+        await server.settle(0)
+
+        await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
+        expect(tile(A)).toHaveAttribute('aria-checked', 'true')
+        expect(tiles().map((el) => el.textContent)).toEqual(hand)
     })
 
     it('a server write that lands drops the mirror, so the durable copy wins', async () => {

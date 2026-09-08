@@ -176,10 +176,7 @@ describe('ProfileHeader share pill', () => {
         expect(posthog.capture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.PROFILE_LINK_COPIED, expect.anything())
     })
 
-    // One pressed surface, two hit areas: the frame carries the press the
-    // shipped one-button pill had, so neither segment tears off on its own. The
-    // trailing share glyph draws no box — it reaches 44px through `after:`.
-    it('presses as one pill and keeps the share icon a trailing glyph', () => {
+    it('puts press styles on the pill frame and hit-area styles on its segments', () => {
         renderWithIntl(<ProfileHeader name="Satoshi" username="satoshi" showShareButton />)
 
         expect(copySegment()!.parentElement).toHaveClass('active:bg-action-primary')
@@ -189,16 +186,11 @@ describe('ProfileHeader share pill', () => {
         expect(className).toContain('h-auto')
         expect(className).toContain('after:-inset-3.5')
 
-        // the handle is only as tall as the 40px pill, so it reaches the 44px
-        // touch floor through the same `after:` trick — vertically only
         expect(copySegment()).toHaveClass('relative', 'after:absolute', 'after:inset-x-0', 'after:-inset-y-0.5')
     })
 
-    // Two hit areas in one pill must not overlap, or the last few pixels of the
-    // handle share instead of copying. jsdom has no layout, so the boundary tap
-    // cannot be clicked — the invariant is arithmetic: the glyph grows to 44px
-    // through `after:`, so the gap to the handle must cover that growth.
-    it('keeps the share hit box out of the handle segment', () => {
+    // jsdom has no layout; compare spacing tokens rather than claim to test browser hit areas.
+    it('keeps the share margin at least as large as its hit-area extension', () => {
         renderWithIntl(<ProfileHeader name="Satoshi" username="satoshi" showShareButton />)
 
         const { className } = mockShareButton.mock.calls.at(-1)![0] as { className: string }
@@ -223,8 +215,7 @@ describe('ProfileHeader avatar', () => {
         expect(onChangeAvatar).toHaveBeenCalledTimes(1)
     })
 
-    // Option B (7 Sep): a column — the avatar sits above the pill, not inside it.
-    it('stacks the avatar above the pill on the self profile', () => {
+    it('renders the avatar before the pill without nesting either control', () => {
         renderWithIntl(<ProfileHeader name="" username="satoshi" showShareButton onChangeAvatar={jest.fn()} />)
 
         const avatar = avatarButton()!

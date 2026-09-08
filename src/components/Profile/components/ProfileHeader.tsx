@@ -17,9 +17,7 @@ import { useAuth } from '@/context/authContext'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 
 const REFERRAL_PILL_PROPS = { source: REFERRAL_SOURCES.PROFILE_HEADER, link_type: 'profile' } as const
-// The pill is one pressed surface with two hit areas inside it: the frame draws
-// the chrome AND the press (the shipped pill's own `primary-soft` values), so a
-// tap on either segment presses the whole pill instead of tearing it in half.
+// Either segment presses the whole pill.
 const PILL_FRAME =
     'flex h-10 max-w-full items-center rounded-full border border-border-default bg-background-default pr-4 pl-6 shadow-4 transition-all duration-instant active:translate-x-1 active:translate-y-1 active:bg-action-primary active:shadow-none'
 
@@ -58,11 +56,9 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     const isSelfProfile = authenticatedUser?.user.username?.toLowerCase() === username.toLowerCase()
     const ownAvatar = (size: 'small' | 'large') => <UserAvatar name={username} avatarKey={ownAvatarKey} size={size} />
 
-    // `shareableUrl` reads the live origin, so preview and staging share
-    // themselves — the old BASE_URL import is non-null-asserted with no fallback.
+    // Preview and staging links use their own origin.
     const profileUrl = shareableUrl(`/${username}`)
-    // The url is already in hand, so the write stays inside the click and keeps
-    // its user activation — no ClipboardItem reservation needed here.
+    // Write within the click handler to retain clipboard user activation.
     const copyProfileUrl = async () => {
         if (!(await copyTextToClipboard(profileUrl))) {
             toast.error(tGlobal('copyToClipboard.copyFailed'))
@@ -92,16 +88,9 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     return (
         <>
             <div className={twMerge('space-y-2 flex flex-col items-center', className)}>
-                {/* Own profile shows the first letter of the username; someone
-                    else's public profile keeps initials (letters identify others).
-                    The generated face (497ab2a5e) is parked until avatar v2.
-                    With a picker to open, the sticker sits at 48px inside a 64px
-                    round button, so the tap target reads as one (TASK-22142). */}
+                {/* Self profiles show the chosen avatar; counterparties keep their initials. */}
                 {isSelfProfile ? (
                     onChangeAvatar ? (
-                        // the DS button, so the press (stroke → action-primary,
-                        // translate, shadow drop) is the one in `.btn-*` and is
-                        // never re-implemented here
                         <Button
                             type="button"
                             variant="stroke"
@@ -119,12 +108,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     <AvatarWithBadge name={name || username} />
                 )}
 
-                {/* Name — dropped entirely when the caller has no name to show.
-                    On the self profile that is the no-full-name case, where the
-                    row used to fall back to the username and just repeat the
-                    handle the share pill already spells out. Callers without a
-                    pill (public profile, profile edit) always pass a name, so
-                    they keep the row. */}
+                {/* Without a full name, the self profile's handle appears only in the pill. */}
                 {!!name && (
                     <div className="flex items-center gap-1">
                         <VerifiedUserLabel
@@ -138,30 +122,17 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                         />
                     </div>
                 )}
-                {/* `isSelfProfile` guards wrong attribution: `showShareButton`
-                    defaults to true, so a caller on someone else's profile would
-                    share that other handle. The pill keeps the chrome it shipped
-                    with and splits into two hit areas: the handle copies the
-                    link, the icon shares it. Never a button inside a button, so
-                    the frame is a div. */}
                 {pillVisible && (
                     <div className={PILL_FRAME}>
                         <button
                             type="button"
                             onClick={copyProfileUrl}
-                            // No chrome of its own — the frame has it all, down
-                            // to the press; only the DS focus ring is local.
-                            // The pill is 40px, so this reaches the 44px touch
-                            // floor the same way the share glyph does — but
-                            // VERTICALLY ONLY, so the two hit areas stay apart.
+                            // Extend the 40px pill's hit area vertically to 44px without overlapping share.
                             className="relative flex h-full min-w-0 items-center rounded-full after:absolute after:inset-x-0 after:-inset-y-0.5 focus-visible:outline-[3px] focus-visible:outline-action-focus"
                         >
-                            {/* the url alone reads as a link, not as an action */}
                             <span className="sr-only">{tGlobal('copyToClipboard.copyProfileLink')}</span>
                             <span className="truncate text-label-l">{profileUrl.replace('https://', '')}</span>
-                            {/* inside the copy segment, as the mockup draws it:
-                                the check is not its own hit area. Only without a
-                                name row — its check already says it (7 Sep). */}
+                            {/* Show verification once: in the name row, or here when that row is absent. */}
                             {isVerified && !name && (
                                 <>
                                     <Icon name="check" size={16} className="ml-1 shrink-0 text-green-500" aria-hidden />
@@ -169,16 +140,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                                 </>
                             )}
                         </button>
-                        {/* The pill's trailing glyph, 16px as the shipped pill
-                            draws it — not an icon-only button, so it gets no box
-                            of its own: the frame is the pressed surface and the
-                            hit area comes from the `after:` inset (44px). Same
-                            flattening as the receipt's referral nudge.
-                            The left margin covers that inset (16 ≥ 14, and 16 is
-                            on the spacing scale): any smaller and the
-                            pseudo-element reaches back over the handle, so a tap
-                            on the last few pixels of the url would share instead
-                            of copy. */}
+                        {/* Keep the 16px gap larger than the 14px hit-area extension so share cannot overlap copy. */}
                         <ShareButton
                             url={profileUrl}
                             title=""
