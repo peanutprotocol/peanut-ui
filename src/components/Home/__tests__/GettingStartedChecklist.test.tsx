@@ -58,11 +58,11 @@ describe('GettingStartedChecklist', () => {
         expect(screen.getByText('Done. Your money has a username now')).toBeInTheDocument()
     })
 
-    it('uses the light-green design-system background for every row', () => {
+    it('uses the light-green design-system background only for completed rows', () => {
         render()
-        for (const row of screen.getAllByTestId(/^checklist-/)) {
-            expect(row).toHaveClass('bg-background-badge-success')
-        }
+        expect(screen.getByTestId('checklist-create-account')).toHaveClass('bg-background-badge-success')
+        expect(screen.getByTestId('checklist-add-money')).toHaveClass('bg-white')
+        expect(screen.getByTestId('checklist-get-card')).toHaveClass('bg-white')
     })
 
     it('wraps checklist subtitles instead of truncating them', () => {
