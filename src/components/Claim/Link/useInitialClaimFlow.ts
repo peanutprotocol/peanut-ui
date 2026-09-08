@@ -1023,8 +1023,18 @@ export const useInitialClaimFlow = (props: IClaimScreenProps, campaignTag: strin
         setInputChanging(update.isChanging)
     }
 
+    // The ?step= trigger is a ONE-SHOT instruction. removeParamStep() clears it
+    // through a raw window.history.replaceState that nuqs does not observe, so
+    // `stepFromURL` keeps its value for the rest of the mount — and fetchUser()
+    // during the claim replaces the `user` object, re-running this effect before
+    // any URL change could land. Without the guard that re-run fired a SECOND
+    // claim POST, which rejected against the already-claimed link and painted
+    // an error over the success screen.
+    const consumedStepRef = useRef(false)
     useEffect(() => {
         if (user && address && claimLinkData.status !== 'CLAIMED' && selectedTokenData) {
+            if (consumedStepRef.current) return
+            if (stepFromURL) consumedStepRef.current = true
             removeParamStep()
             if (stepFromURL === 'claim' && isPeanutWallet) {
                 handleClaimLink(false, true)

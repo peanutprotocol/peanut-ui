@@ -82,16 +82,19 @@ jest.mock('@/context/tokenSelector.context', () => {
     }
 })
 
-// STABLE user object: the trigger effect depends on `user` identity — a fresh
-// object per render would re-run the effect every render and double-fire the
-// claim, which is exactly what test 3 pins against
+// The trigger effect depends on `user` identity. In prod, fetchUser() during
+// the claim REPLACES the user object, so the effect re-runs mid-claim — the
+// consume-once guard in useInitialClaimFlow is what keeps that re-run from
+// firing a second claim POST. `currentUser` is mutable so a test can stage
+// exactly that identity swap.
 const stableUser = {
     user: { userId: 'u1', hasAppAccess: true, email: 'a@b.c', fullName: 'A B' },
     accounts: [],
 }
+let currentUser: typeof stableUser = stableUser
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({
-        user: stableUser,
+        user: currentUser,
         fetchUser: jest.fn(),
     }),
 }))
@@ -256,6 +259,7 @@ const renderView = (searchParams: string) => {
 
 beforeEach(() => {
     jest.clearAllMocks()
+    currentUser = stableUser
     mockClaimLink.mockResolvedValue('0xtxhash')
 })
 
@@ -317,5 +321,27 @@ describe('InitialClaimLinkView post-auth auto-claim trigger', () => {
         await waitFor(() => expect(mockRemoveParamStep).toHaveBeenCalled())
         expect(mockClaimLink).not.toHaveBeenCalled()
         expect(mockSetClaimToMercadoPago).not.toHaveBeenCalled()
+    })
+
+    test('a user refetch mid-claim (new user identity) does not fire a second claim POST', async () => {
+        // Prod sequence: auto-claim fires -> fetchUser() replaces the user
+        // object -> the trigger effect re-runs while nuqs still reports
+        // step=claim (removeParamStep goes through a raw replaceState nuqs
+        // does not observe). The consume-once guard must swallow the re-run —
+        // a second POST rejects against the claimed link and paints an error
+        // over the success screen.
+        const { rerender } = renderView('?step=claim')
+        await waitFor(() => expect(mockClaimLink).toHaveBeenCalledTimes(1))
+
+        currentUser = { ...stableUser }
+        rerender(
+            <IntlWrapper>
+                <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+                    <InitialClaimLinkView {...baseProps} />
+                </QueryClientProvider>
+            </IntlWrapper>
+        )
+
+        expect(mockClaimLink).toHaveBeenCalledTimes(1)
     })
 })
