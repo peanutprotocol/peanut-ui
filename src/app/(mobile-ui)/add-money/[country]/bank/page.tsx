@@ -46,7 +46,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { addMoneyCountryUrl, rewriteMethodPath } from '@/utils/native-routes'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { useSafeBack } from '@/hooks/useSafeBack'
-import { getRegionIntent } from '@/utils/regions.utils'
+import { getBankRegionIntent } from '@/utils/regions.utils'
 import { useLocale, useTranslations } from 'next-intl'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 
@@ -503,7 +503,7 @@ function BridgeBankOnrampPage() {
                             await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                         } else {
                             await sumsubFlow.handleInitiateKyc(
-                                getRegionIntent(selectedCountry?.region ?? 'rest-of-the-world'),
+                                getBankRegionIntent(selectedCountry),
                                 undefined,
                                 gate.kind === 'needs-enrollment' || undefined,
                                 selectedCountry?.id

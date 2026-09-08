@@ -2,7 +2,7 @@ import { EUROPE_GLOBE_ICON, LATAM_GLOBE_ICON, NORTH_AMERICA_GLOBE_ICON, REST_OF_
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import { type RailCapability } from '@/types/capabilities'
-import { BRIDGE_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
+import { BRIDGE_ALPHA3_TO_ALPHA2, type CountryData } from '@/components/AddMoney/consts'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import type { StaticImageData } from 'next/image'
 
@@ -213,6 +213,18 @@ const RAIL_COUNTRY_TO_REGION_PATH: Record<string, string> = {
     BR: 'latam',
     CO: 'latam',
 }
+
+/**
+ * Region intent for a BANK flow (Bridge bank deposit / withdraw, bank claim).
+ * The picker region is not the rail jurisdiction: Mexico is `region: 'latam'`
+ * for the picker, but its bank rail (SPEI) is Bridge, and the jurisdiction
+ * table above says `north-america`. Sending LATAM + MX asked the Manteca path
+ * for a country it does not serve; the BE rejects it and the UI collapsed that
+ * into "contact support" (TASK-22333). Countries with no rail entry keep the
+ * picker region.
+ */
+export const getBankRegionIntent = (country: Pick<CountryData, 'id' | 'region'> | null | undefined): KYCRegionIntent =>
+    getRegionIntent(RAIL_COUNTRY_TO_REGION_PATH[country?.id ?? ''] ?? country?.region ?? 'rest-of-the-world')
 
 /**
  * Region picker paths with a mid-flight bank rail (`pending` = BE provisioning,

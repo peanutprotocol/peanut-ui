@@ -41,7 +41,7 @@ import { resolveKycModalVariant, getGateUserMessage, getGateReasonCode } from '@
 import { useModalsContext } from '@/context/ModalsContext'
 import ExchangeRate from '@/components/ExchangeRate'
 import countryCurrencyMappings, { isNonEuroSepaCountry } from '@/constants/countryCurrencyMapping'
-import { isBridgeSupportedCountry, getRegionIntent } from '@/utils/regions.utils'
+import { isBridgeSupportedCountry, getBankRegionIntent } from '@/utils/regions.utils'
 import { PointsAction } from '@/services/services.types'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import posthog from 'posthog-js'
@@ -603,10 +603,10 @@ export default function WithdrawBankPage() {
                         await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                     } else {
                         await sumsubFlow.handleInitiateKyc(
-                            getRegionIntent(getCountryFromPath(country)?.region ?? 'rest-of-the-world'),
+                            getBankRegionIntent(countryFromPath),
                             undefined,
                             gate.kind === 'needs-enrollment' || undefined,
-                            getCountryFromPath(country)?.id
+                            countryFromPath?.id
                         )
                     }
                 }}

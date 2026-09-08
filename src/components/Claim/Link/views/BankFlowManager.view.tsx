@@ -15,7 +15,7 @@ import useClaimLink from '../../useClaimLink'
 import { type AddBankAccountPayload } from '@/app/actions/types/users.types'
 import { useAuth } from '@/context/authContext'
 import { type TCreateOfframpRequest, type TCreateOfframpResponse } from '@/services/services.types'
-import { getOfframpConfigFromAccount } from '@/utils/bridge.utils'
+import { getCountryFromAccount, getOfframpConfigFromAccount } from '@/utils/bridge.utils'
 import { getBridgeChainName, getBridgeTokenName } from '@/utils/bridge-accounts.utils'
 import { generateKeysFromString, getParamsFromLink } from '@/utils/peanut-link.utils'
 import { getContractAddress } from '@/utils/peanut-claim.utils'
@@ -32,7 +32,7 @@ import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import { sendLinksApi } from '@/services/sendLinks'
 import { useSearchParams } from 'next/navigation'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
-import { getRegionIntent } from '@/utils/regions.utils'
+import { getBankRegionIntent } from '@/utils/regions.utils'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { getKycModalVariant, getGateUserMessage, getGateReasonCode } from '@/utils/capability-gate'
@@ -69,6 +69,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         flowStep: claimBankFlowStep,
         setFlowStep: setClaimBankFlowStep,
         selectedCountry,
+        setSelectedCountry,
         setClaimType,
         setBankDetails,
         justCompletedKyc,
@@ -321,7 +322,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         // name and email are now collected by sumsub sdk — no need to save them beforehand
         if (bankClaimType === BankClaimType.ReceiverKycNeeded && !justCompletedKyc) {
             await sumsubFlow.handleInitiateKyc(
-                getRegionIntent(selectedCountry?.region ?? 'rest-of-the-world'),
+                getBankRegionIntent(selectedCountry),
                 undefined,
                 undefined,
                 selectedCountry?.id
@@ -522,6 +523,14 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
 
                         setLocalBankDetails(bankDetails)
                         setBankDetails(bankDetails)
+                        // only the country list sets selectedCountry; a saved
+                        // account skips it, so the unlock CTA below derived a
+                        // rest-of-world intent. The account is the destination —
+                        // but an account with no resolvable country (empty
+                        // countryCode/countryName, a known prod state) must not
+                        // clobber a country the user already picked.
+                        const accountCountry = getCountryFromAccount(account)
+                        if (accountCountry) setSelectedCountry(accountCountry)
 
                         const isGuestFlow = bankClaimType === BankClaimType.GuestBankClaim
                         const userForOfframp = isGuestFlow
@@ -617,7 +626,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                                     await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                                 } else {
                                     await sumsubFlow.handleInitiateKyc(
-                                        getRegionIntent(selectedCountry?.region ?? 'rest-of-the-world'),
+                                        getBankRegionIntent(selectedCountry),
                                         undefined,
                                         gate.kind === 'needs-enrollment' || undefined,
                                         selectedCountry?.id

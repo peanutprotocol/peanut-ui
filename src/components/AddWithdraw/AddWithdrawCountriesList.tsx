@@ -32,7 +32,7 @@ import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { resolveKycModalVariant, getGateUserMessage, getGateReasonCode } from '@/utils/capability-gate'
 import { railJurisdictionForBank } from '@/utils/bridge.utils'
-import { getRegionIntent } from '@/utils/regions.utils'
+import { getBankRegionIntent } from '@/utils/regions.utils'
 import { useTosGuard } from '@/hooks/useTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
@@ -259,7 +259,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         // name and email are now collected by sumsub sdk — no need to save them beforehand
         if (!isUserKycApproved) {
             await sumsubFlow.handleInitiateKyc(
-                getRegionIntent(currentCountry?.region ?? 'rest-of-the-world'),
+                getBankRegionIntent(currentCountry),
                 undefined,
                 undefined,
                 currentCountry?.id
@@ -374,7 +374,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                         await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                     } else {
                         await sumsubFlow.handleInitiateKyc(
-                            getRegionIntent(currentCountry?.region ?? 'rest-of-the-world'),
+                            getBankRegionIntent(currentCountry),
                             undefined,
                             gate.kind === 'needs-enrollment' || undefined,
                             currentCountry?.id
