@@ -5,7 +5,7 @@
  * share sheet (which carries "Save Image") and is hidden when files can't be
  * shared at all. The SAVED event only fires once the chosen path resolved.
  */
-import React, { createRef } from 'react'
+import React, { type ComponentProps, createRef } from 'react'
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import posthog from 'posthog-js'
 import { renderWithIntl } from '@/test-utils/intl'
@@ -36,10 +36,17 @@ jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 const mockedCapture = posthog.capture as jest.Mock
 const mockShare = jest.fn(() => Promise.resolve())
 
-function renderActions() {
+type ActionProps = Partial<ComponentProps<typeof ShareAssetActions>>
+
+function renderActions(props: ActionProps = {}) {
     const captureRef = createRef<HTMLDivElement>()
     Object.defineProperty(captureRef, 'current', { value: document.createElement('div'), writable: true })
-    return renderWithIntl(<ShareAssetActions captureRef={captureRef} source="celebration" filename="card.png" />)
+    const element = (p: ActionProps) => (
+        <ShareAssetActions captureRef={captureRef} source="celebration" filename="card.png" {...p} />
+    )
+    const result = renderWithIntl(element(props))
+    // same captureRef across rerenders, so prop flips exercise the cache keying
+    return { ...result, rerenderActions: (p: ActionProps) => result.rerender(element(p)) }
 }
 
 const saveButton = () => screen.getByRole('button', { name: 'Save image' })
@@ -54,6 +61,8 @@ describe('ShareAssetActions save', () => {
 
     it('web: downloads the PNG and reports saved', async () => {
         renderActions()
+        // pre-capture briefly disables native save; wait for the cache
+        await waitFor(() => expect(saveButton()).toBeEnabled())
         fireEvent.click(saveButton())
         await waitFor(() => expect(mockDownloadBlob).toHaveBeenCalledWith(expect.any(Blob), 'card.png'))
         expect(mockShare).not.toHaveBeenCalled()
@@ -69,6 +78,8 @@ describe('ShareAssetActions save', () => {
         let resolveShare!: () => void
         mockShare.mockImplementationOnce(() => new Promise<void>((resolve) => (resolveShare = resolve)))
         renderActions()
+        // pre-capture briefly disables native save; wait for the cache
+        await waitFor(() => expect(saveButton()).toBeEnabled())
         fireEvent.click(saveButton())
         await waitFor(() => expect(mockShare).toHaveBeenCalledTimes(1))
         const [{ files }] = mockShare.mock.calls[0] as unknown as [{ files: File[] }]
@@ -93,6 +104,8 @@ describe('ShareAssetActions save', () => {
         abort.name = 'AbortError'
         mockShare.mockRejectedValueOnce(abort)
         renderActions()
+        // pre-capture briefly disables native save; wait for the cache
+        await waitFor(() => expect(saveButton()).toBeEnabled())
         fireEvent.click(saveButton())
         await waitFor(() => expect(mockShare).toHaveBeenCalledTimes(1))
         await waitFor(() => expect(saveButton()).toBeEnabled())
@@ -105,6 +118,8 @@ describe('ShareAssetActions save', () => {
         mockCanShareImageFiles.mockReturnValue(true)
         mockShare.mockRejectedValueOnce(new Error('share broke'))
         renderActions()
+        // pre-capture briefly disables native save; wait for the cache
+        await waitFor(() => expect(saveButton()).toBeEnabled())
         fireEvent.click(saveButton())
         await waitFor(() =>
             expect(mockedCapture).toHaveBeenCalledWith(
@@ -143,8 +158,10 @@ describe('ShareAssetActions share pre-capture', () => {
 
     it('shares the pre-captured PNG without capturing inside the tap', async () => {
         renderActions()
-        // pre-capture fires on mount (ready defaults true); let it settle
+        // pre-capture fires on mount (ready defaults true); the button
+        // enables once the blob is cached
         await waitFor(() => expect(mockCaptureShareAsset).toHaveBeenCalledTimes(1))
+        await waitFor(() => expect(shareButton()).toBeEnabled())
         fireEvent.click(shareButton())
         await waitFor(() => expect(mockShare).toHaveBeenCalledTimes(1))
         // the tap did NOT trigger a second capture — it used the cached blob
@@ -162,11 +179,47 @@ describe('ShareAssetActions share pre-capture', () => {
         mockCaptureShareAsset.mockImplementationOnce(() => Promise.reject(new Error('precapture broke')))
         renderActions()
         await waitFor(() => expect(mockCaptureShareAsset).toHaveBeenCalledTimes(1))
+        // failure re-enables the button — the tap is the retry path
+        await waitFor(() => expect(shareButton()).toBeEnabled())
         fireEvent.click(shareButton())
         await waitFor(() => expect(mockShare).toHaveBeenCalledTimes(1))
         // no cached blob, so the tap captured again — share still works
         expect(mockCaptureShareAsset).toHaveBeenCalledTimes(2)
         expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
+
+    it('disables Share while pre-capture is pending and enables once cached', async () => {
+        let resolveCapture!: (blob: Blob) => void
+        mockCaptureShareAsset.mockImplementationOnce(() => new Promise<Blob>((resolve) => (resolveCapture = resolve)))
+        renderActions()
+        // a tap here would miss the cache and reproduce the gesture-window bug
+        expect(shareButton()).toBeDisabled()
+        resolveCapture(new Blob(['png'], { type: 'image/png' }))
+        await waitFor(() => expect(shareButton()).toBeEnabled())
+    })
+
+    it('re-enables the buttons when pre-capture fails', async () => {
+        let rejectCapture!: (err: Error) => void
+        mockCaptureShareAsset.mockImplementationOnce(() => new Promise<Blob>((_, reject) => (rejectCapture = reject)))
+        renderActions()
+        expect(shareButton()).toBeDisabled()
+        rejectCapture(new Error('precapture broke'))
+        // never leave the buttons dead — capture-on-tap is the retry path
+        await waitFor(() => expect(shareButton()).toBeEnabled())
+    })
+
+    it('hide-username toggle re-captures even when shareUrl is undefined in both states (no handle)', async () => {
+        const { rerenderActions } = renderActions({ hideUsername: false, shareUrl: undefined })
+        await waitFor(() => expect(mockCaptureShareAsset).toHaveBeenCalledTimes(1))
+        rerenderActions({ hideUsername: true, shareUrl: undefined })
+        await waitFor(() => expect(mockCaptureShareAsset).toHaveBeenCalledTimes(2))
+    })
+
+    it('hide-username toggle re-captures for a user with a handle', async () => {
+        const { rerenderActions } = renderActions({ hideUsername: false, shareUrl: 'https://peanut.me/kush' })
+        await waitFor(() => expect(mockCaptureShareAsset).toHaveBeenCalledTimes(1))
+        rerenderActions({ hideUsername: true, shareUrl: undefined })
+        await waitFor(() => expect(mockCaptureShareAsset).toHaveBeenCalledTimes(2))
     })
 
     it('desktop (no file sharing): never pre-captures', async () => {

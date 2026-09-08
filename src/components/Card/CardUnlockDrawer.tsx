@@ -97,6 +97,7 @@ export const CardUnlockDrawer: FC<Props> = ({ isOpen, onClose, entry, username, 
                             source="history-replay"
                             ready={assetReady}
                             shareUrl={profileShareUrl(username, hideUsername)}
+                            hideUsername={hideUsername}
                         />
                     </div>
                 </div>

@@ -95,6 +95,10 @@ interface Props {
     /** The sharer's own profile URL, appended to the share caption. Omit to ship
      *  the caption link-free — see profileShareUrl. */
     shareUrl?: string
+    /** The hide-username toggle. Flipping it re-renders the asset (username
+     *  shown / hidden), so it keys the pre-capture cache — shareUrl can't,
+     *  because it is undefined in both states for users without a handle. */
+    hideUsername?: boolean
 }
 
 export const ShareAssetActions: FC<Props> = ({
@@ -103,6 +107,7 @@ export const ShareAssetActions: FC<Props> = ({
     filename = 'peanut-card.png',
     ready = true,
     shareUrl,
+    hideUsername = false,
 }) => {
     const t = useTranslations('card.share')
     const [isSharing, setIsSharing] = useState(false)
@@ -122,27 +127,38 @@ export const ShareAssetActions: FC<Props> = ({
     // awaiting the 1-3s capture (which expires ios's gesture window — see the
     // file header). only on devices that can share files: desktop share falls
     // back to the twitter intent and web save downloads, neither needs a
-    // gesture, so capturing there would be wasted work. keyed on shareUrl
-    // because the hide-username toggle re-renders the asset (username shown /
-    // hidden), which makes a cached capture stale.
+    // gesture, so capturing there would be wasted work. keyed on hideUsername
+    // because the toggle re-renders the asset (username shown / hidden), which
+    // makes a cached capture stale — shareUrl can't key it, it is undefined in
+    // both toggle states for users without a handle.
     const cachedBlobRef = useRef<Blob | null>(null)
+    // while true, the gesture-gated buttons stay disabled: a tap mid-capture
+    // finds no cached blob, takes the slow capture-on-tap path, and reproduces
+    // the exact NotAllowedError this cache exists to fix. only ever true on
+    // the canShareImageFiles() path, so desktop is never gated.
+    const [isPrecapturing, setIsPrecapturing] = useState(false)
     useEffect(() => {
         cachedBlobRef.current = null
         if (!ready || !canShareImageFiles()) return
         const node = captureRef.current
         if (!node) return
         let stale = false
+        setIsPrecapturing(true)
         captureShareAsset(node)
             .then((blob) => {
                 if (!stale) cachedBlobRef.current = blob
             })
             .catch(() => {
-                // quiet: the tap-time fallback re-captures and reports errors.
+                // quiet: buttons re-enable and the tap-time fallback re-captures
+                // and reports — worst case equals the old capture-on-tap path.
+            })
+            .finally(() => {
+                if (!stale) setIsPrecapturing(false)
             })
         return () => {
             stale = true
         }
-    }, [ready, shareUrl, captureRef])
+    }, [ready, hideUsername, captureRef])
 
     const captureOrCached = async (): Promise<Blob> => {
         if (cachedBlobRef.current) return cachedBlobRef.current
@@ -243,7 +259,7 @@ export const ShareAssetActions: FC<Props> = ({
                 shadowSize="4"
                 className="w-full"
                 loading={isSharing}
-                disabled={isSharing || isSaving || !ready}
+                disabled={isSharing || isSaving || !ready || isPrecapturing}
                 icon={<Icon name="share" size={20} />}
             >
                 {t('share')}
@@ -254,7 +270,8 @@ export const ShareAssetActions: FC<Props> = ({
                     variant="stroke"
                     className="w-full"
                     loading={isSaving}
-                    disabled={isSharing || isSaving || !ready}
+                    // web save is a download — no gesture, no pre-capture gate.
+                    disabled={isSharing || isSaving || !ready || (saveMode === 'native-share' && isPrecapturing)}
                     icon={<Icon name="download" size={20} />}
                 >
                     {t('saveImage')}
