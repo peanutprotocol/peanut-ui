@@ -1305,7 +1305,7 @@
         },
         "info": {
             "exchangeRate": "Tipo de cambio",
-            "exchangeRateTooltip": "El tipo de cambio mostrado es actual, pero puede variar un poco (~$1-5 {currency}) hasta que se confirme el pago.",
+            "exchangeRateTooltip": "El tipo de cambio mostrado es actual, pero puede variar un poco hasta que se confirme el pago.",
             "saveVsCard": "Ahorro vs. tarjeta",
             "saveVsCardTooltipBrl": "Las tarjetas extranjeras pagan IOF (~3.5%) más una comisión FX típica del emisor de ~3%. Peanut usa PIX al tipo de cambio actual del mercado.",
             "saveVsCardTooltipArs": "Las tarjetas extranjeras aplican el tipo de cambio oficial más una comisión FX típica del emisor de ~3%. Peanut usa MercadoPago al tipo de cambio actual del mercado."
@@ -1918,7 +1918,7 @@
             "redirecting": "Redirigiendo...",
             "lockingRate": "Fijando el tipo de cambio...",
             "exchangeRate": "Tipo de cambio",
-            "exchangeRateInfo": "El tipo de cambio mostrado es actual, pero puede variar un poco (~$1-5 {currency}) hasta que se confirme el pago.",
+            "exchangeRateInfo": "El tipo de cambio mostrado es actual, pero puede variar un poco hasta que se confirme el pago.",
             "flagAlt": "bandera",
             "increaseLimitsMessage": "Hola, me gustaría aumentar mis límites de pago."
         },

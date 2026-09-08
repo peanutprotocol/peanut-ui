@@ -1,3 +1,4 @@
+import { redactQrTelemetry } from './qr-telemetry-privacy'
 import posthog from 'posthog-js'
 
 import type { ErrorEvent as SentryErrorEvent } from '@sentry/nextjs'
@@ -33,7 +34,7 @@ export function withoutNoise<T extends EventProcessor>(integration: T): T {
             const frames = (event.exception?.values ?? []).flatMap((v) => v.stacktrace?.frames ?? [])
             if (frames.some((frame) => isThirdPartyScriptFrame(frame.filename || ''))) return event
             if (isTransientCapgoNoise(getEventSearchTexts(event))) return event
-            return inner(event)
+            return inner(redactQrTelemetry(event))
         },
     }
 }

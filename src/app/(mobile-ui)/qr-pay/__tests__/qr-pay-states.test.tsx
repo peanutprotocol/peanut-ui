@@ -909,7 +909,7 @@ describe('GROUP 2: Payment Form States', () => {
         const { pixKeyToBRCode } = require('@/utils/pix.utils')
         const pixKey = 'verylongemailaddress@verylongdomain.com.br'
         renderQrPay({ qrCode: pixKeyToBRCode(pixKey), pixKey, type: 'PIX', t: '1' })
-        await screen.findByText(pixKey)
+        expect(await screen.findByText(pixKey)).toHaveClass('ph-mask', 'ph-no-capture')
         fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '2500' } })
         await waitFor(() => expect(screen.getByText(/Transfer amount exceeds maximum/i)).toBeInTheDocument())
     })

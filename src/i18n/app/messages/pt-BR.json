@@ -1305,7 +1305,7 @@
         },
         "info": {
             "exchangeRate": "Taxa de câmbio",
-            "exchangeRateTooltip": "A taxa mostrada é a atual, mas pode variar um pouco (~$1-5 {currency}) até o pagamento ser confirmado.",
+            "exchangeRateTooltip": "A taxa mostrada é a atual, mas pode variar um pouco até o pagamento ser confirmado.",
             "saveVsCard": "Economia vs. cartão",
             "saveVsCardTooltipBrl": "Cartões estrangeiros pagam IOF (~3,5%) mais uma taxa de câmbio típica do emissor de ~3%. O Peanut usa o PIX na taxa atual de mercado.",
             "saveVsCardTooltipArs": "Cartões estrangeiros aplicam a taxa oficial mais uma taxa de câmbio típica do emissor de ~3%. O Peanut usa o MercadoPago na taxa atual de mercado."
@@ -1918,7 +1918,7 @@
             "redirecting": "Redirecionando...",
             "lockingRate": "Travando a taxa...",
             "exchangeRate": "Taxa de câmbio",
-            "exchangeRateInfo": "A taxa mostrada é a atual, mas pode variar um pouco (~$1-5 {currency}) até o pagamento ser confirmado.",
+            "exchangeRateInfo": "A taxa mostrada é a atual, mas pode variar um pouco até o pagamento ser confirmado.",
             "flagAlt": "bandeira",
             "increaseLimitsMessage": "Oi, eu gostaria de aumentar meus limites de pagamento."
         },

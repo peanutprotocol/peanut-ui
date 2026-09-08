@@ -95,8 +95,8 @@ const AmountInput = ({
     // Track when user is actively editing to prevent feedback loops from initialAmount sync
     const isEditingRef = useRef(false)
 
-    // Check if displayValue has a meaningful numeric value (not empty, "0", "0.00", etc.)
-    const hasValue = Boolean(Number(displayValue))
+    // A positive conversion can display as zero at the currency precision.
+    const hasValue = exactValue > 0
 
     // Sync displayValue with initialAmount changes (e.g. when charge is fetched)
     // Skip sync if user is actively editing to prevent overwriting their input

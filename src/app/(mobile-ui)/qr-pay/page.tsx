@@ -1805,7 +1805,11 @@ export default function QRPayPage() {
                                 <p className="flex items-center gap-1 text-center text-body-s">
                                     <Icon name="arrow-up-right" size={10} /> {t('youArePaying')}
                                 </p>
-                                <p className="text-heading-xs break-words">{merchantName}</p>
+                                <p
+                                    className={`text-heading-xs break-words ${pixKeyLabel ? 'ph-mask ph-no-capture' : ''}`}
+                                >
+                                    {merchantName}
+                                </p>
                             </div>
                         </div>
                     </Card>

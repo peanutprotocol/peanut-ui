@@ -1305,7 +1305,7 @@
         },
         "info": {
             "exchangeRate": "Exchange Rate",
-            "exchangeRateTooltip": "Rate shown is current but may vary slightly (~$1-5 {currency}) until payment is confirmed.",
+            "exchangeRateTooltip": "Rate shown is current but may vary slightly until payment is confirmed.",
             "saveVsCard": "Save vs card",
             "saveVsCardTooltipBrl": "Foreign cards pay IOF (~3.5%) plus a typical ~3% issuer FX fee. Peanut routes via PIX at the current market rate.",
             "saveVsCardTooltipArs": "Foreign cards apply the official rate plus a typical ~3% issuer FX fee. Peanut routes via MercadoPago at the current market rate."
@@ -1918,7 +1918,7 @@
             "redirecting": "Redirecting...",
             "lockingRate": "Locking rate...",
             "exchangeRate": "Exchange Rate",
-            "exchangeRateInfo": "Rate shown is current but may vary slightly (~$1-5 {currency}) until payment is confirmed.",
+            "exchangeRateInfo": "Rate shown is current but may vary slightly until payment is confirmed.",
             "flagAlt": "flag",
             "increaseLimitsMessage": "Hi, I would like to increase my payment limits."
         },

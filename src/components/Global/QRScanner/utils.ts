@@ -2,7 +2,7 @@ import { captureException } from '@sentry/nextjs'
 
 export function qrTelemetry(data: string) {
     const qrKind = data.startsWith('000201')
-        ? data.includes('br.gov.bcb.pix')
+        ? data.toLowerCase().includes('br.gov.bcb.pix')
             ? 'pix'
             : 'emv'
         : /^https?:\/\//i.test(data)

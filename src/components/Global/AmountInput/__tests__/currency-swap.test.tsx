@@ -32,3 +32,13 @@ test('an ignored extra decimal after conversion does not requantize the amount',
     fireEvent.change(field, { target: { value: field.value + '9' } })
     expect(primary.mock.lastCall?.[0]).toBe(before)
 })
+
+test('retains the primary amount when its conversion rounds to zero and through a round trip', () => {
+    const { field, primary, secondary } = setup('0.05')
+    expect(field.value).toBe('0')
+    expect(Number(primary.mock.lastCall?.[0])).toBe(0.05)
+    expect(Number(secondary.mock.lastCall?.[0])).toBe(0)
+    fireEvent.click(screen.getByRole('button', { name: /switch currency/i }))
+    expect(Number(field.value)).toBe(0.05)
+    expect(Number(primary.mock.lastCall?.[0])).toBe(0.05)
+})

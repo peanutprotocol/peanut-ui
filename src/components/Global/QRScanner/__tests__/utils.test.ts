@@ -7,6 +7,7 @@ beforeEach(() => jest.clearAllMocks())
 
 it.each([
     ['pix', '000201010212260014br.gov.bcb.pix' + 'private-bank-value'.repeat(5), '64-255'],
+    ['pix', '000201010212260014BR.GOV.BCB.PIX', '1-63'],
     ['emv', '0002010014com.mercadolibreprivate-merchant', '1-63'],
     ['url', 'https://peanut.me/claim?id=42#p=secret', '1-63'],
     ['base64-like', 'cHJpdmF0ZS1wYXltZW50'.repeat(22) + 'AAAA', '256-1023'],
