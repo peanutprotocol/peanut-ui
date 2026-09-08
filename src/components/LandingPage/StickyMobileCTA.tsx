@@ -9,7 +9,6 @@ import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { useTranslations } from 'next-intl'
 import { onStoreAnchorClick, storeAnchorHref } from '@/utils/migration.utils'
-import { LandingAppLink } from './LandingAppLink'
 
 export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
     const [visible, setVisible] = useState(false)
@@ -75,27 +74,27 @@ export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
                         visible ? 'sticky-cta-in' : 'sticky-cta-out'
                     }`}
                 >
-                    <div className="pointer-events-auto flex items-center gap-4">
-                        {migrationOn ? (
-                            // this bar is md:hidden so the visitor is on a phone —
-                            // deep-link their store during the migration window
-                            <a
-                                href={storeHref}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="block flex-1"
-                                onClick={() => onStoreAnchorClick(store, MIGRATION_SURFACES.LANDING_HERO)}
+                    {migrationOn ? (
+                        // this bar is md:hidden so the visitor is on a phone —
+                        // deep-link their store during the migration window
+                        <a
+                            href={storeHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="pointer-events-auto block"
+                            onClick={() => onStoreAnchorClick(store, MIGRATION_SURFACES.LANDING_HERO)}
+                        >
+                            <Button
+                                variant="purple"
+                                shadowSize="4"
+                                icon={store === 'ios' ? 'apple-logo' : 'google-play'}
+                                className="w-full py-3 text-base font-extrabold uppercase"
                             >
-                                <Button
-                                    variant="purple"
-                                    shadowSize="4"
-                                    icon={store === 'ios' ? 'apple-logo' : 'google-play'}
-                                    className="w-full py-3 text-base font-extrabold uppercase"
-                                >
-                                    {tMigration('downloadNow')}
-                                </Button>
-                            </a>
-                        ) : (
+                                {tMigration('downloadNow')}
+                            </Button>
+                        </a>
+                    ) : (
+                        <div className="pointer-events-auto flex items-center gap-4">
                             <Link prefetch={false} href="/setup" className="block flex-1">
                                 <Button
                                     variant="purple"
@@ -105,15 +104,15 @@ export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
                                     {strings.signUpNow}
                                 </Button>
                             </Link>
-                        )}
-                        <LandingAppLink
-                            surface={MIGRATION_SURFACES.LANDING_LOGIN}
-                            href="/setup?step=login"
-                            className="shrink-0 text-body-s text-n-1 underline"
-                        >
-                            {strings.logIn}
-                        </LandingAppLink>
-                    </div>
+                            <Link
+                                prefetch={false}
+                                href="/setup?step=login"
+                                className="shrink-0 text-body-s text-n-1 underline"
+                            >
+                                {strings.logIn}
+                            </Link>
+                        </div>
+                    )}
                 </div>
             }
         </>

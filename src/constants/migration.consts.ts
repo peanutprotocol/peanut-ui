@@ -64,7 +64,6 @@ export const MIGRATION_SURFACES = {
     DOWNLOAD_MODAL: 'download_modal',
     SUNSET_SCREEN: 'sunset_screen',
     LANDING_HERO: 'landing_hero',
-    LANDING_LOGIN: 'landing_login',
     HOME_BANNER: 'home_banner',
     SETUP: 'setup',
     GUEST_FLOW: 'guest_flow',
