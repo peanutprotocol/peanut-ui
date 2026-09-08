@@ -1,7 +1,7 @@
 /**
  * @jest-environment jsdom
  */
-import { renderHook, act, waitFor } from '@testing-library/react'
+import { renderHook, act } from '@testing-library/react'
 import { withNuqsTestingAdapter, type UrlUpdateEvent } from 'nuqs/adapters/testing'
 
 const mockRouterPush = jest.fn()
@@ -93,20 +93,12 @@ describe('useAddMoneyFlow', () => {
         expect(mockRouterPush).toHaveBeenCalledWith('/home')
     })
 
-    it('back from a country sub-view writes the bank country list params in place', async () => {
-        const events: UrlUpdateEvent[] = []
-        const { result } = renderFlow('?country=austria', (e) => events.push(e))
+    it('a country in the URL keeps onramp state (only the root list resets it)', () => {
+        // handleBack itself never runs with ?country= — every country render
+        // path returns a component with its own back behavior — so the old
+        // write-params-in-place branch was unreachable and is gone.
+        renderFlow('?country=austria')
         expect(mockResetOnrampFlow).not.toHaveBeenCalled()
-
-        act(() => result.current.handleBack())
-        await waitFor(() => expect(events.length).toBeGreaterThan(0))
-
-        const last = events.at(-1)
-        expect(last?.searchParams.get('country')).toBeNull()
-        expect(last?.searchParams.get('method')).toBe('bank')
-        // history entry preserved, as with the old router.push
-        expect(last?.options.history).toBe('push')
-        expect(mockRouterPush).not.toHaveBeenCalled()
     })
 
     it('routes a country click to manteca, bridge bank, or the per-country screen', () => {

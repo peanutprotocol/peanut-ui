@@ -25,7 +25,7 @@ export function useAddMoneyFlow() {
     // rule: `method` picks the bank country list, `country`/`view` are the
     // native app's stand-ins for path segments, `returnTo` is the caller's
     // back origin (validated through readReturnTo before every use).
-    const [urlParams, setUrlParams] = useQueryStates({
+    const [urlParams] = useQueryStates({
         method: parseAsStringEnum(['bank']),
         country: parseAsString,
         view: parseAsString,
@@ -44,19 +44,11 @@ export function useAddMoneyFlow() {
         if (!countryFromQuery) resetOnrampFlow()
     }, [countryFromQuery, resetOnrampFlow])
 
+    // Only the ?method=bank country list renders with this handler — every
+    // ?country=… render path returns a different component (native sub-views,
+    // AddWithdrawCountriesList) that owns its own back behavior — so this
+    // handler never runs with a country in the URL.
     const handleBack = () => {
-        // if viewing country-specific form, go back to country list. Keep the
-        // returnTo origin alive: dropping it here would strand the later backs
-        // on /home instead of the caller (the bug returnTo exists to fix).
-        // Same pathname, so the params are written in place via nuqs; 'push'
-        // keeps the history entry the old router.push created.
-        if (countryFromQuery) {
-            // sanitized for the same open-redirect reason as the bare-root hop
-            const origin = readReturnTo(returnToParams, '/add-money')
-            setUrlParams({ country: null, view: null, method: 'bank', [RETURN_TO_PARAM]: origin }, { history: 'push' })
-            return
-        }
-
         // an explicit origin (e.g. the exchange-rate widget's "Try it!" CTA) wins over
         // the /home reset below — that reset is only right for tab-bar entries
         const returnTo = readReturnTo(returnToParams, '/add-money')

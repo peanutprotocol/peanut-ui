@@ -792,6 +792,9 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         errorInitiatingPayment,
         isBlockingError,
         balanceErrorMessage,
+        // the wallet's spendable balance, surfaced here so views read ONE flow
+        // object instead of re-calling useWallet next to it
+        balance,
         usdAmount,
         merchantName,
         // kyc gate

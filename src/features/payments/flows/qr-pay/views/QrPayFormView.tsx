@@ -21,7 +21,6 @@ import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { getLimitsWarningCardProps, isBrUserEligibleForLimitIncrease } from '@/features/limits/utils'
 import { useCardMarkupRate } from '@/hooks/useCardMarkupRate'
 import { useModalsContext } from '@/context/ModalsContext'
-import { useWallet } from '@/hooks/wallet/useWallet'
 import { calculateSavingsInCents, hasCardMarkupComparison } from '@/utils/qr-payment.utils'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useQrPayFlow } from '../QrPayFlowContext'
@@ -49,8 +48,8 @@ export function QrPayFormView() {
         isLoading,
         payQR,
         handleCurrencyAmountChange,
+        balance,
     } = useQrPayFlow()
-    const { spendableBalance: balance } = useWallet()
     const { openSupportWithMessage: openSupportForLimits } = useModalsContext()
 
     // Live card-vs-local-rail markup — same cache entry the success screen's

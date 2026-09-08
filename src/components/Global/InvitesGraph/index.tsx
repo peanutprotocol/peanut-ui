@@ -66,8 +66,6 @@ import { useInvitesGraphInteractions } from './useInvitesGraphInteractions'
 import { useInvitesGraphRendering } from './useInvitesGraphRendering'
 import { DEFAULT_TOP_NODES, getModeConfigs } from './utils'
 
-export type { GraphMode }
-
 // Hook for graph data pass-through (kept for backward compatibility)
 // Note: Previously filtered tree data, now just returns graph data unchanged
 // selectedUserId is only used for camera positioning and highlighting in rendering
