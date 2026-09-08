@@ -59,8 +59,15 @@ function fingerprint(root, ref = 'HEAD') {
     }).trim()
 }
 
-function recordReplacement(fixture, tag = 'android-v1.5.0-replacement-fix') {
-    const value = fingerprint(fixture.root)
+function recordReplacement(
+    fixture,
+    {
+        tag = 'android-v1.5.0-replacement-fix',
+        platform = 'android',
+        baseRef = 'v1.5.0',
+        value = fingerprint(fixture.root),
+    } = {}
+) {
     fixture.git(
         'tag',
         '-a',
@@ -68,7 +75,7 @@ function recordReplacement(fixture, tag = 'android-v1.5.0-replacement-fix') {
         '-m',
         'Android replacement',
         '-m',
-        `peanut-native-replacement-v2: platform=android base=v1.5.0 native-compatible=true js-guard=android-capacitor-permissions-v1 fingerprint=${value}`
+        `peanut-native-replacement-v2: platform=${platform} base=${baseRef} native-compatible=true js-guard=android-capacitor-permissions-v1 fingerprint=${value}`
     )
     return tag
 }
@@ -152,7 +159,38 @@ describe('native OTA replacement baseline', () => {
         expect(result.stderr).toContain('android/app/src/**.{java,kt}')
     })
 
-    it('rejects lightweight or malformed replacement tags', () => {
+    it('rejects an attestation whose fingerprint does not match the tagged commit', () => {
+        fs.appendFileSync(path.join(fixture.root, 'android/app/proguard-rules.pro'), '\n# fix\n')
+        fixture.git('add', 'android/app/proguard-rules.pro')
+        fixture.git('commit', '-qm', 'repair')
+        recordReplacement(fixture, { value: '0000000000000000' })
+
+        const result = run(fixture.root)
+        expect(result.status).toBe(1)
+        expect(result.stderr).toContain('attests fingerprint 0000000000000000')
+        expect(result.stderr).toContain('but its commit is')
+    })
+
+    it('rejects an attestation for another platform or base', () => {
+        fs.appendFileSync(path.join(fixture.root, 'android/app/proguard-rules.pro'), '\n# fix\n')
+        fixture.git('add', 'android/app/proguard-rules.pro')
+        fixture.git('commit', '-qm', 'repair')
+        recordReplacement(fixture, { platform: 'ios', baseRef: 'v1.4.0' })
+
+        const result = run(fixture.root)
+        expect(result.status).toBe(1)
+        expect(result.stderr).toContain('attests ios from v1.4.0, expected android from v1.5.0')
+    })
+
+    it('rejects a replacement tag that records no native change', () => {
+        recordReplacement(fixture)
+
+        const result = run(fixture.root)
+        expect(result.status).toBe(1)
+        expect(result.stderr).toContain('records no native replacement change')
+    })
+
+    it('rejects lightweight replacement tags', () => {
         fs.appendFileSync(path.join(fixture.root, 'android/app/proguard-rules.pro'), '\n# fix\n')
         fixture.git('add', 'android/app/proguard-rules.pro')
         fixture.git('commit', '-qm', 'repair')
@@ -161,5 +199,16 @@ describe('native OTA replacement baseline', () => {
         const result = run(fixture.root)
         expect(result.status).toBe(1)
         expect(result.stderr).toContain('must be annotated attestations')
+    })
+
+    it('rejects malformed annotated replacement tags', () => {
+        fs.appendFileSync(path.join(fixture.root, 'android/app/proguard-rules.pro'), '\n# fix\n')
+        fixture.git('add', 'android/app/proguard-rules.pro')
+        fixture.git('commit', '-qm', 'repair')
+        fixture.git('tag', '-a', 'android-v1.5.0-replacement-malformed', '-m', 'missing attestation')
+
+        const result = run(fixture.root)
+        expect(result.status).toBe(1)
+        expect(result.stderr).toContain('missing a valid peanut-native-replacement-v2 attestation')
     })
 })
