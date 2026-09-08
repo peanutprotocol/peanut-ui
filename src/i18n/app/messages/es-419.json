@@ -243,7 +243,7 @@
             },
             "bugBounty": {
                 "title": "Ayúdanos a mejorar y <b>¡gana $5!</b>",
-                "description": "Sé el primero en reportar un error válido. ¡Recibe una recompensa!"
+                "description": "Sé el primero en reportar un error. ¡Recibe una recompensa!"
             },
             "userInterview": {
                 "title": "Ayúdanos a construir Peanut",
