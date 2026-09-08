@@ -1,7 +1,7 @@
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import { type CountryData } from '@/components/AddMoney/consts'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
-import { getBankRegionIntent, getRegionIntent } from '@/utils/regions.utils'
+import { getBankRegionIntent } from '@/utils/regions.utils'
 import { useCallback } from 'react'
 
 /**
@@ -29,10 +29,7 @@ export const useBankRegionIntent = (): ((
 
     return useCallback(
         (countryOrRegionPath: CountryData | string | null | undefined) => {
-            const intent =
-                typeof countryOrRegionPath === 'string'
-                    ? getRegionIntent(countryOrRegionPath)
-                    : getBankRegionIntent(countryOrRegionPath)
+            const intent = getBankRegionIntent(countryOrRegionPath)
             return isBankRestricted ? 'ROW' : intent
         },
         [isBankRestricted]

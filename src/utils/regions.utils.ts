@@ -241,8 +241,17 @@ const RAIL_COUNTRY_TO_REGION_PATH: Record<string, string> = {
  * belongs to the North America intent. Countries without a bank-rail entry
  * retain their picker-region intent.
  */
-export const getBankRegionIntent = (country: Pick<CountryData, 'id' | 'region'> | null | undefined): KYCRegionIntent =>
-    getRegionIntent(RAIL_COUNTRY_TO_REGION_PATH[country?.id ?? ''] ?? country?.region ?? 'rest-of-the-world')
+export const getBankRegionIntent = (
+    country: Pick<CountryData, 'id' | 'iso2' | 'region'> | string | null | undefined
+): KYCRegionIntent => {
+    if (typeof country === 'string') {
+        const code = country.toUpperCase()
+        return getRegionIntent(RAIL_COUNTRY_TO_REGION_PATH[code] ?? country)
+    }
+
+    const countryCode = country?.iso2 ?? country?.id
+    return getRegionIntent(RAIL_COUNTRY_TO_REGION_PATH[countryCode ?? ''] ?? country?.region ?? 'rest-of-the-world')
+}
 
 /**
  * Region picker paths with a mid-flight bank rail (`pending` = BE provisioning,
