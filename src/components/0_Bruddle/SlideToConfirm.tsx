@@ -60,7 +60,7 @@ const SlideToConfirm: FC<SlideToConfirmProps> = ({ label, confirmLabel, onConfir
         const observer = new ResizeObserver(update)
         observer.observe(trackRef.current)
         return () => observer.disconnect()
-    }, [])
+    }, [simplifiedConfirmations])
 
     // latch reset: host disabled us while running onConfirm, then re-enabled
     // after a failure -> spring back and allow another attempt

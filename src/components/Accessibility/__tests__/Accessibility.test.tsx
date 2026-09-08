@@ -124,6 +124,29 @@ it('slide activation opens a named dialog; cancel is safe and confirm runs only 
     expect(screen.getByRole('button', { name: 'Slide to pay' })).toBeDisabled()
 })
 
+it('restores full slider travel when another tab turns simplified confirmations off', () => {
+    const width = jest.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(200)
+    const onConfirm = jest.fn()
+    updateAccessibilityPreferences({ simplifiedConfirmations: true })
+    const view = render(wrap(<SlideToConfirm label="Slide to pay" onConfirm={onConfirm} />))
+    try {
+        act(() => {
+            localStorage.setItem(ACCESSIBILITY_STORAGE_KEY, JSON.stringify({ simplifiedConfirmations: false }))
+            window.dispatchEvent(new StorageEvent('storage', { key: ACCESSIBILITY_STORAGE_KEY }))
+        })
+        const handle = screen.getByRole('button', { name: 'Slide to pay' })
+        for (let i = 0; i < 9; i++) fireEvent.keyDown(handle, { key: 'ArrowRight' })
+        expect(onConfirm).not.toHaveBeenCalled()
+        fireEvent.keyDown(handle, { key: 'ArrowRight' })
+        expect(onConfirm).toHaveBeenCalledTimes(1)
+        fireEvent.keyDown(handle, { key: 'ArrowRight' })
+        expect(onConfirm).toHaveBeenCalledTimes(1)
+    } finally {
+        view.unmount()
+        width.mockRestore()
+    }
+})
+
 it('simplified confirmation survives a failed action retry and closes if disabled', () => {
     updateAccessibilityPreferences({ simplifiedConfirmations: true })
     const onConfirm = jest.fn()
