@@ -11,7 +11,9 @@ import { MercadoPagoStep } from '@/types/manteca.types'
 import { type Dispatch, type FC, type SetStateAction, useState } from 'react'
 import useClaimLink from '@/components/Claim/useClaimLink'
 import * as Sentry from '@sentry/nextjs'
+import { pickMantecaDepositAddress, requireMantecaDepositAddress } from '@/utils/manteca.utils'
 import { MANTECA_DEPOSIT_ADDRESS } from '@/constants/manteca.consts'
+import type { Address } from 'viem'
 import { useTranslations } from 'next-intl'
 
 interface MantecaReviewStepProps {
@@ -62,9 +64,42 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
                 setError(null)
                 setIsSubmitting(true)
 
+                // Entity-aware deposit address (per-entity balances from
+                // 2026-09-14): ask /withdraw/init where THIS currency's
+                // offramp must be funded BEFORE spending the one-shot claim
+                // link. This path FAILS CLOSED on any init problem — error,
+                // missing field, malformed or zero address — because no funds
+                // have moved yet and the user can retry, while claiming to a
+                // guessed address and then failing would irreversibly strand
+                // the link's funds at the wrong entity. (The signed flows keep
+                // a constant fallback because the backend validates their
+                // recipient before anything is broadcast; nothing validates a
+                // link claim.)
+                const { data: initData, error: initError } = await mantecaApi.initiateWithdraw({ amount, currency })
+                if (initError) {
+                    setError(t('manteca.errors.generic'))
+                    return
+                }
+                // Strict only against an ENTITY-AWARE API (it marks its
+                // responses with legalEntity): there the served address is
+                // the one truth and anything else fails closed. A pre-entity
+                // API omits both fields and still validates the legacy
+                // constant — falling back keeps claim links working during
+                // the deploy window where this UI meets the older API.
+                let depositAddress: Address | null
+                if (initData?.legalEntity) {
+                    depositAddress = requireMantecaDepositAddress(initData?.depositAddress)
+                    if (!depositAddress) {
+                        setError(t('manteca.errors.generic'))
+                        return
+                    }
+                } else {
+                    depositAddress = pickMantecaDepositAddress(initData?.depositAddress, MANTECA_DEPOSIT_ADDRESS)
+                }
+
                 // Use secure SDK claim (password stays client-side, only signature sent to backend)
                 const txHash = await claimLinkSecure({
-                    address: MANTECA_DEPOSIT_ADDRESS,
+                    address: depositAddress,
                     link: claimLink,
                 })
 
@@ -74,7 +109,7 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
                 }
 
                 // Associate the claim with user if logged in
-                // CRITICAL: This is blocking for Manteca because claims to MANTECA_DEPOSIT_ADDRESS
+                // CRITICAL: This is blocking for Manteca because claims to the Manteca deposit address
                 // won't appear in history without this association (recipientAddress != user address)
                 try {
                     await sendLinksApi.associateClaim(txHash)
@@ -102,7 +137,11 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
                     }
                 }
 
-                const { data, error: withdrawError } = await mantecaApi.withdraw({
+                const {
+                    data,
+                    error: withdrawError,
+                    message: withdrawMessage,
+                } = await mantecaApi.withdraw({
                     amount,
                     destinationAddress: destinationAddress.toLowerCase(),
                     txHash,
@@ -113,7 +152,10 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
                     if (withdrawError === 'TAX_ID_MISMATCH' || withdrawError === 'CUIT_MISMATCH') {
                         setError(t('manteca.ownAccountOnly'))
                     } else {
-                        setError(withdrawError || t('manteca.errors.generic'))
+                        // Prefer the API's human-written message over the raw
+                        // wire code — CLAIM_STORE_UNAVAILABLE as literal screen
+                        // text helps nobody whose funds already left the link.
+                        setError(withdrawMessage || withdrawError || t('manteca.errors.generic'))
                     }
                     return
                 }

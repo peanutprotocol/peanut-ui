@@ -1,5 +1,6 @@
 'use client'
 
+import { submitSignedSpend } from '@/hooks/wallet/signSpendRetry'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
 import { Notification } from '@/components/0_Bruddle/Notification'
@@ -9,6 +10,7 @@ import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
 import { SessionKeyGrantRequiredError } from '@/hooks/wallet/spendPreflight'
 import { friendlyError } from '@/utils/friendly-error.utils'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
+import { resolveOfframpSpendRecipient } from '@/utils/manteca.utils'
 import { rainCentsToUsdcUnits, isAmountWithinBalance } from '@/utils/balance.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useState, useMemo, useContext, useEffect, useCallback, useId } from 'react'
@@ -52,7 +54,6 @@ import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import PointsCard from '@/components/Common/PointsCard'
 import {
     MANTECA_COUNTRIES_CONFIG,
-    MANTECA_DEPOSIT_ADDRESS,
     MantecaAccountType,
     isMantecaSupportedCountryCode,
     type MantecaBankCode,
@@ -389,7 +390,10 @@ function MantecaBankWithdrawFlow() {
                 const requiredUsdcAmount = parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS)
                 signedArtifact = await signSpend({
                     requiredUsdcAmount,
-                    recipient: MANTECA_DEPOSIT_ADDRESS,
+                    // Entity-aware deposit address served by /withdraw/init
+                    // (per-entity balances from 2026-09-14); the constant is
+                    // only the fallback for an older API without the field.
+                    recipient: resolveOfframpSpendRecipient(priceLock),
                     rainSpendingPower: rainCentsToUsdcUnits(rainCardOverview?.balance?.spendingPower),
                     kind: 'FIAT_OFFRAMP',
                 })
@@ -433,37 +437,39 @@ function MantecaBankWithdrawFlow() {
             // Manteca order FIRST, then either broadcasts the signed UserOp
             // (smart-only / mixed) or submits the Rain withdrawal via the
             // user's session-key UserOp (collateral-only). No stuck funds.
-            const result = await mantecaApi.withdrawWithSignedTx(
-                signedArtifact.strategy === 'collateral-only'
-                    ? {
-                          kind: 'rainWithdrawal' as const,
-                          priceLockCode: priceLock.priceLockCode,
-                          amount: usdAmount,
-                          destinationAddress: destinationAddress.toLowerCase(),
-                          bankCode: selectedBank?.code,
-                          accountType: accountType ?? undefined,
-                          currency: currencyCode,
-                          signedRainWithdrawal: signedArtifact.rainWithdrawal,
-                          chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                      }
-                    : {
-                          kind: 'userOp' as const,
-                          priceLockCode: priceLock.priceLockCode,
-                          amount: usdAmount,
-                          destinationAddress: destinationAddress.toLowerCase(),
-                          bankCode: selectedBank?.code,
-                          accountType: accountType ?? undefined,
-                          currency: currencyCode,
-                          signedUserOp: signedArtifact.signedUserOp.signedUserOp,
-                          chainId: signedArtifact.signedUserOp.chainId,
-                          entryPointAddress: signedArtifact.signedUserOp.entryPointAddress,
-                          // For mixed: tell backend about the Rain prepare intent
-                          // embedded in the UserOp's batched callData so it can
-                          // reconcile the collateral webhook to OFFRAMP in history.
-                          ...(signedArtifact.strategy === 'mixed'
-                              ? { rainPreparationId: signedArtifact.rainPreparationId }
-                              : {}),
-                      }
+            const result = await submitSignedSpend(signedArtifact, () =>
+                mantecaApi.withdrawWithSignedTx(
+                    signedArtifact.strategy === 'collateral-only'
+                        ? {
+                              kind: 'rainWithdrawal' as const,
+                              priceLockCode: priceLock.priceLockCode,
+                              amount: usdAmount,
+                              destinationAddress: destinationAddress.toLowerCase(),
+                              bankCode: selectedBank?.code,
+                              accountType: accountType ?? undefined,
+                              currency: currencyCode,
+                              signedRainWithdrawal: signedArtifact.rainWithdrawal,
+                              chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                          }
+                        : {
+                              kind: 'userOp' as const,
+                              priceLockCode: priceLock.priceLockCode,
+                              amount: usdAmount,
+                              destinationAddress: destinationAddress.toLowerCase(),
+                              bankCode: selectedBank?.code,
+                              accountType: accountType ?? undefined,
+                              currency: currencyCode,
+                              signedUserOp: signedArtifact.signedUserOp.signedUserOp,
+                              chainId: signedArtifact.signedUserOp.chainId,
+                              entryPointAddress: signedArtifact.signedUserOp.entryPointAddress,
+                              // For mixed: tell backend about the Rain prepare intent
+                              // embedded in the UserOp's batched callData so it can
+                              // reconcile the collateral webhook to OFFRAMP in history.
+                              ...(signedArtifact.strategy === 'mixed'
+                                  ? { rainPreparationId: signedArtifact.rainPreparationId }
+                                  : {}),
+                          }
+                )
             )
 
             if (result.error) {
@@ -485,6 +491,8 @@ function MantecaBankWithdrawFlow() {
                 } else if (result.error === 'Unexpected error') {
                     setErrorMessage(t('errors.unexpected'))
                     setStep('failure')
+                } else if (result.code === 'USER_OP_REVERTED') {
+                    setErrorMessage(toFriendlyError(result), 'userOpReverted')
                 } else {
                     setErrorMessage(result.message ?? result.error)
                 }

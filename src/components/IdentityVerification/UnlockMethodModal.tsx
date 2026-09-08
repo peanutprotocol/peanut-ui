@@ -20,7 +20,7 @@ interface UnlockMethodModalProps {
 
 /**
  * Method-worded unlock sheet for the Unlock payments screen. The tap promised
- * a product ("SEPA transfers · Unlock"), so the sheet speaks about that
+ * a product ("Euro bank transfers · Unlock"), so the sheet speaks about that
  * product — never about regions. The body is the prep checklist: what to have
  * ready and how long it takes, stated BEFORE the SDK opens, so nobody starts
  * the check and then goes hunting for documents halfway through.

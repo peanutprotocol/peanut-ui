@@ -117,7 +117,8 @@
         "cardApprovalFailed": "Não foi possível aprovar o cartão. Tente novamente.",
         "logoutFailed": "Não foi possível sair da sua conta. Tente novamente.",
         "loginIncomplete": "O login não foi concluído. Tente novamente.",
-        "rateUnavailable": "As taxas de câmbio estão indisponíveis no momento. Tente de novo em instantes."
+        "rateUnavailable": "As taxas de câmbio estão indisponíveis no momento. Tente de novo em instantes.",
+        "userOpReverted": "Não foi possível concluir o pagamento. Tente novamente."
     },
     "migration": {
         "downloadPrompt": {

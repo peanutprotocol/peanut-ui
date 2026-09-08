@@ -150,7 +150,7 @@ describe('UnlockPayments', () => {
         mockKycDegraded = true
         render()
         expect(screen.getByText('Verification is temporarily down')).toBeInTheDocument()
-        fireEvent.click(screen.getByText('EUR/GBP Bank Transfers'))
+        fireEvent.click(screen.getByText('Euro bank transfers'))
         expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
     })
 
@@ -165,7 +165,7 @@ describe('UnlockPayments', () => {
     it('a region-restricted user gets the region screen instead of an unlock offer', () => {
         mockRegionRestricted = true
         render()
-        fireEvent.click(screen.getByText('EUR/GBP Bank Transfers'))
+        fireEvent.click(screen.getByText('Euro bank transfers'))
         expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
         expect(screen.getByText('region-restricted-modal')).toBeInTheDocument()
         expect(mockInitiateKyc).not.toHaveBeenCalled()
@@ -173,8 +173,8 @@ describe('UnlockPayments', () => {
 
     it('a bank-method tap opens the method-worded unlock modal and NEVER routes to /card', () => {
         render()
-        fireEvent.click(screen.getByText('EUR/GBP Bank Transfers'))
-        expect(screen.getByText('unlock-modal-open:EUR/GBP Bank Transfers')).toBeInTheDocument()
+        fireEvent.click(screen.getByText('Euro bank transfers'))
+        expect(screen.getByText('unlock-modal-open:Euro bank transfers')).toBeInTheDocument()
         expect(mockPush).not.toHaveBeenCalled()
     })
 
@@ -199,7 +199,7 @@ describe('UnlockPayments', () => {
         render()
         expect(screen.getAllByText('Not available').length).toBeGreaterThanOrEqual(4)
         expect(screen.getByText('Always on')).toBeInTheDocument()
-        fireEvent.click(screen.getByText('EUR/GBP Bank Transfers'))
+        fireEvent.click(screen.getByText('Euro bank transfers'))
         expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
     })
 

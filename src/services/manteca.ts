@@ -81,6 +81,11 @@ export type QrPaymentLock = {
     paymentAgainst: string
     expireAt: string
     creationTime: string
+    /** Entity-aware Manteca deposit address served by the API (per-entity
+     *  balances from 2026-09-14). Optional only while an older API without
+     *  the field may still be deployed — prefer it over local constants. */
+    depositAddress?: Address
+    legalEntity?: string
 }
 
 export type QrPaymentResponse =
@@ -121,6 +126,11 @@ export type WithdrawPriceLock = {
     usdAmount: string
     fiatAmount: string
     currency: string
+    /** Entity-aware Manteca deposit address served by the API (per-entity
+     *  balances from 2026-09-14). Optional only while an older API without
+     *  the field may still be deployed — prefer it over local constants. */
+    depositAddress?: Address
+    legalEntity?: string
 }
 
 export const mantecaApi = {
@@ -222,7 +232,10 @@ export const mantecaApi = {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}))
-            throw new Error(errorData?.message || errorData?.error || `QR payment failed: ${response.statusText}`)
+            throw Object.assign(
+                new Error(errorData?.message || errorData?.error || `QR payment failed: ${response.statusText}`),
+                { code: errorData?.code || errorData?.error }
+            )
         }
 
         return response.json()
@@ -457,6 +470,7 @@ export const mantecaApi = {
                 return {
                     error: result.error || 'Failed to complete withdraw.',
                     message: result.message,
+                    ...(typeof result.code === 'string' ? { code: result.code } : {}),
                 }
             }
 

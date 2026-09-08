@@ -4,10 +4,15 @@
  * offsets) so a refactor can't silently widen what the key may sign.
  */
 import { encodeFunctionData, erc20Abi, pad, toHex, type Address, type Hex } from 'viem'
-import { ParamCondition } from '@zerodev/permissions/policies'
+import { ParamCondition, toTimestampPolicy } from '@zerodev/permissions/policies'
 import { rainCoordinatorAbi } from '@/constants/rain.consts'
 import { PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
-import { derivePermissions, EphemeralKeyPreflightError, type EphemeralSpendScope } from '@/utils/ephemeralSpendKey'
+import {
+    createEphemeralSpendSession,
+    derivePermissions,
+    EphemeralKeyPreflightError,
+    type EphemeralSpendScope,
+} from '@/utils/ephemeralSpendKey'
 
 const ACCOUNT = '0x70f22a4db066aed9bcd2157a7b19e2e28c10c483' as Address
 const PROXY = '0x1111111111111111111111111111111111111111' as Address
@@ -115,5 +120,40 @@ describe('derivePermissions', () => {
         expect(() => derivePermissions(scope([{ to: RECIPIENT, value: 0n, data: '0x' as Hex }]))).toThrow(
             EphemeralKeyPreflightError
         )
+    })
+})
+
+jest.mock('@zerodev/permissions/policies', () => ({
+    ...jest.requireActual('@zerodev/permissions/policies'),
+    toTimestampPolicy: jest.fn(),
+}))
+jest.mock('@/constants/zerodev.consts', () => ({
+    ...jest.requireActual('@/constants/zerodev.consts'),
+    assertZeroDevRpcUrls: jest.fn(),
+}))
+
+describe('createEphemeralSpendSession expiry', () => {
+    afterEach(() => jest.restoreAllMocks())
+
+    it.each([
+        [undefined, 180],
+        [600, 600],
+    ])('ttlSeconds=%s sets the policy lifetime to %s seconds', async (ttlSeconds, expected) => {
+        const now = 1_800_000_000
+        jest.spyOn(Date, 'now').mockReturnValue(now * 1000 + 999)
+        // Stop at the policy boundary before constructing an account or contacting RPC.
+        jest.mocked(toTimestampPolicy).mockImplementationOnce(() => {
+            throw new Error('policy captured')
+        })
+        await expect(
+            createEphemeralSpendSession({
+                publicClient: {} as never,
+                chain: { id: 42161 } as never,
+                patchedSudoValidator: {} as never,
+                scope: scope([transferCall(1n)]),
+                ...(ttlSeconds === undefined ? {} : { ttlSeconds }),
+            })
+        ).rejects.toBeInstanceOf(EphemeralKeyPreflightError)
+        expect(toTimestampPolicy).toHaveBeenLastCalledWith({ validAfter: 0, validUntil: now + expected })
     })
 })

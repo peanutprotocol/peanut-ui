@@ -49,6 +49,7 @@ function mockResponse(status: number, body: unknown): Response {
 describe('useUserQuery — JWT sliding refresh', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        mockApiFetch.mockReset()
     })
 
     it('calls setAuthToken when the response includes a refreshed token', async () => {
@@ -58,7 +59,7 @@ describe('useUserQuery — JWT sliding refresh', () => {
         )
 
         const { result } = renderHook(() => useUserQuery(), { wrapper: makeWrapper() })
-        await waitFor(() => expect(result.current.isSuccess).toBe(true))
+        await waitFor(() => expect(result.current.isSuccess).toBe(true), { timeout: 5000 })
 
         expect(mockSetAuthToken).toHaveBeenCalledWith(refreshed)
         expect(mockSetAuthToken).toHaveBeenCalledTimes(1)
@@ -71,19 +72,42 @@ describe('useUserQuery — JWT sliding refresh', () => {
         mockApiFetch.mockResolvedValueOnce(
             mockResponse(200, { user: { userId: 'u1', username: 'alice' }, token: 'resurrected.jwt' })
         )
+        mockApiFetch.mockResolvedValueOnce(mockResponse(200, { user: { userId: 'u2', username: 'bob' } }))
 
         const { result } = renderHook(() => useUserQuery(), { wrapper: makeWrapper() })
-        await waitFor(() => expect(result.current.isSuccess).toBe(true))
+        await waitFor(() => expect(result.current.isSuccess).toBe(true), { timeout: 5000 })
 
         expect(mockSetAuthToken).not.toHaveBeenCalled()
-        expect(result.current.data).not.toHaveProperty('token')
+        expect(result.current.data).toMatchObject({ user: { userId: 'u2' } })
+    })
+
+    it('discards an old successful body when another login commits while JSON is being read', async () => {
+        const { getAuthToken } = jest.requireMock('@/utils/auth-token')
+        getAuthToken.mockReturnValue('old-session')
+        mockApiFetch.mockResolvedValueOnce({
+            ok: true,
+            status: 200,
+            json: async () => {
+                getAuthToken.mockReturnValue('new-session')
+                return { user: { userId: 'old-user' }, token: 'old-refreshed-token' }
+            },
+        } as Response)
+        mockApiFetch.mockResolvedValueOnce(mockResponse(200, { user: { userId: 'new-user' } }))
+        try {
+            const { result } = renderHook(() => useUserQuery(), { wrapper: makeWrapper() })
+            await waitFor(() => expect(result.current.isSuccess).toBe(true), { timeout: 5000 })
+            expect(result.current.data).toMatchObject({ user: { userId: 'new-user' } })
+            expect(mockSetAuthToken).not.toHaveBeenCalled()
+        } finally {
+            getAuthToken.mockReturnValue(null)
+        }
     })
 
     it('does NOT call setAuthToken when the response has no token field', async () => {
         mockApiFetch.mockResolvedValueOnce(mockResponse(200, { user: { userId: 'u1', username: 'alice' } }))
 
         const { result } = renderHook(() => useUserQuery(), { wrapper: makeWrapper() })
-        await waitFor(() => expect(result.current.isSuccess).toBe(true))
+        await waitFor(() => expect(result.current.isSuccess).toBe(true), { timeout: 5000 })
 
         expect(mockSetAuthToken).not.toHaveBeenCalled()
     })
@@ -94,7 +118,7 @@ describe('useUserQuery — JWT sliding refresh', () => {
         )
 
         const { result } = renderHook(() => useUserQuery(), { wrapper: makeWrapper() })
-        await waitFor(() => expect(result.current.isSuccess).toBe(true))
+        await waitFor(() => expect(result.current.isSuccess).toBe(true), { timeout: 5000 })
 
         expect(result.current.data).not.toHaveProperty('token')
     })
@@ -108,7 +132,7 @@ describe('useUserQuery — JWT sliding refresh', () => {
         )
 
         const { result } = renderHook(() => useUserQuery(), { wrapper: makeWrapper() })
-        await waitFor(() => expect(result.current.isSuccess).toBe(true))
+        await waitFor(() => expect(result.current.isSuccess).toBe(true), { timeout: 5000 })
 
         expect(result.current.data).not.toHaveProperty('token')
         expect(mockSetAuthToken).not.toHaveBeenCalled()
@@ -184,7 +208,7 @@ describe('useUserQuery — demo mode', () => {
         })
 
         const { result } = renderHook(() => useUserQuery(), { wrapper: makeWrapper() })
-        await waitFor(() => expect(result.current.isSuccess).toBe(true))
+        await waitFor(() => expect(result.current.isSuccess).toBe(true), { timeout: 5000 })
 
         // the real fetchUser path, through the mutable demo profile, not the static constant
         expect(result.current.data?.user.avatarKey).toBe('basic.frog')

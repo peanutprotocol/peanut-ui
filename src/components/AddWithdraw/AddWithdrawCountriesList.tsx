@@ -262,7 +262,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         // name and email are now collected by sumsub sdk — no need to save them beforehand
         if (!isUserKycApproved) {
             await sumsubFlow.handleInitiateKyc(
-                bankRegionIntent(currentCountry?.region ?? 'rest-of-the-world'),
+                bankRegionIntent(currentCountry),
                 undefined,
                 undefined,
                 currentCountry?.id
@@ -273,6 +273,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     }
 
     const handleWithdrawMethodClick = (method: SpecificPaymentMethod) => {
+        const title = method.id.endsWith('-sepa-instant-withdraw') ? t('methods.euroBankTransfers') : method.title
         // preserve method param only if coming from bank send flow (not crypto)
         const methodQueryParam = isBankFromSend ? `?method=${methodParam}` : ''
 
@@ -288,7 +289,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 type: 'bridge',
                 countryPath: currentCountry?.path,
                 currency: currentCountry?.currency,
-                title: method.title,
+                title,
             })
             router.push(`/withdraw${methodQueryParam}`)
             return
@@ -378,7 +379,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                         await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                     } else {
                         await sumsubFlow.handleInitiateKyc(
-                            bankRegionIntent(currentCountry?.region ?? 'rest-of-the-world'),
+                            bankRegionIntent(currentCountry),
                             undefined,
                             gate.kind === 'needs-enrollment' || undefined,
                             currentCountry?.id
@@ -471,6 +472,12 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             <Section title={title}>
                 <div className="flex flex-col">
                     {paymentMethods.map((method, index) => {
+                        const copy = method.id.endsWith('-sepa-instant-withdraw')
+                            ? {
+                                  title: t('methods.euroBankTransfers'),
+                                  description: t('methods.euroBankTransfersDescription'),
+                              }
+                            : method
                         // BRL-via-PIX onramp is warn-only under maintenance: tag the Pix option but
                         // keep it clickable (do not set isDisabled).
                         const isPixOnrampUnderMaintenance =
@@ -481,13 +488,13 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                             <ListItem
                                 key={method.id}
                                 disabled={method.isSoon}
-                                title={method.title}
-                                body={<div className="text-body-xs">{method.description}</div>}
+                                title={copy.title}
+                                body={<div className="text-body-xs">{copy.description}</div>}
                                 leading={
                                     typeof method.icon === 'string' || method.icon === undefined ? (
                                         <AvatarWithBadge
                                             icon={method.icon as IconName}
-                                            name={method.title ?? method.id}
+                                            name={copy.title ?? method.id}
                                             size="extra-small"
                                             inlineStyle={{
                                                 backgroundColor:
@@ -495,7 +502,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                                         ? 'var(--color-background-icon-bubble-yellow)'
                                                         : method.id === 'crypto-add' || method.id === 'crypto-withdraw'
                                                           ? 'var(--color-background-icon-bubble-yellow)'
-                                                          : getColorForUsername(method.title).lightShade,
+                                                          : getColorForUsername(copy.title).lightShade,
                                                 color: method.icon === ('bank' as IconName) ? 'black' : 'black',
                                             }}
                                         />

@@ -246,6 +246,13 @@ jobs:
                   echo "versionCode $ANDROID_VERSION_CODE (version $ANDROID_VERSION_NAME, run $GITHUB_RUN_NUMBER attempt $GITHUB_RUN_ATTEMPT)"
                   pnpm native:release
 
+            - name: Preserve R8 mapping
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+              with:
+                  name: android-r8-mapping-${{ steps.version.outputs.name }}-${{ github.run_id }}-${{ github.run_attempt }}
+                  path: android/app/build/outputs/mapping/release/
+                  if-no-files-found: error
+
             - name: Upload to Google Play
               uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1
               with:

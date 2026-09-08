@@ -607,7 +607,7 @@ export default function WithdrawBankPage() {
                         await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                     } else {
                         await sumsubFlow.handleInitiateKyc(
-                            bankRegionIntent(getCountryFromPath(country)?.region ?? 'rest-of-the-world'),
+                            bankRegionIntent(countryFromPath),
                             undefined,
                             gate.kind === 'needs-enrollment' || undefined,
                             getCountryFromPath(country)?.id

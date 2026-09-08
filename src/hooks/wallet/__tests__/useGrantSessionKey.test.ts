@@ -110,8 +110,10 @@ jest.mock('@/utils/kernelNonceRepair.utils', () => ({
     repairEnableNonce: (...args: unknown[]) => mockRepairEnableNonce(...args),
 }))
 
+const mockEnsureClient = jest.fn()
 jest.mock('@/context/kernelClient.context', () => ({
     useKernelClient: () => ({
+        ensureClientForChain: mockEnsureClient,
         getClientForChain: () => ({
             account: {
                 address: USER_ADDRESS,
@@ -128,6 +130,7 @@ import { useGrantSessionKey } from '../useGrantSessionKey'
 describe('useGrantSessionKey — serialized approval binds to the v0.0.3 validator', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        mockEnsureClient.mockResolvedValue({ account: { address: USER_ADDRESS } })
         // createKernelAccount (mocked @zerodev/sdk) echoes the sudo validator it
         // was given so serializePermissionAccount can encode it.
         ;(createKernelAccount as jest.Mock).mockImplementation(
@@ -142,8 +145,23 @@ describe('useGrantSessionKey — serialized approval binds to the v0.0.3 validat
         mockGetPatchedSudoValidator.mockResolvedValue(mockPatchedValidator)
         mockOverview = {
             status: { contractAddress: COLLATERAL_PROXY, coordinatorAddress: COORDINATOR },
-            cards: [{ id: 'card-1' }],
+            cards: [{ id: 'card-1', status: 'ACTIVE' }],
         }
+    })
+
+    it('returns a recoverable error when wallet readiness fails, without submitting an approval', async () => {
+        mockEnsureClient.mockRejectedValueOnce(new Error('Wallet initialization failed'))
+        const { result } = renderHook(() => useGrantSessionKey())
+        await act(async () => {
+            expect(await result.current.grant()).toEqual({
+                ok: false,
+                error: { kind: 'unexpected', message: 'Wallet initialization failed' },
+            })
+        })
+        expect(mockEnsureClient).toHaveBeenCalledWith('42161')
+        expect(result.current.isGranting).toBe(false)
+        expect(result.current.lastError).toEqual({ kind: 'unexpected', message: 'Wallet initialization failed' })
+        expect(mockSubmitWithdrawSessionApproval).not.toHaveBeenCalled()
     })
 
     it('binds to v0.0.3 for a post-2025-09-18 user (client already on v0.0.3)', async () => {

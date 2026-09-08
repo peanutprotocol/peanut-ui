@@ -249,9 +249,10 @@ export async function withWebAuthnRetry<T>(
 
             // Success - log if it was a retry
             if (attempt > 1) {
-                Sentry.captureMessage(`${operationName} succeeded on retry ${attempt - 1}`, {
+                Sentry.addBreadcrumb({
+                    message: `${operationName} succeeded on retry ${attempt - 1}`,
                     level: 'info',
-                    extra: { attempt, maxRetries },
+                    data: { attempt, maxRetries },
                 })
             }
 
@@ -269,9 +270,10 @@ export async function withWebAuthnRetry<T>(
             }
 
             // Log retry attempt to Sentry for monitoring
-            Sentry.captureMessage(`${operationName} retry attempt`, {
+            Sentry.addBreadcrumb({
+                message: `${operationName} retry attempt`,
                 level: 'warning',
-                extra: {
+                data: {
                     errorName: lastError.name,
                     errorMessage: lastError.message,
                     attempt,
@@ -286,7 +288,11 @@ export async function withWebAuthnRetry<T>(
                     await navigator.credentials.preventSilentAccess()
                 } catch (e) {
                     // Silent fail - this is a best-effort workaround
-                    console.warn('preventSilentAccess failed:', e)
+                    Sentry.addBreadcrumb({
+                        message: 'preventSilentAccess failed',
+                        level: 'info',
+                        data: { errorName: (e as Error)?.name },
+                    })
                 }
             }
 

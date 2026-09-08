@@ -187,15 +187,15 @@
                 },
                 "us": {
                     "label": "United States",
-                    "value": "ACH & Wire transfers"
+                    "value": "US dollar bank transfers"
                 },
                 "europe": {
                     "label": "Europe",
-                    "value": "SEPA transfers"
+                    "value": "Euro bank transfers"
                 },
                 "mexico": {
                     "label": "Mexico",
-                    "value": "SPEI bank transfers"
+                    "value": "Mexican peso bank transfers"
                 },
                 "ownCountry": {
                     "value": "Bank transfers to your own accounts"
@@ -395,8 +395,8 @@
                 "arQrBank": "QR payments & transfers (Argentina)",
                 "arQr": "QR payments (Argentina)",
                 "arBank": "Bank transfers (Argentina)",
-                "naBank": "ACH, Wire (US) & SPEI (Mexico)",
-                "sepa": "EUR/GBP Bank Transfers"
+                "naBank": "US dollar and Mexican peso bank transfers",
+                "sepa": "Euro bank transfers"
             },
             "chips": {
                 "active": "Active",
@@ -559,8 +559,8 @@
         },
         "about": {
             "title": "About Peanut",
-            "intro": "Peanut makes dollars easy: hold your balance, send to any @username, and move money on local rails after one ID check. Built by Squirrel Labs.",
-            "policiesHeading": "The official bits",
+            "intro": "Peanut makes dollars easy: hold your balance, send to any @username, and use local bank transfers after one ID check. Built by Squirrel Labs.",
+            "policiesHeading": "Policies",
             "policies": {
                 "terms": "Terms of Service",
                 "privacy": "Privacy Policy",
@@ -710,8 +710,8 @@
         }
     },
     "exchangeRate": {
-        "title": "Exchange Rates and Fees",
-        "balanceNote": "Your Peanut balance is shown in USD. Where a local bank rail is supported, you can withdraw in that local currency.",
+        "title": "Exchange rate & fees",
+        "balanceNote": "Your Peanut balance is shown in USD. Where local-currency bank transfers are supported, you can withdraw in that currency.",
         "tryIt": "Withdraw now",
         "addMoneyCta": "Add money",
         "widget": {
@@ -850,10 +850,10 @@
                 "rails": {
                     "pix": "PIX transfers",
                     "arQr": "QR payments and transfers",
-                    "spei": "SPEI transfers",
-                    "usdAch": "USD transfers (ACH and wire)",
-                    "eurSepa": "bank transfers",
-                    "gbpFps": "GBP bank transfers (Faster Payments)"
+                    "spei": "Mexican peso bank transfers",
+                    "usdAch": "US dollar bank transfers",
+                    "eurSepa": "Euro bank transfers",
+                    "gbpFps": "British pound bank transfers"
                 },
                 "continue": "Continue"
             },
@@ -873,10 +873,10 @@
                     "p2p": "Peanut-to-Peanut payments",
                     "pix": "PIX payments & transfers",
                     "arQr": "QR payments & transfers",
-                    "spei": "SPEI transfers (MXN)",
-                    "usdAch": "USD transfers (ACH & Wire)",
-                    "eurSepa": "SEPA transfers (EUR)",
-                    "gbpFps": "GBP transfers (Faster Payments)",
+                    "spei": "Mexican peso bank transfers",
+                    "usdAch": "US dollar bank transfers",
+                    "eurSepa": "Euro bank transfers",
+                    "gbpFps": "British pound bank transfers",
                     "bank": "Bank transfers where supported",
                     "card": "Peanut card"
                 },
@@ -1888,7 +1888,9 @@
         "methods": {
             "mercadopago": "MercadoPago",
             "pix": "Pix",
-            "bankTransfer": "Bank Transfer"
+            "bankTransfer": "Bank Transfer",
+            "euroBankTransfers": "Euro bank transfers",
+            "euroBankTransfersDescription": "Usually arrives within 20 minutes, up to 1 business day."
         },
         "initial": {
             "placeholderEns": "Address or ENS",
@@ -2632,7 +2634,7 @@
             "titleDefault": "Unlock your account",
             "descriptionError": "{error} Please contact support for assistance.",
             "descriptionBlocked": "We couldn't confirm your ID. Please contact support for assistance.",
-            "descriptionRestartIdentity": "This rail needs a document from a supported country. You can verify with a different ID.",
+            "descriptionRestartIdentity": "This payment method needs a document from a supported country. You can verify with a different ID.",
             "descriptionProviderRejection": "Please upload a clearer photo of your ID to continue.",
             "descriptionCrossRegion": "Your identity is already verified. To turn on payments in {region}, we need to confirm a few more details.",
             "descriptionCrossRegionGeneric": "Your identity is already verified. To turn on payments here, we need to confirm a few more details.",
@@ -2703,8 +2705,8 @@
         "bridgeTos": {
             "baseTitle": "Accept Terms of Service",
             "baseDescription": "To enable bank transfers, you need to accept our payment partner's Terms of Service.",
-            "sepaTitle": "Accept SEPA Terms of Service",
-            "sepaDescription": "To enable EUR (SEPA) and GBP (Faster Payments) bank transfers, you need to accept our payment partner's updated Terms of Service.",
+            "sepaTitle": "Accept updated bank transfer provider terms",
+            "sepaDescription": "To enable euro and British pound bank transfers, accept our bank transfer provider's updated Terms of Service.",
             "errorTitle": "Could not load terms",
             "loadFailed": "Could not load terms. You can accept them later from your activity feed.",
             "genericError": "Something went wrong. You can accept terms later from your activity feed.",
@@ -3001,7 +3003,7 @@
                 "taxId": {
                     "label": "Tax ID",
                     "title": "Your tax ID",
-                    "body": "CPF in Brazil, CUIT or CUIL in Argentina. Needed to send and receive on local bank rails."
+                    "body": "CPF in Brazil, CUIT or CUIL in Argentina. Needed for local bank transfers."
                 },
                 "questions": {
                     "label": "Questions",
@@ -3048,19 +3050,19 @@
         "rails": {
             "europe": {
                 "label": "Europe",
-                "value": "SEPA transfers"
+                "value": "Euro bank transfers"
             },
             "uk": {
                 "label": "UK",
-                "value": "Faster Payments"
+                "value": "British pound bank transfers"
             },
             "us": {
                 "label": "United States",
-                "value": "ACH & Wire transfers"
+                "value": "US dollar bank transfers"
             },
             "mexico": {
                 "label": "Mexico",
-                "value": "SPEI bank transfers"
+                "value": "Mexican peso bank transfers"
             },
             "qr": {
                 "label": "Argentina & Brazil",
@@ -3086,9 +3088,9 @@
             "email_required": "We need an email address to finish setting up this account. Add one to your profile and we'll retry automatically.",
             "submission_failed": "We hit a snag finishing your verification on our side. We'll get you sorted — tap below to message support.",
             "proof_of_address_review": "We received your proof of address — it's being reviewed.",
-            "bridge_tos_required": "Accept the Bridge terms of service to continue.",
-            "bridge_tos_v2_required": "Accept the SEPA terms of service to enable EUR / GBP rails.",
-            "bridge_processing": "We're finalizing your verification with Bridge — this usually takes a few minutes.",
+            "bridge_tos_required": "Accept our payment partner's terms to continue.",
+            "bridge_tos_v2_required": "Accept the bank transfer provider's updated Terms of Service to enable euro and British pound bank transfers.",
+            "bridge_processing": "Our payment partner is finishing your verification. This usually takes a few minutes.",
             "verification_blocked": "Verification issue — contact support for help.",
             "terminal_rejection": "Verification issue — contact support for help.",
             "bridge_terminal_rejection": "We couldn't verify your account for bank transfers. Message support if you think this is a mistake.",
@@ -3097,7 +3099,7 @@
             "compliance_block": "We couldn't approve your card application after a compliance review.",
             "card_rejected": "Your card application couldn't be approved. Message support if you think this is a mistake.",
             "manteca_us_nationality": "Payments from this country are not available for US citizens at this time.",
-            "country_not_supported": "This rail needs a document from a supported country. You can verify with a different ID.",
+            "country_not_supported": "This payment method needs a document from a supported country. You can verify with a different ID.",
             "tax_id_unresolved": "We couldn't read the tax ID that local deposits and withdrawals need. You can verify again to provide it. QR payments aren't affected.",
             "uk_resident_blocked": "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe — you can withdraw them as crypto anytime.",
             "identity_region_restricted": "Our verification partner doesn't accept documents issued in your country. Re-uploading won't change the result."
@@ -3595,7 +3597,8 @@
         "cardApprovalFailed": "Card approval failed — please try again.",
         "logoutFailed": "Couldn’t log out. Please try again.",
         "loginIncomplete": "Login didn’t complete. Please try again.",
-        "rateUnavailable": "Exchange rates are temporarily unavailable. Please try again in a moment."
+        "rateUnavailable": "Exchange rates are temporarily unavailable. Please try again in a moment.",
+        "userOpReverted": "This payment could not be completed. Please try again."
     },
     "appLock": {
         "title": "Welcome back!",

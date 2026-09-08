@@ -121,9 +121,9 @@ describe('ResidenceStep', () => {
         // BR rides Manteca only — no Bridge rail exists for it, so the card must not claim one
         expect(screen.getByText('PIX payments & transfers')).toBeInTheDocument()
         // DE is Bridge-served: one verification opens every Bridge virtual-account rail
-        expect(screen.getByText('SEPA transfers (EUR)')).toBeInTheDocument()
-        expect(screen.getByText('GBP transfers (Faster Payments)')).toBeInTheDocument()
-        expect(screen.getByText('USD transfers (ACH & Wire)')).toBeInTheDocument()
+        expect(screen.getByText('Euro bank transfers')).toBeInTheDocument()
+        expect(screen.getByText('British pound bank transfers')).toBeInTheDocument()
+        expect(screen.getByText('US dollar bank transfers')).toBeInTheDocument()
         expect(screen.getAllByText('Peanut-to-Peanut payments')).toHaveLength(2)
         expect(screen.getByText('Which country goes first?')).toBeInTheDocument()
         expect(screen.getByText(/genuinely hold legal residence/)).toBeInTheDocument()
