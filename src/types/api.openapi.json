@@ -13456,6 +13456,12 @@
                                         },
                                         "tokenAddress": {
                                             "type": "string"
+                                        },
+                                        "mixedSpendContract": {
+                                            "type": "string",
+                                            "enum": [
+                                                "broadcast-first-revert-v1"
+                                            ]
                                         }
                                     },
                                     "required": [

@@ -232,7 +232,10 @@ export const mantecaApi = {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}))
-            throw new Error(errorData?.message || errorData?.error || `QR payment failed: ${response.statusText}`)
+            throw Object.assign(
+                new Error(errorData?.message || errorData?.error || `QR payment failed: ${response.statusText}`),
+                { code: errorData?.code || errorData?.error }
+            )
         }
 
         return response.json()
@@ -467,6 +470,7 @@ export const mantecaApi = {
                 return {
                     error: result.error || 'Failed to complete withdraw.',
                     message: result.message,
+                    ...(typeof result.code === 'string' ? { code: result.code } : {}),
                 }
             }
 
