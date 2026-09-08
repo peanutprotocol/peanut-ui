@@ -1,11 +1,19 @@
 name: App Staging OTA
 
 # Manual staging publication for beta testers. This is deliberately separate from
-# App Release OTA: it only accepts the `dev` ref, uses the staging version band, and
-# never writes a production bundle or release tag.
+# App Release OTA: the dispatcher defaults to the `dev` source ref, uses the staging
+# version band, and never writes a production bundle or release tag. Keep this file
+# on the repository default branch too: GitHub only registers workflow_dispatch for
+# workflow files present there.
 
 on:
     workflow_dispatch:
+        inputs:
+            ref:
+                description: 'Source ref to publish (staging must come from dev)'
+                required: true
+                default: 'dev'
+                type: string
 
 permissions:
     contents: read
@@ -19,17 +27,21 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Guard staging ref
+              env:
+                  SOURCE_REF: ${{ inputs.ref || 'dev' }}
               run: |
-                  if [ "$GITHUB_REF_NAME" != "dev" ]; then
-                      echo "::error::staging OTAs are published from dev, not $GITHUB_REF_NAME" >&2
+                  if [ "$SOURCE_REF" != "dev" ]; then
+                      echo "::error::staging OTAs are published from dev, not $SOURCE_REF" >&2
                       exit 1
                   fi
+                  echo "Publishing staging OTA from $SOURCE_REF"
 
             - uses: actions/checkout@v7
               with:
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
                   fetch-depth: 0
+                  ref: ${{ inputs.ref || 'dev' }}
 
             - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
 
@@ -110,6 +122,7 @@ jobs:
                   NATIVE_FLOOR: ${{ steps.native_floor.outputs.name }}
               run: |
                   echo "Uploading bundle $VERSION to channel $CHANNEL"
+                  BUILD_SHA="$(git rev-parse --short=7 HEAD)"
                   npx @capgo/cli@8.42.4 bundle upload \
                     --channel "$CHANNEL" \
                     --apikey "$CAPGO_API_KEY" \
@@ -118,7 +131,7 @@ jobs:
                     --bundle "$VERSION" \
                     --min-update-version "$NATIVE_FLOOR" \
                     --version-exists-ok \
-                    --comment "${GITHUB_SHA:0:7} — manual staging deploy"
+                    --comment "$BUILD_SHA — manual staging deploy"
 
             - name: Verify staging channel serves the new bundle
               env:
@@ -140,6 +153,6 @@ jobs:
                     echo "## Staging OTA"
                     echo "- **Channel:** staging"
                     echo "- **Bundle version:** ${{ steps.version.outputs.name }}"
-                    echo "- **Commit:** ${{ github.sha }}"
-                    echo "- **Branch:** ${{ github.ref_name }}"
+                    echo "- **Commit:** $(git rev-parse HEAD)"
+                    echo "- **Branch:** ${{ inputs.ref || 'dev' }}"
                   } >> "$GITHUB_STEP_SUMMARY"
