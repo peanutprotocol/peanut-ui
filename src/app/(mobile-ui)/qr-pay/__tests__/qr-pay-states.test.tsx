@@ -32,6 +32,7 @@ type TestRestriction = { code: string; affectedRailIds: string[]; userMessage?: 
 // next/navigation
 const mockRouterPush = jest.fn()
 const mockRouterBack = jest.fn()
+const mockRouterReplace = jest.fn()
 const mockSearchParams = new Map<string, string>()
 
 jest.mock('next/navigation', () => ({
@@ -41,7 +42,7 @@ jest.mock('next/navigation', () => ({
     useRouter: () => ({
         push: mockRouterPush,
         back: mockRouterBack,
-        replace: jest.fn(),
+        replace: mockRouterReplace,
         prefetch: jest.fn(),
     }),
     usePathname: () => '/qr-pay',
@@ -193,11 +194,15 @@ jest.mock('@/app/actions/increase-limits', () => ({
     initiateIncreaseLimits: jest.fn(),
 }))
 
+let mockCooldown: { retryAt?: string } | null = null
+const mockDismissCooldown = jest.fn()
 const mockHandleFixableRejection = jest.fn()
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => ({
         isLoading: false,
         error: null,
+        errorCooldown: mockCooldown,
+        dismissErrorCooldown: mockDismissCooldown,
         showWrapper: false,
         accessToken: null,
         handleInitiateKyc: jest.fn(),
@@ -223,9 +228,8 @@ jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     }),
 }))
 
-jest.mock('@/components/Kyc/SumsubKycModals', () => ({
-    SumsubKycModals: () => null,
-}))
+jest.mock('@/components/Kyc/KycVerificationInProgressModal', () => ({ KycVerificationInProgressModal: () => null }))
+jest.mock('@/components/Global/IframeWrapper', () => ({ __esModule: true, default: () => null }))
 
 const mockIsPaymentProcessorQR = jest.fn()
 jest.mock('@/components/Global/DirectSendQR/utils', () => ({
@@ -675,6 +679,7 @@ function applyDefaults() {
 
 beforeEach(() => {
     jest.clearAllMocks()
+    mockCooldown = null
     mockSearchParams.clear()
     mockIsRegionRestricted = false
     applyDefaults()
@@ -2108,4 +2113,15 @@ describe('GROUP: Entity deposit recipient wiring', () => {
         expect(mockSignSpend).toHaveBeenCalledWith(expect.objectContaining({ recipient: LEGACY_AR_ADDRESS }))
         expect(mockSignSpend).not.toHaveBeenCalledWith(expect.objectContaining({ recipient: LEGACY_NON_AR_ADDRESS }))
     })
+})
+
+test('cooldown replaces the QR provider prompt and dismissal leaves the flow', () => {
+    setCapabilitiesGate('provider_rejection_fixable', { userMessage: 'Upload a clearer ID.' })
+    mockCooldown = { retryAt: '2026-09-08T18:57:00Z' }
+    renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+    expect(screen.getAllByTestId('action-modal')).toHaveLength(1)
+    expect(screen.queryByText('Upload document')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByText("I'll try later"))
+    expect(mockRouterReplace).toHaveBeenCalledWith('/home')
+    expect(mockDismissCooldown).toHaveBeenCalledTimes(1)
 })

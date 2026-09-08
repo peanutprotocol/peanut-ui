@@ -242,6 +242,12 @@
                 "monthlyLeft": "Te quedan {remaining} de {limit} este mes",
                 "perTransfer": "Hasta {amount} por transferencia",
                 "p2pNoLimit": "Los pagos de Peanut a Peanut no tienen límite"
+            },
+            "cooldown": {
+                "title": "Esperá un poco",
+                "until": "Los intentos de verificación están limitados temporalmente. Podés volver a intentarlo después de {until}.",
+                "short": "Los intentos de verificación están limitados temporalmente. Volvé a intentarlo en un rato.",
+                "dismiss": "Lo intentaré más tarde"
             }
         },
         "backup": {

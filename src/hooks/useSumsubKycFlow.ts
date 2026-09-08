@@ -109,7 +109,12 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const [accessToken, setAccessToken] = useState<string | null>(null)
     const [showWrapper, setShowWrapper] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
+    const [error, setErrorState] = useState<string | null>(null)
+    const [errorCooldown, setErrorCooldown] = useState<{ retryAt?: string } | null>(null)
+    const setError = useCallback((message: string | null) => {
+        setErrorState(message)
+        setErrorCooldown(null)
+    }, [])
     // Some initiate failures are terminal: the user has no action that could
     // change the outcome, so offering a retry is worse than offering nothing.
     // Callers must suppress their retry CTA on this rather than inferring
@@ -586,6 +591,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 if (response.error) {
                     userInitiatedRef.current = false
                     setError(actionErrorMessage(response))
+                    setErrorCooldown(response.cooldown ?? null)
                     return
                 }
                 if (response.data?.token) {
@@ -715,9 +721,13 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         [handleStartAction, handleSelfHealResubmit]
     )
 
+    const dismissErrorCooldown = useCallback(() => setError(null), [setError])
+
     return {
         isLoading,
-        error,
+        error: errorCooldown ? null : error,
+        errorCooldown,
+        dismissErrorCooldown,
         isTerminalError,
         showWrapper,
         accessToken,
