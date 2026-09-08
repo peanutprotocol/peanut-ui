@@ -159,8 +159,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
                         held.current = false
                         return
                     }
-                    activationEvent.current = e
-                    requestConfirmation()
+                    if (simplifiedConfirmations || e.detail === 0) {
+                        activationEvent.current = e
+                        requestConfirmation()
+                    }
                     return
                 }
 
@@ -170,7 +172,16 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
                 onClick?.(e)
             },
-            [longPress, onClick, disableHaptics, triggerHaptic, props.disabled, loading, requestConfirmation]
+            [
+                longPress,
+                simplifiedConfirmations,
+                onClick,
+                disableHaptics,
+                triggerHaptic,
+                props.disabled,
+                loading,
+                requestConfirmation,
+            ]
         )
 
         const buttonClasses = twMerge(

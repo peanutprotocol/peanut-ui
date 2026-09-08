@@ -200,14 +200,61 @@ it.each([
     expect(onComplete).toHaveBeenCalledTimes(2)
 })
 
-it('long-press button uses a separate confirmation in simplified mode', () => {
-    updateAccessibilityPreferences({ simplifiedConfirmations: true })
+it.each([
+    { mode: 'simplified pointer', simplifiedConfirmations: true, detail: 1 },
+    { mode: 'assistive click', simplifiedConfirmations: false, detail: 0 },
+])('long-press button offers a cancellable confirmation for $mode', ({ simplifiedConfirmations, detail }) => {
+    updateAccessibilityPreferences({ simplifiedConfirmations })
     const onLongPress = jest.fn()
     render(wrap(<Button longPress={{ onLongPress }}>Continue</Button>))
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    const button = screen.getByRole('button', { name: 'Continue' })
+    fireEvent.click(button, { detail })
+    expect(onLongPress).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(onLongPress).not.toHaveBeenCalled()
+    fireEvent.click(button, { detail })
     expect(onLongPress).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
     expect(onLongPress).toHaveBeenCalledTimes(1)
+})
+
+it.each(['mouse', 'touch'])('long-press button requires a sustained %s press by default', (mode) => {
+    jest.useFakeTimers()
+    try {
+        const onLongPress = jest.fn()
+        const onClick = jest.fn()
+        const view = render(
+            wrap(
+                <Button longPress={{ duration: 2000, onLongPress }} onClick={onClick}>
+                    Continue
+                </Button>
+            )
+        )
+        const button = screen.getByRole('button', { name: 'Continue' })
+        const start = () => (mode === 'mouse' ? fireEvent.mouseDown(button) : fireEvent.touchStart(button))
+        const release = () => {
+            if (mode === 'mouse') fireEvent.mouseUp(button)
+            else fireEvent.touchEnd(button)
+            fireEvent.click(button, { detail: 1 })
+        }
+        start()
+        act(() => jest.advanceTimersByTime(100))
+        release()
+        act(() => jest.advanceTimersByTime(2500))
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        expect(onLongPress).not.toHaveBeenCalled()
+        expect(onClick).not.toHaveBeenCalled()
+
+        start()
+        act(() => jest.advanceTimersByTime(2000))
+        release()
+        expect(onLongPress).toHaveBeenCalledTimes(1)
+        expect(onClick).not.toHaveBeenCalled()
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        view.unmount()
+    } finally {
+        jest.useRealTimers()
+    }
 })
 
 it('busy buttons block duplicate activation and preserve their label', () => {
