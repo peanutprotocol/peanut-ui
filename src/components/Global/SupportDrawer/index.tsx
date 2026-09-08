@@ -18,7 +18,6 @@ import {
 import type { AppLocale } from '@/i18n/app/config'
 import { notificationsApi } from '@/services/notifications'
 import { isCapacitor } from '@/utils/capacitor'
-import { ensureNativeCameraPermission } from '@/utils/camera-permission'
 import { ensureNativeCrispConfigured, nativeCrispFields } from '@/utils/crisp'
 
 const DISMISS_THRESHOLD = 100
@@ -51,7 +50,7 @@ const SupportDrawer = () => {
      *
      * The native open chain reads it AFTER its awaits, because the snapshot is
      * live: a balance can land, or verification can resolve, while Crisp
-     * configuration and the camera permission are still pending. The effect
+     * configuration is still pending. The effect
      * closure holds the payload from when the effect ran, so publishing that
      * would push a balance the user no longer has — and a `balance-unavailable`
      * segment that would route them wrongly — to the agent.
@@ -212,15 +211,20 @@ const SupportDrawer = () => {
         ensureNativeCrispConfigured()
             .then(async ({ CapacitorCrisp }) => {
                 /*
-                 * Settle the CAMERA runtime permission before the native Crisp UI
-                 * opens: the app manifest declares CAMERA (QR scanner), which makes
-                 * Crisp's "Take a photo" throw a SecurityException when it is
-                 * declared-but-ungranted — the SDK never requests it itself.
-                 * Result deliberately ignored: a denied camera must not block chat.
+                 * Do not probe or request CAMERA here. Support chat does not need
+                 * camera access to open, and an optional attachment capability must
+                 * never gate the user's route to support. The minified Android 1.5.0
+                 * shell also crashes natively inside CameraPlugin.getPermissionStates
+                 * when Camera.checkPermissions runs (PEANUT-UI-T30), before this
+                 * promise can reject back to JavaScript. Camera surfaces own their
+                 * permission flow at the point where the user actually invokes them.
                  */
-                await ensureNativeCameraPermission()
+                // Keep an async cancellation/snapshot boundary after native
+                // configuration. A close or account-state commit queued in the
+                // same turn must win before we publish data and present Crisp.
+                await new Promise<void>((resolve) => setTimeout(resolve, 0))
 
-                // The user dismissed support while we awaited. Publishing now
+                // The user dismissed support while Crisp configured. Publishing now
                 // would push the prefill into a conversation they walked away from.
                 if (cancelled) return
 
