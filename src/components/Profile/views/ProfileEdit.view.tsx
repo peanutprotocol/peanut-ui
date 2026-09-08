@@ -40,6 +40,7 @@ export const ProfileEditView = () => {
         control,
         handleSubmit,
         reset,
+        resetField,
         formState: { dirtyFields, isSubmitting },
     } = useForm<ProfileFields>({
         defaultValues: { name: '', surname: '', email: '' },
@@ -50,12 +51,19 @@ export const ProfileEditView = () => {
         setShowFullName(user?.user.showFullName ?? false)
         // Keep the fields and their baseline together. Background auth refreshes
         // must not overwrite edits or make untouched values dirty.
-        if (!user || hydrated.current) return
-        hydrated.current = true
+        if (!user || (hydrated.current && !isKycApproved)) return
         const parts = (user.user.fullName || '').trim().split(/\s+/)
         const surname = parts.length > 1 ? parts.pop()! : ''
+        if (hydrated.current) {
+            // Once verified, show the provider-owned name even if verification
+            // finished during an edit. Keep the user's email draft untouched.
+            resetField('name', { defaultValue: parts.join(' ') })
+            resetField('surname', { defaultValue: surname })
+            return
+        }
+        hydrated.current = true
         reset({ name: parts.join(' '), surname, email: user.user.email || '' })
-    }, [user, reset])
+    }, [user, isKycApproved, reset, resetField])
 
     const nameChanged = canEditName && !!(dirtyFields.name || dirtyFields.surname)
     const isDirty = nameChanged || !!dirtyFields.email

@@ -97,6 +97,8 @@ test('background refresh preserves edits and does not send an untouched stale na
     mockUser = { user: { ...mockUser!.user, fullName: 'New Verified Name' } }
     mockVerified = true
     view.rerender(<ProfileEditView />)
+    expect(screen.getByLabelText('Name')).toHaveValue('New Verified')
+    expect(screen.getByLabelText('Email')).toHaveValue('new@example.com')
     save()
     await waitFor(() => expect(updateUserById).toHaveBeenCalledWith({ userId: 'test-user', email: 'new@example.com' }))
 })
