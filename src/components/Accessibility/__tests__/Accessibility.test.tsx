@@ -151,6 +151,55 @@ it('hold-to-claim accepts assistive click without needing a sustained press', ()
     expect(onComplete).toHaveBeenCalledTimes(1)
 })
 
+it.each([
+    { mode: 'simplified pointer', simplifiedConfirmations: true, detail: 1 },
+    { mode: 'assistive click', simplifiedConfirmations: false, detail: 0 },
+])('tap-mode claims support $mode confirmation, cancellation and retry', ({ simplifiedConfirmations, detail }) => {
+    updateAccessibilityPreferences({ simplifiedConfirmations })
+    const onComplete = jest.fn()
+    const claimButton = (disabled = false) =>
+        wrap(
+            <HoldToClaimButton enableTapMode onComplete={onComplete} disabled={disabled}>
+                Unwrap reward
+            </HoldToClaimButton>
+        )
+    const view = render(claimButton())
+    const activate = () => {
+        const button = screen.getByRole('button', { name: 'Unwrap reward' })
+        if (detail === 1) {
+            fireEvent.pointerDown(button)
+            fireEvent.pointerUp(button)
+        }
+        fireEvent.click(button, { detail })
+    }
+
+    activate()
+    expect(screen.getByRole('dialog', { name: 'Unwrap reward' })).toBeInTheDocument()
+    expect(onComplete).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(onComplete).not.toHaveBeenCalled()
+
+    activate()
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+    expect(onComplete).toHaveBeenCalledTimes(1)
+    activate()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(onComplete).toHaveBeenCalledTimes(1)
+
+    // The claim is disabled while submitting and becomes available after failure.
+    view.rerender(claimButton(true))
+    expect(screen.getByRole('button', { name: 'Unwrap reward' })).toBeDisabled()
+    activate()
+    expect(onComplete).toHaveBeenCalledTimes(1)
+    view.rerender(claimButton())
+    activate()
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+    activate()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(onComplete).toHaveBeenCalledTimes(2)
+})
+
 it('long-press button uses a separate confirmation in simplified mode', () => {
     updateAccessibilityPreferences({ simplifiedConfirmations: true })
     const onLongPress = jest.fn()

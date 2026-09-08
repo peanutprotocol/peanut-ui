@@ -43,7 +43,11 @@ export function useCountUp(target: number, options: UseCountUpOptions = {}): num
         if (reduced) {
             controlsRef.current?.stop()
             isAnimating.current = false
+            hasAnimated.current = true
             setDisplay(target)
+            if (storageKey) {
+                localStorage.setItem(STORAGE_PREFIX + storageKey, String(target))
+            }
             return
         }
         if (!enabled || hasAnimated.current) return
