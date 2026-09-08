@@ -13,6 +13,7 @@ import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { getCountryFromAccount, getCountryFromPath, getMinimumAmount } from '@/utils/bridge.utils'
 import useGetExchangeRate from '@/hooks/useGetExchangeRate'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import { AccountType } from '@/interfaces/interfaces'
 import { useRouter, useSearchParams } from 'next/navigation'
 import React, { useCallback, useContext, useEffect, useMemo, useState, useRef } from 'react'
@@ -52,6 +53,11 @@ export default function WithdrawPage() {
     // check if coming from send flow based on method query param
     const methodParam = searchParams.get('method')
     const { isFromSendFlow, isCryptoFromSend, isBankFromSend } = useSendFlowOrigin()
+
+    // back(), not push: pushing /send over /withdraw?method=… left the withdraw
+    // URL in history, and send's safe-back popped right back into it (Back loop).
+    // A cold deep link has no history to pop, so the fallback replaces instead.
+    const goBackToSend = useSafeBack('/send', { replace: true })
 
     // native app passes country as query param instead of path segment
     const countryFromQuery = searchParams.get('country')
@@ -434,7 +440,7 @@ export default function WithdrawPage() {
                         // if crypto from send, go back to send page
                         if (isCryptoFromSend) {
                             setSelectedMethod(null)
-                            router.push('/send')
+                            goBackToSend()
                         } else {
                             if (selectedMethod?.type === 'bridge' && !selectedBankAccount) {
                                 setShowAllWithdrawMethods(true)
@@ -516,7 +522,7 @@ export default function WithdrawPage() {
                 onBackClick={() => {
                     // if bank from send flow, go back to send page
                     if (isBankFromSend) {
-                        router.push('/send')
+                        goBackToSend()
                         return
                     }
                     // an explicit origin (e.g. the exchange-rate widget's "Try it!" CTA)
