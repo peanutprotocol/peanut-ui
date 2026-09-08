@@ -212,11 +212,23 @@ act as the `git tag … && git push` they replace, minus the hand-picked number.
 
 Use the Android replacement lane only for an Android-only native correction to the
 currently shipped build. It verifies the existing native tag attests both platforms,
-checks that every native input changed since that tag lives under `android/`, and keeps
-the existing native `versionName`. That last constraint matters: advancing the shared
-native version for Android alone would make the production Capgo minimum strand the
-older iOS binary. A cross-platform or shared plugin/config change must use **Release
-Native** instead.
+checks that every native input changed since that tag is an explicitly
+legacy-compatible Android packaging input, and keeps the existing native
+`versionName`. Today that allowlist contains only `android/app/proguard-rules.pro`;
+plugin manifests, native bridges, dependencies, resources, permissions, and build
+configuration all require **Release Native**. That narrow rule matters because Capgo
+cannot distinguish an original Android 1.5.0 install from its replacement: both must
+continue to accept the same JS bundle. Advancing the shared native version for Android
+alone would instead make the production Capgo minimum strand the older iOS binary.
+
+After Play accepts a replacement AAB, a separate credentialless job records an
+annotated `android-v<version>-replacement-<commit>` tag. The production build job keeps
+read-only repository access; only this small post-release job receives `contents:
+write`, and its only write is that tag. Future OTA checks accept the tag only when it is
+annotated, is an ancestor of the bundle commit, fingerprints the tagged native surface,
+and differs from the original `v<version>` tag only by the legacy-compatible allowlist.
+Any further native drift still blocks OTA. The tag is created after the Play upload, so
+a failed or never-launched replacement cannot prematurely relax the OTA guard.
 
 The tag is written **after** the build, as the record of what shipped — a failed run
 leaves no tag, so a re-run resolves the same number instead of burning one. CI tags with
@@ -407,16 +419,22 @@ own `out/` under the binary's versionName, then assert the channel serves it.
   below independently requires provisioning support in the released binaries.
   An unresolvable ref is an error, never an empty read, and `--root` points the CLI at
   another checkout so its tests never mutate this one. `capgo-deploy.yml` recomputes it and compares against the
-  `v<major>.<build>.0` tag the bundle's floor targets; a mismatch **fails the OTA** and
-  names the file that moved. It is a pure function of the tree, so nothing is stored and
-  any tag can be fingerprinted retroactively (`--ref v1.2.0`). `MARKETING_VERSION` and
+  `v<major>.<build>.0` tag the bundle's floor targets. When a same-version Android
+  replacement has successfully reached Play, `scripts/check-native-ota-surface.mjs`
+  may select its annotated replacement tag instead—but only after validating the tag's
+  ancestry, attested fingerprint, Android-only scope, and legacy-compatible input set.
+  A mismatch **fails the OTA** and names the file that moved. The fingerprint remains a
+  pure function of the tree; tags only attest which successfully uploaded binary owns
+  that surface, and any tag can be fingerprinted retroactively (`--ref v1.2.0`).
+  `MARKETING_VERSION` and
   `CURRENT_PROJECT_VERSION` are normalised out — `native-ios-postsync.js` stamps them on
   every sync, and leaving them in would refuse an OTA after every release.
   **Why it exists:** `min_update_version` only blocks *delivery*, only under the
   `metadata` channel strategy, and lives in a dashboard CI cannot read, so nothing
   previously reported that an incompatible bundle had been *built* — the mismatch first
-  appeared on a user's device. The remedy for a failure is always to cut a native
-  release, never to widen or skip the check.
+  appeared on a user's device. The remedy for a failure is a coordinated native release
+  or the narrowly gated same-version Android replacement lane—never widening or
+  skipping the check.
 - **Staged rollout:** roll production OTA to ~10% → watch Sentry/crash + error rates →
   100%. Don't 100% every merge.
 - **Rollback** is configured in `capacitor.config.ts` (`appReadyTimeout: 15000` +

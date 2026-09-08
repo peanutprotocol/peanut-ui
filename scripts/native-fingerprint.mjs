@@ -11,12 +11,14 @@
 // the `metadata` channel strategy, and lives in a dashboard CI cannot see — it
 // never tells you that you built an incompatible bundle.
 //
-// The fingerprint is a pure function of the repo tree, so it needs no storage:
-// a native release's surface is exactly what its tagged commit describes. The
-// OTA lane compares the tree it is publishing against the newest
-// `v<major>.<build>.0` tag and refuses when they disagree, naming what moved.
-// That is the rule docs/NATIVE-RELEASE.md already states ("bump the native
-// version whenever you change plugins/native code") with something checking it.
+// The fingerprint is a pure function of the repo tree. A native release's
+// surface is exactly what its tagged commit describes; a narrowly compatible
+// same-version replacement can add an annotated platform baseline only after
+// the store accepts it. The OTA lane compares the tree it is publishing
+// against the applicable baseline and refuses when they disagree, naming what
+// moved. That is the rule docs/NATIVE-RELEASE.md states ("bump the native
+// version whenever you change plugins/native code") with the deliberate
+// replacement exception encoded rather than hand-waved.
 //
 // Three kinds of input, because the contract has three parts and each has its
 // own way of going stale:
@@ -56,6 +58,13 @@ import { fileURLToPath } from 'node:url'
 // mutate-then-restore around a spawned CLI is a race, not an isolation.
 const defaultRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 let repoRoot = defaultRoot
+
+// Used by other release guards and their throwaway-repository tests. Keeping
+// the root override here means every consumer uses the exact same manifest and
+// git-reading semantics as the CLI instead of reimplementing the fingerprint.
+export function setRepoRoot(root) {
+    repoRoot = resolve(root)
+}
 
 // Packages with a native half, named explicitly.
 //
@@ -405,7 +414,7 @@ function main(argv) {
     const root = flag(argv, '--root')
     if (argv.includes('--root')) {
         if (!root) throw new Error('--root needs a directory')
-        repoRoot = resolve(root)
+        setRepoRoot(root)
     }
     const ref = flag(argv, '--ref')
 

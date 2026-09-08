@@ -6,8 +6,9 @@ name: Android Release (Play)
 #
 # Trigger: normally called by release-native.yml. A manual run on `dev` with no
 # versionName rebuilds the current tagged Android version only: versionName stays
-# put, Play receives a new monotonic versionCode, and the shared iOS OTA floor does
-# not advance. A manually supplied version or v* tag remains break-glass.
+# put, Play receives a new monotonic versionCode, the shared iOS OTA floor does
+# not advance, and a credentialless follow-up job records the attested Android
+# baseline for later OTAs. A manually supplied version or v* tag remains break-glass.
 # Prereq: fix/native-build-reliability must be merged (card-comparison static-export
 #         fix) or `native:release` will fail to build.
 #
@@ -75,6 +76,9 @@ concurrency:
 jobs:
     release:
         runs-on: ubuntu-latest
+        outputs:
+            version: ${{ steps.version.outputs.name }}
+            rebuild: ${{ steps.version.outputs.rebuild }}
         # Protect with required reviewers in repo Settings → Environments → Production.
         environment: Production
         steps:
@@ -166,7 +170,7 @@ jobs:
                       fi
                       VERSION_NAME="$(node scripts/release-version.mjs native-floor)"
                       node scripts/check-native-capabilities.mjs "v$VERSION_NAME"
-                      node scripts/check-native-change-scope.cjs "v$VERSION_NAME" android
+                      node scripts/check-native-change-scope.cjs "v$VERSION_NAME" android --legacy-compatible
                       DIRECT_REBUILD=true
                   fi
                   if [ -z "$VERSION_NAME" ] && [ "$GITHUB_REF_TYPE" = "tag" ]; then
@@ -357,3 +361,48 @@ jobs:
                   name: app-release-aab
                   path: android/app/build/outputs/bundle/release/app-release.aab
                   if-no-files-found: warn
+
+    # A same-version replacement must leave a durable OTA baseline, but the
+    # production build job should not receive repository write access. This
+    # separate job has no release environment or secrets and runs only after
+    # Play upload/build completion. Its sole write is one annotated tag.
+    record-replacement-baseline:
+        needs: release
+        if: needs.release.outputs.rebuild == 'true'
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        steps:
+            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+              with:
+                  fetch-depth: 0
+
+            - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+              with:
+                  node-version: '22'
+
+            - name: Record attested Android replacement
+              env:
+                  VERSION: ${{ needs.release.outputs.version }}
+              run: |
+                  node scripts/check-native-change-scope.cjs "v$VERSION" android --legacy-compatible --ref "$GITHUB_SHA"
+                  FINGERPRINT="$(node scripts/native-fingerprint.mjs --ref "$GITHUB_SHA")"
+                  TAG="android-v${VERSION}-replacement-${GITHUB_SHA:0:12}"
+                  ATTESTATION="peanut-native-replacement-v1: platform=android base=v$VERSION legacy-compatible=true fingerprint=$FINGERPRINT"
+
+                  if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+                      EXISTING_COMMIT="$(git rev-parse "$TAG^{commit}")"
+                      if [ "$EXISTING_COMMIT" != "$GITHUB_SHA" ]; then
+                          echo "::error::$TAG points at $EXISTING_COMMIT, expected $GITHUB_SHA" >&2
+                          exit 1
+                      fi
+                      node scripts/check-native-ota-surface.mjs "v$VERSION" --platform android --ref "$GITHUB_SHA"
+                      echo "$TAG already records this replacement"
+                  else
+                      git config user.name "github-actions[bot]"
+                      git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                      git tag -a "$TAG" "$GITHUB_SHA" -m "Android $VERSION replacement" -m "$ATTESTATION"
+                      node scripts/check-native-ota-surface.mjs "v$VERSION" --platform android --ref "$GITHUB_SHA"
+                      git push origin "$TAG"
+                      echo "Recorded $TAG at ${GITHUB_SHA:0:12}"
+                  fi

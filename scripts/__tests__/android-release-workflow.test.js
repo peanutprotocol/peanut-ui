@@ -17,7 +17,9 @@ describe('Android replacement release workflow', () => {
     })
 
     it('refuses a current-version rebuild when native changes are not Android-only', () => {
-        expect(workflow).toContain('node scripts/check-native-change-scope.cjs "v$VERSION_NAME" android')
+        expect(workflow).toContain(
+            'node scripts/check-native-change-scope.cjs "v$VERSION_NAME" android --legacy-compatible'
+        )
         expect(workflow).toContain('echo "rebuild=$DIRECT_REBUILD" >> "$GITHUB_OUTPUT"')
     })
 
@@ -31,5 +33,17 @@ describe('Android replacement release workflow', () => {
         expect(workflow).toContain('Verify Capacitor permission metadata survived R8')
         expect(workflow).toContain('Lcom/getcapacitor/annotation/CapacitorPlugin; name="Camera" permissions={')
         expect(workflow).toContain('refusing to upload a crash-prone AAB')
+    })
+
+    it('records an attested replacement baseline only after the read-only release job succeeds', () => {
+        const releaseJob = workflow.indexOf('    release:')
+        const baselineJob = workflow.indexOf('    record-replacement-baseline:')
+
+        expect(releaseJob).toBeGreaterThan(-1)
+        expect(baselineJob).toBeGreaterThan(releaseJob)
+        expect(workflow).toContain("if: needs.release.outputs.rebuild == 'true'")
+        expect(workflow).toContain('peanut-native-replacement-v1: platform=android')
+        expect(workflow).toContain('android-v${VERSION}-replacement-${GITHUB_SHA:0:12}')
+        expect(workflow.slice(baselineJob)).toContain('contents: write')
     })
 })

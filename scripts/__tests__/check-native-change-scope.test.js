@@ -1,6 +1,6 @@
 /** @jest-environment node */
 
-const { changesOutsidePlatform } = require('../check-native-change-scope.cjs')
+const { changesOutsidePlatform, changesUnsafeForSameVersion } = require('../check-native-change-scope.cjs')
 
 describe('check-native-change-scope', () => {
     it('accepts only the selected platform native paths', () => {
@@ -27,5 +27,15 @@ describe('check-native-change-scope', () => {
 
     it('fails closed for an unknown platform', () => {
         expect(() => changesOutsidePlatform([], 'web')).toThrow('expected android or ios')
+    })
+
+    it('allows only packaging fixes for a same-version Android replacement', () => {
+        expect(changesUnsafeForSameVersion([{ path: 'android/app/proguard-rules.pro' }], 'android')).toEqual([])
+        expect(
+            changesUnsafeForSameVersion(
+                [{ path: 'android/app/proguard-rules.pro' }, { path: 'android/app/src/**.{java,kt}' }],
+                'android'
+            )
+        ).toEqual([{ path: 'android/app/src/**.{java,kt}' }])
     })
 })
