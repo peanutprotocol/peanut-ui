@@ -80,7 +80,7 @@ export const ListItem = ({
                 'flex items-center justify-between gap-3 p-4',
                 onClick &&
                     !disabled &&
-                    'duration-instant focus-visible:outline-action-focus active:bg-background-disabled cursor-pointer transition-colors focus-visible:outline-[3px]',
+                    'cursor-pointer transition-colors duration-instant focus-visible:outline-[3px] focus-visible:outline-action-focus active:bg-background-disabled',
                 disabled && 'border-border-subtle bg-background-disabled',
                 className
             )}
@@ -92,22 +92,22 @@ export const ListItem = ({
                     and truncate only ellipsizes text anyway) */}
                 <div className="flex min-w-0 flex-col gap-0.5">
                     {typeof title === 'string' ? (
-                        <span className={twMerge('text-body-m-semibold truncate', titleColor)}>{title}</span>
+                        <span className={twMerge('truncate text-body-m-semibold', titleColor)}>{title}</span>
                     ) : (
-                        <div className={twMerge('text-body-m-semibold min-w-0', titleColor)}>{title}</div>
+                        <div className={twMerge('min-w-0 text-body-m-semibold', titleColor)}>{title}</div>
                     )}
                     {body &&
                         (typeof body === 'string' ? (
                             <span
                                 className={twMerge(
                                     'text-body-s text-foreground-secondary',
-                                    bodyWrap ? 'whitespace-normal break-words' : 'truncate'
+                                    bodyWrap ? 'break-words whitespace-normal' : 'truncate'
                                 )}
                             >
                                 {body}
                             </span>
                         ) : (
-                            <div className="text-body-s text-foreground-secondary min-w-0">{body}</div>
+                            <div className="min-w-0 text-body-s text-foreground-secondary">{body}</div>
                         ))}
                 </div>
             </div>
