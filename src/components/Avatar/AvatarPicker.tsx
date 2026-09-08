@@ -6,6 +6,7 @@ import { useQueryState } from 'nuqs'
 import { updateUserById } from '@/app/actions/users'
 import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
 import { useToast } from '@/components/0_Bruddle/Toast'
+import { useBadgeCopy } from '@/components/Badges/useBadgeCopy'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { Drawer, DrawerContent } from '@/components/Global/Drawer'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -28,6 +29,7 @@ const capitalise = (word: string) => word.charAt(0).toUpperCase() + word.slice(1
 /** Eight tiles: the user's initial, then basics and unlocked badge art. Taps save; rolls only deal. */
 export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
     const t = useTranslations('avatar')
+    const badgeCopy = useBadgeCopy()
     const { user, fetchUser } = useAuth()
     const { toast } = useToast()
     const [preferBadge, setPreferBadge] = useQueryState(AVATAR_PICKER_BADGE_PARAM, avatarPickerBadgeParser)
@@ -37,7 +39,7 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
     const saved = useAvatarKey(user?.user.avatarKey, userId)
     const badges = user?.user.badges ?? []
     const held = badges.map((badge) => badge.code)
-    const badgeName = Object.fromEntries(badges.map((badge) => [badge.code, badge.name]))
+    const badgeName = Object.fromEntries(badges.map((badge) => [badge.code, badgeCopy(badge.code, badge.name).name]))
     const unlocked = badgeAvatarKeys(held)
 
     // Non-Latin initials have no sticker key; null renders the username's first character.

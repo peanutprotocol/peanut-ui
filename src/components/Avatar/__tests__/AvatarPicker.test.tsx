@@ -1,6 +1,9 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import type { ComponentProps, ReactNode } from 'react'
+import { NextIntlClientProvider } from 'next-intl'
 import { renderWithIntl } from '@/test-utils/intl'
+import es419 from '@/i18n/app/messages/es-419.json'
+import ptBR from '@/i18n/app/messages/pt-BR.json'
 import { AvatarPicker } from '../AvatarPicker'
 import { readLetterAvatar, resetLetterAvatarCache } from '../avatar-letter.storage'
 
@@ -175,6 +178,20 @@ describe('AvatarPicker', () => {
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
         expect(tiles().filter((el) => el.getAttribute('aria-checked') === 'true')).toHaveLength(0)
+    })
+
+    it.each([
+        { locale: 'es-419', messages: es419, expectedName: 'Cazador de bugs' },
+        { locale: 'pt-BR', messages: ptBR, expectedName: 'Caçador de bugs' },
+    ] as const)('localizes the earned badge name in $locale', ({ locale, messages, expectedName }) => {
+        renderWithIntl(
+            <NextIntlClientProvider locale={locale} messages={messages} timeZone="UTC">
+                <AvatarPicker open onOpenChange={jest.fn()} />
+            </NextIntlClientProvider>
+        )
+
+        expect(tile(/Beetle/)).toHaveTextContent(expectedName)
+        expect(tile(/Beetle/)).not.toHaveTextContent('Bug Whisperer')
     })
 
     it('deals an earned avatar, tagged, to a user who holds a badge — and none to one who does not', () => {
