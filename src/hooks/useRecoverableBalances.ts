@@ -92,9 +92,13 @@ export function useRecoverableBalances(peanutAddress: string | undefined) {
                     })
                 }
                 setTokenBalances(recoverableBalances)
-            } catch (error) {
+            } catch {
                 if (cancelled) return
-                captureException(error)
+                // No captureException here: the only rejection reaching this
+                // catch is the portfolio fetch, and apiFetch/fetchWithSentry
+                // already reported it — a second capture per occurrence would
+                // duplicate the issue under a different fingerprint. The Linea
+                // RPC read above is the one leg Sentry has not seen.
                 setBalancesError(true)
             } finally {
                 if (!cancelled) setFetchingBalances(false)

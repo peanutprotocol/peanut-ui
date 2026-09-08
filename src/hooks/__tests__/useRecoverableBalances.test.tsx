@@ -50,7 +50,9 @@ describe('useRecoverableBalances', () => {
         const { result } = renderHook(() => useRecoverableBalances('0xabc'))
         await waitFor(() => expect(result.current.fetchingBalances).toBe(false))
         expect(result.current.balancesError).toBe(true)
-        expect(mockCaptureException).toHaveBeenCalled()
+        // apiFetch/fetchWithSentry already reported the failure — a second
+        // capture in the hook would duplicate the Sentry issue.
+        expect(mockCaptureException).not.toHaveBeenCalled()
     })
 
     it('surfaces the error state when the Linea read fails and nothing else is recoverable', async () => {
