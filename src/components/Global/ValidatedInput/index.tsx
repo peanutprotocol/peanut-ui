@@ -177,7 +177,9 @@ const ValidatedInput = ({
                     // pass layout classes at most (input board has no valid state).
                     // The composed box owns the focus border so it encloses both
                     // the text field and the trailing clear (×) affordance.
-                    'relative w-full rounded-sm border border-border-default bg-background-default focus-within:border-action-primary',
+                    // Pointer focus is pink; keyboard focus gets the shared 3px
+                    // blue ring, replacing the border rather than stacking it.
+                    'relative w-full rounded-sm border border-border-default bg-background-default focus-within:border-action-primary has-[:focus-visible]:border-transparent has-[:focus-visible]:outline-[3px] has-[:focus-visible]:outline-action-focus has-[:focus-visible]:outline-solid',
                     value && !isValidating && !isValid && debouncedValue === value ? 'border-border-error' : '',
                     className
                 )}
@@ -250,7 +252,7 @@ const ValidatedInput = ({
                                         e.preventDefault()
                                         onUpdate({ value: '', isValid: false, isChanging: false })
                                     }}
-                                    className="relative flex h-full w-6 items-center justify-center pr-2 transition-opacity duration-instant after:absolute after:-inset-x-3 focus-visible:outline-[3px] focus-visible:outline-action-primary active:opacity-60 md:w-8 md:pr-0"
+                                    className="relative flex h-full w-6 items-center justify-center pr-2 transition-opacity duration-instant after:absolute after:-inset-x-3 focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid active:opacity-60 md:w-8 md:pr-0"
                                 >
                                     <Icon className="h-6 w-6" name="cancel" />
                                 </button>
