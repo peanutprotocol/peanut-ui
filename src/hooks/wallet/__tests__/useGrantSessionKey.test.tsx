@@ -104,6 +104,7 @@ beforeEach(() => {
     jest.clearAllMocks()
     signTypedData = jest.fn().mockResolvedValue('0xENABLESIG')
     ;(useKernelClient as jest.Mock).mockReturnValue({
+        ensureClientForChain: jest.fn().mockResolvedValue({ account: { address: ACCOUNT } }),
         getClientForChain: () => ({
             account: { address: ACCOUNT },
         }),
@@ -223,6 +224,9 @@ describe('useGrantSessionKey — enable approval binds to the live currentNonce'
 
     it('deploys an undeployed pre-cutoff (migration-wrapper) account via the migration gate before granting — its approval would AA14 otherwise', async () => {
         ;(useKernelClient as jest.Mock).mockReturnValue({
+            ensureClientForChain: jest
+                .fn()
+                .mockResolvedValue({ account: { address: ACCOUNT, getRootValidatorMigrationStatus: jest.fn() } }),
             getClientForChain: () => ({
                 // getRootValidatorMigrationStatus marks the migration wrapper.
                 account: { address: ACCOUNT, getRootValidatorMigrationStatus: jest.fn() },
@@ -253,4 +257,35 @@ describe('useGrantSessionKey — enable approval binds to the live currentNonce'
         expect(getPluginsEnableTypedData).toHaveBeenCalledWith(expect.objectContaining({ validatorNonce: 1 }))
         expect(out!).toEqual({ ok: true, serialized: 'SERIALIZED_APPROVAL' })
     })
+})
+
+it('awaits an in-flight kernel build before signing the session-key grant', async () => {
+    let finishBuild!: (value: unknown) => void
+    const ensure = jest.fn(
+        () =>
+            new Promise((resolve) => {
+                finishBuild = resolve
+            })
+    )
+    ;(useKernelClient as jest.Mock).mockReturnValue({
+        ensureClientForChain: ensure,
+        getClientForChain: () => {
+            throw new Error('Available chains: none')
+        },
+        getPatchedSudoValidator: jest.fn().mockResolvedValue({ signTypedData }),
+    })
+    ;(peanutPublicClient.getCode as jest.Mock).mockResolvedValue('0x1234')
+    ;(peanutPublicClient.readContract as jest.Mock).mockResolvedValue(1n)
+    const { result } = renderHook(() => useGrantSessionKey(), { wrapper })
+    let pending!: ReturnType<typeof result.current.serializeGrant>
+    await act(async () => {
+        pending = result.current.serializeGrant()
+    })
+    expect(ensure).toHaveBeenCalledWith('42161')
+    expect(signTypedData).not.toHaveBeenCalled()
+    await act(async () => {
+        finishBuild({ account: { address: ACCOUNT } })
+        await pending
+    })
+    expect(signTypedData).toHaveBeenCalledTimes(1)
 })

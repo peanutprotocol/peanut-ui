@@ -8,7 +8,7 @@ import { useSetupStepUrlSync } from '@/hooks/useSetupStepUrlSync'
 import { useSetupBackHandler } from '@/hooks/useSetupBackHandler'
 import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { setupSteps as masterSetupSteps } from '../../../components/Setup/Setup.consts'
 import { hasKnownDeviceCredentials, resolveSetupEntryStep } from '@/components/Setup/setup-entry'
 import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
@@ -26,9 +26,13 @@ import { PeanutWavingHello } from '@/assets/mascot'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useTranslations } from 'next-intl'
+import { useModalsContext } from '@/context/ModalsContext'
+import * as Sentry from '@sentry/nextjs'
 
 function SetupPageContent() {
     const t = useTranslations('setup')
+    const tCommon = useTranslations('common')
+    const { setIsSupportModalOpen } = useModalsContext()
     const { steps, inviteCode } = useSetupStore()
     const { step, handleNext, handleBack, setScreenId } = useSetupFlow()
     const { logoutUser, isLoggingOut, user, isFetchingUser } = useAuth()
@@ -40,6 +44,8 @@ function SetupPageContent() {
     const [deviceType, setDeviceType] = useState<DeviceType>(DeviceType.WEB)
     const dispatch = useAppDispatch()
     const [isLoading, setIsLoading] = useState(true)
+    const [initializationError, setInitializationError] = useState<string | null>(null)
+    const initializationExpired = useRef(false)
     const [showDeviceNotSupportedModal, setShowDeviceNotSupportedModal] = useState(false)
     const [showBrowserNotSupportedModal, setShowBrowserNotSupportedModal] = useState(false)
     const { deviceType: detectedDeviceType } = useDeviceType()
@@ -56,11 +62,41 @@ function SetupPageContent() {
     const legacyStepParam = searchParams.get('step')
     const [sessionChecked, setSessionChecked] = useState(false)
     const [existingSessionUsername, setExistingSessionUsername] = useState<string | null>(null)
+    const recoveryReason =
+        initializationError ??
+        (!isLoading &&
+        sessionChecked &&
+        !step &&
+        !existingSessionUsername &&
+        !showDeviceNotSupportedModal &&
+        !showBrowserNotSupportedModal
+            ? 'missing_step'
+            : null)
+
+    useEffect(() => {
+        if (recoveryReason) {
+            Sentry.captureMessage('Setup recovery required', {
+                level: 'warning',
+                tags: { reason: recoveryReason },
+            })
+        }
+    }, [recoveryReason])
+
+    useEffect(() => {
+        if ((!isLoading && sessionChecked) || initializationError) return
+        const timeout = setTimeout(() => {
+            initializationExpired.current = true
+            setInitializationError('initialization_timeout')
+        }, 15000)
+        return () => clearTimeout(timeout)
+    }, [isLoading, sessionChecked, initializationError])
 
     // only mirror steps that actually render: not while the entry step is
     // being determined, and not behind the existing-session interstitial
     // or the unsupported-device/browser modals
     const stepRendered =
+        !!step &&
+        !recoveryReason &&
         !isLoading &&
         sessionChecked &&
         !existingSessionUsername &&
@@ -123,7 +159,10 @@ function SetupPageContent() {
     }
 
     useEffect(() => {
+        let cancelled = false
+        const isObsolete = () => cancelled || initializationExpired.current
         const determineInitialStep = async () => {
+            if (isObsolete()) return
             // wait for layout to populate steps after logout/mount
             if (!steps || steps.length === 0) {
                 console.log('[SetupPage] waiting for steps to be initialized by layout...')
@@ -133,6 +172,7 @@ function SetupPageContent() {
 
             setIsLoading(true)
             await new Promise((resolve) => setTimeout(resolve, 100)) // ensure other initializations can complete
+            if (isObsolete()) return
 
             // The entry-step rules (invite code / ?step=signup skipping the invite
             // gate, ?step=login, a known device going to Log In) live in
@@ -181,9 +221,8 @@ function SetupPageContent() {
                     isStandalonePWA: false,
                 })
                 const stepIndex = steps.findIndex((s: ISetupStep) => s.screenId === targetStep)
-                if (stepIndex !== -1) {
-                    dispatch(setupActions.setStep(stepIndex + 1))
-                }
+                if (stepIndex === -1) throw new Error('Setup entry step is missing')
+                dispatch(setupActions.setStep(stepIndex + 1))
                 setIsLoading(false)
                 return
             }
@@ -199,6 +238,7 @@ function SetupPageContent() {
                 passkeySupport = false
                 console.error('Error checking passkey support:', e)
             }
+            if (isObsolete()) return
 
             const ua = typeof navigator !== 'undefined' ? navigator.userAgent : ''
             const osSupportedByVersion = isDeviceOsSupported(ua)
@@ -265,25 +305,18 @@ function SetupPageContent() {
                 isStandalonePWA,
             })
 
-            if (determinedSetupInitialStepId) {
-                const initialStepIndex = steps.findIndex((s: ISetupStep) => s.screenId === determinedSetupInitialStepId)
-                if (initialStepIndex !== -1) {
-                    dispatch(setupActions.setStep(initialStepIndex + 1))
-                } else {
-                    console.warn(
-                        `Could not find step index for screenId: ${determinedSetupInitialStepId}. Defaulting to step 1.`
-                    )
-                    dispatch(setupActions.setStep(1))
-                }
-            } else {
-                console.warn('No specific initial step ID determined. Defaulting to step 1.')
-                dispatch(setupActions.setStep(1))
-            }
+            const initialStepIndex = steps.findIndex((s: ISetupStep) => s.screenId === determinedSetupInitialStepId)
+            if (initialStepIndex === -1) throw new Error('Setup entry step is missing')
+            dispatch(setupActions.setStep(initialStepIndex + 1))
 
             setIsLoading(false)
         }
 
-        determineInitialStep()
+        void determineInitialStep().catch(() => {
+            if (isObsolete()) return
+            setInitializationError('initialization_failed')
+            setIsLoading(false)
+        })
 
         const handleBeforeInstallPrompt = (e: Event) => {
             e.preventDefault()
@@ -293,6 +326,7 @@ function SetupPageContent() {
         window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
 
         return () => {
+            cancelled = true
             window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
         }
     }, [dispatch, steps, inviteCodeParam, legacyStepParam])
@@ -304,6 +338,21 @@ function SetupPageContent() {
             setCurrentStepIndex(newIndex)
         }
     }, [step, currentStepIndex, steps])
+
+    if (recoveryReason) {
+        return (
+            <div className="flex min-h-dvh w-full flex-col items-center justify-center gap-6 p-6">
+                <h1 className="text-heading-2 text-center">{tCommon('somethingWentWrong')}</h1>
+                <p className="text-center">{tCommon('genericError')}</p>
+                <div className="flex w-full max-w-sm flex-col gap-3">
+                    <Button onClick={() => window.location.reload()}>{tCommon('tryAgain')}</Button>
+                    <Button variant="stroke" onClick={() => setIsSupportModalOpen(true)}>
+                        {tCommon('contactSupport')}
+                    </Button>
+                </div>
+            </div>
+        )
+    }
 
     if (isLoading || !sessionChecked)
         return (
@@ -334,29 +383,11 @@ function SetupPageContent() {
         )
     }
 
-    // if no step is determined and no blocking modal is shown, it's an issue
-    if (!step && !showDeviceNotSupportedModal && !showBrowserNotSupportedModal) {
-        console.warn('SetupPage: No current step found, and no blocking modal. Possibly init issue.')
-        return (
-            <div className="flex h-dvh w-full flex-col items-center justify-center">
-                <Loading variant="mascot" />
-            </div>
-        )
-    }
-
     if (showBrowserNotSupportedModal || showDeviceNotSupportedModal) {
         return <UnsupportedBrowserModal visible={true} allowClose={false} />
     }
 
-    // fallback if step is still null after modal checks, though unlikely
-    if (!step) {
-        console.warn('SetupPage: No current step after modal checks.')
-        return (
-            <div className="flex h-dvh w-full flex-col items-center justify-center">
-                <Loading variant="mascot" />
-            </div>
-        )
-    }
+    if (!step) return null
 
     const titleKey = `steps.${step.screenId}.title` as Parameters<typeof t>[0]
     const descriptionKey = `steps.${step.screenId}.description` as Parameters<typeof t>[0]

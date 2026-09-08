@@ -120,7 +120,7 @@ export const waitForPasskeyShim = async (timeoutMs: number = SHIM_WAIT_TIMEOUT_M
 
 // Ceremony-in-flight tracking. Ceremonies are serialized (guardPasskeyCeremony
 // rejects a second concurrent one), so the single active window always has one
-// owner. native-auth-capture STASHES a /passkeys/*/verify token while a
+// owner. passkey-auth-capture STASHES a /passkeys/*/verify token while a
 // ceremony is active; the token is persisted only when the owning ceremony
 // RESOLVES — a verify response from a ceremony that timed out or was told
 // "failed" can never end up persisted (the guard discards the stash on
@@ -137,7 +137,7 @@ export const currentCeremonyId = (): number | null => activeCeremonyId
 export const isCeremonyStillActive = (id: number | null): boolean => id !== null && id === activeCeremonyId
 
 /**
- * Called by native-auth-capture with the ceremony id captured when the verify
+ * Called by passkey-auth-capture with the ceremony id captured when the verify
  * REQUEST was issued. Accepted only while that same ceremony is still the
  * active one — a request issued before the current window opened (e.g. a
  * timed-out ceremony's late verify) cannot enter the retry's stash.

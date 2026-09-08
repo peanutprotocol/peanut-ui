@@ -41,7 +41,7 @@ import * as Sentry from '@sentry/nextjs'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { isNativeBridge } from './capacitor'
 import { getBinaryInfo } from './app-version'
-import { getUnderlyingFetch } from './native-auth-capture'
+import { getUnderlyingFetch } from './passkey-auth-capture'
 import { nativeHttpRequest } from './native-http'
 
 const CANARY_TIMEOUT_MS = 10_000
