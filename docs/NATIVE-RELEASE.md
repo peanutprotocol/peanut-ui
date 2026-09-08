@@ -183,6 +183,11 @@ out of the shape that used to be maintained by hand: an OTA always sorts strictl
 the binary it targets (Capgo drops anything below it — TASK-21793), and the version alone
 says which binary a bundle belongs to.
 
+The About screen shows this three-part version of the code currently running: the native
+version for the built-in bundle, or the Capgo bundle version after an OTA. The platform
+build identifier (`versionCode` / `CFBundleVersion`) remains separate support metadata;
+it is not appended as a fourth dotted segment because it is not a comparable release.
+
 **Nobody types a number.** `scripts/release-version.mjs` resolves them from git tags
 (`v<major>.<build>.0`) plus the Capgo channel. That registry is deliberately not a file
 in the repo: `dev` and `main` both carry a `pull_request` ruleset with no bypass actors,

@@ -59,29 +59,14 @@ export async function getRunningVersion(): Promise<RunningVersionInfo | null> {
 }
 
 /**
- * How the app version reads on screen: `<major>.<build>.<ota>.<ci-build>`.
+ * The user-facing release version of the code actually running.
  *
- * The first three segments are the release version of the code that is running
- * — Peanut's scheme (scripts/release-version.mjs): major generation, native
- * build counter, and the OTA counter within that build. On an OTA'd install
- * that is the bundle's version, not the binary's: the binary is frozen at the
- * `.0` it shipped with, so reporting it would name a revision the user stopped
- * running the moment the OTA applied.
- *
- * The CI build number is appended as a fourth segment rather than parenthesised
- * so the whole identifier reads as one string a user can dictate. It is the
- * release workflow's run number, and it is NOT comparable across platforms:
- * android-release.yml sets the version code to `10000 + run_number` while
- * ios-release.yml uses the run number as-is, so the same release shows a
- * ~10000 gap between an Android and an iOS device. That is a property of the
- * build numbering, not of this format — it identifies a build, not an ordering.
+ * Peanut's three segments are `<major>.<native-build>.<ota>`. On an OTA'd
+ * install the Capgo bundle owns that version; otherwise the native shell does.
+ * `appBuild` is a separate platform/CI identifier used by the stores and support
+ * diagnostics. Appending it as a fourth dotted segment (for example,
+ * `1.5.0.21653381`) makes it look like part of the comparable release version.
  */
-export function formatBinaryVersion({ appVersion, appBuild }: BinaryInfo): string {
-    if (!appVersion) return appBuild
-    if (!appBuild) return appVersion
-    return `${appVersion}.${appBuild}`
-}
-
-export function formatRunningVersion({ appVersion, appBuild, otaVersion }: RunningVersionInfo): string {
-    return formatBinaryVersion({ appVersion: otaVersion || appVersion, appBuild })
+export function formatRunningVersion({ appVersion, otaVersion }: RunningVersionInfo): string {
+    return otaVersion || appVersion
 }
