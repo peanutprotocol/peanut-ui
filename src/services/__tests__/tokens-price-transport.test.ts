@@ -13,6 +13,9 @@ import { apiFetch } from '@/utils/api-fetch'
 
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: jest.fn() }))
 
+const mockCaptureException = jest.fn()
+jest.mock('@sentry/nextjs', () => ({ captureException: (...args: unknown[]) => mockCaptureException(...args) }))
+
 const mockApiFetch = apiFetch as jest.MockedFunction<typeof apiFetch>
 
 const response = (status: number, body: unknown = {}) =>
@@ -46,6 +49,27 @@ describe('fetchWalletBalances', () => {
     it('throws on 5xx', async () => {
         mockApiFetch.mockResolvedValue(response(502, { error: 'bad gateway' }))
         await expect(fetchWalletBalances('0xabc')).rejects.toThrow('502')
+        // fetchWithSentry already reported the HTTP failure — no second capture.
+        expect(mockCaptureException).not.toHaveBeenCalled()
+    })
+
+    it('throws AND captures on a malformed 200 — the failure fetchWithSentry never sees', async () => {
+        mockApiFetch.mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: async () => {
+                throw new SyntaxError('bad json')
+            },
+            text: async () => 'bad json',
+        } as unknown as Response)
+        await expect(fetchWalletBalances('0xabc')).rejects.toThrow('malformed 200')
+        expect(mockCaptureException).toHaveBeenCalledTimes(1)
+    })
+
+    it('throws AND captures on a 200 missing the balances array', async () => {
+        mockApiFetch.mockResolvedValue(response(200, { totalBalance: 5 }))
+        await expect(fetchWalletBalances('0xabc')).rejects.toThrow('malformed 200')
+        expect(mockCaptureException).toHaveBeenCalledTimes(1)
     })
 })
 

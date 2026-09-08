@@ -6,6 +6,7 @@
  * the caller's own accounts, so that call carries the session token.
  */
 
+import { captureException } from '@sentry/nextjs'
 import { apiFetch } from '@/utils/api-fetch'
 import { type ITokenPriceData, type IUserBalance } from '@/interfaces/interfaces'
 
@@ -41,5 +42,14 @@ export async function fetchWalletBalances(
         const text = await response.text().catch(() => '')
         throw new Error(`Failed to fetch wallet balances: ${response.status} ${text}`)
     }
-    return (await response.json()) as { balances: IUserBalance[]; totalBalance: number }
+    // A malformed 200 (invalid JSON, missing balances) is the one failure
+    // fetchWithSentry never reports — it saw a success. Capture it here, once,
+    // so the retry state the caller renders is not a silent mystery.
+    const body = (await response.json().catch(() => null)) as { balances: IUserBalance[]; totalBalance: number } | null
+    if (!body || !Array.isArray(body.balances)) {
+        const error = new Error('Failed to fetch wallet balances: malformed 200 response')
+        captureException(error)
+        throw error
+    }
+    return body
 }
