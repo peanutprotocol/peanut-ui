@@ -213,7 +213,8 @@ jobs:
                       echo "$MEA_CONFIG" | base64 -d > android/app/src/main/res/raw/mea_config
                       echo "mea_config written"
                   else
-                      echo "MEAWALLET_CONFIG_BASE64 not set — push provisioning stays stubbed"
+                      echo "::error::MEAWALLET_CONFIG_BASE64 is required for a production native release"
+                      exit 1
                   fi
 
             - name: Build signed AAB
@@ -223,8 +224,9 @@ jobs:
                   # the static export above; no new secret needed.
                   SENTRY_DSN_ANDROID: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
                   # MeaWallet MPP SDK — gradle gates both the dependency and the
-                  # plugin source on these; absent secrets build without the SDK.
+                  # plugin source on these; production must never compile the stub.
                   # Android-specific names: see the note in ios-release.yml.
+                  PEANUT_REQUIRE_PUSH_PROVISIONING: '1'
                   MEAWALLET_NEXUS_USER: ${{ secrets.MEAWALLET_NEXUS_USER_ANDROID }}
                   MEAWALLET_NEXUS_PASSWORD: ${{ secrets.MEAWALLET_NEXUS_PASSWORD_ANDROID }}
                   ANDROID_VERSION_NAME: ${{ steps.version.outputs.name }}
@@ -243,6 +245,13 @@ jobs:
                   export ANDROID_VERSION_CODE
                   echo "versionCode $ANDROID_VERSION_CODE (version $ANDROID_VERSION_NAME, run $GITHUB_RUN_NUMBER attempt $GITHUB_RUN_ATTEMPT)"
                   pnpm native:release
+
+            - name: Preserve R8 mapping
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+              with:
+                  name: android-r8-mapping-${{ steps.version.outputs.name }}-${{ github.run_id }}-${{ github.run_attempt }}
+                  path: android/app/build/outputs/mapping/release/
+                  if-no-files-found: error
 
             - name: Upload to Google Play
               uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1

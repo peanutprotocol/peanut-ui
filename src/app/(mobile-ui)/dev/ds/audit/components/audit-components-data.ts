@@ -374,14 +374,6 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 divergence: 'New since the last sweep. Second half of the migration pair, mounted from HomeModals.',
             },
             {
-                name: 'ReviewPromptModal',
-                realUsages: 1,
-                status: 'live',
-                source: 'components/Migration/ReviewPromptModal.tsx',
-                divergence:
-                    'New since the last sweep. App-store review prompt on ActionModal, mounted from HomeModals.',
-            },
-            {
                 name: 'QRScannerOverlay (BaseModal ad-hoc)',
                 realUsages: 2,
                 status: 'adhoc',

@@ -1,5 +1,6 @@
 'use client'
 
+import { getAuthToken } from '@/utils/auth-token'
 import { generateKeysFromString, getParamsFromLink } from '@/utils/peanut-link.utils'
 import { getContractAddress, signWithdrawalMessage } from '@/utils/peanut-claim.utils'
 import { evmChainIdToRhinoName } from '@/constants/rhino.consts'
@@ -30,9 +31,16 @@ const JSON_HEADERS = { 'Content-Type': 'application/json' } as const
  * Helper to make POST requests with consistent error handling
  */
 async function postJson<T>(url: string, body: Record<string, unknown>): Promise<T> {
+    // /claim takes OPTIONAL auth: with a session token the backend can own
+    // the SEND_LINK_CLAIM intent even when the recipient address is not the
+    // caller's own (the claim-link → Manteca flow pays a corporate entity
+    // address — without the token that claim is unattributable and the
+    // withdraw route cannot verify ownership of the transfer). Anonymous
+    // claimers simply send no header, exactly as before.
+    const token = getAuthToken()
     const response = await fetch(url, {
         method: 'POST',
-        headers: JSON_HEADERS,
+        headers: { ...JSON_HEADERS, ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify(body),
     })
 

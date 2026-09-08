@@ -1,0 +1,226 @@
+[
+    {
+        "title": "combines a cva compound only with the options that select it",
+        "source": "const c = cva('base', { variants: { size: { sm: 'x' } }, compoundVariants: [{ size: 'sm', class: 'text-body-m font-semibold' }] })"
+    },
+    {
+        "title": "reads cva config fields written as shorthand",
+        "source": "const variants = { tone: { loud: 'text-body-m' } }; const c = cva('base', { variants, compoundVariants: [{ tone: 'loud', class: 'font-semibold' }] })"
+    },
+    {
+        "title": "reads cva config fields written as shorthand",
+        "source": "const variants = { tone: { loud: 'text-body-m' } }; const compoundVariants = [{ tone: 'loud', class: 'font-semibold' }]; const c = cva('base', { variants, compoundVariants })"
+    },
+    {
+        "title": "keeps an option a dynamic key could alias in a compound selection",
+        "source": "function f(k) { return cva('base', { variants: { tone: { loud: 'underline', [k]: 'text-body-m' } }, compoundVariants: [{ tone: 'loud', class: 'font-semibold' }] }) }"
+    },
+    {
+        "title": "keeps an option a dynamic key could alias in a compound selection",
+        "source": "const c = cva('base', { variants: { tone: { loud: 'underline', ['quiet']: 'text-body-m' } }, compoundVariants: [{ tone: 'loud', class: 'font-semibold' }] })"
+    },
+    {
+        "title": "resolves an &&-guarded object as a candidate",
+        "source": "const C = enabled && { tone: 'loud', class: ['text-body-m', 'font-semibold'] }; const c = cva('base', { variants: { tone: { loud: 'x' } }, compoundVariants: [{ ...C }] })"
+    },
+    {
+        "title": "resolves an &&-guarded object as a candidate",
+        "source": "const V = enabled && { tone: { loud: 'text-body-m' }, emphasis: { bold: 'font-semibold' } }; const c = cva('base', { variants: { ...V } })"
+    },
+    {
+        "title": "recomposes a conditional cva structure outside a spread",
+        "source": "const c = cva('base', enabled ? { variants: { tone: { loud: 'text-body-m' } }, compoundVariants: [{ tone: 'loud', class: 'font-semibold' }] } : {})"
+    },
+    {
+        "title": "recomposes a conditional cva structure outside a spread",
+        "source": "const c = cva('base', { variants: enabled ? { tone: { loud: 'text-body-m' }, emphasis: { bold: 'font-semibold' } } : {} })"
+    },
+    {
+        "title": "recomposes a conditional cva structure outside a spread",
+        "source": "const c = cva('base', { variants: { tone: { loud: 'text-body-m' } }, compoundVariants: enabled ? [{ tone: 'loud', class: 'font-semibold' }] : [] })"
+    },
+    {
+        "title": "recomposes an unreadable cva spread under cva semantics",
+        "source": "const CONFIG = enabled ? { variants: { tone: { loud: 'text-body-m' } }, compoundVariants: [{ tone: 'loud', class: 'font-semibold' }] } : {}; const c = cva('base', { ...CONFIG })"
+    },
+    {
+        "title": "recomposes an unreadable cva spread under cva semantics",
+        "source": "const V = enabled ? { tone: { loud: 'text-body-m' }, emphasis: { bold: 'font-semibold' } } : {}; const c = cva('base', { variants: { ...V } })"
+    },
+    {
+        "title": "recomposes an unreadable cva spread under cva semantics",
+        "source": "const C = enabled ? { tone: 'loud', class: ['text-body-m', 'font-semibold'] } : {}; const c = cva('base', { variants: { tone: { loud: 'x' } }, compoundVariants: [{ ...C }] })"
+    },
+    {
+        "title": "recomposes an unreadable cva spread under cva semantics",
+        "source": "const c = cva('base', { ...MAYBE, variants: { size: { sm: 'font-semibold' } } })"
+    },
+    {
+        "title": "reads an unreadable cva spread as config, not as a class builder",
+        "source": "const CONFIG = enabled ? { variants: { tone: { loud: 'text-body-m' } } } : {}; const c = cva('font-semibold', { ...CONFIG })"
+    },
+    {
+        "title": "reads an unreadable cva spread as config, not as a class builder",
+        "source": "const C = enabled ? { tone: 'loud', class: 'font-semibold' } : {}; const c = cva('text-body-m', { variants: { tone: { loud: 'x' } }, compoundVariants: [{ ...C }] })"
+    },
+    {
+        "title": "treats an unnamed axis as free for every compound",
+        "source": "const TONE = enabled ? { tone: { loud: 'text-body-m' } } : {}; const c = cva('base', { variants: { ...TONE, size: { sm: 'x' } }, compoundVariants: [{ size: 'sm', class: 'font-semibold' }] })"
+    },
+    {
+        "title": "keeps composing an axis table spread in from something unreadable",
+        "source": "const TONE = enabled ? { tone: { loud: 'text-body-m' } } : {}; const c = cva('base', { variants: { ...TONE, size: { sm: 'font-semibold' } } })"
+    },
+    {
+        "title": "keeps composing an axis table spread in from something unreadable",
+        "source": "const c = cva('base', { ...MAYBE, variants: { size: { sm: 'font-semibold' } } })"
+    },
+    {
+        "title": "evaluates a spread compound field in the scope it was written in",
+        "source": "const w = 'font-semibold'; const C = { tone: 'loud', class: w }; function f() { const w = 'underline'; return cva('base', { variants: { tone: { loud: 'text-body-m' } }, compoundVariants: [{ ...C }] }) }"
+    },
+    {
+        "title": "evaluates a spread compound field in the scope it was written in",
+        "source": "const w = 'underline'; const C = { tone: 'loud', class: w }; function f() { const w = 'font-semibold'; return cva('base', { variants: { tone: { loud: 'text-body-m' } }, compoundVariants: [{ ...C }] }) }"
+    },
+    {
+        "title": "reads spread axes and honours the winning variants table",
+        "source": "const TONE = { tone: { loud: 'text-body-m' } }; const c = cva('base', { variants: { ...TONE, size: { sm: 'font-semibold' } } })"
+    },
+    {
+        "title": "reads spread axes and honours the winning variants table",
+        "source": "const CONFIG = { variants: { tone: { loud: 'font-semibold' } } }; const c = cva('base', { ...CONFIG, variants: { tone: { loud: 'text-body-m' } } })"
+    },
+    {
+        "title": "reads spread axes and honours the winning variants table",
+        "source": "const CONFIG = { variants: { tone: { loud: 'underline' } } }; const c = cva('font-semibold', { ...CONFIG, variants: { tone: { loud: 'text-body-m' } } })"
+    },
+    {
+        "title": "expands a spread inside a cva compound entry",
+        "source": "const C = { tone: 'loud', class: 'font-semibold' }; const c = cva('base', { variants: { tone: { loud: 'text-body-m' } }, compoundVariants: [{ ...C }] })"
+    },
+    {
+        "title": "expands a spread inside a cva compound entry",
+        "source": "const C = { tone: 'loud', class: 'font-semibold' }; const c = cva('base', { variants: { tone: { loud: 'text-body-m', quiet: 'x' } }, compoundVariants: [{ ...C, tone: 'quiet' }] })"
+    },
+    {
+        "title": "reads a cva config spread, with explicit fields still winning",
+        "source": "const CONFIG = { variants: { tone: { loud: 'text-body-m' } } }; const c = cva('base', { ...CONFIG, variants: { tone: { loud: 'underline' } }, compoundVariants: [{ tone: 'loud', class: 'font-semibold' }] })"
+    },
+    {
+        "title": "records a computed cva axis name so compounds can leave it free",
+        "source": "const axis = 'tone'; const c = cva('base', { variants: { [axis]: { loud: 'text-body-m' }, size: { sm: 'y' } }, compoundVariants: [{ size: 'sm', class: 'font-semibold' }] })"
+    },
+    {
+        "title": "combines overlapping compound selectors only on the options they share",
+        "source": "const c = cva('base', { variants: { tone: { loud: 'text-body-m', quiet: 'x' } }, compoundVariants: [{ tone: ['loud'], class: 'a' }, { tone: ['loud'], class: 'font-semibold' }] })"
+    },
+    {
+        "title": "combines two cva compounds only when one selection fires both",
+        "source": "const c = cva('base', { variants: { tone: { loud: 'x', quiet: 'y' } }, compoundVariants: [{ tone: 'loud', class: 'text-body-m' }, { tone: 'quiet', class: 'font-semibold' }] })"
+    },
+    {
+        "title": "combines two cva compounds only when one selection fires both",
+        "source": "const c = cva('base', { variants: { tone: { loud: 'x' }, size: { sm: 'y' } }, compoundVariants: [{ tone: 'loud', class: 'text-body-m' }, { size: 'sm', class: 'font-semibold' }] })"
+    },
+    {
+        "title": "combines two cva compounds only when one selection fires both",
+        "source": "const c = cva('base', { variants: { tone: { loud: 'x', quiet: 'y' } }, compoundVariants: [{ tone: ['loud', 'quiet'], class: 'text-body-m' }, { tone: 'quiet', class: 'font-semibold' }] })"
+    },
+    {
+        "title": "combines two cva compounds only when one selection fires both",
+        "source": "const c = cva('base', { variants: { tone: { loud: 'x' } }, compoundVariants: [{ tone: 'loud', class: 'text-body-m font-semibold' }] })"
+    },
+    {
+        "title": "keeps the axes a cva compound leaves unconstrained",
+        "source": "const c = cva('base', { variants: { tone: { loud: 'text-body-m', quiet: 'y' } }, compoundVariants: [{ tone: 'loud', class: 'font-semibold' }] })"
+    },
+    {
+        "title": "keeps the axes a cva compound leaves unconstrained",
+        "source": "const c = cva('base', { variants: { tone: { loud: 'text-body-m', quiet: 'y' } }, compoundVariants: [{ tone: 'quiet', class: 'font-semibold' }] })"
+    },
+    {
+        "title": "evaluates a table entry in the scope the table was declared in",
+        "source": "const opt = 'text-body-m'; const V = { tone: { loud: opt } }; function f() { const opt = 'underline'; return cva('base', { variants: V, compoundVariants: [{ tone: 'loud', class: 'font-semibold' }] }) }"
+    },
+    {
+        "title": "evaluates a table entry in the scope the table was declared in",
+        "source": "const w = 'font-semibold'; const C = [{ tone: 'loud', class: w }]; function f() { const w = 'underline'; return cva('base', { variants: { tone: { loud: 'text-body-m' } }, compoundVariants: C }) }"
+    },
+    {
+        "title": "unions cva options within an axis and combines across axes",
+        "source": "const c = cva('base', { variants: { size: { sm: 'text-body-m', lg: 'font-semibold' } } })"
+    },
+    {
+        "title": "unions cva options within an axis and combines across axes",
+        "source": "const c = cva('base', { variants: { size: { sm: 'text-body-m' }, w: { b: 'font-semibold' } } })"
+    },
+    {
+        "title": "unions cva options within an axis and combines across axes",
+        "source": "const c = cva('text-body-m', { variants: { w: { b: 'font-semibold' } } })"
+    },
+    {
+        "title": "lets independently selectable cva axes combine",
+        "source": "const c = cva('base', { variants: { size: { sm: 'text-body-m' }, weight: { b: 'font-semibold' } } })"
+    },
+    {
+        "title": "applies source-order overrides to conditional config spreads",
+        "source": "cva('base', {\n            ...(enabled ? { compoundVariants: [{ class: 'text-body-m' }] } : {}),\n            variants: { tone: { loud: 'font-semibold' } }, compoundVariants: []\n        })"
+    },
+    {
+        "title": "applies source-order overrides to conditional config spreads",
+        "source": "cva('font-semibold', {\n            variants: { tone: { loud: 'text-body-m' } },\n            ...(enabled ? { variants: {} } : { variants: {} })\n        })"
+    },
+    {
+        "title": "applies source-order overrides to conditional config spreads",
+        "source": "cva('font-semibold', {\n            variants: { tone: { loud: 'text-body-m' } }, ...(enabled && { variants: {} })\n        })"
+    },
+    {
+        "title": "terminates cyclic structural aliases while retaining reachable entries",
+        "source": "\n            const a = enabled ? b : [{ class: 'text-body-m' }]; const b = a;\n            cva('font-semibold', { compoundVariants: b });\n        "
+    },
+    {
+        "title": "terminates cyclic structural aliases while retaining reachable entries",
+        "source": "\n            const a = [...a, { class: 'text-body-m' }];\n            cva('font-semibold', { compoundVariants: a });\n        "
+    },
+    {
+        "title": "keeps alternative entries and spread arrays mutually exclusive",
+        "source": "cva('base', {\n            compoundVariants: [...[{ class: 'text-body-m' }, { class: 'font-semibold' }]]\n        })"
+    },
+    {
+        "title": "retains declaring scopes and selectors inside nested compound spreads",
+        "source": "\n            const classes = 'font-semibold';\n            const entries = [{ tone: 'loud', class: classes }];\n            function f() {\n                const classes = 'x';\n                return cva('base', { variants: { tone: { loud: 'text-body-m' } },\n                    compoundVariants: [...[...entries]] });\n            }\n        "
+    },
+    {
+        "title": "retains declaring scopes and selectors inside nested compound spreads",
+        "source": "cva('base', {\n            variants: { tone: { loud: 'text-body-m', quiet: 'x' } },\n            compoundVariants: [...[enabled ? { tone: 'quiet', class: 'font-semibold' } : {}]]\n        })"
+    },
+    {
+        "title": "interprets dynamic config fields in their possible structural roles",
+        "source": "function f(k) { return cva('base', {\n            [k]: { tone: { loud: 'text-body-m' } },\n            compoundVariants: [{ tone: 'loud', class: 'font-semibold' }]\n        }) }"
+    },
+    {
+        "title": "interprets dynamic config fields in their possible structural roles",
+        "source": "function f(k) { return cva('base', {\n            variants: { tone: { loud: 'text-body-m' } },\n            [k]: [{ tone: 'loud', class: 'font-semibold' }]\n        }) }"
+    },
+    {
+        "title": "interprets dynamic config fields in their possible structural roles",
+        "source": "function f(k) { return cva('base', {\n            [k]: { tone: { loud: 'text-body-m', quiet: 'x' } },\n            compoundVariants: [{ tone: 'quiet', class: 'font-semibold' }]\n        }) }"
+    },
+    {
+        "title": "interprets dynamic config fields in their possible structural roles",
+        "source": "function f(k) { return cva('base', {\n            [k]: { tone: { loud: 'text-body-m' } }, variants: { tone: { loud: 'x' } },\n            compoundVariants: [{ tone: 'loud', class: 'font-semibold' }]\n        }) }"
+    },
+    {
+        "title": "keeps conditional compound arrays mutually exclusive",
+        "source": "cva('base', {\n            variants: { tone: { loud: 'x' } },\n            compoundVariants: enabled\n                ? [{ tone: 'loud', class: 'text-body-m' }]\n                : [{ tone: 'loud', class: 'font-semibold' }]\n        })"
+    },
+    {
+        "title": "keeps conditional compound arrays mutually exclusive",
+        "source": "cva('base', {\n            variants: { tone: { loud: 'x' } },\n            compoundVariants: enabled\n                ? [{ tone: 'loud', class: 'text-body-m' }, { tone: 'loud', class: 'font-semibold' }]\n                : []\n        })"
+    },
+    {
+        "title": "evaluates conditional compound arrays in their declaring scopes",
+        "source": "\n            const classes = 'text-body-m';\n            const entries = [{ tone: 'loud', class: classes }];\n            function styles() {\n                const classes = 'font-semibold';\n                const local = [{ tone: 'loud', class: classes }];\n                return cva('font-semibold', {\n                    variants: { tone: { loud: 'x' } },\n                    compoundVariants: enabled ? local : entries\n                });\n            }\n        "
+    }
+]

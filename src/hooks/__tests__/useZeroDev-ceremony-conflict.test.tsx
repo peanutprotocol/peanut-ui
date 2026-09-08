@@ -9,7 +9,11 @@ const mockToWebAuthnKey = jest.fn()
 let mockActiveCeremonyId: number | null = null
 
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { user: { userId: 'u1', username: 'alice' } }, logoutUser: jest.fn() }),
+    useAuth: () => ({
+        user: { user: { userId: 'u1', username: 'alice' } },
+        logoutUser: jest.fn(),
+        hydrateLoginSession: jest.fn().mockResolvedValue({ user: { userId: 'u1' } }),
+    }),
 }))
 jest.mock('@/context/kernelClient.context', () => ({
     useKernelClient: () => ({

@@ -66,7 +66,7 @@ export function initSentry(): void {
              * volume arrived unattributable — a message, no frames, no way to tell
              * which of several call sites produced it. This synthesizes a stack at
              * the capture point for every message event, including the deliberate
-             * captureMessage calls in fetchWithSentry and native-auth-capture.
+             * captureMessage calls in fetchWithSentry.
              *
              * Note it lands on `threads`, not `exception.values`, so PostHog's
              * mirror still reports these as an empty exception list; only passing a

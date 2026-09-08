@@ -2709,13 +2709,13 @@ countryData.forEach((country) => {
         // 2. add SEPA for EUR countries if not already present from specifics
         if (country.currency === 'EUR' && countrySpecificWithdrawMethods['Germany']) {
             // Germany as proxy for SEPA availability
-            const sepaExists = withdrawList.some((m) => m.title === 'SEPA Instant')
+            const sepaExists = withdrawList.some((m) => m.id.endsWith('-sepa-instant-withdraw'))
             if (!sepaExists) {
                 withdrawList.push({
                     id: `${countryCode.toLowerCase()}-sepa-instant-withdraw`,
                     icon: 'bank' as IconName,
-                    title: 'SEPA Instant',
-                    description: 'EU-wide real-time bank transfers.',
+                    title: 'Euro bank transfers',
+                    description: 'Usually arrives within 20 minutes, up to 1 business day.',
                     isSoon: false,
                 })
             }

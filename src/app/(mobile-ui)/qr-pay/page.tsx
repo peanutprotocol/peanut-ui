@@ -30,6 +30,7 @@ import { SessionKeyGrantRequiredError } from '@/hooks/wallet/spendPreflight'
 import { friendlyError } from '@/utils/friendly-error.utils'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
+import { pickMantecaDepositAddress } from '@/utils/manteca.utils'
 import { rainCentsToUsdcUnits, isAmountWithinBalance } from '@/utils/balance.utils'
 import { formatNumberForDisplay } from '@/utils/general.utils'
 import { getShakeClass, type ShakeIntensity } from '@/utils/perk.utils'
@@ -358,6 +359,7 @@ export default function QRPayPage() {
     const shouldBlockPay = kycGateState !== QrKycState.PROCEED_TO_PAY
 
     const sumsubFlow = useMultiPhaseKycFlow({})
+    const [kycPromptDismissed, setKycPromptDismissed] = useState(false)
 
     // Auto-dismiss the Sumsub flow if the user's QR-pool rails become enabled
     // server-side while a flow is mid-air. Two known sources:
@@ -890,9 +892,15 @@ export default function QRPayPage() {
             const requiredUsdcAmount = parseUnits(finalPaymentLock.paymentAgainstAmount, PEANUT_WALLET_TOKEN_DECIMALS)
             signedArtifact = await signSpend({
                 requiredUsdcAmount,
-                // Per-rail Manteca QR funding wallet: Pix → non-AR, everything else → AR
-                // (same binary heuristic as the backend's getQrReceiveAddress).
-                recipient: qrType === EQrType.PIX ? MANTECA_QR_DEPOSIT_ADDRESS_NON_AR : MANTECA_QR_DEPOSIT_ADDRESS_AR,
+                // Entity-aware deposit address served by the API (per-entity
+                // balances from 2026-09-14) — the backend resolves the entity
+                // from the QR and the paying Manteca account. The per-rail
+                // constants remain only as a fallback for an older API that
+                // does not return the field yet.
+                recipient: pickMantecaDepositAddress(
+                    finalPaymentLock.depositAddress,
+                    qrType === EQrType.PIX ? MANTECA_QR_DEPOSIT_ADDRESS_NON_AR : MANTECA_QR_DEPOSIT_ADDRESS_AR
+                ),
                 rainSpendingPower: rainCentsToUsdcUnits(rainCardOverview?.balance?.spendingPower),
                 kind: 'QR_PAY',
             })
@@ -1279,7 +1287,7 @@ export default function QRPayPage() {
             <div className="flex min-h-inherit flex-col gap-8">
                 <NavHeader title={tNav('pay')} />
                 <ActionModal
-                    visible
+                    visible={!kycPromptDismissed && !sumsubFlow.errorCooldown}
                     onClose={onBack}
                     title={
                         isFixable
@@ -1328,7 +1336,13 @@ export default function QRPayPage() {
                                 },
                     ]}
                 />
-                <SumsubKycModals flow={sumsubFlow} />
+                <SumsubKycModals
+                    flow={sumsubFlow}
+                    onCooldownClose={() => {
+                        setKycPromptDismissed(true)
+                        onBack()
+                    }}
+                />
             </div>
         )
     }
@@ -1343,7 +1357,11 @@ export default function QRPayPage() {
             <div className="flex min-h-inherit flex-col gap-8">
                 <NavHeader title={tNav('pay')} />
                 <ActionModal
-                    visible={kycGateState === QrKycState.REQUIRES_IDENTITY_VERIFICATION}
+                    visible={
+                        !kycPromptDismissed &&
+                        !sumsubFlow.errorCooldown &&
+                        kycGateState === QrKycState.REQUIRES_IDENTITY_VERIFICATION
+                    }
                     onClose={onBack}
                     title={t('kyc.unlockTitle')}
                     description={t('kyc.unlockDescription')}
@@ -1401,7 +1419,13 @@ export default function QRPayPage() {
                         },
                     ]}
                 />
-                <SumsubKycModals flow={sumsubFlow} />
+                <SumsubKycModals
+                    flow={sumsubFlow}
+                    onCooldownClose={() => {
+                        setKycPromptDismissed(true)
+                        onBack()
+                    }}
+                />
             </div>
         )
     }

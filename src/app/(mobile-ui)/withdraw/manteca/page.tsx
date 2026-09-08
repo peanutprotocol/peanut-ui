@@ -10,6 +10,7 @@ import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
 import { SessionKeyGrantRequiredError } from '@/hooks/wallet/spendPreflight'
 import { friendlyError } from '@/utils/friendly-error.utils'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
+import { resolveOfframpSpendRecipient } from '@/utils/manteca.utils'
 import { rainCentsToUsdcUnits, isAmountWithinBalance } from '@/utils/balance.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useState, useMemo, useContext, useEffect, useCallback, useId } from 'react'
@@ -53,7 +54,6 @@ import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import PointsCard from '@/components/Common/PointsCard'
 import {
     MANTECA_COUNTRIES_CONFIG,
-    MANTECA_DEPOSIT_ADDRESS,
     MantecaAccountType,
     isMantecaSupportedCountryCode,
     type MantecaBankCode,
@@ -390,7 +390,10 @@ function MantecaBankWithdrawFlow() {
                 const requiredUsdcAmount = parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS)
                 signedArtifact = await signSpend({
                     requiredUsdcAmount,
-                    recipient: MANTECA_DEPOSIT_ADDRESS,
+                    // Entity-aware deposit address served by /withdraw/init
+                    // (per-entity balances from 2026-09-14); the constant is
+                    // only the fallback for an older API without the field.
+                    recipient: resolveOfframpSpendRecipient(priceLock),
                     rainSpendingPower: rainCentsToUsdcUnits(rainCardOverview?.balance?.spendingPower),
                     kind: 'FIAT_OFFRAMP',
                 })
@@ -683,6 +686,7 @@ function MantecaBankWithdrawFlow() {
     return (
         <div className="flex min-h-inherit flex-col gap-8">
             <InitiateKycModal
+                cooldownActive={!!sumsubFlow.errorCooldown}
                 prepPath="extended"
                 visible={showKycModal}
                 onClose={() => setShowKycModal(false)}
@@ -724,7 +728,7 @@ function MantecaBankWithdrawFlow() {
                 reasonCode={mantecaRejection.reasonCode ?? undefined}
                 regionName={selectedCountry && localizedCountryTitle(locale, selectedCountry)}
             />
-            <SumsubKycModals flow={sumsubFlow} />
+            <SumsubKycModals flow={sumsubFlow} onCooldownClose={() => setShowKycModal(false)} />
             <SumsubKycWrapper
                 visible={limitIncreaseFlow.showWrapper}
                 accessToken={limitIncreaseFlow.accessToken}

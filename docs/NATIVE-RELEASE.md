@@ -217,6 +217,36 @@ the major comparison catches it.
 
 ---
 
+### Android release optimization
+
+Release builds use R8 code shrinking, optimization and obfuscation, plus resource
+shrinking. Capacitor supplies consumer keep rules for its plugins; app-specific
+rules preserve the reflected Google Pay callback and resources loaded by name
+(`mea_config` and the OneSignal notification icon). Keep any additional rules narrow:
+blanket package keeps can prevent meeting Google Play's optimization thresholds.
+
+For the first optimized release:
+
+1. Build with the normal release credentials so the MeaWallet SDK is included.
+   Resolve R8 errors using the relevant SDK's consumer rules; do not globally disable
+   shrinking/obfuscation or suppress all missing-class warnings.
+2. Upload to Play internal testing and inspect that exact version in App Bundle
+   Explorer. Confirm obfuscation, optimization and shrinking each meet the required
+   25% threshold (for apps with more than 10 MB of DEX code).
+3. Test the Play-installed release: startup, login/passkeys, biometric unlock,
+   identity verification/camera, Google Pay provisioning and its return callback,
+   push notification icon/tap routing, deep links, support chat and OTA updates.
+   A debug build does not exercise R8.
+4. Retain `android/app/build/outputs/mapping/release/mapping.txt` with the exact
+   released AAB. CI archives the mapping directory before uploading to Play; download
+   it for long-term retention before GitHub artifacts expire. AGP also embeds the
+   mapping in the AAB for Play. Use the matching mapping with Android's Retrace for
+   obfuscated native stack traces. This workflow does not upload native mappings to
+   Sentry, so automatic Sentry deobfuscation still needs a separate integration.
+
+References: [R8 configuration](https://developer.android.com/topic/performance/app-optimization/enable-app-optimization)
+and [Play technical quality requirements](https://support.google.com/googleplay/android-developer/answer/17492799?hl=en).
+
 ## 7. Signing, keystore & secret management
 
 **Play App Signing is enabled** → Google holds the real signing key; the local
@@ -357,9 +387,8 @@ own `out/` under the binary's versionName, then assert the channel serves it.
   hashing the whole name set was tried and reverted after `web-vitals`, a pure-JS library,
   would have refused every staging OTA until a native release was cut).
   Every Android source set is hashed, including the credential-gated `src/meawallet`:
-  whether it reaches a binary is not knowable from the tree, and of the two unsound
-  choices, over-claiming only forces an unnecessary native release while under-claiming
-  fails silently. **The real fix is for that variant to stop depending on a CI secret.**
+  the fingerprint proves source compatibility, while the compiled capability gate
+  below independently requires provisioning support in the released binaries.
   An unresolvable ref is an error, never an empty read, and `--root` points the CLI at
   another checkout so its tests never mutate this one. `capgo-deploy.yml` recomputes it and compares against the
   `v<major>.<build>.0` tag the bundle's floor targets; a mismatch **fails the OTA** and
@@ -499,3 +528,25 @@ one-time signing-material setup, secrets table, and manual App Store promotion.
 - Re-check Data safety, permissions (camera for QR/KYC), content rating, and the App
   access instructions in §4.
 - Promote to **production** review only after the internal track passes.
+
+### Compiled capability gate (TASK-22282)
+
+Production Android releases require both MeaWallet Nexus credentials and the
+MeaWallet config. Production iOS archives compile with
+`PEANUT_REQUIRE_PUSH_PROVISIONING`; compilation fails if the SDK cannot be imported.
+The iOS sync step uses `MEAWALLET_NEXUS_USER_IOS` and
+`MEAWALLET_NEXUS_PASSWORD_IOS`. The archive also requires the iOS encrypted
+config in `MEAWALLET_CONFIG_BASE64_IOS`; the Xcode build phase refuses a missing
+or empty config and copies it into the app bundle. Both provisioning Swift files
+are app target sources and the bridge registers the plugin. Local builds can still
+use the stub.
+
+After both store builds succeed, Release Native writes a compiled-capability
+attestation into the annotated release tag. OTA checks that attestation in
+addition to the source fingerprint. Older tags and manually created tags lack
+this evidence and cannot serve as OTA floors. Run Release Native to establish
+a compatible floor; do not add an attestation to an unverified old tag.
+
+This gate intentionally blocks new native releases until the MeaWallet SDK
+setup is complete. It proves SDK compilation, not vendor activation or Apple
+entitlements. Those remain separate launch checks.

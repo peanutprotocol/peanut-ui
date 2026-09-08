@@ -5,13 +5,19 @@ import { clearAuthState } from '@/utils/auth.utils'
 const mockDispatch = jest.fn()
 const mockCaptureException = jest.fn()
 const mockToWebAuthnKey = jest.fn()
+const mockHydrateLoginSession = jest.fn()
+const mockSetWebAuthnKey = jest.fn()
 
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { user: { userId: 'u1', username: 'alice' } }, logoutUser: jest.fn() }),
+    useAuth: () => ({
+        user: { user: { userId: 'u1', username: 'alice' } },
+        logoutUser: jest.fn(),
+        hydrateLoginSession: mockHydrateLoginSession,
+    }),
 }))
 jest.mock('@/context/kernelClient.context', () => ({
     useKernelClient: () => ({
-        setWebAuthnKey: jest.fn(),
+        setWebAuthnKey: mockSetWebAuthnKey,
         getClientForChain: jest.fn(),
         ensureClientForChain: jest.fn(),
     }),
@@ -154,4 +160,34 @@ describe('useZeroDev handleLogin — passkey-server failures keep the session', 
             expect.objectContaining({ tags: { error_type: 'login_error' } })
         )
     })
+})
+
+beforeEach(() => {
+    jest.clearAllMocks()
+})
+it('waits for fresh session hydration before publishing the verified wallet key and blocks a second ceremony', async () => {
+    let resolveHydration!: (value: unknown) => void
+    mockHydrateLoginSession.mockReturnValue(
+        new Promise((resolve) => {
+            resolveHydration = resolve
+        })
+    )
+    mockToWebAuthnKey.mockResolvedValue({ authenticatorId: 'verified' })
+    const { result } = renderHook(() => useZeroDev())
+    let pending!: Promise<void>
+    await act(async () => {
+        pending = result.current.handleLogin()
+    })
+    expect(mockHydrateLoginSession).toHaveBeenCalledTimes(1)
+    expect(mockSetWebAuthnKey).not.toHaveBeenCalled()
+    await expect(result.current.handleLogin()).rejects.toMatchObject({
+        name: 'PasskeyError',
+        code: 'PASSKEY_INTERRUPTED',
+    })
+    expect(mockToWebAuthnKey).toHaveBeenCalledTimes(1)
+    await act(async () => {
+        resolveHydration({ user: { userId: 'verified-user' } })
+        await pending
+    })
+    expect(mockSetWebAuthnKey).toHaveBeenCalledWith({ authenticatorId: 'verified' })
 })

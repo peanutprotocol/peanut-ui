@@ -27,6 +27,7 @@ type InitiateKycVariant =
     | 'region-unavailable'
 
 interface InitiateKycModalProps {
+    cooldownActive?: boolean
     visible: boolean
     onClose: () => void
     onVerify: () => void
@@ -70,6 +71,7 @@ interface InitiateKycModalProps {
 // no bank provider onboards.
 export const InitiateKycModal = ({
     visible,
+    cooldownActive,
     onClose,
     onVerify,
     onContactSupport,
@@ -204,6 +206,8 @@ export const InitiateKycModal = ({
     }
 
     const cta = getCta()
+
+    if (cooldownActive) return null
 
     // Outage outranks everything, including the region screen: whatever the
     // user's state, opening the SDK during a verification outage burns an

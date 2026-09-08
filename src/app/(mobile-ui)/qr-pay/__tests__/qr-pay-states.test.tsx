@@ -31,6 +31,7 @@ type TestRestriction = { code: string; affectedRailIds: string[]; userMessage?: 
 // next/navigation
 const mockRouterPush = jest.fn()
 const mockRouterBack = jest.fn()
+const mockRouterReplace = jest.fn()
 const mockSearchParams = new Map<string, string>()
 
 jest.mock('next/navigation', () => ({
@@ -40,7 +41,7 @@ jest.mock('next/navigation', () => ({
     useRouter: () => ({
         push: mockRouterPush,
         back: mockRouterBack,
-        replace: jest.fn(),
+        replace: mockRouterReplace,
         prefetch: jest.fn(),
     }),
     usePathname: () => '/qr-pay',
@@ -192,11 +193,15 @@ jest.mock('@/app/actions/increase-limits', () => ({
     initiateIncreaseLimits: jest.fn(),
 }))
 
+let mockCooldown: { retryAt?: string } | null = null
+const mockDismissCooldown = jest.fn()
 const mockHandleFixableRejection = jest.fn()
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => ({
         isLoading: false,
         error: null,
+        errorCooldown: mockCooldown,
+        dismissErrorCooldown: mockDismissCooldown,
         showWrapper: false,
         accessToken: null,
         handleInitiateKyc: jest.fn(),
@@ -222,9 +227,8 @@ jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     }),
 }))
 
-jest.mock('@/components/Kyc/SumsubKycModals', () => ({
-    SumsubKycModals: () => null,
-}))
+jest.mock('@/components/Kyc/KycVerificationInProgressModal', () => ({ KycVerificationInProgressModal: () => null }))
+jest.mock('@/components/Global/IframeWrapper', () => ({ __esModule: true, default: () => null }))
 
 const mockIsPaymentProcessorQR = jest.fn()
 jest.mock('@/components/Global/DirectSendQR/utils', () => ({
@@ -669,6 +673,7 @@ function applyDefaults() {
 
 beforeEach(() => {
     jest.clearAllMocks()
+    mockCooldown = null
     mockSearchParams.clear()
     mockIsRegionRestricted = false
     applyDefaults()
@@ -2047,4 +2052,70 @@ describe('GROUP 6: Edge Cases', () => {
             expect(waitingText || orderNotReady).toBeTruthy()
         })
     })
+})
+
+// ============================================================
+// GROUP: Entity deposit recipient (2026-09-14 Manteca split)
+// ============================================================
+describe('GROUP: Entity deposit recipient wiring', () => {
+    const LEGACY_AR_ADDRESS = '0x6E945f8EC93061f5f11Edc5e6Fb4A70BeB514e97'
+    const LEGACY_NON_AR_ADDRESS = '0x49200bF84dC26349C86ce040019063FeCE88CB1c'
+    const DISTINCT_SERVED = '0x49200bF84dC26349C86ce040019063FeCE88CB1c'
+
+    async function payWithLock(lockExtra: Record<string, unknown>) {
+        mockMantecaApi.initiateQrPayment.mockResolvedValue({
+            code: 'LOCK123',
+            type: 'QR3_PAYMENT',
+            companyId: 'c1',
+            userId: 'u1',
+            userNumberId: 'un1',
+            userExternalId: 'ue1',
+            paymentRecipientName: 'Test Merchant',
+            paymentRecipientLegalId: 'legal1',
+            paymentAssetAmount: '12000',
+            paymentAsset: 'ARS',
+            paymentPrice: '1200',
+            paymentAgainstAmount: '10',
+            paymentAgainst: 'USD',
+            expireAt: '2026-04-16T23:59:59Z',
+            creationTime: '2026-04-16T00:00:00Z',
+            ...lockExtra,
+        })
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+        await waitFor(() => {
+            expect(screen.getByText('Test Merchant')).toBeInTheDocument()
+        })
+        const payButton = screen.getByRole('button', { name: 'Pay' })
+        await act(async () => {
+            fireEvent.click(payButton)
+        })
+        await waitFor(() => expect(mockSignSpend).toHaveBeenCalledTimes(1))
+    }
+
+    test('the spend is signed to the API-served entity depositAddress, not the constant', async () => {
+        // A DISTINCT address (the non-AR wallet for a MERCADO_PAGO QR, which
+        // the constant fallback would never pick) proves the wire value wins.
+        await payWithLock({ depositAddress: DISTINCT_SERVED })
+
+        expect(mockSignSpend).toHaveBeenCalledWith(expect.objectContaining({ recipient: DISTINCT_SERVED }))
+    })
+
+    test('an older API without depositAddress falls back to the per-rail constant', async () => {
+        await payWithLock({})
+
+        expect(mockSignSpend).toHaveBeenCalledWith(expect.objectContaining({ recipient: LEGACY_AR_ADDRESS }))
+        expect(mockSignSpend).not.toHaveBeenCalledWith(expect.objectContaining({ recipient: LEGACY_NON_AR_ADDRESS }))
+    })
+})
+
+test('cooldown replaces the QR provider prompt and dismissal leaves the flow', () => {
+    setCapabilitiesGate('provider_rejection_fixable', { userMessage: 'Upload a clearer ID.' })
+    mockCooldown = { retryAt: '2026-09-08T18:57:00Z' }
+    renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+    expect(screen.getAllByTestId('action-modal')).toHaveLength(1)
+    expect(screen.queryByText('Upload document')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByText("I'll try later"))
+    expect(mockRouterReplace).toHaveBeenCalledWith('/home')
+    expect(mockDismissCooldown).toHaveBeenCalledTimes(1)
 })

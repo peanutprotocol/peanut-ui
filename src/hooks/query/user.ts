@@ -27,7 +27,7 @@ export const useUserQuery = (dependsOn: boolean = true) => {
     const dispatch = useAppDispatch()
     const { user: authUser } = useUserStore()
 
-    const fetchUser = async (): Promise<IUserProfile | null> => {
+    const fetchUser = async ({ signal }: { signal: AbortSignal }): Promise<IUserProfile | null> => {
         // Demo mode: no backend/JWT/passkey — the synthetic user, read through
         // the demo /users/me handler so state the demo routes mutate (the
         // picked avatar, the celebration stamp) survives a refetch. Lazy
@@ -42,9 +42,17 @@ export const useUserQuery = (dependsOn: boolean = true) => {
 
         const epochAtRequest = getClearEpoch()
         const tokenAtRequest = getAuthToken()
-        const userResponse = await apiFetch('/users/me', { method: 'GET' })
+        const userResponse = await apiFetch('/users/me', { method: 'GET', signal })
+        const assertCurrentSession = () => {
+            if (signal.aborted || getClearEpoch() !== epochAtRequest || getAuthToken() !== tokenAtRequest) {
+                throw new Error('Session changed while fetching user')
+            }
+        }
+        assertCurrentSession()
         if (userResponse.ok) {
             const payload: (IUserProfile & { token?: string }) | null = await userResponse.json()
+
+            assertCurrentSession()
 
             // Sliding refresh: backend re-mints when the JWT crosses half its
             // lifetime and ships the new one alongside the user payload. Swap
