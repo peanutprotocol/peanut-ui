@@ -17,9 +17,16 @@
  * before composing the post. In the native app WKWebView silently cancels
  * `<a download>`, so Save goes through the OS share sheet (which carries
  * "Save Image") and is hidden when files can't be shared.
+ *
+ * Gesture-window constraint (TASK-22407, Sentry PEANUT-UI-SSW): on iOS,
+ * `navigator.share()` must run inside the user gesture. Capturing on tap
+ * (html-to-image, 1–3s) expired WebKit's gesture window → NotAllowedError.
+ * So on devices that can share files we PRE-capture the PNG once the asset
+ * is ready and the tap handler shares the cached blob synchronously. The
+ * capture-on-tap path stays as fallback when the cache is empty.
  */
 
-import { type FC, type RefObject, useState } from 'react'
+import { type FC, type RefObject, useEffect, useRef, useState } from 'react'
 import * as Sentry from '@sentry/nextjs'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -111,6 +118,39 @@ export const ShareAssetActions: FC<Props> = ({
     // and a state snapshot would post the handle the user just opted out of.
     const text = shareUrl ? `${caption}\n\n${shareUrl}` : caption
 
+    // pre-captured png so the tap handler can call navigator.share() without
+    // awaiting the 1-3s capture (which expires ios's gesture window — see the
+    // file header). only on devices that can share files: desktop share falls
+    // back to the twitter intent and web save downloads, neither needs a
+    // gesture, so capturing there would be wasted work. keyed on shareUrl
+    // because the hide-username toggle re-renders the asset (username shown /
+    // hidden), which makes a cached capture stale.
+    const cachedBlobRef = useRef<Blob | null>(null)
+    useEffect(() => {
+        cachedBlobRef.current = null
+        if (!ready || !canShareImageFiles()) return
+        const node = captureRef.current
+        if (!node) return
+        let stale = false
+        captureShareAsset(node)
+            .then((blob) => {
+                if (!stale) cachedBlobRef.current = blob
+            })
+            .catch(() => {
+                // quiet: the tap-time fallback re-captures and reports errors.
+            })
+        return () => {
+            stale = true
+        }
+    }, [ready, shareUrl, captureRef])
+
+    const captureOrCached = async (): Promise<Blob> => {
+        if (cachedBlobRef.current) return cachedBlobRef.current
+        const node = captureRef.current
+        if (!node) throw new Error('share asset not yet rendered — try again in a moment')
+        return captureShareAsset(node)
+    }
+
     const handleShare = async (): Promise<void> => {
         setError(null)
         setIsSharing(true)
@@ -130,9 +170,9 @@ export const ShareAssetActions: FC<Props> = ({
                 shareCardOnTwitter(text)
                 return
             }
-            const node = captureRef.current
-            if (!node) throw new Error('share asset not yet rendered — try again in a moment')
-            const blob = await captureShareAsset(node)
+            // cached blob = zero await before navigator.share(), keeping the
+            // call inside the tap gesture on ios.
+            const blob = await captureOrCached()
             const file = new File([blob], filename, { type: 'image/png' })
             // The link rides inside `text` — several native targets drop a
             // separate `url` member when `files` is present.
@@ -166,9 +206,9 @@ export const ShareAssetActions: FC<Props> = ({
         setError(null)
         setIsSaving(true)
         try {
-            const node = captureRef.current
-            if (!node) throw new Error('share asset not yet rendered — try again in a moment')
-            const blob = await captureShareAsset(node)
+            // native save shares through the os sheet, so it has the same ios
+            // gesture-window constraint as share — use the cached blob too.
+            const blob = await captureOrCached()
             if (saveMode === 'native-share') {
                 await navigator.share({ files: [new File([blob], filename, { type: 'image/png' })] })
             } else {

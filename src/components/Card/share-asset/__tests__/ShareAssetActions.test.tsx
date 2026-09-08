@@ -123,3 +123,63 @@ describe('ShareAssetActions save', () => {
         expect(screen.getByRole('button', { name: 'Share' })).toBeInTheDocument()
     })
 })
+
+/**
+ * Gesture-window regression guard (TASK-22407): on iOS `navigator.share()`
+ * must run inside the tap gesture, so the PNG is pre-captured when the asset
+ * is ready and the tap uses the cached blob — no capture between tap and
+ * share. If pre-capture failed, the tap falls back to capture-then-share.
+ */
+describe('ShareAssetActions share pre-capture', () => {
+    const shareButton = () => screen.getByRole('button', { name: 'Share' })
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockIsNativeBridge.mockReturnValue(false)
+        mockCanShareImageFiles.mockReturnValue(true)
+        mockCaptureShareAsset.mockImplementation(() => Promise.resolve(new Blob(['png'], { type: 'image/png' })))
+        Object.defineProperty(navigator, 'share', { value: mockShare, configurable: true, writable: true })
+    })
+
+    it('shares the pre-captured PNG without capturing inside the tap', async () => {
+        renderActions()
+        // pre-capture fires on mount (ready defaults true); let it settle
+        await waitFor(() => expect(mockCaptureShareAsset).toHaveBeenCalledTimes(1))
+        fireEvent.click(shareButton())
+        await waitFor(() => expect(mockShare).toHaveBeenCalledTimes(1))
+        // the tap did NOT trigger a second capture — it used the cached blob
+        expect(mockCaptureShareAsset).toHaveBeenCalledTimes(1)
+        const [{ files }] = mockShare.mock.calls[0] as unknown as [{ files: File[] }]
+        expect(files[0].name).toBe('card.png')
+        expect(mockedCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SHARE_ASSET_SHARED, {
+            source: 'celebration',
+            method: 'native-share-with-file',
+            link_type: 'none',
+        })
+    })
+
+    it('falls back to capture-on-tap when pre-capture failed', async () => {
+        mockCaptureShareAsset.mockImplementationOnce(() => Promise.reject(new Error('precapture broke')))
+        renderActions()
+        await waitFor(() => expect(mockCaptureShareAsset).toHaveBeenCalledTimes(1))
+        fireEvent.click(shareButton())
+        await waitFor(() => expect(mockShare).toHaveBeenCalledTimes(1))
+        // no cached blob, so the tap captured again — share still works
+        expect(mockCaptureShareAsset).toHaveBeenCalledTimes(2)
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
+
+    it('desktop (no file sharing): never pre-captures', async () => {
+        mockCanShareImageFiles.mockReturnValue(false)
+        renderActions()
+        fireEvent.click(shareButton())
+        await waitFor(() =>
+            expect(mockedCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SHARE_ASSET_SHARED, {
+                source: 'celebration',
+                method: 'twitter-intent-fallback',
+                link_type: 'none',
+            })
+        )
+        expect(mockCaptureShareAsset).not.toHaveBeenCalled()
+    })
+})
