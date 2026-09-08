@@ -11,6 +11,8 @@ describe('HomeTopNav', () => {
 
         const menu = screen.getByRole('link', { name: 'Open your profile' })
         expect(menu).toHaveAttribute('href', '/profile')
+        expect(menu).toHaveClass('size-10', 'w-10')
+        expect(menu).not.toHaveClass('w-full')
         // one element, one tab stop: a Link wrapping a Button is two, and axe
         // calls that a nested-interactive violation
         expect(container.querySelectorAll('a[href="/profile"]')).toHaveLength(1)
