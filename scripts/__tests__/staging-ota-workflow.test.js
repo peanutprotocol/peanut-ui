@@ -16,7 +16,9 @@ describe('App Staging OTA workflow', () => {
         expect(workflow).toContain('VERSION="$(node scripts/release-version.mjs staging)"')
         expect(workflow).toContain('CHANNEL: staging')
         expect(workflow).toContain('--channel "$CHANNEL"')
-        expect(workflow).toContain('node scripts/check-native-ota-surface.mjs "v$FLOOR" --platform android')
+        expect(workflow).toContain(
+            'node scripts/check-native-ota-surface.mjs "v$FLOOR" --platform android'
+        )
         expect(workflow).not.toContain('CHANNEL: production')
         expect(workflow).not.toContain('git push origin "ota-')
     })
