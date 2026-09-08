@@ -324,7 +324,7 @@
                 "name": "Nome",
                 "surname": "Sobrenome",
                 "bio": "Bio",
-                "email": "E-mail",
+                "email": "E-mail para notificações",
                 "phoneNumber": "Número de telefone",
                 "website": "Site"
             },

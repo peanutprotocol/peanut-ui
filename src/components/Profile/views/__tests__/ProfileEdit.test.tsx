@@ -50,8 +50,8 @@ test.each([false, true])('email is editable with verified=%s and only the change
     mockVerified = verified
     renderWithIntl(<ProfileEditView />)
     expect(screen.getByRole('button', { name: 'Save Changes' })).toBeDisabled()
-    expect(screen.getByLabelText('Email')).toBeEnabled()
-    await change('Email', ' new@example.com ')
+    expect(screen.getByLabelText('Email for notifications')).toBeEnabled()
+    await change('Email for notifications', ' new@example.com ')
     save()
     await verify()
     await waitFor(() =>
@@ -78,7 +78,7 @@ test('verified names explain the lock while an unverified name can be saved', as
 
 test.each(['', 'invalid', 'a@'])('rejects invalid changed email %s inline', async (email) => {
     renderWithIntl(<ProfileEditView />)
-    await change('Email', email)
+    await change('Email for notifications', email)
     save()
     expect(await screen.findByText('Please enter a valid email address.')).toBeVisible()
     expect(updateUserById).not.toHaveBeenCalled()
@@ -95,7 +95,7 @@ test('rejects an empty changed name', async () => {
 test('email-only save does not require a missing name', async () => {
     mockUser!.user.fullName = ''
     renderWithIntl(<ProfileEditView />)
-    await change('Email', 'new@example.com')
+    await change('Email for notifications', 'new@example.com')
     save()
     await verify()
     await waitFor(() =>
@@ -110,22 +110,22 @@ test('email-only save does not require a missing name', async () => {
 test('shows server failures and retains edits without navigating', async () => {
     jest.mocked(updateUserById).mockResolvedValue({ error: 'Could not save your profile' })
     renderWithIntl(<ProfileEditView />)
-    await change('Email', 'new@example.com')
+    await change('Email for notifications', 'new@example.com')
     save()
     await verify()
     expect(await screen.findByText('Could not save your profile')).toBeVisible()
-    expect(screen.getByLabelText('Email')).toHaveValue('new@example.com')
+    expect(screen.getByLabelText('Email for notifications')).toHaveValue('new@example.com')
     expect(mockReplace).not.toHaveBeenCalled()
 })
 
 test('background refresh preserves edits and does not send an untouched stale name', async () => {
     const view = renderWithIntl(<ProfileEditView />)
-    await change('Email', 'new@example.com')
+    await change('Email for notifications', 'new@example.com')
     mockUser = { user: { ...mockUser!.user, fullName: 'New Verified Name' } }
     mockVerified = true
     view.rerender(<ProfileEditView />)
     expect(screen.getByLabelText('Name')).toHaveValue('New Verified')
-    expect(screen.getByLabelText('Email')).toHaveValue('new@example.com')
+    expect(screen.getByLabelText('Email for notifications')).toHaveValue('new@example.com')
     save()
     await verify()
     await waitFor(() =>
@@ -141,10 +141,10 @@ test('late auth hydrates without enabling a no-op save', async () => {
     const user = mockUser
     mockUser = null
     const view = renderWithIntl(<ProfileEditView />)
-    expect(screen.getByLabelText('Email')).toBeDisabled()
+    expect(screen.getByLabelText('Email for notifications')).toBeDisabled()
     mockUser = user
     view.rerender(<ProfileEditView />)
-    expect(screen.getByLabelText('Email')).toHaveValue('old@example.com')
+    expect(screen.getByLabelText('Email for notifications')).toHaveValue('old@example.com')
     expect(screen.getByRole('button', { name: 'Save Changes' })).toBeDisabled()
 })
 
@@ -153,13 +153,13 @@ test('a duplicate email error is linked to its input and can be corrected', asyn
         error: 'This email is already associated with another account',
     })
     renderWithIntl(<ProfileEditView />)
-    await change('Email', 'taken@example.com')
+    await change('Email for notifications', 'taken@example.com')
     save()
     expect(await screen.findByText('This email is already associated with another account.')).toBeVisible()
-    expect(screen.getByLabelText('Email')).toHaveAccessibleDescription(
+    expect(screen.getByLabelText('Email for notifications')).toHaveAccessibleDescription(
         'This email is already associated with another account.'
     )
-    await change('Email', 'available@example.com')
+    await change('Email for notifications', 'available@example.com')
     save()
     await verify()
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/profile'))
@@ -171,14 +171,14 @@ test('a previously verified name stays locked during re-verification', () => {
     renderWithIntl(<ProfileEditView />)
     expect(screen.getByLabelText('Name')).toBeDisabled()
     expect(screen.getByText(/Your name comes from your identity verification/)).toBeVisible()
-    expect(screen.getByLabelText('Email')).toBeEnabled()
+    expect(screen.getByLabelText('Email for notifications')).toBeEnabled()
 })
 test('changing the pending mailbox requires a new code', async () => {
     renderWithIntl(<ProfileEditView />)
-    await change('Email', 'first@example.com')
+    await change('Email for notifications', 'first@example.com')
     save()
     await screen.findByLabelText('Verification code')
-    await change('Email', 'second@example.com')
+    await change('Email for notifications', 'second@example.com')
     expect(screen.queryByLabelText('Verification code')).not.toBeInTheDocument()
     save()
     await waitFor(() => expect(requestEmailChange).toHaveBeenLastCalledWith('second@example.com'))
