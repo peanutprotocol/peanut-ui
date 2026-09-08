@@ -15,6 +15,25 @@ const KEYBOARD_NAVIGATION_KEYS = new Set([
     'PageUp',
     'PageDown',
 ])
+const ACTIVATION_KEYS = new Set(['Enter', ' '])
+const NON_EDITABLE_INPUT_TYPES = new Set([
+    'button',
+    'checkbox',
+    'color',
+    'file',
+    'hidden',
+    'image',
+    'radio',
+    'range',
+    'reset',
+    'submit',
+])
+
+function isEditableControl(target: EventTarget | null) {
+    if (target instanceof HTMLTextAreaElement) return true
+    if (target instanceof HTMLInputElement) return !NON_EDITABLE_INPUT_TYPES.has(target.type)
+    return target instanceof HTMLElement && target.isContentEditable
+}
 
 /**
  * Browsers can classify a pointer-focused text input as :focus-visible because
@@ -32,6 +51,7 @@ export function InputModalityProvider({ children }: { children: React.ReactNode 
         const markKeyboard = (event: KeyboardEvent) => {
             if (event.metaKey || event.altKey || event.ctrlKey) return
             if (!KEYBOARD_NAVIGATION_KEYS.has(event.key)) return
+            if (ACTIVATION_KEYS.has(event.key) && isEditableControl(event.target)) return
             root.dataset.inputModality = 'keyboard'
         }
 
