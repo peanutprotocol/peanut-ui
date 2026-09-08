@@ -488,6 +488,8 @@ function MantecaBankWithdrawFlow() {
                 } else if (result.error === 'Unexpected error') {
                     setErrorMessage(t('errors.unexpected'))
                     setStep('failure')
+                } else if (result.code === 'USER_OP_REVERTED') {
+                    setErrorMessage(toFriendlyError(result), 'userOpReverted')
                 } else {
                     setErrorMessage(result.message ?? result.error)
                 }

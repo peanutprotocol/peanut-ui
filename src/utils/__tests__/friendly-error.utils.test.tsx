@@ -414,3 +414,22 @@ describe('browser-native fetch rejection (TASK-21956)', () => {
         })
     })
 })
+
+describe('confirmed mixed-spend revert display', () => {
+    it.each([
+        {
+            code: 'USER_OP_REVERTED',
+            error: 'USER_OP_REVERTED',
+            message: 'This payment could not be completed. Please try again.',
+        },
+        Object.assign(new Error('USER_OP_REVERTED: signed operation reverted on-chain'), { code: 'USER_OP_REVERTED' }),
+    ])('localizes the wire code independently of backend prose', (failure) => {
+        expect(friendlyError(failure)).toEqual({ kind: 'code', code: 'userOpReverted' })
+    })
+    it('does not offer confirmed-revert copy for an unknown receipt', () => {
+        expect(friendlyError(new Error('UserOp receipt timeout - transaction may still be pending'))).not.toEqual({
+            kind: 'code',
+            code: 'userOpReverted',
+        })
+    })
+})
