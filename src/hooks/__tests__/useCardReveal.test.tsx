@@ -1,6 +1,6 @@
 import { renderHook as renderRawHook, act, waitFor } from '@testing-library/react'
 import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
-import { createElement, type ReactNode } from 'react'
+import { type ReactNode } from 'react'
 import { NextIntlClientProvider } from 'next-intl'
 import esMessages from '@/i18n/app/messages/es-419.json'
 import ptMessages from '@/i18n/app/messages/pt-BR.json'
@@ -233,8 +233,11 @@ describe.each([
                         ? new RainCardRateLimitError('Raw English provider message')
                         : new Error('Authentication cancelled')
                 )
-            const wrapper = ({ children }: { children: ReactNode }) =>
-                createElement(NextIntlClientProvider, { locale, messages, timeZone: 'UTC', children })
+            const wrapper = ({ children }: { children: ReactNode }) => (
+                <NextIntlClientProvider locale={locale} messages={messages} timeZone="UTC">
+                    {children}
+                </NextIntlClientProvider>
+            )
             const { result } = renderRawHook(() => useCardReveal({ cardId: 'c1', autoMaskMs: 0 }), { wrapper })
             await act(async () => {
                 await result.current.reveal()

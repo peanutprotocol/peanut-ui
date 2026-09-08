@@ -505,7 +505,8 @@ jobs:
             # Next's incremental build cache — roughly halves the ~4 min build
             # when warm. Key follows the Next.js docs recipe: exact key per
             # source hash, restore-keys falls back to the newest cache for the
-            # same lockfile, which is the incremental rebuild Next optimizes.
+            # same lockfile and build configuration. Do not restore Webpack caches
+            # across configuration changes; stale module hashes can crash the build.
             # Restore-only on purpose: a save on every PR push would upload a
             # fresh 100-400 MB entry that is branch-scoped (no other PR can
             # read it), churning the shared 10 GB cache quota and spending
@@ -515,9 +516,9 @@ jobs:
               uses: actions/cache/restore@v4
               with:
                   path: .next/cache
-                  key: ds-shots-next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
+                  key: ds-shots-next-v2-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
                   restore-keys: |
-                      ds-shots-next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+                      ds-shots-next-v2-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-
 
             - name: Build
               env:
@@ -544,7 +545,7 @@ jobs:
               uses: actions/cache/save@v4
               with:
                   path: .next/cache
-                  key: ds-shots-next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
+                  key: ds-shots-next-v2-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
 
             # The capture fails a shot that still has a spinner on camera, on
             # purpose. No continue-on-error: a red step is how anyone finds out.
