@@ -152,12 +152,12 @@ function SelectedMethodProbe() {
     return null
 }
 
-function Harness({ user }: { user: MockUser }) {
+function Harness({ user, routerKey }: { user: MockUser; routerKey?: number }) {
     mockUser = user
     return (
         <IntlWrapper>
             <WithdrawFlowContextProvider>
-                <AddWithdrawRouterView flow="withdraw" pageTitle="Withdraw" mainHeading="How?" />
+                <AddWithdrawRouterView key={routerKey} flow="withdraw" pageTitle="Withdraw" mainHeading="How?" />
                 <SelectedMethodProbe />
             </WithdrawFlowContextProvider>
         </IntlWrapper>
@@ -259,4 +259,12 @@ describe('withCurrentCountryPath — stale saved routes after a slug rename', ()
             ).toBe(`/add-money/${c.path}`)
         }
     })
+})
+
+test('a return from a selected country preserves the country list across router remounts', () => {
+    const { rerender } = render(<Harness user={makeUser()} routerKey={1} />)
+    fireEvent.click(screen.getByTestId('select-new-method'))
+    rerender(<Harness user={makeUser()} routerKey={2} />)
+    expect(screen.getByTestId('country-list')).toBeInTheDocument()
+    expect(screen.queryByTestId('saved-accounts-view')).not.toBeInTheDocument()
 })

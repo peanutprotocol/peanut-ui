@@ -23,11 +23,14 @@ const render = (ui: React.ReactElement) => rtlRender(<IntlWrapper>{ui}</IntlWrap
 
 // ---- routing ----
 const mockPush = jest.fn()
+let mockQuery = ''
+const mockShowCountries = jest.fn()
+const mockClearMethod = jest.fn()
 const mockParams: Record<string, string> = { country: 'testland' }
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockPush }),
     useParams: () => mockParams,
-    useSearchParams: () => new URLSearchParams(),
+    useSearchParams: () => new URLSearchParams(mockQuery),
 }))
 
 // ---- consts: one country ('testland', id 'US') with a bank add-method and a
@@ -94,7 +97,8 @@ jest.mock('@/context/WithdrawFlowContext', () => ({
     useWithdrawFlow: () => ({
         setSelectedBankAccount: jest.fn(),
         amountToWithdraw: '',
-        setSelectedMethod: jest.fn(),
+        setSelectedMethod: mockClearMethod,
+        setShowAllWithdrawMethods: mockShowCountries,
         setAmountToWithdraw: jest.fn(),
     }),
 }))
@@ -162,7 +166,11 @@ jest.mock('@/components/0_Bruddle/ListItem', () => ({
 }))
 jest.mock('@/components/Global/NavHeader', () => ({
     __esModule: true,
-    default: () => <div data-testid="nav-header" />,
+    default: ({ onPrev }: { onPrev: () => void }) => (
+        <button data-testid="nav-header" onClick={onPrev}>
+            Back
+        </button>
+    ),
 }))
 jest.mock('@/components/Global/Badges/StatusBadge', () => ({
     __esModule: true,
@@ -396,4 +404,18 @@ it('closing a cooldown also closes the underlying bank initiation prompt', async
     )
     expect(screen.queryByTestId('initiate-kyc-modal')).not.toBeInTheDocument()
     await waitFor(() => expect(screen.queryByText("I'll try later")).not.toBeInTheDocument())
+})
+
+describe('bank country back navigation', () => {
+    afterEach(() => {
+        mockQuery = ''
+    })
+    it.each(['', 'method=bank'])('returns to the country list while preserving the bank origin (%s)', (query) => {
+        mockQuery = query
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+        fireEvent.click(screen.getByTestId('nav-header'))
+        expect(mockShowCountries).toHaveBeenCalledWith(true)
+        expect(mockClearMethod).toHaveBeenCalledWith(null)
+        expect(mockPush).toHaveBeenCalledWith(query ? '/withdraw?method=bank' : '/withdraw')
+    })
 })

@@ -83,11 +83,8 @@ export default function WithdrawPage() {
                 title: 'Crypto',
                 countryPath: undefined,
             })
-        } else if (isBankFromSend && !selectedMethod) {
-            // for bank from send flow, prefer showing saved accounts first
-            setShowAllWithdrawMethods(false)
         }
-    }, [isCryptoFromSend, isBankFromSend, selectedMethod, setSelectedMethod, setShowAllWithdrawMethods])
+    }, [isCryptoFromSend, selectedMethod, setSelectedMethod])
 
     // flag to know if user has manually entered something
     const userTypedRef = useRef<boolean>(false)
@@ -439,8 +436,9 @@ export default function WithdrawPage() {
                             setSelectedMethod(null)
                             router.push('/send')
                         } else {
-                            // otherwise go back to method selection
-                            // clear amount so it doesn't carry over to a different method
+                            if (selectedMethod?.type === 'bridge' && !selectedBankAccount) {
+                                setShowAllWithdrawMethods(true)
+                            }
                             setAmountToWithdraw('')
                             setUsdAmount('')
                             setSelectedMethod(null)
