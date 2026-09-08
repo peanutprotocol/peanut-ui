@@ -1681,6 +1681,10 @@
             "noActiveCard": "No active card found on this account — please contact support.",
             "regrantFailed": "Re-enabling did not complete — please try again or contact support.",
             "diagnostics": "Diagnostics: nonce {nonce} / floor {floor}"
+        },
+        "reveal": {
+            "loadFailed": "Could not load card details. Please try again or contact support.",
+            "rateLimited": "Card details are temporarily unavailable. Please try again later."
         }
     },
     "addMoney": {

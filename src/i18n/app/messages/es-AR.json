@@ -851,6 +851,10 @@
         "recovery": {
             "failed": "Falló la recuperación — intentalo de nuevo",
             "title": "Recuperá el colateral de tu tarjeta"
+        },
+        "reveal": {
+            "loadFailed": "No se pudieron cargar los datos de la tarjeta. Intentá de nuevo o contactá a soporte.",
+            "rateLimited": "Por ahora no se pueden mostrar los datos de la tarjeta. Intentá más tarde."
         }
     },
     "addMoney": {

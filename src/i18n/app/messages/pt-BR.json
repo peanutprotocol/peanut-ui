@@ -1681,6 +1681,10 @@
             "noActiveCard": "Nenhum cartão ativo encontrado nesta conta — entre em contato com o suporte.",
             "regrantFailed": "A reativação não foi concluída — tente novamente ou entre em contato com o suporte.",
             "diagnostics": "Diagnóstico: nonce {nonce} / piso {floor}"
+        },
+        "reveal": {
+            "loadFailed": "Não foi possível carregar os dados do cartão. Tente novamente ou fale com o suporte.",
+            "rateLimited": "Os dados do cartão estão temporariamente indisponíveis. Tente novamente mais tarde."
         }
     },
     "addMoney": {

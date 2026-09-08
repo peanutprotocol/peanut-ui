@@ -1,4 +1,9 @@
-import { renderHook, act, waitFor } from '@testing-library/react'
+import { renderHook as renderRawHook, act, waitFor } from '@testing-library/react'
+import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
+import { createElement, type ReactNode } from 'react'
+import { NextIntlClientProvider } from 'next-intl'
+import esMessages from '@/i18n/app/messages/es-419.json'
+import ptMessages from '@/i18n/app/messages/pt-BR.json'
 import posthog from 'posthog-js'
 import { useCardReveal } from '@/hooks/useCardReveal'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -116,7 +121,7 @@ describe('useCardReveal', () => {
         })
 
         expect(result.current.isRateLimited).toBe(true)
-        expect(result.current.error).toBe('Too many requests')
+        expect(result.current.error).toBe('Card details are temporarily unavailable. Please try again later.')
         expect(result.current.revealed).toBeNull()
     })
 
@@ -212,4 +217,32 @@ describe('useCardReveal', () => {
         await waitFor(() => expect(result.current.revealed).toBeNull())
         jest.useRealTimers()
     })
+})
+
+describe.each([
+    ['es-419', esMessages],
+    ['pt-BR', ptMessages],
+] as const)('card reveal localization: %s', (locale, messages) => {
+    test.each([false, true])(
+        'localizes cancelled/failed and rate-limited requests (rate limit: %s)',
+        async (limited) => {
+            mockedGetCardDetails
+                .mockReset()
+                .mockRejectedValueOnce(
+                    limited
+                        ? new RainCardRateLimitError('Raw English provider message')
+                        : new Error('Authentication cancelled')
+                )
+            const wrapper = ({ children }: { children: ReactNode }) =>
+                createElement(NextIntlClientProvider, { locale, messages, timeZone: 'UTC', children })
+            const { result } = renderRawHook(() => useCardReveal({ cardId: 'c1', autoMaskMs: 0 }), { wrapper })
+            await act(async () => {
+                await result.current.reveal()
+            })
+            expect(result.current.error).toBe(
+                limited ? messages.card.reveal.rateLimited : messages.card.reveal.loadFailed
+            )
+            expect(result.current.error).not.toContain('Raw English')
+        }
+    )
 })
