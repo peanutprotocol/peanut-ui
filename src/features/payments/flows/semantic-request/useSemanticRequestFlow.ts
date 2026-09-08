@@ -662,7 +662,7 @@ export function useSemanticRequestFlow() {
         charge,
         payment,
         txHash,
-        error,
+        error: isSelfPayment ? { showError: true, errorMessage: t('errors.selfRequestPayment') } : error,
         isLoading: isLoading || isCreatingCharge || isFetchingCharge || isRecording || isCalculatingRoute,
         isSuccess,
         isFetchingCharge,

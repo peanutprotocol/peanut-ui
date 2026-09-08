@@ -17,7 +17,7 @@ import { QRPaymentStatusView } from '@/components/QRPay/QRPaymentStatusView'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { mantecaApi } from '@/services/manteca'
-import { wireErrorCode } from '@/services/api-error'
+import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import type { QrPayment, QrPaymentLock } from '@/services/manteca'
 import NavHeader from '@/components/Global/NavHeader'
 import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
@@ -1013,7 +1013,7 @@ export default function QRPayPage() {
                 clearTimeout(payingStateTimerRef.current)
                 payingStateTimerRef.current = null
             }
-            if (wireErrorCode(error) === 'QR_PAYMENT_CANCELLED') {
+            if (wireErrorCode(error) === API_ERROR_CODES.QR_PAYMENT_CANCELLED) {
                 setErrorMessage(t('errors.paymentCancelled'))
                 setIsSuccess(false)
                 return

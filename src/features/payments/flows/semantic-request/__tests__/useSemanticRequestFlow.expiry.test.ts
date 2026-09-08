@@ -165,6 +165,20 @@ describe('useSemanticRequestFlow — quote expiry is decided at the tap', () => 
 })
 
 describe('existing request self-payment guard', () => {
+    test('explains a disabled self-payment action before a tap and clears when the recipient changes', () => {
+        jest.clearAllMocks()
+        ctx.charge.requestLink.recipientAddress = '0x2222222222222222222222222222222222222222'
+        const { result, rerender } = renderHookWithIntl(() => useSemanticRequestFlow())
+        expect(result.current.canProceed).toBe(false)
+        expect(result.current.error).toEqual({ showError: true, errorMessage: 'You cannot pay your own request.' })
+        expect(mockSendMoney).not.toHaveBeenCalled()
+        expect(mockSendTransactions).not.toHaveBeenCalled()
+        ctx.charge.requestLink.recipientAddress = '0x1111111111111111111111111111111111111111'
+        rerender()
+        expect(result.current.canProceed).toBe(true)
+        expect(result.current.error.showError).toBe(false)
+    })
+
     afterEach(() => {
         ctx.charge.requestLink.recipientAddress = '0x1111111111111111111111111111111111111111'
         ctx.charge.chainId = '8453'
