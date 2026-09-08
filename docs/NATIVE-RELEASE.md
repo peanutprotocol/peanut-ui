@@ -204,10 +204,19 @@ shipping stale code):
 | | button | what it does |
 |-|--------|--------------|
 | native | **Release Native** | resolves `<major>.<build+1>.0` → builds iOS + Android from that one number → TestFlight + Play `internal` → tags `v<version>` |
+| Android replacement | **Android Release (Play)** | leave `versionName` blank on `dev` → rebuilds the current tagged Android version with a new Play `versionCode`; refuses iOS/shared native changes and does not move the shared OTA floor |
 | OTA | **Release OTA** | resolves `<major>.<build>.<ota+1>` off the production channel → uploads the bundle → tags `ota-<version>` |
 
-Neither is automatic: no push, merge or commit reaches them. They are the same deliberate
+None is automatic: no push, merge or commit reaches them. They are the same deliberate
 act as the `git tag … && git push` they replace, minus the hand-picked number.
+
+Use the Android replacement lane only for an Android-only native correction to the
+currently shipped build. It verifies the existing native tag attests both platforms,
+checks that every native input changed since that tag lives under `android/`, and keeps
+the existing native `versionName`. That last constraint matters: advancing the shared
+native version for Android alone would make the production Capgo minimum strand the
+older iOS binary. A cross-platform or shared plugin/config change must use **Release
+Native** instead.
 
 The tag is written **after** the build, as the record of what shipped — a failed run
 leaves no tag, so a re-run resolves the same number instead of burning one. CI tags with
@@ -229,6 +238,8 @@ shrinking. Capacitor supplies consumer keep rules for its plugins; app-specific
 rules preserve the reflected Google Pay callback and resources loaded by name
 (`mea_config` and the OneSignal notification icon). Keep any additional rules narrow:
 blanket package keeps can prevent meeting Google Play's optimization thresholds.
+The Android workflow also inspects the optimized DEX and refuses to upload when
+`CameraPlugin` has lost its runtime permission annotation or nested permission data.
 
 For the first optimized release:
 

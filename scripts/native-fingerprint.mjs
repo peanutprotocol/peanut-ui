@@ -139,9 +139,11 @@ export const NATIVE_INPUTS = [
     // this manifest moves.
     { kind: 'file', id: 'scripts/native-ios-postsync.js' },
 
-    // Android build surface: dependencies, SDK levels, permissions.
+    // Android build surface: dependencies, SDK levels, permissions, and the
+    // shrinker rules that determine which native runtime metadata survives.
     { kind: 'file', id: 'android/build.gradle' },
     { kind: 'file', id: 'android/app/build.gradle' },
+    { kind: 'file', id: 'android/app/proguard-rules.pro' },
     { kind: 'file', id: 'android/variables.gradle' },
     { kind: 'file', id: 'android/app/src/main/AndroidManifest.xml' },
 
