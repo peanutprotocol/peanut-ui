@@ -13,6 +13,7 @@ import { useState, useCallback, useMemo, useEffect, useContext, useRef } from 'r
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
 import Card from '@/components/Global/Card'
+import { QRPaymentStatusView } from '@/components/QRPay/QRPaymentStatusView'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { mantecaApi } from '@/services/manteca'
@@ -1565,19 +1566,14 @@ export default function QRPayPage() {
     const paymentStatus = qrPaymentDisplayStatus(qrPayment?.status)
     if (qrPayment && paymentStatus !== 'completed') {
         return (
-            <div className="flex min-h-inherit flex-col gap-8">
-                <NavHeader title={tNav('pay')} />
-                <Card className="my-auto space-y-4 p-4">
-                    <h1 className="text-heading-xs">{t(`result.${paymentStatus}.title`)}</h1>
-                    <p className="text-body-s">{t(`result.${paymentStatus}.description`)}</p>
-                </Card>
-                <Button onClick={() => router.push('/history')}>{t('result.viewActivity')}</Button>
+            <>
+                <QRPaymentStatusView status={paymentStatus} onViewActivity={() => router.push('/history')} />
                 <TransactionDetailsDrawer
                     isOpen={isTransactionSelected(receiptTransaction?.id)}
                     onClose={closeTransactionDetails}
                     transaction={receiptTransaction}
                 />
-            </div>
+            </>
         )
     }
 
