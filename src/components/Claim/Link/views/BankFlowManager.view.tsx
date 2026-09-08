@@ -32,7 +32,7 @@ import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import { sendLinksApi } from '@/services/sendLinks'
 import { useSearchParams } from 'next/navigation'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
-import { getRegionIntent } from '@/utils/regions.utils'
+import { getBankRegionIntent } from '@/utils/regions.utils'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { getKycModalVariant, getGateUserMessage, getGateReasonCode } from '@/utils/capability-gate'
@@ -321,7 +321,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         // name and email are now collected by sumsub sdk — no need to save them beforehand
         if (bankClaimType === BankClaimType.ReceiverKycNeeded && !justCompletedKyc) {
             await sumsubFlow.handleInitiateKyc(
-                getRegionIntent(selectedCountry?.region ?? 'rest-of-the-world'),
+                getBankRegionIntent(selectedCountry),
                 undefined,
                 undefined,
                 selectedCountry?.id
@@ -617,7 +617,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                                     await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                                 } else {
                                     await sumsubFlow.handleInitiateKyc(
-                                        getRegionIntent(selectedCountry?.region ?? 'rest-of-the-world'),
+                                        getBankRegionIntent(selectedCountry),
                                         undefined,
                                         gate.kind === 'needs-enrollment' || undefined,
                                         selectedCountry?.id

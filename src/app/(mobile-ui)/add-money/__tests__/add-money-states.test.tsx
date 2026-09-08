@@ -705,7 +705,7 @@ jest.mock('@/components/AddMoney/consts', () => ({
         { type: 'country', id: 'BR', path: 'brazil', currency: 'BRL', iso3: 'BRA' },
         { type: 'country', id: 'US', path: 'us', currency: 'USD', iso3: 'USA' },
         { type: 'country', id: 'DE', path: 'germany', currency: 'EUR', iso3: 'DEU' },
-        { type: 'country', id: 'MX', path: 'mexico', currency: 'MXN', iso3: 'MEX' },
+        { type: 'country', id: 'MX', path: 'mexico', currency: 'MXN', iso3: 'MEX', region: 'latam' },
         { type: 'country', id: 'GB', path: 'uk', currency: 'GBP', iso3: 'GBR' },
         { type: 'country', id: 'XX', path: 'unknown', currency: 'USD', iso3: 'XXX' },
     ],
@@ -1454,6 +1454,29 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
 
         expect(mockRouterReplace).not.toHaveBeenCalled()
         expect(screen.getByText('How much do you want to add?')).toBeInTheDocument()
+    })
+
+    // Mexico is tagged `latam` but deposits over Bridge SPEI. A verified user with
+    // no SPEI rail (needs-enrollment) must unlock via the NA (Bridge) intent —
+    // LATAM + MX hits the Manteca path, which rejects MX and dead-ended in
+    // "contact support" (TASK-22333).
+    test('mexico needs-enrollment unlock sends the NA intent, not LATAM', async () => {
+        setParams({ country: 'mexico' })
+        setGate('needs-enrollment')
+        resetQueryState({ step: 'inputAmount', amount: '100' })
+        const handleInitiateKyc = jest.fn()
+        mockUseMultiPhaseKycFlow.mockReturnValue({ ...mockUseMultiPhaseKycFlow(), handleInitiateKyc })
+
+        renderWithProviders(<OnrampBankPage />)
+
+        await act(async () => {
+            fireEvent.click(screen.getByText('Continue'))
+        })
+        await act(async () => {
+            fireEvent.click(screen.getByTestId('kyc-verify-button'))
+        })
+
+        expect(handleInitiateKyc).toHaveBeenCalledWith('NA', undefined, true, 'MX')
     })
 
     test('fresh user needs KYC before Bridge deposit confirmation', async () => {

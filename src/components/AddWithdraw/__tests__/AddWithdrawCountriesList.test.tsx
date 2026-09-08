@@ -135,7 +135,7 @@ jest.mock('@/utils/withdraw.utils', () => ({ getCountryCodeForWithdraw: (id: str
 // under jest when consts is stubbed). The gate is mocked, so neither return value
 // affects these assertions — stub both so the real consts is never evaluated.
 jest.mock('@/utils/bridge.utils', () => ({ railJurisdictionForBank: () => 'US' }))
-jest.mock('@/utils/regions.utils', () => ({ getRegionIntent: () => 'STANDARD' }))
+jest.mock('@/utils/regions.utils', () => ({ getBankRegionIntent: () => 'STANDARD' }))
 
 jest.mock('@/components/ActionListCard', () => ({
     ActionListCard: (props: any) => (

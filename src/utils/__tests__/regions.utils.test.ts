@@ -1,4 +1,9 @@
-import { getRegionIntent, pendingBankRailRegionPaths, providerForRegionIntent } from '../regions.utils'
+import {
+    getBankRegionIntent,
+    getRegionIntent,
+    pendingBankRailRegionPaths,
+    providerForRegionIntent,
+} from '../regions.utils'
 import { type RailCapability } from '@/types/capabilities'
 
 describe('getRegionIntent', () => {
@@ -18,6 +23,23 @@ describe('getRegionIntent', () => {
 // Mirrors the BE registry (crossRegionProvider in peanut-api-ts
 // src/kyc/level-registry.ts) — if these expectations change, the BE
 // registry changed and both sides must move together.
+describe('getBankRegionIntent', () => {
+    // Mexico is a `latam` picker region but deposits/withdraws over Bridge SPEI —
+    // LATAM + MX hits the Manteca path, which rejects MX (TASK-22333)
+    it('routes Mexico bank flows as NA (Bridge), not LATAM', () => {
+        expect(getBankRegionIntent({ id: 'MX', region: 'latam' })).toBe('NA')
+    })
+
+    it('falls back to the region intent for every other country', () => {
+        expect(getBankRegionIntent({ id: 'AR', region: 'latam' })).toBe('LATAM')
+        expect(getBankRegionIntent({ id: 'US', region: 'north-america' })).toBe('NA')
+        expect(getBankRegionIntent({ id: 'DE', region: 'europe' })).toBe('EU')
+        expect(getBankRegionIntent({ id: 'NG', region: 'rest-of-the-world' })).toBe('ROW')
+        expect(getBankRegionIntent({ id: 'XX' })).toBe('ROW')
+        expect(getBankRegionIntent(undefined)).toBe('ROW')
+    })
+})
+
 describe('providerForRegionIntent', () => {
     it('maps Bridge intents (EU / NA + legacy STANDARD) to bridge', () => {
         expect(providerForRegionIntent('EU')).toBe('bridge')

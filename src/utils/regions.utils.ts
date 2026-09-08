@@ -2,7 +2,7 @@ import { EUROPE_GLOBE_ICON, LATAM_GLOBE_ICON, NORTH_AMERICA_GLOBE_ICON, REST_OF_
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import { type RailCapability } from '@/types/capabilities'
-import { BRIDGE_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
+import { BRIDGE_ALPHA3_TO_ALPHA2, type CountryData } from '@/components/AddMoney/consts'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import type { StaticImageData } from 'next/image'
 
@@ -111,6 +111,16 @@ export const getRegionIntent = (regionPath: string): KYCRegionIntent => {
             return 'ROW'
     }
 }
+
+/**
+ * Region intent for a BANK flow (Bridge bank deposit / withdraw, bank claim).
+ * Mexico is `region: 'latam'` for the region picker, but its bank rail (SPEI)
+ * is a Bridge rail. Sending LATAM + MX asks the Manteca path for a country it
+ * does not serve; the BE rejects it and the UI collapsed that into "contact
+ * support" (TASK-22333). Route it as NA (Bridge), like the US.
+ */
+export const getBankRegionIntent = (country: Pick<CountryData, 'id' | 'region'> | null | undefined): KYCRegionIntent =>
+    country?.id === 'MX' ? 'NA' : getRegionIntent(country?.region ?? 'rest-of-the-world')
 
 /**
  * Which provider serves a region intent — an exact FE mirror of the BE registry
