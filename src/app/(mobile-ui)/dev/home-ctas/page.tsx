@@ -142,7 +142,7 @@ const CAROUSEL_PREVIEWS: CarouselPreview[] = [
                 Help us improve and <b>get $5!</b>
             </span>
         ),
-        description: 'Report a bug. Get rewarded! No questions asked.',
+        description: 'Be the first to report a bug. Get rewarded!',
     },
     {
         id: 'notification-prompt',
