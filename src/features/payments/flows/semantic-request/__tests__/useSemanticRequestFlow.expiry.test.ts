@@ -81,12 +81,13 @@ const route = {
 }
 jest.mock('@/features/payments/shared/hooks/useCrossChainTransfer', () => ({ useCrossChainTransfer: () => route }))
 
+const mockSendMoney = jest.fn()
 const mockSendTransactions = jest.fn()
 jest.mock('@/hooks/wallet/useWallet', () => ({
     useWallet: () => ({
         isConnected: true,
         address: '0x2222222222222222222222222222222222222222',
-        sendMoney: jest.fn(),
+        sendMoney: mockSendMoney,
         sendTransactions: (...args: unknown[]) => mockSendTransactions(...args),
         formattedSpendableBalance: '100',
         hasSufficientSpendableBalance: () => true,
@@ -160,5 +161,24 @@ describe('useSemanticRequestFlow — quote expiry is decided at the tap', () => 
 
         expect(mockSendTransactions).toHaveBeenCalled()
         expect(mockCalculate).toHaveBeenCalledTimes(quotesBeforeTap)
+    })
+})
+
+describe('existing request self-payment guard', () => {
+    afterEach(() => {
+        ctx.charge.requestLink.recipientAddress = '0x1111111111111111111111111111111111111111'
+        ctx.charge.chainId = '8453'
+    })
+    test.each(['42161', '8453'])('blocks an existing own request on chain %s before submission', async (chainId) => {
+        jest.clearAllMocks()
+        ctx.charge.chainId = chainId
+        ctx.charge.requestLink.recipientAddress = '0x2222222222222222222222222222222222222222'
+        const { result } = renderHookWithIntl(() => useSemanticRequestFlow())
+        await act(async () => {
+            await result.current.executePayment()
+        })
+        expect(mockSendMoney).not.toHaveBeenCalled()
+        expect(mockSendTransactions).not.toHaveBeenCalled()
+        expect(ctx.setError).toHaveBeenCalledWith({ showError: true, errorMessage: 'You cannot pay your own request.' })
     })
 })

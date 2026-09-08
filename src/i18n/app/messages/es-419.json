@@ -1162,7 +1162,8 @@
             "invalidPaymentUrlTitle": "Este enlace de pago no funciona",
             "invalidPaymentUrlDescription": "El enlace está incompleto o mal escrito. Pide a quien lo envió que lo comparta de nuevo.",
             "requestNotFoundTitle": "Solicitud no encontrada",
-            "requestNotFoundDescription": "Esta solicitud de pago no existe o fue eliminada. Pide un nuevo enlace a quien la envió."
+            "requestNotFoundDescription": "Esta solicitud de pago no existe o fue eliminada. Pide un nuevo enlace a quien la envió.",
+            "selfRequestPayment": "No puedes pagar tu propia solicitud."
         }
     },
     "claim": {

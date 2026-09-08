@@ -59,7 +59,9 @@ it('redacts Sentry errors and transactions across URL, breadcrumb, message, stac
         fingerprint: ['network', qrUrl],
         breadcrumbs: [{ message: qrUrl, data: { from: qrUrl, to: '/home' } }],
         exception: { values: [{ type: 'Error', value: qrUrl, stacktrace: { frames: [{ filename: qrUrl }] } }] },
-        contexts: { trace: { span_id: '1234567812345678', trace_id: '12345678123456781234567812345678', data: { url: qrUrl } } },
+        contexts: {
+            trace: { span_id: '1234567812345678', trace_id: '12345678123456781234567812345678', data: { url: qrUrl } },
+        },
     }
     const result = beforeSendHandler(event)
     expect(result).not.toBeNull()
