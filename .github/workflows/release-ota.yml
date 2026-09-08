@@ -3,10 +3,10 @@ name: App Release OTA
 # The single entry point for a production OTA. Click "Run workflow" on `dev`; the
 # bundle version is resolved from the channel's current bundle, not typed.
 #
-# Nothing here is automatic — merging to `dev` still only reaches the staging
-# channel, which no production device sees. This is the deliberate second step
-# that says "ship this JS to everyone", exactly as the `git tag ota-… && git push`
-# it replaces, minus the hand-picked number.
+# Nothing here is automatic — this is a deliberate second step after the code is
+# on `dev`, saying "ship this JS to everyone", exactly as the `git tag ota-… &&
+# git push` it replaces, minus the hand-picked number. This workflow does not
+# publish or verify a staging bundle; the `dev` ref guard is its provenance gate.
 #
 # The version always lands inside the current native build's range
 # (<major>.<build>.<ota+1>), so it cannot sort below the binary it targets — the
@@ -38,9 +38,8 @@ jobs:
         outputs:
             version: ${{ steps.resolve.outputs.version }}
         steps:
-            # An OTA reaches every shipped install, so it ships the code that has
-            # actually been through the staging channel — not whatever ref the
-            # workflow_dispatch dropdown was left on.
+            # An OTA reaches every shipped install, so it ships the code pinned to
+            # `dev` — not whatever ref the workflow_dispatch dropdown was left on.
             - name: Guard release ref
               run: |
                   if [ "$GITHUB_REF_NAME" != "dev" ]; then
