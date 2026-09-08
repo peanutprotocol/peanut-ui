@@ -380,7 +380,11 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                     // from send flow (bank): set method in context and stay on /withdraw?method=bank
                     if (flow === 'withdraw' && isBankFromSend) {
                         if (isMantecaCountry(country.path)) {
-                            const route = `/withdraw/manteca?method=bank-transfer&country=${country.path}`
+                            // Brazil from send = pay another person's PIX key: method=pix
+                            // delegates to PixKeySendView (Manteca QR-payment endpoint).
+                            // bank-transfer is the own-account offramp and stays for the rest.
+                            const mantecaMethod = country.path === 'brazil' ? 'pix' : 'bank-transfer'
+                            const route = `/withdraw/manteca?method=${mantecaMethod}&country=${country.path}`
                             startTransition(() => {
                                 router.push(route)
                             })

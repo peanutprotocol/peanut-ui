@@ -198,9 +198,13 @@ export const CountryList = ({
                             let isSupported = false
 
                             if (viewMode === 'add-withdraw') {
-                                // for send->bank flow, enforce only bridge or manteca supported countries
+                                // send->bank flow: bridge countries, plus Brazil — a PIX send to a
+                                // third-party key rides the Manteca QR-payment endpoint (see the
+                                // method=pix delegation in /withdraw/manteca). Argentina stays
+                                // gated: its Manteca rails here are own-account offramps, same
+                                // ruling that keeps Mercado Pago off the send list (PR #2813).
                                 if (enforceSupportedCountries) {
-                                    isSupported = isBridgeSupportedCountryResult
+                                    isSupported = isBridgeSupportedCountryResult || country.path === 'brazil'
                                 } else {
                                     // otherwise allow all countries
                                     isSupported = true
