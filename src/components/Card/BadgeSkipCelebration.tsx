@@ -195,6 +195,7 @@ const BadgeSkipCelebration: FC<Props> = ({ badgeCode, username, badges, stats, t
                     source="celebration"
                     ready={assetReady}
                     shareUrl={profileShareUrl(username, hideUsername)}
+                    hideUsername={hideUsername}
                 />
                 <Button onClick={onContinue} variant="stroke" className="w-full">
                     {t('celebration.continueToCard')}
