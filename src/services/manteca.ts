@@ -460,6 +460,7 @@ export const mantecaApi = {
                 return {
                     error: result.error || 'Failed to complete withdraw.',
                     message: result.message,
+                    ...(typeof result.code === 'string' ? { code: result.code } : {}),
                 }
             }
 
