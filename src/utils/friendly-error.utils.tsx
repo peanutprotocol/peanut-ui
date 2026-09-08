@@ -1,5 +1,5 @@
 import { API_ERROR_CODES, apiErrorStatus, wireErrorCode, type ApiErrorCode } from '@/services/api-error'
-import { isNativeFetchRejection } from '@/utils/network-triage'
+import { isNativeFetchRejection } from '@/utils/native-fetch-rejection'
 
 /** Safely extract a string-form of an unknown error + its `.message` if any.
  *  Lets the matchers below use `string` methods without unsafe property access
