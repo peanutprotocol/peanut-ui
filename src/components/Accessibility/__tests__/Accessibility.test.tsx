@@ -109,16 +109,34 @@ it('keeps preferences usable when storage is unavailable', () => {
     set.mockRestore()
 })
 
-it('slide activation opens a named dialog; cancel is safe and confirm runs only once', async () => {
+it.each([false, true])(
+    'slider pointer taps offer confirmation only in simplified mode (%s)',
+    (simplifiedConfirmations) => {
+        updateAccessibilityPreferences({ simplifiedConfirmations })
+        const onConfirm = jest.fn()
+        render(wrap(<SlideToConfirm label="Slide to pay" onConfirm={onConfirm} />))
+        fireEvent.click(screen.getByRole('button', { name: 'Slide to pay' }), { detail: 1 })
+        expect(onConfirm).not.toHaveBeenCalled()
+        if (simplifiedConfirmations) {
+            expect(screen.getByRole('dialog', { name: 'Slide to pay' })).toBeInTheDocument()
+            fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+            expect(onConfirm).toHaveBeenCalledTimes(1)
+        } else {
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        }
+    }
+)
+
+it('assistive slide activation opens a named dialog; cancel is safe and confirm runs only once', async () => {
     const onConfirm = jest.fn()
     render(wrap(<SlideToConfirm label="Slide to pay" onConfirm={onConfirm} />))
-    fireEvent.click(screen.getByRole('button', { name: 'Slide to pay' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Slide to pay' }), { detail: 0 })
     expect(screen.getByRole('dialog', { name: 'Slide to pay' })).toBeInTheDocument()
     expect(onConfirm).not.toHaveBeenCalled()
     await waitFor(() => expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus())
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(onConfirm).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByRole('button', { name: 'Slide to pay' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Slide to pay' }), { detail: 0 })
     fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
     expect(onConfirm).toHaveBeenCalledTimes(1)
     expect(screen.getByRole('button', { name: 'Slide to pay' })).toBeDisabled()

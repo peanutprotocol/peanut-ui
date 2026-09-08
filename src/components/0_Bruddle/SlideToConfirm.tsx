@@ -140,8 +140,8 @@ const SlideToConfirm: FC<SlideToConfirmProps> = ({ label, confirmLabel, onConfir
                     dragElastic={0}
                     dragMomentum={false}
                     onDragEnd={handleDragEnd}
-                    onClick={() => {
-                        if (!completionRef.current) requestConfirmation()
+                    onClick={(event) => {
+                        if (event.detail === 0 && !completionRef.current) requestConfirmation()
                     }}
                     onKeyDown={(e) => {
                         if (disabled || completed || maxTravel <= 0) return
