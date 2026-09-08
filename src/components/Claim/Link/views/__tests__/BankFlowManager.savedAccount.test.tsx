@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- jest.mock factories stub component props with `any`; matches the sibling add-money-states.test.tsx style. */
 /**
  * BankFlowManager — saved-account claim path (TASK-22333).
  *
@@ -169,8 +168,11 @@ const clabeAccount = (details: Record<string, string>) => ({
     details,
 })
 
+// the view reads only claimLinkData / onCustom / setTransactionHash off IClaimScreenProps
+const props: any = { claimLinkData, onCustom: jest.fn(), setTransactionHash: jest.fn() }
+
 function renderView() {
-    return render(<BankFlowManager claimLinkData={claimLinkData} onCustom={jest.fn()} setTransactionHash={jest.fn()} />)
+    return render(<BankFlowManager {...props} />)
 }
 
 beforeEach(() => {
