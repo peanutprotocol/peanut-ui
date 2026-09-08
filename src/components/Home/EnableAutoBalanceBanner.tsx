@@ -6,7 +6,6 @@ import { captureMessage } from '@sentry/nextjs'
 import ActionModal, { type ActionModalButtonProps } from '@/components/Global/ActionModal'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
-import { useZerodevStore } from '@/redux/hooks'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 
 /**
@@ -42,7 +41,6 @@ import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 export default function EnableAutoBalanceBanner() {
     const t = useTranslations('home.autoBalance')
     const tCommon = useTranslations('common')
-    const { isKernelClientReady } = useZerodevStore()
     const { overview } = useRainCardOverview()
     const { grant, isGranting, lastError } = useGrantSessionKey()
     // Card id the user chose "Skip for now" for — per card, so skipping a
@@ -108,9 +106,9 @@ export default function EnableAutoBalanceBanner() {
                   : tCommon('continue'),
             variant: 'purple',
             shadowSize: '4',
-            disabled: isGranting || !isKernelClientReady,
+            disabled: isGranting,
             onClick: () => {
-                if (!isKernelClientReady || isGranting) return
+                if (isGranting) return
                 const grantedCardId = card?.id ?? null
                 void grant().then((result) => {
                     setLastAttemptFor(grantedCardId)

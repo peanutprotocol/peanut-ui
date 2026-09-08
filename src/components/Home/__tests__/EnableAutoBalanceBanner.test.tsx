@@ -236,12 +236,21 @@ describe('EnableAutoBalanceBanner', () => {
     })
 })
 
-it('keeps Continue disabled until the wallet is ready', () => {
+it('allows wallet initialization to retry and exposes Skip if it fails', async () => {
     mockKernelReady = false
     mockCards = [{ id: 'active', status: 'ACTIVE', hasWithdrawApproval: false }]
+    mockGrant.mockImplementation(async () => {
+        mockLastError = { kind: 'unexpected', message: 'Wallet initialization failed' }
+        return { ok: false }
+    })
     render(<EnableAutoBalanceBanner />)
     const button = screen.getByRole('button', { name: 'Continue' })
-    expect(button).toBeDisabled()
-    fireEvent.click(button)
-    expect(mockGrant).not.toHaveBeenCalled()
+    expect(button).toBeEnabled()
+    await act(async () => {
+        fireEvent.click(button)
+    })
+    expect(mockGrant).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeEnabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }))
+    expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
 })
