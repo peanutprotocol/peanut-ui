@@ -525,8 +525,12 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                         setBankDetails(bankDetails)
                         // only the country list sets selectedCountry; a saved
                         // account skips it, so the unlock CTA below derived a
-                        // rest-of-world intent. The account is the destination.
-                        setSelectedCountry(getCountryFromAccount(account) ?? null)
+                        // rest-of-world intent. The account is the destination —
+                        // but an account with no resolvable country (empty
+                        // countryCode/countryName, a known prod state) must not
+                        // clobber a country the user already picked.
+                        const accountCountry = getCountryFromAccount(account)
+                        if (accountCountry) setSelectedCountry(accountCountry)
 
                         const isGuestFlow = bankClaimType === BankClaimType.GuestBankClaim
                         const userForOfframp = isGuestFlow
