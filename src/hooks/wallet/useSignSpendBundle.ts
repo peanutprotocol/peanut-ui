@@ -276,7 +276,7 @@ export const useSignSpendBundle = () => {
                  * Falls through to the two-tap path on any failure; nothing has
                  * been broadcast, so the same prep is reused with nothing at stake.
                  */
-                if (sessionKeySignEnabled() && !requiresPasskeyRetry(adminAddress)) {
+                if (sessionKeySignEnabled(prep.mixedSpendContract) && !requiresPasskeyRetry(adminAddress)) {
                     posthog.capture(ANALYTICS_EVENTS.SESSION_KEY_SPEND_ATTEMPTED, { kind, flow: 'sign-only' })
                     modals?.setIsSecurityVerificationOpen?.(true)
                     let attempt: MixedEphemeralSignResult

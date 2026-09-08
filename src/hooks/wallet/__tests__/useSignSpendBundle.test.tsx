@@ -66,7 +66,8 @@ jest.mock('@/context/kernelClient.context', () => ({
 jest.mock('@/app/actions/clients', () => ({ peanutPublicClient: { tag: 'public' } }))
 const mockSessionKeySignEnabled = jest.fn(() => false)
 jest.mock('@/constants/session-key-sign.consts', () => ({
-    sessionKeySignEnabled: () => mockSessionKeySignEnabled(),
+    sessionKeySignEnabled: (contract: unknown) =>
+        mockSessionKeySignEnabled() && contract === 'broadcast-first-revert-v1',
 }))
 jest.mock('../mixedEphemeralSign', () => ({ signMixedEphemeralSpend: jest.fn() }))
 jest.mock('@/hooks/useZeroDev', () => ({ useZeroDev: () => ({ handleSendUserOpEncoded: jest.fn() }) }))
@@ -108,6 +109,7 @@ const PREP = {
     executorSignature: '0x44',
     executorSalt: '0x5555555555555555555555555555555555555555555555555555555555555555',
     expiresAt: 1234567890,
+    mixedSpendContract: 'broadcast-first-revert-v1',
 }
 
 let queryClient: QueryClient
@@ -208,6 +210,17 @@ describe('useSignSpendBundle — mixed, SESSION_KEY_SIGN one-tap path', () => {
         expect(mockSignEphemeral).not.toHaveBeenCalled()
         expect(mockSignTypedData).toHaveBeenCalledTimes(1)
     })
+
+    it.each([undefined, 'broadcast-after'])(
+        'flags on with incompatible API contract %s uses passkey signing',
+        async (mixedSpendContract) => {
+            mockSessionKeySignEnabled.mockReturnValue(true)
+            mockPrepareWithdrawal.mockResolvedValue({ ...PREP, mixedSpendContract })
+            await signMixed()
+            expect(mockSignEphemeral).not.toHaveBeenCalled()
+            expect(mockSignTypedData).toHaveBeenCalledTimes(1)
+        }
+    )
 
     it('flag on: returns the ephemeral-signed artifact for the same prep, no passkey admin signature', async () => {
         mockSessionKeySignEnabled.mockReturnValue(true)
