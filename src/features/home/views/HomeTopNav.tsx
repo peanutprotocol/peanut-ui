@@ -4,15 +4,20 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import InvitesIcon from '@/components/Home/InvitesIcon'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
+import { twMerge } from '@/utils/tw'
 import Link from 'next/link'
 
 interface HomeTopNavProps {
     showRewards: boolean
 }
 
-// Nav circle (board 17802:61534): 40px visual, 44px hit area, stroke-button press.
-const menuButton =
-    'btn btn-stroke relative flex size-10 w-10 items-center gap-2 p-0 shadow-none transition-all duration-instant after:absolute after:-inset-0.5 active:translate-x-1 active:translate-y-1 active:shadow-none'
+// Keep the raw Link on the same recipe as Button. The merge removes Button's
+// base w-full so the navigation control stays a 40px circle like NavHeader's
+// back button instead of expanding to the whole header row.
+const menuButton = twMerge(
+    'btn btn-stroke flex w-full items-center gap-2 transition-all duration-instant active:translate-x-1 active:translate-y-1 active:shadow-none',
+    'relative size-10 w-10 p-0 shadow-none after:absolute after:-inset-0.5'
+)
 
 export function HomeTopNav({ showRewards }: HomeTopNavProps) {
     const t = useAppTranslations('home')
