@@ -20,6 +20,14 @@ import type { FlowErrorState } from '@/interfaces/interfaces'
  * Scoped here, a fresh entry IS the reset, and those compensations are gone.
  */
 interface WithdrawFlowContextType {
+    /**
+     * The user filled the amount by tapping their balance and has not edited it
+     * since, so they asked for "everything" rather than for the rounded number
+     * on screen. The URL amount stays at the 2 decimals they saw; the crypto
+     * path reads this to settle the sub-cent remainder too (TASK-21899).
+     */
+    isMaxWithdrawal: boolean
+    setIsMaxWithdrawal: (isMax: boolean) => void
     withdrawData: WithdrawData | null
     setWithdrawData: (data: WithdrawData | null) => void
     showCompatibilityModal: boolean
@@ -52,6 +60,7 @@ interface WithdrawFlowContextType {
 const WithdrawFlowContext = createContext<WithdrawFlowContextType | undefined>(undefined)
 
 export const WithdrawFlowProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+    const [isMaxWithdrawal, setIsMaxWithdrawal] = useState<boolean>(false)
     const [withdrawData, setWithdrawData] = useState<WithdrawData | null>(null)
     const [showCompatibilityModal, setShowCompatibilityModal] = useState<boolean>(false)
     const [isPreparingReview, setIsPreparingReview] = useState<boolean>(false)
@@ -79,10 +88,13 @@ export const WithdrawFlowProvider: React.FC<{ children: ReactNode }> = ({ childr
         setChargeDetails(null)
         setTransactionHash(null)
         setPaymentDetails(null)
+        setIsMaxWithdrawal(false)
     }, [])
 
     const value = useMemo(
         () => ({
+            isMaxWithdrawal,
+            setIsMaxWithdrawal,
             withdrawData,
             setWithdrawData,
             showCompatibilityModal,
@@ -112,6 +124,7 @@ export const WithdrawFlowProvider: React.FC<{ children: ReactNode }> = ({ childr
             resetWithdrawFlow,
         }),
         [
+            isMaxWithdrawal,
             withdrawData,
             showCompatibilityModal,
             isPreparingReview,

@@ -25,7 +25,7 @@ import type {
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
 import { isWithdrawFeeDisproportionate, getMinWithdrawUsdForChain } from '@/utils/cross-chain-fee.utils'
 import { isAmountWithinBalance } from '@/utils/balance.utils'
-import { isBelowRhinoMinDeposit } from '@/utils/withdraw.utils'
+import { isBelowRhinoMinDeposit, resolveWithdrawAmount } from '@/utils/withdraw.utils'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { useRouter } from 'next/navigation'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
@@ -72,6 +72,7 @@ export default function WithdrawCryptoPage() {
     const { address, sendTransactions, sendMoney, spendableBalance } = useWallet()
     const { resetTokenContextProvider } = useContext(tokenSelectorContext)
     const {
+        isMaxWithdrawal,
         withdrawData,
         setWithdrawData,
         showCompatibilityModal,
@@ -95,6 +96,17 @@ export default function WithdrawCryptoPage() {
     // the one typed amount (USD), carried in the URL from the shared amount step
     const [amountToWithdraw] = useWithdrawAmount()
     const usdAmount = amountToWithdraw
+
+    // What the withdrawal should actually move: a max withdrawal (balance tap,
+    // unedited) settles the sub-cent remainder too, so the wallet reaches a
+    // true zero instead of stranding dust that displays as $0.00. Resolved
+    // against the live balance; frozen per charge the moment the request/charge
+    // is created (setupAmountRef). See resolveWithdrawAmount for the guard
+    // that keeps a moved balance from changing what the user agreed to.
+    const liveResolvedAmount = useMemo(
+        () => resolveWithdrawAmount(amountToWithdraw, spendableBalance, isMaxWithdrawal, PEANUT_WALLET_TOKEN_DECIMALS),
+        [amountToWithdraw, spendableBalance, isMaxWithdrawal]
+    )
 
     // recipient → review → success as named screen ids in the URL. The guards
     // cover refresh/deep-link into a step whose prepared state (charge, route)
@@ -220,7 +232,7 @@ export default function WithdrawCryptoPage() {
                 tokenAmount:
                     setupAmountRef.current?.chargeId === chargeDetails.uuid
                         ? setupAmountRef.current.amountUsd
-                        : amountToWithdraw,
+                        : liveResolvedAmount,
             },
             destination: {
                 recipientAddress: chargeDetails.requestLink.recipientAddress as Address,
@@ -235,7 +247,7 @@ export default function WithdrawCryptoPage() {
             senderPeanutWalletAddress: address as Address,
             skipGasEstimate: true, // peanut wallet handles gas
         })
-    }, [chargeDetails, withdrawData, calculateRoute, address, amountToWithdraw])
+    }, [chargeDetails, withdrawData, calculateRoute, address, liveResolvedAmount])
 
     // prepare transaction when entering the review step
     useEffect(() => {
@@ -256,7 +268,9 @@ export default function WithdrawCryptoPage() {
             // Same-chain USDC has no rail minimum, so `0` and malformed values
             // used to sail past the Rhino-only minimum check below and persist
             // request+charge records that could never sign.
-            const amountCheck = validateCryptoWithdrawAmount(amountToWithdraw, spendableBalance)
+            // Validate the RESOLVED amount — for a max withdrawal that is the
+            // full-precision balance, for anything else the typed value.
+            const amountCheck = validateCryptoWithdrawAmount(liveResolvedAmount, spendableBalance)
             if (!amountCheck.ok) {
                 setError(
                     amountCheck.reason === 'insufficientBalance'
@@ -377,6 +391,7 @@ export default function WithdrawCryptoPage() {
         },
         [
             amountToWithdraw,
+            liveResolvedAmount,
             spendableBalance,
             clearErrors,
             setChargeDetails,
@@ -452,7 +467,7 @@ export default function WithdrawCryptoPage() {
         // already moved for that charge and only the bookkeeping replays.
         const pinnedAmount =
             setupAmountRef.current?.chargeId === chargeDetails.uuid ? setupAmountRef.current.amountUsd : null
-        let broadcastAmount = pinnedAmount ?? amountToWithdraw
+        let broadcastAmount = pinnedAmount ?? liveResolvedAmount
         if (executedSpendRef.current?.chargeId !== chargeDetails.uuid) {
             const amountCheck = validateCryptoWithdrawAmount(broadcastAmount, spendableBalance)
             if (!amountCheck.ok) {
@@ -654,6 +669,7 @@ export default function WithdrawCryptoPage() {
         chargeDetails,
         withdrawData,
         amountToWithdraw,
+        liveResolvedAmount,
         spendableBalance,
         address,
         transactions,
@@ -758,7 +774,7 @@ export default function WithdrawCryptoPage() {
         ? payAmount
         : chargeDetails && setupAmountRef.current?.chargeId === chargeDetails.uuid
           ? setupAmountRef.current.amountUsd
-          : amountToWithdraw
+          : liveResolvedAmount
     const insufficientBalance = useMemo<boolean>(
         () =>
             kernelSpend != null &&

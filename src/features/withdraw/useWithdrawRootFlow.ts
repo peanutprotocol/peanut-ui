@@ -36,8 +36,15 @@ export function useWithdrawRootFlow() {
     const [returnToParam] = useQueryState(RETURN_TO_PARAM, parseAsString)
     const { isFromSendFlow, isCryptoFromSend, isBankFromSend } = useSendFlowOrigin()
 
-    const { error, setError, selectedMethod, selectedBankAccount, setSelectedBankAccount, setSelectedMethod } =
-        useWithdrawFlow()
+    const {
+        error,
+        setError,
+        selectedMethod,
+        selectedBankAccount,
+        setSelectedBankAccount,
+        setSelectedMethod,
+        setIsMaxWithdrawal,
+    } = useWithdrawFlow()
 
     const [urlAmount, setUrlAmount] = useWithdrawAmount()
     // raw amount currently typed in the input; the URL is the commit point
@@ -186,6 +193,18 @@ export function useWithdrawRootFlow() {
         [balance, maxDecimalAmount, setError, isFromSendFlow, minUsdAmount, t, tErrors]
     )
 
+    // The exact string the balance tap last filled. Any other value reaching
+    // handleAmountChange is the user typing, which retires the max intent.
+    const filledFromBalanceRef = useRef<string | null>(null)
+
+    const handleBalanceFilled = useCallback(
+        (value: string) => {
+            filledFromBalanceRef.current = value
+            setIsMaxWithdrawal(true)
+        },
+        [setIsMaxWithdrawal]
+    )
+
     const handleAmountChange = useCallback(
         (value: string | undefined) => {
             let newValue = value || ''
@@ -194,6 +213,11 @@ export function useWithdrawRootFlow() {
                 newValue = ''
             }
             setRawTokenAmount(newValue)
+
+            if (newValue !== filledFromBalanceRef.current) {
+                filledFromBalanceRef.current = null
+                setIsMaxWithdrawal(false)
+            }
 
             // ignore programmatically injected tiny residual amounts (<1) before user interaction
             const numericVal = parseFloat(newValue)
@@ -215,7 +239,7 @@ export function useWithdrawRootFlow() {
                 setError({ showError: false, errorMessage: '' })
             }
         },
-        [setUrlAmount, error.showError, setError]
+        [setUrlAmount, error.showError, setError, setIsMaxWithdrawal]
     )
 
     // only validate when rawTokenAmount changes and we're on the amount step
@@ -324,10 +348,12 @@ export function useWithdrawRootFlow() {
         // to a different method
         setRawTokenAmount('')
         void setUrlAmount(null)
+        filledFromBalanceRef.current = null
+        setIsMaxWithdrawal(false)
         setSelectedMethod(null)
         setSelectedBankAccount(null)
         void stepper.back()
-    }, [isCryptoFromSend, router, setSelectedMethod, setSelectedBankAccount, setUrlAmount, stepper])
+    }, [isCryptoFromSend, router, setSelectedMethod, setSelectedBankAccount, setUrlAmount, setIsMaxWithdrawal, stepper])
 
     // check if continue button should be disabled
     const continueDisabled = useMemo(() => {
@@ -359,6 +385,8 @@ export function useWithdrawRootFlow() {
         stepper,
         rawTokenAmount,
         walletBalance,
+        maxDecimalAmount,
+        handleBalanceFilled,
         error,
         isCryptoWithdraw,
         limitsValidation,
