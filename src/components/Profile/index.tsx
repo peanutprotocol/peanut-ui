@@ -133,7 +133,6 @@ export const Profile = () => {
                     </ListGroup>
 
                     <ListGroup>
-                        <ProfileMenuItem icon="eye" label={t('accessibility')} href="/settings/accessibility" />
                         <ProfileMenuItem
                             icon="globe"
                             label={t('language')}
@@ -146,6 +145,7 @@ export const Profile = () => {
                             href="/profile/backup"
                             onClick={() => router.push('/profile/backup')}
                         />
+                        <ProfileMenuItem icon="eye" label={t('accessibility')} href="/settings/accessibility" />
                         {/* help center is web-only content — DocsLink localizes
                             the path and opens the in-app browser in Capacitor */}
                         <ProfileMenuItem icon="question-mark" label={t('menu.help')} href="/en/help" isDocsLink />

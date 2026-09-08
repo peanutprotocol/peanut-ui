@@ -87,7 +87,7 @@ export const ListItem = ({
             aria-pressed={separateAction ? undefined : ariaPressed}
             data-testid={dataTestId}
             className={twMerge(
-                'relative flex items-center justify-between gap-3 p-4',
+                'a11y-list-item relative flex items-center justify-between gap-3 p-4',
                 onClick &&
                     !disabled &&
                     'cursor-pointer transition-colors duration-instant focus-visible:outline-[3px] focus-visible:outline-action-focus active:bg-background-disabled',
@@ -116,7 +116,7 @@ export const ListItem = ({
                     className="a11y-row-action absolute inset-0 focus-visible:outline-[3px] focus-visible:outline-action-focus active:bg-background-disabled"
                 />
             )}
-            <div className={twMerge('flex min-w-0 flex-1 items-center gap-3', slotInteractions)}>
+            <div className={twMerge('a11y-list-content flex min-w-0 flex-1 items-center gap-3', slotInteractions)}>
                 {leading}
                 {/* plain strings get the board one-line truncation; custom nodes render
                     in a block wrapper untruncated (a div inside a span is invalid html

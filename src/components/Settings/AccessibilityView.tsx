@@ -93,14 +93,6 @@ export function AccessibilityView() {
                     onChange={(simplifiedConfirmations) => preferences.updatePreferences({ simplifiedConfirmations })}
                 />
             </Card>
-            <section aria-labelledby="accessibility-preview">
-                <Card className="bg-background-default p-4">
-                    <h2 id="accessibility-preview" className="text-heading-card">
-                        {t('preview')}
-                    </h2>
-                    <p className="mt-2 text-body-m">{t('previewText')}</p>
-                </Card>
-            </section>
             <section aria-labelledby="accessibility-help" className="space-y-2">
                 <h2 id="accessibility-help" className="text-heading-card">
                     {t('deviceFeatures')}

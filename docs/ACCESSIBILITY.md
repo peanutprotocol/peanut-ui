@@ -50,3 +50,10 @@ Browser verification on the accessibility PR also covered a 320px viewport with
 larger text: the drawer retained its padding, the slider label wrapped clear of
 its handle, there was no horizontal page overflow, drawer focus returned to its
 trigger, and row/profile actions worked independently with pointer and keyboard.
+
+The enlarged-text layout pass also checks the real Accessibility, Profile,
+Language, Backup, Send and Payment Channels routes with fixture data at mobile
+widths. Header titles remain in flow without a centering translation, icon
+buttons retain their size, and list status labels can wrap below the main text
+instead of compressing it into a narrow column. The settings page itself serves
+as the text-size preview.

@@ -40,7 +40,7 @@ interface NavHeaderProps {
 // board 17802:61534 top-nav circle button: 40px visual, no shadow, pseudo-element
 // extends the hit area to 44px (touch-target law — was 28px, the "opened support
 // instead of going back" bug)
-const navCircleBtn = 'relative size-10 w-10 p-0 shadow-none after:absolute after:-inset-0.5'
+const navCircleBtn = 'relative size-10 w-10 shrink-0 p-0 shadow-none after:absolute after:-inset-0.5'
 
 const NavHeader = ({
     title,
@@ -79,13 +79,13 @@ const NavHeader = ({
 
     return (
         <div className="w-full" ref={rootRef}>
-            <div className="relative flex w-full flex-row items-center justify-between">
+            <div className="a11y-nav-controls relative flex w-full flex-row items-center justify-between">
                 {hideBackBtn ? (
-                    <div />
+                    <div className="a11y-nav-spacer" aria-hidden="true" />
                 ) : !onPrev ? (
                     <Link
                         href={href ?? '/home'}
-                        className={twMerge('btn btn-stroke', navCircleBtn)}
+                        className={twMerge('btn btn-stroke btn-square', navCircleBtn)}
                         aria-label={tCommon('back')}
                         data-testid="nav-back"
                     >
@@ -98,6 +98,7 @@ const NavHeader = ({
                 ) : (
                     <Button
                         variant="stroke"
+                        shape="square"
                         className={navCircleBtn}
                         onClick={onPrev}
                         disabled={disableBackBtn}
@@ -134,10 +135,14 @@ const NavHeader = ({
                         onClick={() => auth.logoutUser()}
                         loading={auth.isLoggingOut}
                         variant="stroke"
+                        shape="square"
                         icon="logout"
                         aria-label={tNav('logout')}
                         className={navCircleBtn}
                     />
+                )}
+                {!rightElement && !(showLogoutBtn && auth) && (
+                    <div className="a11y-nav-spacer hidden" aria-hidden="true" />
                 )}
             </div>
             {/* maintenance announcement renders below the nav header (designer

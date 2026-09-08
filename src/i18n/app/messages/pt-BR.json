@@ -634,8 +634,6 @@
             "highContrastDescription": "Destaque o texto secundário, as bordas e os indicadores de foco.",
             "simplifiedConfirmations": "Confirmações simplificadas",
             "simplifiedConfirmationsDescription": "Use botões em vez de deslizar ou manter pressionado. Você ainda verá uma etapa de confirmação separada.",
-            "preview": "Prévia do texto",
-            "previewText": "Suas preferências se aplicam em todo o Peanut e ficam salvas neste dispositivo.",
             "deviceFeatures": "Recursos de acessibilidade do dispositivo",
             "deviceFeaturesDescription": "Ative o leitor de tela ou o controle por voz nas configurações do dispositivo. Você também pode usar o tamanho de texto do dispositivo e o zoom do navegador.",
             "alwaysOnDescription": "Rótulos claros e status em texto estão sempre ativados. Nenhuma configuração extra é necessária.",

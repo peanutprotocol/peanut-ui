@@ -2120,13 +2120,41 @@ input::placeholder {
     flex: 1;
     max-width: none;
     min-width: 0;
-    margin-inline: 1rem;
+    margin-inline: 0.5rem;
     transform: none;
+    /* Tailwind's translate utilities use the individual property, separate from transform. */
+    translate: none;
     white-space: normal;
     overflow: visible;
     text-overflow: clip;
     text-align: center;
     overflow-wrap: anywhere;
+}
+
+:root[data-larger-text='true'] .a11y-nav-spacer {
+    display: block;
+    flex: 0 0 2.5rem;
+}
+
+/* Give translated headings the full row on the narrowest phones. */
+@media (max-width: 359px) {
+    :root[data-larger-text='true'] .a11y-nav-controls {
+        flex-wrap: wrap;
+        row-gap: 0.5rem;
+    }
+    :root[data-larger-text='true'] .a11y-nav-title {
+        order: 1;
+        flex-basis: 100%;
+        margin-inline: 0;
+    }
+}
+
+/* Let a status or amount move below the label before squeezing its text into a narrow column. */
+:root[data-larger-text='true'] .a11y-list-item {
+    flex-wrap: wrap;
+}
+:root[data-larger-text='true'] .a11y-list-content {
+    flex-basis: 12rem;
 }
 
 /* The row action follows the grouped Card corners without enclosing slot controls. */
