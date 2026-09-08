@@ -110,7 +110,8 @@
         "cardApprovalFailed": "Card approval failed — please try again.",
         "logoutFailed": "Couldn’t log out. Please try again.",
         "loginIncomplete": "Login didn’t complete. Please try again.",
-        "rateUnavailable": "Exchange rates are temporarily unavailable. Please try again in a moment."
+        "rateUnavailable": "Exchange rates are temporarily unavailable. Please try again in a moment.",
+        "transferTemporarilyUnavailable": "Transfers are temporarily unavailable. Please check Activity before trying again."
     },
     "migration": {
         "downloadPrompt": {

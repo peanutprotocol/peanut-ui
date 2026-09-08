@@ -94,6 +94,7 @@ jest.mock('@/utils/withdraw.utils', () => ({
 jest.mock('@/utils/general.utils', () => ({
     isTxReverted: (receipt: { status?: string } | null) => receipt?.status === 'reverted',
     printableAddress: (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`,
+    validateEnsName: (name: string | undefined) => name === 'alice.eth',
 }))
 
 jest.mock('@/utils/url.utils', () => ({
@@ -142,7 +143,11 @@ jest.mock('@/components/Withdraw/views/Confirm.withdraw.view', () => ({
 
 jest.mock('@/components/Withdraw/views/Initial.withdraw.view', () => ({
     __esModule: true,
-    default: () => <div data-testid="initial-view" />,
+    default: (props: { onReview: (data: unknown) => void }) => (
+        <button data-testid="initial-view" onClick={() => props.onReview(withdrawData)}>
+            Review
+        </button>
+    ),
 }))
 
 jest.mock('@/features/payments/shared/components/PaymentSuccessView', () => ({
@@ -206,6 +211,7 @@ const withdrawData = {
 
 const mockSetPreparedAmount = jest.fn()
 const mockWithdrawFlow = {
+    recipient: { name: ' Alice.eth ' },
     amountToWithdraw: '50',
     isMaxWithdrawal: false,
     setIsMaxWithdrawal: jest.fn(),
@@ -281,6 +287,8 @@ jest.mock('@/features/payments/shared/hooks/usePaymentRecorder', () => ({
 }))
 
 import WithdrawCryptoPage from '../page'
+import { chargesApi } from '@/services/charges'
+import { requestsApi } from '@/services/requests'
 
 const render = (ui: React.ReactElement, options?: Omit<Parameters<typeof rtlRender>[1], 'wrapper'>) =>
     rtlRender(ui, { wrapper: IntlWrapper, ...options })
@@ -298,6 +306,41 @@ beforeEach(() => {
     jest.clearAllMocks()
     mockRecordPayment.mockResolvedValue(PAYMENT_RESULT)
     Object.assign(mockCrossChainTransfer, { isXChain: false, isDiffToken: false, quoteExpiresAt: null })
+})
+
+describe('crypto withdraw preparation', () => {
+    it('creates a standalone WITHDRAW charge without an existing request link', async () => {
+        mockWithdrawFlow.currentView = 'INITIAL'
+        jest.mocked(chargesApi.create).mockResolvedValue({ data: { id: CHARGE_UUID } } as never)
+        jest.mocked(chargesApi.get).mockResolvedValue(chargeDetails as never)
+        try {
+            render(<WithdrawCryptoPage />)
+            fireEvent.click(screen.getByTestId('initial-view'))
+            await waitFor(() => expect(mockWithdrawFlow.setShowCompatibilityModal).toHaveBeenCalledWith(true))
+            expect(requestsApi.create).not.toHaveBeenCalled()
+            expect(chargesApi.create).toHaveBeenCalledTimes(1)
+            const [payload] = jest.mocked(chargesApi.create).mock.calls[0]
+            expect(payload).not.toHaveProperty('requestId')
+            expect(payload).toMatchObject({
+                transactionType: 'WITHDRAW',
+                local_price: { amount: '50', currency: 'USD' },
+                requestProps: {
+                    recipientAddress: RECIPIENT,
+                    recipientEnsName: 'alice.eth',
+                    chainId: '42161',
+                    tokenAmount: '50.000000',
+                    tokenAddress: withdrawData.token.address,
+                    tokenDecimals: 6,
+                    tokenType: 1,
+                    tokenSymbol: 'USDC',
+                },
+            })
+            expect(mockSetPreparedAmount).toHaveBeenLastCalledWith('50')
+            expect(mockWithdrawFlow.setChargeDetails).toHaveBeenLastCalledWith(chargeDetails)
+        } finally {
+            mockWithdrawFlow.currentView = 'CONFIRM'
+        }
+    })
 })
 
 describe('crypto withdraw confirm — expired Rhino quote', () => {
