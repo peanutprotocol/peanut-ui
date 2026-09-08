@@ -227,8 +227,17 @@ read-only repository access; only this small post-release job receives `contents
 write`, and its only write is that tag. Future OTA checks accept the tag only when it is
 annotated, is an ancestor of the bundle commit, fingerprints the tagged native surface,
 and differs from the original `v<version>` tag only by the legacy-compatible allowlist.
-Any further native drift still blocks OTA. The tag is created after the Play upload, so
-a failed or never-launched replacement cannot prematurely relax the OTA guard.
+The attestation also names the `android-capacitor-permissions-v1` JavaScript guard.
+While the floor still includes original Android 1.5.0 binaries, every OTA scans all
+shipped source: direct Capacitor `checkPermissions` / `requestPermissions` calls are
+forbidden, `@capacitor/camera` may only be loaded by the iOS preflight wrapper, and that
+wrapper must return on Android before the lazy import. This prevents a later JS-only
+change from reintroducing the native crash on the original same-version population.
+Adding a new permission-bearing plugin changes the native fingerprint and is rejected
+independently. Any native drift or legacy-permission violation blocks OTA. The guard is
+retired naturally when a coordinated native release advances the shared floor beyond
+the original binary. The tag is created after the Play upload, so a failed or
+never-launched replacement cannot prematurely relax the OTA guard.
 
 The tag is written **after** the build, as the record of what shipped — a failed run
 leaves no tag, so a re-run resolves the same number instead of burning one. CI tags with
@@ -422,7 +431,10 @@ own `out/` under the binary's versionName, then assert the channel serves it.
   `v<major>.<build>.0` tag the bundle's floor targets. When a same-version Android
   replacement has successfully reached Play, `scripts/check-native-ota-surface.mjs`
   may select its annotated replacement tag instead—but only after validating the tag's
-  ancestry, attested fingerprint, Android-only scope, and legacy-compatible input set.
+  ancestry, attested fingerprint, Android-only scope, legacy-compatible input set, and
+  the source-wide legacy Android permission guard named by the attestation. That guard
+  forbids direct Capacitor permission calls and only permits the Camera plugin behind
+  the wrapper that returns before its lazy import on Android.
   A mismatch **fails the OTA** and names the file that moved. The fingerprint remains a
   pure function of the tree; tags only attest which successfully uploaded binary owns
   that surface, and any tag can be fingerprinted retroactively (`--ref v1.2.0`).

@@ -23,6 +23,7 @@ const fixtureFiles = [
     'ios/App/CapApp-SPM/Package.swift',
     'ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved',
     'ios/App/App.xcodeproj/project.pbxproj',
+    'src/utils/camera-permission.ts',
 ]
 
 function makeFixture() {
@@ -67,7 +68,7 @@ function recordReplacement(fixture, tag = 'android-v1.5.0-replacement-fix') {
         '-m',
         'Android replacement',
         '-m',
-        `peanut-native-replacement-v1: platform=android base=v1.5.0 legacy-compatible=true fingerprint=${value}`
+        `peanut-native-replacement-v2: platform=android base=v1.5.0 native-compatible=true js-guard=android-capacitor-permissions-v1 fingerprint=${value}`
     )
     return tag
 }
@@ -87,19 +88,39 @@ describe('native OTA replacement baseline', () => {
         expect(result.stdout).toContain('matches original v1.5.0')
     })
 
-    it('accepts an attested ProGuard-only replacement and later JS-only commits', () => {
+    it('accepts an attested ProGuard-only replacement and later permission-safe JS commits', () => {
         fs.appendFileSync(path.join(fixture.root, 'android/app/proguard-rules.pro'), '\n# retain runtime metadata\n')
         fixture.git('add', 'android/app/proguard-rules.pro')
         fixture.git('commit', '-qm', 'repair R8')
         const tag = recordReplacement(fixture)
-        fs.writeFileSync(path.join(fixture.root, 'web-only.txt'), 'later OTA\n')
-        fixture.git('add', 'web-only.txt')
+        const laterJs = path.join(fixture.root, 'src/later.ts')
+        fs.writeFileSync(laterJs, 'export const later = true\n')
+        fixture.git('add', 'src/later.ts')
         fixture.git('commit', '-qm', 'later JS')
 
         const result = run(fixture.root)
         expect(result.status).toBe(0)
         expect(result.stdout).toContain(`matches attested android replacement ${tag}`)
         expect(result.stdout).toContain('older v1.5.0 installs remain')
+    })
+
+    it('rejects later JavaScript that calls Camera directly on legacy Android shells', () => {
+        fs.appendFileSync(path.join(fixture.root, 'android/app/proguard-rules.pro'), '\n# retain runtime metadata\n')
+        fixture.git('add', 'android/app/proguard-rules.pro')
+        fixture.git('commit', '-qm', 'repair R8')
+        recordReplacement(fixture)
+        const laterJs = path.join(fixture.root, 'src/later.ts')
+        fs.writeFileSync(
+            laterJs,
+            "import { Camera } from '@capacitor/camera'\nexport const later = () => Camera.checkPermissions()\n"
+        )
+        fixture.git('add', 'src/later.ts')
+        fixture.git('commit', '-qm', 'unsafe later OTA')
+
+        const result = run(fixture.root)
+        expect(result.status).toBe(1)
+        expect(result.stderr).toContain('legacy Android permission guard failed')
+        expect(result.stderr).toContain('src/later.ts')
     })
 
     it('rejects native drift after the recorded replacement', () => {

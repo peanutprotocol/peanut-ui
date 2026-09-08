@@ -219,6 +219,9 @@ jobs:
             # replacement records a second annotated baseline after Play accepts
             # it; the checker validates that baseline is ancestry-bound,
             # fingerprinted, and safe for older binaries with the same version.
+            # Because both binaries share versionName, the checker also scans all
+            # shipped source and forbids direct Capacitor permission APIs on the
+            # original R8-broken Android shell.
             # The original tag also attests that both release builds compiled the
             # credential-gated native SDK.
             #

@@ -12,13 +12,14 @@ import { execFileSync, spawnSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { checkLegacyAndroidPermissions } from './check-legacy-android-permissions.mjs'
 import { diff, fingerprint, setRepoRoot } from './native-fingerprint.mjs'
 
 const require = createRequire(import.meta.url)
 const { changesOutsidePlatform, changesUnsafeForSameVersion } = require('./check-native-change-scope.cjs')
 const defaultRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const ATTESTATION =
-    /^peanut-native-replacement-v1: platform=(android|ios) base=(v\d+\.\d+\.\d+) legacy-compatible=true fingerprint=([0-9a-f]{16})$/
+    /^peanut-native-replacement-v2: platform=(android|ios) base=(v\d+\.\d+\.\d+) native-compatible=true js-guard=(android-capacitor-permissions-v1) fingerprint=([0-9a-f]{16})$/
 
 function git(root, args) {
     return execFileSync('git', args, {
@@ -51,10 +52,10 @@ function parseAttestation(root, tag) {
         throw new Error(`${tag} is lightweight; replacement baselines must be annotated attestations`)
     }
     const contents = git(root, ['for-each-ref', '--format=%(contents)', `refs/tags/${tag}`])
-    const line = contents.split('\n').find((candidate) => candidate.startsWith('peanut-native-replacement-v1:'))
+    const line = contents.split('\n').find((candidate) => candidate.startsWith('peanut-native-replacement-v2:'))
     const match = ATTESTATION.exec(line ?? '')
-    if (!match) throw new Error(`${tag} is missing a valid peanut-native-replacement-v1 attestation`)
-    return { platform: match[1], baseRef: match[2], fingerprint: match[3] }
+    if (!match) throw new Error(`${tag} is missing a valid peanut-native-replacement-v2 attestation`)
+    return { platform: match[1], baseRef: match[2], jsGuard: match[3], fingerprint: match[4] }
 }
 
 function validateCandidate(root, tag, baseRef, platform) {
@@ -117,9 +118,10 @@ export function checkNativeOtaSurface({ root = defaultRoot, baseRef, platform = 
     const baseline = candidates[0].tag
     const changes = diff(baseline, headRef)
     if (changes.length > 0) failChanged(baseline, headRef, changes)
+    if (platform === 'android') checkLegacyAndroidPermissions({ root, ref: headRef })
     return `native surface matches attested ${platform} replacement ${baseline} (${fingerprint(
         baseline
-    )}); older ${baseRef} installs remain on the legacy-compatible contract`
+    )}); older ${baseRef} installs remain on the guarded legacy contract`
 }
 
 function flag(argv, name) {
