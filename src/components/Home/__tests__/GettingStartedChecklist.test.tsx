@@ -60,7 +60,7 @@ describe('GettingStartedChecklist', () => {
 
     it('uses the light-green design-system background only for completed rows', () => {
         render()
-        expect(screen.getByTestId('checklist-create-account')).toHaveClass('bg-background-badge-success')
+        expect(screen.getByTestId('checklist-create-account')).toHaveClass('bg-background-icon-bubble-green/10')
         expect(screen.getByTestId('checklist-add-money')).toHaveClass('bg-white')
         expect(screen.getByTestId('checklist-get-card')).toHaveClass('bg-white')
     })
