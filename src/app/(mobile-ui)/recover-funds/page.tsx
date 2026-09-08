@@ -211,32 +211,6 @@ export default function RecoverFundsPage() {
         return <Loading variant="mascot" />
     }
 
-    if (balancesError) {
-        return (
-            <PageStack>
-                <NavHeader title={t('title')} />
-                <div className="my-auto">
-                    <EmptyState
-                        icon="alert"
-                        title={tCommon('somethingWentWrong')}
-                        description={tCommon('genericError')}
-                        cta={
-                            <Button
-                                variant="purple"
-                                shadowSize="4"
-                                size="small"
-                                className="mt-2"
-                                onClick={() => setFetchNonce((n) => n + 1)}
-                            >
-                                {tCommon('tryAgain')}
-                            </Button>
-                        }
-                    />
-                </div>
-            </PageStack>
-        )
-    }
-
     if (status === 'review' && (!selectedBalance || !recipient.address)) {
         captureException(new Error('Invalid state, review without selected balance or recipient address'))
         reset()
@@ -383,24 +357,26 @@ export default function RecoverFundsPage() {
     return (
         <PageStack>
             <NavHeader title={t('title')} />
-            {/* nothing recoverable — the token picker, address input and review
-                button are all pointless, show the ds empty state with a way
-                back home instead */}
-            {tokenBalances.length === 0 ? (
+            {/* balancesError: the fetch failed — show the alert empty state
+                with a retry instead of hanging on the loader (TASK-21829).
+                Otherwise, nothing recoverable — the token picker, address
+                input and review button are all pointless, show the ds empty
+                state with a way back home instead */}
+            {balancesError || tokenBalances.length === 0 ? (
                 <div className="my-auto">
                     <EmptyState
-                        icon="wallet"
-                        title={t('noTokens')}
-                        description={t('noTokensDescription')}
+                        icon={balancesError ? 'alert' : 'wallet'}
+                        title={balancesError ? tCommon('somethingWentWrong') : t('noTokens')}
+                        description={balancesError ? tCommon('genericError') : t('noTokensDescription')}
                         cta={
                             <Button
                                 variant="purple"
                                 shadowSize="4"
                                 size="small"
                                 className="mt-2"
-                                onClick={() => router.push('/home')}
+                                onClick={() => (balancesError ? setFetchNonce((n) => n + 1) : router.push('/home'))}
                             >
-                                {t('goToHome')}
+                                {balancesError ? tCommon('tryAgain') : t('goToHome')}
                             </Button>
                         }
                     />
