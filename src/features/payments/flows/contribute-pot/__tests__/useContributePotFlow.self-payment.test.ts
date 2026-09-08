@@ -15,6 +15,7 @@ const ctx = {
     contributors: [],
     totalAmount: 10,
     totalCollected: 0,
+    error: { showError: false, errorMessage: '' },
     setError: jest.fn(),
     setIsLoading: jest.fn(),
     setCharge: jest.fn(),
@@ -59,6 +60,7 @@ test.each(['address', 'userId'])('blocks own %s before charge creation and spons
             : { address: peer, userId: 'payer-user' }
     const { result } = renderHookWithIntl(() => useContributePotFlow())
     expect(result.current.canProceed).toBe(false)
+    expect(result.current.error).toEqual({ showError: true, errorMessage: 'You cannot pay your own request.' })
     await act(async () => {
         expect(await result.current.executeContribution()).toEqual({ success: false })
     })
@@ -70,6 +72,7 @@ test.each(['address', 'userId'])('blocks own %s before charge creation and spons
 
 test('a peer contribution still creates, sends and records', async () => {
     const { result } = renderHookWithIntl(() => useContributePotFlow())
+    expect(result.current.error.showError).toBe(false)
     await act(async () => {
         expect(await result.current.executeContribution()).toEqual({ success: true })
     })

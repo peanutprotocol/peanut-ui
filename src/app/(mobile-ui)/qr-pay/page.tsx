@@ -1031,10 +1031,10 @@ export default function QRPayPage() {
                 setErrorMessage(t('errors.accountStateChanged'))
             } else if (errorMsg.toLowerCase().includes('expired') || errorMsg.toLowerCase().includes('stale')) {
                 setErrorMessage(t('errors.sessionExpired'))
-            } else if (qrType === EQrType.PIX) {
-                setErrorMessage(t('errors.merchantNotSupported'))
             } else {
-                setErrorMessage(t('errors.completeFailed'))
+                // An untyped failure can come from an older API or an ambiguous
+                // submission. It proves neither merchant rejection nor that no funds moved.
+                setErrorMessage(t('errors.paymentStatusUnknown'))
             }
             setIsSuccess(false)
         } finally {

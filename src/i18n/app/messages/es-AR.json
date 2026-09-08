@@ -729,6 +729,7 @@
             "restartScan": "No pudimos iniciar este pago. Escaneá el código QR de nuevo.",
             "merchantNotSupported": "Este código QR o comercio no es compatible. Intentalo de nuevo con otro código QR.",
             "completeFailed": "No se pudo completar el pago. Escaneá el código QR de nuevo. Si el problema persiste, contactá a soporte",
+            "paymentStatusUnknown": "No pudimos confirmar el estado del pago. Revisá tu actividad antes de volver a intentarlo. Si el estado no está claro, contactá a soporte.",
             "paymentCancelled": "El proveedor canceló este pago antes de enviar la plata. Escaneá un nuevo código QR para volver a intentarlo."
         },
         "claim": {

@@ -1357,6 +1357,7 @@
             "authError": "Couldn't verify your session. Please try again.",
             "maxTransferAmount": "Transfer amount exceeds maximum limit of ${amount}",
             "minTransferAmount": "Transfer amount must be at least ${amount}",
+            "paymentStatusUnknown": "We couldn't confirm the payment status. Check Activity before trying again. If the status is unclear, contact support.",
             "paymentCancelled": "The provider cancelled this payment before funds were sent. Scan a new QR code to try again."
         },
         "claim": {

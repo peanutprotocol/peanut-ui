@@ -273,7 +273,7 @@ export function useContributePotFlow() {
         charge,
         payment,
         txHash,
-        error,
+        error: isSelfPayment ? { showError: true, errorMessage: t('errors.selfRequestPayment') } : error,
         isLoading: isLoading || isCreatingCharge || isRecording,
         isSuccess,
         isExternalWalletPayment,

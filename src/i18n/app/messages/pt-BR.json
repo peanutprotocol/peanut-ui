@@ -1357,6 +1357,7 @@
             "authError": "Não foi possível verificar sua sessão. Tente novamente.",
             "maxTransferAmount": "O valor da transferência ultrapassa o limite máximo de ${amount}",
             "minTransferAmount": "O valor da transferência deve ser de pelo menos ${amount}",
+            "paymentStatusUnknown": "Não foi possível confirmar o status do pagamento. Confira sua atividade antes de tentar novamente. Se o status não estiver claro, entre em contato com o suporte.",
             "paymentCancelled": "O provedor cancelou este pagamento antes do envio do dinheiro. Escaneie um novo código QR para tentar novamente."
         },
         "claim": {

@@ -1538,6 +1538,24 @@ const reconnectLock = {
 }
 
 describe('GROUP 5: Error States', () => {
+    test.each(['PIX', 'MERCADO_PAGO'])(
+        'an untyped %s submission failure asks users to check Activity without claiming cancellation',
+        async (type) => {
+            mockMantecaApi.completeQrPaymentWithSignedTx.mockRejectedValue(
+                Object.assign(new Error('Payment verification failed'), { name: 'ApiError', status: 500 })
+            )
+            renderQrPay({ qrCode: '000201-payment', type, t: '1' })
+            await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+            await act(async () => {
+                fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+            })
+            await waitFor(() => expect(screen.getByText(en.qrPay.errors.paymentStatusUnknown)).toBeInTheDocument())
+            expect(screen.queryByText(en.qrPay.errors.paymentCancelled)).not.toBeInTheDocument()
+            expect(screen.queryByText(en.qrPay.errors.merchantNotSupported)).not.toBeInTheDocument()
+            expect(screen.queryByTestId('success-sound')).not.toBeInTheDocument()
+        }
+    )
+
     test('a typed pre-broadcast cancellation shows retry guidance without success or merchant blame', async () => {
         mockMantecaApi.completeQrPaymentWithSignedTx.mockRejectedValue(
             Object.assign(new Error('Cancelled'), { name: 'ApiError', status: 400, code: 'QR_PAYMENT_CANCELLED' })
