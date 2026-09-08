@@ -7,12 +7,11 @@ import { Notification } from '@/components/0_Bruddle/Notification'
 import ScrollableList from '@/components/Global/TokenSelector/Components/ScrollableList'
 import TokenListItem from '@/components/Global/TokenSelector/Components/TokenListItem'
 import { type IUserBalance } from '@/interfaces/interfaces'
-import { useState, useEffect, useCallback, useContext } from 'react'
+import { useState, useCallback, useContext } from 'react'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { fetchWalletBalances } from '@/services/tokens-price'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
+import { useRecoverableBalances } from '@/hooks/useRecoverableBalances'
 import { nativeCurrencyAddresses } from '@/constants/general.consts'
-import { areEvmAddressesEqual, isTxReverted, getExplorerUrl, getChainName, getTokenLogo } from '@/utils/general.utils'
+import { areEvmAddressesEqual, isTxReverted, getExplorerUrl, getChainName } from '@/utils/general.utils'
 import { type RecipientState } from '@/context/WithdrawFlowContext'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -20,12 +19,11 @@ import Card from '@/components/Global/Card'
 import Image from 'next/image'
 import AddressLink from '@/components/Global/AddressLink'
 import Loading from '@/components/Global/Loading'
-import { erc20Abi, parseUnits, encodeFunctionData, formatUnits } from 'viem'
+import { erc20Abi, parseUnits, encodeFunctionData } from 'viem'
 import type { Address, Hash, TransactionReceipt } from 'viem'
 import { useRouter } from 'next/navigation'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { captureException } from '@sentry/nextjs'
-import { mainnet, base, linea } from 'viem/chains'
 import { getPublicClient, type ChainId } from '@/app/actions/clients'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { useFormatter, useTranslations } from 'next-intl'
@@ -43,20 +41,11 @@ const fetchExactNativeBalance = async (chainId: string, address: Address): Promi
     return await client.getBalance({ address })
 }
 
-// Mobula does not returns Linea balance, we have one user balance with USDC in Linea so we will manually fetch it
-const USDC_IN_LINEA = '0x176211869cA2b568f2A7D4EE941E073a821EE1ff'
-
-const RECOVERABLE_CHAINS = [PEANUT_WALLET_CHAIN, mainnet, base, linea]
-
 export default function RecoverFundsPage() {
-    const [tokenBalances, setTokenBalances] = useState<IUserBalance[]>([])
     const [selectedBalance, setSelectedBalance] = useState<IUserBalance | undefined>()
     const [recipient, setRecipient] = useState<RecipientState>({ address: '', name: '' })
     const [errorMessage, setErrorMessage] = useState('')
     const [inputChanging, setInputChanging] = useState(false)
-    const [fetchingBalances, setFetchingBalances] = useState(true)
-    const [balancesError, setBalancesError] = useState(false)
-    const [fetchNonce, setFetchNonce] = useState(0)
     const [isSigning, setIsSigning] = useState(false)
     const [txHash, setTxHash] = useState<string>('')
     const [status, setStatus] = useState<'init' | 'review' | 'final'>('init')
@@ -67,77 +56,12 @@ export default function RecoverFundsPage() {
     const tCommon = useTranslations('common')
     const tLoading = useTranslations('loadingStates')
     const format = useFormatter()
+    // Balance discovery + failure semantics live in the hook so they are
+    // testable (TASK-21829): fetch failure → retryable error state, never a
+    // false "no tokens to recover".
+    const { tokenBalances, setTokenBalances, fetchingBalances, balancesError, retry } =
+        useRecoverableBalances(peanutAddress)
 
-    useEffect(() => {
-        if (!peanutAddress) return
-        let cancelled = false
-        const fetchBalances = async () => {
-            setFetchingBalances(true)
-            setBalancesError(false)
-            try {
-                // A rejection here used to escape the effect unhandled and leave
-                // fetchingBalances stuck true — the page hung on the mascot
-                // loader forever whenever the balance fetch failed (TASK-21829).
-                const [balancesResult, lineaResult] = await Promise.allSettled([
-                    fetchWalletBalances(peanutAddress),
-                    //Manually fetching Linea balance for USDC because Mobula does
-                    //not return it
-                    getPublicClient(linea.id).readContract({
-                        address: USDC_IN_LINEA,
-                        abi: erc20Abi,
-                        functionName: 'balanceOf',
-                        args: [peanutAddress as Address],
-                    }),
-                ])
-                if (cancelled) return
-                if (balancesResult.status === 'rejected') throw balancesResult.reason
-                const recoverableBalances = balancesResult.value.balances.filter(
-                    (b) =>
-                        RECOVERABLE_CHAINS.some((chain) => b.chainId === chain.id.toString()) &&
-                        !areEvmAddressesEqual(PEANUT_WALLET_TOKEN, b.address)
-                )
-                // The Linea leg is best-effort when other tokens rendered: a
-                // Linea RPC hiccup must not hide them, so a rejection drops the
-                // manual row (captured to Sentry). But Linea USDC exists ONLY
-                // via this read — Mobula never returns Linea — so with nothing
-                // else recoverable, "no tokens to recover" would be confidently
-                // false. Show the retryable error state instead.
-                if (lineaResult.status === 'rejected') {
-                    captureException(lineaResult.reason)
-                    if (recoverableBalances.length === 0) {
-                        setBalancesError(true)
-                        return
-                    }
-                }
-                const lineaBalance = lineaResult.status === 'fulfilled' ? lineaResult.value : 0n
-                if (!!lineaBalance) {
-                    recoverableBalances.push({
-                        chainId: linea.id.toString(),
-                        address: USDC_IN_LINEA,
-                        name: 'USDC',
-                        symbol: 'USDC',
-                        decimals: 6,
-                        price: 1,
-                        amount: Number(formatUnits(lineaBalance, 6)),
-                        currency: 'usd',
-                        logoURI: getTokenLogo('USDC'),
-                        value: formatUnits(lineaBalance, 6),
-                    })
-                }
-                setTokenBalances(recoverableBalances)
-            } catch (error) {
-                if (cancelled) return
-                captureException(error)
-                setBalancesError(true)
-            } finally {
-                if (!cancelled) setFetchingBalances(false)
-            }
-        }
-        fetchBalances()
-        return () => {
-            cancelled = true
-        }
-    }, [peanutAddress, fetchNonce])
     const reset = useCallback(() => {
         setErrorMessage('')
         setInputChanging(false)
@@ -385,7 +309,7 @@ export default function RecoverFundsPage() {
                                 shadowSize="4"
                                 size="small"
                                 className="mt-2"
-                                onClick={() => (balancesError ? setFetchNonce((n) => n + 1) : router.push('/home'))}
+                                onClick={() => (balancesError ? retry() : router.push('/home'))}
                             >
                                 {balancesError ? tCommon('tryAgain') : t('goToHome')}
                             </Button>
