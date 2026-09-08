@@ -109,16 +109,6 @@ describe('/app smart store link', () => {
         expect(mockTrackHandoffCreated).not.toHaveBeenCalled()
     })
 
-    it('keeps iOS login on the handoff page with a store fallback and native-open guidance', () => {
-        mockDeviceType = 'ios'
-        visit('', '/app/login')
-        renderPage()
-        expect(locationReplace).not.toHaveBeenCalled()
-        expect(screen.getByRole('heading', { name: 'Log in with the Peanut app' })).toBeInTheDocument()
-        expect(screen.getByText(/Safari’s app banner/)).toBeInTheDocument()
-        expect(link(/app store/i)).toHaveAttribute('href', STORE_URL.ios)
-    })
-
     it('bounces android with the payload on the install referrer', () => {
         mockDeviceType = 'android'
         visit(`?${PAYLOAD}`)

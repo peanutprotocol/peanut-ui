@@ -3,8 +3,6 @@
 import { PeanutWhistling } from '@/assets/mascot'
 import { GlobalCashLocalFeel, Star } from '@/assets/illustrations'
 import Link from 'next/link'
-import { LandingAppLink } from './LandingAppLink'
-import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import Image from 'next/image'
 import { useEffect, useCallback, useRef, type CSSProperties } from 'react'
@@ -236,17 +234,17 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
                 {secondaryCta && renderCTAButton(secondaryCta, 'secondary')}
                 {/* Returning users with an expired session had no way back in from the
                     marketing site: every CTA pointed at signup. `?step=login` lands on
-                    the passkey Log In step (setup-entry.ts). During the migration
-                    window the app is the login, so the download CTA stands alone and
-                    the phone sticky bar keeps the login entry. */}
+                    the passkey Log In step (setup-entry.ts). Once the app is the
+                    login there is nothing to log in to on the web, so the download
+                    CTA stands alone. */}
                 {!migrationOn && (
-                    <LandingAppLink
-                        surface={MIGRATION_SURFACES.LANDING_LOGIN}
+                    <Link
+                        prefetch={false}
                         href="/setup?step=login"
                         className="mt-4 block text-center text-body-s text-n-1 underline"
                     >
                         {strings.logIn}
-                    </LandingAppLink>
+                    </Link>
                 )}
                 <AnimateOnView
                     className="absolute bottom-[-4%] left-[1%] w-8 sm:bottom-[11%] sm:left-[12%] md:bottom-[18%] md:left-[5%] md:w-12"

@@ -65,12 +65,10 @@ export default function SmartStoreRedirect() {
     // read after mount, never during render: window.location.search does not
     // exist on the server and a payload-derived first render would not match
     const [payload, setPayload] = useState<string | null>(null)
-    const [loginHandoff, setLoginHandoff] = useState(false)
     useEffect(() => {
         setMounted(true)
         const search = window.location.search
         const parsed = parseDeferredPayload(search)
-        setLoginHandoff(window.location.pathname === '/app/login')
         if (parsed) setPayload(new URLSearchParams(search).toString())
         if (!isNativeBridge()) return
         // already installed: no install to defer to, so apply the context now
@@ -144,9 +142,7 @@ export default function SmartStoreRedirect() {
         // iOS + payload: the clipboard hand-off needs the tap, so the visitor
         // picks the store themselves. android's referrer rides the url, so it
         // can still bounce; so can any device with nothing to hand off.
-        // Same-domain Safari navigation cannot dispatch a universal link. Keep
-        // login visitors here for the native Smart App Banner's Open action.
-        if ((payload || loginHandoff) && targetStore === 'ios') return
+        if (payload && targetStore === 'ios') return
         // counted before the navigation, and only once per visit
         if (payload && targetStore === 'android') countHandoff('android')
         setRedirecting(true)
@@ -155,7 +151,7 @@ export default function SmartStoreRedirect() {
         const fallback = setTimeout(() => setRedirecting(false), 4000)
         return () => clearTimeout(fallback)
         // countHandoff is guarded by a ref and counts once per visit.
-    }, [inNativeApp, settled, migrationOn, targetStore, payload, storeHref, loginHandoff])
+    }, [inNativeApp, settled, migrationOn, targetStore, payload, storeHref])
 
     if (inNativeApp) return <Loading variant="mascot" coverFullScreen />
 
@@ -170,16 +166,10 @@ export default function SmartStoreRedirect() {
             <MigrationHero className="h-[50dvh] md:h-auto md:w-1/2" />
             <section className="flex flex-1 flex-col justify-between p-6 pb-[calc(1.5rem_+_var(--safe-bottom))] md:w-1/2 md:justify-center md:gap-10">
                 <div className="mx-auto flex w-full max-w-md flex-col gap-3 md:text-center">
-                    <h1 className="text-heading-m text-foreground-primary">
-                        {t(loginHandoff ? 'smartLink.loginTitle' : 'qr.title')}
-                    </h1>
+                    <h1 className="text-heading-m text-foreground-primary">{t('qr.title')}</h1>
                     {settled && migrationOn && (
                         <p className="text-body-m text-foreground-secondary">
-                            {loginHandoff && targetStore === 'ios'
-                                ? t('smartLink.loginHint')
-                                : redirecting
-                                  ? t('smartLink.redirecting')
-                                  : t('smartLink.pickStore')}
+                            {redirecting ? t('smartLink.redirecting') : t('smartLink.pickStore')}
                         </p>
                     )}
                 </div>

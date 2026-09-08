@@ -3585,9 +3585,7 @@
         "downloadNow": "Download now",
         "smartLink": {
             "redirecting": "Taking you to the store…",
-            "pickStore": "Global cash, local feel. Pick your store to download.",
-            "loginTitle": "Log in with the Peanut app",
-            "loginHint": "Already have Peanut? Open it from your home screen, or tap Open in Safari’s app banner. Need the app? Download it below."
+            "pickStore": "Global cash, local feel. Pick your store to download."
         }
     },
     "shhhhh": {
