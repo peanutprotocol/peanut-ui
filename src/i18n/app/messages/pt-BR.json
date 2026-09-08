@@ -3591,7 +3591,8 @@
         "cardApprovalFailed": "Não foi possível aprovar o cartão. Tente novamente.",
         "logoutFailed": "Não foi possível sair da sua conta. Tente novamente.",
         "loginIncomplete": "O login não foi concluído. Tente novamente.",
-        "rateUnavailable": "As taxas de câmbio estão indisponíveis no momento. Tente de novo em instantes."
+        "rateUnavailable": "As taxas de câmbio estão indisponíveis no momento. Tente de novo em instantes.",
+        "transferTemporarilyUnavailable": "As transferências estão temporariamente indisponíveis. Confira sua atividade antes de tentar novamente."
     },
     "appLock": {
         "title": "Olá de novo!",

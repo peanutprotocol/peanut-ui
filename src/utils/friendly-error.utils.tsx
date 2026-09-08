@@ -49,6 +49,7 @@ export const rainCollateralErrorMessage = (error: unknown): string | null => {
  *  the `errors` next-intl namespace (see `useFriendlyError`). This module stays
  *  copy-free — it only classifies. */
 export type FriendlyErrorCode =
+    | 'transferTemporarilyUnavailable'
     | 'balanceSettling'
     | 'insufficientFunds'
     | 'userRejectedTransaction'
@@ -128,6 +129,7 @@ const passthrough = (text: string): FriendlyError => ({ kind: 'text', text })
  * Keep in sync with peanut-api-ts `src/errors/error-codes.ts`.
  */
 const WIRE_CODE_MAP: Partial<Record<ApiErrorCode, FriendlyErrorCode>> = {
+    [API_ERROR_CODES.MANTECA_TEMPORARILY_UNAVAILABLE]: 'transferTemporarilyUnavailable',
     [API_ERROR_CODES.STALE_CARD_APPROVAL]: 'staleCardApproval',
     [API_ERROR_CODES.INSUFFICIENT_COLLATERAL]: 'rainInsufficientCollateral',
     [API_ERROR_CODES.CARD_SECRETS_RATE_LIMITED]: 'cardRateLimited',

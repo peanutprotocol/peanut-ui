@@ -332,6 +332,7 @@ export const mantecaApi = {
                 return {
                     error: result.error || 'Failed to create manteca withdraw.',
                     message: result.message,
+                    ...(typeof result.code === 'string' ? { code: result.code } : {}),
                 }
             }
 
@@ -354,7 +355,7 @@ export const mantecaApi = {
     initiateWithdraw: async (params: {
         amount: string
         currency: string
-    }): Promise<{ data?: WithdrawPriceLock; error?: string }> => {
+    }): Promise<{ data?: WithdrawPriceLock; error?: string; code?: string }> => {
         try {
             const response = await serverFetch('/manteca/withdraw/init', {
                 method: 'POST',
@@ -363,7 +364,10 @@ export const mantecaApi = {
 
             const result = await response.json()
             if (!response.ok) {
-                return { error: result.error || result.message || 'Failed to lock withdraw price.' }
+                return {
+                    error: result.error || result.message || 'Failed to lock withdraw price.',
+                    ...(typeof result.code === 'string' ? { code: result.code } : {}),
+                }
             }
 
             return { data: result }
@@ -466,6 +470,7 @@ export const mantecaApi = {
                 return {
                     error: result.error || 'Failed to complete withdraw.',
                     message: result.message,
+                    ...(typeof result.code === 'string' ? { code: result.code } : {}),
                 }
             }
 

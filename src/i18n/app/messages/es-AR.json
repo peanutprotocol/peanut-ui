@@ -1592,7 +1592,8 @@
         "cardApprovalFailed": "No se pudo aprobar la tarjeta. Intentalo de nuevo.",
         "logoutFailed": "No pudimos cerrar tu sesión. Intentalo de nuevo.",
         "loginIncomplete": "No se completó el inicio de sesión. Intentalo de nuevo.",
-        "rateUnavailable": "Los tipos de cambio no están disponibles por el momento. Intentalo de nuevo en un momento."
+        "rateUnavailable": "Los tipos de cambio no están disponibles por el momento. Intentalo de nuevo en un momento.",
+        "transferTemporarilyUnavailable": "Las transferencias no están disponibles por el momento. Revisá tu actividad antes de volver a intentarlo."
     },
     "appLock": {
         "prompt": "Desbloqueá para abrir la app.",

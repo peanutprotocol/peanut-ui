@@ -1538,6 +1538,24 @@ const reconnectLock = {
 }
 
 describe('GROUP 5: Error States', () => {
+    test('a corporate provider rejection shows localized availability guidance', async () => {
+        mockMantecaApi.completeQrPaymentWithSignedTx.mockRejectedValue(
+            Object.assign(new Error('Company has exceeded their debt limit'), {
+                name: 'ApiError',
+                status: 500,
+                code: 'MANTECA_TEMPORARILY_UNAVAILABLE',
+            })
+        )
+        renderQrPay({ qrCode: '000201-payment', type: 'PIX', t: '1' })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+        await waitFor(() => expect(screen.getByText(en.errors.transferTemporarilyUnavailable)).toBeInTheDocument())
+        expect(screen.queryByText(/Company has exceeded/)).not.toBeInTheDocument()
+        expect(screen.queryByTestId('success-sound')).not.toBeInTheDocument()
+    })
+
     test.each(['PIX', 'MERCADO_PAGO'])(
         'an untyped %s submission failure asks users to check Activity without claiming cancellation',
         async (type) => {

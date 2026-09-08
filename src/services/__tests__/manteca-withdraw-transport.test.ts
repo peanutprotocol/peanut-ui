@@ -76,3 +76,14 @@ describe('manteca withdraw transport failures', () => {
         })
     })
 })
+
+it('preserves the corporate-unavailability code from the withdrawal response', async () => {
+    const body = {
+        error: 'Transfers temporarily unavailable',
+        message: 'Check Activity',
+        code: 'MANTECA_TEMPORARILY_UNAVAILABLE',
+    }
+    mockServerFetch.mockResolvedValue({ ok: false, json: async () => body } as Response)
+    await expect(mantecaApi.withdrawWithSignedTx(withdrawBody)).resolves.toEqual(body)
+    await expect(mantecaApi.initiateWithdraw(initBody)).resolves.toEqual({ error: body.error, code: body.code })
+})

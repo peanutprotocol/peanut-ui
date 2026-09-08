@@ -1,5 +1,7 @@
 'use client'
 
+import { API_ERROR_CODES } from '@/services/api-error'
+
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
 import { Notification } from '@/components/0_Bruddle/Notification'
@@ -346,7 +348,11 @@ function MantecaBankWithdrawFlow() {
 
             if (result.error) {
                 if (handleOnboardingError(result.error)) return
-                setErrorMessage(result.error)
+                setErrorMessage(
+                    result.code === API_ERROR_CODES.MANTECA_TEMPORARILY_UNAVAILABLE
+                        ? tErrors('transferTemporarilyUnavailable')
+                        : result.error
+                )
                 return
             }
 
@@ -380,6 +386,7 @@ function MantecaBankWithdrawFlow() {
         validateSubmissionAmount,
         handleOnboardingError,
         t,
+        tErrors,
         setErrorMessage,
     ])
 
@@ -495,6 +502,11 @@ function MantecaBankWithdrawFlow() {
                     method_type: 'manteca',
                     error_message: result.error,
                 })
+
+                if (result.code === API_ERROR_CODES.MANTECA_TEMPORARILY_UNAVAILABLE) {
+                    setErrorMessage(tErrors('transferTemporarilyUnavailable'))
+                    return
+                }
 
                 // Wrong-passkey session: backend rejected the signed UserOp with
                 // AA24 / wapk. Unrecoverable without re-auth — force a clean logout.

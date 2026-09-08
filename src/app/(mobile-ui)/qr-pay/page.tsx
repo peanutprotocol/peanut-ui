@@ -1013,6 +1013,11 @@ export default function QRPayPage() {
                 clearTimeout(payingStateTimerRef.current)
                 payingStateTimerRef.current = null
             }
+            if (wireErrorCode(error) === API_ERROR_CODES.MANTECA_TEMPORARILY_UNAVAILABLE) {
+                setErrorMessage(tErrors('transferTemporarilyUnavailable'))
+                setIsSuccess(false)
+                return
+            }
             if (wireErrorCode(error) === API_ERROR_CODES.QR_PAYMENT_CANCELLED) {
                 setErrorMessage(t('errors.paymentCancelled'))
                 setIsSuccess(false)
@@ -1054,6 +1059,7 @@ export default function QRPayPage() {
         qrType,
         handleStaleSession,
         t,
+        tErrors,
         toFriendlyError,
         setErrorMessage,
     ])

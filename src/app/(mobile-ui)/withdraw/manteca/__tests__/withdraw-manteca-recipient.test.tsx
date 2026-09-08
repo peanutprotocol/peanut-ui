@@ -287,3 +287,25 @@ describe('current balance at Manteca submission boundaries', () => {
         }
     )
 })
+
+it('shows localized service-unavailable guidance instead of corporate debt-limit prose', async () => {
+    mockWithdrawWithSignedTx.mockResolvedValue({
+        error: 'Manteca withdraw failed',
+        message: 'Company has exceeded their debt limit',
+        code: 'MANTECA_TEMPORARILY_UNAVAILABLE',
+    })
+    await driveToWithdraw({
+        priceLockCode: 'pl-1',
+        price: '1300',
+        expiresAt: '2026-09-14T00:00:00Z',
+        usdAmount: '10',
+        fiatAmount: '13000.00',
+        currency: 'ars',
+        depositAddress: SERVED_ADDRESS,
+    })
+    expect(
+        await screen.findByText('Transfers are temporarily unavailable. Please check Activity before trying again.')
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/Company has exceeded/)).not.toBeInTheDocument()
+    expect(mockWithdrawWithSignedTx).toHaveBeenCalledTimes(1)
+})
