@@ -18,6 +18,7 @@ import { parseUnits } from 'viem'
 // next/navigation
 const mockRouterPush = jest.fn()
 const mockRouterBack = jest.fn()
+const mockRouterReplace = jest.fn()
 const mockSearchParams = new Map<string, string>()
 
 jest.mock('next/navigation', () => ({
@@ -27,7 +28,7 @@ jest.mock('next/navigation', () => ({
     useRouter: () => ({
         push: mockRouterPush,
         back: mockRouterBack,
-        replace: jest.fn(),
+        replace: mockRouterReplace,
         prefetch: jest.fn(),
     }),
     usePathname: () => '/withdraw',
@@ -233,6 +234,7 @@ jest.mock('@/components/AddWithdraw/AddWithdrawRouterView', () => ({
 
 // ---------- import component under test AFTER all mocks ----------
 import WithdrawPage from '../page'
+import { __testing as safeBackTesting } from '@/hooks/useSafeBack'
 
 // ---------- helpers ----------
 
@@ -294,6 +296,7 @@ function applyDefaults() {
 beforeEach(() => {
     jest.clearAllMocks()
     mockSearchParams.clear()
+    safeBackTesting.reset()
     applyDefaults()
     // clearAllMocks() resets call history but not implementations, so restore
     // the default country resolution here — tests that override it (GROUP 6)
@@ -348,14 +351,28 @@ describe('GROUP 1: Method Selection', () => {
         renderWithdraw({ method: 'bank', returnTo: '/profile/exchange-rate' })
 
         fireEvent.click(screen.getByTestId('router-view-back'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/send')
+        expect(mockRouterReplace).toHaveBeenCalledWith('/send')
+        expect(mockRouterPush).not.toHaveBeenCalled()
     })
 
-    test('Back from bank send method selection navigates to /send', () => {
+    // Regression: this branch used to router.push('/send') over the retained
+    // /withdraw?method=bank entry, so send's safe-back popped right back into
+    // the withdraw step — Back looped instead of unwinding (TASK-22424).
+    test('Back from bank send method selection pops in-app history, not push', () => {
+        window.history.pushState({}, '', '/withdraw?method=bank')
         renderWithdraw({ method: 'bank' })
 
         fireEvent.click(screen.getByTestId('router-view-back'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/send')
+        expect(mockRouterBack).toHaveBeenCalledTimes(1)
+        expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
+    test('Back from bank send method selection replaces to /send on a cold deep link', () => {
+        renderWithdraw({ method: 'bank' })
+
+        fireEvent.click(screen.getByTestId('router-view-back'))
+        expect(mockRouterReplace).toHaveBeenCalledWith('/send')
+        expect(mockRouterPush).not.toHaveBeenCalled()
     })
 })
 
@@ -654,13 +671,29 @@ describe('GROUP 4: Limits Validation', () => {
 // GROUP 5: Navigation
 // ============================================================
 describe('GROUP 5: Navigation', () => {
-    test('Back from crypto send navigates to /send', () => {
+    // Regression: this handler used to router.push('/send') over the retained
+    // /withdraw?method=crypto entry, so send's safe-back popped right back into
+    // the amount step and ?method=crypto re-selected crypto — Back looped
+    // between Send and the amount screen forever (TASK-22424).
+    test('Back from crypto send pops in-app history, not push', () => {
+        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+        window.history.pushState({}, '', '/withdraw?method=crypto')
+        renderWithdraw({ method: 'crypto' })
+
+        fireEvent.click(screen.getByTestId('nav-back'))
+        expect(mockSetSelectedMethod).toHaveBeenCalledWith(null)
+        expect(mockRouterBack).toHaveBeenCalledTimes(1)
+        expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
+    test('Back from crypto send replaces to /send on a cold deep link', () => {
         mockWithdrawFlow.selectedMethod = { type: 'crypto' }
         renderWithdraw({ method: 'crypto' })
 
         fireEvent.click(screen.getByTestId('nav-back'))
         expect(mockSetSelectedMethod).toHaveBeenCalledWith(null)
-        expect(mockRouterPush).toHaveBeenCalledWith('/send')
+        expect(mockRouterReplace).toHaveBeenCalledWith('/send')
+        expect(mockRouterPush).not.toHaveBeenCalled()
     })
 
     test('Back from a selected bank country returns to the country list', () => {
