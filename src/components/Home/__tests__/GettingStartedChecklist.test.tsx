@@ -58,6 +58,13 @@ describe('GettingStartedChecklist', () => {
         expect(screen.getByText('Done. Your money has a username now')).toBeInTheDocument()
     })
 
+    it('uses the light-green design-system background for every row', () => {
+        render()
+        for (const row of screen.getAllByTestId(/^checklist-/)) {
+            expect(row).toHaveClass('bg-background-badge-success')
+        }
+    })
+
     // The row opens /add-money, a chooser offering bank transfer AND crypto, so
     // it no longer names one rail per residence — that promised a route the
     // chooser does not take you straight to.
