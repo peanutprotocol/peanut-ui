@@ -132,6 +132,7 @@ const GettingStartedChecklist = () => {
                             leading={item.done ? <StatusPill status="completed" /> : <PendingMarker />}
                             title={item.label}
                             body={showSub ? item.sub : undefined}
+                            bodyWrap
                             chevron={tappable}
                             disabled={!tappable}
                             onClick={tappable ? item.onTap : undefined}

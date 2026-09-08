@@ -65,6 +65,13 @@ describe('GettingStartedChecklist', () => {
         }
     })
 
+    it('wraps checklist subtitles instead of truncating them', () => {
+        render()
+        const subtitle = screen.getByText('Bank transfer or crypto · bank needs a one-time ID check')
+        expect(subtitle).toHaveClass('whitespace-normal', 'break-words')
+        expect(subtitle).not.toHaveClass('truncate')
+    })
+
     // The row opens /add-money, a chooser offering bank transfer AND crypto, so
     // it no longer names one rail per residence — that promised a route the
     // chooser does not take you straight to.
