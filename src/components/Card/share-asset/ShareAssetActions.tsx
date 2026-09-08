@@ -22,9 +22,14 @@
  * `navigator.share()` must run inside the user gesture. Capturing on tap
  * (html-to-image, 1–3s) expired WebKit's gesture window → NotAllowedError.
  * So on devices that can share files we PRE-capture the PNG once the asset
- * is ready and the tap handler shares the cached blob synchronously. A
- * failed pre-capture retries in the background (buttons stay disabled);
- * only after all attempts fail does capture-on-tap return as the fallback.
+ * is ready and the tap handler shares the cached blob synchronously. On
+ * the file-sharing path the gesture-bound buttons enable ONLY once a blob
+ * is cached — there is no "give up and enable" branch, because any tap
+ * that has to await capture reproduces the NotAllowedError. A failed
+ * pre-capture retries in the background for as long as the component is
+ * mounted (and reports to Sentry once if the first 3 attempts fail);
+ * permanently broken capture means honestly disabled buttons — a share
+ * without the file cannot succeed on those platforms anyway.
  */
 
 import { type FC, type RefObject, useEffect, useRef, useState } from 'react'
@@ -124,6 +129,9 @@ export const ShareAssetActions: FC<Props> = ({
     // and a state snapshot would post the handle the user just opted out of.
     const text = shareUrl ? `${caption}\n\n${shareUrl}` : caption
 
+    // stable per mount, like saveMode — used for gating and the pre-capture.
+    const [canShareFiles] = useState(canShareImageFiles)
+
     // pre-captured png so the tap handler can call navigator.share() without
     // awaiting the 1-3s capture (which expires ios's gesture window — see the
     // file header). only on devices that can share files: desktop share falls
@@ -133,51 +141,57 @@ export const ShareAssetActions: FC<Props> = ({
     // makes a cached capture stale — shareUrl can't key it, it is undefined in
     // both toggle states for users without a handle.
     const cachedBlobRef = useRef<Blob | null>(null)
-    // while true, the gesture-gated buttons stay disabled: a tap mid-capture
-    // finds no cached blob, takes the slow capture-on-tap path, and reproduces
-    // the exact NotAllowedError this cache exists to fix. only ever true on
-    // the canShareImageFiles() path, so desktop is never gated.
-    const [isPrecapturing, setIsPrecapturing] = useState(false)
+    // the gesture-gated buttons enable only while this is true: a tap without
+    // a cached blob would await capture and reproduce the NotAllowedError.
+    const [hasCachedBlob, setHasCachedBlob] = useState(false)
     useEffect(() => {
         cachedBlobRef.current = null
-        if (!ready || !canShareImageFiles()) return
+        setHasCachedBlob(false)
+        if (!ready || !canShareFiles) return
         const node = captureRef.current
         if (!node) return
         let stale = false
         let retryTimer: ReturnType<typeof setTimeout> | undefined
-        setIsPrecapturing(true)
-        const attempt = (retriesLeft: number): void => {
+        const attempt = (attemptNo: number): void => {
             captureShareAsset(node)
                 .then((blob) => {
                     if (stale) return
                     cachedBlobRef.current = blob
-                    setIsPrecapturing(false)
+                    setHasCachedBlob(true)
                 })
-                .catch(() => {
+                .catch((err) => {
                     if (stale) return
-                    if (retriesLeft > 0) {
-                        // transient failures (an image mid-decode, a font race)
-                        // often clear on retry — keep the buttons gated so a tap
-                        // can't fall into the slow capture-on-tap path and hit
-                        // the gesture-window error this cache exists to fix.
-                        retryTimer = setTimeout(() => attempt(retriesLeft - 1), 500)
-                        return
+                    // never surrender to capture-on-tap: a tap that awaits
+                    // capture loses ios activation even when the capture
+                    // succeeds. retry quickly at first (an image mid-decode or
+                    // a font race clears fast), then keep trying every 5s for
+                    // as long as we're mounted. if capture is permanently
+                    // broken the buttons honestly stay disabled — a share
+                    // without the file can't succeed on this platform anyway.
+                    if (attemptNo === 3) {
+                        // one report per effect run, so persistent failure is
+                        // visible in prod instead of silent dead buttons.
+                        Sentry.captureException(err, {
+                            tags: { feature: 'share-asset', action: 'pre-capture', source },
+                            extra: {
+                                ...describeShareError(err),
+                                note: 'share-asset pre-capture failing persistently — share stays disabled until a capture succeeds',
+                            },
+                        })
                     }
-                    // three failed captures: a tap-time capture would fail the
-                    // same way, so the gesture window no longer matters. quiet
-                    // here — re-enable and let the tap-time fallback surface
-                    // the existing error message instead of leaving the
-                    // buttons dead forever.
-                    setIsPrecapturing(false)
+                    retryTimer = setTimeout(() => attempt(attemptNo + 1), attemptNo < 3 ? 500 : 5000)
                 })
         }
-        attempt(2)
+        attempt(1)
         return () => {
             stale = true
             if (retryTimer) clearTimeout(retryTimer)
         }
-    }, [ready, hideUsername, captureRef])
+    }, [ready, canShareFiles, hideUsername, captureRef, source])
 
+    // the gated buttons can only fire with a cached blob, so the tap-time
+    // capture branch below is reachable only from web save (download — no
+    // gesture needed); it also stands as belt-and-braces for the gated paths.
     const captureOrCached = async (): Promise<Blob> => {
         if (cachedBlobRef.current) return cachedBlobRef.current
         const node = captureRef.current
@@ -277,7 +291,7 @@ export const ShareAssetActions: FC<Props> = ({
                 shadowSize="4"
                 className="w-full"
                 loading={isSharing}
-                disabled={isSharing || isSaving || !ready || isPrecapturing}
+                disabled={isSharing || isSaving || !ready || (canShareFiles && !hasCachedBlob)}
                 icon={<Icon name="share" size={20} />}
             >
                 {t('share')}
@@ -289,7 +303,7 @@ export const ShareAssetActions: FC<Props> = ({
                     className="w-full"
                     loading={isSaving}
                     // web save is a download — no gesture, no pre-capture gate.
-                    disabled={isSharing || isSaving || !ready || (saveMode === 'native-share' && isPrecapturing)}
+                    disabled={isSharing || isSaving || !ready || (saveMode === 'native-share' && !hasCachedBlob)}
                     icon={<Icon name="download" size={20} />}
                 >
                     {t('saveImage')}

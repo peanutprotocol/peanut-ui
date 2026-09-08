@@ -8,6 +8,7 @@
 import React, { type ComponentProps, createRef } from 'react'
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import posthog from 'posthog-js'
+import * as Sentry from '@sentry/nextjs'
 import { renderWithIntl } from '@/test-utils/intl'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { ShareAssetActions } from '../ShareAssetActions'
@@ -143,7 +144,9 @@ describe('ShareAssetActions save', () => {
  * Gesture-window regression guard (TASK-22407): on iOS `navigator.share()`
  * must run inside the tap gesture, so the PNG is pre-captured when the asset
  * is ready and the tap uses the cached blob — no capture between tap and
- * share. If pre-capture failed, the tap falls back to capture-then-share.
+ * share, ever: the buttons stay disabled until a blob is cached, and a failed
+ * pre-capture retries in the background (with one Sentry report after the
+ * first 3 attempts fail) instead of re-enabling capture-on-tap.
  */
 describe('ShareAssetActions share pre-capture', () => {
     const shareButton = () => screen.getByRole('button', { name: 'Share' })
@@ -175,7 +178,7 @@ describe('ShareAssetActions share pre-capture', () => {
         })
     })
 
-    it('stays gated through retries; after the final failure the tap falls back to capture-on-tap', async () => {
+    it('stays gated after 3 failures, reports once to Sentry, and enables when a 5s retry succeeds', async () => {
         jest.useFakeTimers()
         try {
             mockCaptureShareAsset
@@ -183,26 +186,35 @@ describe('ShareAssetActions share pre-capture', () => {
                 .mockImplementationOnce(() => Promise.reject(new Error('b')))
                 .mockImplementationOnce(() => Promise.reject(new Error('c')))
             renderActions()
-            // attempt 1 rejects; the retry timer is armed — still gated
+            // attempt 1 rejects; the retry timer is armed — gated
             await act(async () => {})
             expect(shareButton()).toBeDisabled()
-            // attempt 2 fires and rejects — still gated
+            // attempt 2 fires and rejects — gated
             await act(async () => {
                 jest.advanceTimersByTime(500)
             })
             expect(mockCaptureShareAsset).toHaveBeenCalledTimes(2)
             expect(shareButton()).toBeDisabled()
-            // attempt 3 fires and rejects — final failure, buttons re-enable
+            // attempt 3 fires and rejects — STILL gated (no give-up branch),
+            // and exactly one sentry report fires
             await act(async () => {
                 jest.advanceTimersByTime(500)
             })
             expect(mockCaptureShareAsset).toHaveBeenCalledTimes(3)
+            expect(shareButton()).toBeDisabled()
+            expect(Sentry.captureException).toHaveBeenCalledTimes(1)
+            // 5s later the background retry succeeds (default impl resolves) —
+            // cache fills, button enables, tap shares without capturing
+            await act(async () => {
+                jest.advanceTimersByTime(5000)
+            })
+            expect(mockCaptureShareAsset).toHaveBeenCalledTimes(4)
             expect(shareButton()).toBeEnabled()
-            // no cached blob, so the tap captures again (default impl resolves)
             fireEvent.click(shareButton())
             await act(async () => {})
             expect(mockShare).toHaveBeenCalledTimes(1)
             expect(mockCaptureShareAsset).toHaveBeenCalledTimes(4)
+            expect(Sentry.captureException).toHaveBeenCalledTimes(1)
             expect(screen.queryByRole('alert')).not.toBeInTheDocument()
         } finally {
             jest.useRealTimers()
