@@ -333,9 +333,14 @@
             "errors": {
                 "nameRequired": "Please provide your name.",
                 "invalidEmail": "Please enter a valid email address.",
-                "emailInUse": "This email is already associated with another account."
+                "emailInUse": "This email is already associated with another account.",
+                "invalidCode": "Enter the 6-digit code from your email."
             },
-            "verifiedNameHelp": "Your name comes from your identity verification and cannot be edited here. Contact support if it needs correcting."
+            "verifiedNameHelp": "Your name comes from your identity verification and cannot be edited here. Contact support if it needs correcting.",
+            "emailCode": "Verification code",
+            "emailCodeHelp": "We sent a code to {email}. Your current email will stay active until you verify the new one.",
+            "sendCode": "Send code",
+            "requestNewCode": "Request another code"
         },
         "regions": {
             "title": "Regions and verification",

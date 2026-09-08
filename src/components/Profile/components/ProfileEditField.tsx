@@ -14,6 +14,8 @@ interface ProfileEditFieldProps {
     name?: string
     onBlur?: () => void
     autoComplete?: string
+    inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode']
+    maxLength?: number
     error?: string
 }
 
@@ -40,6 +42,8 @@ const ProfileEditField = forwardRef<HTMLInputElement, ProfileEditFieldProps>(
             name,
             onBlur,
             autoComplete,
+            inputMode,
+            maxLength,
             error,
         },
         ref
@@ -64,6 +68,8 @@ const ProfileEditField = forwardRef<HTMLInputElement, ProfileEditFieldProps>(
                         name={name}
                         onBlur={onBlur}
                         autoComplete={autoComplete}
+                        inputMode={inputMode}
+                        maxLength={maxLength}
                         aria-invalid={error ? true : undefined}
                         aria-describedby={error ? `${id}-error` : undefined}
                         id={id}

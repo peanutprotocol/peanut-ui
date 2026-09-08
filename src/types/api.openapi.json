@@ -16392,6 +16392,10 @@
                                     },
                                     "username": {
                                         "type": "string"
+                                    },
+                                    "emailVerificationCode": {
+                                        "type": "string",
+                                        "pattern": "^[0-9]{6}$"
                                     }
                                 },
                                 "required": [
@@ -18238,11 +18242,15 @@
                                                 "card"
                                             ],
                                             "type": "object"
+                                        },
+                                        "profileNameLocked": {
+                                            "type": "boolean"
                                         }
                                     },
                                     "required": [
                                         "capabilities",
                                         "identityVerification",
+                                        "profileNameLocked",
                                         "residenceRestrictions",
                                         "residence"
                                     ],
@@ -18490,6 +18498,139 @@
                 ],
                 "responses": {
                     "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/users/email-change": {
+            "post": {
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "Authorization",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "header",
+                        "name": "api-key",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "email": {
+                                        "maxLength": 320,
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "email"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "success"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "429": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "503": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
                         "description": "Default Response"
                     }
                 }

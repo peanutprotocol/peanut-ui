@@ -22,6 +22,12 @@ export const updateUserById = async (payload: Record<string, unknown>): Promise<
     }
 }
 
+export const requestEmailChange = async (email: string): Promise<{ error?: string }> => {
+    const response = await serverFetch('/users/email-change', { method: 'POST', body: JSON.stringify({ email }) })
+    const body = await response.json()
+    return response.ok ? {} : { error: body.error || 'Could not send verification code' }
+}
+
 // initiate the kyc process for the logged-in user
 export const getKycDetails = async (params?: {
     endorsements: BridgeEndorsementType[]

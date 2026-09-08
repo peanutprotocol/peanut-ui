@@ -1,5 +1,5 @@
 'use client'
-import { updateUserById } from '@/app/actions/users'
+import { updateUserById, requestEmailChange } from '@/app/actions/users'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { Button } from '@/components/0_Bruddle/Button'
 import NavHeader from '@/components/Global/NavHeader'
@@ -23,6 +23,7 @@ interface ProfileFields {
     name: string
     surname: string
     email: string
+    code: string
 }
 
 export const ProfileEditView = () => {
@@ -33,18 +34,22 @@ export const ProfileEditView = () => {
     const onBack = useSafeBack('/profile')
     const { user, fetchUser } = useAuth()
     const { isVerified: isKycApproved, isLoading: isIdentityLoading } = useIdentityVerification()
-    const canEditName = !isKycApproved
+    const nameLocked = user?.profileNameLocked ?? isKycApproved
+    const canEditName = !nameLocked
+    const [codeSentTo, setCodeSentTo] = useState('')
+    const [isSendingCode, setIsSendingCode] = useState(false)
     const [errorMessage, setErrorMessage] = useState('')
     const [showFullName, setShowFullName] = useState(user?.user.showFullName ?? false)
     const {
         control,
+        watch,
         handleSubmit,
         reset,
         resetField,
         setError,
         formState: { dirtyFields, isSubmitting },
     } = useForm<ProfileFields>({
-        defaultValues: { name: '', surname: '', email: '' },
+        defaultValues: { name: '', surname: '', email: '', code: '' },
         mode: 'onChange',
     })
     const hydrated = useRef(false)
@@ -52,7 +57,7 @@ export const ProfileEditView = () => {
         setShowFullName(user?.user.showFullName ?? false)
         // Keep the fields and their baseline together. Background auth refreshes
         // must not overwrite edits or make untouched values dirty.
-        if (!user || (hydrated.current && !isKycApproved)) return
+        if (!user || (hydrated.current && !nameLocked)) return
         const parts = (user.user.fullName || '').trim().split(/\s+/)
         const surname = parts.length > 1 ? parts.pop()! : ''
         if (hydrated.current) {
@@ -63,23 +68,40 @@ export const ProfileEditView = () => {
             return
         }
         hydrated.current = true
-        reset({ name: parts.join(' '), surname, email: user.user.email || '' })
-    }, [user, isKycApproved, reset, resetField])
+        reset({ name: parts.join(' '), surname, email: user.user.email || '', code: '' })
+    }, [user, nameLocked, reset, resetField])
 
     const nameChanged = canEditName && !!(dirtyFields.name || dirtyFields.surname)
     const isDirty = nameChanged || !!dirtyFields.email
-    const disabled = !user || isIdentityLoading || isSubmitting
+    const disabled = !user || isIdentityLoading || isSubmitting || isSendingCode
+
+    const emailValue = watch('email').trim()
+    const needsEmailCode = !!user?.user.email && !!dirtyFields.email
+    const hasCode = needsEmailCode && codeSentTo === emailValue
 
     const save = handleSubmit(async (values) => {
         if (!user || !isDirty || isIdentityLoading) return
         setErrorMessage('')
         try {
+            if (needsEmailCode && !hasCode) {
+                const result = await requestEmailChange(values.email.trim())
+                if (result.error) {
+                    if (result.error === 'This email is already associated with another account') {
+                        setError('email', { type: 'server', message: t('errors.emailInUse') }, { shouldFocus: true })
+                    } else setErrorMessage(result.error)
+                } else {
+                    resetField('code')
+                    setCodeSentTo(values.email.trim())
+                }
+                return
+            }
             // Send only changed fields. An email-only edit must neither require
             // a missing name nor overwrite a name changed by a KYC webhook.
             const result = await updateUserById({
                 userId: user.user.userId,
                 ...(nameChanged ? { fullName: `${values.name.trim()} ${values.surname.trim()}`.trim() } : {}),
                 ...(dirtyFields.email ? { email: values.email.trim() } : {}),
+                ...(hasCode ? { emailVerificationCode: values.code } : {}),
             })
             if (result?.error) {
                 if (result.error === 'This email is already associated with another account') {
@@ -151,6 +173,51 @@ export const ProfileEditView = () => {
                         />
                     )}
                 />
+                {hasCode && (
+                    <div className="flex flex-col gap-4">
+                        <p className="text-body-s text-foreground-secondary">
+                            {t('emailCodeHelp', { email: codeSentTo })}
+                        </p>
+                        <Controller
+                            name="code"
+                            control={control}
+                            rules={{
+                                validate: (value) => !hasCode || /^\d{6}$/.test(value) || t('errors.invalidCode'),
+                            }}
+                            render={({ field, fieldState }) => (
+                                <ProfileEditField
+                                    {...field}
+                                    label={t('emailCode')}
+                                    autoComplete="one-time-code"
+                                    inputMode="numeric"
+                                    maxLength={6}
+                                    error={fieldState.error?.message}
+                                    disabled={disabled}
+                                />
+                            )}
+                        />
+                        <Button
+                            type="button"
+                            variant="transparent"
+                            disabled={disabled}
+                            onClick={async () => {
+                                setIsSendingCode(true)
+                                setErrorMessage('')
+                                try {
+                                    const result = await requestEmailChange(emailValue)
+                                    if (result.error) setErrorMessage(result.error)
+                                    else resetField('code')
+                                } catch {
+                                    setErrorMessage(tCommon('genericError'))
+                                } finally {
+                                    setIsSendingCode(false)
+                                }
+                            }}
+                        >
+                            {t('requestNewCode')}
+                        </Button>
+                    </div>
+                )}
                 {!!user?.user.fullName?.trim() && (
                     <ListItem
                         position="single"
@@ -168,7 +235,7 @@ export const ProfileEditView = () => {
                         shadowSize="4"
                         loading={isSubmitting}
                     >
-                        {t('saveChanges')}
+                        {t(needsEmailCode && !hasCode ? 'sendCode' : 'saveChanges')}
                     </Button>
                 </div>
             </form>

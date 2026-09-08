@@ -1,13 +1,16 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { ProfileEditView } from '../ProfileEdit.view'
-import { updateUserById } from '@/app/actions/users'
+import { updateUserById, requestEmailChange } from '@/app/actions/users'
 
 const mockReplace = jest.fn()
 const mockFetchUser = jest.fn()
 let mockVerified = false
-let mockUser: { user: { userId: string; username: string; fullName: string; email: string } } | null
-jest.mock('@/app/actions/users', () => ({ updateUserById: jest.fn() }))
+let mockUser: {
+    profileNameLocked?: boolean
+    user: { userId: string; username: string; fullName: string; email: string }
+} | null
+jest.mock('@/app/actions/users', () => ({ updateUserById: jest.fn(), requestEmailChange: jest.fn() }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser, fetchUser: mockFetchUser }) }))
 jest.mock('@/hooks/useIdentityVerification', () => ({
     useIdentityVerification: () => ({ isVerified: mockVerified, isLoading: false }),
@@ -20,12 +23,18 @@ jest.mock('../../components/ShowNameToggle', () => ({ __esModule: true, default:
 jest.mock('@/components/Settings/DeleteAccountButton', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
 
-const save = () => fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
+const save = () => fireEvent.click(screen.getByRole('button', { name: /Save Changes|Send code/ }))
+const verify = async () => {
+    await screen.findByLabelText('Verification code')
+    expect(updateUserById).not.toHaveBeenCalled()
+    await change('Verification code', '123456')
+    save()
+}
 const change = async (label: string, value: string) => {
     await act(async () => {
         fireEvent.change(screen.getByLabelText(label), { target: { value } })
     })
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Save Changes' })).toBeEnabled())
+    await waitFor(() => expect(screen.getByRole('button', { name: /Save Changes|Send code/ })).toBeEnabled())
 }
 
 beforeEach(() => {
@@ -33,6 +42,7 @@ beforeEach(() => {
     mockVerified = false
     mockUser = { user: { userId: 'test-user', username: 'testuser', fullName: 'Test User', email: 'old@example.com' } }
     jest.mocked(updateUserById).mockResolvedValue({})
+    jest.mocked(requestEmailChange).mockResolvedValue({})
     mockFetchUser.mockResolvedValue(undefined)
 })
 
@@ -43,7 +53,14 @@ test.each([false, true])('email is editable with verified=%s and only the change
     expect(screen.getByLabelText('Email')).toBeEnabled()
     await change('Email', ' new@example.com ')
     save()
-    await waitFor(() => expect(updateUserById).toHaveBeenCalledWith({ userId: 'test-user', email: 'new@example.com' }))
+    await verify()
+    await waitFor(() =>
+        expect(updateUserById).toHaveBeenCalledWith({
+            userId: 'test-user',
+            email: 'new@example.com',
+            emailVerificationCode: '123456',
+        })
+    )
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/profile'))
 })
 
@@ -80,7 +97,14 @@ test('email-only save does not require a missing name', async () => {
     renderWithIntl(<ProfileEditView />)
     await change('Email', 'new@example.com')
     save()
-    await waitFor(() => expect(updateUserById).toHaveBeenCalledWith({ userId: 'test-user', email: 'new@example.com' }))
+    await verify()
+    await waitFor(() =>
+        expect(updateUserById).toHaveBeenCalledWith({
+            userId: 'test-user',
+            email: 'new@example.com',
+            emailVerificationCode: '123456',
+        })
+    )
 })
 
 test('shows server failures and retains edits without navigating', async () => {
@@ -88,6 +112,7 @@ test('shows server failures and retains edits without navigating', async () => {
     renderWithIntl(<ProfileEditView />)
     await change('Email', 'new@example.com')
     save()
+    await verify()
     expect(await screen.findByText('Could not save your profile')).toBeVisible()
     expect(screen.getByLabelText('Email')).toHaveValue('new@example.com')
     expect(mockReplace).not.toHaveBeenCalled()
@@ -102,7 +127,14 @@ test('background refresh preserves edits and does not send an untouched stale na
     expect(screen.getByLabelText('Name')).toHaveValue('New Verified')
     expect(screen.getByLabelText('Email')).toHaveValue('new@example.com')
     save()
-    await waitFor(() => expect(updateUserById).toHaveBeenCalledWith({ userId: 'test-user', email: 'new@example.com' }))
+    await verify()
+    await waitFor(() =>
+        expect(updateUserById).toHaveBeenCalledWith({
+            userId: 'test-user',
+            email: 'new@example.com',
+            emailVerificationCode: '123456',
+        })
+    )
 })
 
 test('late auth hydrates without enabling a no-op save', async () => {
@@ -117,7 +149,7 @@ test('late auth hydrates without enabling a no-op save', async () => {
 })
 
 test('a duplicate email error is linked to its input and can be corrected', async () => {
-    jest.mocked(updateUserById).mockResolvedValueOnce({
+    jest.mocked(requestEmailChange).mockResolvedValueOnce({
         error: 'This email is already associated with another account',
     })
     renderWithIntl(<ProfileEditView />)
@@ -129,5 +161,26 @@ test('a duplicate email error is linked to its input and can be corrected', asyn
     )
     await change('Email', 'available@example.com')
     save()
+    await verify()
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/profile'))
+})
+
+test('a previously verified name stays locked during re-verification', () => {
+    mockUser!.profileNameLocked = true
+    mockVerified = false
+    renderWithIntl(<ProfileEditView />)
+    expect(screen.getByLabelText('Name')).toBeDisabled()
+    expect(screen.getByText(/Your name comes from your identity verification/)).toBeVisible()
+    expect(screen.getByLabelText('Email')).toBeEnabled()
+})
+test('changing the pending mailbox requires a new code', async () => {
+    renderWithIntl(<ProfileEditView />)
+    await change('Email', 'first@example.com')
+    save()
+    await screen.findByLabelText('Verification code')
+    await change('Email', 'second@example.com')
+    expect(screen.queryByLabelText('Verification code')).not.toBeInTheDocument()
+    save()
+    await waitFor(() => expect(requestEmailChange).toHaveBeenLastCalledWith('second@example.com'))
+    expect(updateUserById).not.toHaveBeenCalled()
 })
