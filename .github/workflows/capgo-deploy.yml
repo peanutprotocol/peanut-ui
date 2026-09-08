@@ -215,8 +215,15 @@ jobs:
             # channel strategy, and lives in a dashboard CI cannot read — it
             # never reports that an incompatible bundle was built. The
             # fingerprint is a pure function of the tree, so the shipped binary's
-            # code is described by its tag. The tag also attests that both
-            # release builds compiled the credential-gated native SDK.
+            # code is described by its tag. A successful same-version Android
+            # replacement records a second annotated baseline after Play accepts
+            # it; the checker validates that baseline is ancestry-bound,
+            # fingerprinted, and safe for older binaries with the same version.
+            # Because both binaries share versionName, the checker also scans all
+            # shipped source and forbids direct Capacitor permission APIs on the
+            # original R8-broken Android shell.
+            # The original tag also attests that both release builds compiled the
+            # credential-gated native SDK.
             #
             # Failing here is the intended outcome, not an obstacle: it is
             # docs/NATIVE-RELEASE.md's "bump the native version whenever you
@@ -231,10 +238,7 @@ jobs:
                       exit 1
                   fi
                   node scripts/check-native-capabilities.mjs "v$FLOOR"
-                  if ! node scripts/native-fingerprint.mjs --diff "v$FLOOR"; then
-                      echo "::error::this tree's native surface differs from the v$FLOOR binary, so the JS about to ship was built against native code no released binary has. Cut a native release (Actions -> Release Native) before OTA'ing this tree." >&2
-                      exit 1
-                  fi
+                  node scripts/check-native-ota-surface.mjs "v$FLOOR" --platform android
 
             - name: Upload bundle to Capgo
               # Commit message via env, never inline — a multi-line message (or one
