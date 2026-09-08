@@ -20,7 +20,7 @@ export function QrPayBlockedView() {
     const supportLink = (
         <button
             onClick={() => setIsSupportModalOpen(true)}
-            className="flex w-full items-center justify-center gap-2 text-body-s text-foreground-secondary transition-colors hover:text-black"
+            className="flex w-full items-center justify-center gap-2 text-body-s text-foreground-secondary transition-colors hover:text-black active:text-black"
         >
             <Icon name="peanut-support" size={16} className="text-foreground-secondary" />
             {t('havingTrouble')}

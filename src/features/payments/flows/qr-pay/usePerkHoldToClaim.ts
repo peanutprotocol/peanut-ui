@@ -9,6 +9,15 @@ import { cancelHaptic, notifyHaptic, vibrateHaptic } from '@/utils/haptics'
 import type { ShakeIntensity } from '@/utils/perk.utils'
 import type { QrPayment } from '@/services/manteca'
 
+// Module scope ON PURPOSE. The page remounts the whole flow under a new key
+// (`${qrCode}|${timestamp}` in qr-pay/page.tsx), which mounts a NEW hook
+// instance — an instance-level ref can never cancel the PREVIOUS instance's
+// deferred dismissal capture, so every keyed remount fired a phantom
+// REWARD_CLAIM_DISMISSED. At most one capture can be pending at a time; any
+// newly mounting instance (StrictMode replay or keyed remount) cancels it, so
+// only a real navigation away reports a dismissal.
+let pendingDismissTimer: ReturnType<typeof setTimeout> | null = null
+
 /**
  * The hold-to-claim gesture: progress, shake, haptics, confetti, and the
  * shown/claimed/dismissed analytics. Mounted by the success view only, so
@@ -55,17 +64,19 @@ export function usePerkHoldToClaim(qrPayment: QrPayment | null, setQrPayment: (p
     }, [qrPayment?.perk?.eligible, perkClaimed, qrPayment])
 
     // Track dismiss: user navigated away after seeing the perk without claiming.
-    // The capture is deferred one tick and cancelled by a remount, so a
-    // StrictMode mount/unmount/mount cycle cannot fire a phantom dismissal.
-    const pendingDismissRef = useRef<NodeJS.Timeout | null>(null)
+    // The capture is deferred one tick and cancelled by ANY remount — StrictMode
+    // replay or the page's keyed remount — via the module-level timer above, so
+    // neither can fire a phantom dismissal, and the timer nulling itself keeps
+    // the capture at most once per pending unmount.
     useEffect(() => {
-        if (pendingDismissRef.current) {
-            clearTimeout(pendingDismissRef.current)
-            pendingDismissRef.current = null
+        if (pendingDismissTimer) {
+            clearTimeout(pendingDismissTimer)
+            pendingDismissTimer = null
         }
         return () => {
             if (hasTrackedPerkShown.current && !perkClaimedRef.current) {
-                pendingDismissRef.current = setTimeout(() => {
+                pendingDismissTimer = setTimeout(() => {
+                    pendingDismissTimer = null
                     posthog.capture(ANALYTICS_EVENTS.REWARD_CLAIM_DISMISSED)
                 }, 0)
             }

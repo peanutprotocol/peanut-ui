@@ -18,7 +18,7 @@
     "offScaleRadius": 37,
     "rawDuration": 6,
     "retypedCardLiteral": 16,
-    "hoverNoActiveFiles": 45,
+    "hoverNoActiveFiles": 44,
     "arbitraryFontSize": 111,
     "rawErrorText": 25,
     "handRolledCloseGlyphFiles": 9,
@@ -52,11 +52,6 @@
             "date": "2026-09-04",
             "metrics": ["classNameSitesInPages 310 -> 312"],
             "reason": "dev-side, not authored here: the exchange-rate page gained 2 className sites in dev's exchange-currencies work (profile/exchange-rate/page.tsx), counted in on the merge. this branch touches no (mobile-ui) page.tsx at all."
-        },
-        {
-            "date": "2026-09-06",
-            "metrics": ["hoverNoActiveFiles 44 -> 45"],
-            "reason": "TASK-21457 qr-pay split: hover:text-black markup relocated verbatim from app/(mobile-ui)/qr-pay/page.tsx into features/payments/flows/qr-pay/views/ (now 2 files) — behavior-parity migration per design.md; inline styles stay exempt via the moved INLINE_STYLE_ALLOW entry"
         },
         {
             "date": "2026-09-06",
