@@ -360,11 +360,13 @@ release**, never a side effect of pushing code:
 | trigger                        | channel      | bundle version            |
 | ----------------------------- | ------------ | ------------------------- |
 | **App Release OTA** from `dev` | `production` | `<major>.<build>.<ota+1>` |
+| **App Staging OTA** from `dev` | `staging`    | `<major>.<build>.<commit count>` |
 
 Shipping an OTA to everyone is therefore two steps — land the code, then run **App Release
 OTA** (§6). The workflow only accepts a dispatch from `dev`; it resolves the next
 production bundle version from the current production channel and refuses other refs.
-There is no automatic staging publish or `ota-*` break-glass workflow in this lane.
+Staging is published separately and manually through **App Staging OTA**; there is no
+automatic staging publish or `ota-*` break-glass workflow.
 
 One deliberate exception to "opt-in per release": a **native release auto-publishes a
 matching production bundle** when its versionName is ahead of the newest production
@@ -446,9 +448,9 @@ own `out/` under the binary's versionName, then assert the channel serves it.
 
 ### Internal testing (the `staging` channel on a real device)
 
-The app can still use `staging` for opt-in beta bundles published by an authorized
-process; **App Release OTA** only targets `production` and does not publish staging
-automatically. Five taps on the version line in **Profile → About** reveal a
+Run **App Staging OTA** manually from `dev` to publish a beta bundle to `staging`;
+**App Release OTA** only targets `production`. Five taps on the version line in
+**Profile → About** reveal a
 Beta-updates switch that calls `setChannel('staging')` — no dashboard work per tester, and
 the row also prints the device ID for the times someone has to be forced onto a channel
 from the dashboard instead.
