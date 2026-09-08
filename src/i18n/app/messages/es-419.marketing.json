@@ -57,7 +57,14 @@
         },
         "exchangeRate": "Tipo de cambio",
         "slideToProceed": "Desliza para continuar",
-        "userAvatarAlt": "Avatar de {username}"
+        "userAvatarAlt": "Avatar de {username}",
+        "accessibility": {
+            "embeddedFlow": "Verificación",
+            "feedback": "Comentarios",
+            "proceed": "Continuar",
+            "lock": "Bloquear tarjeta",
+            "cancelCard": "Cancelar tarjeta"
+        }
     },
     "errors": {
         "balanceSettling": "Tu saldo aún no está totalmente disponible. Inténtalo de nuevo en unos segundos.",

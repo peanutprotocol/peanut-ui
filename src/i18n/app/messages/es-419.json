@@ -57,7 +57,14 @@
         },
         "exchangeRate": "Tipo de cambio",
         "slideToProceed": "Desliza para continuar",
-        "userAvatarAlt": "Avatar de {username}"
+        "userAvatarAlt": "Avatar de {username}",
+        "accessibility": {
+            "embeddedFlow": "Verificación",
+            "feedback": "Comentarios",
+            "proceed": "Continuar",
+            "lock": "Bloquear tarjeta",
+            "cancelCard": "Cancelar tarjeta"
+        }
     },
     "navigation": {
         "home": "Inicio",
@@ -209,8 +216,10 @@
                 "surpriseDescriptionNext": "Mira tu cashback y cómo ganar más.",
                 "usedPeanut": "<name>{inviteeName}</name> pagó con Peanut",
                 "rewardClaimed": "¡Cashback reclamado!",
-                "holdToUnwrap": "Mantén presionado para abrir tu cashback"
-            }
+                "holdToUnwrap": "Mantén presionado para abrir tu cashback",
+                "unwrap": "Abrir cashback"
+            },
+            "unwrap": "Abrir recompensa"
         },
         "carousel": {
             "rewardReady": "¡Recompensa de <b>+${amount}</b> lista!",
@@ -587,7 +596,8 @@
                 "revealed": "El interruptor de actualizaciones beta ya está visible abajo.",
                 "appOnly": "Las actualizaciones beta solo están disponibles en la app de Peanut."
             }
-        }
+        },
+        "accessibility": "Accesibilidad"
     },
     "settings": {
         "language": {
@@ -610,6 +620,27 @@
             "sadPeanutAlt": "Peanut triste",
             "pointingPeanutAlt": "Peanut señalando",
             "cryingPeanutAlt": "Peanut llorando"
+        },
+        "accessibility": {
+            "title": "Accesibilidad",
+            "largerText": "Texto más grande",
+            "largerTextDescription": "Facilita la lectura del texto en todo Peanut.",
+            "reduceMotion": "Reducir movimiento",
+            "reduceMotionDescription": "Reduce los movimientos y efectos animados.",
+            "motionSystem": "Seguir la configuración del dispositivo",
+            "on": "Activado",
+            "off": "Desactivado",
+            "highContrast": "Aumentar contraste",
+            "highContrastDescription": "Distingue mejor el texto secundario, los bordes y los indicadores de enfoque.",
+            "simplifiedConfirmations": "Confirmaciones simplificadas",
+            "simplifiedConfirmationsDescription": "Usa botones en lugar de deslizar o mantener presionado. Seguirás revisando un paso de confirmación separado.",
+            "deviceFeatures": "Funciones de accesibilidad del dispositivo",
+            "deviceFeaturesDescription": "Activa el lector de pantalla o el control por voz en la configuración de tu dispositivo. También puedes usar el tamaño de texto del dispositivo y el zoom del navegador.",
+            "alwaysOnDescription": "Las etiquetas claras y los estados en texto siempre están activados. No necesitan configuración adicional.",
+            "reportIssue": "Reportar un problema de accesibilidad",
+            "confirmDescription": "Confirma esta acción para continuar. Puedes cancelar para volver.",
+            "confirm": "Confirmar",
+            "cancel": "Cancelar"
         }
     },
     "limits": {
@@ -3449,7 +3480,10 @@
             "addReference": "Agrega una referencia (opcional)"
         },
         "validatedInput": {
-            "paste": "Pegar <value></value>"
+            "paste": "Pegar <value></value>",
+            "valid": "Todo listo",
+            "invalid": "Revisa este dato e inténtalo de nuevo.",
+            "label": "Destinatario"
         },
         "progressBar": {
             "goalExceeded": "¡Meta superada!",

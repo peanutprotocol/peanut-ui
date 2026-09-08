@@ -27,6 +27,7 @@ export type IFrameWrapperProps = {
 
 const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWrapperProps) => {
     const t = useTranslations('global')
+    const tCommon = useTranslations('common')
     const enableConfirmationPrompt = closeConfirmMessage !== undefined
     const [isHelpModalOpen, setIsHelpModalOpen] = useState(false)
     const [modalVariant, setModalVariant] = useState<'stop-verification' | 'trouble'>('trouble')
@@ -188,6 +189,7 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
 
     return (
         <Modal
+            accessibleTitle={tCommon('accessibility.embeddedFlow')}
             visible={visible}
             onClose={() => {
                 if (!enableConfirmationPrompt) {

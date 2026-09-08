@@ -1,13 +1,17 @@
 'use client'
 
 import { type FC, useEffect, useRef, useState } from 'react'
-import { motion, useMotionValue, useTransform, animate } from 'framer-motion'
+import { useMotionValue, useTransform, animate } from 'framer-motion'
+import { motion } from '@/components/Accessibility/motion'
 import { twMerge } from '@/utils/tw'
+import { useAccessibility, useReducedMotion } from '@/hooks/useAccessibility'
+import { useAccessibleConfirmation } from '@/components/Accessibility/useAccessibleConfirmation'
 import { Icon } from '../Global/Icons/Icon'
 
 interface SlideToConfirmProps {
     /** Text shown centered in the track ("Slide to Lock"). */
     label: string
+    confirmLabel?: string
     /** Fires once when the handle reaches the end of the track. */
     onConfirm: () => void
     disabled?: boolean
@@ -27,12 +31,15 @@ const COMPLETE_EPSILON = 0.5
  * (button.slide.*): white pill with 4px shadow, bold centered label, round
  * action-primary handle; a trailing gradient shows slide progress while
  * dragging; disabled is not draggable. commits only at 100% travel — by drag
- * or by arrow-key presses (no instant keyboard confirm: this control exists
- * to add friction to money actions). the completed latch resets when
+ * or by arrow-key presses. Standard activation opens a separate confirmation
+ * dialog, preserving deliberate confirmation for keyboard and voice users. the completed latch resets when
  * `disabled` goes true -> false, so hosts that disable while the action runs
  * (card lock/cancel) get in-place retry after a failure for free.
  */
-const SlideToConfirm: FC<SlideToConfirmProps> = ({ label, onConfirm, disabled = false, className }) => {
+const SlideToConfirm: FC<SlideToConfirmProps> = ({ label, confirmLabel, onConfirm, disabled = false, className }) => {
+    const { simplifiedConfirmations } = useAccessibility()
+    const reduced = useReducedMotion()
+    const completionRef = useRef(false)
     const trackRef = useRef<HTMLDivElement>(null)
     const [trackWidth, setTrackWidth] = useState(0)
     const x = useMotionValue(0)
@@ -53,21 +60,26 @@ const SlideToConfirm: FC<SlideToConfirmProps> = ({ label, onConfirm, disabled = 
         const observer = new ResizeObserver(update)
         observer.observe(trackRef.current)
         return () => observer.disconnect()
-    }, [])
+    }, [simplifiedConfirmations])
 
     // latch reset: host disabled us while running onConfirm, then re-enabled
     // after a failure -> spring back and allow another attempt
     useEffect(() => {
         if (wasDisabled.current && !disabled && completed) {
+            completionRef.current = false
             setCompleted(false)
-            animate(x, 0, { type: 'spring', stiffness: 400, damping: 30 })
+            if (reduced) x.set(0)
+            else animate(x, 0, { type: 'spring', stiffness: 400, damping: 30 })
         }
         wasDisabled.current = disabled
-    }, [disabled, completed, x])
+    }, [disabled, completed, x, reduced])
 
     const complete = () => {
+        if (disabled || completionRef.current) return
+        completionRef.current = true
         setCompleted(true)
-        animate(x, maxTravel, { duration: 0.12 })
+        if (reduced) x.set(maxTravel)
+        else animate(x, maxTravel, { duration: 0.12 })
         onConfirm()
     }
 
@@ -76,57 +88,84 @@ const SlideToConfirm: FC<SlideToConfirmProps> = ({ label, onConfirm, disabled = 
         if (maxTravel > 0 && x.get() >= maxTravel - COMPLETE_EPSILON) {
             complete()
         } else {
-            animate(x, 0, { type: 'spring', stiffness: 400, damping: 30 })
+            if (reduced) x.set(0)
+            else animate(x, 0, { type: 'spring', stiffness: 400, damping: 30 })
         }
     }
 
+    const { requestConfirmation, confirmationDialog } = useAccessibleConfirmation(
+        confirmLabel ?? label,
+        complete,
+        disabled || completed
+    )
+    if (simplifiedConfirmations) {
+        return (
+            <>
+                <button
+                    type="button"
+                    disabled={disabled || completed}
+                    onClick={requestConfirmation}
+                    className={twMerge('btn btn-purple w-full', className)}
+                >
+                    {confirmLabel ?? label}
+                </button>
+                {confirmationDialog}
+            </>
+        )
+    }
     return (
-        <div
-            ref={trackRef}
-            className={twMerge(
-                'relative flex h-12 w-full items-center overflow-hidden rounded-round border border-border-button-secondary bg-background-default shadow-4',
-                disabled && 'opacity-40',
-                className
-            )}
-            aria-label={label}
-        >
-            <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-button-l text-foreground-primary">
-                {label}
-            </span>
-            <motion.div
-                aria-hidden
-                style={{ width: trailWidth, opacity: trailOpacity }}
-                className="pointer-events-none absolute inset-y-0 left-0 rounded-round bg-gradient-to-r from-background-default to-action-primary"
-            />
-            <motion.button
-                type="button"
-                style={{ x }}
-                drag={!disabled && !completed ? 'x' : false}
-                dragConstraints={{ left: 0, right: maxTravel }}
-                dragElastic={0}
-                dragMomentum={false}
-                onDragEnd={handleDragEnd}
-                onKeyDown={(e) => {
-                    if (disabled || completed || maxTravel <= 0) return
-                    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
-                        e.preventDefault()
-                        const dir = e.key === 'ArrowRight' ? 1 : -1
-                        // set, not animate: keeps rapid presses deterministic
-                        const next = Math.min(maxTravel, Math.max(0, x.get() + dir * maxTravel * KEY_STEP))
-                        if (next >= maxTravel - COMPLETE_EPSILON) {
-                            complete()
-                        } else {
-                            x.set(next)
-                        }
-                    }
-                }}
-                disabled={disabled}
-                className="absolute left-[3px] z-10 flex size-10 cursor-grab items-center justify-center rounded-round border border-border-button bg-action-primary focus-visible:outline-[3px] focus-visible:outline-action-focus active:cursor-grabbing"
+        <>
+            <div
+                ref={trackRef}
+                className={twMerge(
+                    'a11y-slide relative flex h-12 w-full items-center overflow-hidden rounded-round border border-border-button-secondary bg-background-default shadow-4',
+                    disabled && 'opacity-40',
+                    className
+                )}
                 aria-label={label}
             >
-                <Icon name="chevron-right" size={20} className="text-foreground-primary" />
-            </motion.button>
-        </div>
+                <span className="a11y-slide-label pointer-events-none absolute inset-0 flex items-center justify-center text-button-l text-foreground-primary">
+                    {label}
+                </span>
+                <motion.div
+                    aria-hidden
+                    style={{ width: trailWidth, opacity: trailOpacity }}
+                    className="pointer-events-none absolute inset-y-0 left-0 rounded-round bg-gradient-to-r from-background-default to-action-primary"
+                />
+                <motion.button
+                    type="button"
+                    style={{ x }}
+                    drag={!disabled && !completed ? 'x' : false}
+                    dragConstraints={{ left: 0, right: maxTravel }}
+                    dragElastic={0}
+                    dragMomentum={false}
+                    onDragEnd={handleDragEnd}
+                    onClick={(event) => {
+                        if (event.detail === 0 && !completionRef.current) requestConfirmation()
+                    }}
+                    onKeyDown={(e) => {
+                        if (disabled || completed || maxTravel <= 0) return
+                        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+                            e.preventDefault()
+                            const dir = e.key === 'ArrowRight' ? 1 : -1
+                            // set, not animate: keeps rapid presses deterministic
+                            const next = Math.min(maxTravel, Math.max(0, x.get() + dir * maxTravel * KEY_STEP))
+                            if (next >= maxTravel - COMPLETE_EPSILON) {
+                                complete()
+                            } else {
+                                x.set(next)
+                            }
+                        }
+                    }}
+                    disabled={disabled || completed}
+                    className="absolute left-[3px] z-10 flex size-10 cursor-grab items-center justify-center rounded-round border border-border-button bg-action-primary focus-visible:outline-[3px] focus-visible:outline-action-focus active:cursor-grabbing"
+                    aria-label={label}
+                >
+                    <Icon name="chevron-right" size={20} className="text-foreground-primary" />
+                </motion.button>
+            </div>
+            {confirmationDialog}
+        </>
     )
 }
 

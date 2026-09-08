@@ -313,15 +313,19 @@
         translate: 0 0;
     }
 }
+/* Keep the dice settled when the app preference requests reduced motion. */
+:global(:root[data-reduced-motion='true']) .die {
+    transform: rotateX(-20deg) rotateY(-25deg);
+}
 @media (prefers-reduced-motion: reduce) {
-    .grid,
-    .dealtDrawer,
-    .rollStage *,
-    .tile {
+    :global(:root:not([data-reduced-motion='false'])) .grid,
+    :global(:root:not([data-reduced-motion='false'])) .dealtDrawer,
+    :global(:root:not([data-reduced-motion='false'])) .rollStage *,
+    :global(:root:not([data-reduced-motion='false'])) .tile {
         animation: none;
         transition: none;
     }
-    .die {
+    :global(:root:not([data-reduced-motion='false'])) .die {
         transform: rotateX(-20deg) rotateY(-25deg);
     }
 }

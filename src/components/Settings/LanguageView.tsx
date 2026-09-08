@@ -52,6 +52,8 @@ export const LanguageView = () => {
                     {APP_LOCALES.map((appLocale, index) => (
                         <ListItem
                             key={appLocale}
+                            aria-pressed={appLocale === locale}
+                            disabled={switching !== null}
                             position={getCardPosition(index, APP_LOCALES.length)}
                             onClick={() => select(appLocale)}
                             leading={

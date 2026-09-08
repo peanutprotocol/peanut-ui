@@ -131,8 +131,10 @@
 
     --color-foreground-primary: #000000;
     --color-foreground-secondary: #5f646d;
+    --color-foreground-success: #246b31;
+    --color-foreground-attention: #885b00;
     --color-foreground-inverse: #ffffff;
-    --color-foreground-error: #ff3b30;
+    --color-foreground-error: #b42318;
     --color-foreground-over-color-primary: #000000;
     --color-foreground-over-color-secondary: #00000099;
 
@@ -141,7 +143,7 @@
     --color-border-button: #000000;
     --color-border-button-secondary: #000000;
     --color-border-brand: #ff90e8; /* figma border.brand (renamed+recolored from border.accent purple) */
-    --color-border-error: #ff3b30;
+    --color-border-error: #b42318;
     --color-border-disabled: #e7e8e9;
 
     --color-avatar-pink: #ffd5f6;
@@ -1216,7 +1218,7 @@ Firefox input[type='number'] {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .cloud-drift {
+    :root:not([data-reduced-motion='false']) .cloud-drift {
         animation: none;
     }
 }
@@ -1958,10 +1960,10 @@ input::placeholder {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .cta-motion,
-    .cta-enter,
-    .sticky-cta-in,
-    .sticky-cta-out {
+    :root:not([data-reduced-motion='false']) .cta-motion,
+    :root:not([data-reduced-motion='false']) .cta-enter,
+    :root:not([data-reduced-motion='false']) .sticky-cta-in,
+    :root:not([data-reduced-motion='false']) .sticky-cta-out {
         animation: none;
         transition: none;
     }
@@ -1990,4 +1992,209 @@ input::placeholder {
     .receipt-page {
         padding: 0 !important;
     }
+}
+
+/* Accessibility preferences apply to the document, including portal content. */
+:root[data-larger-text='true'] {
+    --text-heading-big-input: calc(3.25rem * 1.25);
+    --text-heading-big-input--line-height: calc(4rem * 1.25);
+    --text-heading-xl: calc(2.625rem * 1.25);
+    --text-heading-xl--line-height: calc(3rem * 1.25);
+    --text-heading-l: calc(2.25rem * 1.25);
+    --text-heading-l--line-height: calc(2.5rem * 1.25);
+    --text-heading-m: calc(1.875rem * 1.25);
+    --text-heading-m--line-height: calc(2.25rem * 1.25);
+    --text-heading-s: calc(1.5rem * 1.25);
+    --text-heading-s--line-height: calc(2rem * 1.25);
+    --text-heading-xs: calc(1.25rem * 1.25);
+    --text-heading-xs--line-height: calc(1.5rem * 1.25);
+    --text-heading-card: calc(1.125rem * 1.25);
+    --text-heading-card--line-height: calc(1.5rem * 1.25);
+    --text-body-l: calc(1.125rem * 1.25);
+    --text-body-l--line-height: calc(1.625rem * 1.25);
+    --text-body-m: calc(1rem * 1.25);
+    --text-body-m--line-height: calc(1.25rem * 1.25);
+    --text-body-m-semibold: calc(1rem * 1.25);
+    --text-body-m-semibold--line-height: calc(1.25rem * 1.25);
+    --text-body-s: calc(0.875rem * 1.25);
+    --text-body-s--line-height: calc(1.25rem * 1.25);
+    --text-body-s-semibold: calc(0.875rem * 1.25);
+    --text-body-s-semibold--line-height: calc(1.25rem * 1.25);
+    --text-body-xs: calc(0.75rem * 1.25);
+    --text-body-xs--line-height: calc(1rem * 1.25);
+    --text-label-l: calc(0.875rem * 1.25);
+    --text-label-l--line-height: calc(1.25rem * 1.25);
+    --text-label-m: calc(0.75rem * 1.25);
+    --text-label-m--line-height: calc(1rem * 1.25);
+    --text-button-l: calc(1.125rem * 1.25);
+    --text-button-l--line-height: calc(1.5rem * 1.25);
+    --text-button-m: calc(1rem * 1.25);
+    --text-button-m--line-height: calc(1rem * 1.25);
+    --text-button-s: calc(0.875rem * 1.25);
+    --text-button-s--line-height: calc(0.875rem * 1.25);
+    --text-display: calc(3.75rem * 1.25);
+    --text-sm: calc(0.875rem * 1.25);
+    --text-sm--line-height: calc(1.3125rem * 1.25);
+    --text-6xl: calc(3rem * 1.25);
+    --text-6xl--line-height: calc(3.25rem * 1.25);
+    --text-7xl: calc(7rem * 1.25);
+    --text-7xl--line-height: calc(7rem * 1.25);
+    --text-8xl: calc(10rem * 1.25);
+    --text-8xl--line-height: calc(10rem * 1.25);
+    --text-9xl: calc(12rem * 1.25);
+    --text-h1: calc(3rem * 1.25);
+    --text-h1--line-height: calc(3.5rem * 1.25);
+    --text-h2: calc(2.25rem * 1.25);
+    --text-h2--line-height: calc(2.875rem * 1.25);
+    --text-h3: calc(1.875rem * 1.25);
+    --text-h3--line-height: calc(2.375rem * 1.25);
+    --text-h4: calc(1.5rem * 1.25);
+    --text-h4--line-height: calc(2rem * 1.25);
+    --text-h5: calc(1.25rem * 1.25);
+    --text-h5--line-height: calc(1.75rem * 1.25);
+    --text-h6: calc(1.125rem * 1.25);
+    --text-h6--line-height: calc(1.5rem * 1.25);
+    --text-h7: calc(1rem * 1.25);
+    --text-h7--line-height: calc(1.25rem * 1.25);
+    --text-h8: calc(0.875rem * 1.25);
+    --text-h8--line-height: calc(1rem * 1.25);
+    --text-h9: calc(0.75rem * 1.25);
+    --text-h9--line-height: calc(0.875rem * 1.25);
+    --text-h10: calc(0.625rem * 1.25);
+    --text-h10--line-height: calc(0.75rem * 1.25);
+    --text-headingLarge: calc(7rem * 1.25);
+    --text-headingLarge--line-height: calc(6.5rem * 1.25);
+    --text-headingMedium: calc(5rem * 1.25);
+    --text-headingMedium--line-height: calc(4rem * 1.25);
+    --text-heading: calc(3.75rem * 1.25);
+    --text-heading--line-height: calc(2.875rem * 1.25);
+    --text-xs: calc(0.75rem * 1.25);
+    --text-base: calc(1rem * 1.25);
+    --text-lg: calc(1.125rem * 1.25);
+    --text-xl: calc(1.25rem * 1.25);
+    --text-2xl: calc(1.5rem * 1.25);
+    --text-3xl: calc(1.875rem * 1.25);
+    --text-4xl: calc(2.25rem * 1.25);
+}
+:root[data-larger-text='true'] body {
+    font-size: 1.25rem;
+}
+:root[data-larger-text='true'] .btn:not(.btn-square) {
+    height: auto;
+    min-height: 2.75rem;
+    padding-block: 0.75rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.4;
+}
+:root[data-larger-text='true'] .input {
+    min-height: 3.5rem;
+}
+:root[data-larger-text='true'] .a11y-wrap {
+    white-space: normal;
+    overflow: visible;
+    overflow-wrap: anywhere;
+    text-overflow: clip;
+}
+:root[data-high-contrast='true'] {
+    --color-foreground-secondary: #374151;
+    --color-foreground-over-color-secondary: #161616;
+    --color-border-subtle: #5f646d;
+    --color-border-disabled: #5f646d;
+    --color-action-focus: #1743a0;
+    --color-background-disabled: #e7e8e9;
+}
+:root[data-high-contrast='true'] :is(button:disabled, [aria-disabled='true']) {
+    opacity: 1;
+    border-style: dashed;
+}
+/* A baseline focus indicator also covers links and custom controls whose
+   consumers do not supply a focus class. The base layer lets input modality
+   styles and component focus utilities override this fallback. */
+@layer base {
+    :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+        outline: 3px solid var(--color-action-focus);
+        outline-offset: 3px;
+    }
+}
+:root[data-reduced-motion='true'] *,
+:root[data-reduced-motion='true'] *::before,
+:root[data-reduced-motion='true'] *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+}
+/* Honor the OS before the client provider hydrates. Explicit Off wins later. */
+@media (prefers-reduced-motion: reduce) {
+    :root:not([data-reduced-motion='false']) *,
+    :root:not([data-reduced-motion='false']) *::before,
+    :root:not([data-reduced-motion='false']) *::after {
+        animation-duration: 0.01ms !important;
+        animation-delay: 0ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        transition-delay: 0ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+:root[data-larger-text='true'] .a11y-nav-title {
+    position: static;
+    flex: 1;
+    max-width: none;
+    min-width: 0;
+    margin-inline: 0.5rem;
+    transform: none;
+    /* Tailwind's translate utilities use the individual property, separate from transform. */
+    translate: none;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
+:root[data-larger-text='true'] .a11y-nav-spacer {
+    display: block;
+    flex: 0 0 2.5rem;
+}
+
+/* Give translated headings the full row on the narrowest phones. */
+@media (max-width: 359px) {
+    :root[data-larger-text='true'] .a11y-nav-controls {
+        flex-wrap: wrap;
+        row-gap: 0.5rem;
+    }
+    :root[data-larger-text='true'] .a11y-nav-title {
+        order: 1;
+        flex-basis: 100%;
+        margin-inline: 0;
+    }
+}
+
+/* Let a status or amount move below the label before squeezing its text into a narrow column. */
+:root[data-larger-text='true'] .a11y-list-item {
+    flex-wrap: wrap;
+}
+:root[data-larger-text='true'] .a11y-list-content {
+    flex-basis: 12rem;
+}
+
+/* The row action follows the grouped Card corners without enclosing slot controls. */
+.a11y-row-action {
+    border-radius: inherit;
+}
+
+:root[data-larger-text='true'] .a11y-slide {
+    height: auto;
+    min-height: 3rem;
+}
+:root[data-larger-text='true'] .a11y-slide-label {
+    position: relative;
+    width: 100%;
+    padding: 0.75rem 3rem;
+    text-align: center;
 }

@@ -97,6 +97,7 @@ export const VerifiedUserLabel = ({
     const isInvitedByLoggedInUser = invitedUsernamesSet.has(username)
 
     const isInviter = user?.invitedBy === username
+    const NameElement = onNameClick ? 'button' : 'span'
 
     return (
         <div className="flex min-w-0 items-center gap-1">
@@ -108,8 +109,14 @@ export const VerifiedUserLabel = ({
             {isCryptoAddressComputed && name === username ? (
                 <AddressLink isLink={false} className={twMerge(LABEL_TYPE, className)} address={username} />
             ) : (
-                <div
-                    className={twMerge('line-clamp-1 min-w-0', LABEL_TYPE, className, onNameClick && 'cursor-pointer')}
+                <NameElement
+                    type={onNameClick ? 'button' : undefined}
+                    className={twMerge(
+                        'a11y-wrap line-clamp-1 min-w-0',
+                        LABEL_TYPE,
+                        className,
+                        onNameClick && 'cursor-pointer'
+                    )}
                     onClick={
                         onNameClick &&
                         ((e) => {
@@ -120,7 +127,7 @@ export const VerifiedUserLabel = ({
                     }
                 >
                     {name}
-                </div>
+                </NameElement>
             )}
 
             {badge && (

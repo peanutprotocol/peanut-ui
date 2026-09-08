@@ -13,7 +13,7 @@
  * the click wiring are mocked (router, haptic, drawer state, ENS lookup, auth).
  */
 import React from 'react'
-import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent, within } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import TransactionCard from '../TransactionCard'
 import { type TransactionDetails } from '../transactionTransformer'
@@ -96,6 +96,24 @@ describe('TransactionCard — clickable counterparty name', () => {
         openTransactionDetails.mockClear()
     })
 
+    it('exposes independent row and profile buttons to keyboard users without nested controls', () => {
+        const { container } = renderCard(eligibleTx())
+        const row = within(screen.getByTestId('transaction-card')).getByRole('button', { name: /Send.*10/ })
+        const profile = screen.getByRole('button', { name: 'natalia' })
+        expect(container.querySelector('button button, button a, button [tabindex]')).toBeNull()
+        expect(row.tabIndex).toBe(0)
+        expect(profile.tabIndex).toBe(0)
+        profile.focus()
+        expect(profile).toHaveFocus()
+        fireEvent.click(profile, { detail: 0 })
+        expect(push).toHaveBeenCalledWith('/natalia')
+        expect(openTransactionDetails).not.toHaveBeenCalled()
+        row.focus()
+        expect(row).toHaveFocus()
+        fireEvent.click(row, { detail: 0 })
+        expect(openTransactionDetails).toHaveBeenCalledTimes(1)
+    })
+
     it('AC1: clicking the name navigates to /<username> and does NOT open the drawer', () => {
         renderCard(eligibleTx())
 
@@ -118,7 +136,7 @@ describe('TransactionCard — clickable counterparty name', () => {
         renderCard(eligibleTx())
 
         // displayAmount for a completed send of $10 renders as "-$10"
-        fireEvent.click(screen.getByText('-$10'))
+        fireEvent.click(within(screen.getByTestId('transaction-card')).getByRole('button', { name: /Send.*10/ }))
 
         expect(openTransactionDetails).toHaveBeenCalledTimes(1)
         expect(push).not.toHaveBeenCalled()
@@ -134,7 +152,7 @@ describe('TransactionCard — clickable counterparty name', () => {
 
         renderCard(tx)
 
-        fireEvent.click(screen.getByText('natalia'))
+        fireEvent.click(within(screen.getByTestId('transaction-card')).getByRole('button'))
 
         expect(push).not.toHaveBeenCalled()
         // the click still bubbles to the card, which opens the drawer

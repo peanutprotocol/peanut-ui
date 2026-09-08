@@ -24,6 +24,7 @@ export default function TokenAndNetworkConfirmationModal({
     isVisible?: boolean
 }) {
     const t = useTranslations('global')
+    const tCommon = useTranslations('common')
     const tAddMoney = useTranslations('addMoney')
     return (
         <ActionModal
@@ -71,7 +72,11 @@ export default function TokenAndNetworkConfirmationModal({
             }
             footer={
                 <div className="w-full">
-                    <SlideToConfirm onConfirm={onAccept} label={t('tokenAndNetworkConfirmationModal.slideToProceed')} />
+                    <SlideToConfirm
+                        confirmLabel={tCommon('accessibility.proceed')}
+                        onConfirm={onAccept}
+                        label={t('tokenAndNetworkConfirmationModal.slideToProceed')}
+                    />
                 </div>
             }
             ctas={[]}

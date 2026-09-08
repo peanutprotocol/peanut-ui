@@ -57,7 +57,14 @@
         },
         "exchangeRate": "Exchange rate",
         "slideToProceed": "Slide to Proceed",
-        "userAvatarAlt": "Avatar for {username}"
+        "userAvatarAlt": "Avatar for {username}",
+        "accessibility": {
+            "embeddedFlow": "Verification",
+            "feedback": "Feedback",
+            "proceed": "Continue",
+            "lock": "Lock card",
+            "cancelCard": "Cancel card"
+        }
     },
     "errors": {
         "balanceSettling": "Your balance isn't fully available yet. Please try again in a few seconds.",

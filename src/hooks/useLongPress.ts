@@ -45,6 +45,8 @@ export function useLongPress(options: LongPressOptions | undefined): LongPressRe
     const handlePressStart = useCallback(() => {
         if (!options) return
 
+        clearTimers()
+        isLongPressedRef.current = false
         options.onLongPressStart?.()
         setPressProgress(0)
 
@@ -72,7 +74,7 @@ export function useLongPress(options: LongPressOptions | undefined): LongPressRe
         }, duration)
 
         pressTimerRef.current = timer
-    }, [options])
+    }, [options, clearTimers])
 
     const handlePressEnd = useCallback(() => {
         if (!options) return
@@ -94,6 +96,15 @@ export function useLongPress(options: LongPressOptions | undefined): LongPressRe
         setIsLongPressed(false)
         setPressProgress(0)
     }, [options, clearTimers])
+
+    const enabled = !!options
+    useEffect(() => {
+        if (!enabled) {
+            clearTimers()
+            setIsLongPressed(false)
+            setPressProgress(0)
+        }
+    }, [enabled, clearTimers])
 
     // Cleanup on unmount
     useEffect(() => {

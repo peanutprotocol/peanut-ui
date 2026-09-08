@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useId } from 'react'
 import ReactDOM from 'react-dom'
 import { twMerge } from '@/utils/tw'
 import { TooltipContent, type TooltipPosition } from './TooltipContent'
@@ -24,6 +24,8 @@ export const Tooltip = ({
     disabled = false,
     id,
 }: TooltipProps) => {
+    const generatedId = useId()
+    const tooltipId = `${id ?? 'tooltip'}-${generatedId}`
     const [visible, setVisible] = useState(false)
     const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, height: 0 })
     const triggerRef = useRef<HTMLDivElement>(null)
@@ -75,6 +77,18 @@ export const Tooltip = ({
         <>
             <div
                 ref={triggerRef}
+                tabIndex={disabled ? undefined : 0}
+                aria-describedby={visible ? tooltipId : undefined}
+                onKeyDown={(event) => {
+                    if (event.key === 'Escape') {
+                        event.stopPropagation()
+                        hideTooltip()
+                    }
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        showTooltip()
+                    }
+                }}
                 className={twMerge('inline-block cursor-pointer', className)}
                 onMouseEnter={showTooltip}
                 onMouseLeave={hideTooltip}
@@ -95,7 +109,7 @@ export const Tooltip = ({
                 visible &&
                 ReactDOM.createPortal(
                     <TooltipContent
-                        id={id}
+                        id={tooltipId}
                         content={content}
                         position={dynamicPosition}
                         coords={coords}

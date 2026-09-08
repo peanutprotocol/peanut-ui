@@ -152,6 +152,7 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                     <>
                         {error && <p className="text-body-s text-foreground-error">{error}</p>}
                         <SlideToConfirm
+                            confirmLabel={tCommon('accessibility.cancelCard')}
                             label={phase === 'canceling' ? t('cancel.canceling') : t('cancel.slideToCancel')}
                             onConfirm={runCancel}
                             disabled={phase === 'canceling'}

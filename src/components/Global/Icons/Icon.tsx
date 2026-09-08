@@ -372,5 +372,14 @@ export const Icon: FC<IconProps> = ({ name, size = 24, width, height, className,
 
     // `??` not `||` so explicit `width={0}` / `height={0}` would still pass
     // through (defensive — `0` is unlikely but the operator was wrong before).
-    return <IconComponent width={width ?? size} height={height ?? size} className={mergedClassName} {...props} />
+    return (
+        <IconComponent
+            aria-hidden={props['aria-label'] || props['aria-labelledby'] ? undefined : true}
+            focusable={false}
+            width={width ?? size}
+            height={height ?? size}
+            className={mergedClassName}
+            {...props}
+        />
+    )
 }

@@ -57,9 +57,12 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
     }, [balance.amount, balance.decimals])
 
     return (
-        <div
+        <button
+            type="button"
+            disabled={!isEnabled}
+            aria-pressed={isSelected}
             className={twMerge(
-                'cursor-pointer rounded-sm shadow-sm',
+                'w-full cursor-pointer rounded-sm text-left shadow-sm',
                 isSelected && 'bg-purple-200',
                 !isEnabled && 'cursor-not-allowed opacity-70',
                 className
@@ -75,7 +78,8 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
                 )}
                 border={true}
             >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
+                    {isSelected && <Icon name="check" size={20} className="shrink-0" />}
                     <div className="space-x-3 flex items-center">
                         <div className="relative flex-shrink-0">
                             {!balance.logoURI || tokenPlaceholder || tokenImageError ? (
@@ -147,7 +151,7 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
                     )}
                 </div>
             </Card>
-        </div>
+        </button>
     )
 }
 

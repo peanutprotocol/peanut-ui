@@ -331,13 +331,23 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "section": "semantic"
     },
     {
+        "name": "foreground-success",
+        "value": "#246b31",
+        "section": "semantic"
+    },
+    {
+        "name": "foreground-attention",
+        "value": "#885b00",
+        "section": "semantic"
+    },
+    {
         "name": "foreground-inverse",
         "value": "#ffffff",
         "section": "semantic"
     },
     {
         "name": "foreground-error",
-        "value": "#ff3b30",
+        "value": "#b42318",
         "section": "semantic"
     },
     {
@@ -377,7 +387,7 @@ export const COLOR_TOKENS: ThemeToken[] = [
     },
     {
         "name": "border-error",
-        "value": "#ff3b30",
+        "value": "#b42318",
         "section": "semantic"
     },
     {

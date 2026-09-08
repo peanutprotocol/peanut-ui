@@ -136,6 +136,7 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                                         : contact.username
                                     return (
                                         <ListItem
+                                            interactiveContent
                                             position={
                                                 contacts.length === 1
                                                     ? 'single'

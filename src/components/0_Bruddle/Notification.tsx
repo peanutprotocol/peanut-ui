@@ -164,6 +164,7 @@ export const Notification = ({
     if (!body && !title && !ctas?.length) return null
     return (
         <div
+            aria-atomic="true"
             role={priority === 'error' || priority === 'attention' ? 'alert' : 'status'}
             className={twMerge(
                 // text-start is load-bearing: ActionModal centres its content

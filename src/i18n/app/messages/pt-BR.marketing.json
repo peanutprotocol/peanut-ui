@@ -57,7 +57,14 @@
         },
         "exchangeRate": "Taxa de câmbio",
         "slideToProceed": "Deslize para continuar",
-        "userAvatarAlt": "Avatar de {username}"
+        "userAvatarAlt": "Avatar de {username}",
+        "accessibility": {
+            "embeddedFlow": "Verificação",
+            "feedback": "Comentários",
+            "proceed": "Continuar",
+            "lock": "Bloquear cartão",
+            "cancelCard": "Cancelar cartão"
+        }
     },
     "errors": {
         "balanceSettling": "Seu saldo ainda não está totalmente disponível. Tente novamente em alguns segundos.",

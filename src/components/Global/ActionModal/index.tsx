@@ -5,6 +5,7 @@ import { type IconProps as GlobalIconProps, Icon, type IconName } from '@/compon
 import Loading from '@/components/Global/Loading'
 import BaseModal from '@/components/Global/Modal'
 import React from 'react'
+import { DialogTitle, Description } from '@headlessui/react'
 import { twMerge } from '@/utils/tw'
 
 export interface ActionModalButtonProps extends ButtonProps {
@@ -177,11 +178,19 @@ const ActionModal: React.FC<ActionModalProps> = ({
 
                     <div className="flex w-full flex-col gap-1">
                         {/* board head: Heading XS + Body S */}
-                        <h3 className={twMerge('text-heading-xs text-foreground-primary', titleClassName)}>{title}</h3>
+                        <DialogTitle
+                            as="h3"
+                            className={twMerge('text-heading-xs text-foreground-primary', titleClassName)}
+                        >
+                            {title}
+                        </DialogTitle>
                         {description && (
-                            <div className={twMerge('text-body-s text-foreground-secondary', descriptionClassName)}>
+                            <Description
+                                as="div"
+                                className={twMerge('text-body-s text-foreground-secondary', descriptionClassName)}
+                            >
                                 {typeof description === 'string' ? <p>{description}</p> : description}
-                            </div>
+                            </Description>
                         )}
                     </div>
                 </div>

@@ -1,3 +1,4 @@
+import { prefersReducedMotion } from '@/utils/accessibility-preferences'
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Peanut-mascot ragdoll. Ported from ragdoll/src/main.js with one structural
 // change: all mutable state lives inside startRagdoll(canvas) and the function
@@ -86,9 +87,6 @@ const rand = (min: number, max: number) => min + Math.random() * (max - min)
 // Read on every mount, never cached at module load: the document outlives any
 // single setting, so a value latched at boot would be stale by the time the
 // user toggles Reduce Motion. Same rule as utils/confetti.ts.
-function prefersReducedMotion(): boolean {
-    return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
-}
 
 /*
  * Reduce Motion: degrade instead of disappearing. The drop and the 60fps loop

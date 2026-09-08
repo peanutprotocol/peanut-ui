@@ -1,3 +1,4 @@
+import { prefersReducedMotion } from '@/utils/accessibility-preferences'
 import { useCallback, useEffect, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { isCapacitor } from '@/utils/capacitor'
@@ -133,10 +134,9 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
         // Element.animate is missing in jsdom and in older WebViews — the
         // indicator must still work without it, just without the flourish
         const animate = (element: Element, keyframes: Keyframe[], animationOptions: KeyframeAnimationOptions) =>
-            typeof element.animate === 'function' ? element.animate(keyframes, animationOptions) : null
-
-        const prefersReducedMotion = () =>
-            typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+            !prefersReducedMotion() && typeof element.animate === 'function'
+                ? element.animate(keyframes, animationOptions)
+                : null
 
         const setIndicator = (pull: number, withTransition: boolean) => {
             indicator.style.transition = withTransition

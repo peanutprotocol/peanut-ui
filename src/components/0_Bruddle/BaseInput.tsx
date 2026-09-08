@@ -25,6 +25,9 @@ const BaseInput = forwardRef<HTMLInputElement, BaseInputProps>(
             <div className="relative w-full">
                 <input
                     ref={ref}
+                    aria-label={
+                        props['aria-label'] ?? (!props.id && !props['aria-labelledby'] ? props.placeholder : undefined)
+                    }
                     aria-invalid={state === 'error' ? true : undefined}
                     className={twMerge(c, !!rightContent && 'pr-15 md:pr-18')}
                     {...props}

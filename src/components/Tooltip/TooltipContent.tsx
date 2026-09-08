@@ -169,7 +169,7 @@ export const TooltipContent = ({
 
     return (
         <div key={id} ref={tooltipRef} style={getPositionStyles()} className="pointer-events-none fixed z-50">
-            <div role="tooltip" className={tooltipClasses}>
+            <div id={id} role="tooltip" className={tooltipClasses}>
                 {content}
                 <div className={getArrowClasses()} />
             </div>

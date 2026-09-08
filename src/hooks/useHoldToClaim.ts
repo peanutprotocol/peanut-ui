@@ -1,3 +1,5 @@
+import { useAccessibility, useReducedMotion } from '@/hooks/useAccessibility'
+import { useAccessibleConfirmation } from '@/components/Accessibility/useAccessibleConfirmation'
 import { PERK_HOLD_DURATION_MS } from '@/constants/general.consts'
 import { cancelHaptic, vibrateHaptic } from '@/utils/haptics'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -6,6 +8,7 @@ export type ShakeIntensity = 'none' | 'weak' | 'medium' | 'strong' | 'intense'
 
 interface UseHoldToClaimOptions {
     onComplete: () => void
+    label?: React.ReactNode
     holdDuration?: number
     disabled?: boolean
     /** Enable tap-to-progress mode (tap + hold both add progress, with decay) */
@@ -19,6 +22,8 @@ interface UseHoldToClaimOptions {
 }
 
 interface UseHoldToClaimReturn {
+    confirmationDialog: React.ReactNode
+    simplifiedConfirmations: boolean
     holdProgress: number
     isShaking: boolean
     shakeIntensity: ShakeIntensity
@@ -27,6 +32,7 @@ interface UseHoldToClaimReturn {
     cancelHold: () => void
     handleTap: () => void
     buttonProps: {
+        onClick: (e: React.MouseEvent) => void
         onPointerDown: () => void
         onPointerUp: () => void
         onPointerLeave: () => void
@@ -47,6 +53,7 @@ interface UseHoldToClaimReturn {
  */
 export function useHoldToClaim({
     onComplete,
+    label,
     holdDuration = PERK_HOLD_DURATION_MS,
     disabled = false,
     enableTapMode = false,
@@ -54,6 +61,8 @@ export function useHoldToClaim({
     holdProgressPerSec = 80,
     decayRate = 8,
 }: UseHoldToClaimOptions): UseHoldToClaimReturn {
+    const { simplifiedConfirmations } = useAccessibility()
+    const reduced = useReducedMotion()
     const [holdProgress, setHoldProgress] = useState(0)
     const [isShaking, setIsShaking] = useState(false)
     const [shakeIntensity, setShakeIntensity] = useState<ShakeIntensity>('none')
@@ -69,6 +78,16 @@ export function useHoldToClaim({
     const isCompleteRef = useRef<boolean>(false)
     const lastTapTimeRef = useRef<number>(0)
 
+    const { requestConfirmation, confirmationDialog } = useAccessibleConfirmation(
+        label,
+        () => {
+            if (disabled || isCompleteRef.current) return
+            isCompleteRef.current = true
+            onComplete()
+        },
+        disabled
+    )
+
     // Cleanup timers on unmount
     useEffect(() => {
         return () => {
@@ -81,7 +100,7 @@ export function useHoldToClaim({
 
     // Tap mode: Main update loop for progress, decay, and haptics
     useEffect(() => {
-        if (!enableTapMode || disabled || isCompleteRef.current) return
+        if (!enableTapMode || simplifiedConfirmations || disabled || isCompleteRef.current) return
 
         const update = () => {
             const now = Date.now()
@@ -167,7 +186,7 @@ export function useHoldToClaim({
                 cancelAnimationFrame(animationFrameRef.current)
             }
         }
-    }, [enableTapMode, disabled, isHolding, holdProgressPerSec, decayRate, onComplete])
+    }, [enableTapMode, simplifiedConfirmations, disabled, isHolding, holdProgressPerSec, decayRate, onComplete])
 
     // Handle tap (tap mode only)
     const handleTap = useCallback(() => {
@@ -274,6 +293,8 @@ export function useHoldToClaim({
         progressIntervalRef.current = interval
 
         const timer = setTimeout(() => {
+            if (disabled || isCompleteRef.current) return
+            isCompleteRef.current = true
             onComplete()
         }, holdDuration)
 
@@ -292,23 +313,33 @@ export function useHoldToClaim({
         }
     }, [disabled, enableTapMode, handleTap, startHoldLegacy])
 
+    // Cancel a held gesture if it becomes unavailable or its mode changes.
+    useEffect(() => {
+        if (disabled || simplifiedConfirmations) {
+            if (holdTimerRef.current) clearTimeout(holdTimerRef.current)
+            if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
+            if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current)
+            setIsHolding(false)
+            setHoldProgress(0)
+            setIsShaking(false)
+            cancelHaptic()
+        }
+        if (disabled) isCompleteRef.current = false
+    }, [disabled, simplifiedConfirmations])
+
     const buttonProps = {
-        onPointerDown: startHold,
+        onClick: (event: React.MouseEvent) => {
+            if (disabled || isCompleteRef.current) return
+            // A keyboard, screen reader or voice command produces click without
+            // requiring a sustained key or pointer gesture.
+            if (simplifiedConfirmations || event.detail === 0) requestConfirmation()
+        },
+        onPointerDown: simplifiedConfirmations ? () => {} : startHold,
         onPointerUp: cancelHold,
         onPointerLeave: cancelHold,
         onPointerCancel: cancelHold,
-        onKeyDown: (e: React.KeyboardEvent) => {
-            if ((e.key === 'Enter' || e.key === ' ') && !disabled) {
-                e.preventDefault()
-                startHold()
-            }
-        },
-        onKeyUp: (e: React.KeyboardEvent) => {
-            if ((e.key === 'Enter' || e.key === ' ') && !disabled) {
-                e.preventDefault()
-                cancelHold()
-            }
-        },
+        onKeyDown: (_e: React.KeyboardEvent) => {},
+        onKeyUp: (_e: React.KeyboardEvent) => {},
         onContextMenu: (e: React.MouseEvent) => {
             e.preventDefault()
         },
@@ -320,9 +351,11 @@ export function useHoldToClaim({
     }
 
     return {
+        confirmationDialog,
+        simplifiedConfirmations,
         holdProgress,
-        isShaking,
-        shakeIntensity,
+        isShaking: !reduced && isShaking,
+        shakeIntensity: reduced ? 'none' : shakeIntensity,
         isHolding,
         startHold,
         cancelHold,

@@ -1,7 +1,7 @@
 import React from 'react'
 import { twMerge } from '@/utils/tw'
 
-interface FieldErrorProps {
+interface FieldErrorProps extends React.HTMLAttributes<HTMLParagraphElement> {
     children?: React.ReactNode
     className?: string
     'data-testid'?: string

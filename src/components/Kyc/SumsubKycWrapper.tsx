@@ -424,6 +424,7 @@ const SumsubWebSdkModal = ({
     return (
         <>
             <Modal
+                accessibleTitle={tCommon('accessibility.embeddedFlow')}
                 visible={visible}
                 onClose={onClose}
                 classWrap="h-full w-full !max-w-none sm:!max-w-[600px] border-none sm:m-auto m-0"

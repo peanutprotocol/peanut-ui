@@ -275,6 +275,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         <>
             {/* the clickable row — figma list-item board anatomy */}
             <ListItem
+                interactiveContent
                 position={position}
                 onClick={handleClick}
                 data-testid="transaction-card"
@@ -282,7 +283,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                 title={
                     <div className="flex min-w-0 flex-row items-center gap-2">
                         {isPending && <IndicatorDot className="h-2 w-2 animate-pulsate" />}
-                        <div className="min-w-0 flex-1 truncate">
+                        <div className="min-w-0 flex-1">
                             <VerifiedUserLabel
                                 username={transaction.userName}
                                 name={displayName}

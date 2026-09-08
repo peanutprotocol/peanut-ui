@@ -4,6 +4,8 @@ import { twMerge } from '@/utils/tw'
 import { Icon, type IconName } from '../Global/Icons/Icon'
 import Loading from '../Global/Loading'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
+import { useAccessibility } from '@/hooks/useAccessibility'
+import { useAccessibleConfirmation } from '@/components/Accessibility/useAccessibleConfirmation'
 import { useLongPress } from '@/hooks/useLongPress'
 
 export type ButtonVariant =
@@ -119,7 +121,28 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         const buttonRef = (ref as React.RefObject<HTMLButtonElement>) || localRef
 
         const { triggerHaptic } = useAppHaptic()
-        const { isLongPressed, pressProgress, handlers: longPressHandlers } = useLongPress(longPress)
+        const { simplifiedConfirmations } = useAccessibility()
+        const activationEvent = useRef<React.MouseEvent<HTMLButtonElement> | null>(null)
+        const held = useRef(false)
+        const holdOptions =
+            longPress && !simplifiedConfirmations && !props.disabled && !loading
+                ? {
+                      ...longPress,
+                      onLongPress: () => {
+                          held.current = true
+                          longPress.onLongPress?.()
+                      },
+                  }
+                : undefined
+        const { pressProgress, handlers: longPressHandlers } = useLongPress(holdOptions)
+        const { requestConfirmation, confirmationDialog } = useAccessibleConfirmation(
+            children || props['aria-label'],
+            () => {
+                if (longPress?.onLongPress) longPress.onLongPress()
+                else if (activationEvent.current) onClick?.(activationEvent.current)
+            },
+            props.disabled || loading
+        )
 
         useEffect(() => {
             if (!buttonRef.current) return
@@ -129,7 +152,17 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
         const handleClick = useCallback(
             (e: React.MouseEvent<HTMLButtonElement>) => {
-                if (longPress && !isLongPressed) {
+                if (props.disabled || loading) return
+                if (longPress) {
+                    e.preventDefault()
+                    if (held.current) {
+                        held.current = false
+                        return
+                    }
+                    if (simplifiedConfirmations || e.detail === 0) {
+                        activationEvent.current = e
+                        requestConfirmation()
+                    }
                     return
                 }
 
@@ -139,7 +172,16 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
                 onClick?.(e)
             },
-            [longPress, isLongPressed, onClick, disableHaptics, triggerHaptic]
+            [
+                longPress,
+                simplifiedConfirmations,
+                onClick,
+                disableHaptics,
+                triggerHaptic,
+                props.disabled,
+                loading,
+                requestConfirmation,
+            ]
         )
 
         const buttonClasses = twMerge(
@@ -179,34 +221,43 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         const displayText = children
 
         return (
-            <button
-                className={twMerge(buttonClasses, 'notranslate', longPress && 'relative overflow-hidden')}
-                ref={buttonRef}
-                translate="no"
-                onClick={handleClick}
-                onMouseDown={longPress ? longPressHandlers.onMouseDown : undefined}
-                onMouseUp={longPress ? longPressHandlers.onMouseUp : undefined}
-                onMouseLeave={longPress ? longPressHandlers.onMouseLeave : undefined}
-                onTouchStart={longPress ? longPressHandlers.onTouchStart : undefined}
-                onTouchEnd={longPress ? longPressHandlers.onTouchEnd : undefined}
-                onTouchCancel={longPress ? longPressHandlers.onTouchCancel : undefined}
-                {...props}
-            >
-                {/* Progress bar for long press */}
-                {longPress && pressProgress > 0 && (
-                    <div
-                        className="absolute inset-0 bg-gradient-to-r from-purple-400 to-purple-600 opacity-30 transition-all duration-instant ease-out"
-                        style={{
-                            width: `${pressProgress}%`,
-                        }}
-                    />
-                )}
+            <>
+                <button
+                    className={twMerge(buttonClasses, 'notranslate', longPress && 'relative overflow-hidden')}
+                    ref={buttonRef}
+                    translate="no"
+                    onClick={handleClick}
+                    onMouseDown={holdOptions ? longPressHandlers.onMouseDown : undefined}
+                    onMouseUp={holdOptions ? longPressHandlers.onMouseUp : undefined}
+                    onMouseLeave={holdOptions ? longPressHandlers.onMouseLeave : undefined}
+                    onTouchStart={holdOptions ? longPressHandlers.onTouchStart : undefined}
+                    onTouchEnd={holdOptions ? longPressHandlers.onTouchEnd : undefined}
+                    onTouchCancel={holdOptions ? longPressHandlers.onTouchCancel : undefined}
+                    {...props}
+                    disabled={props.disabled || loading}
+                    aria-busy={loading || props['aria-busy'] || undefined}
+                >
+                    {/* Progress bar for long press */}
+                    {longPress && pressProgress > 0 && (
+                        <div
+                            className="absolute inset-0 bg-gradient-to-r from-purple-400 to-purple-600 opacity-30 transition-all duration-instant ease-out"
+                            style={{
+                                width: `${pressProgress}%`,
+                            }}
+                        />
+                    )}
 
-                {loading && <Loading />}
-                {iconPosition === 'left' && renderIcon()}
-                {displayText}
-                {iconPosition === 'right' && renderIcon()}
-            </button>
+                    {loading && (
+                        <span aria-hidden="true">
+                            <Loading />
+                        </span>
+                    )}
+                    {iconPosition === 'left' && renderIcon()}
+                    {displayText}
+                    {iconPosition === 'right' && renderIcon()}
+                </button>
+                {confirmationDialog}
+            </>
         )
     }
 )

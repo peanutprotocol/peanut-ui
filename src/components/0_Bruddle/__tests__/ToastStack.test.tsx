@@ -7,6 +7,8 @@ import ToastStack from '../ToastStack'
 const mockReduceMotion = { value: false }
 const mockMotionProps: Record<string, unknown>[] = []
 
+jest.mock('@/hooks/useAccessibility', () => ({ useReducedMotion: () => mockReduceMotion.value }))
+
 jest.mock('framer-motion', () => {
     const react = require('react')
     return {
@@ -101,10 +103,10 @@ describe('ToastStack', () => {
             mockReduceMotion.value = true
             renderOne()
             const props = mockMotionProps[0]
-            expect(props.initial).toBeUndefined()
+            expect(props.initial).toBe(false)
             expect(props.animate).toBeUndefined()
             expect(props.exit).toBeUndefined()
-            expect(props.transition).toBeUndefined()
+            expect(props.transition).toMatchObject({ duration: 0, repeat: 0 })
         })
     })
 })

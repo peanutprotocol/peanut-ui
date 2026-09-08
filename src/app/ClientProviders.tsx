@@ -6,6 +6,7 @@
  * groups all client providers in one place, keeping the root layout clean.
  * the root layout (server component) renders this single client boundary.
  */
+import { AccessibilityProvider } from '@/components/Accessibility/AccessibilityProvider'
 import { ConsoleGreeting } from '@/components/Global/ConsoleGreeting'
 import { InputModalityProvider } from '@/components/Accessibility/InputModalityProvider'
 import { ScreenOrientationLocker } from '@/components/Global/ScreenOrientationLocker'
@@ -99,18 +100,20 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
                     <IntlProvider>
                         <ContextProvider>
                             <FooterVisibilityProvider>
-                                <TranslationSafeWrapper>
-                                    <ConsoleGreeting />
-                                    <ScreenOrientationLocker />
-                                    {HarnessBootstrap && (
-                                        <Suspense fallback={null}>
-                                            <HarnessBootstrap />
-                                        </Suspense>
-                                    )}
-                                    <InputModalityProvider>
-                                        {marketing ? children : <AppGlobals>{children}</AppGlobals>}
-                                    </InputModalityProvider>
-                                </TranslationSafeWrapper>
+                                <AccessibilityProvider>
+                                    <TranslationSafeWrapper>
+                                        <ConsoleGreeting />
+                                        <ScreenOrientationLocker />
+                                        {HarnessBootstrap && (
+                                            <Suspense fallback={null}>
+                                                <HarnessBootstrap />
+                                            </Suspense>
+                                        )}
+                                        <InputModalityProvider>
+                                            {marketing ? children : <AppGlobals>{children}</AppGlobals>}
+                                        </InputModalityProvider>
+                                    </TranslationSafeWrapper>
+                                </AccessibilityProvider>
                             </FooterVisibilityProvider>
                         </ContextProvider>
                     </IntlProvider>

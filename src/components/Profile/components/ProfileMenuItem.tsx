@@ -53,14 +53,14 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
     const locale = useLocale()
     // min-h-6 + p-4 = the 56px DS ListItem row; the old py-1 made it 60px
     const content = (
-        <div className="flex min-h-6 items-center justify-between">
-            <div className="flex items-center gap-2">
+        <div className="flex min-h-6 items-center justify-between gap-3">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
                 {typeof icon === 'string' ? (
                     <Icon name={icon as IconName} size={20} fill="black" className={iconClassName} />
                 ) : (
                     <div className="flex size-5 items-center justify-center">{icon}</div>
                 )}
-                <label className="text-body-m text-foreground-primary">{label}</label>
+                <span className="min-w-0 text-body-m text-foreground-primary">{label}</span>
                 {badge && <StatusBadge status="custom" customText={badge} />}
                 {showTooltip && (
                     <Tooltip content={toolTipText}>
@@ -82,7 +82,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
         </div>
     )
 
-    if (comingSoon || !href) {
+    if (comingSoon || (!href && !onClick)) {
         return (
             <Card position={position} className="bg-background-disabled p-4">
                 {content}
@@ -90,7 +90,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
         )
     }
 
-    if (isDocsLink) {
+    if (isDocsLink && href) {
         return (
             <Link href={localizeDocsHref(href, locale)} className="block">
                 <Card position={position} className="p-4 active:bg-background-disabled">
@@ -102,7 +102,12 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
 
     if (onClick) {
         return (
-            <Card position={position} onClick={onClick} className="cursor-pointer p-4 active:bg-background-disabled">
+            <Card
+                asButton
+                position={position}
+                onClick={onClick}
+                className="cursor-pointer p-4 active:bg-background-disabled"
+            >
                 {content}
             </Card>
         )
@@ -110,7 +115,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
 
     return (
         <Link
-            href={href}
+            href={href!}
             className="block"
             target={isExternalLink ? '_blank' : undefined}
             rel={isExternalLink ? 'noopener noreferrer' : undefined}

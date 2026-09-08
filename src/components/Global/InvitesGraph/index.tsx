@@ -41,6 +41,7 @@ import { profileUrl } from '@/utils/native-routes'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { pointsApi } from '@/services/points'
 import { inferBankAccountType } from '@/utils/bridge.utils'
+import { useReducedMotion } from '@/hooks/useAccessibility'
 import { useGraphPreferences } from '@/hooks/useGraphPreferences'
 import {
     type GraphNode,
@@ -192,6 +193,7 @@ function useGraphFiltering(graphData: GraphData | null) {
 const DEFAULT_TOP_NODES = 5000
 
 export default function InvitesGraph(props: InvitesGraphProps) {
+    const reduced = useReducedMotion()
     const t = useTranslations('global')
     const router = useRouter()
     const {
@@ -1375,7 +1377,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 ctx.stroke()
 
                 // Animated particles with direction based on actual fund flow
-                const time = performance.now()
+                const time = reduced ? 0 : performance.now()
                 // Logarithmic scaling for better visual distinction
                 const logTxCount = Math.log10(Math.max(txCount, 1) + 1)
                 const logUsd = Math.log10(Math.max(usdVolume, 1) + 1)
@@ -1433,7 +1435,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
 
                 // Animated particles for P2P
                 if (!inactive) {
-                    const time = performance.now()
+                    const time = reduced ? 0 : performance.now()
                     // Logarithmic scaling for better visual distinction
                     const logTxCount = Math.log10(Math.max(txCount, 1) + 1)
                     const logUsd = Math.log10(Math.max(usdVolume, 1) + 1)
@@ -1517,7 +1519,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                 }
             }
         },
-        [isLinkInactive]
+        [isLinkInactive, reduced]
     )
 
     // Handle drag start to track for click vs drag detection
@@ -1598,8 +1600,8 @@ export default function InvitesGraph(props: InvitesGraphProps) {
     const handleResetView = useCallback(() => {
         // Just reset selection and camera
         setSelectedUserId(null)
-        graphRef.current?.zoomToFit(400)
-    }, [])
+        graphRef.current?.zoomToFit(reduced ? 0 : 400)
+    }, [reduced])
 
     const handleReset = useCallback(() => {
         // Reset selection
@@ -1610,8 +1612,8 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         setVisibilityConfig(DEFAULT_VISIBILITY_CONFIG)
         setExternalNodesConfig(DEFAULT_EXTERNAL_NODES_CONFIG)
         // Reset camera
-        graphRef.current?.zoomToFit(400)
-    }, [])
+        graphRef.current?.zoomToFit(reduced ? 0 : 400)
+    }, [reduced])
 
     // Debounced search to prevent UI freezing
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -1878,10 +1880,10 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         if (!graphRef.current || initialZoomDoneRef.current) return
         // Zoom to fit with padding after initial simulation
         setTimeout(() => {
-            graphRef.current?.zoomToFit(400, 40)
+            graphRef.current?.zoomToFit(reduced ? 0 : 400, 40)
             initialZoomDoneRef.current = true
         }, 100)
-    }, [])
+    }, [reduced])
 
     // Initial forces are configured by the forceConfig effect above when graph mounts
     // This effect just handles the initial zoom after data arrives
@@ -1891,17 +1893,17 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         // Give the graph a moment to render, then zoom to fit
         const timeout = setTimeout(() => {
             if (graphRef.current && !initialZoomDoneRef.current) {
-                graphRef.current.zoomToFit(400, 40)
+                graphRef.current.zoomToFit(reduced ? 0 : 400, 40)
                 initialZoomDoneRef.current = true
             }
         }, 500)
 
         return () => clearTimeout(timeout)
-    }, [filteredGraphData])
+    }, [filteredGraphData, reduced])
 
     // Continuous zoom tracking in minimal mode during simulation settling
     useEffect(() => {
-        if (!isMinimal || !filteredGraphData || !graphRef.current) return
+        if (reduced || !isMinimal || !filteredGraphData || !graphRef.current) return
 
         let frameId: number | null = null
         const startTime = Date.now()
@@ -1925,11 +1927,19 @@ export default function InvitesGraph(props: InvitesGraphProps) {
             if (frameId) cancelAnimationFrame(frameId)
             clearTimeout(timeout)
         }
-    }, [isMinimal, filteredGraphData])
+    }, [isMinimal, filteredGraphData, reduced])
 
     // Center on selected node - track continuously as it moves
     useEffect(() => {
         if (!selectedUserId || !graphRef.current) return
+        if (reduced) {
+            const node = combinedGraphNodes.find((n) => n.id === selectedUserId)
+            if (node?.x !== undefined && node.y !== undefined) {
+                graphRef.current.centerAt(node.x, node.y, 0)
+                graphRef.current.zoom(3, 0)
+            }
+            return
+        }
 
         let animationFrameId: number | null = null
         let lastCenterTime = 0
@@ -1957,7 +1967,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         }
 
         // Initial zoom in
-        setTimeout(() => {
+        const zoomTimeout = setTimeout(() => {
             if (graphRef.current) {
                 graphRef.current.zoom(3, 800)
             }
@@ -1967,14 +1977,15 @@ export default function InvitesGraph(props: InvitesGraphProps) {
         trackNode()
 
         return () => {
+            clearTimeout(zoomTimeout)
             if (animationFrameId !== null) {
                 cancelAnimationFrame(animationFrameId)
             }
         }
-    }, [selectedUserId, combinedGraphNodes])
+    }, [selectedUserId, combinedGraphNodes, reduced])
 
     // P2P particle animation is handled by:
-    // 1. autoPauseRedraw={false} on ForceGraph2D - keeps rendering after simulation stops
+    // 1. autoPauseRedraw keeps rendering after simulation stops unless motion is reduced
     // 2. performance.now() in linkCanvasObject - animates particles based on real time
     // No additional animation loop needed!
 
@@ -2127,8 +2138,8 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                             enableNodeDrag={true}
                             enablePanInteraction={true}
                             enableZoomInteraction={true}
-                            cooldownTicks={Infinity}
-                            warmupTicks={0}
+                            cooldownTicks={reduced ? 0 : Infinity}
+                            warmupTicks={reduced ? 100 : 0}
                             d3AlphaDecay={isMinimal ? 0.03 : 0.005}
                             d3VelocityDecay={isMinimal ? 0.8 : 0.6}
                             d3AlphaMin={0.001}
@@ -2136,7 +2147,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                             backgroundColor={backgroundColor}
                             width={minimalWidth}
                             height={graphHeight}
-                            autoPauseRedraw={mode === 'user'}
+                            autoPauseRedraw={reduced || mode === 'user'}
                         />
                     )}
                     {/* Reset camera button when focused on a user */}
@@ -2473,8 +2484,8 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                     enableNodeDrag={true}
                     enablePanInteraction={true}
                     enableZoomInteraction={true}
-                    cooldownTicks={Infinity}
-                    warmupTicks={0}
+                    cooldownTicks={reduced ? 0 : Infinity}
+                    warmupTicks={reduced ? 100 : 0}
                     d3AlphaDecay={0.005}
                     d3VelocityDecay={0.6}
                     d3AlphaMin={0.001}
@@ -2482,7 +2493,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                     backgroundColor="#FAF4F0"
                     width={graphWidth}
                     height={graphHeight}
-                    autoPauseRedraw={false}
+                    autoPauseRedraw={reduced}
                 />
 
                 {/* Render overlays (legend, mobile controls) via render prop */}

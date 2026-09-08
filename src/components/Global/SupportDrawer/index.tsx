@@ -1,5 +1,7 @@
 'use client'
 
+import { Dialog } from '@headlessui/react'
+import { Icon } from '../Icons/Icon'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -427,7 +429,12 @@ const SupportDrawer = () => {
 
             {/* slide-up panel — always mounted to preserve drag state; the iframe inside
                 mounts only once the token resolves for logged-in users (isAwaitingToken gate) */}
-            <div
+            <Dialog
+                static
+                open={isSupportModalOpen}
+                onClose={() => setIsSupportModalOpen(false)}
+                aria-hidden={!isSupportModalOpen}
+                hidden={!isSupportModalOpen}
                 ref={panelRef}
                 role="dialog"
                 aria-label={t('supportDrawer.label')}
@@ -454,6 +461,15 @@ const SupportDrawer = () => {
                     transition: isDragging ? 'none' : 'transform 300ms ease-out',
                 }}
             >
+                <Button
+                    type="button"
+                    variant="transparent"
+                    shape="square"
+                    onClick={() => setIsSupportModalOpen(false)}
+                    aria-label={tCommon('close')}
+                    className="absolute top-1 right-2 size-11"
+                    icon={<Icon name="cancel" size={20} />}
+                />
                 {/* drag handle */}
                 <div
                     className="flex cursor-grab items-center justify-center pb-4 active:cursor-grabbing"
@@ -508,7 +524,7 @@ const SupportDrawer = () => {
                         )}
                     </div>
                 </div>
-            </div>
+            </Dialog>
         </>
     )
 }
