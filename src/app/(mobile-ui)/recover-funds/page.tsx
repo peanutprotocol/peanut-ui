@@ -96,8 +96,19 @@ export default function RecoverFundsPage() {
                         RECOVERABLE_CHAINS.some((chain) => b.chainId === chain.id.toString()) &&
                         !areEvmAddressesEqual(PEANUT_WALLET_TOKEN, b.address)
                 )
-                // The Linea leg is best-effort: a Linea RPC hiccup must not take
-                // down the whole page, so a rejection just drops the manual row.
+                // The Linea leg is best-effort when other tokens rendered: a
+                // Linea RPC hiccup must not hide them, so a rejection drops the
+                // manual row (captured to Sentry). But Linea USDC exists ONLY
+                // via this read — Mobula never returns Linea — so with nothing
+                // else recoverable, "no tokens to recover" would be confidently
+                // false. Show the retryable error state instead.
+                if (lineaResult.status === 'rejected') {
+                    captureException(lineaResult.reason)
+                    if (recoverableBalances.length === 0) {
+                        setBalancesError(true)
+                        return
+                    }
+                }
                 const lineaBalance = lineaResult.status === 'fulfilled' ? lineaResult.value : 0n
                 if (!!lineaBalance) {
                     recoverableBalances.push({
