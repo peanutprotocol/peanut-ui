@@ -1,33 +1,6 @@
 'use client'
 
-// smart store link: peanut.me/app — every download QR points here so a single
-// code serves both stores; the scanning device decides. phones bounce straight
-// to their store (their store button carries the loading state while the
-// redirect happens; if it doesn't take, the buttons settle clickable),
-// desktop just gets both buttons. client redirect (not a route handler) so
-// the capacitor static export builds unchanged. same visual language as the
-// sunset screen (MigrationHero + 50/50 split).
-//
-// deferred context: the QR that produced the scan can carry a payload
-// (`?pnutdl=1&lang=…&invite=…&dest=…`, built by buildDeferredPayload on the
-// desktop that rendered the QR). This page is where it changes hands:
-//   android — rides the Play install referrer, so the auto-redirect can carry it
-//   iOS     — rides the clipboard, which needs a user gesture, so there is NO
-//             auto-redirect: the visitor taps App Store and the write happens
-//             inside that tap handler
-//   native  — the app itself opened this url (App Links claim /app), so there
-//             is no store to bounce to: apply the payload and route to `dest`
-// A bare /app (no marker) keeps today's behaviour exactly.
-//
-// flag-gated like every migration surface: until the pwa-sunset flag resolves
-// ON this page 404s — otherwise merging would put a live public page with
-// dead store links on peanut.me. posthog flags arrive async for first-time
-// visitors, so we wait for the flag callback (or a short timeout when posthog
-// is blocked) before deciding page-vs-404.
-//
-// hydration: SSR and the first client render show the same neutral loading
-// state (mounted guard) — deriving the redirect state from useDeviceType at
-// first render tripped React error 418 on phones (device is WEB on the server).
+// QR destination shared by both stores. Client-side routing also works in the native static export.
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { notFound, useRouter } from 'next/navigation'
@@ -55,32 +28,26 @@ export default function SmartStoreRedirect() {
     const { deviceType } = useDeviceType()
     const router = useRouter()
 
-    // universal links (App Links claim /app) open this page inside the native
-    // app when an installed user scans a download qr — there's no store to
-    // bounce to, so apply whatever context the qr carried and route on.
-    // isNativeBridge, not isCapacitor: capacitor-flavored web builds bake
-    // NEXT_PUBLIC_CAPACITOR_BUILD=true with no bridge, and those visitors
-    // still need the store page.
+    // Keep SSR and the first client render identical; device and URL context are browser-only.
     const [mounted, setMounted] = useState(false)
-    // read after mount, never during render: window.location.search does not
-    // exist on the server and a payload-derived first render would not match
     const [payload, setPayload] = useState<string | null>(null)
     useEffect(() => {
         setMounted(true)
         const search = window.location.search
         const parsed = parseDeferredPayload(search)
         if (parsed) setPayload(new URLSearchParams(search).toString())
+        // A native-flavored web build can lack the bridge and still need the store page.
         if (!isNativeBridge()) return
-        // already installed: no install to defer to, so apply the context now
+        // Installed apps apply the QR's context immediately, then open its destination.
         const dest = parsed ? applyDeferredPayload(parsed).dest : null
         router.replace(dest ?? '/home')
     }, [router])
     const inNativeApp = mounted && isNativeBridge()
 
-    // wait for posthog to deliver flags (or time out) before judging the flag
+    // Wait for PostHog before returning 404. The timeout also handles blocked analytics.
     const [flagsSettled, setFlagsSettled] = useState(false)
     useEffect(() => {
-        if (isNativeBridge()) return // redirecting home — flag irrelevant
+        if (isNativeBridge()) return
         if (isPwaSunsetOn()) {
             setFlagsSettled(true)
             return
@@ -109,25 +76,19 @@ export default function SmartStoreRedirect() {
         [payload]
     )
 
-    // DEFERRED_LINK_HANDOFF_CREATED is the denominator for
-    // DEFERRED_LINK_RESTORED, so one visit must contribute at most one: the
-    // auto-redirect fires it, and if the store intent never takes over
-    // (blocked, offline, Play missing) the 4s fallback hands the visitor
-    // clickable buttons that would fire it a second time.
+    // Count the automatic redirect and any fallback taps as one handoff per visit.
     const handoffCounted = useRef(false)
-    const countHandoff = (platform: 'ios' | 'android') => {
+    const countHandoff = useCallback((platform: StoreKind) => {
         if (handoffCounted.current) return
         handoffCounted.current = true
         trackDeferredHandoffCreated(platform)
-    }
+    }, [])
 
-    // must stay synchronous up to the clipboard call: a web clipboard write
-    // only succeeds inside the user gesture that triggered it
+    // Start the clipboard write inside the tap handler to preserve the browser's user gesture.
     const onStoreTap = (store: StoreKind) => {
         trackStoreClick(store, MIGRATION_SURFACES.SMART_LINK, !!payload)
         if (!payload) return
         if (store === 'android') {
-            // the referrer is already in the href — count the hand-off at the tap
             countHandoff('android')
             return
         }
@@ -139,19 +100,15 @@ export default function SmartStoreRedirect() {
     const [redirecting, setRedirecting] = useState(false)
     useEffect(() => {
         if (inNativeApp || !settled || !migrationOn || !targetStore) return
-        // iOS + payload: the clipboard hand-off needs the tap, so the visitor
-        // picks the store themselves. android's referrer rides the url, so it
-        // can still bounce; so can any device with nothing to hand off.
+        // iOS payloads need a clipboard write on tap. Android carries its payload in the URL.
         if (payload && targetStore === 'ios') return
-        // counted before the navigation, and only once per visit
         if (payload && targetStore === 'android') countHandoff('android')
         setRedirecting(true)
         window.location.replace(storeHref(targetStore))
-        // if the store didn't take over (blocked, offline), settle to buttons
+        // Restore clickable buttons if the store does not open.
         const fallback = setTimeout(() => setRedirecting(false), 4000)
         return () => clearTimeout(fallback)
-        // countHandoff is guarded by a ref and counts once per visit.
-    }, [inNativeApp, settled, migrationOn, targetStore, payload, storeHref])
+    }, [inNativeApp, settled, migrationOn, targetStore, payload, storeHref, countHandoff])
 
     if (inNativeApp) return <Loading variant="mascot" coverFullScreen />
 

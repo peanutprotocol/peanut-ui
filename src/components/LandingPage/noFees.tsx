@@ -52,9 +52,7 @@ export function NoFees({
      * page there is a bootstrap shell that redirects away before this matters.
      */
     const handleCtaAction = async (sourceCurrency: string, destinationCurrency: string) => {
-        // migration window: sending happens in the app, so this CTA becomes the
-        // download hand-off — desktop gets the QR modal, phones their store,
-        // without carrying a generic sending destination through installation.
+        // During migration, this CTA downloads the app without a preset send destination.
         if (interceptAppCta(MIGRATION_SURFACES.LANDING_RATES)) return
 
         const signedIn = typeof document !== 'undefined' && /(^|;\s*)jwt-token=/.test(document.cookie)

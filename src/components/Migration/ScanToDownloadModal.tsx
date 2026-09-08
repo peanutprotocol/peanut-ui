@@ -7,8 +7,6 @@ import type { MigrationSurface } from '@/constants/migration.consts'
 import { localizeMarketingPath, type AppLocale } from '@/i18n/app/config'
 import type { StoreHandoff } from '@/utils/migration.utils'
 
-// desktop download surface: any download CTA on a laptop opens this QR
-// instead of a dead store link.
 export default function ScanToDownloadModal({
     visible,
     onClose,
@@ -18,11 +16,7 @@ export default function ScanToDownloadModal({
     visible: boolean
     onClose: () => void
     surface: MigrationSurface
-    /**
-     * Where the scanning phone should land once the app opens, such as
-     * the /shhhhh door's `dest=/card`. Omitted by the surfaces
-     * that just want the download.
-     */
+    /** Optional guest context, such as /shhhhh's campaign and /card destination. */
     handoff?: StoreHandoff
 }) {
     const t = useTranslations('migration')

@@ -17,21 +17,12 @@ import {
     trackDeferredHandoffCreated,
 } from '@/utils/deferred-link'
 
-/** The one place where the flag answers to PostHog and nothing else. NEXT_PUBLIC_BASE_URL
- *  is unset in a bare local checkout, which is why IS_DEV is an independent escape below. */
 const IS_PROD_DOMAIN = BASE_URL === 'https://peanut.me'
 
 /**
- * Flag read with a localStorage override that is live everywhere EXCEPT the
- * production domain: `localStorage.setItem('pwa-sunset', 'true')` + reload.
- *
- * Dev alone was not enough. Local dev never inits posthog
- * (instrumentation-client gates on NODE_ENV), but neither does a CI or preview
- * build without NEXT_PUBLIC_POSTHOG_KEY — and the e2e layout gate runs against
- * `next start`, where the dev-only override was inert and every "flag on" case
- * silently measured the flag-off page. Scoping to !IS_PROD_DOMAIN is the same
- * boundary `isFeatureFlagEnabled`'s nonProdBypass already draws, so peanut.me
- * still answers to PostHog and nothing else.
+ * Read the flag from PostHog. Local, CI and preview builds also accept
+ * localStorage['pwa-sunset'] = 'true' because PostHog may be unavailable there.
+ * Production builds for peanut.me ignore the override.
  */
 export function isPwaSunsetOn(): boolean {
     if (
@@ -82,14 +73,10 @@ export function getMigrationCutoverTime(): number {
 
 /** Track a store CTA click without navigating (for anchors that navigate themselves). */
 export function trackStoreClick(store: StoreKind, surface: MigrationSurface, handoff = false) {
-    posthog.capture(ANALYTICS_EVENTS.MIGRATION_STORE_CTA_CLICKED, {
-        surface,
-        store,
-        handoff,
-    })
+    posthog.capture(ANALYTICS_EVENTS.MIGRATION_STORE_CTA_CLICKED, { surface, store, handoff })
 }
 
-/** context a bounce surface knows before any cookie is written (claim page invite CTA). */
+/** Invite or destination known by the CTA, before it is saved in a cookie. */
 export interface StoreHandoff {
     invite?: string
     dest?: string
@@ -132,17 +119,14 @@ export function openStore(store: StoreKind, surface: MigrationSurface, handoff?:
 }
 
 /**
- * href for a store CTA that is a real anchor and navigates itself: android
- * carries the hand-off in the url; iOS can't (the clipboard needs the tap) —
- * pair with onStoreAnchorClick, passing it the SAME handoff so both channels
- * carry the same context. never preventDefault such an anchor: its own
- * navigation is the fallback that still works where window.open is suppressed
- * (in-app browsers, strict popup blockers).
+ * Store anchor URL with an Android install referrer.
+ * Pair with onStoreAnchorClick for tracking and the iOS clipboard handoff.
+ * Keep the anchor's default navigation so it works when popups are blocked.
  */
-export function storeAnchorHref(store: StoreKind, handoff?: StoreHandoff): string {
+export function storeAnchorHref(store: StoreKind): string {
     if (!isCapacitor() && store === 'android') {
         try {
-            return playStoreUrlWithReferrer(buildDeferredPayload(handoff?.dest, handoff?.invite))
+            return playStoreUrlWithReferrer(buildDeferredPayload())
         } catch {
             // fall through to the bare url — the bounce itself never breaks
         }
@@ -150,15 +134,15 @@ export function storeAnchorHref(store: StoreKind, handoff?: StoreHandoff): strin
     return STORE_URL[store]
 }
 
-/** tracking + iOS clipboard hand-off for a self-navigating store anchor. */
-export function onStoreAnchorClick(store: StoreKind, surface: MigrationSurface, handoff?: StoreHandoff) {
+/** Track a store anchor click and write its iOS clipboard handoff. */
+export function onStoreAnchorClick(store: StoreKind, surface: MigrationSurface) {
     if (isCapacitor()) {
         trackStoreClick(store, surface)
         return
     }
     let payload = ''
     try {
-        payload = buildDeferredPayload(handoff?.dest, handoff?.invite)
+        payload = buildDeferredPayload()
     } catch {}
     trackStoreClick(store, surface, !!payload)
     if (store === 'ios' && payload)

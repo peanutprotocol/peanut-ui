@@ -1,7 +1,7 @@
 'use client'
 
 import { useFooterVisibility } from '@/context/footerVisibility'
-import { Suspense, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { Suspense, useMemo, type ReactNode } from 'react'
 // Imported directly, not through the barrel: `export *` pulls every sibling
 // into this chunk, including dropLink's nine repeat: Infinity animations,
 // which the landing page never renders.
@@ -73,16 +73,6 @@ export function LandingPageClient({
 
     const primaryCta = migrationOn ? undefined : heroConfig.primaryCta
 
-    const [buttonVisible, setButtonVisible] = useState(true)
-
-    useEffect(() => {
-        if (isFooterVisible) {
-            setButtonVisible(false)
-        } else {
-            setButtonVisible(true)
-        }
-    }, [isFooterVisible])
-
     // Only the words with a real article behind them become links; the rest
     // stay plain text. Words come from the content system's marquee list, so an
     // edit there just drops out of this map and renders unlinked.
@@ -123,7 +113,7 @@ export function LandingPageClient({
         <AppModalProvider>
             <Hero
                 primaryCta={primaryCta}
-                buttonVisible={buttonVisible}
+                buttonVisible={!isFooterVisible}
                 strings={strings}
                 locale={locale}
                 customCta={migrationOn ? <LandingDownloadCta subtext={heroConfig.primaryCta.subtext} /> : undefined}

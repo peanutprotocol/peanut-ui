@@ -232,11 +232,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
                 </span>
                 {primaryCta ? renderCTAButton(primaryCta, 'primary') : customCta ? renderCustomCta() : null}
                 {secondaryCta && renderCTAButton(secondaryCta, 'secondary')}
-                {/* Returning users with an expired session had no way back in from the
-                    marketing site: every CTA pointed at signup. `?step=login` lands on
-                    the passkey Log In step (setup-entry.ts). Once the app is the
-                    login there is nothing to log in to on the web, so the download
-                    CTA stands alone. */}
+                {/* Web login remains available until migration moves authentication into the app. */}
                 {!migrationOn && (
                     <Link
                         prefetch={false}

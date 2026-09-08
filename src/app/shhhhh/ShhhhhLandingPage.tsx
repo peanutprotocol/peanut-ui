@@ -153,10 +153,7 @@ export default function ShhhhhLandingPage() {
     const [showAllBadges, setShowAllBadges] = useState(false)
     const isJoined = joinedPosition !== undefined
 
-    // pwa-sunset: the door's signup lives in the app now (see handleCTA). The
-    // impression only counts once auth has settled and the door is the CTA on
-    // screen, so the pre-auth flash (every visitor briefly looks logged-out)
-    // never inflates the denominator.
+    // Count guest impressions only after auth settles and while the door CTA is visible.
     const { interceptGuestCta, storeHandoffModal } = useGuestStoreHandoff({
         surface: MIGRATION_SURFACES.LANDING_DOOR,
         trackImpressionWhenGuest: !isFetchingUser && !user && !isJoined,
@@ -207,10 +204,7 @@ export default function ShhhhhLandingPage() {
     }, [user])
 
     const handleCTA = async () => {
-        // Auth has not resolved yet: every visitor looks logged-out for one
-        // round-trip. Acting now would bounce a returning signed-in user to the
-        // store (a full-page navigation on a phone, unrecoverable in-tab) or
-        // misroute them through /setup. Wait for the settled state.
+        // Wait for auth so returning users are not sent to signup or the store.
         if (isFetchingUser) return
 
         // Read opaque campaign identities at click time (client-only) to avoid
@@ -223,17 +217,10 @@ export default function ShhhhhLandingPage() {
             campaign_tags: badgeCampaigns,
         })
 
-        // Queue the campaign tag BEFORE any hand-off: the cookie queue is what
-        // buildDeferredPayload reads, so the tag rides the install referrer /
-        // QR payload and applyDeferredPayload re-queues it inside the app.
-        // Same call the campaign branch below already made, just hoisted.
+        // Save campaigns before the handoff: buildDeferredPayload reads this cookie queue.
         const queuedBadgeCampaigns = badgeCampaigns.length > 0 ? queuePendingBadgeCampaigns(badgeCampaigns, 30) : []
 
-        // pwa-sunset: every signed-out door path below ends at a web signup that
-        // the migration window closes. Hand the visitor to the store instead —
-        // desktop opens the scan-to-download QR, phones deep-link — carrying
-        // /card so the app lands them back on the door's destination. Flag off
-        // (and in the native app) this is a no-op and the routes below run.
+        // During migration, web guests install the app and continue to /card after signup.
         if (!user && interceptGuestCta({ dest: '/card' })) return
 
         if (badgeCampaigns.length > 0) {
@@ -639,8 +626,7 @@ export default function ShhhhhLandingPage() {
                 </div>
             </section>
 
-            {/* the sticky bar is fixed z-50 and would paint over the QR
-                sheet's own close/store CTAs on a narrow desktop-mode phone */}
+            {/* Hide the sticky bar while the modal is open so it cannot cover the modal controls. */}
             {!isJoined && !storeHandoffModal && <StickyShhhhhCTA onClick={handleCTA} />}
             {storeHandoffModal}
         </>

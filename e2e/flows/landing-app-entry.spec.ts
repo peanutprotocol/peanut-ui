@@ -44,18 +44,13 @@ for (const device of ['desktop', 'iphone', 'android'] as const) {
                     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true)
                     if (on) {
                         const cta = page.getByTestId('landing-download-cta')
-                        await expect(cta.getByRole('link')).toHaveCount(device === 'desktop' ? 1 : 2)
+                        await expect(cta.getByRole('link')).toHaveCount(1)
                         await expect(page.getByRole('dialog')).toHaveCount(0)
                         await expect(page.locator('a[href^="/setup"], a[href="/send"]')).toHaveCount(0)
                         if (device !== 'desktop') {
-                            const links = cta.getByRole('link')
-                            await expect(links.first()).toHaveAttribute(
+                            await expect(cta.getByRole('link')).toHaveAttribute(
                                 'href',
                                 device === 'iphone' ? /apps.apple.com/ : /play.google.com/
-                            )
-                            await expect(links.last()).toHaveAttribute(
-                                'href',
-                                device === 'iphone' ? /play.google.com/ : /apps.apple.com/
                             )
                         }
                     } else {
@@ -86,11 +81,10 @@ test.describe('desktop entry points', () => {
         deviceScaleFactor: 1,
         viewport: { width: 1440, height: 900 },
     })
-    test('hero, login, countries and lower send reuse a dismissible modal', async ({ page }) => {
+    test('hero, countries, rates and lower send reuse a dismissible modal', async ({ page }) => {
         await landing(page, '/', true)
         const entries = [
-            page.getByTestId('landing-download-cta').getByRole('link').first(),
-            page.locator('#hero a[href="/app"]').last(),
+            page.getByTestId('landing-download-cta').getByRole('link'),
             page.locator('#global-cash a[href="/app"]'),
             page.locator('#no-fees').getByRole('button', { name: /send money/i }),
             page.locator('#send-in-seconds a[href="/app"]'),
