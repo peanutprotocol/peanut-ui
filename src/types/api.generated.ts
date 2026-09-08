@@ -7939,6 +7939,8 @@ export interface paths {
                             preparationId: string;
                             recipientAddress: string;
                             tokenAddress: string;
+                            /** @enum {string} */
+                            mixedSpendContract?: "broadcast-first-revert-v1";
                         };
                     };
                 };

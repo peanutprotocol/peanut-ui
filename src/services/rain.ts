@@ -115,6 +115,8 @@ export interface PrepareRainWithdrawalInput {
 }
 
 export interface PrepareRainWithdrawalResponse {
+    /** Both mixed Manteca endpoints await broadcast and return USER_OP_REVERTED on a confirmed revert. */
+    mixedSpendContract?: string
     /** Short-lived intent id. Must be echoed back to `/submit`. */
     preparationId: string
     coordinatorAddress: string

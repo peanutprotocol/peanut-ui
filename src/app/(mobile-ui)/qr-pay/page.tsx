@@ -2,6 +2,7 @@
 
 import { verifiedPixKeyLabel } from '@/utils/pix.utils'
 
+import { submitSignedSpend } from '@/hooks/wallet/signSpendRetry'
 import { railUserMessage, railVerdict } from '@/utils/capability-gate'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
@@ -978,7 +979,9 @@ export default function QRPayPage() {
                               ? { rainPreparationId: signedArtifact.rainPreparationId }
                               : {}),
                       } as const)
-            const qrPayment = await mantecaApi.completeQrPaymentWithSignedTx(requestBody)
+            const qrPayment = await submitSignedSpend(signedArtifact, () =>
+                mantecaApi.completeQrPaymentWithSignedTx(requestBody)
+            )
             // clear the timer since we got a response
             if (payingStateTimerRef.current) {
                 clearTimeout(payingStateTimerRef.current)

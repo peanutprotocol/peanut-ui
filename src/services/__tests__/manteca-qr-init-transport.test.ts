@@ -153,3 +153,22 @@ it('preserves the terminal cancellation code from the signed QR response', async
         message: 'Cancelled before funding',
     })
 })
+
+it('preserves the confirmed-revert code through QR submission into the retry guard', async () => {
+    const { registerEphemeralArtifact, submitSignedSpend, requiresPasskeyRetry } =
+        await import('@/hooks/wallet/signSpendRetry')
+    const artifact = registerEphemeralArtifact({}, '0xtransport')
+    mockServerFetch.mockResolvedValue(errorResponse(500, { error: 'USER_OP_REVERTED', message: 'Operation failed' }))
+    await expect(
+        submitSignedSpend(artifact, () =>
+            mantecaApi.completeQrPaymentWithSignedTx({
+                kind: 'userOp',
+                paymentLockCode: 'lock',
+                signedUserOp: {} as never,
+                chainId: '42161',
+                entryPointAddress: '0xentry',
+            })
+        )
+    ).rejects.toMatchObject({ code: 'USER_OP_REVERTED' })
+    expect(requiresPasskeyRetry('0xtransport')).toBe(true)
+})

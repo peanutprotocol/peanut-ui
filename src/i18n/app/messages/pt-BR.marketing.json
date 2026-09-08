@@ -111,7 +111,8 @@
         "logoutFailed": "Não foi possível sair da sua conta. Tente novamente.",
         "loginIncomplete": "O login não foi concluído. Tente novamente.",
         "rateUnavailable": "As taxas de câmbio estão indisponíveis no momento. Tente de novo em instantes.",
-        "transferTemporarilyUnavailable": "As transferências estão temporariamente indisponíveis. Confira sua atividade antes de tentar novamente."
+        "transferTemporarilyUnavailable": "As transferências estão temporariamente indisponíveis. Confira sua atividade antes de tentar novamente.",
+        "userOpReverted": "Não foi possível concluir o pagamento. Tente novamente."
     },
     "migration": {
         "downloadPrompt": {
