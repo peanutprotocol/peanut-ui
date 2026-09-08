@@ -55,6 +55,8 @@ export default function RecoverFundsPage() {
     const [errorMessage, setErrorMessage] = useState('')
     const [inputChanging, setInputChanging] = useState(false)
     const [fetchingBalances, setFetchingBalances] = useState(true)
+    const [balancesError, setBalancesError] = useState(false)
+    const [fetchNonce, setFetchNonce] = useState(0)
     const [isSigning, setIsSigning] = useState(false)
     const [txHash, setTxHash] = useState<string>('')
     const [status, setStatus] = useState<'init' | 'review' | 'final'>('init')
@@ -68,43 +70,63 @@ export default function RecoverFundsPage() {
 
     useEffect(() => {
         if (!peanutAddress) return
+        let cancelled = false
         const fetchBalances = async () => {
             setFetchingBalances(true)
-            const [balances, lineaBalance] = await Promise.all([
-                fetchWalletBalances(peanutAddress),
-                //Manually fetching Linea balance for USDC because Mobula does
-                //not return it
-                getPublicClient(linea.id).readContract({
-                    address: USDC_IN_LINEA,
-                    abi: erc20Abi,
-                    functionName: 'balanceOf',
-                    args: [peanutAddress as Address],
-                }),
-            ])
-            const recoverableBalances = balances.balances.filter(
-                (b) =>
-                    RECOVERABLE_CHAINS.some((chain) => b.chainId === chain.id.toString()) &&
-                    !areEvmAddressesEqual(PEANUT_WALLET_TOKEN, b.address)
-            )
-            if (!!lineaBalance) {
-                recoverableBalances.push({
-                    chainId: linea.id.toString(),
-                    address: USDC_IN_LINEA,
-                    name: 'USDC',
-                    symbol: 'USDC',
-                    decimals: 6,
-                    price: 1,
-                    amount: Number(formatUnits(lineaBalance, 6)),
-                    currency: 'usd',
-                    logoURI: getTokenLogo('USDC'),
-                    value: formatUnits(lineaBalance, 6),
-                })
+            setBalancesError(false)
+            try {
+                // A rejection here used to escape the effect unhandled and leave
+                // fetchingBalances stuck true — the page hung on the mascot
+                // loader forever whenever the balance fetch failed (TASK-21829).
+                const [balancesResult, lineaResult] = await Promise.allSettled([
+                    fetchWalletBalances(peanutAddress),
+                    //Manually fetching Linea balance for USDC because Mobula does
+                    //not return it
+                    getPublicClient(linea.id).readContract({
+                        address: USDC_IN_LINEA,
+                        abi: erc20Abi,
+                        functionName: 'balanceOf',
+                        args: [peanutAddress as Address],
+                    }),
+                ])
+                if (cancelled) return
+                if (balancesResult.status === 'rejected') throw balancesResult.reason
+                const recoverableBalances = balancesResult.value.balances.filter(
+                    (b) =>
+                        RECOVERABLE_CHAINS.some((chain) => b.chainId === chain.id.toString()) &&
+                        !areEvmAddressesEqual(PEANUT_WALLET_TOKEN, b.address)
+                )
+                // The Linea leg is best-effort: a Linea RPC hiccup must not take
+                // down the whole page, so a rejection just drops the manual row.
+                const lineaBalance = lineaResult.status === 'fulfilled' ? lineaResult.value : 0n
+                if (!!lineaBalance) {
+                    recoverableBalances.push({
+                        chainId: linea.id.toString(),
+                        address: USDC_IN_LINEA,
+                        name: 'USDC',
+                        symbol: 'USDC',
+                        decimals: 6,
+                        price: 1,
+                        amount: Number(formatUnits(lineaBalance, 6)),
+                        currency: 'usd',
+                        logoURI: getTokenLogo('USDC'),
+                        value: formatUnits(lineaBalance, 6),
+                    })
+                }
+                setTokenBalances(recoverableBalances)
+            } catch (error) {
+                if (cancelled) return
+                captureException(error)
+                setBalancesError(true)
+            } finally {
+                if (!cancelled) setFetchingBalances(false)
             }
-            setTokenBalances(recoverableBalances)
-            setFetchingBalances(false)
         }
         fetchBalances()
-    }, [peanutAddress])
+        return () => {
+            cancelled = true
+        }
+    }, [peanutAddress, fetchNonce])
     const reset = useCallback(() => {
         setErrorMessage('')
         setInputChanging(false)
@@ -187,6 +209,32 @@ export default function RecoverFundsPage() {
     // loader instead of a blank page; balances start fetching once it lands
     if (!peanutAddress || fetchingBalances) {
         return <Loading variant="mascot" />
+    }
+
+    if (balancesError) {
+        return (
+            <PageStack>
+                <NavHeader title={t('title')} />
+                <div className="my-auto">
+                    <EmptyState
+                        icon="alert"
+                        title={tCommon('somethingWentWrong')}
+                        description={tCommon('genericError')}
+                        cta={
+                            <Button
+                                variant="purple"
+                                shadowSize="4"
+                                size="small"
+                                className="mt-2"
+                                onClick={() => setFetchNonce((n) => n + 1)}
+                            >
+                                {tCommon('tryAgain')}
+                            </Button>
+                        }
+                    />
+                </div>
+            </PageStack>
+        )
     }
 
     if (status === 'review' && (!selectedBalance || !recipient.address)) {
