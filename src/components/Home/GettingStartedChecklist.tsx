@@ -28,7 +28,7 @@ interface ChecklistItem {
 // The undone marker: same 20px circle StatusPill draws for "completed",
 // outlined and empty. No status token means "not yet", so it stays local.
 const PendingMarker = () => (
-    <span aria-hidden className="flex size-5 shrink-0 rounded-full border border-border-default" />
+    <span aria-hidden className="border-border-default flex size-5 shrink-0 rounded-full border" />
 )
 
 /**
