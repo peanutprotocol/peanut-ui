@@ -49,7 +49,7 @@ export const SearchInput = ({
                 <Button
                     variant="transparent"
                     onClick={onClear}
-                    className="absolute top-1/2 right-2 w-fit -translate-y-1/2 p-0"
+                    className="absolute top-1/2 right-2 w-fit -translate-y-1/2 p-0 after:absolute after:-inset-3"
                     aria-label={t('tokenSelector.clearSearch')}
                 >
                     <div className="flex size-6 items-center justify-center">

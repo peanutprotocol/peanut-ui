@@ -11,6 +11,7 @@
  */
 
 import { apiFetch } from '@/utils/api-fetch'
+import { apiErrorFromResponse } from '@/services/api-error'
 import type { Address } from 'viem'
 
 export type RhinoTransferContext = 'withdraw' | 'pay-request' | 'claim-xchain'
@@ -42,6 +43,15 @@ export interface SdaTransferRequest {
     feeUsd?: number
     payAmount?: string
     receiveAmount?: string
+    /**
+     * Deposit identity for claim-xchain, so the backend can read the claim
+     * amount from chain (authoritative, immutable) and reject a sub-minimum
+     * bridge that Rhino would park without auto-refund. Omitted for
+     * withdraw/pay-request, whose amount the backend derives from the charge.
+     */
+    depositChainId?: string
+    depositIdx?: number
+    depositContractVersion?: string
 }
 
 export interface SdaTransferResult {
@@ -60,14 +70,40 @@ export interface SdaPreviewRequest {
     token: RhinoSupportedToken
     amount: string // decimal
     mode: 'pay' | 'receive'
+    /** The kernel wallet that will deposit. The quote is account- and
+     *  address-bound (Rhino's authenticated quote), so both are required. */
+    depositor: string
+    /** Where Rhino delivers on `chainOut` — 0x, base58 or TRC20 per chain. */
+    recipient: string
 }
 
-export interface SdaPreviewResult {
+/**
+ * The one normalized Rhino quote, as returned by both
+ * `/rhino/sda-transfer/preview` and `/rhino/bridge/quote`. `feeUsd` is
+ * Rhino's TOTAL fee and equals `payAmount − receiveAmount` in USD; the
+ * components are for audit only. Consumers show these numbers verbatim —
+ * never add the components on top, never derive a fee from the amounts.
+ */
+export interface RhinoQuote {
+    /** Decimal string in `tokenIn` units — the USDC the kernel deposits. */
     payAmount: string
     payAmountUsd: number
+    /** Decimal string in `tokenOut` units — what the recipient gets (USDC on
+     *  the SDA path, ETH etc. on a cross-token bridge). */
     receiveAmount: string
     receiveAmountUsd: number
     feeUsd: number
+    fees: {
+        gasUsd: number
+        sourceGasUsd: number
+        platformUsd: number
+        percentageUsd: number
+    }
+    /** Absent from an API that predates the authenticated quote, and from the
+     *  public quote it falls back to. Callers must tolerate both. */
+    quoteId?: string
+    expiresAt?: string // ISO timestamp
+    estimatedDuration?: number
 }
 
 async function postRhino<TReq, TRes>(path: string, body: TReq, errorLabel: string): Promise<TRes> {
@@ -76,10 +112,10 @@ async function postRhino<TReq, TRes>(path: string, body: TReq, errorLabel: strin
         method: 'POST',
         body: JSON.stringify(body),
     })
-    if (!response.ok) {
-        const text = await response.text().catch(() => '')
-        throw new Error(`${errorLabel}: ${response.status} ${text}`)
-    }
+    // ApiError keeps the backend's `error` text as the message and carries its
+    // `code` / `retryAfterSec`, so friendlyError can localize a 429 instead of
+    // the UI echoing a "Failed to …: 429 {json}" string.
+    if (!response.ok) throw await apiErrorFromResponse(response, errorLabel)
     return (await response.json()) as TRes
 }
 
@@ -87,6 +123,6 @@ export async function provisionSdaTransfer(body: SdaTransferRequest): Promise<Sd
     return postRhino('/rhino/sda-transfer', body, 'Failed to provision SDA transfer')
 }
 
-export async function previewSdaTransfer(body: SdaPreviewRequest): Promise<SdaPreviewResult> {
+export async function previewSdaTransfer(body: SdaPreviewRequest): Promise<RhinoQuote> {
     return postRhino('/rhino/sda-transfer/preview', body, 'Failed to preview SDA transfer')
 }

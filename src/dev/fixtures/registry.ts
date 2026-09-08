@@ -10,6 +10,7 @@
 // this registry replaced it.
 
 import type { Fixture } from './types'
+import { AVATAR_PICKER_PATH } from '@/components/Avatar/avatar.consts'
 
 // Hugo's overflow case: a username no header was designed for, and a points
 // total that is nine digits with separators.
@@ -156,7 +157,7 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     badges: { route: '/badges', about: 'Badge wall with three earned badges.' },
     history: { route: '/history', about: 'Activity list, four entries, both directions.' },
-    'add-money': { route: '/add-money', about: 'Add money: the crypto and bank-transfer picker.' },
+    'add-money': { route: '/add-money?method=bank', about: 'Add money: the bank-transfer country list.' },
     'add-money-crypto': { route: '/add-money/crypto', about: 'Crypto deposit: the network picker.' },
     withdraw: {
         route: '/withdraw',
@@ -164,6 +165,30 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] } },
     },
     limits: { route: '/limits', about: 'Payment limits: the unlocked regions and the crypto note.' },
+    // Masked state only ('****' — same span as the digits). Revealing needs a
+    // passkey step-up, which no fixture can answer.
+    'card-pin': {
+        route: '/card/pin',
+        about: 'Card PIN screen, masked, with an active fake card behind the gate.',
+        responses: {
+            'GET /rain/cards': {
+                status: { hasApplication: true },
+                cards: [
+                    {
+                        id: 'demo-card',
+                        rainCardId: 'demo-rain-card',
+                        last4: '4242',
+                        expiryMonth: 12,
+                        expiryYear: 2030,
+                        status: 'ACTIVE',
+                        network: 'VISA',
+                        issuedAt: '2026-01-01T00:00:00.000Z',
+                        hasWithdrawApproval: true,
+                    },
+                ],
+            },
+        },
+    },
     send: { route: '/send', about: 'Send: the method picker — link, contacts, bank or Mercado Pago.' },
     request: { route: '/request', about: 'Request money: amount entry.' },
 
@@ -328,6 +353,64 @@ export const FIXTURES: Record<string, Fixture> = {
                         },
                     ],
                     restrictions: [],
+                },
+            },
+        },
+    },
+
+    reconsent: {
+        route: '/home',
+        about: 'Re-consent modal over home: two updated documents as a centered link line.',
+        responses: {
+            'GET /users/consent/status': {
+                needsReConsent: true,
+                documents: [
+                    {
+                        slug: 'terms',
+                        currentVersion: '2026-07-15',
+                        acceptedVersion: '2026-01-01',
+                        acceptedAt: '2026-01-01T00:00:00.000Z',
+                        needsAcceptance: true,
+                    },
+                    {
+                        slug: 'privacy',
+                        currentVersion: '2026-07-15',
+                        acceptedVersion: '2026-01-01',
+                        acceptedAt: '2026-01-01T00:00:00.000Z',
+                        needsAcceptance: true,
+                    },
+                ],
+            },
+        },
+    },
+
+    // ---------------------------------------------------------------------
+    // Profile avatars (TASK-22142).
+    // ---------------------------------------------------------------------
+    'home-avatar': {
+        route: '/home',
+        about: 'Home top nav wearing a picked basic avatar instead of the initial.',
+        responses: { 'GET /users/me': { user: { avatarKey: 'basic.frog' } } },
+    },
+    'avatar-picker': {
+        route: AVATAR_PICKER_PATH,
+        about: 'Avatar picker open: three Bug Whisperer avatars unlocked above the twenty basics, beetle selected.',
+        responses: {
+            'GET /users/me': {
+                user: {
+                    avatarKey: 'badge.BUG_WHISPERER.beetle',
+                    badges: [
+                        {
+                            id: 'demo-badge-bug-whisperer',
+                            code: 'BUG_WHISPERER',
+                            name: 'Bug Whisperer',
+                            description: 'You found a real bug, reported it, and stayed. We owe you a beer.',
+                            iconUrl: '/badges/bug_whisperer.svg',
+                            color: null,
+                            earnedAt: '2026-08-30T12:00:00.000Z',
+                            isVisible: true,
+                        },
+                    ],
                 },
             },
         },

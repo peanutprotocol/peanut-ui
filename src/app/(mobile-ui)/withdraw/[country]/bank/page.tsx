@@ -45,7 +45,8 @@ import {
 import { useModalsContext } from '@/context/ModalsContext'
 import ExchangeRate from '@/components/ExchangeRate'
 import countryCurrencyMappings, { isNonEuroSepaCountry } from '@/constants/countryCurrencyMapping'
-import { isBridgeSupportedCountry, getRegionIntent } from '@/utils/regions.utils'
+import { isBridgeSupportedCountry } from '@/utils/regions.utils'
+import { useBankRegionIntent } from '@/hooks/useBankRegionIntent'
 import { PointsAction } from '@/services/services.types'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import posthog from 'posthog-js'
@@ -103,6 +104,7 @@ export default function WithdrawBankPage() {
     // actually withdraws to (PT/DE/… → EU SEPA; US → ACH; etc.) so a stuck
     // PENDING rail in an unrelated jurisdiction can't block this page.
     const { gateFor } = useCapabilities()
+    const bankRegionIntent = useBankRegionIntent()
     const bankCountry = useMemo(() => railJurisdictionForBank(getCountryFromPath(country)?.id), [country])
     const countryFromPath = getCountryFromPath(country)
     const gate = useMemo(() => gateFor('withdraw', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
@@ -436,7 +438,7 @@ export default function WithdrawBankPage() {
     }
 
     return (
-        <div className="flex min-h-[inherit] w-full flex-col justify-start gap-8 self-start">
+        <div className="flex min-h-inherit w-full flex-col justify-start gap-8 self-start">
             <NavHeader
                 title={fromSendFlow ? tNav('send') : tNav('withdraw')}
                 icon={view === 'SUCCESS' ? 'cancel' : undefined}
@@ -590,6 +592,7 @@ export default function WithdrawBankPage() {
             />
 
             <InitiateKycModal
+                cooldownActive={!!sumsubFlow.errorCooldown}
                 visible={showKycModal}
                 onClose={() => {
                     // dismiss = abandon: clear the uplift latch so a later
@@ -604,7 +607,7 @@ export default function WithdrawBankPage() {
                         await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                     } else {
                         await sumsubFlow.handleInitiateKyc(
-                            getRegionIntent(getCountryFromPath(country)?.region ?? 'rest-of-the-world'),
+                            bankRegionIntent(getCountryFromPath(country)?.region ?? 'rest-of-the-world'),
                             undefined,
                             gate.kind === 'needs-enrollment' || undefined,
                             getCountryFromPath(country)?.id
@@ -630,7 +633,13 @@ export default function WithdrawBankPage() {
                 onClose={pendingModal.close}
                 message={pendingModal.message}
             />
-            <SumsubKycModals flow={sumsubFlow} />
+            <SumsubKycModals
+                flow={sumsubFlow}
+                onCooldownClose={() => {
+                    setShowKycModal(false)
+                    resetUpliftFunnel()
+                }}
+            />
         </div>
     )
 }

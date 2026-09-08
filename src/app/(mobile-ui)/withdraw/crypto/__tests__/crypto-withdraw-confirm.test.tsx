@@ -78,12 +78,17 @@ jest.mock('@/utils/cross-chain-fee.utils', () => ({
     isWithdrawFeeDisproportionate: () => false,
 }))
 
-jest.mock('@/utils/balance.utils', () => ({
-    isAmountWithinBalance: () => true,
-}))
+// NOT stubbed: `isAmountWithinBalance` is the pre-sign affordability gate, and
+// a stub that always says "affordable" cannot fail the way the real comparison
+// does. The fixtures below fund the wallet well above the amount, so the
+// existing cases are unaffected; the balance-gate suite drives it to the edge.
+jest.mock('@/utils/balance.utils', () => jest.requireActual('@/utils/balance.utils'))
 
 jest.mock('@/utils/withdraw.utils', () => ({
     isBelowRhinoMinDeposit: () => false,
+    // real behaviour, covered by src/utils/__tests__/withdraw.utils.test.ts —
+    // these suites drive the non-max path, where it returns the amount as-is
+    resolveWithdrawAmount: jest.requireActual('@/utils/withdraw.utils').resolveWithdrawAmount,
 }))
 
 jest.mock('@/utils/general.utils', () => ({
@@ -119,11 +124,20 @@ jest.mock('@/services/requests', () => ({
 
 jest.mock('@/components/Withdraw/views/Confirm.withdraw.view', () => ({
     __esModule: true,
-    default: (props: { onConfirm: () => void }) => (
-        <button data-testid="confirm-withdraw" onClick={props.onConfirm}>
-            Confirm
-        </button>
-    ),
+    default: (props: { onConfirm: () => void; insufficientBalance?: boolean; error?: string | null }) =>
+        // Mirrors the real view: the normal CTA honours insufficientBalance, but
+        // the error-state Retry renders with disabled={false}. Do NOT "fix" that
+        // here — a mock that disables Retry too would hide the gap between the
+        // gate and the retry path.
+        props.error ? (
+            <button data-testid="confirm-withdraw" onClick={props.onConfirm}>
+                Retry
+            </button>
+        ) : (
+            <button data-testid="confirm-withdraw" onClick={props.onConfirm} disabled={props.insufficientBalance}>
+                Confirm
+            </button>
+        ),
 }))
 
 jest.mock('@/components/Withdraw/views/Initial.withdraw.view', () => ({
@@ -190,8 +204,13 @@ const withdrawData = {
     amount: '50',
 }
 
+const mockSetPreparedAmount = jest.fn()
 const mockWithdrawFlow = {
     amountToWithdraw: '50',
+    isMaxWithdrawal: false,
+    setIsMaxWithdrawal: jest.fn(),
+    preparedAmount: null as string | null,
+    setPreparedAmount: mockSetPreparedAmount,
     usdAmount: '50',
     setAmountToWithdraw: jest.fn(),
     currentView: 'CONFIRM',
@@ -219,13 +238,15 @@ jest.mock('@/context/WithdrawFlowContext', () => ({
 
 const mockSendMoney = jest.fn()
 const mockSendTransactions = jest.fn()
+/** Mutable so the balance-gate suite can drive the comparison to the edge. */
+const mockWallet = { spendableBalance: 100n * 10n ** 6n }
 jest.mock('@/hooks/wallet/useWallet', () => ({
     useWallet: () => ({
         isConnected: true,
         address: USER_ADDRESS,
         sendMoney: mockSendMoney,
         sendTransactions: mockSendTransactions,
-        spendableBalance: 100n * 10n ** 6n,
+        spendableBalance: mockWallet.spendableBalance,
     }),
 }))
 
@@ -239,6 +260,8 @@ const mockCrossChainTransfer = {
     isCalculating: false,
     isXChain: false,
     isDiffToken: false,
+    isFeeEstimationError: false,
+    quoteExpiresAt: null as string | null,
     error: null,
     calculate: jest.fn(),
     reset: jest.fn(),
@@ -274,7 +297,101 @@ const confirm = async () => {
 beforeEach(() => {
     jest.clearAllMocks()
     mockRecordPayment.mockResolvedValue(PAYMENT_RESULT)
-    Object.assign(mockCrossChainTransfer, { isXChain: false, isDiffToken: false })
+    Object.assign(mockCrossChainTransfer, { isXChain: false, isDiffToken: false, quoteExpiresAt: null })
+})
+
+describe('crypto withdraw confirm — expired Rhino quote', () => {
+    afterEach(() => jest.useRealTimers())
+
+    it('re-quotes instead of signing when the quote aged out while the screen sat open', async () => {
+        jest.useFakeTimers({ now: new Date('2026-09-01T12:00:00Z') })
+        // Fresh at render: expires in 60s.
+        Object.assign(mockCrossChainTransfer, {
+            isXChain: true,
+            quoteExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+        })
+        render(<WithdrawCryptoPage />)
+
+        const quotesBeforeTap = mockCrossChainTransfer.calculate.mock.calls.length
+
+        // …then the user waits past it. No render happens in between.
+        jest.setSystemTime(Date.now() + 120_000)
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+
+        await waitFor(() => expect(mockCrossChainTransfer.calculate).toHaveBeenCalledTimes(quotesBeforeTap + 1))
+        expect(mockSendTransactions).not.toHaveBeenCalled()
+        expect(mockSendMoney).not.toHaveBeenCalled()
+        expect(mockSetCurrentView).not.toHaveBeenCalledWith('STATUS')
+    })
+
+    it('a tap with nothing prepared (an expiry refresh that failed) re-quotes instead of dead-ending', async () => {
+        Object.assign(mockCrossChainTransfer, { isXChain: true, transactions: null, quoteExpiresAt: null })
+        try {
+            render(<WithdrawCryptoPage />)
+            const quotesBeforeTap = mockCrossChainTransfer.calculate.mock.calls.length
+
+            fireEvent.click(screen.getByTestId('confirm-withdraw'))
+
+            await waitFor(() => expect(mockCrossChainTransfer.calculate).toHaveBeenCalledTimes(quotesBeforeTap + 1))
+            expect(mockSendTransactions).not.toHaveBeenCalled()
+            expect(mockSetWithdrawError).not.toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+        } finally {
+            Object.assign(mockCrossChainTransfer, { transactions: [{ to: RECIPIENT, value: 0n, data: '0x' }] })
+        }
+    })
+
+    // A failed quote is copied into the page-level error. If a later tap
+    // re-quotes successfully, that copy has to go — otherwise the screen keeps
+    // the old failure and a Retry CTA over a route that is actually ready, and
+    // the next tap broadcasts under a stale error.
+    it('drops the copied route error when a retry re-quotes', async () => {
+        Object.assign(mockCrossChainTransfer, {
+            isXChain: true,
+            transactions: null,
+            quoteExpiresAt: null,
+            error: 'Rhino route unavailable',
+        })
+        try {
+            render(<WithdrawCryptoPage />)
+            // The propagation effect copies the hook's error onto the page.
+            await waitFor(() => expect(mockSetPaymentError).toHaveBeenCalledWith('Rhino route unavailable'))
+            mockSetPaymentError.mockClear()
+
+            fireEvent.click(screen.getByTestId('confirm-withdraw'))
+
+            await waitFor(() => expect(mockSetPaymentError).toHaveBeenCalledWith(null))
+            expect(mockSendTransactions).not.toHaveBeenCalled()
+        } finally {
+            Object.assign(mockCrossChainTransfer, {
+                isXChain: false,
+                transactions: [{ to: RECIPIENT, value: 0n, data: '0x' }],
+                error: null,
+            })
+        }
+    })
+
+    it('signs while the quote is still fresh', async () => {
+        jest.useFakeTimers({ now: new Date('2026-09-01T12:00:00Z') })
+        Object.assign(mockCrossChainTransfer, {
+            isXChain: true,
+            quoteExpiresAt: new Date(Date.now() + 120_000).toISOString(),
+        })
+        mockSendTransactions.mockResolvedValue({
+            userOpHash: '0xuserop',
+            receipt: { transactionHash: '0xmined', status: 'success' },
+            strategy: 'mixed',
+            intentId: 'prep-intent-9',
+        })
+        render(<WithdrawCryptoPage />)
+        // Entering the confirm view quotes once; the tap must not quote again.
+        const quotesBeforeTap = mockCrossChainTransfer.calculate.mock.calls.length
+
+        jest.setSystemTime(Date.now() + 10_000)
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+
+        await waitFor(() => expect(mockSendTransactions).toHaveBeenCalled())
+        expect(mockCrossChainTransfer.calculate).toHaveBeenCalledTimes(quotesBeforeTap)
+    })
 })
 
 // ---------- tests ----------
@@ -472,6 +589,46 @@ describe('crypto withdraw retry — record-only replay (TASK-19581 double-spend)
         expect(mockRecordPayment).toHaveBeenLastCalledWith(expect.objectContaining({ txHash: '0xmined' }))
     })
 
+    // The two guards meet here: the quote ages out WHILE a record-only retry is
+    // pending. Re-quoting would strand the spend that already happened, so the
+    // alreadySpent exemption has to win over the expiry check — the case the
+    // expiry tests never covered, because none of them had an executed spend.
+    it('an aged quote does not re-quote a retry whose funds already moved', async () => {
+        jest.useFakeTimers({ now: new Date('2026-09-01T12:00:00Z') })
+        try {
+            Object.assign(mockCrossChainTransfer, {
+                isXChain: true,
+                quoteExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+            })
+            mockSendTransactions.mockResolvedValue({
+                userOpHash: '0xuserop',
+                receipt: { transactionHash: '0xmined', status: 'success' },
+                strategy: 'mixed',
+                intentId: 'prep-intent-expiry',
+            })
+            mockRecordPayment.mockRejectedValueOnce(new Error('Request timed out after 30000ms'))
+
+            render(<WithdrawCryptoPage />)
+            fireEvent.click(screen.getByTestId('confirm-withdraw'))
+            await waitFor(() => expect(mockPosthogCapture).toHaveBeenCalledWith('withdraw_failed', expect.anything()))
+            expect(mockSendTransactions).toHaveBeenCalledTimes(1)
+            const quotesBeforeRetry = mockCrossChainTransfer.calculate.mock.calls.length
+
+            // The quote is now stale — but the money is already gone.
+            jest.setSystemTime(Date.now() + 120_000)
+            fireEvent.click(screen.getByTestId('confirm-withdraw'))
+            await waitFor(() => expect(mockSetCurrentView).toHaveBeenCalledWith('STATUS'))
+
+            expect(mockCrossChainTransfer.calculate).toHaveBeenCalledTimes(quotesBeforeRetry)
+            expect(mockSendTransactions).toHaveBeenCalledTimes(1)
+            expect(mockSendMoney).not.toHaveBeenCalled()
+            expect(mockRecordPayment).toHaveBeenLastCalledWith(expect.objectContaining({ txHash: '0xmined' }))
+        } finally {
+            jest.useRealTimers()
+            Object.assign(mockCrossChainTransfer, { isXChain: false, quoteExpiresAt: null })
+        }
+    })
+
     it('a failure BEFORE any tx identifier exists retries with a fresh broadcast (nothing was spent)', async () => {
         mockSendMoney.mockRejectedValueOnce(new Error('user rejected signature')).mockResolvedValueOnce({
             txHash: '0xbetx',
@@ -490,5 +647,232 @@ describe('crypto withdraw retry — record-only replay (TASK-19581 double-spend)
 
         // No spend happened on attempt 1, so attempt 2 legitimately broadcasts.
         expect(mockSendMoney).toHaveBeenCalledTimes(2)
+    })
+})
+
+describe('crypto withdraw confirm — pre-sign balance gate (real balance math)', () => {
+    // The gate now covers the same-chain path too — the highest-volume route,
+    // and the one "use full balance" is built for. Nothing stubs the comparison
+    // in this suite, so these run the real bigint math.
+    const BALANCE = 50n * 10n ** 6n
+
+    afterEach(() => {
+        mockWallet.spendableBalance = 100n * 10n ** 6n
+        Object.assign(mockWithdrawFlow, { isMaxWithdrawal: false })
+        Object.assign(mockCrossChainTransfer, { payAmount: '50' })
+    })
+
+    it('a full-balance same-chain withdraw at exact equality keeps the CTA enabled', () => {
+        mockWallet.spendableBalance = BALANCE
+        Object.assign(mockWithdrawFlow, { isMaxWithdrawal: true })
+        // What the CHARGE records: usdValue / token.price, and a USDC price of
+        // 0.9999 is routine from a feed. The kernel still sends effectiveAmount,
+        // so gating on this number would refuse a withdrawal that fits.
+        Object.assign(mockCrossChainTransfer, { payAmount: '50.005001' })
+
+        render(<WithdrawCryptoPage />)
+
+        expect(screen.getByTestId('confirm-withdraw')).toBeEnabled()
+    })
+
+    it('one base unit short disables the CTA', () => {
+        mockWallet.spendableBalance = BALANCE - 1n
+        Object.assign(mockWithdrawFlow, { isMaxWithdrawal: true })
+
+        render(<WithdrawCryptoPage />)
+
+        expect(screen.getByTestId('confirm-withdraw')).toBeDisabled()
+    })
+
+    it('cross-chain still gates on the quote pay side, which is what the kernel sends', () => {
+        mockWallet.spendableBalance = BALANCE
+        Object.assign(mockCrossChainTransfer, { isXChain: true, payAmount: '50.01' })
+        try {
+            render(<WithdrawCryptoPage />)
+            expect(screen.getByTestId('confirm-withdraw')).toBeDisabled()
+        } finally {
+            Object.assign(mockCrossChainTransfer, { isXChain: false })
+        }
+    })
+})
+
+describe('crypto withdraw — the spend is frozen with the charge', () => {
+    afterEach(() => {
+        mockWallet.spendableBalance = 100n * 10n ** 6n
+        Object.assign(mockWithdrawFlow, { amountToWithdraw: '50', isMaxWithdrawal: false, preparedAmount: null })
+    })
+
+    // The feature exists to drain the dust. Nothing asserted the amount that
+    // actually leaves the wallet, so reverting page.tsx's sendMoney argument to
+    // `amountToWithdraw` left the suite green while the remainder stayed
+    // stranded — displaying as $0.00 and never withdrawable.
+    it('a max withdrawal sends the sub-cent remainder, not the displayed cents', async () => {
+        Object.assign(mockWithdrawFlow, { isMaxWithdrawal: true, preparedAmount: '50.006123' })
+        mockSendMoney.mockResolvedValue({
+            txHash: '0xsent',
+            userOpHash: undefined,
+            receipt: { transactionHash: '0xsent', status: 'success' },
+            strategy: 'smart-only',
+            intentId: undefined,
+        })
+
+        render(<WithdrawCryptoPage />)
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+
+        await waitFor(() => expect(mockSendMoney).toHaveBeenCalled())
+        expect(mockSendMoney).toHaveBeenCalledWith(RECIPIENT, '50.006123', expect.anything())
+    })
+
+    // The charge records one number and the API validator settles against it.
+    // Deriving the spend live let the balance move underneath while both values
+    // still floored to the displayed cents, so the wallet would underpay its
+    // own charge.
+    it('a balance drop after the charge is prepared does not change what is sent', async () => {
+        // The displayed cents (10.12) are what the old resolver compared against,
+        // so a drop to 10.121111 still "matched" and was silently adopted — an
+        // underpayment of the 10.126123 charge the validator settles against.
+        Object.assign(mockWithdrawFlow, {
+            amountToWithdraw: '10.12',
+            isMaxWithdrawal: true,
+            preparedAmount: '10.126123',
+        })
+        mockWallet.spendableBalance = 10_121111n
+        mockSendMoney.mockResolvedValue({
+            txHash: '0xsent',
+            userOpHash: undefined,
+            receipt: { transactionHash: '0xsent', status: 'success' },
+            strategy: 'smart-only',
+            intentId: undefined,
+        })
+
+        render(<WithdrawCryptoPage />)
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+
+        // The gate refuses it — the frozen spend no longer fits the balance — and
+        // above all the drifted 10.121111 is never what gets signed.
+        expect(screen.getByTestId('confirm-withdraw')).toBeDisabled()
+        expect(mockSendMoney).not.toHaveBeenCalledWith(RECIPIENT, '10.121111', expect.anything())
+        expect(mockSendMoney).not.toHaveBeenCalled()
+    })
+
+    it('a balance rise after the charge is prepared does not enlarge what is sent', async () => {
+        Object.assign(mockWithdrawFlow, {
+            amountToWithdraw: '10.12',
+            isMaxWithdrawal: true,
+            preparedAmount: '10.126123',
+        })
+        mockWallet.spendableBalance = 10_129999n
+        mockSendMoney.mockResolvedValue({
+            txHash: '0xsent',
+            userOpHash: undefined,
+            receipt: { transactionHash: '0xsent', status: 'success' },
+            strategy: 'smart-only',
+            intentId: undefined,
+        })
+
+        render(<WithdrawCryptoPage />)
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+
+        await waitFor(() => expect(mockSendMoney).toHaveBeenCalled())
+        expect(mockSendMoney).toHaveBeenCalledWith(RECIPIENT, '10.126123', expect.anything())
+    })
+})
+
+describe('crypto withdraw retry — after a route error (cross-chain cap 429, TASK-22154)', () => {
+    // The cap answers the SDA provision with 429 while the route is being
+    // prepared, so the confirm view renders the error with no transactions
+    // built. Retry must recompute the route, not fail on "not prepared".
+    it('Retry recomputes the route instead of failing on the transactions the failed route never built', async () => {
+        const m = mockCrossChainTransfer as unknown as { transactions: unknown; error: unknown; calculate: jest.Mock }
+        const prev = { transactions: m.transactions, error: m.error }
+        const prevFlow = {
+            amountToWithdraw: mockWithdrawFlow.amountToWithdraw,
+            isMaxWithdrawal: mockWithdrawFlow.isMaxWithdrawal,
+            preparedAmount: mockWithdrawFlow.preparedAmount,
+        }
+        m.transactions = null
+        m.error = 'You reached the limit for withdrawals to other networks. Try again in about 50 minutes.'
+        Object.assign(mockWithdrawFlow, {
+            amountToWithdraw: '10.12',
+            isMaxWithdrawal: true,
+            preparedAmount: '10.126123',
+        })
+        try {
+            render(<WithdrawCryptoPage />)
+            await waitFor(() => expect(m.calculate).toHaveBeenCalled())
+            const calculateCalls = m.calculate.mock.calls.length
+            const errorCalls = mockSetPaymentError.mock.calls.length
+
+            fireEvent.click(screen.getByTestId('confirm-withdraw'))
+
+            await waitFor(() => expect(m.calculate.mock.calls.length).toBe(calculateCalls + 1))
+            expect(m.calculate.mock.calls.at(-1)?.[0]).toEqual(
+                expect.objectContaining({ source: expect.objectContaining({ tokenAmount: '10.126123' }) })
+            )
+            expect(mockSendMoney).not.toHaveBeenCalled()
+            expect(mockSendTransactions).not.toHaveBeenCalled()
+            // Retry only clears errors (null); it never sets "transaction not prepared"
+            const afterClick = mockSetPaymentError.mock.calls.slice(errorCalls).map((c) => c[0])
+            expect(afterClick.every((v) => v === null)).toBe(true)
+        } finally {
+            m.transactions = prev.transactions
+            m.error = prev.error
+            Object.assign(mockWithdrawFlow, prevFlow)
+        }
+    })
+
+    it('quotes the frozen max-withdrawal amount when entering confirm', async () => {
+        Object.assign(mockWithdrawFlow, {
+            amountToWithdraw: '10.12',
+            isMaxWithdrawal: true,
+            preparedAmount: '10.126123',
+        })
+
+        try {
+            render(<WithdrawCryptoPage />)
+
+            await waitFor(() => expect(mockCrossChainTransfer.calculate).toHaveBeenCalled())
+            expect(mockCrossChainTransfer.calculate.mock.calls[0][0]).toEqual(
+                expect.objectContaining({ source: expect.objectContaining({ tokenAmount: '10.126123' }) })
+            )
+        } finally {
+            Object.assign(mockWithdrawFlow, {
+                amountToWithdraw: '50',
+                isMaxWithdrawal: false,
+                preparedAmount: null,
+            })
+        }
+    })
+
+    it('Retry does nothing while a recalculation is already in flight (a double tap must not provision twice)', async () => {
+        const m = mockCrossChainTransfer as unknown as {
+            transactions: unknown
+            error: unknown
+            isCalculating: boolean
+            calculate: jest.Mock
+        }
+        const prev = { transactions: m.transactions, error: m.error, isCalculating: m.isCalculating }
+        m.transactions = null
+        m.error = 'You reached the limit for withdrawals to other networks. Try again in about 50 minutes.'
+        m.isCalculating = true
+        try {
+            render(<WithdrawCryptoPage />)
+            await waitFor(() => expect(m.calculate).toHaveBeenCalled())
+            const calculateCalls = m.calculate.mock.calls.length
+            const errorCalls = mockSetPaymentError.mock.calls.length
+
+            fireEvent.click(screen.getByTestId('confirm-withdraw'))
+            fireEvent.click(screen.getByTestId('confirm-withdraw'))
+            await new Promise((r) => setTimeout(r, 50))
+
+            expect(m.calculate.mock.calls.length).toBe(calculateCalls)
+            expect(mockSendMoney).not.toHaveBeenCalled()
+            const afterClick = mockSetPaymentError.mock.calls.slice(errorCalls).map((c) => c[0])
+            expect(afterClick.every((v) => v === null)).toBe(true)
+        } finally {
+            m.transactions = prev.transactions
+            m.error = prev.error
+            m.isCalculating = prev.isCalculating
+        }
     })
 })

@@ -5,13 +5,23 @@
 // loader named-imports it statically, and jest's CJS runtime requires it with
 // no transform.
 //
-// heuristic boundary: these are regex matchers over source text, scanning
-// class attributes, builder calls, and string/template literals. class lists
-// assembled through other static expressions (array .join, string
-// concatenation, lookup maps) are out of scope here — that long tail is the
-// AST-scanner follow-up (Notion: "AST-based ds-lint composition scanner").
-// the ratchet still catches such drift indirectly the moment any covered
-// form touches the same file, and baselines cap every covered form.
+// the VALUE matchers below are regexes over class strings, and stay that way:
+// an off-scale `p-5` is off-scale wherever it appears, so spacing, radius,
+// duration, icon sizing and the rest need no parse.
+//
+// what needed one is GROUPING. `fontWeightOnTypeToken` has to know a type token
+// and a weight utility land in the SAME class list, and the old region-finders
+// could only see a class list spelled as an attribute, a builder call or a
+// template literal — `['text-body-m','font-semibold'].join(' ')`, `+`
+// concatenation split across lines and lookup maps were invisible, and
+// rebuilding those in regex means writing a parser badly. countWeightStacks now
+// parses (scripts/ds-lint-ast.cjs) and falls back to countWeightStacksByRegex
+// on source that does not parse cleanly.
+//
+// still out of scope, and honestly so: class values imported from OTHER
+// modules. that needs cross-file resolution; same-file consts ARE resolved.
+
+const { weightStackSites } = require('./ds-lint-ast.cjs')
 
 // allowlist inversion, not a blocklist: tailwind v4 compiles ANY numeric step
 // (p-4.5, pr-18, -mt-5, ps-5), so the metric flags every numeric spacing
@@ -49,11 +59,17 @@ function countOffScaleSpacing(text) {
 // per-line pass over the remaining text.
 // stock weight names + the theme's own extraBlack (globals.css
 // --font-weight-extraBlack, registered in tw.ts) + arbitrary numeric brackets
-// (decimals included) + the font-(weight:…) custom-property form. bare
-// font-(--x) is a font-FAMILY custom property, not a weight — excluded.
+// (decimals included) + the font-(weight:…) and bare font-(--x) custom-property
+// forms: tailwind 4 compiles an untyped font-(--x) as font-WEIGHT, and a family
+// needs the family-name: hint, so only that typed form is excluded.
 const WEIGHT_STACK_RE =
-    /\bfont-(?:thin|extralight|light|normal|medium|semibold|extrabold|extraBlack|bold|black|\[[0-9]+(?:\.[0-9]+)?\]|\[weight:[^\]]+\]|\(weight:[^)]+\))(?![a-zA-Z0-9-])/
+    /\bfont-(?:thin|extralight|light|normal|medium|semibold|extrabold|extraBlack|bold|black|\[[0-9]+(?:\.[0-9]+)?\]|\[weight:[^\]]+\]|\(weight:[^)]+\)|\(--[^)]+\))(?![a-zA-Z0-9-])/
 const TYPE_TOKEN_RE = /\btext-(?:body|heading|label|button)-[a-z-]+\b/
+
+// Coerced join output is actual class text: commas inside a class are not
+// separators. Keep variant prefixes and important markers around a whole utility.
+const JOINED_TYPE_TOKEN_RE = new RegExp(`^(?:.*:)?!?${TYPE_TOKEN_RE.source}!?$`)
+const JOINED_WEIGHT_STACK_RE = new RegExp(`^(?:.*:)?!?${WEIGHT_STACK_RE.source}!?$`)
 
 function classNameExpressions(text) {
     const regions = []
@@ -124,7 +140,7 @@ function templateLiteralRegions(text) {
     return regions
 }
 
-function countWeightStacks(text) {
+function countWeightStacksByRegex(text) {
     let n = 0
     const attrRegions = classNameExpressions(text)
     const outer = [...attrRegions, ...builderCallRegions(text)]
@@ -148,6 +164,40 @@ function countWeightStacks(text) {
     rest += text.slice(cursor)
     for (const line of rest.split('\n')) if (TYPE_TOKEN_RE.test(line) && WEIGHT_STACK_RE.test(line)) n++
     return n
+}
+
+/**
+ * `fontWeightOnTypeToken` — a type token carries its own weight, so a weight
+ * utility stacked next to one mints an off-ramp style.
+ *
+ * This is the one metric that needs GROUPING rather than a value match, and so
+ * the one the regex region-finders bounded: they could see a class list spelled
+ * as an attribute, a builder call or a template literal, and nothing else.
+ * `['text-body-m','font-semibold'].join(' ')`, `+` concatenation split across
+ * lines, and lookup maps went uncounted — see scripts/ds-lint-ast.cjs.
+ *
+ * Counted per DISTINCT drift, keyed on the source positions of the literals
+ * that produced the pair, not per class list. A drifted constant used in five
+ * places is one thing to fix, and the AST reaches all five where the regex
+ * reached the declaration alone. The overlap between producers (a builder call
+ * nested inside a className attribute) collapses the same way.
+ *
+ * Invalid syntax uses the legacy regex fallback. Unsupported CVA and analysis
+ * limits throw with a diagnostic instead of returning a misleading count.
+ * See ds-lint-contract.md for conservative policies and cardinality limits.
+ */
+function countWeightStacks(text, filename = 'file.tsx') {
+    const sites = weightStackSites(text, filename, {
+        isToken: (value, joined = false) =>
+            joined ? value.split(/\s+/).some((cls) => JOINED_TYPE_TOKEN_RE.test(cls)) : TYPE_TOKEN_RE.test(value),
+        isWeight: (value, joined = false) =>
+            joined ? value.split(/\s+/).some((cls) => JOINED_WEIGHT_STACK_RE.test(cls)) : WEIGHT_STACK_RE.test(value),
+    })
+    // null = the file did not parse cleanly. A recovered tree can be missing
+    // whole statements, so trusting it would under-report on exactly the files
+    // we cannot read.
+    if (!sites) return countWeightStacksByRegex(text)
+    return sites.size
 }
 
 // three ways an Icon gets sized: the size prop (also width/height, which the
@@ -184,13 +234,47 @@ function countOffScaleRadius(text) {
 // moderate/slow); arbitrary values (duration-[250ms]) count too.
 const RAW_DURATION_RE = /\bduration-(?:[0-9]+\b|\[[^\]]+\]|\(--[^)]+\))/g
 
+// the Global/Card container chrome retyped as a class literal instead of
+// composing the component (TASK-22121 sweep).
+const RETYPED_CARD_RE = /rounded-sm border border-border-default bg-background-default/g
+
+// hover styling with no pressed state anywhere in the file: touch users get
+// zero press feedback (design.md law 7). element-level pairing needs the AST
+// scanner, so this counts files — a file with hover: and zero active: has at
+// least one unpaired hover.
+function hasHoverWithoutActive(text) {
+    return /\bhover:/.test(text) && !/\bactive:/.test(text)
+}
+
+// arbitrary font sizes (text-[13px], text-[1.4rem]) — the type ramp is the
+// only size source. leading digit keeps colors (text-[#fff]) and custom
+// properties out.
+const ARBITRARY_FONT_SIZE_RE = /\btext-\[[0-9][^\]]*\]/g
+
+// raw error-colored text — field errors ride 0_Bruddle/FieldError; the counts
+// script excludes FieldError.tsx itself.
+const RAW_ERROR_TEXT_RE = /\btext-foreground-error\b/g
+
+// hand-rolled close glyph: a lowercase <button and an Icon name="cancel" in
+// the same file — close buttons ride Button shape="square". per-file, and the
+// counts script excludes 0_Bruddle/.
+function hasHandRolledCloseGlyph(text) {
+    return text.includes('<button') && /name=["']cancel["']/.test(text)
+}
+
 module.exports = {
     SPACING_STEPS,
     NUMERIC_SPACING_RE,
     ARBITRARY_SPACING_RE,
     countOffScaleSpacing,
     countWeightStacks,
+    countWeightStacksByRegex,
     countOffScaleRadius,
     OFF_SCALE_ICON_RE,
     RAW_DURATION_RE,
+    RETYPED_CARD_RE,
+    hasHoverWithoutActive,
+    ARBITRARY_FONT_SIZE_RE,
+    RAW_ERROR_TEXT_RE,
+    hasHandRolledCloseGlyph,
 }

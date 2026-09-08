@@ -19,6 +19,22 @@ How to run the app locally, build/sign/ship it, and get it through Play review.
 | **PostgreSQL** | 16 (14 works locally) | backend |
 | Xcode / CocoaPods | 26+ / latest | iOS only (§11) |
 
+### OS / WebView floors
+
+The web bundle is built with Tailwind v4: ~90% of the stylesheet lives in
+`@layer` (WebKit ≥ 15.4), gradients interpolate `in oklab` (≥ 16.2) and the
+`@property` fallback sits inside a layer (≥ 16.4). Anything older renders an
+unstyled app, so the shells pin these floors:
+
+| Platform | Floor | Where |
+|----------|-------|-------|
+| iOS | **16.4** | `IPHONEOS_DEPLOYMENT_TARGET` in `ios/App/App.xcodeproj/project.pbxproj` (+ `.iOS(.v16)` in `ios/App/CapApp-SPM/Package.swift`) |
+| Android | `minSdkVersion 24`, **Chrome WebView ≥ 111** | the OS is not the floor, the updatable System WebView is; the app shows an "update your WebView" screen when the boot-time CSS canary fails |
+
+Raising the iOS floor changes the App Store's minimum OS on the next submission;
+the JS canary (`isWebViewCssSupported`) is the runtime guard for devices below
+either floor that still hold an older binary.
+
 Clone with submodules — the build needs `src/content`:
 ```bash
 git clone --recurse-submodules https://github.com/peanutprotocol/peanut-ui
@@ -320,6 +336,41 @@ own `out/` under the binary's versionName, then assert the channel serves it.
   the floor when the channel's "disable auto update" strategy is set to *version number*.
   **Bump the native version whenever you change plugins/native code**, then ship that via
   Play — OTA can't.
+- **Native fingerprint (the check behind that rule):** `scripts/native-fingerprint.mjs`
+  hashes the JS↔native contract in three parts: the **config** (Capacitor's two generated
+  plugin manifests, `capacitor.config.ts`, the gradle files, `AndroidManifest.xml`,
+  `project.pbxproj`, `Info.plist`, both entitlements files), the **bridges** JS actually
+  calls (`android/app/src/main/**.{java,kt}`, `ios/App/**.swift` — a bundle calling a new
+  method on `PushProvisioningPlugin` needs the binary that has it, and no config file
+  moves when that changes), the **resource contracts** those config files delegate to
+  (`android/app/src/main/res/**.xml`, including the `capacitor-passkey.xml` asset
+  statement, and every `Info.plist`/`.entitlements` under `ios/App` — the extensions'
+  as well as the app's), and the **resolved plugin versions from `pnpm-lock.yaml`**
+  (the OTA workflow runs `pnpm install` but never regenerates the committed manifests, so
+  a plugin bumped without a `cap sync` would ship the new JS wrapper against unchanged
+  manifest bytes; the plugin set is the union of the declared dependencies and the names
+  Capacitor generated and an explicit `NATIVE_DEPENDENCIES` list — three sources, because
+  a package name cannot be trusted and the generated manifests only cover plugins that
+  have been synced; a test asserts every generated plugin appears in the list so it cannot
+  drift. Plus `patches/` with the `patchedDependencies` map, since a pnpm patch rewrites
+  both halves of a package with no version change. Deliberately **not** every dependency:
+  hashing the whole name set was tried and reverted after `web-vitals`, a pure-JS library,
+  would have refused every staging OTA until a native release was cut).
+  Every Android source set is hashed, including the credential-gated `src/meawallet`:
+  the fingerprint proves source compatibility, while the compiled capability gate
+  below independently requires provisioning support in the released binaries.
+  An unresolvable ref is an error, never an empty read, and `--root` points the CLI at
+  another checkout so its tests never mutate this one. `capgo-deploy.yml` recomputes it and compares against the
+  `v<major>.<build>.0` tag the bundle's floor targets; a mismatch **fails the OTA** and
+  names the file that moved. It is a pure function of the tree, so nothing is stored and
+  any tag can be fingerprinted retroactively (`--ref v1.2.0`). `MARKETING_VERSION` and
+  `CURRENT_PROJECT_VERSION` are normalised out — `native-ios-postsync.js` stamps them on
+  every sync, and leaving them in would refuse an OTA after every release.
+  **Why it exists:** `min_update_version` only blocks *delivery*, only under the
+  `metadata` channel strategy, and lives in a dashboard CI cannot read, so nothing
+  previously reported that an incompatible bundle had been *built* — the mismatch first
+  appeared on a user's device. The remedy for a failure is always to cut a native
+  release, never to widen or skip the check.
 - **Staged rollout:** roll production OTA to ~10% → watch Sentry/crash + error rates →
   100%. Don't 100% every merge.
 - **Rollback** is configured in `capacitor.config.ts` (`appReadyTimeout: 15000` +
@@ -447,3 +498,25 @@ one-time signing-material setup, secrets table, and manual App Store promotion.
 - Re-check Data safety, permissions (camera for QR/KYC), content rating, and the App
   access instructions in §4.
 - Promote to **production** review only after the internal track passes.
+
+### Compiled capability gate (TASK-22282)
+
+Production Android releases require both MeaWallet Nexus credentials and the
+MeaWallet config. Production iOS archives compile with
+`PEANUT_REQUIRE_PUSH_PROVISIONING`; compilation fails if the SDK cannot be imported.
+The iOS sync step uses `MEAWALLET_NEXUS_USER_IOS` and
+`MEAWALLET_NEXUS_PASSWORD_IOS`. The archive also requires the iOS encrypted
+config in `MEAWALLET_CONFIG_BASE64_IOS`; the Xcode build phase refuses a missing
+or empty config and copies it into the app bundle. Both provisioning Swift files
+are app target sources and the bridge registers the plugin. Local builds can still
+use the stub.
+
+After both store builds succeed, Release Native writes a compiled-capability
+attestation into the annotated release tag. OTA checks that attestation in
+addition to the source fingerprint. Older tags and manually created tags lack
+this evidence and cannot serve as OTA floors. Run Release Native to establish
+a compatible floor; do not add an attestation to an unverified old tag.
+
+This gate intentionally blocks new native releases until the MeaWallet SDK
+setup is complete. It proves SDK compilation, not vendor activation or Apple
+entitlements. Those remain separate launch checks.

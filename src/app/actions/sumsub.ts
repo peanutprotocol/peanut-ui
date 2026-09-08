@@ -149,6 +149,7 @@ export const restartIdentityVerification = async (
     data?: RestartIdentityResponse
     error?: string
     code?: SumsubActionErrorCode
+    cooldown?: { retryAt?: string }
 }> => {
     try {
         const intent = regionIntent && RESTART_REGION_INTENTS.has(regionIntent) ? regionIntent : undefined
@@ -159,9 +160,37 @@ export const restartIdentityVerification = async (
         })
         const responseJson = await response.json()
         if (!response.ok) {
-            return backendOrFallback(responseJson, 'Failed to restart identity verification', 'restart_failed')
+            const failure = backendOrFallback(responseJson, 'Failed to restart identity verification', 'restart_failed')
+            if (response.status !== 429) return failure
+            const rawRetryAt = responseJson.retryAt
+            const retryAfter = response.headers?.get('retry-after')
+            const retryAfterMs = retryAfter
+                ? /^\d+$/.test(retryAfter)
+                    ? Date.now() + Number(retryAfter) * 1000
+                    : Date.parse(retryAfter)
+                : NaN
+            const retryAt =
+                typeof rawRetryAt === 'string' && Number.isFinite(Date.parse(rawRetryAt))
+                    ? new Date(rawRetryAt).toISOString()
+                    : Number.isFinite(retryAfterMs)
+                      ? new Date(retryAfterMs).toISOString()
+                      : undefined
+            return { ...failure, cooldown: { retryAt } }
         }
-        return { data: responseJson }
+        // Sanitize on the way OUT as well as in. `responseJson` is unvalidated,
+        // and the caller stores `regionIntent` in the ref that `refreshToken`
+        // later replays to `initiateSumsubKyc` — so an unrecognised value would
+        // not merely read as single-level here, it would be sent back to the
+        // API on the next refresh. Dropping it lets the caller's `??` fall back
+        // to the intent it already had.
+        const resolved = responseJson?.regionIntent
+        return {
+            data: {
+                ...responseJson,
+                regionIntent:
+                    typeof resolved === 'string' && RESTART_REGION_INTENTS.has(resolved) ? resolved : undefined,
+            },
+        }
     } catch (e: unknown) {
         return caughtError(e)
     }

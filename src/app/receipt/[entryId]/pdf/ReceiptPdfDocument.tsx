@@ -153,10 +153,6 @@ export function ReceiptPdfDocument({ model }: { model: ReceiptPdfModel }) {
                         <Text style={styles.footerLabel}>{model.referenceLabel}</Text>
                         <Text style={styles.footerValue}>{breakableIdentifier(model.reference)}</Text>
                     </View>
-                    <View style={styles.footerRow}>
-                        <Text style={styles.footerLabel}>{model.issuedOnLabel}</Text>
-                        <Text style={styles.footerValue}>{model.issuedOn}</Text>
-                    </View>
                     <Text style={styles.site}>{`${model.issuedBy} - https://peanut.me`}</Text>
                 </View>
             </Page>

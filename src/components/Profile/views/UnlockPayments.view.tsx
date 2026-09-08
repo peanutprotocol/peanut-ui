@@ -345,8 +345,11 @@ const UnlockPayments = () => {
     const reviewEscalation =
         Number.isFinite(reviewSubmittedAtMs) && Date.now() - reviewSubmittedAtMs > 7 * 24 * 60 * 60 * 1000
 
+    // No card-only note: a card-restricted user already reads "Not available"
+    // on the card row itself (unlock-payments.utils), so the footer line only
+    // repeated it. The banking note stays — it covers rails whose rows are
+    // absent from the list entirely.
     const showBankRestrictionNote = restrictions.banking
-    const showCardRestrictionNote = !restrictions.banking && restrictions.card
 
     const residenceTrailing = !residenceIso2 ? undefined : residence?.verified ? (
         <StatusBadge status="completed" customText={t('residence.verified')} />
@@ -374,7 +377,7 @@ const UnlockPayments = () => {
                     aria-label={residenceIso2 ? t('residence.change') : t('residence.set')}
                 />
                 {residence?.verified && residence?.declared && residence.declared !== residence.verified && (
-                    <p className="text-body-xs text-foreground-secondary">
+                    <p className="text-center text-body-xs text-foreground-secondary">
                         {t('residence.pendingReverify', { country: declaredCountryName ?? residence.declared })}
                     </p>
                 )}
@@ -439,9 +442,6 @@ const UnlockPayments = () => {
 
             {showBankRestrictionNote && (
                 <p className="text-body-xs text-foreground-secondary">{t('bankNotAvailableNote')}</p>
-            )}
-            {showCardRestrictionNote && (
-                <p className="text-body-xs text-foreground-secondary">{t('cardNotAvailableNote')}</p>
             )}
 
             {/* Region-restricted users get the one honest region screen instead
@@ -562,7 +562,7 @@ const UnlockPayments = () => {
             />
 
             <ActionModal
-                visible={!!flow.error && !errorAcknowledged}
+                visible={!!flow.error && !flow.errorCooldown && !errorAcknowledged}
                 onClose={() => setErrorAcknowledged(true)}
                 title={
                     failedRegionRetriable
@@ -656,9 +656,19 @@ const UnlockSection = ({
                 return <StatusBadge status="processing" customText={t('chips.processing')} />
             case 'attention':
                 return <StatusBadge status="pending" customText={t('chips.attention')} />
-            case 'unlock':
             case 'notAvailable':
-                return <span className="text-body-s text-foreground-secondary">{t(`chips.${row.chip}`)}</span>
+                if (row.labelKey === 'card') {
+                    return (
+                        <StatusBadge
+                            status="custom"
+                            customText={t('chips.notAvailable')}
+                            className="bg-background-badge-helper"
+                        />
+                    )
+                }
+                return <span className="text-body-s text-foreground-secondary">{t('chips.notAvailable')}</span>
+            case 'unlock':
+                return <span className="text-body-s text-foreground-secondary">{t('chips.unlock')}</span>
         }
     }
 
@@ -682,9 +692,10 @@ const UnlockSection = ({
                     return (
                         <ListItem
                             key={row.id}
+                            className="min-h-18"
                             disabled={row.chip === 'notAvailable'}
                             leading={<IconBubble icon={row.icon as IconName} size="s" color={BUBBLE_COLOR[row.chip]} />}
-                            title={t(`rows.${row.labelKey}`)}
+                            title={<span className="break-words whitespace-normal">{t(`rows.${row.labelKey}`)}</span>}
                             trailing={rowTrailing(row)}
                             chevron={tappable}
                             onClick={tappable ? () => onRowClick(row) : undefined}
@@ -698,7 +709,10 @@ const UnlockSection = ({
                         Everywhere group always states that — it is the one limit
                         that exists before any unlock. */}
                     {group.id === 'everywhere' && (
-                        <p className="text-body-s text-foreground-secondary">{t('limits.p2pNoLimit')}</p>
+                        <div className="flex flex-col gap-1">
+                            <p className="text-body-s text-foreground-secondary">{t('limits.p2pNoLimit')}</p>
+                            <ProgressBar value={100} />
+                        </div>
                     )}
                     {limitSummaries.map((summary) =>
                         summary.kind === 'manteca' ? (

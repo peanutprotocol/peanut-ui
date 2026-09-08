@@ -23,9 +23,10 @@ interface LinkButtonProps {
 /**
  * Standalone link button from the figma link board (17980:17351): Body/XS
  * underlined, foreground/secondary at rest, foreground/primary on hover,
- * optional trailing icon. A lightweight navigation action that sits on its
- * own — never use it as an action button, and never embed it inline in a
- * sentence (inline links just underline the surrounding text).
+ * optional trailing icon. Covers standalone navigation links AND underlined
+ * text actions (action-link node 17980-17352, same family — ruled 2026-09-02).
+ * Never embed it inline in a sentence (inline links just underline the
+ * surrounding text).
  */
 export const LinkButton = ({
     children,
@@ -37,18 +38,14 @@ export const LinkButton = ({
     className,
     ...props
 }: LinkButtonProps) => {
-    // text-body-xs sits outside twMerge: stock tailwind-merge misreads it as a
-    // text-color class and strips it against text-foreground-secondary
-    const classes =
-        'text-body-xs ' +
-        twMerge(
-            // after: pseudo-element extends the 16px text row to a 44px hit area.
-            // that hit area extends 14px past each edge — keep stacked LinkButtons
-            // at least ~28px apart so hit areas do not overlap.
-            'relative inline-flex items-center gap-1 rounded text-foreground-secondary underline transition-colors duration-instant after:absolute after:inset-x-0 after:-inset-y-3.5 hover:text-foreground-primary active:text-foreground-primary focus-visible:outline-2 focus-visible:outline-action-focus',
-            disabled && 'pointer-events-none opacity-40',
-            className
-        )
+    const classes = twMerge(
+        // after: pseudo-element extends the 16px text row to a 44px hit area.
+        // that hit area extends 14px past each edge — keep stacked LinkButtons
+        // at least ~28px apart so hit areas do not overlap.
+        'relative inline-flex items-center gap-1 rounded text-body-xs text-foreground-secondary underline transition-colors duration-instant after:absolute after:inset-x-0 after:-inset-y-3.5 hover:text-foreground-primary active:text-foreground-primary focus-visible:outline-2 focus-visible:outline-action-focus',
+        disabled && 'pointer-events-none opacity-40',
+        className
+    )
     const content = (
         <>
             {children}

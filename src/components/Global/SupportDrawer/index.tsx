@@ -6,6 +6,7 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { useCrispUserData } from '@/hooks/useCrispUserData'
 import { useCrispTokenId } from '@/hooks/useCrispTokenId'
 import { useVisualViewport } from '@/hooks/useVisualViewport'
+import { useBackHandler } from '@/hooks/useBackHandler'
 import Loading from '../Loading'
 import { Button } from '@/components/0_Bruddle/Button'
 import {
@@ -388,6 +389,14 @@ const SupportDrawer = () => {
         window.addEventListener('message', handleMessage)
         return () => window.removeEventListener('message', handleMessage)
     }, [])
+
+    // Android hardware back closes the sheet instead of navigating the page
+    // underneath. Hand-rolled overlay, so it registers itself (the DS Drawer
+    // and Modal do this internally).
+    useBackHandler(() => {
+        setIsSupportModalOpen(false)
+        return true
+    }, isSupportModalOpen)
 
     // close on escape
     useEffect(() => {

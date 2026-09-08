@@ -307,7 +307,7 @@ function SetupPageContent() {
 
     if (isLoading || !sessionChecked)
         return (
-            <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
+            <div className="flex h-dvh w-full flex-col items-center justify-center">
                 <Loading variant="mascot" />
             </div>
         )
@@ -338,7 +338,7 @@ function SetupPageContent() {
     if (!step && !showDeviceNotSupportedModal && !showBrowserNotSupportedModal) {
         console.warn('SetupPage: No current step found, and no blocking modal. Possibly init issue.')
         return (
-            <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
+            <div className="flex h-dvh w-full flex-col items-center justify-center">
                 <Loading variant="mascot" />
             </div>
         )
@@ -352,7 +352,7 @@ function SetupPageContent() {
     if (!step) {
         console.warn('SetupPage: No current step after modal checks.')
         return (
-            <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
+            <div className="flex h-dvh w-full flex-col items-center justify-center">
                 <Loading variant="mascot" />
             </div>
         )

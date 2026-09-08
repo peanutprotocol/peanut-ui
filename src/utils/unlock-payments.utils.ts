@@ -2,7 +2,7 @@
  * Group/row derivation for the Unlock payments screen (the Unlocked Regions
  * rework). Regions survive as presentational GROUPS; every ROW is a concrete
  * product with a live status chip. The unlock verb attaches to products
- * ("SEPA transfers · Unlock"), never to abstract regions, and the tap target
+ * ("Euro bank transfers · Unlock"), never to abstract regions, and the tap target
  * stays the existing region-intent KYC machinery.
  *
  * Pure: the view computes per-region chips from the capability model and

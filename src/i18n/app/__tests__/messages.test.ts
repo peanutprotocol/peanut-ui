@@ -32,6 +32,12 @@ const CONTEXT_DIVERGENT: Record<string, string> = {
     Failed: 'generic status vs. KYC status agreeing with "verificación" (Fallido / Fallida)',
     Verified: 'badge/KYC status vs. residence chip agreeing with "residencia" (Verificado / Verificada)',
     'Settings → Passwords → Search "Peanut"': 'iOS and Android name the settings app differently',
+    Username:
+        "signup asks for your own new handle (Tu usuario) vs. waitlist asks for the inviter's (Nombre de usuario)",
+    'Mexican peso bank transfers': 'sentence fragment vs. standalone label casing',
+    'US dollar bank transfers': 'sentence fragment vs. standalone label casing',
+    'Euro bank transfers': 'sentence fragment vs. standalone label casing',
+    'British pound bank transfers': 'sentence fragment vs. standalone label casing',
 }
 
 describe('deepMerge fallback', () => {
@@ -130,5 +136,18 @@ describe('ICU message compilation', () => {
             t(path as any, dummy)
         }
         expect(invalid).toEqual([])
+    })
+})
+
+// TASK-22143: the ENS badge reached production with no `badges.catalog` entry, so
+// `useBadgeCopy` fell back to the backend's English name and the Spanish and
+// Portuguese Badges screens rendered "Name Dropper" in the middle of translated
+// copy. Key parity alone would not have caught it — the key was absent from every
+// locale, en included — so pin the localized names against English directly.
+describe('ENS badge copy is localized', () => {
+    it.each(APP_LOCALES.filter((locale) => locale !== 'en'))('%s translates the ENS badge', async (locale) => {
+        const messages = await loadMessages(locale)
+        expect(messages.badges.catalog.ENS.name).not.toBe(en.badges.catalog.ENS.name)
+        expect(messages.badges.catalog.ENS.description).not.toBe(en.badges.catalog.ENS.description)
     })
 })

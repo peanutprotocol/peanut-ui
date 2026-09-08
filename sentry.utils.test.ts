@@ -101,6 +101,23 @@ describe('shouldIgnoreError — Capgo updater noise', () => {
         expect(shouldIgnoreError(eventWith({ message }))).toBe(false)
     })
 
+    /*
+     * An update that silently un-happens leaves no other trace: Capgo's own logs
+     * only reach Sentry through an eval into a WebView the rollback is about to
+     * tear down, so suppressing these made the whole population read as one
+     * event in 90 days (PEANUT-UI-SVT).
+     */
+    it('keeps a bundle the plugin rolled back for want of notifyAppReady', () => {
+        expect(
+            shouldIgnoreError(
+                eventWith({ message: '[CapgoUpdater] 🔴 notifyAppReady was not called, roll back current bundle: E3J' })
+            )
+        ).toBe(false)
+        expect(shouldIgnoreError(eventWith({ message: '[CapgoUpdater] 🔴 Update to bundle: 1.0.56 Failed!' }))).toBe(
+            false
+        )
+    })
+
     it('keeps a checksum mismatch — the bundle arrived corrupt, not merely late', () => {
         expect(shouldIgnoreError(eventWith({ message: '[CapgoUpdater] 🔴 Checksum mismatch' }))).toBe(false)
     })
@@ -268,6 +285,30 @@ describe('shouldIgnoreError — fetch-site network captures', () => {
 
     it('keeps a mutation that timed out (the other fetch-site fingerprint)', () => {
         expect(shouldIgnoreError(fetchSiteCapture('Failed to fetch', 'POST', 'timeout'))).toBe(false)
+    })
+
+    /*
+     * The timeout capture groups on `['timeout']` alone so one phenomenon is
+     * one issue, which leaves no method in the fingerprint. Reading it
+     * positionally would make this rescue silently inert for exactly the events
+     * it exists to keep — a POST that dies on the network — so the method comes
+     * off the tag, with the fingerprint slot kept as a fallback for the
+     * positional captures and for events already in flight from an old bundle.
+     */
+    function taggedTimeout(method: string): ErrorEvent {
+        return {
+            fingerprint: ['timeout'],
+            tags: { 'http.method': method, route: '/charges' },
+            exception: { values: [{ type: 'TypeError', value: 'Failed to fetch' }] },
+        } as unknown as ErrorEvent
+    }
+
+    it.each(['POST', 'PUT', 'PATCH', 'DELETE', 'post'])('keeps a timed-out %s off the http.method tag', (method) => {
+        expect(shouldIgnoreError(taggedTimeout(method))).toBe(false)
+    })
+
+    it.each(['GET', 'HEAD'])('still ignores a timed-out %s off the tag', (method) => {
+        expect(shouldIgnoreError(taggedTimeout(method))).toBe(true)
     })
 
     // 78% of this population is failed GETs on /home — balance and price polls

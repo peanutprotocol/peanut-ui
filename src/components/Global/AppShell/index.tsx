@@ -49,6 +49,13 @@ export const AppShell = ({
                     on non-edge-to-edge Android — no-op there. On Android 15+ Capacitor
                     overwrites it with the natively measured inset. */}
                 <div className="bg-blue-300 pt-safe-top">{banner}</div>
+                {/* The strip above only RESERVES the inset — it scrolls away with the
+                    document on steps taller than the viewport (the dual-residence
+                    compare cards), and the illustration then rides up under the status
+                    bar. This cover paints the inset wherever the page is scrolled to,
+                    the same way the app variant does. Height is exactly the inset, so
+                    it stops short of the back button at top-8. */}
+                <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-40 h-safe-top bg-blue-300" />
                 {children}
                 {/* Bottom safe-area fill. Mirrors the strip above so the bottom
                     matches on edge-to-edge Android; iOS fills white (the panel
@@ -66,7 +73,7 @@ export const AppShell = ({
     }
 
     return (
-        <div className="flex min-h-[100dvh] w-full flex-col bg-background-page pt-safe-top">
+        <div className="flex min-h-dvh w-full flex-col bg-background-page pt-safe-top">
             {/* Status-bar safe zone. Paints the inset strip in the app background so
                 the top matches the page even where fixed children would otherwise draw
                 under the status bar. Height is the natively measured inset on Android

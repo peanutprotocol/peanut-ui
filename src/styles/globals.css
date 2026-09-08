@@ -74,7 +74,6 @@
     --color-kyc-green: #00c800;
     --color-background: #faf4f0;
 
-    --color-error: #b3261e;
     --color-error-1: #ffd8d8;
     --color-error-4: #fc5555;
 
@@ -111,6 +110,17 @@
     --color-background-icon-bubble-yellow: #ffc900;
     --color-background-icon-bubble-gray: #d1d5db;
     --color-background-icon-bubble-blue: #90a8ed;
+
+    /* The floating (toast) surface: each iconBubble tone composited at 5% over
+       background/default, precomputed so the fill stays opaque — a toast must
+       never read as a wash over the screen behind it. No board defines these
+       yet; same open gap as the skeleton/muted-surface tint, and they want a
+       vlad ruling before anything but the toast uses them. */
+    --color-background-surface-success: #f4fcf8;
+    --color-background-surface-error: #fef9f9;
+    --color-background-surface-attention: #fffcf2;
+    --color-background-surface-info: #f9fbfe;
+    --color-background-surface-helper: #fdfdfd;
 
     --color-background-badge-attention: #ffe6b3;
     --color-background-badge-info: #dbeafe;
@@ -242,6 +252,13 @@
     --text-body-s: 0.875rem;
     --text-body-s--line-height: 1.25rem;
     --text-body-s--font-weight: 500;
+    /* the emphasis step for Body/S, mirroring body.m -> body.m-semibold's
+       500 -> 600. Purely additive: Body/S keeps its own 500, so no existing
+       call site moves. Ruled 2026-09-04, slava; no board defines it yet, so it
+       wants a vlad push alongside the background/surface/* tints above. */
+    --text-body-s-semibold: 0.875rem;
+    --text-body-s-semibold--line-height: 1.25rem;
+    --text-body-s-semibold--font-weight: 600;
     --text-body-xs: 0.75rem;
     --text-body-xs--line-height: 1rem;
     --text-body-xs--font-weight: 400;
@@ -391,6 +408,9 @@
     --animate-accordion-down: accordion-down 0.3s cubic-bezier(0.87, 0, 0.13, 1);
     --animate-accordion-up: accordion-up 0.3s cubic-bezier(0.87, 0, 0.13, 1);
     --animate-star-pulsate-wiggle: starPulsateWiggle 10s ease-in-out infinite;
+    /* the toast countdown bar. the duration is set per toast from the
+       auto-dismiss timer, so the shorthand carries none of its own */
+    --animate-toast-progress: toast-progress linear forwards;
 
     @keyframes pulsate {
         0% {
@@ -441,6 +461,14 @@
         }
         to {
             height: 0;
+        }
+    }
+    @keyframes toast-progress {
+        from {
+            transform: scaleX(1);
+        }
+        to {
+            transform: scaleX(0);
         }
     }
     @keyframes starPulsateWiggle {
@@ -495,6 +523,26 @@
 /* font utilities whose v3 theme key matches the next/font css var name —
    defining them in @theme would shadow the next/font var on :root and
    self-reference (font falls back to system). plain utilities instead. */
+/* pages size themselves against the AppShell scroll area via min-height
+   inheritance (see the page-shell recipes) — a named utility instead of the
+   arbitrary min-h-[inherit] the DS lint counts as debt */
+@utility min-h-inherit {
+    min-height: inherit;
+}
+
+/* deposit panels and pick lists size against 60% of the viewport — named
+   utilities instead of the arbitrary *-[60vh] the DS lint counts as debt.
+   three utilities because one @utility cannot span three properties. */
+@utility h-screen-60 {
+    height: 60vh;
+}
+@utility min-h-screen-60 {
+    min-height: 60vh;
+}
+@utility max-h-screen-60 {
+    max-height: 60vh;
+}
+
 @utility font-roboto {
     font-family:
         var(--font-roboto), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
@@ -713,6 +761,15 @@
 }
 @utility tap-highlight-color {
     -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+}
+
+/* the (mobile-ui) layout puts .app-no-callout on <body> (useLongPressGuard):
+   long-pressing an app-shell CTA or menu row must not pop the OS link
+   preview. anchors and buttons only — inputs and selectable text keep their
+   native menus. android's context menu is handled by the same hook in JS. */
+.app-no-callout a,
+.app-no-callout button {
+    -webkit-touch-callout: none;
 }
 
 /* shadow-4 is used with variants (sm:shadow-4, hover:shadow-4) — a plain
@@ -995,14 +1052,19 @@
     .btn-shadow-secondary-8 {
         @apply shadow-[0.5rem_-0.5rem_0_#000000] dark:shadow-[0.5rem_-0.5rem_0_rgba(255,255,255,.25)];
     }
-    /* input board 17802:61538 / set 17360:4441: black border at rest
-       (border/default), subtle border ONLY when disabled, blue ring on
-       keyboard focus, red on aria-invalid, gray fill when disabled. the
-       earlier "subtle at rest" reading was wrong — subtle is the Disabled
-       variant's border on the board. height 48px per ruling (touch law;
-       board's 40px sits under the 44px minimum). */
+    /* input board 17802:61538 / set 17360:4441: 1px border/default at rest,
+       3px blue action-focus ring on focus — the ring REPLACES the border
+       (border-transparent), never stacks on it (stacking was the
+       double-border bug). browsers keep text inputs :focus-visible on any
+       focus, pointer included, so the ring is the ONLY focus state a text
+       input can have — the board's 2px black pointer step exists only on
+       non-text controls (BaseSelect). base outline-color is set so
+       transition-colors cannot animate the ring in from black (the flash
+       bug). red on aria-invalid, gray fill + subtle border when disabled.
+       height 48px per ruling (touch law; board's 40px sits under the 44px
+       minimum). */
     .input {
-        @apply h-12 w-full rounded-sm border border-border-default bg-background-default px-4 text-sm font-bold text-foreground-primary transition-colors outline-none placeholder:text-foreground-secondary focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid disabled:border-border-subtle disabled:bg-background-disabled disabled:text-foreground-secondary aria-invalid:border-border-error;
+        @apply h-12 w-full rounded-sm border border-border-default bg-background-default px-4 text-sm font-bold text-foreground-primary outline-action-focus transition-colors outline-none placeholder:text-foreground-secondary focus-visible:border-transparent focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid disabled:border-border-subtle disabled:bg-background-disabled disabled:text-foreground-secondary aria-invalid:border-border-error;
     }
     .bg-peanut-repeat-normal {
         @apply bg-[url('../assets/bg/peanut-bg.svg')] bg-[length:100px_100px] bg-repeat;

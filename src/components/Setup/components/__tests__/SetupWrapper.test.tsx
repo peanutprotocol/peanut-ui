@@ -71,6 +71,15 @@ describe('SetupWrapper navigation', () => {
         expect(svg).toHaveAttribute('stroke', 'currentColor')
     })
 
+    it('offsets the navigation row by the measured safe-area inset', () => {
+        // The row's containing block is the initial one, so a bare top-8 is 32px
+        // from the viewport — under the status bar (and under the shell's inset
+        // cover) on any device whose inset runs deeper than that.
+        renderWrapper({ showBackButton: true, onBack: jest.fn() })
+        const row = screen.getByRole('button', { name: 'Go back' }).closest('div.absolute')
+        expect(row?.className).toContain('top-[max(2rem,calc(var(--safe-top)_+_0.5rem))]')
+    })
+
     it('fires onBack from the back button', () => {
         const onBack = jest.fn()
         renderWrapper({ showBackButton: true, onBack })
@@ -109,7 +118,10 @@ describe('SetupWrapper navigation', () => {
         renderWrapper({ showLoginButton: true })
         fireEvent.click(screen.getByRole('button', { name: 'Log In' }))
         await waitFor(() => expect(mockToastError).toHaveBeenCalledWith('No passkey found'))
-        expect(mockedCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_LOGIN_ERROR, { error_code: 'NO_PASSKEY' })
+        expect(mockedCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_LOGIN_ERROR, {
+            error_code: 'NO_PASSKEY',
+            native: false,
+        })
     })
 
     it('shows the catalog copy for a mapped passkey error code, not the curated English message', async () => {

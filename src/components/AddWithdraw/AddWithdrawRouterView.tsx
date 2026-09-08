@@ -28,6 +28,8 @@ import TokenAndNetworkConfirmationModal from '../Global/TokenAndNetworkConfirmat
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useTranslations } from 'next-intl'
+import { Notification } from '@/components/0_Bruddle/Notification'
+import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 
 interface AddWithdrawRouterViewProps {
     flow: 'add' | 'withdraw'
@@ -82,6 +84,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
     const t = useTranslations('withdraw')
     const tAddMoney = useTranslations('addMoney')
     const tCommon = useTranslations('common')
+    const { banking: isBankRestricted } = useResidenceRestrictions()
     const { setSelectedBankAccount, showAllWithdrawMethods, setShowAllWithdrawMethods, setSelectedMethod } =
         useWithdrawFlow()
     const onrampFlowContext = useOnrampFlow()
@@ -215,7 +218,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
 
     if (isLoadingPreferences) {
         return (
-            <div className="flex min-h-[inherit] flex-col justify-center gap-8">
+            <div className="flex min-h-inherit flex-col justify-center gap-8">
                 <Loading variant="mascot" />
             </div>
         )
@@ -223,7 +226,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
 
     if (flow === 'withdraw' && savedAccounts.length === 0 && !shouldShowAllMethods) {
         return (
-            <div className="flex min-h-[inherit] flex-col justify-start gap-8">
+            <div className="flex min-h-inherit flex-col justify-start gap-8">
                 <NavHeader title={pageTitle} onPrev={onBackClick || defaultBackNavigation} />
                 <Card className="my-auto flex flex-col items-center justify-center gap-4 p-4">
                     <div className="space-y-2">
@@ -297,7 +300,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
         }))
 
         return (
-            <div className="flex min-h-[inherit] flex-col justify-normal gap-6">
+            <div className="flex min-h-inherit flex-col justify-normal gap-6">
                 <NavHeader title={pageTitle} onPrev={onBackClick || defaultBackNavigation} />
                 <div className="space-y-2 flex h-full flex-col justify-center">
                     <h2 className="text-heading-card text-foreground-primary">{tAddMoney('recentMethods')}</h2>
@@ -331,7 +334,7 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
 
     // show all methods view for both flows
     return (
-        <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
+        <div className="flex min-h-inherit flex-col justify-normal gap-8">
             <NavHeader
                 title={pageTitle}
                 onPrev={() => {
@@ -355,6 +358,8 @@ export const AddWithdrawRouterView: FC<AddWithdrawRouterViewProps> = ({
                     }
                 }}
             />
+
+            {isBankRestricted && <Notification priority="helper">{tAddMoney('bankNotAvailableNote')}</Notification>}
 
             <CountryList
                 inputTitle={mainHeading}

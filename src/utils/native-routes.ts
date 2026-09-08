@@ -132,11 +132,25 @@ function mapDeepLinkPath(parsed: URL): string | null {
     if (segments[0] === 'send' && segments[1]) {
         return appendParams(sendUrl(decodeURIComponent(segments.slice(1).join('/'))), extraParams)
     }
-    // `/pay/<recipient>` — every user's "My QR" payload. The web page is a pure
-    // client redirect to sendUrl(recipient) and is stripped from the native
-    // export, so both platforms funnel straight to the send dispatcher here.
+    /*
+     * `/pay/<recipient>[/<amount><token>]` — every user's "My QR" payload AND the
+     * shape payLinkUrl() prints into a shared request link. A bare recipient is a
+     * send, on both platforms (the web page redirects to the same place). Anything
+     * carrying payment context renders on the web `/pay` catch-all; the native
+     * export ships no catch-all page, so it dispatches through /pay-request and
+     * the send dispatcher exactly as the root recipient branch below does.
+     */
     if (segments[0] === 'pay' && segments[1]) {
-        return appendParams(sendUrl(decodeURIComponent(segments.slice(1).join('/'))), extraParams)
+        const rest = segments.slice(1)
+        const chargeId = parsed.searchParams.get('chargeId')
+        const requestId = parsed.searchParams.get('id')
+        if (!chargeId && !requestId && rest.length === 1) {
+            return appendParams(sendUrl(decodeURIComponent(rest[0])), extraParams)
+        }
+        if (!isCapacitor()) return appendParams(path, extraParams)
+        if (chargeId) return chargePayUrl(chargeId, parsed.searchParams.get('context') ?? undefined)
+        if (requestId) return requestPotUrl(requestId)
+        return appendParams(recipientPayUrl(rest.map(decodeURIComponent).join('/')), extraParams)
     }
     /*
      * Legacy `/request/pay?id=<chargeUuid>` — printed into old shared links.
@@ -333,6 +347,10 @@ function baseOrigin(): string | null {
 /**
  * Static sub-view segments that carry diagnostic value and no identifier.
  * Everything NOT here and not a route root is treated as an identifier.
+ *
+ * Honoured only in the sub-view position — `/<root>/<id>/<sub-view>` — so a
+ * user whose username collides with one of these (`/bank` is a valid profile
+ * link) is still redacted at the identifier position.
  */
 const TELEMETRY_SAFE_SEGMENTS = new Set(['success', 'bank', 'manteca', 'crypto', 'us'])
 
@@ -370,14 +388,20 @@ const TELEMETRY_SAFE_SEGMENTS = new Set(['success', 'bank', 'manteca', 'crypto',
 export function redactNativePath(value: string): string {
     const beforeQuery = value.split('#')[0].split('?')[0]
     // Keep scheme://host so a peanut.me universal link stays distinguishable
-    // from a custom-scheme launch — neither carries an identifier.
-    const prefix = beforeQuery.match(/^[a-z][a-z0-9+.-]*:\/\/[^/]*/i)?.[0] ?? ''
-    const path = beforeQuery.slice(prefix.length)
-    const redacted = path
-        .split('/')
-        .map((segment) => {
+    // from a custom-scheme launch — neither carries an identifier. Userinfo
+    // (`https://secret@peanut.me/…`) is dropped: it is attacker-controlled
+    // input on a link and would otherwise ride into telemetry intact.
+    const authority = beforeQuery.match(/^[a-z][a-z0-9+.-]*:\/\/[^/]*/i)?.[0] ?? ''
+    const prefix = authority.replace(/\/\/[^/]*@/, '//')
+    const path = beforeQuery.slice(authority.length)
+    const segments = path.split('/')
+    const redacted = segments
+        .map((segment, i) => {
             if (segment === '') return segment
-            if (NATIVE_EXPORT_ROOTS.has(segment) || TELEMETRY_SAFE_SEGMENTS.has(segment)) return segment
+            if (NATIVE_EXPORT_ROOTS.has(segment)) return segment
+            // sub-view position only: two after a root, `/qr/<code>/success`
+            const underRoot = i >= 2 && NATIVE_EXPORT_ROOTS.has(segments[i - 2])
+            if (underRoot && TELEMETRY_SAFE_SEGMENTS.has(segment)) return segment
             return ':id'
         })
         .join('/')

@@ -29,7 +29,7 @@ export default function DirectSendQr({
             disabled={disabled}
             icon={icon}
             iconSize={32}
-            iconContainerClassName="!size-8"
+            iconContainerClassName="size-8"
         />
     )
 }

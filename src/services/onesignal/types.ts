@@ -6,6 +6,18 @@ export interface NotificationClickInfo {
 }
 
 /**
+ * One push-subscription `change` event, as both SDKs shape it. OneSignal
+ * fires it for every field it settles on a new subscription (opt-in, token,
+ * then the server-assigned id) and again on token refresh, so `optedIn` alone
+ * cannot tell a fresh opt-in from the same subscription reported twice — the
+ * SDK's previous value can: a new opt-in is the one false → true transition.
+ */
+export interface PushSubscriptionChange {
+    optedIn: boolean
+    previousOptedIn: boolean
+}
+
+/**
  * Platform-agnostic surface over OneSignal. The web implementation wraps the
  * `react-onesignal` web SDK (Web Push + service worker); the native one wraps
  * `@onesignal/capacitor-plugin` (APNs / FCM). Both link the device to the
@@ -20,6 +32,6 @@ export interface OneSignalAdapter {
     getPermission(): Promise<NotificationPermissionState>
     isOptedIn(): Promise<boolean>
     onPermissionChange(listener: (state: NotificationPermissionState) => void): () => void
-    onSubscriptionChange(listener: (optedIn: boolean) => void): () => void
+    onSubscriptionChange(listener: (change: PushSubscriptionChange) => void): () => void
     onNotificationClick(listener: (info: NotificationClickInfo) => void): () => void
 }

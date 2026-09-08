@@ -2,7 +2,7 @@ import { twMerge } from '@/utils/tw'
 import { Icon, type IconName } from '../Global/Icons/Icon'
 
 type IconBubbleSize = 'xs' | 's' | 'm' | 'l'
-export type IconBubbleColor = 'green' | 'red' | 'yellow' | 'gray' | 'blue' | 'logo'
+export type IconBubbleColor = 'green' | 'red' | 'yellow' | 'gray' | 'blue' | 'brand' | 'logo'
 
 interface IconBubbleProps extends React.HTMLAttributes<HTMLDivElement> {
     icon: IconName | React.ReactElement
@@ -34,6 +34,9 @@ const bubbleColors: Record<IconBubbleColor, string> = {
     yellow: 'bg-background-icon-bubble-yellow',
     gray: 'bg-background-icon-bubble-gray',
     blue: 'bg-background-icon-bubble-blue',
+    // no iconBubble/brand variable exists in figma; the brand fill is the
+    // same semantic token the brand surfaces already use.
+    brand: 'bg-background-brand',
     // board icon.bubble.color.logo (17370:154707): brand/payment mark fills the
     // bubble — no colored background, content clipped round
     logo: 'overflow-hidden',

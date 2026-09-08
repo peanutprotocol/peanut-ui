@@ -174,8 +174,10 @@ const ValidatedInput = ({
             <div
                 className={twMerge(
                     // the composed box IS the input chrome: DS states only, callers
-                    // pass layout classes at most (input board has no valid state)
-                    'relative w-full rounded-sm border border-border-default bg-background-default focus-within:outline-[3px] focus-within:outline-action-focus focus-within:outline-solid',
+                    // pass layout classes at most (input board has no valid state).
+                    // same state model as .input: 3px blue ring replaces the border
+                    // on focus; base outline-color stops the black->blue flash
+                    'relative w-full rounded-sm border border-border-default bg-background-default outline-action-focus focus-within:border-transparent focus-within:outline-[3px] focus-within:outline-action-focus focus-within:outline-solid',
                     value && !isValidating && !isValid && debouncedValue === value ? 'border-border-error' : '',
                     className
                 )}
@@ -234,7 +236,7 @@ const ValidatedInput = ({
                                 </div>
                             ) : !!isSetupFlow && !isValid && !isInputChanging ? (
                                 <div className="mr-2 flex h-full items-center justify-center rounded-full">
-                                    <Icon size={20} className="text-error" name="error" />
+                                    <Icon size={20} className="text-foreground-error" name="error" />
                                 </div>
                             ) : !!isSetupFlow && !!isValid && !isInputChanging ? (
                                 <div className="mr-2 flex size-5 items-center justify-center rounded-full bg-background-icon-bubble-green">
@@ -242,11 +244,13 @@ const ValidatedInput = ({
                                 </div>
                             ) : (
                                 <button
+                                    type="button"
+                                    aria-label={t('invitesGraph.clear')}
                                     onClick={(e) => {
                                         e.preventDefault()
                                         onUpdate({ value: '', isValid: false, isChanging: false })
                                     }}
-                                    className="flex h-full w-6 items-center justify-center pr-2 md:w-8 md:pr-0"
+                                    className="relative flex h-full w-6 items-center justify-center pr-2 transition-opacity duration-instant after:absolute after:-inset-x-3 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60 md:w-8 md:pr-0"
                                 >
                                     <Icon className="h-6 w-6" name="cancel" />
                                 </button>

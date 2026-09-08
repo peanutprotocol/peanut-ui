@@ -104,10 +104,19 @@ const IGNORED_ERRORS = {
  * (~95/day on native). The user never sees them: the updater just retries on
  * the next launch. Suppress those, but keep the failures that mean OTA is
  * genuinely broken rather than merely flaky — a bundle that semver-sorts below
- * the installed binary, or one that arrived corrupt.
+ * the installed binary, one that arrived corrupt, or one the plugin rolled back
+ * because notifyAppReady never landed. That last class is the reason this list
+ * is not just the two it started with: an update that silently un-happens
+ * leaves no other trace, and suppressing it made the whole population read as
+ * one event in 90 days (PEANUT-UI-SVT).
  */
 const CAPGO_LOG_PREFIXES = ['[CapgoUpdater]', 'CapgoUpdater :', '[capgo]']
-const CAPGO_ACTIONABLE = ['disable_auto_update_under_native', 'Checksum mismatch']
+const CAPGO_ACTIONABLE = [
+    'disable_auto_update_under_native',
+    'Checksum mismatch',
+    'notifyAppReady was not called',
+    'Update to bundle:',
+]
 
 const isFromCapgo = (searchTexts: string[]): boolean =>
     searchTexts.some((text) => CAPGO_LOG_PREFIXES.some((prefix) => text.includes(prefix)))
@@ -153,9 +162,19 @@ export function isMutatingMethod(method: string | undefined): boolean {
     return MUTATING_METHODS.includes((method || '').toUpperCase())
 }
 
+/*
+ * The method comes from the `http.method` tag, with the fingerprint's third
+ * slot as fallback. The timeout capture no longer carries url and method in its
+ * fingerprint — it groups on `['timeout']` alone so one phenomenon is one issue
+ * — and reading the method positionally would have made this rescue silently
+ * inert for exactly the events it exists to keep: a POST that dies on the
+ * network. The fallback keeps the non-2xx and network-error captures, which
+ * still fingerprint positionally, working unchanged.
+ */
 function isFetchSiteMutationFailure(event: ErrorEvent): boolean {
-    const [kind, , method] = event.fingerprint ?? []
-    return FETCH_SITE_FINGERPRINTS.includes(kind) && isMutatingMethod(method)
+    const [kind, , fingerprintMethod] = event.fingerprint ?? []
+    const method = event.tags?.['http.method'] ?? fingerprintMethod
+    return FETCH_SITE_FINGERPRINTS.includes(kind) && isMutatingMethod(typeof method === 'string' ? method : undefined)
 }
 
 /*

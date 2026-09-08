@@ -37,6 +37,34 @@ describe('sanitizeUrl — fetch-failure fingerprints', () => {
         )
     })
 
+    /*
+     * One timeout on a hex-keyed route was one issue PER address:
+     * /rhino/status/0xfe73… and /rhino/status/0x0f78… were PEANUT-UI-SWX and
+     * SVW, one event each, for a single phenomenon.
+     */
+    it('collapses hex ids in the path — addresses, tx hashes, link ids', () => {
+        expect(sanitizeUrl('https://api.peanut.me/rhino/status/0xfe73afb5fa71f618b4f294ee76fd20e8a1311b87')).toBe(
+            sanitizeUrl('https://api.peanut.me/rhino/status/0x0f7823487c7974c53191874a92e777470fd8e77a')
+        )
+        expect(
+            sanitizeUrl(
+                'https://api.peanut.me/send-links/claim/0xa0636d38b221a08a0830e745bd33de70364e7e2fdcd60055ac3479ab7ffdb122/associate-user'
+            )
+        ).toBe('https://api.peanut.me/send-links/claim/{hash}/associate-user')
+    })
+
+    it('leaves short hex-looking slugs alone', () => {
+        expect(sanitizeUrl('https://api.peanut.me/tokens/usdc')).toBe('https://api.peanut.me/tokens/usdc')
+        expect(sanitizeUrl('https://api.peanut.me/fx/card-markup')).toBe('https://api.peanut.me/fx/card-markup')
+    })
+
+    // Free text, so no shape rule can catch it — the route is the only signal.
+    it('collapses usernames on the profile lookup', () => {
+        expect(sanitizeUrl('https://api.peanut.me/users/username/desravinekel')).toBe(
+            sanitizeUrl('https://api.peanut.me/users/username/someone-else')
+        )
+    })
+
     it('keeps different param names apart', () => {
         expect(sanitizeUrl('https://api.peanut.me/x?a=1')).not.toBe(sanitizeUrl('https://api.peanut.me/x?b=1'))
     })

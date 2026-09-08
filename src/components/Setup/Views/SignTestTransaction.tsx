@@ -1,5 +1,6 @@
 import DocsLink from '@/components/Global/DocsLink'
 import PasskeyInfoModal from '@/components/Setup/components/PasskeyInfoModal'
+import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { setupActions } from '@/redux/slices/setup-slice'
@@ -252,13 +253,17 @@ const SignTestTransaction = () => {
 
     if (accountReady) {
         return (
-            <div className="flex w-full flex-col gap-3 text-left">
-                <Notification priority="info" hideIcon title={t('accountReady.worksNowTitle')}>
-                    {t('accountReady.worksNowBody')}
-                </Notification>
-                <Notification priority="info" hideIcon title={t('accountReady.laterTitle')}>
-                    {t('accountReady.laterBody')}
-                </Notification>
+            <div className="flex w-full flex-col gap-4 text-left">
+                {/* neither block is a warning or a caveat, so they read as plain
+                    text under grey mini-headers rather than tinted Notifications */}
+                <div className="flex flex-col gap-1">
+                    <MiniHeader>{t('accountReady.worksNowTitle')}</MiniHeader>
+                    <p className="text-body-s text-foreground-primary">{t('accountReady.worksNowBody')}</p>
+                </div>
+                <div className="flex flex-col gap-1">
+                    <MiniHeader>{t('accountReady.laterTitle')}</MiniHeader>
+                    <p className="text-body-s text-foreground-primary">{t('accountReady.laterBody')}</p>
+                </div>
                 <Button
                     onClick={goToAccount}
                     loading={isRedirecting}

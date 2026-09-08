@@ -84,6 +84,37 @@ describe('HomeActionDrawers', () => {
         expect(screen.queryByTestId('home-drawer-add-withdraw')).not.toBeInTheDocument()
     })
 
+    /*
+     * The middle link of the returnTo chain (chip P23): bare /add-money
+     * redirects to /home?drawer=add&returnTo=X, and choosing an option must
+     * carry X onto the destination while CLEARING it from home's own history
+     * entry — a stale origin left behind would be forwarded into an
+     * unrelated flow on a later Add open.
+     */
+    it('carries returnTo onto the crypto destination and clears it from home', async () => {
+        const urlUpdates: UrlUpdateEvent[] = []
+        const origin = '/profile/exchange-rate?from=USD&to=EUR'
+        renderWithUrl(`?drawer=add&returnTo=${encodeURIComponent(origin)}`, (e) => urlUpdates.push(e))
+
+        fireEvent.click(screen.getByTestId('home-drawer-add-crypto'))
+        await waitFor(() =>
+            expect(mockPush).toHaveBeenCalledWith(`/add-money/crypto?returnTo=${encodeURIComponent(origin)}`)
+        )
+        const last = urlUpdates[urlUpdates.length - 1]
+        expect(last.searchParams.get('drawer')).toBeNull()
+        expect(last.searchParams.get('returnTo')).toBeNull()
+    })
+
+    it('carries returnTo onto the bank destination through the & separator branch', async () => {
+        const origin = '/profile/exchange-rate?from=USD&to=EUR'
+        renderWithUrl(`?drawer=add&returnTo=${encodeURIComponent(origin)}`)
+
+        fireEvent.click(screen.getByTestId('home-drawer-add-bank'))
+        await waitFor(() =>
+            expect(mockPush).toHaveBeenCalledWith(`/add-money?method=bank&returnTo=${encodeURIComponent(origin)}`)
+        )
+    })
+
     it('hides the bottom nav while open and releases the hold once closed', async () => {
         render(
             <>

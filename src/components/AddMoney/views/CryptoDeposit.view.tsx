@@ -75,9 +75,9 @@ const CryptoDepositView = ({
     // failed state
     if (status === 'failed') {
         return (
-            <div className="flex min-h-[inherit] w-full flex-col justify-start gap-8 pb-4 md:pb-0">
+            <div className="flex min-h-inherit w-full flex-col justify-start gap-8 pb-4 md:pb-0">
                 <NavHeader title={t('title')} onPrev={onBack} />
-                <div className="flex h-full min-h-[60vh] flex-col items-center justify-center gap-4">
+                <div className="flex h-full min-h-screen-60 flex-col items-center justify-center gap-4">
                     <Card>
                         <div className="flex w-full flex-col items-center justify-center gap-2">
                             <IconBubble icon="alert" size="s" color="yellow" />
@@ -97,7 +97,7 @@ const CryptoDepositView = ({
     }
 
     return (
-        <div className="flex min-h-[inherit] w-full flex-col gap-8 pb-4 md:pb-0">
+        <div className="flex min-h-inherit w-full flex-col gap-8 pb-4 md:pb-0">
             <NavHeader title={t('title')} onPrev={onBack} />
 
             <div className="my-auto flex w-full flex-col gap-4">
@@ -111,7 +111,7 @@ const CryptoDepositView = ({
 
                 {/* loading state */}
                 {(isLoading || status === 'loading') && (
-                    <div className="flex h-[60vh] items-center justify-center">
+                    <div className="flex h-screen-60 items-center justify-center">
                         {status === 'loading' ? <CyclingLoading /> : <Loading variant="mascot" />}
                     </div>
                 )}
@@ -214,7 +214,7 @@ const CryptoDepositView = ({
                                         <Button
                                             shadowSize="4"
                                             size="small"
-                                            className="ml-auto h-6 w-6 flex-shrink-0 rounded-full p-0 shadow-[0.12rem_0.12rem_0_#000000]"
+                                            className="ml-auto h-6 w-6 flex-shrink-0 rounded-full p-0 shadow-[0.12rem_0.12rem_0_var(--color-shadow-primary)]"
                                         >
                                             <div className="flex size-7 items-center justify-center">
                                                 <Icon name="chevron-up" size={16} className="rotate-90" />

@@ -73,8 +73,11 @@ const BaseSelect = forwardRef<HTMLButtonElement, BaseSelectProps>(
                     className={twMerge(
                         'notranslate flex h-12 w-full items-center justify-between rounded-sm border border-border-default bg-white px-4 text-label-l text-foreground-primary transition-colors outline-none placeholder:text-foreground-secondary',
                         'disabled:cursor-not-allowed disabled:opacity-50',
-                        // DS input focus pattern (blue ring), not the old pink border
-                        'focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid',
+                        // DS input state pattern: pointer press = 2px black (1px
+                        // border + 1px outline), keyboard focus = 3px blue ring.
+                        // base outline colors are set per state so transition-colors
+                        // cannot animate a ring in from the wrong color (flash bug)
+                        'outline-border-default focus:outline-1 focus:outline-solid focus-visible:border-transparent focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid',
                         error && 'border-border-error',
                         className
                     )}

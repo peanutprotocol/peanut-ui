@@ -2,6 +2,7 @@
 // only imported when isCapacitor() is true — uses dynamic import in the hook.
 
 import type { BundleInfo, CapacitorUpdaterPlugin } from '@capgo/capacitor-updater'
+import { isAndroidNativeBridge } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
 import { readStoredValue, removeStoredValue, writeStoredValue } from '@/utils/safe-storage'
 
@@ -26,6 +27,7 @@ export async function initCapgoUpdater(callbacks: OtaUpdateCallbacks = {}): Prom
     // even in demo mode — otherwise capgo auto-rolls back a previously-set bundle.
     await CapacitorUpdater.notifyAppReady()
     await reportPendingApply(CapacitorUpdater)
+    await reportFailedUpdate(CapacitorUpdater)
 
     const listeners: Array<{ remove: () => void }> = []
 
@@ -161,6 +163,52 @@ function isNewerBinaryRejection(message: string): boolean {
 // gone, no index.html) re-stages through the normal check and reloads.
 const PENDING_APPLY_KEY = 'capgoPendingApply'
 
+export function markPendingApply(bundleId: string): void {
+    writeStoredValue(PENDING_APPLY_KEY, bundleId)
+}
+
+/*
+ * Capacitor Android runs every plugin call on one shared handler thread
+ * (Bridge.callPluginMethod -> taskHandler.post). Before plugin 8.46.0, set()
+ * ran inline on that thread and blocked there in _reload() for up to 30 s
+ * waiting for notifyAppReady() — a plugin call queued behind it on the SAME
+ * thread, so it could never arrive. The reloaded page therefore sat blank
+ * (every plugin call it made was stuck in that queue too) until Capgo gave up
+ * and rolled the bundle back. 8.46.0 wraps set()/reload() in startNewThread().
+ *
+ * The version is read from the plugin, not from package.json: this JS ships
+ * over the air onto binaries built months apart, and only the native half of
+ * the pair decides whether an in-place restart deadlocks.
+ */
+const THREADED_SET_MIN_PLUGIN_VERSION = [8, 46, 0]
+
+function meetsMinimum(version: string, minimum: number[]): boolean {
+    const parts = version.split('.').map((part) => Number.parseInt(part, 10))
+    if (parts.length < minimum.length || parts.some(Number.isNaN)) return false
+    for (const [index, floor] of minimum.entries()) {
+        if (parts[index] !== floor) return parts[index] > floor
+    }
+    return true
+}
+
+/**
+ * Whether this binary can apply a staged bundle by reloading in place. False
+ * only on the Android binaries whose plugin deadlocks; those have to quit and
+ * relaunch instead, which applies the bundle next() already staged.
+ */
+export async function canRestartInPlace(): Promise<boolean> {
+    if (!isAndroidNativeBridge()) return true
+    try {
+        const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
+        const { version } = await CapacitorUpdater.getPluginVersion()
+        return meetsMinimum(version, THREADED_SET_MIN_PLUGIN_VERSION)
+    } catch {
+        // A version we cannot read is treated as the deadlocking one: quitting
+        // costs a relaunch, an in-place restart that hangs costs the bundle.
+        return false
+    }
+}
+
 /**
  * Whether the page was actually handed over to the plugin. `reloading` is the
  * only outcome a restart watchdog may act on: everything else means the app
@@ -173,7 +221,7 @@ export async function applyStagedBundle(
     hooks: { onSetRejected?: () => void; onRestaged?: (bundle: BundleInfo) => void } = {}
 ): Promise<OtaApplyOutcome> {
     const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
-    writeStoredValue(PENDING_APPLY_KEY, bundleId)
+    markPendingApply(bundleId)
     const abandon = (reason: string, err: unknown): OtaApplyOutcome => {
         console.warn(`[capgo] ${reason}:`, err instanceof Error ? err.message : String(err ?? ''))
         // The marker is the next launch's evidence that an apply was attempted
@@ -237,6 +285,81 @@ async function reportPendingApply(updater: Pick<CapacitorUpdaterPlugin, 'current
     const running = current?.bundle?.id ?? 'unknown'
     if (running === expected) console.warn(`[capgo-apply] restart applied bundle ${expected}`)
     else console.error(`[capgo-apply] restart did not apply bundle ${expected}; running ${running}`)
+}
+
+/**
+ * Report a rollback the plugin performed while nothing could hear it.
+ *
+ * Capgo's own logs reach Sentry only through bridge.eval("console.error(…)")
+ * into the WebView (Logger.java), and a background apply destroys the page that
+ * would receive them — the rollback line is emitted ~20 ms before performReset
+ * tears the next one down too. So the whole failure population reported as one
+ * event over 90 days. getFailedUpdate() reads the plugin's own SharedPreferences
+ * record instead, which survives the reload, the rollback and a process kill,
+ * and it self-clears on read. The `[capgo-apply]` prefix is deliberate: the
+ * `[capgo]` / `[CapgoUpdater]` prefixes are dropped as updater noise
+ * (sentry.utils.ts), which is exactly what hid this.
+ */
+async function reportFailedUpdate(updater: Pick<CapacitorUpdaterPlugin, 'getFailedUpdate'>): Promise<void> {
+    let failed
+    try {
+        failed = await updater.getFailedUpdate()
+    } catch (err) {
+        // Binaries older than plugin 7.22 have no such method. This JS ships
+        // over the air onto them, and a missing method is not a failure.
+        console.info('[capgo] failed-update read unavailable:', err instanceof Error ? err.message : String(err))
+        return
+    }
+    if (!failed?.bundle) return
+    console.error(
+        `[capgo-apply] plugin rolled back bundle ${failed.bundle.version} (${failed.bundle.id}); notifyAppReady never landed`
+    )
+}
+
+// One launch-time apply per staged bundle. A set() that never lands must not
+// turn every subsequent launch into a reload.
+const LAUNCH_APPLY_KEY = 'capgoLaunchApplyAttempt'
+
+/**
+ * Apply a bundle staged by an earlier launch now, in the foreground, instead of
+ * leaving it to the plugin's background apply.
+ *
+ * next() is only ever consumed by installNext(), which runs from
+ * appMovedToBackground(): the reload therefore lands in a process the OS is
+ * about to freeze, and the boot has to finish inside a 30 s budget that keeps
+ * burning while nothing is scheduled. Doing it here instead reloads an app that
+ * is on screen and running at full speed. The caller restricts this to the
+ * window where the splash still covers the reload, so adopting an update stays
+ * invisible; outside that window the background apply remains the fallback,
+ * which native-app-ready.ts has made survivable.
+ *
+ * Returns the staged bundle (whether or not it was applied) so the caller can
+ * still offer a manual restart, or null when nothing is staged.
+ */
+export async function applyStagedBundleOnLaunch(): Promise<BundleInfo | null> {
+    const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
+    const [next, current] = await Promise.all([
+        CapacitorUpdater.getNextBundle().catch(() => null),
+        CapacitorUpdater.current().catch(() => null),
+    ])
+    if (!next || next.id === current?.bundle?.id) return null
+    // Deadlocking binaries can only quit to apply (see canRestartInPlace), and
+    // quitting an app the user just opened is worse than the background apply.
+    if (readStoredValue(LAUNCH_APPLY_KEY) === next.id || !(await canRestartInPlace())) return next
+
+    writeStoredValue(LAUNCH_APPLY_KEY, next.id)
+    markPendingApply(next.id)
+    try {
+        // Never resolves when it works: the page is torn down mid-call.
+        await CapacitorUpdater.set({ id: next.id })
+    } catch (err) {
+        // The bundle is still staged, so the background apply will retry it.
+        // Drop the marker or the next launch reports a failure for an apply
+        // that never reached the plugin.
+        removeStoredValue(PENDING_APPLY_KEY)
+        console.warn('[capgo] launch apply rejected:', err instanceof Error ? err.message : String(err))
+    }
+    return next
 }
 
 // The normal up-to-date path, not a failure. Plugin 8.45+ rejects getLatest()

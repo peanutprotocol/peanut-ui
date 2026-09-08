@@ -5,6 +5,13 @@
 import { DEV_TOOLS_ENABLED } from '@/constants/dev-tools.consts'
 
 export const FIXTURE_PARAM = '__fixture'
+
+/** `route?__fixture=name`, joining correctly when the route carries its own query. */
+export function fixtureHref(route: string, name: string): string {
+    const url = new URL(route, 'http://fixture.local')
+    url.searchParams.set(FIXTURE_PARAM, name)
+    return `${url.pathname}${url.search}`
+}
 // exported for e2e/shots/fixtures.spec.ts, which reads it back through the
 // browser to prove fixture mode actually engaged before taking a screenshot.
 export const FIXTURE_STORAGE_KEY = 'peanut_fixture'

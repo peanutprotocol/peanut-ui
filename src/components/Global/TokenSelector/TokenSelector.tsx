@@ -396,7 +396,12 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     const clearChainSelection = () => {
         return (
             <div className="absolute -top-4 right-0">
-                <Button variant="transparent" className="h-fit w-fit p-0" onClick={handleClearSelectedToken}>
+                <Button
+                    variant="transparent"
+                    aria-label={t('tokenSelector.clearNetworkSelection')}
+                    className="relative h-fit w-fit p-0 after:absolute after:-inset-3"
+                    onClick={handleClearSelectedToken}
+                >
                     <div className="flex size-6 items-center justify-center">
                         <Icon name="cancel" className="h-4 w-4" />
                     </div>
@@ -472,7 +477,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
             </Button>
 
             <Drawer open={isDrawerOpen} onOpenChange={closeDrawer}>
-                <DrawerContent accessibleTitle={t('tokenSelector.drawerTitle')} className="p-4">
+                <DrawerContent accessibleTitle={t('tokenSelector.drawerTitle')} className="py-4">
                     <div ref={contentRef} className="mx-auto md:max-w-2xl">
                         {showNetworkList ? (
                             <NetworkListView
@@ -490,7 +495,6 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                 {/* Info banner when cross-chain is disabled */}
                                 {isCrossChainDisabled && (
                                     <div className="flex items-center gap-2 rounded-sm bg-background-badge-attention p-3 text-body-s text-foreground-primary">
-                                        <Icon name="info" size={16} className="flex-shrink-0" />
                                         <span>{t('tokenSelector.crossChainUnavailable')}</span>
                                     </div>
                                 )}
@@ -538,7 +542,6 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                             placeholder={t('tokenSelector.searchTokenPlaceholder')}
                                         />
                                         <div className="flex items-center justify-center gap-2">
-                                            <Icon name="info" size={10} className="text-foreground-secondary" />
                                             <span className="text-body-xs text-foreground-secondary">
                                                 {t('tokenSelector.sponsoredHint')}
                                             </span>

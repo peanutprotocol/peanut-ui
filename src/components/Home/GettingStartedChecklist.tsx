@@ -89,15 +89,21 @@ const GettingStartedChecklist = () => {
                 id: 'add-money',
                 // The row opens /add-money, which offers bank transfer AND
                 // crypto — naming one rail promised a route the chooser doesn't
-                // take you straight to.
+                // take you straight to. A residence no bank provider onboards
+                // drops the bank half rather than selling an ID check that
+                // cannot deliver it (same ruling as the signup residence step).
                 label: t('addMoney'),
-                sub: isVerified ? t('addMoneyRoutes') : t('addMoneyRoutesKyc'),
+                sub: restrictions.banking
+                    ? t('addMoneyRoutesNoBank')
+                    : isVerified
+                      ? t('addMoneyRoutes')
+                      : t('addMoneyRoutesKyc'),
                 done: isFunded,
                 onTap: tap('add-money', () => router.push('/add-money')),
             },
             thirdItem,
         ]
-    }, [cardAvailable, hasActiveCard, hasSentPayment, isFunded, isVerified, milestone, router, t])
+    }, [cardAvailable, hasActiveCard, hasSentPayment, isFunded, isVerified, milestone, restrictions.banking, router, t])
 
     const allDone = items.every((item) => item.done)
 

@@ -8,6 +8,7 @@ import { twMerge } from '@/utils/tw'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '../Global/Icons/Icon'
 import { getBadgeIcon } from './badge.utils'
+import { displayableBadges } from '@/constants/badges.consts'
 import { useBadgeCopy } from './useBadgeCopy'
 import { BadgeImage } from './BadgeImage'
 
@@ -42,8 +43,14 @@ const BadgesRow = ({ badges, className, isSelfProfile = true }: BadgesRowProps) 
     const [startIdx, setStartIdx] = useState<number>(0)
 
     // sort by earnedAt, newest first
+    //
+    // PEANUT_TEAM never appears. It says "team" and is self-awarded by the
+    // five-tap beta gesture, so rendering it beside earned badges would let any
+    // customer wear Peanut staff colours in a payments app. It is a permission
+    // record, not a collectible — hidden on one's own profile too, since the
+    // beta switch appearing is the feedback that the tap worked.
     const sortedBadges = useMemo(() => {
-        return [...badges].sort((a, b) => {
+        return displayableBadges(badges).sort((a, b) => {
             const at = a.earnedAt ? new Date(a.earnedAt).getTime() : 0
             const bt = b.earnedAt ? new Date(b.earnedAt).getTime() : 0
             return bt - at

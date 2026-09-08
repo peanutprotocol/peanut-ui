@@ -3,6 +3,8 @@
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Card } from '@/components/0_Bruddle/Card'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import NavHeader from '@/components/Global/NavHeader'
@@ -55,57 +57,65 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
     // asking. Either way there is nothing here to start.
     if (!isLoadingCapabilities && !hostedTask) {
         return (
-            <div className="flex w-full flex-col gap-6">
+            <PageStack gap="6">
                 <NavHeader title={t('title')} onPrev={onBack} />
-                <div className="flex flex-col items-center gap-3 text-center" data-testid="hosted-task-done">
-                    <IconBubble icon="check-circle" size="l" color="green" />
-                    <p className="text-body-m-semibold">{t('done.title')}</p>
-                    <p className="text-body-s text-foreground-secondary">{t('done.description')}</p>
-                </div>
-                <Button variant="purple" shadowSize="4" onClick={() => router.replace(IDENTITY_ROUTE)}>
-                    {t('done.cta')}
-                </Button>
-            </div>
+                <PageStack.Center>
+                    <Card className="flex flex-col items-center gap-3 p-4 text-center" data-testid="hosted-task-done">
+                        <IconBubble icon="check-circle" size="l" color="green" />
+                        <p className="text-body-m-semibold">{t('done.title')}</p>
+                        <p className="text-body-s text-foreground-secondary">{t('done.description')}</p>
+                        <Button
+                            variant="purple"
+                            shadowSize="4"
+                            className="mt-1"
+                            onClick={() => router.replace(IDENTITY_ROUTE)}
+                        >
+                            {t('done.cta')}
+                        </Button>
+                    </Card>
+                </PageStack.Center>
+            </PageStack>
         )
     }
 
     return (
-        <div className="flex w-full flex-col gap-6">
+        <PageStack gap="6">
             <NavHeader title={t('title')} onPrev={onBack} />
 
-            {/* Bubble centered, prose not: the checklist right below is
-                left-aligned, and a centered paragraph above it reads as a
-                second column. */}
-            <div className="flex flex-col gap-3">
-                <IconBubble icon="user-id" size="l" color="blue" className="self-center" />
-                <p className="text-body-s text-foreground-secondary">
-                    {isAdvisory ? t('descriptionAdvisory') : t('description')}
-                </p>
-            </div>
+            <PageStack.Center>
+                {/* Bubble centered, prose not: the checklist right below is
+                    left-aligned, and a centered paragraph above it reads as a
+                    second column. */}
+                <Card className="gap-3 p-4">
+                    <IconBubble icon="user-id" size="l" color="blue" className="self-center" />
+                    <p className="text-body-s text-foreground-secondary">
+                        {isAdvisory ? t('descriptionAdvisory') : t('description')}
+                    </p>
+                    <KycPrepChecklist path="hosted" />
+                    {/* Notification, not a bare <p>: it carries role="alert", so a
+                        screen reader hears the failure instead of leaving focus on
+                        a CTA that silently did nothing. */}
+                    {error && (
+                        <Notification priority="error" data-testid="hosted-start-error">
+                            {error}
+                        </Notification>
+                    )}
+                    <Button
+                        variant="purple"
+                        shadowSize="4"
+                        icon="check-circle"
+                        iconPosition="left"
+                        disabled={isStarting}
+                        onClick={start}
+                    >
+                        {isStarting ? tCommon('loading') : tPrep('startCta')}
+                    </Button>
+                </Card>
+            </PageStack.Center>
 
-            <KycPrepChecklist path="hosted" />
-
-            <div className="flex flex-col gap-3">
-                {/* Notification, not a bare <p>: it carries role="alert", so a
-                    screen reader hears the failure instead of leaving focus on
-                    a CTA that silently did nothing. */}
-                {error && (
-                    <Notification priority="error" data-testid="hosted-start-error">
-                        {error}
-                    </Notification>
-                )}
-                <Button
-                    variant="purple"
-                    shadowSize="4"
-                    icon="check-circle"
-                    iconPosition="left"
-                    disabled={isStarting}
-                    onClick={start}
-                >
-                    {isStarting ? tCommon('loading') : tPrep('startCta')}
-                </Button>
+            <PageStack.Footer>
                 <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />
-            </div>
-        </div>
+            </PageStack.Footer>
+        </PageStack>
     )
 }

@@ -126,7 +126,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8 md:min-h-fit">
+        <div className="flex min-h-inherit flex-col justify-between gap-8 md:min-h-fit">
             <NavHeader icon={isSuccess ? 'cancel' : 'chevron-up'} title={t('receive')} onPrev={onPrev} />
 
             <div className="my-auto space-y-4">
@@ -150,6 +150,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                 {sumsubFlow.error && <Notification priority="error">{sumsubFlow.error}</Notification>}
             </div>
             <InitiateKycModal
+                cooldownActive={!!sumsubFlow.errorCooldown}
                 prepPath="extended"
                 visible={showKycModal}
                 onClose={() => setShowKycModal(false)}
@@ -191,7 +192,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                 reasonCode={mantecaRejection.reasonCode ?? undefined}
                 regionName={selectedCountry ? localizedCountryTitle(locale, selectedCountry) : undefined}
             />
-            <SumsubKycModals flow={sumsubFlow} />
+            <SumsubKycModals flow={sumsubFlow} onCooldownClose={() => setShowKycModal(false)} />
         </div>
     )
 }

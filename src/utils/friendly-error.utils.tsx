@@ -89,6 +89,8 @@ export type FriendlyErrorCode =
     | 'rainInsufficientCollateral'
     | 'rainCooldownRetryShortly'
     | 'cardRateLimited'
+    | 'xchainWithdrawLimit'
+    | 'xchainPaymentLimit'
     | 'linkTransactionHashFetch'
 
 /**
@@ -107,6 +109,8 @@ export type FriendlyErrorCode =
 export type FriendlyError =
     | { kind: 'code'; code: FriendlyErrorCode }
     | { kind: 'params'; code: 'rainCooldownRetry'; values: { minutes: number } }
+    | { kind: 'params'; code: 'xchainWithdrawLimitRetry'; values: { days: number; hours: number; minutes: number } }
+    | { kind: 'params'; code: 'xchainPaymentLimitRetry'; values: { days: number; hours: number; minutes: number } }
     | { kind: 'text'; text: string }
 
 const code = (c: FriendlyErrorCode): FriendlyError => ({ kind: 'code', code: c })
@@ -183,13 +187,22 @@ const isGenericSupport = (result: FriendlyError): boolean => result.kind === 'co
  *  matchers on ONE level of `.cause` (fetch wrappers rethrow with the real
  *  failure attached there), then surfaces a displayable backend-authored
  *  ApiError message verbatim rather than discarding the actual reason. */
-export const friendlyError = (error: unknown): FriendlyError => {
-    const classified = classifyError(error)
+/**
+ * Where the error surfaced, for the few messages whose advice depends on it.
+ * The cross-chain cap counts withdrawals and request payments alike; a payer
+ * cannot "withdraw on Arbitrum instead", the request fixed the destination.
+ */
+export interface FriendlyErrorOptions {
+    crossChainSurface?: 'withdraw' | 'payment'
+}
+
+export const friendlyError = (error: unknown, opts?: FriendlyErrorOptions): FriendlyError => {
+    const classified = classifyError(error, opts)
     if (!isGenericSupport(classified)) return classified
 
     const cause = error && typeof error === 'object' ? (error as { cause?: unknown }).cause : undefined
     if (cause !== undefined && cause !== null) {
-        const fromCause = classifyError(cause)
+        const fromCause = classifyError(cause, opts)
         if (!isGenericSupport(fromCause)) return fromCause
     }
 
@@ -198,7 +211,7 @@ export const friendlyError = (error: unknown): FriendlyError => {
     return code('genericSupport')
 }
 
-const classifyError = (error: unknown): FriendlyError => {
+const classifyError = (error: unknown, opts?: FriendlyErrorOptions): FriendlyError => {
     const { text, message, name } = extractErrorParts(error)
 
     // Wire code first: it's locale-independent and immune to backend copy
@@ -211,6 +224,29 @@ const classifyError = (error: unknown): FriendlyError => {
         return minutes === null
             ? code('rainCooldownRetryShortly')
             : { kind: 'params', code: 'rainCooldownRetry', values: { minutes } }
+    }
+    // The backend already ships a specific, user-ready sentence for a
+    // sub-minimum bridge ("Amount ($2.00) is below the $5 minimum to bridge to
+    // ETHEREUM.") with the interpolated amounts and chain — pass it through
+    // rather than collapsing to a generic coded string.
+    if (wire === API_ERROR_CODES.BELOW_MIN_BRIDGE_AMOUNT) {
+        return message ? passthrough(message) : code('genericSupport')
+    }
+    if (wire === API_ERROR_CODES.XCHAIN_WITHDRAW_LIMIT_REACHED) {
+        // Per-user cross-chain withdraw cap. The wait can be minutes (hour
+        // rung), hours (day rung) or days (30-day rung); the ICU message picks
+        // the coarsest non-zero unit.
+        const payment = opts?.crossChainSurface === 'payment'
+        const minutes = cooldownMinutes(error)
+        if (minutes === null) return code(payment ? 'xchainPaymentLimit' : 'xchainWithdrawLimit')
+        // Round the shown unit UP so the copy never promises a retry before the
+        // cap lifts; a unit is used only once the wait reaches it.
+        const hours = minutes >= 60 ? Math.ceil(minutes / 60) : 0
+        const days = minutes >= 24 * 60 ? Math.ceil(minutes / (24 * 60)) : 0
+        const values = { days, hours, minutes }
+        return payment
+            ? { kind: 'params', code: 'xchainPaymentLimitRetry', values }
+            : { kind: 'params', code: 'xchainWithdrawLimitRetry', values }
     }
     if (wire) {
         const mapped = WIRE_CODE_MAP[wire as ApiErrorCode]
@@ -320,6 +356,10 @@ const classifyError = (error: unknown): FriendlyError => {
         text.includes('timed out after')
     )
         return code('networkBusyTimeout')
+    // Client-side backstop for a claim whose bridge minimum couldn't be verified
+    // (Rhino returned no/zero minimum) — a transient, retryable condition, so
+    // surface the retry copy rather than "contact support".
+    if (text.includes('Could not verify the claim amount against the bridge minimum')) return code('networkBusyTimeout')
     // Browser-native fetch rejection — the request never reached a server, so
     // there is no status and no wire code to key off, only the engine's own
     // TypeError copy: `Failed to fetch` (Chromium, so every Android WebView),

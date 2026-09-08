@@ -16,6 +16,7 @@ export default function ScanToDownloadModal({
     surface: MigrationSurface
 }) {
     const t = useTranslations('migration')
+    const tCommon = useTranslations('common')
     return (
         <ActionModal
             visible={visible}
@@ -23,6 +24,13 @@ export default function ScanToDownloadModal({
             icon="qr-code"
             title={t('qr.title')}
             content={<DownloadQR surface={surface} />}
+            ctas={[
+                {
+                    text: tCommon('close'),
+                    shadowSize: '4',
+                    onClick: onClose,
+                },
+            ]}
         />
     )
 }

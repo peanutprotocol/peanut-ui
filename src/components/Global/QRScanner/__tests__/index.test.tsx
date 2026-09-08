@@ -8,7 +8,6 @@
  * probes prompt-free `hasStrings` and reads on the chip TAP; web/PWA does
  * neither.
  */
-import { QR_DRAWER_PASTE_GAP_PX, QR_DRAWER_PEEK_PX } from '@/constants/qr-drawer.consts'
 import React from 'react'
 import { render as rtlRender, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
@@ -37,8 +36,15 @@ jest.mock('next/image', () => ({
 // the denied state, so paste is only reachable if it is rendered inside it.
 jest.mock('../CameraPermissionModal', () => ({
     __esModule: true,
-    default: ({ onPaste }: { onPaste?: () => void }) =>
-        onPaste ? <button onClick={onPaste}>{'Click to paste'}</button> : null,
+    // mirrors the real contract: Try again + Dismiss, and a paste button ONLY
+    // if a caller were to pass onPaste (it must not — the assertion relies on it)
+    default: ({ onRetry, onClose, onPaste }: { onRetry: () => void; onClose: () => void; onPaste?: () => void }) => (
+        <div>
+            <button onClick={onRetry}>{'Try again'}</button>
+            <button onClick={onClose}>{'Dismiss'}</button>
+            {onPaste && <button onClick={onPaste}>{'Click to paste'}</button>}
+        </div>
+    ),
 }))
 const cameraState = { error: null as string | null, isPermissionDenied: false }
 jest.mock('../useQRScanner', () => ({
@@ -82,15 +88,14 @@ beforeEach(() => {
     cameraState.isPermissionDenied = false
 })
 
-// Pasting a Pix code needs no camera, but the paste UI used to live only inside
-// the live viewfinder — so on native, where the OS camera grant is a sticky
-// per-install decision, declining it removed the app's only paste entry point.
-describe.each([
-    ['camera permission denied', { isPermissionDenied: true, error: null as string | null }],
-    ['camera unavailable', { isPermissionDenied: false, error: 'Camera unavailable' }],
-])('%s: paste stays reachable', (_label, state) => {
+// The camera-unavailable ERROR view keeps a paste path (pasting a Pix code
+// needs no camera). The permission-denied MODAL deliberately does not any
+// more: two secondary CTAs broke the modal recipe (ruled 2026-09-03, kush) —
+// it offers Try again + Dismiss only. The accepted trade-off: a native user
+// with a sticky camera denial pastes via the error view, not this modal.
+describe('camera unavailable: paste stays reachable', () => {
     it('pastes a Pix code without a working camera', async () => {
-        Object.assign(cameraState, state)
+        Object.assign(cameraState, { isPermissionDenied: false, error: 'Camera unavailable' })
         mockIsAndroidNative.mockReturnValue(false)
         mockHasStrings.mockResolvedValue(false)
         mockRead.mockResolvedValue({ value: PIX_CODE, type: 'text/plain' })
@@ -101,6 +106,20 @@ describe.each([
             fireEvent.click(await screen.findByText('Click to paste'))
         })
         expect(onScan).toHaveBeenCalledWith(PIX_CODE)
+    })
+})
+
+describe('camera permission denied: the modal keeps one primary + Dismiss', () => {
+    it('offers Try again and Dismiss, and no paste CTA', async () => {
+        Object.assign(cameraState, { isPermissionDenied: true, error: null })
+        mockIsAndroidNative.mockReturnValue(false)
+        mockHasStrings.mockResolvedValue(false)
+
+        renderScanner()
+
+        expect(await screen.findByText('Try again')).toBeInTheDocument()
+        expect(screen.getByText('Dismiss')).toBeInTheDocument()
+        expect(screen.queryByText('Click to paste')).toBeNull()
     })
 })
 
@@ -254,48 +273,21 @@ it('chip tap: empty clipboard maps to the same copy as "Click to paste"', async 
 })
 
 /*
- * The paste link belongs to the scanner: it sits in the block under the scan
- * square, after the payment badges, not in a strip pinned above the My QR
- * drawer (where it read as a stray control). jsdom has no layout, so the
- * clearance from the drawer peek was verified in a browser; what is pinned
- * here is the placement.
+ * Ruled 2026-09-02 (TASK-22121 #20): the paste link hangs off the scan square
+ * (top-full + mt-6), no longer off the drawer peek. jsdom has no layout, so
+ * what is pinned here is the anchoring: the link lives inside the square's
+ * container and is positioned from its bottom edge.
  */
-it('paste actions sit under the scan square, after the payment badges', async () => {
+it('paste actions hang below the scan square', async () => {
     mockIsAndroidNative.mockReturnValue(false)
     mockHasStrings.mockResolvedValue(false)
 
     renderScanner()
 
     const link = await screen.findByText('Click to paste')
-    const region = link.closest('[data-testid="qr-scan-region"]')
-    expect(region).not.toBeNull()
-    expect(link.closest('[style*="bottom"]')).toBeNull()
-    const badges = screen.getByText('Mercado Pago')
-    expect(badges.compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-})
-
-it('short viewports: the paste actions move to a strip pinned above the My QR drawer', async () => {
-    mockIsAndroidNative.mockReturnValue(false)
-    mockHasStrings.mockResolvedValue(false)
-    const matchMedia = window.matchMedia
-    Object.defineProperty(window, 'matchMedia', {
-        writable: true,
-        value: (query: string) => ({
-            matches: query.includes('max-height'),
-            media: query,
-            addEventListener: jest.fn(),
-            removeEventListener: jest.fn(),
-        }),
-    })
-    try {
-        renderScanner()
-
-        const link = await screen.findByText('Click to paste')
-        expect(link.closest('[data-testid="qr-scan-region"]')).toBeNull()
-        const strip = link.closest('[data-testid="qr-paste-strip"]') as HTMLElement | null
-        expect(strip).not.toBeNull()
-        expect(strip!.style.bottom).toBe(`${QR_DRAWER_PEEK_PX + QR_DRAWER_PASTE_GAP_PX}px`)
-    } finally {
-        Object.defineProperty(window, 'matchMedia', { writable: true, value: matchMedia })
-    }
+    const anchored = link.closest('.top-full') as HTMLElement | null
+    expect(anchored).not.toBeNull()
+    // one XL section gap below the square, positioned off the square not the viewport
+    expect(anchored!.className).toContain('mt-6')
+    expect(anchored!.className).toContain('absolute')
 })

@@ -34,7 +34,7 @@ describe('CurrencySelect pull-to-refresh guard (TASK-21967)', () => {
         open()
 
         // A row deep inside the scroll area — the element a finger actually drags.
-        fireEvent.touchMove(screen.getByText('Popular currencies'), { touches: [{ clientX: 0, clientY: 40 }] })
+        fireEvent.touchMove(screen.getByText('US Dollar'), { touches: [{ clientX: 0, clientY: 40 }] })
 
         expect(onDocumentTouchMove).not.toHaveBeenCalled()
     })

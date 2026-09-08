@@ -23,10 +23,10 @@ function taskCopy(task: NextAction): { title: string; description: string } {
     if (task.kind === 'accept-tos') {
         if (task.key === 'accept-tos:sepa') {
             return {
-                title: 'Accept SEPA Terms of Service',
+                title: 'Accept updated bank transfer provider terms',
                 description: advisory
-                    ? "Accept our payment partner's updated terms to keep EUR and GBP bank transfers available."
-                    : "Accept our payment partner's updated terms to enable EUR and GBP bank transfers.",
+                    ? "Accept our bank transfer provider's updated Terms of Service to keep euro and British pound bank transfers available."
+                    : "Accept our bank transfer provider's updated Terms of Service to enable euro and British pound bank transfers.",
             }
         }
         return {
@@ -167,7 +167,7 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                                                 type="button"
                                                 aria-label={t('pendingTasks.dismiss', { task: copy.title })}
                                                 onClick={() => handleDismissTask(task)}
-                                                className="absolute top-3 right-3 z-10 cursor-pointer p-0 text-black outline-none"
+                                                className="absolute top-3 right-3 z-10 cursor-pointer p-0 text-black transition-opacity duration-instant after:absolute after:-inset-4 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
                                             >
                                                 <Icon name="cancel" size={16} />
                                             </button>

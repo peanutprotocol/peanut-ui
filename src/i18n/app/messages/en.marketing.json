@@ -98,6 +98,10 @@
         "genericSupport": "There was an issue with your request. Please contact support.",
         "rainCooldownRetry": "A previous card withdrawal is still active. Try again in about {minutes, plural, one {# minute} other {# minutes}}.",
         "rainCooldownRetryShortly": "A previous card withdrawal is still active. Please try again shortly.",
+        "xchainWithdrawLimit": "You reached the limit for withdrawals to other networks. Withdrawals on Arbitrum have no limit, or contact support to raise yours.",
+        "xchainWithdrawLimitRetry": "You reached the limit for withdrawals to other networks. Try again in about {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minute} other {# minutes}}} one {# hour} other {# hours}}} one {# day} other {# days}}. Withdrawals on Arbitrum have no limit, or contact support to raise yours.",
+        "xchainPaymentLimit": "You made too many transfers to other networks recently. Contact support to raise your limit.",
+        "xchainPaymentLimitRetry": "You made too many transfers to other networks recently. Try again in about {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minute} other {# minutes}}} one {# hour} other {# hours}}} one {# day} other {# days}}, or contact support to raise your limit.",
         "rainInsufficientCollateral": "Your card doesn’t have enough collateral for this withdrawal.",
         "staleCardApproval": "Your card needs to be re-enabled before you can withdraw. It only takes one passkey tap.",
         "cardRateLimited": "Too many card requests. Please wait a moment and try again.",
@@ -111,7 +115,7 @@
     "migration": {
         "downloadPrompt": {
             "earlyTitle": "The Peanut app is here!",
-            "earlyDescription": "Peanut now lives on the App Store and Google Play. Faster, smoother, and it pings you the moment money lands. Your account comes with you, nothing to set up.",
+            "earlyDescription": "Peanut is now an app, on the App Store and Google Play. Same account, faster experience, instant alerts when money lands.",
             "maybeLater": "I'll download it later",
             "title": "Peanut is going app-only",
             "description": "In {days, plural, one {# day} other {# days}} Peanut moves fully to the app. Download it now and pick up right where you left off. Your account and money move with you automatically.",
@@ -129,13 +133,6 @@
         "banner": {
             "title": "The Peanut app is here!",
             "description": "Faster, smoother, and it pings you when money lands."
-        },
-        "review": {
-            "title": "Loving Peanut so far?",
-            "description": "A quick rating helps other people find us.",
-            "loveIt": "Love it",
-            "meh": "Could be better",
-            "supportPrefill": "I have some feedback about the app, here's what could be better: "
         },
         "downloadNow": "Download now",
         "smartLink": {
@@ -162,6 +159,7 @@
         "receipt": "Receipt",
         "supportUnread": "New support reply",
         "card": "Card",
+        "exchangeRates": "Exchange rates",
         "scanQr": "Scan QR"
     },
     "shhhhh": {

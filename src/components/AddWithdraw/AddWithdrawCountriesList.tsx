@@ -34,7 +34,7 @@ import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { resolveKycModalVariant, getGateUserMessage, getGateReasonCode } from '@/utils/capability-gate'
 import { railJurisdictionForBank } from '@/utils/bridge.utils'
-import { getRegionIntent } from '@/utils/regions.utils'
+import { useBankRegionIntent } from '@/hooks/useBankRegionIntent'
 import { useTosGuard } from '@/hooks/useTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
@@ -136,6 +136,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     // them. The prior unscoped `isBankRailUnderReview` check did exactly that
     // and dead-ended ready users behind a "You're all set / Go back" modal.
     const { isKycApproved, gateFor } = useCapabilities()
+    const bankRegionIntent = useBankRegionIntent()
     const isUserKycApproved = isKycApproved
     const bankCountry = useMemo(() => railJurisdictionForBank(currentCountry?.id), [currentCountry?.id])
     const gate = useMemo(() => gateFor('deposit', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
@@ -261,7 +262,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         // name and email are now collected by sumsub sdk — no need to save them beforehand
         if (!isUserKycApproved) {
             await sumsubFlow.handleInitiateKyc(
-                getRegionIntent(currentCountry?.region ?? 'rest-of-the-world'),
+                bankRegionIntent(currentCountry?.region ?? 'rest-of-the-world'),
                 undefined,
                 undefined,
                 currentCountry?.id
@@ -272,6 +273,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     }
 
     const handleWithdrawMethodClick = (method: SpecificPaymentMethod) => {
+        const title = method.id.endsWith('-sepa-instant-withdraw') ? t('methods.euroBankTransfers') : method.title
         // preserve method param only if coming from bank send flow (not crypto)
         const methodQueryParam = isBankFromSend ? `?method=${methodParam}` : ''
 
@@ -287,7 +289,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 type: 'bridge',
                 countryPath: currentCountry?.path,
                 currency: currentCountry?.currency,
-                title: method.title,
+                title,
             })
             router.push(`/withdraw${methodQueryParam}`)
             return
@@ -369,6 +371,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const sharedModals = (
         <>
             <InitiateKycModal
+                cooldownActive={!!sumsubFlow.errorCooldown}
                 visible={isKycModalOpen}
                 onClose={() => setIsKycModalOpen(false)}
                 onVerify={async () => {
@@ -376,7 +379,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                         await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                     } else {
                         await sumsubFlow.handleInitiateKyc(
-                            getRegionIntent(currentCountry?.region ?? 'rest-of-the-world'),
+                            bankRegionIntent(currentCountry?.region ?? 'rest-of-the-world'),
                             undefined,
                             gate.kind === 'needs-enrollment' || undefined,
                             currentCountry?.id
@@ -411,13 +414,13 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 onComplete={() => setShowProvideEmail(false)}
                 onSkip={() => setShowProvideEmail(false)}
             />
-            <SumsubKycModals flow={sumsubFlow} />
+            <SumsubKycModals flow={sumsubFlow} onCooldownClose={() => setIsKycModalOpen(false)} />
         </>
     )
 
     if (view === 'form') {
         return (
-            <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
+            <div className="flex min-h-inherit flex-col justify-normal gap-8">
                 <NavHeader
                     title={
                         flow === 'withdraw' ? (isBankFromSend ? tNav('send') : tNav('withdraw')) : tAddMoney('title')
@@ -469,6 +472,12 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             <Section title={title}>
                 <div className="flex flex-col">
                     {paymentMethods.map((method, index) => {
+                        const copy = method.id.endsWith('-sepa-instant-withdraw')
+                            ? {
+                                  title: t('methods.euroBankTransfers'),
+                                  description: t('methods.euroBankTransfersDescription'),
+                              }
+                            : method
                         // BRL-via-PIX onramp is warn-only under maintenance: tag the Pix option but
                         // keep it clickable (do not set isDisabled).
                         const isPixOnrampUnderMaintenance =
@@ -479,21 +488,21 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                             <ListItem
                                 key={method.id}
                                 disabled={method.isSoon}
-                                title={method.title}
-                                body={<div className="text-body-xs">{method.description}</div>}
+                                title={copy.title}
+                                body={<div className="text-body-xs">{copy.description}</div>}
                                 leading={
                                     typeof method.icon === 'string' || method.icon === undefined ? (
                                         <AvatarWithBadge
                                             icon={method.icon as IconName}
-                                            name={method.title ?? method.id}
+                                            name={copy.title ?? method.id}
                                             size="extra-small"
                                             inlineStyle={{
                                                 backgroundColor:
                                                     method.icon === ('bank' as IconName)
-                                                        ? '#FFC900'
+                                                        ? 'var(--color-background-icon-bubble-yellow)'
                                                         : method.id === 'crypto-add' || method.id === 'crypto-withdraw'
-                                                          ? '#FFC900'
-                                                          : getColorForUsername(method.title).lightShade,
+                                                          ? 'var(--color-background-icon-bubble-yellow)'
+                                                          : getColorForUsername(copy.title).lightShade,
                                                 color: method.icon === ('bank' as IconName) ? 'black' : 'black',
                                             }}
                                         />

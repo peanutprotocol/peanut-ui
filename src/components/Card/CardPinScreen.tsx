@@ -1,4 +1,5 @@
 'use client'
+import { ScreenMark } from '@/components/0_Bruddle/ScreenMark'
 import { type FC, useCallback, useEffect, useRef, useState } from 'react'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useTranslations } from 'next-intl'
@@ -110,6 +111,7 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
         return (
             <PageStack gap="6">
                 <NavHeader title={t('navTitle')} onPrev={onPrev} />
+                <ScreenMark icon="credit-card" color="brand" />
                 <div className="flex flex-col gap-6">
                     <div className="flex flex-col gap-2">
                         <h1 className="text-heading-xs">{t('noPinTitle')}</h1>
@@ -126,15 +128,16 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
     return (
         <PageStack gap="6">
             <NavHeader title={t('navTitle')} onPrev={onPrev} />
+            <ScreenMark icon="credit-card" color="brand" />
             <div className="flex flex-col gap-6">
                 <p className="text-body-s text-foreground-secondary">{t('hiddenNote')}</p>
                 <div className="flex items-center gap-3">
-                    {/* Fixed-height slot keeps the row geometry constant across
-                     * masked / loading / revealed. text-6xl in this repo's
-                     * Tailwind config is font-size 3rem / line-height 3.25rem
-                     * (52px), so the wrapper locks to that — `****`, the
+                    {/* Fixed-height 52px slot keeps the row geometry constant
+                     * across masked / loading / revealed — `****`, the
                      * skeleton, and the real digits all sit centered in the
-                     * same 52px row and the eye button never jumps. */}
+                     * same row and the eye button never jumps. The type token
+                     * (heading-xl, 42px font / 48px line) centers in the
+                     * slot, so the digits never move the row. */}
                     {/* ph-no-capture: PostHog skips this subtree in session
                      * replays so the revealed PIN digits never land in
                      * recordings. The skeleton + masked '****' state are
@@ -143,7 +146,7 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
                         {loading ? (
                             <div className="h-[52px] w-32 animate-pulse rounded bg-background-disabled" />
                         ) : (
-                            <span className="text-6xl leading-none font-extrabold">{pin ?? '****'}</span>
+                            <span className="text-heading-xl">{pin ?? '****'}</span>
                         )}
                     </div>
                     <button

@@ -14,6 +14,8 @@ type FetchOptions = RequestInit & {
     timeoutMs?: number
     /** Public endpoints can opt out of sending the web bearer token. */
     includeAuth?: boolean
+    /** See `FetchWithSentryOptions.silentTimeout`. Rides through on the spread. */
+    silentTimeout?: boolean
 }
 
 async function callApi(path: string, options?: FetchOptions): Promise<Response> {

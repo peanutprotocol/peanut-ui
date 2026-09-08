@@ -26,7 +26,6 @@ const WelcomeUnlockModal = lazy(() => import('@/components/Home/WelcomeUnlockMod
 const IosPwaInstallModal = lazy(() => import('@/components/Global/IosPwaInstallModal'))
 const MigrationDownloadModal = lazy(() => import('@/components/Migration/MigrationDownloadModal'))
 const ScanToDownloadModal = lazy(() => import('@/components/Migration/ScanToDownloadModal'))
-const ReviewPromptModal = lazy(() => import('@/components/Migration/ReviewPromptModal'))
 
 // guard against malformed env values — NaN would silently disable the
 // warning (threshold compare always false) or break dismissal expiry
@@ -38,7 +37,7 @@ const BALANCE_WARNING_EXPIRY = Number.isNaN(parsedExpiry) ? 1814400 : parsedExpi
 /**
  * home modal orchestration — the priority chain the old home page carried
  * inline. migration download outranks everything, then notifications, kyc
- * celebration, post-signup, ios pwa, balance warning, review prompt.
+ * celebration, post-signup, ios pwa, balance warning.
  */
 export function HomeModals() {
     const { showPermissionModal } = useNotifications()
@@ -57,7 +56,7 @@ export function HomeModals() {
 
     // the migration prompt outranks the post-signup modal; unmounting the
     // manager skips its onVisibilityChange(false), so clear the state here or
-    // it stays stuck true and suppresses the balance-warning/review modals
+    // it stays stuck true and suppresses the balance-warning modal
     useEffect(() => {
         if (showMigrationModal) setIsPostSignupActionModalVisible(false)
     }, [showMigrationModal])
@@ -208,19 +207,6 @@ export function HomeModals() {
             {!showMigrationModal && (
                 <PostSignupActionManager onActionModalVisibilityChange={setIsPostSignupActionModalVisible} />
             )}
-
-            {/* app review nudge (native only, once ever) — lowest priority */}
-            {!showMigrationModal &&
-                !showPermissionModal &&
-                !showBalanceWarningModal &&
-                !showKycModal &&
-                !isPostSignupActionModalVisible && (
-                    <LazyLoadErrorBoundary>
-                        <Suspense fallback={null}>
-                            <ReviewPromptModal />
-                        </Suspense>
-                    </LazyLoadErrorBoundary>
-                )}
         </>
     )
 }

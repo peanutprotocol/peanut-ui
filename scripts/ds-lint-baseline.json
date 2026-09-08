@@ -1,22 +1,27 @@
 {
-    "rawHex": 65,
-    "rawHexFiles": 41,
-    "inlineStyle": 50,
-    "stockTextSize": 361,
-    "dsTextScale": 10,
-    "nonDsClassesInViews": 138,
-    "useSearchParamsFiles": 47,
-    "nuqsFiles": 19,
+    "rawHex": 8,
+    "rawHexFiles": 5,
+    "inlineStyle": 21,
+    "stockTextSize": 0,
+    "dsTextScale": 11,
+    "nonDsClassesInViews": 6,
+    "useSearchParamsFiles": 44,
+    "nuqsFiles": 25,
     "legacyColorClasses": 0,
     "offRampPalette": 0,
     "deadLegacyTokens": 0,
     "consumedUndefinedTokens": 0,
-    "classNameSitesInPages": 314,
-    "fontWeightOnTypeToken": 47,
-    "offScaleSpacing": 204,
-    "iconOffScale": 81,
+    "classNameSitesInPages": 298,
+    "fontWeightOnTypeToken": 45,
+    "offScaleSpacing": 188,
+    "iconOffScale": 68,
     "offScaleRadius": 37,
-    "rawDuration": 9,
+    "rawDuration": 6,
+    "retypedCardLiteral": 16,
+    "hoverNoActiveFiles": 44,
+    "arbitraryFontSize": 110,
+    "rawErrorText": 25,
+    "handRolledCloseGlyphFiles": 9,
     "_meta": [
         {
             "date": "2026-09-01",
@@ -27,6 +32,36 @@
             "date": "2026-09-01",
             "metrics": ["iconOffScale 64 -> 81"],
             "reason": "chip round 9 on #2905: icon metric now counts non-literal size expressions conservatively — the +17 are dynamic size maps (Button/IconBubble resolve to board steps) and variable-sized call sites held for static resolution"
+        },
+        {
+            "date": "2026-09-03",
+            "metrics": ["inlineStyle 50 -> 51"],
+            "reason": "nav pill positions via style transform/width — interpolated transform tailwind cannot JIT; compositor pill ruling 2026-09-03"
+        },
+        {
+            "date": "2026-09-03",
+            "metrics": ["offScaleSpacing 188 -> 190", "arbitraryFontSize 110 -> 111"],
+            "reason": "dev-side debt: PRs merged to dev (es419 landing, kyc restart) pre-date this branch's new ratchet metrics; counted in on merge, not authored here"
+        },
+        {
+            "date": "2026-09-04",
+            "metrics": ["inlineStyle 20 -> 21"],
+            "reason": "toast countdown bar: the animation duration is computed per toast from its message length, so it cannot be a class — an arbitrary ms value has to reach css through the element. one inline style, in the ds component itself, not a page."
+        },
+        {
+            "date": "2026-09-04",
+            "metrics": ["classNameSitesInPages 310 -> 312"],
+            "reason": "dev-side, not authored here: the exchange-rate page gained 2 className sites in dev's exchange-currencies work (profile/exchange-rate/page.tsx), counted in on the merge. this branch touches no (mobile-ui) page.tsx at all."
+        },
+        {
+            "date": "2026-09-06",
+            "metrics": ["fontWeightOnTypeToken 47 -> 46"],
+            "reason": "scanner change, not a debt change: countWeightStacks now parses the file (scripts/ds-lint-ast.cjs) instead of regex-matching source regions, so it reaches class lists assembled through array .join, + concatenation and lookup maps, resolves same-file consts, and counts one drift per distinct pair of literals rather than per occurrence. the net -1 is a comment in 0_Bruddle/Section.tsx that the old per-line residue pass read as drift."
+        },
+        {
+            "date": "2026-09-07",
+            "metrics": ["fontWeightOnTypeToken 46 -> 45"],
+            "reason": "PR #3004 semantic contract: conditional branches are alternatives in all contexts. The only per-file count change is dev/_components/DevSegmented.tsx: font-bold in the small branch never co-applies with text-label-m in the other branch. CVA support is explicitly deferred with a diagnostic; there are no src consumers and its removal changes no counts. See scripts/ds-lint-contract.md."
         }
     ]
 }

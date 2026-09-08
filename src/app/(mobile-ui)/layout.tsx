@@ -18,7 +18,8 @@ import SupportDeepLink from '@/components/Global/SupportDeepLink'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import JoinWaitlistPage from '@/components/Invites/JoinWaitlistPage'
 import { useRouter } from 'next/navigation'
-import { Banner } from '@/components/Global/Banner'
+import { NavHeaderPresenceProvider } from '@/components/Global/Banner/navHeaderPresence'
+import { ShellBannerFallback } from '@/components/Global/Banner/ShellBannerFallback'
 import { useSetupStore } from '@/redux/hooks'
 import ForceIOSPWAInstall from '@/components/ForceIOSPWAInstall'
 import { isPublicRoute } from '@/constants/routes'
@@ -27,6 +28,7 @@ import { IS_DEV } from '@/constants/general.consts'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import { FixtureBanner } from '@/dev/fixtures/FixtureBanner'
 import { usePullToRefresh, useShouldPullToRefresh } from '@/hooks/usePullToRefresh'
+import { useLongPressGuard } from '@/hooks/useLongPressGuard'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { useAccountSetupRedirect } from '@/hooks/useAccountSetupRedirect'
 import { useNativePlugins } from '@/hooks/useNativePlugins'
@@ -57,6 +59,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const isHome = pathName === '/home' || pathName === '/home/'
     const isHistory = pathName === '/history'
     const isSupport = pathName === '/support'
+    // The profile menu IS the full-screen menu: the bottom nav and its QR
+    // button used to float over its own list of destinations. Exact match —
+    // /profile/* sub-pages keep the nav.
+    const isProfileMenu = pathName === '/profile' || pathName === '/profile/'
     const isDev = pathName?.startsWith('/dev') ?? false
     const alignStart = isHome || isHistory || isSupport
     const router = useRouter()
@@ -73,6 +79,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
     // enable pull-to-refresh for both ios and android
     usePullToRefresh({ shouldPullToRefresh: useShouldPullToRefresh() })
+
+    // no OS long-press link preview on app-shell CTAs and menu rows
+    useLongPressGuard()
 
     const isRedirecting = useRef(false)
 
@@ -139,7 +148,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     if (isPublicPath) {
         if (!isReady) {
             return (
-                <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
+                <div className="flex h-dvh w-full flex-col items-center justify-center">
                     <Loading variant="mascot" />
                 </div>
             )
@@ -148,7 +157,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         // for protected paths, wait for auth to settle before rendering
         if (!isReady || isFetchingUser || !user || isCheckingAccount || needsRedirect) {
             return (
-                <div className="flex h-[100dvh] w-full flex-col items-center justify-center">
+                <div className="flex h-dvh w-full flex-col items-center justify-center">
                     <Loading variant="mascot" />
                 </div>
             )
@@ -174,45 +183,51 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     }
 
     return (
-        <AppShell
-            variant="app"
-            banner={!isDev && <Banner />}
-            nav={!isDev && isUserLoggedIn && <BottomNav />}
-            contentClassName={twMerge(
-                'pb-[calc(6rem_+_var(--safe-bottom))]',
-                isSupport && 'p-0 pb-[calc(5rem_+_var(--safe-bottom))]',
-                isHome && 'p-0',
-                isUserLoggedIn ? 'pb-[calc(6rem_+_var(--safe-bottom))]' : 'pb-[calc(1rem_+_var(--safe-bottom))]',
-                isDev && 'p-0 pb-0',
-                isHome && isCapacitor() && 'px-0 pt-0'
-            )}
-            innerClassName={twMerge(
-                alignStart && 'items-start',
-                isSupport && 'h-full',
-                isUserLoggedIn
-                    ? 'min-h-[calc(100dvh_-_160px_-_var(--safe-top)_-_var(--safe-bottom))]'
-                    : 'min-h-[calc(100dvh_-_64px_-_var(--safe-top)_-_var(--safe-bottom))]',
-                isDev && 'max-w-full min-h-[100dvh] items-start justify-start'
-            )}
-            modals={
-                <>
-                    <GuestLoginModal />
-                    <ReConsentModal />
-                    <SupportDrawer />
-                    {/* Suspense is required: nuqs reads useSearchParams, which triggers
+        <NavHeaderPresenceProvider>
+            <AppShell
+                variant="app"
+                banner={!isDev && <ShellBannerFallback />}
+                nav={!isDev && !isProfileMenu && isUserLoggedIn && <BottomNav />}
+                contentClassName={twMerge(
+                    'pb-[calc(6rem_+_var(--safe-bottom))]',
+                    isSupport && 'p-0 pb-[calc(5rem_+_var(--safe-bottom))]',
+                    isHome && 'p-0',
+                    // the 6rem reservation exists to clear the bottom nav, so a
+                    // screen without one takes the same inset as a logged-out one
+                    isUserLoggedIn && !isProfileMenu
+                        ? 'pb-[calc(6rem_+_var(--safe-bottom))]'
+                        : 'pb-[calc(1rem_+_var(--safe-bottom))]',
+                    isDev && 'p-0 pb-0',
+                    isHome && isCapacitor() && 'px-0 pt-0'
+                )}
+                innerClassName={twMerge(
+                    alignStart && 'items-start',
+                    isSupport && 'h-full',
+                    isUserLoggedIn
+                        ? 'min-h-[calc(100dvh_-_160px_-_var(--safe-top)_-_var(--safe-bottom))]'
+                        : 'min-h-[calc(100dvh_-_64px_-_var(--safe-top)_-_var(--safe-bottom))]',
+                    isDev && 'max-w-full min-h-dvh items-start justify-start'
+                )}
+                modals={
+                    <>
+                        <GuestLoginModal />
+                        <ReConsentModal />
+                        <SupportDrawer />
+                        {/* Suspense is required: nuqs reads useSearchParams, which triggers
                         a client-side-rendering bailout without a boundary. */}
-                    <Suspense fallback={null}>
-                        <SupportDeepLink />
-                    </Suspense>
-                    <QRScannerOverlay />
-                    <SecurityVerificationOverlay />
-                    {/* dev fixture warning strip — renders null outside fixture mode */}
-                    <FixtureBanner />
-                </>
-            }
-        >
-            {children}
-        </AppShell>
+                        <Suspense fallback={null}>
+                            <SupportDeepLink />
+                        </Suspense>
+                        <QRScannerOverlay />
+                        <SecurityVerificationOverlay />
+                        {/* dev fixture warning strip — renders null outside fixture mode */}
+                        <FixtureBanner />
+                    </>
+                }
+            >
+                {children}
+            </AppShell>
+        </NavHeaderPresenceProvider>
     )
 }
 

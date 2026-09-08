@@ -105,7 +105,6 @@ export function RainCooldownProvider({ children }: { children: ReactNode }) {
         toast({
             id: COOLDOWN_TOAST_ID,
             duration: 'persistent',
-            className: 'border-action-secondary',
             content: <CooldownPillContent endsAt={cooldownEndsAt} />,
         })
     }, [cooldownEndsAt, toast, dismiss])

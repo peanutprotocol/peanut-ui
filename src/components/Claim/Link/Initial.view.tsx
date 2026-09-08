@@ -1,6 +1,7 @@
 'use client'
 
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
+import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { Notification } from '@/components/0_Bruddle/Notification'
@@ -40,8 +41,10 @@ import ActionModal from '@/components/Global/ActionModal'
 import { BankFlowManager } from './views/BankFlowManager.view'
 import { type ClaimXChainPreview } from '../Claim.consts'
 import { previewSdaTransfer } from '@/services/rhino-sda'
+import { findClaimRoute, resolveClaimQuoteRecipient } from '@/utils/claim-route.utils'
 import { evmChainIdToRhinoName } from '@/constants/rhino.consts'
-import { getTokenSymbol } from '@/utils/general.utils'
+import { getTokenSymbol, getChainName } from '@/utils/general.utils'
+import { belowClaimBridgeMinimum } from '@/utils/claim-min-guard'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import Image from 'next/image'
@@ -100,6 +103,10 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
+    // client-side validation (recipient input, cashout min/max) renders as the
+    // field's own error under the recipient input; errorState keeps flow
+    // failures (claim/route/provider errors) in the Notification above
+    const [fieldError, setFieldError] = useState<string>('')
     const [isXchainLoading, setIsXchainLoading] = useState<boolean>(false)
     const [routes, setRoutes] = useState<ClaimXChainPreview[]>([])
     const [inputChanging, setInputChanging] = useState<boolean>(false)
@@ -211,6 +218,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     }, [user, resetClaimBankFlow])
 
     const hasTrackedClaimView = useRef(false)
+    // Each route quote gets a generation; a result whose generation is no
+    // longer current (the recipient changed, or a newer quote started) is
+    // cached but never selected — a slow quote for A must not land on a
+    // confirm screen for B.
+    const quoteGenerationRef = useRef(0)
     useEffect(() => {
         if (claimLinkData && !hasTrackedClaimView.current) {
             hasTrackedClaimView.current = true
@@ -374,12 +386,45 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     if (!selectedTokenData?.chainId || !selectedTokenData?.address) {
                         throw new Error('Selected token data is required for cross-chain claims')
                     }
+
+                    // Rhino parks (and does NOT auto-refund) a cross-chain deposit
+                    // below the route minimum — the funds strand at the SDA and the
+                    // recipient is never credited. Block a sub-minimum claim before
+                    // any SDA is provisioned. This applies to EVERY cross-chain
+                    // destination — an external wallet AND the claimer's own Peanut
+                    // balance (a fixed cross-chain hop to Arbitrum) — only the copy
+                    // differs. tokenPrice gates the check: without a price we can't
+                    // size the claim in USD, so the server-side guard is the backstop.
+                    const claimUsdAmount =
+                        Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * tokenPrice
+                    const hasUsdAmount = tokenPrice > 0 && Number.isFinite(claimUsdAmount)
+                    const belowMin = belowClaimBridgeMinimum({
+                        isXChain: true,
+                        destinationChainId: selectedTokenData.chainId,
+                        amountUsd: hasUsdAmount ? claimUsdAmount : null,
+                    })
+                    if (belowMin) {
+                        const amount = format.number(belowMin.minUsd, { style: 'currency', currency: 'USD' })
+                        setErrorState({
+                            showError: true,
+                            errorMessage: claimToExternalWallet
+                                ? t('errors.belowNetworkMinimum', {
+                                      amount,
+                                      network: getChainName(selectedTokenData.chainId) ?? selectedTokenData.chainId,
+                                  })
+                                : t('errors.belowMinimumCrossChain', { amount }),
+                        })
+                        setLoadingState('Idle')
+                        return
+                    }
+
                     claimTxHash = await claimLinkXchain({
                         address: recipientAddress,
                         link: claimLinkData.link,
                         destinationChainId: selectedTokenData.chainId,
                         destinationToken: selectedTokenData.address,
                         campaignTag: campaignTag ?? undefined,
+                        amountUsd: hasUsdAmount ? claimUsdAmount : undefined,
                     })
                     setClaimType('claimxchain')
                 } else {
@@ -460,9 +505,13 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             claimLinkData.tokenAddress,
             claimLinkData.pubKey,
             claimLinkData.amount,
+            claimLinkData.tokenDecimals,
             claimLinkData.status,
             claimLinkData.createdAt,
             claimLinkData.senderAddress,
+            tokenPrice,
+            format,
+            claimToExternalWallet,
             isPeanutWallet,
             fetchBalance,
             recipient.address,
@@ -495,23 +544,30 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 showError: false,
                 errorMessage: '',
             })
+            setFieldError('')
             setLoadingState('Fetching route')
 
             if (tokenPrice) {
                 const cashoutUSDAmount =
                     Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * tokenPrice
                 const usd = (amount: number) => format.number(amount, { style: 'currency', currency: 'USD' })
+                // flow channel, NOT fieldError: this refusal comes from the
+                // submit handler on the claim-to-bank path, where the external-
+                // wallet input (fieldError's only render site) is not mounted —
+                // on fieldError the message could never be shown (chip P17)
                 if (cashoutUSDAmount < MIN_CASHOUT_LIMIT) {
                     setErrorState({
                         showError: true,
                         errorMessage: t('errors.belowMinimum', { amount: usd(MIN_CASHOUT_LIMIT) }),
                     })
+                    setLoadingState('Idle')
                     return
                 } else if (cashoutUSDAmount > MAX_CASHOUT_LIMIT) {
                     setErrorState({
                         showError: true,
                         errorMessage: t('errors.aboveMaximum', { amount: usd(MAX_CASHOUT_LIMIT) }),
                     })
+                    setLoadingState('Idle')
                     return
                 }
             }
@@ -608,6 +664,23 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         setIsValidRecipient(!!recipient.address)
     }, [recipient.address])
 
+    // A route is priced for one recipient (account-bound quote). Switching the
+    // external address drops the stale selection and re-quotes for the new one;
+    // an unchanged effective recipient (bank claims, the Peanut wallet) keeps it.
+    useEffect(() => {
+        if (!selectedRoute) return
+        const quotedFor = resolveClaimQuoteRecipient({
+            recipientAddress: recipient.address,
+            walletAddress: address,
+            senderAddress: claimLinkData.senderAddress,
+        })
+        if (selectedRoute.quotedFor.toLowerCase() === quotedFor.toLowerCase()) return
+        quoteGenerationRef.current += 1
+        setSelectedRoute(undefined)
+        setHasFetchedRoute(false)
+        setRefetchXchainRoute(true)
+    }, [recipient.address, address, claimLinkData.senderAddress, selectedRoute, setSelectedRoute, setHasFetchedRoute])
+
     useEffect(() => {
         if (!selectedTokenData) return
         if (
@@ -644,11 +717,19 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             }
             const chainId = toChain ?? selectedTokenData!.chainId
             const tokenAddress = toToken ?? selectedTokenData!.address
+            // The quote is account- and address-bound, so a cached route is only
+            // valid for the recipient it was priced for.
+            const quotedFor = resolveClaimQuoteRecipient({
+                recipientAddress: recipient.address,
+                walletAddress: address,
+                senderAddress: claimLinkData.senderAddress,
+            })
+
+            const generation = ++quoteGenerationRef.current
+            const isCurrent = () => generation === quoteGenerationRef.current
 
             try {
-                const existingRoute = routes.find(
-                    (route) => route.chainId === chainId && areEvmAddressesEqual(route.tokenAddress, tokenAddress)
-                )
+                const existingRoute = findClaimRoute(routes, { chainId, tokenAddress, quotedFor })
 
                 if (existingRoute) {
                     setSelectedRoute(existingRoute)
@@ -676,12 +757,17 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 // Rhino preview expects a decimal string, so format down.
                 const decimals = selectedTokenData?.decimals ?? 6
                 const previewAmount = formatUnits(claimLinkData.amount, decimals)
+                // The SDA deposit itself comes from the Peanut claim relayer, so
+                // the link sender's address (always an EVM address on the link's
+                // chain) stands in as depositor for pricing.
                 const preview = await previewSdaTransfer({
                     chainIn: sourceRhinoChain,
                     chainOut: destRhinoChain,
                     token: tokenSymbol,
                     amount: previewAmount,
                     mode: 'pay',
+                    depositor: claimLinkData.senderAddress,
+                    recipient: quotedFor,
                 })
 
                 const route: ClaimXChainPreview = {
@@ -689,16 +775,24 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     tokenAddress: tokenAddress as Address,
                     receiveAmount: preview.receiveAmount,
                     feeUsd: preview.feeUsd,
+                    quotedFor,
+                    expiresAt: preview.expiresAt,
                 }
 
-                setRoutes([...routes, route])
-                if (!toToken && !toChain) {
+                // Functional update: concurrent quotes must not overwrite each
+                // other's cache entry (each miss costs a flow credit).
+                setRoutes((prev) => [...prev, route])
+                if (!toToken && !toChain && isCurrent()) {
                     setSelectedRoute(route)
                     setHasFetchedRoute(true)
                 }
                 return route
             } catch (error) {
                 console.error('Error fetching route:', error)
+                Sentry.captureException(error)
+                // A superseded quote's failure must not clear a newer route or
+                // install its error over a newer success.
+                if (!isCurrent()) return undefined
                 if (!toToken && !toChain) {
                     setSelectedRoute(undefined)
                     setHasFetchedRoute(true)
@@ -707,14 +801,25 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     showError: true,
                     errorMessage: ROUTE_NOT_FOUND_ERROR,
                 })
-                Sentry.captureException(error)
                 return undefined
             } finally {
-                setIsXchainLoading(false)
-                setLoadingState('Idle')
+                if (isCurrent()) {
+                    setIsXchainLoading(false)
+                    setLoadingState('Idle')
+                }
             }
         },
-        [claimLinkData, isXChain, selectedTokenData, setLoadingState, routes, setHasFetchedRoute, setSelectedRoute]
+        [
+            claimLinkData,
+            isXChain,
+            selectedTokenData,
+            setLoadingState,
+            routes,
+            setHasFetchedRoute,
+            setSelectedRoute,
+            recipient.address,
+            address,
+        ]
     )
 
     useEffect(() => {
@@ -728,7 +833,11 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     useEffect(() => {
         if (!selectedChainID || !selectedTokenAddress) return
 
-        // Clear the old route when selection changes
+        // Clear the old route when selection changes — and retire any quote
+        // still in flight for the old chain/token, synchronously, so it can
+        // never resolve as current and select a route for a destination the
+        // user has left.
+        quoteGenerationRef.current += 1
         setSelectedRoute(undefined)
         setHasFetchedRoute(false)
 
@@ -965,7 +1074,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8 md:min-h-fit">
+        <div className="flex min-h-inherit flex-col justify-between gap-8 md:min-h-fit">
             {!!user?.user.userId || claimBankFlowStep || claimToExternalWallet ? (
                 <div>
                     <NavHeader
@@ -1018,36 +1127,42 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     {/* Alternative options section with divider */}
                     {/* Manual Input Section - Always visible in non-peanut-only mode */}
                     {!!claimToExternalWallet && (
-                        <GeneralRecipientInput
-                            placeholder={t('initial.recipientPlaceholder')}
-                            recipient={recipient}
-                            onUpdate={(update: GeneralRecipientUpdate) => {
-                                setRecipient(update.recipient)
-                                if (!update.recipient.address) {
-                                    setRecipientType('address')
-                                    // Reset loading state when input is cleared
-                                    setLoadingState('Idle')
+                        <FieldColumn error={fieldError}>
+                            <GeneralRecipientInput
+                                placeholder={t('initial.recipientPlaceholder')}
+                                recipient={recipient}
+                                onUpdate={(update: GeneralRecipientUpdate) => {
+                                    setRecipient(update.recipient)
+                                    if (!update.recipient.address) {
+                                        setRecipientType('address')
+                                        // Reset loading state when input is cleared
+                                        setLoadingState('Idle')
+                                        setErrorState({
+                                            showError: false,
+                                            errorMessage: '',
+                                        })
+                                    } else {
+                                        setRecipientType(update.type)
+                                        if (update.isValid && !update.isChanging) {
+                                            posthog.capture(ANALYTICS_EVENTS.CLAIM_RECIPIENT_SELECTED, {
+                                                recipient_type: update.type,
+                                            })
+                                        }
+                                    }
+                                    setIsValidRecipient(update.isValid)
+                                    // recipient validity is field-level; editing the
+                                    // recipient also releases any stale flow error, as
+                                    // before the validation/flow split
+                                    setFieldError(!update.isChanging && !update.isValid ? update.errorMessage : '')
                                     setErrorState({
                                         showError: false,
                                         errorMessage: '',
                                     })
-                                } else {
-                                    setRecipientType(update.type)
-                                    if (update.isValid && !update.isChanging) {
-                                        posthog.capture(ANALYTICS_EVENTS.CLAIM_RECIPIENT_SELECTED, {
-                                            recipient_type: update.type,
-                                        })
-                                    }
-                                }
-                                setIsValidRecipient(update.isValid)
-                                setErrorState({
-                                    showError: !update.isChanging && !update.isValid,
-                                    errorMessage: update.errorMessage,
-                                })
-                                setInputChanging(update.isChanging)
-                            }}
-                            showInfoText={false}
-                        />
+                                    setInputChanging(update.isChanging)
+                                }}
+                                showInfoText={false}
+                            />
+                        </FieldColumn>
                     )}
                     {recipientType === 'username' && !!claimToExternalWallet && (
                         <div className="text-body-xs text-foreground-secondary">{t('initial.usdcArbitrumOnly')}</div>

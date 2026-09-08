@@ -14,10 +14,10 @@
  */
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
 import CreateAccountButton from '@/components/Global/CreateAccountButton'
-import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { type StatusPillType } from '@/components/Global/StatusPill'
@@ -39,14 +39,15 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { type ReactNode, useEffect, useMemo, useRef } from 'react'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
+import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
 import { PeanutCheering } from '@/assets/mascot'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import PointsCard from '@/components/Common/PointsCard'
-import { BASE_URL } from '@/constants/general.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import type { ParsedURL } from '@/lib/url-parser/types/payment'
+import { payLinkUrl } from '@/utils/url.utils'
 
 // minimal user info needed for display
 type UserDisplayInfo = {
@@ -159,7 +160,7 @@ const PaymentSuccessView = ({
 
         const recipientIdentifier = user?.username || parsedPaymentData?.recipient?.identifier
         const receiptLink = recipientIdentifier
-            ? `${BASE_URL}/${recipientIdentifier}?chargeId=${chargeDetails.uuid}`
+            ? payLinkUrl(`/${recipientIdentifier}?chargeId=${chargeDetails.uuid}`)
             : undefined
 
         let details: Partial<TransactionDetails> = {
@@ -287,8 +288,11 @@ const PaymentSuccessView = ({
         triggerHaptic()
     }, [triggerHaptic])
 
+    // type REQUEST is the "request created" screen — a link made, not money moved
+    useAppReviewNudge(authUser?.user.userId, 'payment_completed', type !== 'REQUEST')
+
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+        <div className="flex min-h-inherit flex-col justify-between gap-8">
             <SoundPlayer sound="success" />
             {(type === 'SEND' || type === 'DEPOSIT') && (
                 <div className="md:hidden">
@@ -306,13 +310,7 @@ const PaymentSuccessView = ({
                 />
                 <Card className="flex items-center gap-3 p-4">
                     <div className="flex items-center gap-3">
-                        <div
-                            className={
-                                'flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-green-500 font-bold'
-                            }
-                        >
-                            <Icon name="check" size={24} />
-                        </div>
+                        <IconBubble icon="check" color="green" />
                     </div>
 
                     <div className="space-y-1">

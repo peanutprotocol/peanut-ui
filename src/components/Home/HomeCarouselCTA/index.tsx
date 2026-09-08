@@ -12,6 +12,7 @@ import { useAuth } from '@/context/authContext'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { extractInviteeName } from '@/utils/general.utils'
 import PerkClaimModal from '../PerkClaimModal'
+import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
 
 const HomeCarouselCTA = () => {
     const t = useTranslations('home.carousel')
@@ -85,6 +86,11 @@ const HomeCarouselCTA = () => {
     const handleModalClose = useCallback(() => {
         setSelectedPerk(null)
     }, [])
+
+    // reward claimed and our modal gone: a friend joined, money landed, and
+    // nothing of ours is on screen. Lives here rather than in PerkClaimModal,
+    // which unmounts with `selectedPerk` and would take the pending ask with it.
+    useAppReviewNudge(user?.user.userId, 'reward_claimed', claimedPerkIds.size > 0 && !selectedPerk)
 
     // don't render carousel if there are no CTAs
     if (!allCTAs.length) return null

@@ -15,6 +15,9 @@ interface CountryComboboxProps {
     placeholder?: string
     className?: string
     'aria-label'?: string
+    /** When set (and a country is picked), the trailing chevron becomes a clear
+     *  affordance for that pick. */
+    onClear?: () => void
 }
 
 const normalize = (text: string) =>
@@ -37,6 +40,7 @@ export const CountryCombobox = ({
     placeholder,
     className,
     'aria-label': ariaLabel,
+    onClear,
 }: CountryComboboxProps) => {
     const t = useTranslations('global.countryCombobox')
     const id = useId()
@@ -164,6 +168,18 @@ export const CountryCombobox = ({
                     >
                         <div className="flex size-6 items-center justify-center">
                             <Icon name="cancel" size={16} className="text-foreground-secondary" />
+                        </div>
+                    </Button>
+                ) : onClear && selected ? (
+                    <Button
+                        variant="transparent"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={onClear}
+                        className="absolute top-1/2 right-2 w-fit -translate-y-1/2 p-0"
+                        aria-label={t('removeCountry', { country: selected.label })}
+                    >
+                        <div className="flex size-6 items-center justify-center">
+                            <Icon name="cancel" size={16} className="text-foreground-primary" />
                         </div>
                     </Button>
                 ) : (

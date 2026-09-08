@@ -127,4 +127,61 @@ describe('restartIdentityVerification — wire shape', () => {
         const result = await restartIdentityVerification()
         expect(result.data?.regionIntent).toBe('LATAM')
     })
+
+    // The response is unvalidated JSON and the caller stores this in the ref
+    // `refreshToken` replays to `initiateSumsubKyc` — so an unrecognised value
+    // would not merely read as single-level, it would be sent BACK to the API on
+    // the next refresh. Dropping it lets the caller keep the intent it had.
+    it('drops an unrecognised resolved intent rather than storing it', async () => {
+        mockFetch.mockResolvedValue({
+            ok: true,
+            json: async () => ({ token: 'tok', levelName: 'general', applicantId: 'app-1', regionIntent: 'ATLANTIS' }),
+        } as unknown as Response)
+        const result = await restartIdentityVerification()
+        expect(result.data?.regionIntent).toBeUndefined()
+        expect(result.data?.token).toBe('tok')
+    })
+
+    it('a backend that predates the field yields no intent, not a crash', async () => {
+        mockFetch.mockResolvedValue(okResponse())
+        const result = await restartIdentityVerification()
+        expect(result.data?.regionIntent).toBeUndefined()
+        expect(result.data?.levelName).toBe('general')
+    })
+
+    it('a refusal is still surfaced as an error', async () => {
+        mockFetch.mockResolvedValue({
+            ok: false,
+            status: 403,
+            json: async () => ({ error: 'restart_failed', userMessage: 'Cannot restart right now' }),
+        } as unknown as Response)
+        const result = await restartIdentityVerification()
+        expect(result.data).toBeUndefined()
+        expect(result.error).toBeTruthy()
+    })
+})
+
+describe('restart cooldown details', () => {
+    it('preserves the retry time on rate limits', async () => {
+        respondWith(429, { error: 'Please wait', retryAt: '2026-09-08T18:57:00Z' })
+        expect((await restartIdentityVerification()).cooldown).toEqual({ retryAt: '2026-09-08T18:57:00.000Z' })
+    })
+    it('does not mistake a state conflict for a cooldown', async () => {
+        respondWith(409, { error: 'Verification changed, please retry' })
+        expect((await restartIdentityVerification()).cooldown).toBeUndefined()
+    })
+    it('keeps rate limits dismissible when the retry time is invalid', async () => {
+        respondWith(429, { error: 'Please wait', retryAt: 'invalid' })
+        expect((await restartIdentityVerification()).cooldown).toEqual({ retryAt: undefined })
+    })
+})
+
+it('uses Retry-After for infrastructure rate limits', async () => {
+    mockFetch.mockResolvedValue({
+        ok: false,
+        status: 429,
+        headers: new Headers({ 'Retry-After': 'Tue, 08 Sep 2026 18:57:00 GMT' }),
+        json: async () => ({ error: 'Too many requests' }),
+    } as Response)
+    expect((await restartIdentityVerification()).cooldown?.retryAt).toBe('2026-09-08T18:57:00.000Z')
 })

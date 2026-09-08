@@ -73,6 +73,7 @@ export default function LimitsWarningCard({
     return (
         <Notification
             priority={type === 'error' ? 'error' : 'attention'}
+            hideIcon
             title={titleKind ? t(`warningCard.${titleKind}Title`) : title}
             className={className}
         >
