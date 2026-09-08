@@ -7,6 +7,7 @@ import { posthogErrorMirror } from '@/utils/sentry-posthog-mirror'
 import { whenIdle } from '@/utils/defer-analytics'
 import { startWebVitalsShim } from '@/utils/web-vitals-shim'
 import { noteAppReviewFriction } from '@/utils/app-review-friction'
+import { isNativeFetchRejectionExceptionEvent } from '@/utils/native-fetch-rejection'
 import { installPaymentNetworkGoogleAnalyticsGuard, isPaymentNetworkExplorerPath } from '@/utils/private-routes'
 
 // Same conditions as the GA bootstrap in app/layout.tsx: with no GA to disable
@@ -54,6 +55,10 @@ if (
         // already funnels through here, so the suppressor needs no call sites.
         before_send: (event) => {
             if (isPaymentNetworkExplorerPath(window.location.pathname)) return null
+            // Handled WebKit/Chromium connectivity blips: Sentry already filters
+            // this class server-side; exception autocapture must not double-report
+            // it here (TASK-22408).
+            if (isNativeFetchRejectionExceptionEvent(event)) return null
             if (event?.event) noteAppReviewFriction(event.event)
             return event
         },
