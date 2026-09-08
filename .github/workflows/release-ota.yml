@@ -210,10 +210,7 @@ jobs:
                       exit 1
                   fi
                   node scripts/check-native-capabilities.mjs "v$FLOOR"
-                  if ! node scripts/native-fingerprint.mjs --diff "v$FLOOR"; then
-                      echo "::error::this tree's native surface differs from the v$FLOOR binary, so the JS about to ship was built against native code no released binary has. Cut a native release (Actions -> App Release Android & iOS) before OTA'ing this tree." >&2
-                      exit 1
-                  fi
+                  node scripts/check-native-ota-surface.mjs "v$FLOOR" --platform android
 
             - name: Upload bundle to Capgo
               env:

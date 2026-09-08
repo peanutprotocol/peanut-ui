@@ -17,6 +17,7 @@ const FIXTURE_FILES = [
     'android/build.gradle',
     'android/variables.gradle',
     'android/app/build.gradle',
+    'android/app/proguard-rules.pro',
     'android/app/src/main/AndroidManifest.xml',
     'android/app/src/main/res/values/capacitor-passkey.xml',
     'android/app/src/main/java/me/peanut/wallet/MainActivity.java',
@@ -117,6 +118,7 @@ describe('native-fingerprint', () => {
         // toContain on the key list, not toHaveProperty: these keys contain
         // dots, which toHaveProperty would read as a nested property path.
         expect(keys).toContain('android/capacitor.settings.gradle')
+        expect(keys).toContain('android/app/proguard-rules.pro')
         expect(keys).toContain('ios/App/CapApp-SPM/Package.swift')
         expect(keys).toContain('capacitor.config.ts')
         expect(keys).toContain('android/app/src/**.{java,kt}')
@@ -220,6 +222,16 @@ describe('native-fingerprint', () => {
             // when it changes.
             'android/app/src/main/java/me/peanut/wallet/MainActivity.java',
             (content) => `${content}\n// surface change\n`,
+            () => expect(fingerprint()).not.toBe(before)
+        )
+    })
+
+    it('moves when Android release shrinker rules change', () => {
+        const before = fingerprint()
+
+        withPatchedInput(
+            'android/app/proguard-rules.pro',
+            (content) => `${content}\n# release shrinker change\n`,
             () => expect(fingerprint()).not.toBe(before)
         )
     })

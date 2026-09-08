@@ -16,9 +16,10 @@ import { render as rtlRender, screen, fireEvent, cleanup } from '@testing-librar
 import { IntlWrapper } from '@/test-utils/intl'
 
 const mockRouterPush = jest.fn()
+let mockSearchParams: Record<string, string> = {}
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockRouterPush, back: jest.fn(), replace: jest.fn(), prefetch: jest.fn() }),
-    useSearchParams: () => ({ get: () => null }),
+    useSearchParams: () => ({ get: (key: string) => mockSearchParams[key] ?? null }),
     usePathname: () => '/withdraw',
 }))
 
@@ -93,10 +94,24 @@ jest.mock('@/components/Profile/AvatarWithBadge', () => ({
 }))
 
 jest.mock('../../Common/CountryList', () => ({
-    CountryList: (props: { onCryptoClick?: () => void }) => (
+    CountryList: (props: { onCryptoClick?: () => void; onCountryClick?: (country: unknown) => void }) => (
         <div data-testid="country-list">
             <button data-testid="crypto-option" onClick={props.onCryptoClick}>
                 Crypto
+            </button>
+            <button
+                data-testid="brazil-option"
+                onClick={() =>
+                    props.onCountryClick?.({
+                        id: 'BRA',
+                        type: 'country',
+                        title: 'Brazil',
+                        currency: 'BRL',
+                        path: 'brazil',
+                    })
+                }
+            >
+                Brazil
             </button>
         </div>
     ),
@@ -168,6 +183,9 @@ describe('AddWithdrawRouterView — withdraw method selection', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         mockRestrictions = { banking: false, card: false }
+        mockSearchParams = {}
+        const { isMantecaCountry } = jest.requireMock('@/constants/manteca.consts')
+        isMantecaCountry.mockImplementation(() => false)
     })
 
     // Every country on the list dead-ends for these residents; say so once here
@@ -198,6 +216,20 @@ describe('AddWithdrawRouterView — withdraw method selection', () => {
             expect.objectContaining({ type: 'crypto', title: 'Crypto' })
         )
         expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
+    // send -> bank -> Brazil pays another person's PIX key: the route must be
+    // method=pix (delegates to PixKeySendView), never the bank-transfer offramp.
+    test('send→bank: clicking Brazil routes to the PIX-key send flow', () => {
+        mockSearchParams = { method: 'bank' }
+        const { isMantecaCountry } = jest.requireMock('@/constants/manteca.consts')
+        isMantecaCountry.mockImplementation((path: string) => path === 'brazil' || path === 'argentina')
+
+        render(<Harness user={makeUser()} />)
+        fireEvent.click(screen.getByTestId('select-new-method'))
+        fireEvent.click(screen.getByTestId('brazil-option'))
+
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
     })
 
     test('a user refetch (new object identity) does not bounce the country list back to saved accounts', () => {
