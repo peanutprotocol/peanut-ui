@@ -23,11 +23,11 @@ import { extendTailwindMerge } from 'tailwind-merge'
 
 // text-heading-m, text-body-m-semibold, text-label-l, text-button-s, and the
 // bare/legacy entries in the same block: text-heading, text-display, text-0,
-// text-h1..h10, plus the camelCase pair text-headingLarge/text-headingMedium.
+// text-h1..h10, plus the camelCase display family text-headingLarge/Medium/Small.
 // Tailwind's own names (text-sm, text-6xl…) are re-declared in
 // the block but already sit in the stock font-size group, so they stay out.
 const DS_TYPE_TOKEN =
-    /^(?:heading|body|label|button)(?:-[a-z0-9-]+)?$|^(?:headingLarge|headingMedium|display|0|h(?:10|[1-9]))$/
+    /^(?:heading|body|label|button)(?:-[a-z0-9-]+)?$|^(?:headingLarge|headingMedium|headingSmall|display|0|h(?:10|[1-9]))$/
 
 // `--radius-round` (999px) and `--radius-1` (1px). Stock tailwind-merge only
 // knows its own t-shirt radii, so it leaves `rounded-round` unrecognised: a
