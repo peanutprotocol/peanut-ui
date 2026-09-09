@@ -10,6 +10,7 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
+import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 // ---------- module-level mocks (must be before imports that depend on them) ----------
@@ -328,11 +329,13 @@ function renderCreateRequest(params: Record<string, string> = {}) {
     const queryClient = createQueryClient()
 
     return render(
-        <IntlWrapper>
-            <QueryClientProvider client={queryClient}>
-                <CreateRequestLinkView />
-            </QueryClientProvider>
-        </IntlWrapper>
+        <NuqsTestingAdapter searchParams={params}>
+            <IntlWrapper>
+                <QueryClientProvider client={queryClient}>
+                    <CreateRequestLinkView />
+                </QueryClientProvider>
+            </IntlWrapper>
+        </NuqsTestingAdapter>
     )
 }
 
