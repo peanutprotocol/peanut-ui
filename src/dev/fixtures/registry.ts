@@ -430,6 +430,12 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
 
+    'early-user': {
+        route: '/home',
+        about: 'Early-user reward drawer over home, opened by the user flag.',
+        responses: { 'GET /users/me': { showEarlyUserModal: true } },
+    },
+
     // ---------------------------------------------------------------------
     // Error states.
     // ---------------------------------------------------------------------

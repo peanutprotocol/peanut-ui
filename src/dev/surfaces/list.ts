@@ -158,6 +158,9 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '63-d-emptystate': { name: 'EmptyState', path: 'Global/EmptyStates/EmptyState.tsx' },
     '64-d-nodataemptystate': { name: 'NoDataEmptyState', path: 'Global/EmptyStates/NoDataEmptyState.tsx' },
     '65-d-faqs': { name: 'FAQs', path: 'Global/FAQs/index.tsx' },
+    '66-d-backupfaqlosephone': { name: 'Backup FAQ — lose phone', path: 'Profile/BackupFaqModals.tsx' },
+    '67-d-backupfaqchangephone': { name: 'Backup FAQ — change phone', path: 'Profile/BackupFaqModals.tsx' },
+    '68-d-backupfaqexportkeys': { name: 'Backup FAQ — export keys', path: 'Profile/BackupFaqModals.tsx' },
 }
 
 export const SURFACE_IDS = Object.keys(SURFACE_META).sort()

@@ -58,6 +58,7 @@ import { UnsupportedWebViewScreen } from '@/components/Global/UnsupportedWebView
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import { FAQsPanel } from '@/components/Global/FAQs'
+import { BackupFaqModals } from '@/components/Profile/BackupFaqModals'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
 import { ContributorsDrawer } from '@/features/payments/flows/contribute-pot/components/ContributorsDrawer'
 import PerkClaimModal from '@/components/Home/PerkClaimModal'
@@ -578,6 +579,21 @@ export const SURFACES: Record<string, Surface> = {
                 />
             </div>
         ),
+    },
+    '66-d-backupfaqlosephone': {
+        name: 'Backup FAQ — lose phone',
+        path: 'Profile/BackupFaqModals.tsx',
+        render: () => <BackupFaqModals active="lose-phone" onClose={noop} platform="ios" />,
+    },
+    '67-d-backupfaqchangephone': {
+        name: 'Backup FAQ — change phone',
+        path: 'Profile/BackupFaqModals.tsx',
+        render: () => <BackupFaqModals active="change-phone" onClose={noop} platform="ios" />,
+    },
+    '68-d-backupfaqexportkeys': {
+        name: 'Backup FAQ — export keys',
+        path: 'Profile/BackupFaqModals.tsx',
+        render: () => <BackupFaqModals active="export-keys" onClose={noop} platform="ios" />,
     },
 }
 
