@@ -59,6 +59,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const isHome = pathName === '/home' || pathName === '/home/'
     const isHistory = pathName === '/history'
     const isSupport = pathName === '/support'
+    const isReceipt = pathName === '/receipt' || pathName === '/receipt/'
     // The profile menu IS the full-screen menu: the bottom nav and its QR
     // button used to float over its own list of destinations. Exact match —
     // /profile/* sub-pages keep the nav.
@@ -192,6 +193,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     'pb-[calc(6rem_+_var(--safe-bottom))]',
                     isSupport && 'p-0 pb-[calc(5rem_+_var(--safe-bottom))]',
                     isHome && 'p-0',
+                    // Receipt owns its 16px page inset so the same shell also
+                    // renders correctly on the public web receipt route.
+                    isReceipt && 'p-0',
                     // the 6rem reservation exists to clear the bottom nav, so a
                     // screen without one takes the same inset as a logged-out one
                     isUserLoggedIn && !isProfileMenu
