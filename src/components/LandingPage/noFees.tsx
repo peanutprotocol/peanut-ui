@@ -81,14 +81,14 @@ export function NoFees({
 
             <div className="relative mx-auto w-full max-w-3xl text-center">
                 {/* Animated stars */}
-                <AnimateOnView className="absolute -top-12 -right-36" y="20px" x="5px" rotate="22deg" delay="0.2s">
+                <AnimateOnView className="absolute -right-36 -top-12" y="20px" x="5px" rotate="22deg" delay="0.2s">
                     <Image src={Star} alt="Floating Star" width={50} height={50} />
                 </AnimateOnView>
-                <AnimateOnView className="absolute top-30 -right-58" y="28px" x="-5px" rotate="-17deg" delay="0.4s">
+                <AnimateOnView className="absolute -right-58 top-30" y="28px" x="-5px" rotate="-17deg" delay="0.4s">
                     <Image src={Star} alt="Floating Star" width={50} height={50} />
                 </AnimateOnView>
                 <AnimateOnView
-                    className="absolute -top-16 -right-0 md:top-58"
+                    className="absolute -right-0 -top-16 md:top-58"
                     y="20px"
                     x="5px"
                     rotate="22deg"
@@ -96,7 +96,7 @@ export function NoFees({
                 >
                     <Image src={Star} alt="Floating Star" width={50} height={50} />
                 </AnimateOnView>
-                <AnimateOnView className="absolute -top-20 -left-36" y="15px" x="-5px" rotate="-7deg" delay="0.8s">
+                <AnimateOnView className="absolute -left-36 -top-20" y="15px" x="-5px" rotate="-7deg" delay="0.8s">
                     <Image src={Star} alt="Floating Star" width={50} height={50} />
                 </AnimateOnView>
                 <AnimateOnView className="absolute -bottom-6 -left-10" y="25px" x="-5px" rotate="-5deg" delay="1.0s">
@@ -124,7 +124,7 @@ export function NoFees({
                                     src={scribbleCircle}
                                     alt=""
                                     aria-hidden
-                                    className="pointer-events-none absolute -top-[0.23em] -left-[0.27em] h-[1.54em] w-[calc(100%+0.52em)] max-w-none"
+                                    className="pointer-events-none absolute -left-[0.27em] -top-[0.23em] h-[1.54em] w-[calc(100%+0.52em)] max-w-none"
                                 />
                             </span>
                         </p>

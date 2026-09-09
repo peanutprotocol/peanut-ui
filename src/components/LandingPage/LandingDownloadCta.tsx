@@ -27,7 +27,7 @@ export function LandingDownloadCta({ subtext }: { subtext?: string }) {
                     {t('downloadNow')}
                 </Button>
             </a>
-            {subtext && <span className="mt-2 block text-center text-sm text-n-1 italic md:text-base">{subtext}</span>}
+            {subtext && <span className="mt-2 block text-center text-sm italic text-n-1 md:text-base">{subtext}</span>}
         </div>
     )
 }
