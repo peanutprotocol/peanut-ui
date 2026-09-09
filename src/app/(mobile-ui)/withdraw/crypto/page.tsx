@@ -153,6 +153,38 @@ export default function WithdrawCryptoPage() {
     // different amount on-chain than the records say (Chip review round 4).
     const setupAmountRef = useRef<{ chargeId: string; amountUsd: string } | null>(null)
 
+    // Only drafts created by this mounted flow belong to its cleanup. Once
+    // signing starts, a transport failure is ambiguous: never cancel that charge.
+    const draftRef = useRef<{ id: string; signingStarted: boolean } | null>(null)
+    const cancelledChargeIdsRef = useRef(new Set<string>())
+    const setupGenerationRef = useRef(0)
+    const setupInFlightRef = useRef(false)
+    const executionInFlightRef = useRef(false)
+    const cancelUnpaidDraft = useCallback((id: string) => {
+        cancelledChargeIdsRef.current.add(id)
+        void chargesApi.cancel(id).catch((error: unknown) => {
+            void captureNetworkTriagedFailure(error, {
+                tags: { ...criticalFlowTags('withdraw-crypto'), withdraw_step: 'cancel-draft' },
+                extra: { chargeId: id },
+            })
+        })
+    }, [])
+    const abandonDraft = useCallback(() => {
+        ++setupGenerationRef.current
+        setIsPreparingReview(false)
+        const draft = draftRef.current
+        if (!draft || draft.signingStarted) return
+        draftRef.current = null
+        cancelUnpaidDraft(draft.id)
+    }, [cancelUnpaidDraft, setIsPreparingReview])
+
+    useEffect(() => () => abandonDraft(), [abandonDraft])
+    const previousStepRef = useRef(stepper.step)
+    useEffect(() => {
+        if (previousStepRef.current === 'review' && stepper.step !== 'review') abandonDraft()
+        previousStepRef.current = stepper.step
+    }, [stepper.step, abandonDraft])
+
     const { triggerHaptic } = useAppHaptic()
 
     // local state for transaction execution
@@ -196,10 +228,11 @@ export default function WithdrawCryptoPage() {
     // goes with them; setupAmountRef only ever resolves against the live charge)
     useEffect(() => {
         if (amountToWithdraw) {
+            abandonDraft()
             clearErrors()
             setChargeDetails(null)
         }
-    }, [amountToWithdraw, clearErrors, setChargeDetails])
+    }, [amountToWithdraw, clearErrors, setChargeDetails, abandonDraft])
 
     // propagate route/record errors
     useEffect(() => {
@@ -253,6 +286,7 @@ export default function WithdrawCryptoPage() {
 
     const handleSetupReview = useCallback(
         async (data: Omit<WithdrawData, 'amount'>) => {
+            if (setupInFlightRef.current || executionInFlightRef.current) return
             if (!amountToWithdraw) {
                 console.error('Amount to withdraw is not set or not available from context')
                 setError(t('errors.amountMissing'))
@@ -300,6 +334,9 @@ export default function WithdrawCryptoPage() {
                 }
             }
 
+            abandonDraft()
+            const generation = setupGenerationRef.current
+            setupInFlightRef.current = true
             clearErrors()
             setChargeDetails(null)
             // a NEW attempt invalidates the previous one's execution proof —
@@ -350,7 +387,13 @@ export default function WithdrawCryptoPage() {
                     throw new Error(t('errors.chargeFailed'))
                 }
 
+                if (generation !== setupGenerationRef.current) {
+                    cancelUnpaidDraft(createdCharge.data.id)
+                    return
+                }
+                draftRef.current = { id: createdCharge.data.id, signingStarted: false }
                 const fullChargeDetails = await chargesApi.get(createdCharge.data.id)
+                if (generation !== setupGenerationRef.current) return
 
                 // the confirm leg broadcasts the amount these records were
                 // created for — never re-read from the editable URL
@@ -359,11 +402,19 @@ export default function WithdrawCryptoPage() {
                 setChargeDetails(fullChargeDetails)
                 setShowCompatibilityModal(true)
             } catch (err) {
+                if (generation !== setupGenerationRef.current) return
+                const failedDraft = draftRef.current
+                draftRef.current = null
+                if (failedDraft && !failedDraft.signingStarted) cancelUnpaidDraft(failedDraft.id)
+                void captureNetworkTriagedFailure(err, {
+                    tags: { ...criticalFlowTags('withdraw-crypto'), withdraw_step: 'setup-review' },
+                })
                 console.error('Error during setup review (charge creation):', err)
                 const errorMessage = err instanceof Error && err.message ? err.message : t('errors.prepareFailed')
                 setError(errorMessage)
             } finally {
-                setIsPreparingReview(false)
+                setupInFlightRef.current = false
+                if (generation === setupGenerationRef.current) setIsPreparingReview(false)
             }
         },
         [
@@ -374,6 +425,8 @@ export default function WithdrawCryptoPage() {
             setChargeDetails,
             setTransactionHash,
             setIsPreparingReview,
+            abandonDraft,
+            cancelUnpaidDraft,
             setWithdrawData,
             setShowCompatibilityModal,
             setError,
@@ -404,12 +457,14 @@ export default function WithdrawCryptoPage() {
     }, [withdrawData, chargeDetails, isXChain, isDiffToken])
 
     const handleConfirmWithdrawal = useCallback(async () => {
+        if (executionInFlightRef.current) return
         if (!chargeDetails || !withdrawData || !amountToWithdraw || !address) {
             console.error('Withdraw data, active charge details, or amount missing for final confirmation')
             setError(t('errors.essentialInfoMissing'))
             return
         }
 
+        if (cancelledChargeIdsRef.current.has(chargeDetails.uuid)) return
         const alreadySpent = executedSpendRef.current?.chargeId === chargeDetails.uuid
         if (!alreadySpent && (!transactions || transactions.length === 0)) {
             // Nothing prepared — the route never resolved, an expiry refresh
@@ -461,6 +516,8 @@ export default function WithdrawCryptoPage() {
             broadcastAmount = amountCheck.normalized
         }
 
+        executionInFlightRef.current = true
+        if (draftRef.current?.id === chargeDetails.uuid) draftRef.current.signingStarted = true
         clearErrors()
         setIsSendingTx(true)
 
@@ -641,6 +698,7 @@ export default function WithdrawCryptoPage() {
             })
             setError(errMsg)
         } finally {
+            executionInFlightRef.current = false
             setIsSendingTx(false)
         }
     }, [
@@ -674,10 +732,11 @@ export default function WithdrawCryptoPage() {
     ])
 
     const handleBackFromConfirm = useCallback(() => {
+        abandonDraft()
         void stepper.goTo('recipient')
         clearErrors()
         setChargeDetails(null)
-    }, [stepper, clearErrors, setChargeDetails])
+    }, [stepper, clearErrors, setChargeDetails, abandonDraft])
 
     // Clear crypto-TRANSIENT flow memory when this page unmounts (charge,
     // route, recipient, token selection) — on unmount rather than in the
@@ -857,6 +916,8 @@ export default function WithdrawCryptoPage() {
                 visible={showCompatibilityModal}
                 onClose={() => {
                     if (isPreparingReview) return
+                    abandonDraft()
+                    setChargeDetails(null)
                     setShowCompatibilityModal(false)
                 }}
                 preventClose={isPreparingReview}
