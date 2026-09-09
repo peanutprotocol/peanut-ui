@@ -50,7 +50,7 @@ for (const device of ['desktop', 'iphone', 'android'] as const) {
                         if (device !== 'desktop') {
                             await expect(cta.getByRole('link')).toHaveAttribute(
                                 'href',
-                                device === 'iphone' ? /apps.apple.com/ : /play.google.com/
+                                device === 'iphone' ? /^https:\/\/apps\.apple\.com\// : /^https:\/\/play\.google\.com\//
                             )
                         }
                     } else {
