@@ -105,6 +105,12 @@ export default function DevToolsPage() {
             icon: 'dollar',
         },
         {
+            name: 'Bottom-nav bounce',
+            description: 'Motion + haptic proposals for the nav pill — five variants to feel and pick from.',
+            path: '/dev/nav-bounce',
+            icon: 'home',
+        },
+        {
             name: 'Shake test',
             description: 'Tunes the shake-and-hold gesture — intensity, duration, thresholds.',
             path: '/dev/shake-test',
