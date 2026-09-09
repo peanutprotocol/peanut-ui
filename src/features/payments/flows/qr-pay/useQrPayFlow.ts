@@ -1,5 +1,10 @@
 'use client'
 
+import { verifiedPixKeyLabel } from '@/utils/pix.utils'
+import { submitSignedSpend } from '@/hooks/wallet/signSpendRetry'
+import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
+import { qrPaymentDisplayStatus } from '@/utils/qr-payment.utils'
+
 import { useCallback, useContext, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -63,6 +68,7 @@ type PaymentProcessor = 'MANTECA'
  */
 export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams) {
     const { qrCode, timestamp, qrType } = scan
+    const pixKeyLabel = verifiedPixKeyLabel(qrCode, scan.pixKey ?? null)
     const t = useAppTranslations('qrPay')
     const tErrors = useTranslations('errors')
     const toFriendlyError = useFriendlyError()
@@ -439,8 +445,8 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
 
     const merchantName = useMemo(() => {
         if (!paymentLock) return null
-        return paymentLock.paymentRecipientName
-    }, [paymentLock])
+        return pixKeyLabel ?? paymentLock.paymentRecipientName
+    }, [paymentLock, pixKeyLabel])
 
     // The "paying" caption timer must die with the flow: the loading context is
     // app-wide, so a timer surviving unmount would flip it back to 'Paying'
@@ -600,7 +606,9 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                               ? { rainPreparationId: signedArtifact.rainPreparationId }
                               : {}),
                       } as const)
-            const qrPaymentResponse = await mantecaApi.completeQrPaymentWithSignedTx(requestBody)
+            const qrPaymentResponse = await submitSignedSpend(signedArtifact, () =>
+                mantecaApi.completeQrPaymentWithSignedTx(requestBody)
+            )
             // clear the timer since we got a response
             if (payingStateTimerRef.current) {
                 clearTimeout(payingStateTimerRef.current)
@@ -613,6 +621,12 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             }
 
             setQrPayment(qrPaymentResponse)
+            if (qrPaymentDisplayStatus(qrPaymentResponse.status) !== 'completed') {
+                setIsSuccess(false)
+                setLoadingState('Idle')
+                void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+                return
+            }
 
             // all eligible perks go through hold-to-claim — no auto-claiming.
             // this ensures a consistent reward experience regardless of amount.
@@ -629,6 +643,16 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                 clearTimeout(payingStateTimerRef.current)
                 payingStateTimerRef.current = null
             }
+            if (wireErrorCode(error) === API_ERROR_CODES.MANTECA_TEMPORARILY_UNAVAILABLE) {
+                setErrorMessage(tErrors('transferTemporarilyUnavailable'))
+                setIsSuccess(false)
+                return
+            }
+            if (wireErrorCode(error) === API_ERROR_CODES.QR_PAYMENT_CANCELLED) {
+                setErrorMessage(t('errors.paymentCancelled'))
+                setIsSuccess(false)
+                return
+            }
             // Wrong-passkey session: backend rejected the signed UserOp with
             // AA24 / wapk. Unrecoverable without re-auth — force a clean logout.
             if (handleStaleSession(error)) return
@@ -642,16 +666,16 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                 setErrorMessage(t('errors.accountStateChanged'))
             } else if (errorMsg.toLowerCase().includes('expired') || errorMsg.toLowerCase().includes('stale')) {
                 setErrorMessage(t('errors.sessionExpired'))
-            } else if (qrType === EQrType.PIX) {
-                setErrorMessage(t('errors.merchantNotSupported'))
             } else {
-                setErrorMessage(t('errors.completeFailed'))
+                setErrorMessage(t('errors.paymentStatusUnknown'))
             }
             setIsSuccess(false)
         } finally {
             setLoadingState('Idle')
         }
     }, [
+        queryClient,
+        tErrors,
         paymentLock,
         signSpend,
         rainCardOverview,
@@ -682,7 +706,12 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
      * could only ever restate these inputs.
      */
     const balanceErrorMessage = useMemo(() => {
-        if (!usdAmount || usdAmount === '0.00' || isNaN(Number(usdAmount)) || balance === undefined) {
+        if (
+            (!Number(usdAmount) && !Number(currencyAmount)) ||
+            !usdAmount ||
+            isNaN(Number(usdAmount)) ||
+            balance === undefined
+        ) {
             return null
         }
         const paymentAmount = parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS)
@@ -690,7 +719,9 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         // Manteca-specific validation (PIX, MercadoPago, QR3)
         if (paymentProcessor === 'MANTECA') {
             if (paymentAmount < parseUnits(MIN_MANTECA_QR_PAYMENT_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
-                return t('errors.minMantecaAmount', { amount: MIN_MANTECA_QR_PAYMENT_AMOUNT })
+                return t(pixKeyLabel ? 'errors.minTransferAmount' : 'errors.minMantecaAmount', {
+                    amount: MIN_MANTECA_QR_PAYMENT_AMOUNT,
+                })
             }
             // PIX rail enforces a 1 BRL minimum, stricter than the USD floor above
             if (currency?.code === 'BRL' && currencyAmount && parseFloat(currencyAmount) < MIN_PIX_AMOUNT_BRL) {
@@ -700,10 +731,10 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
 
         // Common validations for all payment processors
         if (paymentAmount > parseUnits(MAX_QR_PAYMENT_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
-            return t('errors.maxQrAmount', { amount: MAX_QR_PAYMENT_AMOUNT })
+            return t(pixKeyLabel ? 'errors.maxTransferAmount' : 'errors.maxQrAmount', { amount: MAX_QR_PAYMENT_AMOUNT })
         }
         if (paymentAmount < parseUnits(MIN_QR_PAYMENT_AMOUNT, PEANUT_WALLET_TOKEN_DECIMALS)) {
-            return t('errors.minQrAmount', { amount: MIN_QR_PAYMENT_AMOUNT })
+            return t(pixKeyLabel ? 'errors.minTransferAmount' : 'errors.minQrAmount', { amount: MIN_QR_PAYMENT_AMOUNT })
         }
         if (!isAmountWithinBalance(usdAmount, balance)) {
             // gate on the displayed total; an in-transit shortfall passes here and
@@ -711,7 +742,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             return tErrors('notEnoughBalanceAddFunds')
         }
         return null
-    }, [usdAmount, balance, paymentProcessor, currency?.code, currencyAmount, t, tErrors])
+    }, [usdAmount, balance, paymentProcessor, currency?.code, currencyAmount, pixKeyLabel, t, tErrors])
 
     // Use points confetti hook for animation - must be called unconditionally
     usePointsConfetti(isSuccess && pointsData?.estimatedPoints ? pointsData.estimatedPoints : undefined, pointsDivRef)
@@ -766,6 +797,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         isLoadingPaymentData,
         loadingState,
         isSuccess,
+        hasUnsettledPayment: !!qrPayment && qrPaymentDisplayStatus(qrPayment.status) !== 'completed',
         isManteca: paymentProcessor === 'MANTECA',
     })
 
@@ -797,6 +829,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         balance,
         usdAmount,
         merchantName,
+        pixKeyLabel,
         // kyc gate
         gate,
         shouldBlockPay,

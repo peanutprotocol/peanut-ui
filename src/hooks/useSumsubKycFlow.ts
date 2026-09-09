@@ -183,7 +183,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         //
         // The one close that must NOT replay it is a submission — the user just
         // acted, so the held transition is stale for what they submitted.
-        // handleSdkComplete consumes it by advancing prevStatusRef itself.
+        // Only a single-level completion consumes it; multi-level completion comes from the backend.
         //
         // Both flags are committed state rather than refs, so an interrupted render
         // can never leak a value this guard acts on.
@@ -480,23 +480,19 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         userInitiatedRef.current = true
         selfHealProviderRef.current = null
         actionKeyRef.current = null
-        // Consume a deferred ACTION_REQUIRED (see the transition effect): this
-        // close IS a submission, so the held transition is stale — replaying it
-        // would close the progress modal this handler opens (in-session resubmit
-        // after a RED decline). The manual close keeps the replay: abandoning
-        // really does leave the action required.
-        if (liveKycStatus === 'ACTION_REQUIRED') prevStatusRef.current = 'ACTION_REQUIRED'
+        // Only a single-level submission proves the deferred action was completed.
+        if (!isMultiLevel && liveKycStatus === 'ACTION_REQUIRED') prevStatusRef.current = 'ACTION_REQUIRED'
         setShowWrapper(false)
         setIsActionFlow(false)
         setIsMultiLevel(false)
         setIsVerificationProgressModalOpen(true)
-    }, [liveKycStatus])
+    }, [isMultiLevel, liveKycStatus])
 
     // Called when the user manually closes the SDK modal. Every manual close
     // replays a deferred ACTION_REQUIRED: the wrapper cannot tell "submitted the
     // required follow-up" from "submitted level 1 and walked away", so treating
     // any close as a submission would swallow a real action-required state.
-    // handleSdkComplete is the one unambiguous submission, and it consumes.
+    // Only single-level completion consumes the deferred action.
     const handleClose = useCallback(() => {
         setShowWrapper(false)
         setIsActionFlow(false)

@@ -29,7 +29,7 @@ export const KycRegionRestrictedModal = ({ visible, onClose }: KycRegionRestrict
             }}
         >
             <DrawerContent>
-                <div className="flex flex-col items-center px-4 pt-1 pb-6 text-center">
+                <div className="flex flex-col items-center pt-1 pb-6 text-center">
                     {/* DrawerHeader carries the M/12; the cta keeps the L/16 of the outer stack */}
                     <div className="flex w-full flex-col items-center gap-4">
                         <IconBubble icon="globe-lock" className="bg-action-primary" />

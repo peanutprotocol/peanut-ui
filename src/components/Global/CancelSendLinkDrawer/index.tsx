@@ -39,7 +39,7 @@ const CancelSendLinkDrawer = ({
             }}
         >
             <DrawerContent>
-                <div className="flex flex-col items-center px-4 pt-1 pb-6 text-center">
+                <div className="flex flex-col items-center pt-1 pb-6 text-center">
                     {/* destructive-confirm anatomy: red icon bubble (design.md nested-drawer recipe) */}
                     <IconBubble icon="link-slash" color="red" className="mb-4" />
 

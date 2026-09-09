@@ -15,6 +15,7 @@ export type QrPayView =
     | 'AWAITING_MERCHANT'
     | 'ORDER_NOT_READY'
     | 'LOADING'
+    | 'STATUS'
     | 'SUCCESS'
     | 'FORM'
 
@@ -28,6 +29,7 @@ export interface QrPayViewInputs {
     loadingState: LoadingStates
     isSuccess: boolean
     isManteca: boolean
+    hasUnsettledPayment?: boolean
 }
 
 /**
@@ -67,6 +69,8 @@ export function deriveQrPayView(inputs: QrPayViewInputs): QrPayView {
     if (inputs.showOrderNotReadyModal) return 'ORDER_NOT_READY'
 
     if (inputs.isLoadingPaymentData || inputs.loadingState === 'Paying') return 'LOADING'
+
+    if (inputs.hasUnsettledPayment) return 'STATUS'
 
     if (inputs.isSuccess && inputs.isManteca) return 'SUCCESS'
 

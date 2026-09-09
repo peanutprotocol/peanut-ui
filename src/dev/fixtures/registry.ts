@@ -179,6 +179,30 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] } },
     },
     limits: { route: '/limits', about: 'Payment limits: the unlocked regions and the crypto note.' },
+    // Masked state only ('****' — same span as the digits). Revealing needs a
+    // passkey step-up, which no fixture can answer.
+    'card-pin': {
+        route: '/card/pin',
+        about: 'Card PIN screen, masked, with an active fake card behind the gate.',
+        responses: {
+            'GET /rain/cards': {
+                status: { hasApplication: true },
+                cards: [
+                    {
+                        id: 'demo-card',
+                        rainCardId: 'demo-rain-card',
+                        last4: '4242',
+                        expiryMonth: 12,
+                        expiryYear: 2030,
+                        status: 'ACTIVE',
+                        network: 'VISA',
+                        issuedAt: '2026-01-01T00:00:00.000Z',
+                        hasWithdrawApproval: true,
+                    },
+                ],
+            },
+        },
+    },
     send: { route: '/send', about: 'Send: the method picker — link, contacts, bank or Mercado Pago.' },
     request: { route: '/request', about: 'Request money: amount entry.' },
 
@@ -379,12 +403,12 @@ export const FIXTURES: Record<string, Fixture> = {
     // ---------------------------------------------------------------------
     'home-avatar': {
         route: '/home',
-        about: 'Home top nav wearing a picked basic avatar instead of the initial.',
+        about: 'Home top nav: the menu button that replaced the avatar chip — the picked sticker now shows on /profile.',
         responses: { 'GET /users/me': { user: { avatarKey: 'basic.frog' } } },
     },
     'avatar-picker': {
         route: AVATAR_PICKER_PATH,
-        about: 'Avatar picker open: three Bug Whisperer avatars unlocked above the twenty basics, beetle selected.',
+        about: 'Avatar picker open: a hand of eight with the initial first and a Bug Whisperer avatar guaranteed, beetle selected.',
         responses: {
             'GET /users/me': {
                 user: {

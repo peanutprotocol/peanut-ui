@@ -116,8 +116,9 @@ export function BridgeBankOnrampView() {
                 {/* The verify CTA starts the Sumsub run, so its host has to be
                     mounted in THIS branch — the inputAmount branch below is not
                     rendered here, and without this the button was a dead end. */}
-                <SumsubKycModals flow={sumsubFlow} />
+                <SumsubKycModals flow={sumsubFlow} onCooldownClose={onBack} />
                 <InitiateKycModal
+                    cooldownActive={!!sumsubFlow.errorCooldown}
                     visible
                     presentation="page"
                     navTitle={tUnlock('title')}
@@ -222,6 +223,7 @@ export function BridgeBankOnrampView() {
                 />
 
                 <InitiateKycModal
+                    cooldownActive={!!sumsubFlow.errorCooldown}
                     visible={showKycModal}
                     onClose={() => {
                         // dismiss = abandon: clear the uplift latch so a later
@@ -251,7 +253,13 @@ export function BridgeBankOnrampView() {
                     message={pendingModal.message}
                 />
 
-                <SumsubKycModals flow={sumsubFlow} />
+                <SumsubKycModals
+                    flow={sumsubFlow}
+                    onCooldownClose={() => {
+                        setShowKycModal(false)
+                        resetUpliftFunnel()
+                    }}
+                />
 
                 <BridgeTosStep
                     visible={showBridgeTos}

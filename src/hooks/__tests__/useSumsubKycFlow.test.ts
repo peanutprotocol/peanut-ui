@@ -561,7 +561,7 @@ describe('useSumsubKycFlow — ACTION_REQUIRED during a multi-level session', ()
     // the held (now stale) transition would close it in the same breath and dump
     // the user on an ACTION_REQUIRED drawer for documents they just resubmitted.
     // handleSdkComplete consumes the deferred status instead.
-    it('a submission close consumes the deferred transition — the progress modal stays open', async () => {
+    it('an ambiguous multi-level completion replays the deferred transition', async () => {
         const { result } = await openSdkOverProgressModal('EU')
 
         await act(async () => {
@@ -575,7 +575,7 @@ describe('useSumsubKycFlow — ACTION_REQUIRED during a multi-level session', ()
         })
 
         expect(result.current.showWrapper).toBe(false)
-        expect(result.current.isVerificationProgressModalOpen).toBe(true)
+        expect(result.current.isVerificationProgressModalOpen).toBe(false)
     })
 
     // The counterpart: a MANUAL close always replays. handleSdkComplete is the
@@ -968,4 +968,34 @@ describe('useSumsubKycFlow — restart forwards only an explicit override', () =
 
         expect(mockRestart).toHaveBeenCalledWith('LATAM')
     })
+})
+
+it('clears cooldown details when a later restart fails for another reason', async () => {
+    mockRestart.mockReset()
+    mockRestart.mockResolvedValueOnce({ error: 'Please wait', cooldown: { retryAt: '2026-09-08T18:57:00Z' } })
+    const { result } = renderHook(() => useSumsubKycFlow({}))
+    await act(async () => {
+        await result.current.handleRestartIdentity()
+    })
+    expect(result.current.errorCooldown?.retryAt).toBe('2026-09-08T18:57:00Z')
+    mockRestart.mockResolvedValueOnce({ error: 'Verification changed, please retry' })
+    await act(async () => {
+        await result.current.handleRestartIdentity()
+    })
+    expect(result.current.errorCooldown).toBeNull()
+    expect(result.current.error).toBe('Verification changed, please retry')
+})
+
+it('routes restart throttles to the shared cooldown dialog and clears them on dismissal', async () => {
+    mockRestart.mockReset()
+    mockRestart.mockResolvedValueOnce({ error: 'Too many requests', cooldown: { retryAt: '2026-09-08T18:57:00Z' } })
+    const { result } = renderHook(() => useSumsubKycFlow({}))
+    await act(async () => {
+        await result.current.handleRestartIdentity()
+    })
+    expect(result.current.error).toBeNull()
+    expect(result.current.errorCooldown?.retryAt).toBe('2026-09-08T18:57:00Z')
+    act(() => result.current.dismissErrorCooldown())
+    expect(result.current.errorCooldown).toBeNull()
+    expect(result.current.error).toBeNull()
 })

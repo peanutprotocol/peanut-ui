@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- These resources are looked up by name by MeaWallet and OneSignal. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@raw/mea_config,@drawable/ic_stat_onesignal_default" />

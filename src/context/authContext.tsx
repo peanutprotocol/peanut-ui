@@ -1,6 +1,8 @@
 'use client'
 import { useTranslations } from 'next-intl'
 import { useToast } from '@/components/0_Bruddle/Toast'
+import { USER } from '@/constants/query.consts'
+import { recoverLoginSession } from '@/utils/login-session'
 import { useUserQuery } from '@/hooks/query/user'
 import { useUserAutoRefresh } from '@/hooks/useUserAutoRefresh'
 import type { IUserProfile } from '@/interfaces/interfaces'
@@ -35,6 +37,7 @@ interface AuthContextType {
     userId: string | undefined
     username: string | undefined
     fetchUser: () => Promise<IUserProfile | null>
+    hydrateLoginSession: () => Promise<IUserProfile>
     addAccount: ({
         accountIdentifier,
         accountType,
@@ -184,6 +187,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const { data: fetchedUser } = await fetchUser()
         return fetchedUser ?? null
     }, [fetchUser])
+
+    const hydrateLoginSession = useCallback(async () => {
+        const cancel = () => queryClient.cancelQueries({ queryKey: [USER] })
+        await cancel()
+        return recoverLoginSession(async () => {
+            const result = await fetchUser()
+            if (result.error) throw result.error
+            return result.data ?? null
+        }, cancel)
+    }, [fetchUser, queryClient])
 
     const [isLoggingOut, setIsLoggingOut] = useState(false)
 
@@ -387,6 +400,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 userId: user?.user?.userId,
                 username: user?.user?.username ?? undefined,
                 fetchUser: legacy_fetchUser,
+                hydrateLoginSession,
                 addAccount,
                 isFetchingUser,
                 userFetchError: userFetchError ?? null,

@@ -80,7 +80,7 @@ jest.mock('@/hooks/useCapabilities', () => ({
 }))
 
 jest.mock('@/hooks/useBankRegionIntent', () => ({
-    useBankRegionIntent: () => (region: string) => `intent:${region}`,
+    useBankRegionIntent: () => (country: { region: string }) => `intent:${country.region}`,
 }))
 
 const mockPendingModalOpen = jest.fn()

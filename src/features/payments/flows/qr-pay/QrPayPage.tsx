@@ -7,6 +7,7 @@ import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { loadingStateKey } from '@/i18n/app/loading-states'
 import { QrPayFlowProvider, useQrPayFlow } from './QrPayFlowContext'
 import type { QrPayScanParams } from './qr-pay-flow.types'
+import { QrPayStatusView } from './views/QrPayStatusView'
 import { QrPayFormView } from './views/QrPayFormView'
 import { QrPaySuccessView } from './views/QrPaySuccessView'
 import { QrPayKycGateView } from './views/QrPayKycGateView'
@@ -46,6 +47,8 @@ function QrPayFlowContent() {
                 return <QrPayPageLoading message={tLoading(loadingStateKey(loadingState))} />
             }
             return <Loading variant="mascot" />
+        case 'STATUS':
+            return <QrPayStatusView />
         case 'SUCCESS':
             return <QrPaySuccessView />
         case 'FORM':
@@ -56,9 +59,9 @@ function QrPayFlowContent() {
 
 // exported page component with provider; the entry route keys this on the
 // scan (qrCode + timestamp) so a new scan starts from clean state
-export function QrPayPage({ qrCode, timestamp, qrType }: QrPayScanParams) {
+export function QrPayPage({ qrCode, timestamp, qrType, pixKey }: QrPayScanParams) {
     return (
-        <QrPayFlowProvider qrCode={qrCode} timestamp={timestamp} qrType={qrType}>
+        <QrPayFlowProvider qrCode={qrCode} timestamp={timestamp} qrType={qrType} pixKey={pixKey}>
             <QrPayFlowContent />
         </QrPayFlowProvider>
     )

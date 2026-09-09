@@ -100,7 +100,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
     // screen for signed-in users.
     if (!user) {
         return (
-            <div className="flex min-h-[inherit] flex-col justify-center gap-8">
+            <div className="flex min-h-inherit flex-col justify-center gap-8">
                 <Loading variant="mascot" />
             </div>
         )
@@ -108,7 +108,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
 
     if (!showAll && savedAccounts.length === 0) {
         return (
-            <div className="flex min-h-[inherit] flex-col justify-start gap-8">
+            <div className="flex min-h-inherit flex-col justify-start gap-8">
                 <NavHeader title={pageTitle} onPrev={onExit} />
                 <Card className="my-auto flex flex-col items-center justify-center gap-4 p-4">
                     <div className="space-y-2">
@@ -179,7 +179,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
 
     // all-methods view
     return (
-        <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
+        <div className="flex min-h-inherit flex-col justify-normal gap-8">
             <NavHeader
                 title={pageTitle}
                 onPrev={() => {
@@ -211,7 +211,12 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
                     if (isBankFromSend) {
                         if (isMantecaCountry(country.path)) {
                             startTransition(() => {
-                                router.push(mantecaWithdrawUrl({ method: 'bank-transfer', country: country.path }))
+                                router.push(
+                                    mantecaWithdrawUrl({
+                                        method: country.path === 'brazil' ? 'pix' : 'bank-transfer',
+                                        country: country.path,
+                                    })
+                                )
                             })
                             return
                         }

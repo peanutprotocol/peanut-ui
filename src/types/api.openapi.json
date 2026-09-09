@@ -13481,6 +13481,12 @@
                                         },
                                         "tokenAddress": {
                                             "type": "string"
+                                        },
+                                        "mixedSpendContract": {
+                                            "type": "string",
+                                            "enum": [
+                                                "broadcast-first-revert-v1"
+                                            ]
                                         }
                                     },
                                     "required": [
@@ -14199,15 +14205,17 @@
                                         "type": "boolean"
                                     },
                                     "cardLimit": {
-                                        "minimum": 0,
-                                        "type": "number"
+                                        "maximum": 2147483647,
+                                        "minimum": 1,
+                                        "type": "integer"
                                     },
                                     "limits": {
                                         "items": {
                                             "properties": {
                                                 "amount": {
-                                                    "minimum": 0,
-                                                    "type": "number"
+                                                    "maximum": 2147483647,
+                                                    "minimum": 1,
+                                                    "type": "integer"
                                                 },
                                                 "frequency": {
                                                     "anyOf": [
@@ -14272,6 +14280,27 @@
                         "description": "Default Response"
                     },
                     "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "422": {
                         "content": {
                             "application/json": {
                                 "schema": {

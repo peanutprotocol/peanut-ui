@@ -1,3 +1,4 @@
+import { redactQrTelemetry } from './src/utils/qr-telemetry-privacy'
 // Shared Sentry utilities for filtering noise across all configs
 // Used by: sentry.client.config.ts, sentry.edge.config.ts, sentry.server.config.ts
 
@@ -532,6 +533,7 @@ export function cleanSensitiveHeaders(event: ErrorEvent): void {
  * Standard beforeSend handler for all Sentry configs
  */
 export function beforeSendHandler(event: ErrorEvent): ErrorEvent | null {
+    redactQrTelemetry(event)
     if (shouldIgnoreError(event)) {
         return null
     }
@@ -550,5 +552,5 @@ export function beforeSendRouteAwareHandler(event: ErrorEvent): ErrorEvent | nul
 }
 
 export function beforeSendRouteAwareTransaction<T extends RoutableSentryEvent>(event: T): T | null {
-    return isPaymentNetworkSentryEvent(event) ? null : event
+    return isPaymentNetworkSentryEvent(event) ? null : redactQrTelemetry(event)
 }

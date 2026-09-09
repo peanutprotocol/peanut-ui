@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -14,9 +14,7 @@ import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
 import PointsCard from '@/components/Common/PointsCard'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
-import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
-import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { useCardMarkupRate } from '@/hooks/useCardMarkupRate'
 import { useAuth } from '@/context/authContext'
 import { getShakeClass } from '@/utils/perk.utils'
@@ -25,6 +23,7 @@ import { formatNumberForDisplay } from '@/utils/general.utils'
 import { STAR_STRAIGHT_ICON } from '@/assets/icons'
 import { REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { useQrPayFlow } from '../QrPayFlowContext'
+import { useQrReceipt } from '../useQrReceipt'
 import { usePerkHoldToClaim } from '../usePerkHoldToClaim'
 
 export function QrPaySuccessView() {
@@ -33,8 +32,7 @@ export function QrPaySuccessView() {
     const tCommon = useTranslations('common')
     const router = useRouter()
     const { user } = useAuth()
-    const { qrPayment, setQrPayment, paymentLock, currency, usdAmount, methodIcon, pointsData, pointsDivRef } =
-        useQrPayFlow()
+    const { qrPayment, setQrPayment, paymentLock, currency, usdAmount, pointsData, pointsDivRef } = useQrPayFlow()
     const { perkClaimed, holdProgress, isShaking, shakeIntensity, startHold, cancelHold } = usePerkHoldToClaim(
         qrPayment,
         setQrPayment
@@ -47,43 +45,7 @@ export function QrPaySuccessView() {
     // "Save vs card" row reads — keeps the two in sync.
     const { data: cardMarkup } = useCardMarkupRate(currency?.code, currency?.price)
 
-    // receipt transaction for the success drawer — built up-front (not in the
-    // cta's onClick) because the drawer opens off the url's `?tx=` match.
-    const receiptTransaction: TransactionDetails | null = useMemo(() => {
-        if (!qrPayment || !currency) return null
-        const now = new Date()
-        return {
-            // Manteca synthetic id — the only key /receipt/<id>
-            // resolves, and what Activity rows already carry.
-            // `externalId` is UUID-shaped, so it slips past the
-            // id-shape gate and 404s silently instead of erroring.
-            id: qrPayment.id,
-            direction: 'qr_payment',
-            userName: qrPayment.details.merchant.name,
-            fullName: qrPayment.details.merchant.name,
-            amount: Number(usdAmount),
-            currency: {
-                amount: qrPayment.details.paymentAssetAmount,
-                code: currency.code,
-            },
-            initials: 'QR',
-            currencySymbol: currency.symbol,
-            status: 'completed',
-            date: now,
-            createdAt: now,
-            extraDataForDrawer: {
-                originalType: 'TRANSACTION_INTENT',
-                originalUserRole: EHistoryUserRole.SENDER,
-                kind: 'QR_PAY',
-                provider: 'MANTECA',
-                avatarUrl: methodIcon,
-                receipt: {
-                    exchange_rate: currency.price.toString(),
-                },
-            },
-            totalAmountCollected: Number(usdAmount),
-        }
-    }, [qrPayment, currency, usdAmount, methodIcon])
+    const receiptTransaction = useQrReceipt()
 
     // The payment settled but the response has not landed yet — one render at
     // most; the old page returned null from the same race.

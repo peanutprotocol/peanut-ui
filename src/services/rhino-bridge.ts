@@ -13,6 +13,7 @@
 
 import { apiFetch } from '@/utils/api-fetch'
 import type { RhinoQuote } from '@/services/rhino-sda'
+import { apiErrorFromResponse } from '@/services/api-error'
 
 export interface BridgeQuoteParams {
     amount: string
@@ -24,6 +25,9 @@ export interface BridgeQuoteParams {
     recipient: string
     depositor: string
     mode: 'pay' | 'receive'
+    /** The charge this quote is for; lets the API apply the per-user cross-chain cap to the bridge path too. */
+    context?: 'withdraw' | 'pay-request'
+    contextId?: string
 }
 
 export interface BridgeQuoteResponse extends RhinoQuote {
@@ -71,19 +75,19 @@ async function postJson<TReq, TRes>(path: string, body: TReq, errorLabel: string
         method: 'POST',
         body: JSON.stringify(body),
     })
-    if (!response.ok) {
-        const text = await response.text().catch(() => '')
-        throw new Error(`${errorLabel}: ${response.status} ${text}`)
-    }
+    // ApiError keeps the backend's `error` text as the message and carries its
+    // `code` / `retryAfterSec`, so the cap's 429 on the bridge path renders the
+    // same localized copy as the SDA path instead of "contact support".
+    if (!response.ok) throw await apiErrorFromResponse(response, errorLabel)
     return (await response.json()) as TRes
 }
 
 async function getJson<TRes>(path: string, errorLabel: string): Promise<TRes> {
     const response = await apiFetch(path, { method: 'GET' })
-    if (!response.ok) {
-        const text = await response.text().catch(() => '')
-        throw new Error(`${errorLabel}: ${response.status} ${text}`)
-    }
+    // ApiError keeps the backend's `error` text as the message and carries its
+    // `code` / `retryAfterSec`, so the cap's 429 on the bridge path renders the
+    // same localized copy as the SDA path instead of "contact support".
+    if (!response.ok) throw await apiErrorFromResponse(response, errorLabel)
     return (await response.json()) as TRes
 }
 
@@ -94,9 +98,15 @@ export function getBridgeQuote(params: BridgeQuoteParams): Promise<BridgeQuoteRe
 export function commitBridgeQuote(
     quoteId: string,
     isSwap: boolean,
-    isSameChainSwap: boolean
+    isSameChainSwap: boolean,
+    /** Same charge as the quote; the API allows one live commitment per charge and refuses commits without it once the cap is on. */
+    charge?: { context: 'withdraw' | 'pay-request'; contextId: string }
 ): Promise<BridgeCommitResponse> {
-    return postJson('/rhino/bridge/commit', { quoteId, isSwap, isSameChainSwap }, 'Failed to commit bridge quote')
+    return postJson(
+        '/rhino/bridge/commit',
+        { quoteId, isSwap, isSameChainSwap, ...(charge ?? {}) },
+        'Failed to commit bridge quote'
+    )
 }
 
 export function getBridgeStatus(bridgeId: string): Promise<BridgeStatusResponse> {

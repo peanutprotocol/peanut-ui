@@ -18,11 +18,15 @@ const mockCaptureException = jest.fn()
 const mockStopReconnect = jest.fn()
 const mockToPasskeyValidator = jest.fn()
 const mockUpdateUserPreferences = jest.fn()
+let mockAccounts: Array<{ type: string; identifier: string }> = []
 let mockReconnectCallback: (() => void) | undefined
 
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({
-        user: { user: { userId: 'u1', username: 'alice', createdAt: '2026-01-01T00:00:00.000Z' }, accounts: [] },
+        user: {
+            user: { userId: 'u1', username: 'alice', createdAt: '2026-01-01T00:00:00.000Z' },
+            accounts: mockAccounts,
+        },
         logoutUser: mockLogoutUser,
         fetchUser: mockFetchUser,
     }),
@@ -60,9 +64,7 @@ jest.mock('@zerodev/sdk', () => ({
     createKernelAccount: jest.fn(),
     createKernelAccountClient: jest.fn(),
     createZeroDevPaymasterClient: jest.fn(),
-}))
-jest.mock('@zerodev/sdk/accounts', () => ({ createKernelMigrationAccount: jest.fn() }))
-jest.mock('@zerodev/sdk/constants', () => ({
+    createKernelMigrationAccount: jest.fn(),
     getEntryPoint: () => ({ address: '0x0000000071727De22E5E9d8BAf0edAc6f37da032', version: '0.7' }),
     KERNEL_V3_1: '0.3.1',
 }))
@@ -106,7 +108,7 @@ jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
 jest.mock('@/dev/fixtures/active', () => ({ ensureActiveFixture: () => null }))
 jest.mock('@/constants/harness.consts', () => ({ HARNESS_ENABLED: false }))
 
-import { KernelClientProvider } from '../kernelClient.context'
+import { KernelClientProvider, useKernelClient } from '../kernelClient.context'
 
 const renderProvider = () =>
     render(
@@ -118,6 +120,7 @@ const renderProvider = () =>
 beforeEach(() => {
     jest.clearAllMocks()
     mockReconnectCallback = undefined
+    mockAccounts = []
     jest.spyOn(console, 'error').mockImplementation(() => {})
     jest.spyOn(console, 'warn').mockImplementation(() => {})
 })
@@ -180,4 +183,130 @@ describe('KernelClientProvider — primary client build failure', () => {
         expect(mockReconnectCallback).toBeUndefined()
         expect(mockCaptureException).not.toHaveBeenCalled()
     })
+})
+
+// A successful but obsolete build must not invalidate a newer session.
+it('ignores a mismatched primary build that resolves after its effect is disposed', async () => {
+    const { createKernelAccountClient } = jest.requireMock('@zerodev/sdk')
+    mockAccounts = [{ type: 'peanut-wallet', identifier: '0x1111111111111111111111111111111111111111' }]
+    let resolveValidator!: (value: object) => void
+    mockToPasskeyValidator.mockImplementation(
+        () =>
+            new Promise((resolve) => {
+                resolveValidator = resolve
+            })
+    )
+    createKernelAccountClient.mockReturnValue({
+        account: { address: '0x2222222222222222222222222222222222222222' },
+        sendUserOperation: jest.fn(),
+    })
+    const { unmount } = renderProvider()
+    await waitFor(() => expect(mockToPasskeyValidator).toHaveBeenCalled())
+    unmount()
+    await act(async () => {
+        resolveValidator({})
+        await Promise.resolve()
+    })
+    expect(mockLogoutUser).not.toHaveBeenCalled()
+    expect(mockUpdateUserPreferences).not.toHaveBeenCalledWith('u1', { webAuthnKey: undefined })
+})
+
+it('keeps a completed rebuild when the older primary initialization settles last', async () => {
+    const sdk = jest.requireMock('@zerodev/sdk')
+    sdk.createKernelAccount.mockImplementation(
+        (_client: unknown, options: { plugins: { sudo: { address: string } } }) => ({
+            address: options.plugins.sudo.address,
+        })
+    )
+    sdk.createKernelAccountClient.mockImplementation(({ account }: { account: object }) => ({
+        account,
+        sendUserOperation: jest.fn(),
+    }))
+    let resolveOld!: (value: object) => void
+    mockToPasskeyValidator
+        .mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    resolveOld = resolve
+                })
+        )
+        .mockResolvedValue({ address: '0x2222222222222222222222222222222222222222' })
+    let context!: ReturnType<typeof useKernelClient>
+    function Probe() {
+        context = useKernelClient()
+        return null
+    }
+    render(
+        <KernelClientProvider>
+            <Probe />
+        </KernelClientProvider>
+    )
+    await waitFor(() => expect(mockToPasskeyValidator).toHaveBeenCalledTimes(1))
+    const { PEANUT_WALLET_CHAIN } = jest.requireActual('@/constants/zerodev.consts')
+    const chainId = String(PEANUT_WALLET_CHAIN.id)
+    await act(async () => {
+        await context.rebuildClientForChain(chainId)
+    })
+    await act(async () => {
+        resolveOld({ address: '0x1111111111111111111111111111111111111111' })
+        await Promise.resolve()
+    })
+    expect(context.getClientForChain(chainId).account?.address).toBe('0x2222222222222222222222222222222222222222')
+    expect(mockDispatch).toHaveBeenCalledWith({ type: 'zerodev/ready', payload: true })
+    expect(mockLogoutUser).not.toHaveBeenCalled()
+})
+
+it('stops handing out the previous credential client while a new credential initializes', async () => {
+    const sdk = jest.requireMock('@zerodev/sdk')
+    sdk.createKernelAccount.mockImplementation(
+        (_client: unknown, options: { plugins: { sudo: { address: string } } }) => ({
+            address: options.plugins.sudo.address,
+        })
+    )
+    sdk.createKernelAccountClient.mockImplementation(({ account }: { account: object }) => ({
+        account,
+        sendUserOperation: jest.fn(),
+    }))
+    mockToPasskeyValidator.mockResolvedValue({ address: '0x1111111111111111111111111111111111111111' })
+    let context!: ReturnType<typeof useKernelClient>
+    function Probe() {
+        context = useKernelClient()
+        return null
+    }
+    render(
+        <KernelClientProvider>
+            <Probe />
+        </KernelClientProvider>
+    )
+    const { PEANUT_WALLET_CHAIN } = jest.requireActual('@/constants/zerodev.consts')
+    const chainId = String(PEANUT_WALLET_CHAIN.id)
+    await waitFor(() =>
+        expect(context.getClientForChain(chainId).account?.address).toBe('0x1111111111111111111111111111111111111111')
+    )
+    let resolveNew!: (value: object) => void
+    mockToPasskeyValidator.mockImplementation(
+        () =>
+            new Promise((resolve) => {
+                resolveNew = resolve
+            })
+    )
+    act(() =>
+        context.setWebAuthnKey({
+            pubX: 3n,
+            pubY: 4n,
+            authenticatorId: 'auth-2',
+            authenticatorIdHash: '0x02',
+            rpID: 'localhost',
+        } as Parameters<typeof context.setWebAuthnKey>[0])
+    )
+    expect(() => context.getClientForChain(chainId)).toThrow('No client found')
+    let pending!: ReturnType<typeof context.ensureClientForChain>
+    act(() => {
+        pending = context.ensureClientForChain(chainId)
+    })
+    await act(async () => {
+        resolveNew({ address: '0x2222222222222222222222222222222222222222' })
+        await pending
+    })
+    expect(context.getClientForChain(chainId).account?.address).toBe('0x2222222222222222222222222222222222222222')
 })

@@ -105,7 +105,7 @@ const QRBottomDrawer = ({ url, title, text, buttonText, className }: QRBottomDra
                     reaches the cap through a CSS variable because Tailwind only emits an
                     arbitrary value it can read literally in the source. */}
                 <DrawerContent
-                    className={`mt-0 h-screen touch-none p-4 supports-[height:100dvh]:h-dvh ${className || ''}`}
+                    className={`mt-0 h-screen touch-none py-4 supports-[height:100dvh]:h-dvh ${className || ''}`}
                     style={{ '--qr-drawer-expanded': `${QR_DRAWER_EXPANDED_PX}px` } as CSSProperties}
                     scrollAreaRef={scrollAreaRef}
                     scrollAreaClassName={`overscroll-contain max-h-[calc(var(--qr-drawer-expanded)-3.3125rem)] ${activeSnapPoint === snapPoints[0] || !scrollable ? 'touch-none' : ''}`}
@@ -113,10 +113,10 @@ const QRBottomDrawer = ({ url, title, text, buttonText, className }: QRBottomDra
                     <DrawerTitle className="space-y-2 mb-3">
                         <h2 className="text-heading-card">{title}</h2>
                     </DrawerTitle>
-                    {/* the button's shadow is offset 4px right AND 4px down, so the
-                        drawer's overflow-auto scroll wrapper clips it on both edges
-                        without a gutter on each */}
-                    <div className="pr-1 pb-1">
+                    {/* the scroll wrapper's default px-4 covers the button
+                        shadow's right edge now; pb-1 still covers the 4px
+                        bottom offset */}
+                    <div className="pb-1">
                         <QRCodeWrapper url={url} />
                         <div className="mx-auto mt-4 w-full p-2 text-center text-body-m">{text}</div>
                         <Divider text={tCommon('or')} />

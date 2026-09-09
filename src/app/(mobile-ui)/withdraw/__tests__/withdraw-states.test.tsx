@@ -21,6 +21,7 @@ import { parseUnits } from 'viem'
 // next/navigation
 const mockRouterPush = jest.fn()
 const mockRouterBack = jest.fn()
+const mockRouterReplace = jest.fn()
 const mockSearchParams = new Map<string, string>()
 
 jest.mock('next/navigation', () => ({
@@ -30,7 +31,7 @@ jest.mock('next/navigation', () => ({
     useRouter: () => ({
         push: mockRouterPush,
         back: mockRouterBack,
-        replace: jest.fn(),
+        replace: mockRouterReplace,
         prefetch: jest.fn(),
     }),
     usePathname: () => '/withdraw',
@@ -209,22 +210,26 @@ jest.mock('@/components/AddWithdraw/AddWithdrawCountriesList', () => ({
 // The method step's composition (saved accounts / country list) has its own
 // suite — here it stands in as a probe for titles + flow wiring.
 jest.mock('@/features/withdraw/views/WithdrawMethodView', () => ({
-    WithdrawMethodView: (props: any) => (
-        <div data-testid="withdraw-method-view">
-            <span data-testid="page-title">{props.pageTitle}</span>
-            <span data-testid="main-heading">{props.mainHeading}</span>
-            <button data-testid="method-view-back" onClick={props.onExit}>
-                Back
-            </button>
-            <button data-testid="method-view-choose" onClick={props.onMethodChosen}>
-                Choose
-            </button>
-        </div>
-    ),
+    WithdrawMethodView: (props: any) => {
+        const [showAll] = jest.requireActual('nuqs').useQueryState('showAll')
+        return (
+            <div data-testid="withdraw-method-view" data-show-all={showAll}>
+                <span data-testid="page-title">{props.pageTitle}</span>
+                <span data-testid="main-heading">{props.mainHeading}</span>
+                <button data-testid="method-view-back" onClick={props.onExit}>
+                    Back
+                </button>
+                <button data-testid="method-view-choose" onClick={props.onMethodChosen}>
+                    Choose
+                </button>
+            </div>
+        )
+    },
 }))
 
 // ---------- import component under test AFTER all mocks ----------
 import WithdrawPage from '../page'
+import { __testing as safeBackTesting } from '@/hooks/useSafeBack'
 
 // ---------- helpers ----------
 
@@ -241,11 +246,13 @@ function createQueryClient() {
     })
 }
 
+const mockOnUrlUpdate = jest.fn()
+
 function renderWithdraw(params: Record<string, string> = {}) {
     setSearchParams(params)
     const queryClient = createQueryClient()
     return render(
-        <NuqsTestingAdapter searchParams={params}>
+        <NuqsTestingAdapter searchParams={params} onUrlUpdate={mockOnUrlUpdate}>
             <IntlWrapper>
                 <QueryClientProvider client={queryClient}>
                     <WithdrawPage />
@@ -287,6 +294,7 @@ function applyDefaults() {
 beforeEach(() => {
     jest.clearAllMocks()
     mockSearchParams.clear()
+    safeBackTesting.reset()
     applyDefaults()
     // clearAllMocks() resets call history but not implementations, so restore
     // the default country resolution here — tests that override it (GROUP 6)
@@ -358,14 +366,28 @@ describe('GROUP 1: Method Selection', () => {
         renderWithdraw({ method: 'bank', returnTo: '/profile/exchange-rate' })
 
         fireEvent.click(screen.getByTestId('method-view-back'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/send')
+        expect(mockRouterReplace).toHaveBeenCalledWith('/send')
+        expect(mockRouterPush).not.toHaveBeenCalled()
     })
 
-    test('Back from bank send method selection navigates to /send', () => {
+    // Regression: this branch used to router.push('/send') over the retained
+    // /withdraw?method=bank entry, so send's safe-back popped right back into
+    // the withdraw step — Back looped instead of unwinding (TASK-22424).
+    test('Back from bank send method selection pops in-app history, not push', () => {
+        window.history.pushState({}, '', '/withdraw?method=bank')
         renderWithdraw({ method: 'bank' })
 
         fireEvent.click(screen.getByTestId('method-view-back'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/send')
+        expect(mockRouterBack).toHaveBeenCalledTimes(1)
+        expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
+    test('Back from bank send method selection replaces to /send on a cold deep link', () => {
+        renderWithdraw({ method: 'bank' })
+
+        fireEvent.click(screen.getByTestId('method-view-back'))
+        expect(mockRouterReplace).toHaveBeenCalledWith('/send')
+        expect(mockRouterPush).not.toHaveBeenCalled()
     })
 })
 
@@ -386,7 +408,7 @@ describe('GROUP 2: Amount Input', () => {
         // /withdraw?method=crypto is send's entry URL — the method is implied,
         // so the flow commits it and moves to the amount step by itself
         mockWithdrawFlow.selectedMethod = { type: 'crypto' }
-        renderWithdraw({ method: 'crypto' })
+        renderWithdraw({ method: 'crypto', step: 'amount' })
 
         expect(await screen.findByTestId('amount-input')).toBeInTheDocument()
     })
@@ -694,22 +716,45 @@ describe('GROUP 4: Limits Validation', () => {
 // GROUP 5: Navigation
 // ============================================================
 describe('GROUP 5: Navigation', () => {
-    test('Back from crypto send navigates to /send', () => {
+    // Regression: this handler used to router.push('/send') over the retained
+    // /withdraw?method=crypto entry, so send's safe-back popped right back into
+    // the amount step and ?method=crypto re-selected crypto — Back looped
+    // between Send and the amount screen forever (TASK-22424).
+    test('Back from crypto send pops in-app history, not push', () => {
+        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+        window.history.pushState({}, '', '/withdraw?method=crypto')
+        renderWithdraw({ method: 'crypto', step: 'amount' })
+
+        fireEvent.click(screen.getByTestId('nav-back'))
+        expect(mockSetSelectedMethod).toHaveBeenCalledWith(null)
+        expect(mockRouterBack).toHaveBeenCalledTimes(1)
+        expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
+    test('Back from crypto send replaces to /send on a cold deep link', () => {
         mockWithdrawFlow.selectedMethod = { type: 'crypto' }
         renderWithdraw({ method: 'crypto', step: 'amount' })
 
         fireEvent.click(screen.getByTestId('nav-back'))
         expect(mockSetSelectedMethod).toHaveBeenCalledWith(null)
-        expect(mockRouterPush).toHaveBeenCalledWith('/send')
+        expect(mockRouterReplace).toHaveBeenCalledWith('/send')
+        expect(mockRouterPush).not.toHaveBeenCalled()
     })
 
-    test('Back from bank withdraw resets method and account (stepper owns the step)', () => {
+    test('Back from a selected bank country returns to the country list', async () => {
         mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
         renderWithdraw({ step: 'amount' })
 
         fireEvent.click(screen.getByTestId('nav-back'))
         expect(mockSetSelectedMethod).toHaveBeenCalledWith(null)
         expect(mockSetSelectedBankAccount).toHaveBeenCalledWith(null)
+        await waitFor(() => expect(mockOnUrlUpdate).toHaveBeenCalled())
+        expect(mockOnUrlUpdate.mock.calls.at(-1)?.[0].searchParams.get('showAll')).toBe('true')
+    })
+
+    test('a bank-send return does not reset an explicit country-list choice', () => {
+        renderWithdraw({ method: 'bank', showAll: 'true' })
+        expect(screen.getByTestId('withdraw-method-view')).toHaveAttribute('data-show-all', 'true')
     })
 })
 

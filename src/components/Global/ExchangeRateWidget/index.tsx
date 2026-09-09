@@ -45,6 +45,7 @@ interface IExchangeRateWidgetProps {
     ctaLabel: string
     ctaIcon: IconName
     ctaAction: (sourceCurrency: string, destinationCurrency: string) => void
+    ctaDisabled?: boolean
     labels?: Partial<ExchangeRateWidgetLabels>
     // Marketing send-to pages seed the URL with currencies that only need a
     // quote (see the comment on `sourceCurrency` below). Product callers whose
@@ -63,6 +64,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
     ctaLabel,
     ctaIcon,
     ctaAction,
+    ctaDisabled = false,
     labels,
     restrictToRoutable = false,
     shadow = true,
@@ -405,6 +407,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
             )}
 
             <Button
+                disabled={ctaDisabled}
                 onClick={() => ctaAction(sourceCurrency, destinationCurrency)}
                 icon={ctaIcon}
                 shadowSize="4"

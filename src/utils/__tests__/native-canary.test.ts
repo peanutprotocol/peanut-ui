@@ -3,7 +3,7 @@ import { runCanary, scheduleTransportCanary } from '../native-canary'
 
 jest.mock('@sentry/nextjs', () => ({ captureMessage: jest.fn() }))
 jest.mock('../capacitor', () => ({ isNativeBridge: jest.fn(() => true), isCapacitor: jest.fn(() => true) }))
-jest.mock('../native-auth-capture', () => ({ getUnderlyingFetch: () => null }))
+jest.mock('../passkey-auth-capture', () => ({ getUnderlyingFetch: () => null }))
 jest.mock('../native-http', () => ({ nativeHttpRequest: jest.fn() }))
 // Mocked at the consumer boundary rather than as a (virtual) @capacitor/app
 // module: another suite in the same worker mocking that package non-virtually

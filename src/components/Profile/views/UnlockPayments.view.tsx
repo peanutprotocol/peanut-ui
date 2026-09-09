@@ -562,7 +562,7 @@ const UnlockPayments = () => {
             />
 
             <ActionModal
-                visible={!!flow.error && !errorAcknowledged}
+                visible={!!flow.error && !flow.errorCooldown && !errorAcknowledged}
                 onClose={() => setErrorAcknowledged(true)}
                 title={
                     failedRegionRetriable
@@ -656,9 +656,19 @@ const UnlockSection = ({
                 return <StatusBadge status="processing" customText={t('chips.processing')} />
             case 'attention':
                 return <StatusBadge status="pending" customText={t('chips.attention')} />
-            case 'unlock':
             case 'notAvailable':
-                return <span className="text-body-s text-foreground-secondary">{t(`chips.${row.chip}`)}</span>
+                if (row.labelKey === 'card') {
+                    return (
+                        <StatusBadge
+                            status="custom"
+                            customText={t('chips.notAvailable')}
+                            className="bg-background-badge-helper"
+                        />
+                    )
+                }
+                return <span className="text-body-s text-foreground-secondary">{t('chips.notAvailable')}</span>
+            case 'unlock':
+                return <span className="text-body-s text-foreground-secondary">{t('chips.unlock')}</span>
         }
     }
 
@@ -682,9 +692,10 @@ const UnlockSection = ({
                     return (
                         <ListItem
                             key={row.id}
+                            className="min-h-18"
                             disabled={row.chip === 'notAvailable'}
                             leading={<IconBubble icon={row.icon as IconName} size="s" color={BUBBLE_COLOR[row.chip]} />}
-                            title={t(`rows.${row.labelKey}`)}
+                            title={<span className="break-words whitespace-normal">{t(`rows.${row.labelKey}`)}</span>}
                             trailing={rowTrailing(row)}
                             chevron={tappable}
                             onClick={tappable ? () => onRowClick(row) : undefined}
@@ -698,7 +709,10 @@ const UnlockSection = ({
                         Everywhere group always states that — it is the one limit
                         that exists before any unlock. */}
                     {group.id === 'everywhere' && (
-                        <p className="text-body-s text-foreground-secondary">{t('limits.p2pNoLimit')}</p>
+                        <div className="flex flex-col gap-1">
+                            <p className="text-body-s text-foreground-secondary">{t('limits.p2pNoLimit')}</p>
+                            <ProgressBar value={100} />
+                        </div>
                     )}
                     {limitSummaries.map((summary) =>
                         summary.kind === 'manteca' ? (

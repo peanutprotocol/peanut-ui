@@ -25,33 +25,69 @@ export const basicAvatarKeys = (): string[] => BASICS.map((slug) => `basic.${slu
 /** a-z, the letter stickers every user may wear regardless of their name. */
 export const LETTERS: readonly string[] = Array.from({ length: 26 }, (_, i) => String.fromCharCode(97 + i))
 
-export const letterAvatarKeys = (): string[] => LETTERS.map((letter) => `letter.${letter}`)
-
 /** Avatar keys unlocked by holding these badge codes, in badge order. */
 export const badgeAvatarKeys = (heldCodes: readonly string[]): string[] =>
     heldCodes.flatMap((code) => slugsOf(code).map((slug) => `badge.${code}.${slug}`))
 
 /** Everything the user may pick: the basics plus what their badges unlock. */
 export const avatarPool = (heldCodes: readonly string[]): string[] => [
-    ...letterAvatarKeys(),
+    ...LETTERS.map((letter) => `letter.${letter}`),
     ...basicAvatarKeys(),
     ...badgeAvatarKeys(heldCodes),
 ]
 
+// slots 2-8 of the hand; slot 1 is the initial and slot 9 is the die
+const DEALT = 7
+
 /**
- * The basics row the picker offers: the current pick if it is a basic, then
- * random basics to fill `n`. The dice rerolls this row and never the pick
- * (Split's semantics: the dice changes what is offered, not who you are).
+ * The given keys, each drawing once: a key whose art this bundle does not know
+ * is dropped, and so is one whose art an earlier key already claimed (holding a
+ * badge code twice unlocks the same files twice).
  */
-export function offerBasics(pick: string | null, n = 5, random: () => number = Math.random): string[] {
-    const basics = basicAvatarKeys()
-    const keep = pick && basics.includes(pick) ? [pick] : []
-    const rest = basics.filter((key) => key !== pick)
-    for (let i = rest.length - 1; i > 0; i--) {
+const distinctArt = (keys: readonly string[]): string[] => {
+    const taken = new Set<string>()
+    return keys.filter((key) => {
+        const src = avatarSrc(key)
+        if (!src || taken.has(src)) return false
+        taken.add(src)
+        return true
+    })
+}
+
+/**
+ * The hand the picker deals: index 0 is always the initial (null) and never
+ * re-deals, then seven keys from the deck — the basics plus what the user's
+ * badges unlocked. One is guaranteed to be an earned badge avatar whenever the
+ * user holds a badge with art (`prefer` narrows that draw to one badge, for the
+ * badge-earned toast's deep link), the current pick stays in the hand so the
+ * selected state is on screen, and the rest fills the seven. Slots 2-8 are
+ * shuffled together and no two of them draw the same art. Rolling deals again
+ * and never changes the pick (Split's semantics: the die changes what is
+ * offered, not who you are).
+ *
+ * A pick outside the deck is not dealt: a letter is slot 1's own art, and a key
+ * this bundle's manifest does not know (a lagging native bundle after the API
+ * added a slug) would render as a second initial.
+ */
+export function dealHand(
+    pick: string | null,
+    unlocked: readonly string[],
+    { prefer, random = Math.random }: { prefer?: string; random?: () => number } = {}
+): (string | null)[] {
+    const draw = (pool: string[]) => pool.splice(Math.floor(random() * pool.length), 1)[0]
+    const deck = distinctArt([...basicAvatarKeys(), ...unlocked])
+    const earned = deck.filter((key) => key !== pick && unlocked.includes(key))
+    const preferred = prefer ? earned.filter((key) => key.startsWith(`badge.${prefer}.`)) : []
+    const hand: string[] = []
+    if (earned.length) hand.push(draw(preferred.length ? [...preferred] : [...earned]))
+    if (pick && deck.includes(pick)) hand.push(pick)
+    const rest = deck.filter((key) => !hand.includes(key))
+    while (hand.length < DEALT && rest.length) hand.push(draw(rest))
+    for (let i = hand.length - 1; i > 0; i--) {
         const j = Math.floor(random() * (i + 1))
-        ;[rest[i], rest[j]] = [rest[j], rest[i]]
+        ;[hand[i], hand[j]] = [hand[j], hand[i]]
     }
-    return [...keep, ...rest].slice(0, n)
+    return [null, ...hand]
 }
 
 /** Public path of the avatar art, or null for a key the manifest does not know. */

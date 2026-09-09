@@ -34,6 +34,7 @@ export function QrPayFormView() {
         paymentLock,
         qrPayment,
         merchantName,
+        pixKeyLabel,
         methodIcon,
         currency,
         currencyAmount,
@@ -108,7 +109,11 @@ export function QrPayFormView() {
                                 <p className="flex items-center gap-1 text-center text-body-s">
                                     <Icon name="arrow-up-right" size={10} /> {t('youArePaying')}
                                 </p>
-                                <p className="text-heading-xs break-words">{merchantName}</p>
+                                <p
+                                    className={`text-heading-xs break-words ${pixKeyLabel ? 'ph-mask ph-no-capture' : ''}`}
+                                >
+                                    {merchantName}
+                                </p>
                             </div>
                         </div>
                     </Card>
@@ -171,7 +176,7 @@ export function QrPayFormView() {
                         <PaymentInfoRow
                             label={t('info.exchangeRate')}
                             value={`1 USD = ${currency.price} ${currency.code.toUpperCase()}`}
-                            moreInfoText={t('info.exchangeRateTooltip')}
+                            moreInfoText={t('info.exchangeRateTooltip', { currency: currency?.code ?? '' })}
                         />
                         {(() => {
                             if (!hasCardMarkupComparison(currency.code)) return null

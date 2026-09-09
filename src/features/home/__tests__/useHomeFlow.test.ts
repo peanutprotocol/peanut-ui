@@ -75,18 +75,15 @@ describe('useHomeFlow', () => {
         expect(mockDisconnect).not.toHaveBeenCalled()
     })
 
-    it('never derives an avatar name from the display name — the chip seeds from the username', () => {
+    it('hands down the username, never the display name', () => {
         mockUser = userWith({ showFullName: true, fullName: 'Kushagra S' })
         const flow = renderHook(() => useHomeFlow()).result.current
         expect(flow.username).toBe('kush')
         expect(flow).not.toHaveProperty('avatarName')
     })
 
-    it('passes the picked avatar through, null when there is none', () => {
+    it('carries no avatar any more — home wears a menu button (TASK-22142)', () => {
         mockUser = userWith({ avatarKey: 'basic.frog' })
-        expect(renderHook(() => useHomeFlow()).result.current.avatarKey).toBe('basic.frog')
-
-        mockUser = userWith({})
-        expect(renderHook(() => useHomeFlow()).result.current.avatarKey).toBeNull()
+        expect(renderHook(() => useHomeFlow()).result.current).not.toHaveProperty('avatarKey')
     })
 })

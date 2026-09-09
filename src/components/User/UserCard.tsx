@@ -82,7 +82,8 @@ const UserCard = ({
                     inlineStyle={{
                         backgroundColor:
                             recipientType !== 'USERNAME'
-                                ? '#FFD700'
+                                ? // drift fix: was an off-token gold hex — snapped to the DS yellow
+                                  'var(--color-background-icon-bubble-yellow)'
                                 : getColorForUsername(fullName || username).lightShade,
                         color:
                             recipientType !== 'USERNAME'

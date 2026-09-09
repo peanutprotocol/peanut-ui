@@ -102,6 +102,7 @@ export default function WithdrawBankPage() {
             />
 
             <InitiateKycModal
+                cooldownActive={!!flow.sumsubFlow.errorCooldown}
                 visible={flow.showKycModal}
                 onClose={() => {
                     // dismiss = abandon: clear the uplift latch so a later
@@ -116,7 +117,7 @@ export default function WithdrawBankPage() {
                         await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                     } else {
                         await sumsubFlow.handleInitiateKyc(
-                            bankRegionIntent(getCountryFromPath(country)?.region ?? 'rest-of-the-world'),
+                            bankRegionIntent(countryFromPath),
                             undefined,
                             gate.kind === 'needs-enrollment' || undefined,
                             getCountryFromPath(country)?.id
@@ -142,7 +143,13 @@ export default function WithdrawBankPage() {
                 onClose={pendingModal.close}
                 message={pendingModal.message}
             />
-            <SumsubKycModals flow={sumsubFlow} />
+            <SumsubKycModals
+                flow={flow.sumsubFlow}
+                onCooldownClose={() => {
+                    flow.setShowKycModal(false)
+                    flow.resetUpliftFunnel()
+                }}
+            />
         </div>
     )
 }

@@ -15,13 +15,7 @@ import { cryptoStepGuards } from '@/features/withdraw/step-guards'
 import { validateCryptoWithdrawAmount } from '@/features/withdraw/amount-validation'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { chargesApi } from '@/services/charges'
-import { requestsApi } from '@/services/requests'
-import type {
-    CreateChargeRequest,
-    CreateRequestRequest as CreateRequestPayloadServices,
-    TCharge,
-    TRequestResponse,
-} from '@/services/services.types'
+import type { CreateChargeRequest, TCharge } from '@/services/services.types'
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
 import { isWithdrawFeeDisproportionate, getMinWithdrawUsdForChain } from '@/utils/cross-chain-fee.utils'
 import { isAmountWithinBalance } from '@/utils/balance.utils'
@@ -215,11 +209,17 @@ export default function WithdrawCryptoPage() {
         }
     }, [routeError, recordError, setPaymentError])
 
+    const quoteAmount =
+        setupAmountRef.current?.chargeId === chargeDetails?.uuid
+            ? (setupAmountRef.current?.amountUsd ?? liveResolvedAmount)
+            : liveResolvedAmount
+
     // Quote the route (Rhino preview + SDA / bridge quote, or the same-chain
     // tx). Runs on entering the review step and again before signing when the
     // quote on screen has expired.
     const quoteRoute = useCallback(() => {
-        if (!chargeDetails || !withdrawData || !address) return Promise.resolve()
+        if (!chargeDetails || !withdrawData || !address || executedSpendRef.current?.chargeId === chargeDetails.uuid)
+            return Promise.resolve()
         return calculateRoute({
             source: {
                 address: address as Address,
@@ -229,10 +229,7 @@ export default function WithdrawCryptoPage() {
                 // the bridge path's 'pay' mode (cross-chain ETH/etc). Pinned
                 // to the amount the charge was created for — the URL param
                 // stays editable and must not re-route the quote.
-                tokenAmount:
-                    setupAmountRef.current?.chargeId === chargeDetails.uuid
-                        ? setupAmountRef.current.amountUsd
-                        : liveResolvedAmount,
+                tokenAmount: quoteAmount,
             },
             destination: {
                 recipientAddress: chargeDetails.requestLink.recipientAddress as Address,
@@ -247,12 +244,12 @@ export default function WithdrawCryptoPage() {
             senderPeanutWalletAddress: address as Address,
             skipGasEstimate: true, // peanut wallet handles gas
         })
-    }, [chargeDetails, withdrawData, calculateRoute, address, liveResolvedAmount])
+    }, [chargeDetails, withdrawData, calculateRoute, address, quoteAmount])
 
     // prepare transaction when entering the review step
     useEffect(() => {
-        if (stepper.step === 'review') void quoteRoute()
-    }, [stepper.step, quoteRoute])
+        if (stepper.step === 'review' && !isProcessing) void quoteRoute()
+    }, [stepper.step, quoteRoute, isProcessing])
 
     const handleSetupReview = useCallback(
         async (data: Omit<WithdrawData, 'amount'>) => {
@@ -325,31 +322,11 @@ export default function WithdrawCryptoPage() {
 
                 const completeWithdrawData = { ...data, amount: destinationTokenAmount }
                 setWithdrawData(completeWithdrawData)
-                const apiRequestPayload: CreateRequestPayloadServices = {
-                    recipientAddress: completeWithdrawData.address,
-                    chainId: completeWithdrawData.chain.chainId.toString(),
-                    tokenAddress: completeWithdrawData.token.address,
-                    tokenType: String(
-                        completeWithdrawData.token.address.toLowerCase() === NATIVE_TOKEN_ADDRESS.toLowerCase()
-                            ? peanutInterfaces.EPeanutLinkType.native
-                            : peanutInterfaces.EPeanutLinkType.erc20
-                    ),
-                    tokenAmount: destinationTokenAmount,
-                    tokenDecimals: completeWithdrawData.token.decimals.toString(),
-                    tokenSymbol: completeWithdrawData.token.symbol,
-                }
-                const newRequest: TRequestResponse = await requestsApi.create(apiRequestPayload)
-
-                if (!newRequest || !newRequest.uuid) {
-                    throw new Error(t('errors.requestFailed'))
-                }
-
                 const recipientEnsName = recipient.name?.trim().toLowerCase()
                 const chargePayload: CreateChargeRequest = {
                     pricing_type: 'fixed_price',
                     local_price: { amount: usdValue.toString(), currency: 'USD' },
                     baseUrl: appBaseUrl(),
-                    requestId: newRequest.uuid,
                     requestProps: {
                         chainId: completeWithdrawData.chain.chainId.toString(),
                         tokenAmount: destinationTokenAmount,
@@ -382,7 +359,7 @@ export default function WithdrawCryptoPage() {
                 setChargeDetails(fullChargeDetails)
                 setShowCompatibilityModal(true)
             } catch (err) {
-                console.error('Error during setup review (request/charge creation):', err)
+                console.error('Error during setup review (charge creation):', err)
                 const errorMessage = err instanceof Error && err.message ? err.message : t('errors.prepareFailed')
                 setError(errorMessage)
             } finally {
@@ -433,15 +410,17 @@ export default function WithdrawCryptoPage() {
             return
         }
 
-        if (!transactions || transactions.length === 0) {
-            // Nothing prepared — the route never resolved, or an expiry refresh
-            // just failed. Quote again instead of dead-ending on "not prepared";
-            // a persistent failure keeps surfacing through routeError.
-            // Drop the copied error first: it is the previous attempt's, and
-            // leaving it up would show "Retry" over a route that just resolved,
-            // so the next tap would broadcast under a stale failure message.
+        const alreadySpent = executedSpendRef.current?.chargeId === chargeDetails.uuid
+        if (!alreadySpent && (!transactions || transactions.length === 0)) {
+            // Nothing prepared — the route never resolved, an expiry refresh
+            // failed, or a route error (cap 429, quote failure) left nothing
+            // built. Quote again instead of dead-ending on "not prepared"; a
+            // persistent failure keeps surfacing through routeError. One
+            // recalculation at a time: a double-tap must not provision twice
+            // (each provision holds a cap slot) or race the route state.
+            if (isCalculating) return
             clearErrors()
-            await quoteRoute()
+            void quoteRoute()
             return
         }
 
@@ -451,7 +430,6 @@ export default function WithdrawCryptoPage() {
         // refresh and let the user confirm the fresh numbers instead of signing
         // a stale pay amount — unless funds already moved for this charge (the
         // record-only retry below must never re-quote).
-        const alreadySpent = executedSpendRef.current?.chargeId === chargeDetails.uuid
         const quoteExpired = quoteExpiresAt ? isQuoteNearExpiry(quoteExpiresAt) : false
         if (quoteExpired && !alreadySpent) {
             clearErrors()
@@ -549,7 +527,7 @@ export default function WithdrawCryptoPage() {
                 // transfer reverts with `ERC20: transfer amount exceeds balance`.
                 const sourceUsdcAmount = payAmount ?? usdAmount.toString()
                 const requiredUsdcAmount = parseUnits(sourceUsdcAmount, PEANUT_WALLET_TOKEN_DECIMALS)
-                const txResult = await sendTransactions(transactions, {
+                const txResult = await sendTransactions(transactions!, {
                     chainId: PEANUT_WALLET_CHAIN.id.toString(),
                     requiredUsdcAmount,
                     kind: 'CRYPTO_WITHDRAW',
@@ -630,7 +608,7 @@ export default function WithdrawCryptoPage() {
                 }
             }
 
-            executedSpendRef.current = null
+            // Keep execution proof for this charge even after recording succeeds.
             setTransactionHash(finalTxHash)
             setExecutedAmountUsd(broadcastAmount)
             setPaymentDetails(payment)
@@ -685,6 +663,9 @@ export default function WithdrawCryptoPage() {
         setTransactionHash,
         setPaymentDetails,
         clearErrors,
+        routeError,
+        isCalculating,
+
         setError,
         triggerHaptic,
         t,

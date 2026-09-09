@@ -1,5 +1,7 @@
 'use client'
 
+import { useSafeBack } from '@/hooks/useSafeBack'
+
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { getCountryFromAccount, getCountryFromPath } from '@/utils/bridge.utils'
@@ -15,7 +17,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { withdrawBankUrl, withdrawCountryUrl } from '@/utils/native-routes'
 import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
-import { parseAsString, useQueryState } from 'nuqs'
+import { parseAsString, parseAsBoolean, useQueryState } from 'nuqs'
 import { useTranslations } from 'next-intl'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useWithdrawFlow } from './WithdrawFlowContext'
@@ -29,9 +31,11 @@ import { WITHDRAW_ROOT_STEPS } from './types'
  */
 export function useWithdrawRootFlow() {
     const router = useRouter()
+    const goBackToSend = useSafeBack('/send', { replace: true })
     const t = useTranslations('withdraw')
     const tErrors = useTranslations('errors')
 
+    const [, setShowAll] = useQueryState('showAll', parseAsBoolean.withDefault(false))
     const [methodParam] = useQueryState('method', parseAsString)
     const [returnToParam] = useQueryState(RETURN_TO_PARAM, parseAsString)
     const { isFromSendFlow, isCryptoFromSend, isBankFromSend } = useSendFlowOrigin()
@@ -60,7 +64,7 @@ export function useWithdrawRootFlow() {
         onExit: () => {
             // back on the method step leaves the flow
             if (isBankFromSend) {
-                router.push('/send')
+                goBackToSend()
                 return
             }
             // an explicit origin (e.g. the exchange-rate widget's "Try it!" CTA)
@@ -341,7 +345,7 @@ export function useWithdrawRootFlow() {
         if (isCryptoFromSend) {
             // crypto from send: back leaves for /send (the method was implied)
             setSelectedMethod(null)
-            router.push('/send')
+            goBackToSend()
             return
         }
         // back to method selection — clear the amount so it doesn't carry over
@@ -350,10 +354,24 @@ export function useWithdrawRootFlow() {
         void setUrlAmount(null)
         filledFromBalanceRef.current = null
         setIsMaxWithdrawal(false)
+        if (selectedMethod?.type === 'bridge' && !selectedBankAccount) {
+            void setShowAll(true)
+        }
         setSelectedMethod(null)
         setSelectedBankAccount(null)
         void stepper.back()
-    }, [isCryptoFromSend, router, setSelectedMethod, setSelectedBankAccount, setUrlAmount, setIsMaxWithdrawal, stepper])
+    }, [
+        selectedMethod,
+        selectedBankAccount,
+        setShowAll,
+        isCryptoFromSend,
+        goBackToSend,
+        setSelectedMethod,
+        setSelectedBankAccount,
+        setUrlAmount,
+        setIsMaxWithdrawal,
+        stepper,
+    ])
 
     // check if continue button should be disabled
     const continueDisabled = useMemo(() => {

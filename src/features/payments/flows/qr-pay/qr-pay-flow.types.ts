@@ -6,6 +6,7 @@ export interface QrPayScanParams {
     qrCode: string
     timestamp: string | null
     qrType: string | null
+    pixKey?: string | null
 }
 
 export interface QrPayCurrency {

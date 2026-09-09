@@ -20,7 +20,7 @@ interface UnlockMethodModalProps {
 
 /**
  * Method-worded unlock sheet for the Unlock payments screen. The tap promised
- * a product ("SEPA transfers · Unlock"), so the sheet speaks about that
+ * a product ("Euro bank transfers · Unlock"), so the sheet speaks about that
  * product — never about regions. The body is the prep checklist: what to have
  * ready and how long it takes, stated BEFORE the SDK opens, so nobody starts
  * the check and then goes hunting for documents halfway through.
@@ -45,7 +45,7 @@ const UnlockMethodModal = ({
             }}
         >
             <DrawerContent>
-                <div className="flex flex-col items-center px-4 pt-1 pb-6 text-center">
+                <div className="flex flex-col items-center pt-1 pb-6 text-center">
                     {/* the head owns the M/12 beneath it; everything after it
                         keeps the drawer's L/16 rhythm */}
                     <div className="mb-3 flex w-full flex-col items-center gap-4">

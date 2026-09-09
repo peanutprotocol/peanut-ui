@@ -1,3 +1,4 @@
+import { redactQrTelemetry, redactQrTelemetryString, maskQrReplayRequest } from '@/utils/qr-telemetry-privacy'
 import { APP_RELEASE } from '@/constants/app-release'
 import posthog from 'posthog-js'
 import { beforeSendHandler } from './sentry.utils'
@@ -7,6 +8,7 @@ import { posthogErrorMirror } from '@/utils/sentry-posthog-mirror'
 import { whenIdle } from '@/utils/defer-analytics'
 import { startWebVitalsShim } from '@/utils/web-vitals-shim'
 import { noteAppReviewFriction } from '@/utils/app-review-friction'
+import { isNativeFetchRejectionExceptionEvent } from '@/utils/native-fetch-rejection'
 import { installPaymentNetworkGoogleAnalyticsGuard, isPaymentNetworkExplorerPath } from '@/utils/private-routes'
 
 // Same conditions as the GA bootstrap in app/layout.tsx: with no GA to disable
@@ -54,8 +56,12 @@ if (
         // already funnels through here, so the suppressor needs no call sites.
         before_send: (event) => {
             if (isPaymentNetworkExplorerPath(window.location.pathname)) return null
+            // Handled WebKit/Chromium connectivity blips: Sentry already filters
+            // this class server-side; exception autocapture must not double-report
+            // it here (TASK-22408).
+            if (isNativeFetchRejectionExceptionEvent(event)) return null
             if (event?.event) noteAppReviewFriction(event.event)
-            return event
+            return redactQrTelemetry(event)
         },
         // autocapture walks the DOM ancestor chain on every tap, which costs frames
         // in the in-app WebView renderer for data that 220+ explicit
@@ -88,6 +94,12 @@ if (
          * reach for, before switching recording off again.
          */
         disable_session_recording: true,
+        session_recording: {
+            recordBody: false,
+            recordHeaders: false,
+            maskCapturedNetworkRequestFn: maskQrReplayRequest,
+            maskAttributeFn: (_name, value) => redactQrTelemetryString(value),
+        },
     })
 
     whenIdle(() => posthog.startSessionRecording())
@@ -132,7 +144,7 @@ if (
                 beforeSend: (event) =>
                     isPaymentNetworkExplorerPath(window.location.pathname) ? null : beforeSendHandler(event),
                 beforeSendTransaction: (event) =>
-                    isPaymentNetworkExplorerPath(window.location.pathname) ? null : event,
+                    isPaymentNetworkExplorerPath(window.location.pathname) ? null : redactQrTelemetry(event),
                 // A WebView that can't reach the bundler can't reach ingest either,
                 // so the report of the failure died with the session. The offline
                 // transport parks undeliverable envelopes in IndexedDB and flushes
