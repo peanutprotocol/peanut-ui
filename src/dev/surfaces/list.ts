@@ -82,7 +82,6 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '32-c-cancelcardmodal': { name: 'CancelCardModal (confirm phase)', path: 'Card/CancelCardModal.tsx' },
     '33-c-cardlimiteditmodal': { name: 'CardLimitEditModal', path: 'Card/CardLimitEditModal.tsx' },
     '34-c-lockcardmodal': { name: 'LockCardModal (lock)', path: 'Card/LockCardModal.tsx' },
-    '35-c-cardunlockdrawer': { name: 'CardUnlockDrawer', path: 'Card/CardUnlockDrawer.tsx' },
     '36-c-badgedetailmodal': { name: 'BadgeDetailModal', path: 'Badges/BadgeDetailModal.tsx' },
     '37-c-badgestatusdrawer': { name: 'BadgeStatusDrawer', path: 'Badges/BadgeStatusDrawer.tsx' },
     '38-c-howtodepositmodal': { name: 'HowToDepositModal', path: 'AddMoney/components/HowToDepositModal.tsx' },

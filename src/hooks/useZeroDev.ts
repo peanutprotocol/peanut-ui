@@ -224,17 +224,12 @@ export const useZeroDev = () => {
             // Re-read after `/invites/accept`: a confirmed legacy adapter may
             // have settled the same tag, while a malformed/missing result may
             // have queued it for an immediate canonical retry.
+            settleShhhhhCampaignContinuation()
             const pendingBadgeCampaigns = getPendingBadgeCampaigns()
             if (pendingBadgeCampaigns.length > 0) {
                 const batch = await claimAndSettlePendingBadgeCampaigns(pendingBadgeCampaigns)
                 const confirmed = batch.claims.filter(isConfirmedBadgeCampaignClaim)
                 const unavailable = batch.claims.filter(isUnavailableBadgeCampaignClaim)
-
-                // Explicit badge campaigns do not pass through `/invites/accept`.
-                // Shhhhh owns the one remaining compatibility continuation: only a
-                // confirmed Skip Pass replaces its safe /home marker with /card.
-                // Bespoke campaign destinations retired with TASK-21226.
-                settleShhhhhCampaignContinuation(batch.claims)
 
                 if (confirmed.length > 0) {
                     posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, {

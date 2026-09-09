@@ -89,8 +89,8 @@ jest.mock('@/context/ModalsContext', () => ({
         openSupportWithMessage: mockOpenSupport,
     }),
 }))
-jest.mock('@/hooks/useCardInfo', () => ({
-    useCardInfo: () => ({ hasCardAccess: mockHasCardAccess }),
+jest.mock('@/hooks/useCardSurfaceAccess', () => ({
+    useCardSurfaceAccess: () => ({ showCardSurface: mockHasCardAccess }),
 }))
 jest.mock('@/components/Global/ActionModal', () => ({
     __esModule: true,
@@ -110,11 +110,6 @@ jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockPush }),
 }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
-jest.mock('@/components/Home/CardLaunchCTA/CardLaunchCTABanner', () => ({
-    __esModule: true,
-
-    default: () => null,
-}))
 
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => ({

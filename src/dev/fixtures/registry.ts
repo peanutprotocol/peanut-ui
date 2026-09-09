@@ -181,6 +181,30 @@ export const FIXTURES: Record<string, Fixture> = {
     limits: { route: '/limits', about: 'Payment limits: the unlocked regions and the crypto note.' },
     // Masked state only ('****' — same span as the digits). Revealing needs a
     // passkey step-up, which no fixture can answer.
+    'card-application': {
+        route: '/card',
+        about: 'Public card application with unknown residence, no admission badge, and no card balance.',
+        responses: {
+            'GET /users/me': { user: { badges: [] }, identityVerification: { status: 'not_started' } },
+            'GET /card': { isEligible: false, geoProhibited: false },
+            'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
+        },
+    },
+    'card-prohibited': {
+        route: '/card',
+        about: 'Known prohibited residence remains blocked from a new card application.',
+        responses: {
+            'GET /card': { isEligible: false, geoProhibited: true },
+            'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
+        },
+    },
+    'card-pending': {
+        route: '/card',
+        about: 'Existing card application keeps its provider review status.',
+        responses: {
+            'GET /rain/cards': { status: { hasApplication: true, railStatus: 'PENDING' }, cards: [], balance: null },
+        },
+    },
     'card-pin': {
         route: '/card/pin',
         about: 'Card PIN screen, masked, with an active fake card behind the gate.',

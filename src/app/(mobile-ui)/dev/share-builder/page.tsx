@@ -151,8 +151,8 @@ export default function ShareBuilderPage() {
                         </DevField>
                         <div className="flex flex-wrap gap-2">
                             <DevPresetButton onClick={() => setHeroText("I'M IN")}>I&apos;M IN</DevPresetButton>
-                            <DevPresetButton onClick={() => setHeroText("shhhh, i'm in")}>
-                                shhhh, i&apos;m in
+                            <DevPresetButton onClick={() => setHeroText('My Peanut Card')}>
+                                My Peanut Card
                             </DevPresetButton>
                             <DevPresetButton onClick={() => setHeroText('ACCESS GRANTED')}>
                                 ACCESS GRANTED
@@ -417,7 +417,7 @@ export default function ShareBuilderPage() {
 
                     {/* Faithful "in the share flow" strip — mirrors how the asset,
                         the anti-dox toggle, and the share buttons stack in
-                        BadgeSkipCelebration / CardUnlockDrawer. */}
+                        card share previews. */}
                     <div className="mx-auto flex w-full max-w-md flex-col gap-3 rounded-sm border-2 border-dashed border-gray-600 bg-white p-4">
                         <div className="text-center text-[10px] font-bold tracking-wider text-foreground-secondary uppercase">
                             ↑ asset · how it stacks in the real flow ↓

@@ -39,7 +39,7 @@ export const Profile = () => {
     // Rain) to the provider-blind identityVerification projection, which today mirrors Sumsub
     // applicant state. Bridge/Manteca rail approval does NOT flip this badge.
     const { isVerified: isUserSumsubKycApproved } = useIdentityVerification()
-    const { hasCardAccess, hasCardRelationship, showCardSurface: showCardMenuItem, cardHref } = useCardSurfaceAccess()
+    const { showCardSurface: showCardMenuItem, cardHref } = useCardSurfaceAccess()
     const t = useAppTranslations('profile')
     const { locale } = useAppLocale()
     const { pendingBundle, storeUpdateRequired } = useOtaUpdate()
@@ -93,20 +93,8 @@ export const Profile = () => {
                             // one screen.
                             badge={isUserSumsubKycApproved ? undefined : t('menu.unlockBadge')}
                         />
-                        {/* Card row shows for holders and for everyone the card is
-                            still attainable by (see useCardSurfaceAccess). Past the
-                            waitlist gate goes straight to /card; everyone else lands
-                            on /shhhhh — the waitlist/explainer door, the canonical
-                            card entry point — whose CTA forwards on to /card
-                            post-launch. We deliberately DON'T send users without that
-                            gate to /card: it notFound()s them. */}
                         {showCardMenuItem && (
-                            <ProfileMenuItem
-                                icon="credit-card"
-                                label={hasCardAccess || hasCardRelationship ? t('menu.yourCard') : t('menu.peanutCard')}
-                                href={cardHref}
-                                badge={hasCardAccess || hasCardRelationship ? undefined : t('menu.newBadge')}
-                            />
+                            <ProfileMenuItem icon="credit-card" label={t('menu.peanutCard')} href={cardHref} />
                         )}
                         <ProfileMenuItem
                             icon="exchange"

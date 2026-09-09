@@ -19,21 +19,17 @@ const ScaledPixelatedCardFace = dynamic(
 // the hex in its class because Tailwind only sees literals.
 const PINK = '#FF90E8'
 
-/**
- * The homepage door to /shhhhh: wordmark, tagline, the door itself, the card.
- * Every click here goes to /shhhhh — the fold makes the offer and the page
- * does the work (the pitch, the scarcity count, sign-in, badge check, waitlist).
- */
+/** Public card entry on the homepage. */
 export function ShhhhhFold() {
     const t = useTranslations('shhhhh.hero')
 
     return (
-        <section id="the-door" className="relative overflow-hidden bg-n-1 px-4 py-20 text-white md:py-28">
+        <section id="peanut-card" className="relative overflow-hidden bg-n-1 px-4 py-20 text-white md:py-28">
             <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-9 md:grid-cols-[1.1fr_0.9fr] md:gap-13">
                 <div className="min-w-0">
                     <Link
                         prefetch={false}
-                        href="/shhhhh"
+                        href="/card"
                         className="font-roboto-flex-extrabold inline-block text-headingMedium leading-none font-extraBlack md:text-headingLarge"
                     >
                         {t('wordmark')}
@@ -44,20 +40,13 @@ export function ShhhhhFold() {
                     </p>
 
                     <div className="mt-8 flex flex-wrap items-center gap-5 md:gap-6">
-                        <Link prefetch={false} href="/shhhhh">
+                        <Link prefetch={false} href="/card">
                             {/* no shadowSize: that prop only paints black. The pink
                                 shadow is an arbitrary class so the base
                                 `active:shadow-none` still flattens it on press. */}
                             <Button className="!w-auto bg-white px-7 py-3 text-base font-extrabold shadow-[0.25rem_0.25rem_0_#FF90E8] hover:bg-white/90 active:translate-y-[4px] md:px-9 md:text-lg">
-                                {t('tryTheDoor')}
+                                {t('cta')}
                             </Button>
-                        </Link>
-                        <Link
-                            prefetch={false}
-                            href="/shhhhh"
-                            className="font-roboto-flex text-base font-extraBlack underline underline-offset-4"
-                        >
-                            {t('orJoinWaitlist')}
                         </Link>
                     </div>
 
@@ -67,17 +56,9 @@ export function ShhhhhFold() {
                 </div>
 
                 <div className="flex min-w-0 justify-center md:justify-end">
-                    {/* blurAll: closed-beta tease — card shape recognisable, logos +
-                        number unreadable. Rotation sits on the wrapper so the inner
-                        host still measures its layout width for the fit-to-width scale. */}
-                    <Link
-                        prefetch={false}
-                        href="/shhhhh"
-                        aria-label={t('tryTheDoor')}
-                        className="inline-block -rotate-12"
-                    >
+                    <Link prefetch={false} href="/card" aria-label={t('cta')} className="inline-block -rotate-12">
                         <div className="aspect-[400/252] w-[min(20rem,72vw)] md:w-[min(25rem,30vw)]">
-                            <ScaledPixelatedCardFace last4="????" blurAll shadowColor={PINK} />
+                            <ScaledPixelatedCardFace last4="????" shadowColor={PINK} />
                         </div>
                     </Link>
                 </div>

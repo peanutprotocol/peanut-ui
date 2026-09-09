@@ -144,7 +144,7 @@ describe('useZeroDev registration invite boundary', () => {
         }
     )
 
-    it('settles the signed-out Shhhhh continuation from the typed registration claim', async () => {
+    it('preserves the card continuation independently of campaign awards', async () => {
         const claims = [{ badgeCampaign: 'skip', badgeCode: 'WAITLIST_SKIP', outcome: 'awarded' as const }]
         mockPendingBadgeCampaigns = ['skip']
         mockAcceptInvite.mockResolvedValue({
@@ -164,7 +164,7 @@ describe('useZeroDev registration invite boundary', () => {
         await act(async () => result.current.handleRegister('new-user'))
 
         expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledWith(['skip'])
-        expect(mockSettleShhhhhCampaignContinuation).toHaveBeenCalledWith(claims)
+        expect(mockSettleShhhhhCampaignContinuation).toHaveBeenCalledWith()
         expect(mockPersistRegistrationBadgeCampaignDestination).not.toHaveBeenCalled()
         expect(mockSetWebAuthnKey).toHaveBeenCalledWith({ id: 'new-passkey' })
     })

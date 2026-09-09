@@ -29,7 +29,7 @@ export default function PlaygroundPage() {
                 />
                 <CatalogCard
                     title="Share Builder"
-                    description="Iterator for the D3 card-waitlist share asset — stress-test tiers, names and edge cases."
+                    description="Iterator for the D3 card share asset — stress-test tiers, names and edge cases."
                     href="/dev/share-builder"
                     icon="copy"
                 />
