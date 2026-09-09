@@ -1,23 +1,27 @@
 /**
- * i18n overflow gate (TASK-22366): render screens in es-419 — the longest
- * locale — at 320px and FAIL when translated copy is actually clipped.
+ * i18n overflow gate (TASK-22366): render screens in every supported
+ * non-English locale at 320px and FAIL when translated copy is actually
+ * clipped. One Playwright project per locale (playwright.overflow.config.ts);
+ * es-419 is not a safe maximum — hundreds of pt-BR strings run longer.
  *
  * This is an absolute DOM check, not a visual diff: no baselines, no pixel
- * comparison. A test fails when an element that directly holds text is
- * clipped by its own overflow, or when an input's placeholder is wider than
- * the input. Elements that opt into truncation (text-overflow: ellipsis,
- * line-clamp — addresses, usernames) are skipped by design.
+ * comparison. The detector lives in overflow-check.ts (shared with the
+ * synthetic self-tests in overflow-detector.spec.ts). Elements that opt into
+ * truncation (text-overflow: ellipsis, line-clamp — addresses, usernames)
+ * are skipped by design.
  *
  * Coverage: every fixture in src/dev/fixtures/registry.ts, the localized
- * landing/marketing routes, and the signup/setup screens (reached with a CDP
- * virtual authenticator so the passkey preflight passes in headless).
+ * landing/marketing routes for the project's locale, and the signup/setup
+ * screens (reached with a CDP virtual authenticator so the passkey preflight
+ * passes in headless).
  *
- *   pnpm exec playwright test --config=playwright.shots.config.ts --project=overflow
+ *   npm run test:i18n-overflow:run
  */
 
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
 import { FIXTURE_STORAGE_KEY, fixtureHref } from '../../src/dev/fixtures/active'
 import { FIXTURES } from '../../src/dev/fixtures/registry'
+import { findOverflows } from './overflow-check'
 
 const FROZEN_NOW = new Date('2026-08-15T12:00:00.000Z')
 const LOADERS = '.animate-spin img[alt="Peanut mascot"], .animate-pulse'
@@ -37,127 +41,6 @@ const EXEMPT: string[] = [
     // react-fast-marquee tickers: the text scrolls through the clip by design
     '.rfm-marquee-container',
 ]
-
-type Overflow = {
-    selector: string
-    text: string
-    kind: 'clip-x' | 'clip-y' | 'placeholder'
-    detail: string
-}
-
-/**
- * Runs in the page. Finds text the user cannot read:
- *  - an element with a direct text node, clipped by its own overflow
- *    hidden/clip (scrollable containers are fine, ellipsis/line-clamp are
- *    deliberate truncation and skipped)
- *  - a container with overflow hidden whose text content is wider than the
- *    box (the text usually lives in a child whose own box grew to fit)
- *  - an input/textarea whose placeholder or value is wider than its content
- *    box (inputs clip natively, scrollWidth does not see it — the original
- *    "Usuario*" bug)
- */
-function findOverflows(exempt: string[]): Overflow[] {
-    const bad: Overflow[] = []
-    const canvas = document.createElement('canvas')
-    const ctx = canvas.getContext('2d')!
-
-    const path = (el: Element): string => {
-        const parts: string[] = []
-        let node: Element | null = el
-        while (node && node !== document.body && parts.length < 4) {
-            const cls = [...node.classList].slice(0, 3).join('.')
-            parts.unshift(node.tagName.toLowerCase() + (cls ? `.${cls}` : ''))
-            node = node.parentElement
-        }
-        return parts.join(' > ')
-    }
-
-    const isExempt = (el: Element): boolean =>
-        exempt.some((sel) => {
-            try {
-                return el.closest(sel) !== null
-            } catch {
-                return false
-            }
-        })
-
-    const seen = new Set<string>()
-    const flag = (el: Element, kind: Overflow['kind'], detail: string, text?: string) => {
-        const sample = (text ?? (el as HTMLElement).innerText ?? '').trim().replace(/\s+/g, ' ').slice(0, 80)
-        const key = `${kind}|${sample}`
-        if (seen.has(key)) return
-        seen.add(key)
-        bad.push({ selector: path(el), text: sample, kind, detail })
-    }
-
-    const visible = (el: Element): boolean => {
-        const cs = getComputedStyle(el)
-        if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) return false
-        const rect = el.getBoundingClientRect()
-        // sr-only / visually-hidden text lives in a 1px clipped box on purpose
-        return rect.width > 2 && rect.height > 2
-    }
-
-    const truncates = (el: Element): boolean => {
-        const cs = getComputedStyle(el)
-        const clamp = (cs as unknown as Record<string, string>).webkitLineClamp
-        return cs.textOverflow === 'ellipsis' || (clamp !== undefined && clamp !== 'none')
-    }
-
-    const hasOwnText = (el: Element): boolean =>
-        Array.from(el.childNodes).some((n) => n.nodeType === Node.TEXT_NODE && (n.textContent ?? '').trim().length > 0)
-
-    for (const el of Array.from(document.body.querySelectorAll('*'))) {
-        if (!visible(el)) continue
-        if (isExempt(el)) continue
-        const cs = getComputedStyle(el)
-
-        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
-            if (el.type === 'checkbox' || el.type === 'radio' || el.type === 'hidden') continue
-            const text = (el.value || el.placeholder || '').trim()
-            if (!text) continue
-            ctx.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`
-            const needed = ctx.measureText(text).width
-            const inner = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
-            if (needed > inner + 1) {
-                flag(el, 'placeholder', `text needs ${Math.round(needed)}px, input fits ${Math.round(inner)}px`, text)
-            }
-            continue
-        }
-
-        const hiddenX = cs.overflowX === 'hidden' || cs.overflowX === 'clip'
-        const hiddenY = cs.overflowY === 'hidden' || cs.overflowY === 'clip'
-        const clipX = hiddenX && el.scrollWidth > el.clientWidth + 1
-        // +3 vertical tolerance: line-height rounding trips a +1 check
-        const clipY = hiddenY && el.scrollHeight > el.clientHeight + 3
-        if (!clipX && !clipY) continue
-
-        // The clipped pixels may be decorative (positioned art bleeding off a
-        // hero on purpose), so attribute the clip to TEXT: flag only text-
-        // bearing descendants whose box actually crosses the clipped edge.
-        const box = el.getBoundingClientRect()
-
-        // the element clips its own direct text — scrollWidth already proves it
-        if (hasOwnText(el) && !truncates(el)) {
-            if (clipX) flag(el, 'clip-x', `scrollWidth ${el.scrollWidth} > clientWidth ${el.clientWidth}`)
-            else flag(el, 'clip-y', `scrollHeight ${el.scrollHeight} > clientHeight ${el.clientHeight}`)
-            continue
-        }
-
-        const holders = Array.from(el.querySelectorAll('*')).filter(
-            (d) => hasOwnText(d) && visible(d) && !truncates(d) && !isExempt(d)
-        )
-        for (const d of holders) {
-            const r = d.getBoundingClientRect()
-            if (clipX && r.right > box.right + 2) {
-                flag(d, 'clip-x', `text box right ${Math.round(r.right)}px > clip edge ${Math.round(box.right)}px`)
-            } else if (clipY && r.bottom > box.bottom + 3) {
-                flag(d, 'clip-y', `text box bottom ${Math.round(r.bottom)}px > clip edge ${Math.round(box.bottom)}px`)
-            }
-        }
-    }
-    return bad
-}
 
 async function settle(page: Page): Promise<void> {
     await page.waitForFunction((selector) => {
@@ -213,7 +96,7 @@ async function assertNoOverflow(page: Page, id: string, testInfo: TestInfo) {
     }
 
     const report = overflows.map((o) => `[${o.kind}] ${o.selector} — “${o.text}” (${o.detail})`).join('\n')
-    expect(overflows, `clipped es-419 copy on ${id}:\n${report}`).toEqual([])
+    expect(overflows, `clipped ${testInfo.project.name} copy on ${id}:\n${report}`).toEqual([])
 }
 
 async function blockExternal(page: Page): Promise<void> {
@@ -239,7 +122,7 @@ function seenOnceModals(): void {
 
 test.describe.configure({ mode: 'parallel' })
 
-// ---- app screens: one test per fixture, es-419 via navigator.language ----
+// ---- app screens: one test per fixture, locale via navigator.language ----
 
 for (const [name, fixture] of Object.entries(FIXTURES)) {
     test(`fixture:${name}`, async ({ page }, testInfo) => {
@@ -255,30 +138,37 @@ for (const [name, fixture] of Object.entries(FIXTURES)) {
             .toBe(name)
         await settle(page)
 
-        // prove the app actually rendered Spanish, or the whole gate is a no-op
+        // prove the app actually rendered this locale, or the gate is a no-op
+        const locale = testInfo.project.use.locale
         await expect
             .poll(() => page.evaluate(() => navigator.language), { message: 'context locale not applied' })
-            .toBe('es-419')
+            .toBe(locale)
 
         await assertNoOverflow(page, `fixture:${name}`, testInfo)
     })
 }
 
-// ---- landing / marketing: locale comes from the route ----
+// ---- landing / marketing: locale comes from the route, so each project
+// checks its own locale's routes (the table-heavy marketing templates render
+// through the same mdx components — one representative slug each) ----
 
-// The two localized landing pages plus the table-heavy marketing templates
-// (pricing, compare, country) — one representative slug each; every slug of a
-// template renders through the same mdx components.
-const LANDING_ROUTES = ['/es-419', '/pt-br', '/es-419/pricing', '/es-419/compare/wise', '/pt-br/argentina']
+const LANDING_ROUTES: Record<string, string[]> = {
+    'es-419': ['/es-419', '/es-419/pricing', '/es-419/compare/wise'],
+    'pt-BR': ['/pt-br', '/pt-br/argentina'],
+    'es-AR': ['/es-ar'],
+}
 
-for (const route of LANDING_ROUTES) {
-    test(`landing:${route}`, async ({ page }, testInfo) => {
-        await blockExternal(page)
-        await page.clock.setFixedTime(FROZEN_NOW)
-        await page.goto(route, { waitUntil: 'domcontentloaded' })
-        await settle(page)
-        await assertNoOverflow(page, `landing:${route}`, testInfo)
-    })
+for (const [locale, routes] of Object.entries(LANDING_ROUTES)) {
+    for (const route of routes) {
+        test(`landing:${route}`, async ({ page }, testInfo) => {
+            test.skip(testInfo.project.use.locale !== locale, `belongs to the ${locale} project`)
+            await blockExternal(page)
+            await page.clock.setFixedTime(FROZEN_NOW)
+            await page.goto(route, { waitUntil: 'domcontentloaded' })
+            await settle(page)
+            await assertNoOverflow(page, `landing:${route}`, testInfo)
+        })
+    }
 }
 
 // ---- signup/setup: needs a virtual authenticator or the passkey preflight
