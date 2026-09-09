@@ -64,9 +64,9 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                     {/* h2, not h1: this h1 sat directly above the h3 feature
                         titles, and that h1 → h3 skip failed Lighthouse's
                         heading-order audit. */}
-                    {/* heading-xl on mobile: "SEGURANÇA." at text-heading (60px)
+                    {/* headingSmall on mobile: "SEGURANÇA." at text-heading (60px)
                         needs 403px and clips at 320px (TASK-22366) */}
-                    <h2 className="font-roboto-flex-extrabold text-left text-heading-xl font-extraBlack md:text-6xl lg:text-heading">
+                    <h2 className="font-roboto-flex-extrabold text-left text-headingSmall font-extraBlack md:text-6xl lg:text-heading">
                         {i18n.landingSecurityHeading}
                     </h2>
                 </div>

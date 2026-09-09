@@ -398,6 +398,11 @@
     --text-headingMedium--line-height: 4rem;
     --text-heading: 3.75rem;
     --text-heading--line-height: 2.875rem;
+    /* the mobile step of the display family: text-heading (60px) clips long
+       es/pt headings at 320px (TASK-22366). weightless like its siblings —
+       landing pairs these with font-extraBlack */
+    --text-headingSmall: 2.625rem;
+    --text-headingSmall--line-height: 2.25rem;
 
     --font-weight-extraBlack: 1000;
 
