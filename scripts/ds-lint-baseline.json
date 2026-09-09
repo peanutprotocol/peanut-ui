@@ -6,7 +6,7 @@
     "dsTextScale": 11,
     "nonDsClassesInViews": 6,
     "useSearchParamsFiles": 44,
-    "nuqsFiles": 25,
+    "nuqsFiles": 26,
     "legacyColorClasses": 0,
     "offRampPalette": 0,
     "deadLegacyTokens": 0,
@@ -18,7 +18,7 @@
     "offScaleRadius": 37,
     "rawDuration": 6,
     "retypedCardLiteral": 16,
-    "hoverNoActiveFiles": 44,
+    "hoverNoActiveFiles": 45,
     "arbitraryFontSize": 110,
     "rawErrorText": 25,
     "handRolledCloseGlyphFiles": 9,
@@ -62,6 +62,11 @@
             "date": "2026-09-07",
             "metrics": ["fontWeightOnTypeToken 46 -> 45"],
             "reason": "PR #3004 semantic contract: conditional branches are alternatives in all contexts. The only per-file count change is dev/_components/DevSegmented.tsx: font-bold in the small branch never co-applies with text-label-m in the other branch. CVA support is explicitly deferred with a diagnostic; there are no src consumers and its removal changes no counts. See scripts/ds-lint-contract.md."
+        },
+        {
+            "date": "2026-09-09",
+            "metrics": ["hoverNoActiveFiles 44 -> 45"],
+            "reason": "TASK-22471 revert of tech-debt integration #3062 restores one pre-tech-debt hover file; count returns with the reverted code"
         }
     ]
 }
