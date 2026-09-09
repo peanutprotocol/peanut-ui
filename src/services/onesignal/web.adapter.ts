@@ -16,6 +16,7 @@ let initPromise: Promise<void> | null = null
 
 const permissionListeners = new Set<(state: NotificationPermissionState) => void>()
 const subscriptionListeners = new Set<(change: PushSubscriptionChange) => void>()
+const notificationReceivedListeners = new Set<() => void>()
 const clickListeners = new Set<(info: NotificationClickInfo) => void>()
 let underlyingListenersAttached = false
 
@@ -38,6 +39,10 @@ function attachUnderlyingListeners() {
             previousOptedIn: !!event.previous?.optedIn,
         }
         subscriptionListeners.forEach((cb) => cb(change))
+    })
+
+    OneSignal.Notifications.addEventListener('foregroundWillDisplay', () => {
+        notificationReceivedListeners.forEach((cb) => cb())
     })
 
     OneSignal.Notifications.addEventListener('click', (event) => {
@@ -138,6 +143,11 @@ export const webOneSignalAdapter: OneSignalAdapter = {
     onSubscriptionChange(listener) {
         subscriptionListeners.add(listener)
         return () => subscriptionListeners.delete(listener)
+    },
+
+    onNotificationReceived(listener) {
+        notificationReceivedListeners.add(listener)
+        return () => notificationReceivedListeners.delete(listener)
     },
 
     onNotificationClick(listener) {

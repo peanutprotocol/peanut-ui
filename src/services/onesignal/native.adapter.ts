@@ -22,6 +22,7 @@ let initPromise: Promise<void> | null = null
 
 const permissionListeners = new Set<(state: NotificationPermissionState) => void>()
 const subscriptionListeners = new Set<(change: PushSubscriptionChange) => void>()
+const notificationReceivedListeners = new Set<() => void>()
 const clickListeners = new Set<(info: NotificationClickInfo) => void>()
 /**
  * Cold-start tap buffer. Capacitor retains the click event only until the first
@@ -97,6 +98,10 @@ function attachUnderlyingListeners() {
         subscriptionListeners.forEach((cb) => cb(change))
     })
 
+    OneSignal.Notifications.addEventListener('foregroundWillDisplay', () => {
+        notificationReceivedListeners.forEach((cb) => cb())
+    })
+
     OneSignal.Notifications.addEventListener('click', (event: NotificationClickEvent) => {
         const info: NotificationClickInfo = {
             deepLink: event?.result?.url ?? event?.notification?.launchURL,
@@ -165,6 +170,11 @@ export const nativeOneSignalAdapter: OneSignalAdapter = {
     onSubscriptionChange(listener) {
         subscriptionListeners.add(listener)
         return () => subscriptionListeners.delete(listener)
+    },
+
+    onNotificationReceived(listener) {
+        notificationReceivedListeners.add(listener)
+        return () => notificationReceivedListeners.delete(listener)
     },
 
     onNotificationClick(listener) {

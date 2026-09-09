@@ -12,8 +12,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  * writes one in-app notification row per support reply, and this reads the
  * count for the `support` category.
  *
- * No polling. It refetches on mount, when the notifications list changes, and
- * when the tab or app comes back to the foreground.
+ * No polling. It refetches on mount, when the notifications list changes or a
+ * foreground push arrives, and when the tab or native app comes back to the
+ * foreground.
  */
 export const useSupportUnread = (): boolean => {
     const [hasUnread, setHasUnread] = useState(false)

@@ -166,9 +166,13 @@ export function useNativeAppLinks() {
                 // which Android WebViews don't reliably fire on app resume — a
                 // resumed app kept rendering its pre-background query data (stale
                 // home Activity). Drive the focusManager from the native lifecycle.
-                const stateListener = await App.addListener('appStateChange', ({ isActive }: { isActive: boolean }) =>
+                const stateListener = await App.addListener('appStateChange', ({ isActive }: { isActive: boolean }) => {
                     focusManager.setFocused(isActive)
-                )
+                    // Android WebViews do not reliably emit visibilitychange on
+                    // resume. Refresh lightweight notification consumers (the
+                    // support unread badge) from the native lifecycle too.
+                    if (isActive) window.dispatchEvent(new CustomEvent('notifications:updated'))
+                })
                 track(() => {
                     stateListener.remove()
                     focusManager.setFocused(undefined)
@@ -269,6 +273,13 @@ export function useNativeAppLinks() {
                 // relative path the API sends; the launch URL is the fallback for
                 // notifications sent before that field existed.
                 const adapter = await getOneSignalAdapter()
+                // A push can arrive while the app stays foregrounded, so there
+                // may be no lifecycle or document-visibility edge to refresh the
+                // support badge. The unread endpoint remains the source of truth;
+                // this event only tells its consumers to recheck it.
+                track(
+                    adapter.onNotificationReceived(() => window.dispatchEvent(new CustomEvent('notifications:updated')))
+                )
                 track(
                     adapter.onNotificationClick(({ deepLink, additionalData }) => {
                         const target = additionalData.deepLink

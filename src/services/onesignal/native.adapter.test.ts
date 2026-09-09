@@ -40,6 +40,14 @@ function getClickCallback(): (event: unknown) => void {
     return call![1]
 }
 
+function getForegroundNotificationCallback(): () => void {
+    const call = (OneSignal.Notifications.addEventListener as jest.Mock).mock.calls.find(
+        ([name]) => name === 'foregroundWillDisplay'
+    )
+    expect(call).toBeDefined()
+    return call![1]
+}
+
 describe('nativeOneSignalAdapter cold-start click buffering', () => {
     beforeAll(async () => {
         process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID = 'test-app-id'
@@ -80,5 +88,17 @@ describe('nativeOneSignalAdapter cold-start click buffering', () => {
 
         off()
         offLater()
+    })
+
+    it('fans foreground notification delivery out to registered listeners', () => {
+        const listener = jest.fn()
+        const off = nativeOneSignalAdapter.onNotificationReceived(listener)
+
+        getForegroundNotificationCallback()()
+        expect(listener).toHaveBeenCalledTimes(1)
+
+        off()
+        getForegroundNotificationCallback()()
+        expect(listener).toHaveBeenCalledTimes(1)
     })
 })

@@ -23,6 +23,7 @@ const mockAdapter = {
     onPermissionChange: jest.fn(() => () => {}),
     onSubscriptionChange: jest.fn((_listener: (change: PushSubscriptionChange) => void) => () => {}),
     onNotificationClick: jest.fn(() => () => {}),
+    onNotificationReceived: jest.fn(() => () => {}),
 }
 jest.mock('@/services/onesignal', () => ({
     getOneSignalAdapter: () => Promise.resolve(mockAdapter),

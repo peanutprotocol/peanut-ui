@@ -30,8 +30,15 @@ jest.mock('@/utils/capacitor', () => ({
     markInAppBrowserClosed: jest.fn(),
 }))
 
+const mockOnNotificationClick = jest.fn(() => () => {})
+const mockOnNotificationReceived = jest.fn((_listener: () => void) => () => {})
 jest.mock('@/services/onesignal', () => ({
-    getOneSignalAdapter: jest.fn(() => Promise.resolve({ onNotificationClick: jest.fn(() => () => {}) })),
+    getOneSignalAdapter: jest.fn(() =>
+        Promise.resolve({
+            onNotificationClick: mockOnNotificationClick,
+            onNotificationReceived: mockOnNotificationReceived,
+        })
+    ),
 }))
 
 let launchUrl: string | undefined
@@ -158,6 +165,38 @@ describe('hardware back button', () => {
 
         expect(back).not.toHaveBeenCalled()
         expect(App.minimizeApp).toHaveBeenCalledTimes(1)
+    })
+})
+
+describe('notification unread refresh', () => {
+    it('refreshes consumers when the native app resumes', async () => {
+        const onUpdated = jest.fn()
+        window.addEventListener('notifications:updated', onUpdated)
+        renderHook(() => useNativeAppLinks())
+
+        const addListener = App.addListener as jest.Mock
+        await waitFor(() => expect(addListener.mock.calls.some(([name]) => name === 'appStateChange')).toBe(true))
+        const onAppStateChange = addListener.mock.calls.find(([name]) => name === 'appStateChange')![1]
+
+        onAppStateChange({ isActive: false })
+        expect(onUpdated).not.toHaveBeenCalled()
+        onAppStateChange({ isActive: true })
+        expect(onUpdated).toHaveBeenCalledTimes(1)
+
+        window.removeEventListener('notifications:updated', onUpdated)
+    })
+
+    it('refreshes consumers when a push arrives while the app remains foregrounded', async () => {
+        const onUpdated = jest.fn()
+        window.addEventListener('notifications:updated', onUpdated)
+        renderHook(() => useNativeAppLinks())
+
+        await waitFor(() => expect(mockOnNotificationReceived).toHaveBeenCalled())
+        const onReceived = mockOnNotificationReceived.mock.calls[0][0]
+        onReceived()
+
+        expect(onUpdated).toHaveBeenCalledTimes(1)
+        window.removeEventListener('notifications:updated', onUpdated)
     })
 })
 
