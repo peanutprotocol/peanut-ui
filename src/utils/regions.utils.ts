@@ -4,6 +4,7 @@ import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import { type RailCapability } from '@/types/capabilities'
 import { BRIDGE_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
+import { BANKING_RESTRICTED_RESIDENCE_ISO2, RESTRICTED_RESIDENCE_ISO2 } from '@/constants/residence.consts'
 import type { StaticImageData } from 'next/image'
 
 /**
@@ -110,6 +111,26 @@ export const getRegionIntent = (regionPath: string): KYCRegionIntent => {
         default:
             return 'ROW'
     }
+}
+
+/**
+ * The verification intent a residence country maps to — used when a residence
+ * change re-opens identity verification, so the fresh Sumsub token targets the
+ * level that serves the new country (Manteca for LATAM, Bridge for EU/NA).
+ */
+export const regionIntentForResidence = (iso2: string): KYCRegionIntent => {
+    const code = iso2.toUpperCase()
+    // A residence no bank provider onboards — sanctioned, the UK block, or a
+    // Bridge banking exclusion like Japan — gets the provider-less level,
+    // whatever Bridge's document map says about it. Targeting a Bridge or
+    // Manteca level for these residences opens a verification that can only
+    // end on a terminal rejection.
+    if (RESTRICTED_RESIDENCE_ISO2.has(code) || BANKING_RESTRICTED_RESIDENCE_ISO2.has(code)) return 'ROW'
+    // Colombia is not in the live Manteca set (its bank rail is deactivated)
+    if (code === 'BR' || code === 'AR') return 'LATAM'
+    if (code === 'US' || code === 'MX') return 'NA'
+    if (isBridgeSupportedCountry(code)) return 'EU'
+    return 'ROW'
 }
 
 /**

@@ -153,6 +153,43 @@ export function parseStatusSummary(value: unknown): StatusSummary | null {
     const s = value as StatusSummary
     if (!s || typeof s !== 'object') return null
     if (!BUCKET_STATES.includes(s.state)) return null
+    // The page refuses a summary older than a few minutes, so a payload that
+    // cannot say when it was made is a payload it cannot check.
+    if (typeof s.generatedAt !== 'string') return null
     if (!Array.isArray(s.providers) || !s.providers.every(isProvider)) return null
     return s
+}
+
+/**
+ * How old a summary may be before the page stops believing it.
+ *
+ * This is the page's only defence against a cached "all operational" outliving
+ * the system it describes — both Next's Data Cache and a CDN keep serving the
+ * last good body over a dead origin, neither of them says so, and that is the
+ * shape an outage takes from where this page sits.
+ *
+ * The budget is set by how old a *healthy* body can legitimately be: the feed
+ * is served `max-age=60, stale-while-revalidate=300`, and Next's own cache
+ * adds up to another 60s, so ~7 minutes. Ten leaves headroom against a false
+ * outage while bounding how long a dead backend can read green.
+ */
+export const MAX_SUMMARY_AGE_MS = 10 * 60 * 1000
+
+/**
+ * How far ahead of us the feed's clock may be before we stop believing it
+ * rather than its timestamps. Hosts run NTP; a minute is generous.
+ */
+export const MAX_CLOCK_SKEW_MS = 60 * 1000
+
+export function isFresh(summary: StatusSummary, now: number): boolean {
+    const generatedAt = Date.parse(summary.generatedAt)
+    if (!Number.isFinite(generatedAt)) return false
+
+    const age = now - generatedAt
+    // A summary stamped in the future is refused, not treated as very fresh.
+    // Age is the only thing keeping a cached green board from outliving the
+    // system it describes, and an unbounded negative age suspends that
+    // protection for exactly as long as the clock is wrong: an hour ahead
+    // buys a dead backend seventy minutes of green rather than ten.
+    return age >= -MAX_CLOCK_SKEW_MS && age <= MAX_SUMMARY_AGE_MS
 }

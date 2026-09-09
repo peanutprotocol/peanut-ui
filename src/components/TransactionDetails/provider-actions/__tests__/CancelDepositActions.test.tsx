@@ -53,30 +53,27 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
     ),
 }))
 jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => <span /> }))
-jest.mock('@/components/Global/ActionModal', () => ({
-    __esModule: true,
-    default: ({
-        visible,
-        title,
-        ctas,
-        onClose,
+jest.mock('@/components/0_Bruddle/IconBubble', () => ({ IconBubble: () => <span /> }))
+jest.mock('@/components/Global/Drawer', () => ({
+    Drawer: ({
+        open,
+        onOpenChange,
+        children,
     }: {
-        visible: boolean
-        title: React.ReactNode
-        ctas?: Array<{ text: string; onClick?: () => void }>
-        onClose: () => void
+        open?: boolean
+        onOpenChange?: (open: boolean) => void
+        children?: React.ReactNode
     }) =>
-        visible ? (
-            <div data-testid="confirm-modal">
-                <p>{title}</p>
-                {ctas?.map((cta) => (
-                    <button key={cta.text} onClick={cta.onClick}>
-                        {cta.text}
-                    </button>
-                ))}
-                <button onClick={onClose}>Dismiss</button>
+        open ? (
+            <div data-testid="confirm-drawer">
+                {children}
+                <button onClick={() => onOpenChange?.(false)}>Dismiss</button>
             </div>
         ) : null,
+    DrawerContent: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+    DrawerHeader: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+    DrawerTitle: ({ children }: { children?: React.ReactNode }) => <p>{children}</p>,
+    DrawerDescription: ({ children }: { children?: React.ReactNode }) => <p>{children}</p>,
 }))
 
 // import must come after jest.mock
@@ -91,7 +88,7 @@ const pendingBridgeOnramp = {
     extraDataForDrawer: { depositInstructions: { deposit_message: 'BRGTESTREF1234567890' } },
 } as unknown as import('@/components/TransactionDetails/transactionTransformer').TransactionDetails
 
-const renderCancel = () =>
+const renderCancel = (setIsModalOpen?: (isModalOpen: boolean) => void) =>
     render(
         <CancelDepositActions
             transaction={pendingBridgeOnramp}
@@ -99,6 +96,7 @@ const renderCancel = () =>
             isLoading={false}
             setIsLoading={jest.fn()}
             onClose={jest.fn()}
+            setIsModalOpen={setIsModalOpen}
         />
     )
 
@@ -112,11 +110,11 @@ describe('CancelDepositActions confirmation gate', () => {
     it('does NOT cancel on the first click — it asks for confirmation instead', () => {
         renderCancel()
 
-        expect(screen.queryByTestId('confirm-modal')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('confirm-drawer')).not.toBeInTheDocument()
         fireEvent.click(screen.getByText('Cancel deposit'))
 
         expect(mockCancelOnramp).not.toHaveBeenCalled()
-        expect(screen.getByTestId('confirm-modal')).toBeInTheDocument()
+        expect(screen.getByTestId('confirm-drawer')).toBeInTheDocument()
         expect(screen.getByText('Cancel this deposit?')).toBeInTheDocument()
     })
 
@@ -151,6 +149,70 @@ describe('CancelDepositActions confirmation gate', () => {
         fireEvent.click(screen.getByText('Dismiss'))
 
         expect(mockCancelOnramp).not.toHaveBeenCalled()
-        expect(screen.queryByTestId('confirm-modal')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('confirm-drawer')).not.toBeInTheDocument()
+    })
+
+    it('releases the parent lock when a status update makes the tx non-cancellable', async () => {
+        const setIsModalOpen = jest.fn()
+        const { rerender } = render(
+            <CancelDepositActions
+                transaction={pendingBridgeOnramp}
+                isPendingBankRequest={false}
+                isLoading={false}
+                setIsLoading={jest.fn()}
+                onClose={jest.fn()}
+                setIsModalOpen={setIsModalOpen}
+            />
+        )
+
+        fireEvent.click(screen.getByText('Cancel deposit'))
+        expect(setIsModalOpen).toHaveBeenLastCalledWith(true)
+
+        // the websocket-driven history refresh completes the deposit while the
+        // confirm is open — the cancel branch disappears, and the parent
+        // drawer must be released or it rejects every close forever
+        const completed = {
+            ...pendingBridgeOnramp,
+            status: 'completed',
+        } as unknown as import('@/components/TransactionDetails/transactionTransformer').TransactionDetails
+        rerender(
+            <CancelDepositActions
+                transaction={completed}
+                isPendingBankRequest={false}
+                isLoading={false}
+                setIsLoading={jest.fn()}
+                onClose={jest.fn()}
+                setIsModalOpen={setIsModalOpen}
+            />
+        )
+        await waitFor(() => expect(setIsModalOpen).toHaveBeenLastCalledWith(false))
+        expect(screen.queryByTestId('confirm-drawer')).not.toBeInTheDocument()
+    })
+
+    /*
+     * The nesting contract with TransactionDetailsDrawer: the parent refuses
+     * to close only while isModalOpen is true, so the confirm drawer's open
+     * state MUST be mirrored into setIsModalOpen — if the mirror stops firing,
+     * the details drawer closes underneath, this component unmounts, and the
+     * confirmation the user is looking at vanishes before the cancel can run.
+     */
+    it('mirrors the confirm drawer into setIsModalOpen: open, confirm, dismiss', async () => {
+        const setIsModalOpen = jest.fn()
+        renderCancel(setIsModalOpen)
+
+        // arming the cancel opens the confirm drawer -> parent must be locked
+        fireEvent.click(screen.getByText('Cancel deposit'))
+        expect(setIsModalOpen).toHaveBeenLastCalledWith(true)
+
+        // confirming closes the drawer -> parent must be released
+        fireEvent.click(screen.getByText('Yes, cancel deposit'))
+        await waitFor(() => expect(setIsModalOpen).toHaveBeenLastCalledWith(false))
+
+        // dismissing (instead of confirming) must release it too
+        setIsModalOpen.mockClear()
+        fireEvent.click(screen.getByText('Cancel deposit'))
+        expect(setIsModalOpen).toHaveBeenLastCalledWith(true)
+        fireEvent.click(screen.getByText('Dismiss'))
+        await waitFor(() => expect(setIsModalOpen).toHaveBeenLastCalledWith(false))
     })
 })

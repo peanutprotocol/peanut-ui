@@ -1,383 +1,38 @@
 'use client'
-import { fetchTokenDetails } from '@/app/actions/tokens'
-import { Button } from '@/components/0_Bruddle/Button'
-import { useToast } from '@/components/0_Bruddle/Toast'
 import FileUploadInput from '@/components/Global/FileUploadInput'
-import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionCard from '@/components/Global/PeanutActionCard'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
-import ShareButton from '@/components/Global/ShareButton'
 import AmountInput from '@/components/Global/AmountInput'
-import { HARNESS_ENABLED } from '@/constants/harness.consts'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
-import { TRANSACTIONS } from '@/constants/query.consts'
-import { tokenSelectorContext } from '@/context/tokenSelector.context'
-import { loadingStateContext } from '@/context/loadingStates.context'
-import { BASE_URL } from '@/constants/general.consts'
-import { useAuth } from '@/context/authContext'
-import { useDebounce } from '@/hooks/useDebounce'
-import { useWallet } from '@/hooks/wallet/useWallet'
-import { type IToken } from '@/interfaces/interfaces'
-import { type IAttachmentOptions } from '@/interfaces/attachment'
-import { requestsApi } from '@/services/requests'
-import { beginClipboardCopy } from '@/utils/clipboard.utils'
-import { fetchTokenSymbol, formatTokenAmount, getRequestLink, isNativeCurrency } from '@/utils/general.utils'
-import * as Sentry from '@sentry/nextjs'
-import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
-import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
-import { useSearchParams } from 'next/navigation'
-import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { useSafeBack } from '@/hooks/useSafeBack'
+import { CreateRequestLinkCta } from './CreateRequestLinkCta'
+import { useCreateRequestLink } from './useCreateRequestLink'
 
 export const CreateRequestLinkView = () => {
     const t = useTranslations('request')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
-    const tLoading = useTranslations('loadingStates')
-    const toast = useToast()
     const onBack = useSafeBack('/home')
-    const { address, isConnected, spendableBalance: balance, formattedSpendableBalance } = useWallet()
-    const { user } = useAuth()
-    const { selectedChainID, setSelectedChainID, selectedTokenAddress, setSelectedTokenAddress, selectedTokenData } =
-        useContext(tokenSelectorContext)
-    const { setLoadingState } = useContext(loadingStateContext)
-    const queryClient = useQueryClient()
-    const searchParams = useSearchParams()
-    const paramsAmount = searchParams.get('amount')
-    // Sanitize amount and limit to 2 decimal places
-    const sanitizedAmount = useMemo(() => {
-        if (!paramsAmount || isNaN(parseFloat(paramsAmount))) return ''
-        return formatTokenAmount(paramsAmount, 2) ?? ''
-    }, [paramsAmount])
-    const merchant = searchParams.get('merchant')
-    const merchantComment = merchant ? t('billSplitFor', { merchant }) : null
-
-    // Core state
-    const [tokenValue, setTokenValue] = useState<string>(sanitizedAmount)
-    const [attachmentOptions, setAttachmentOptions] = useState<IAttachmentOptions>({
-        message: merchantComment || '',
-        fileUrl: '',
-        rawFile: undefined,
-    })
-    const [errorState, setErrorState] = useState<{
-        showError: boolean
-        errorMessage: string
-    }>({ showError: false, errorMessage: '' })
-    const [generatedLink, setGeneratedLink] = useState<string | null>(null)
-    const [requestId, setRequestId] = useState<string | null>(null)
-    const [isCreatingLink, setIsCreatingLink] = useState(false)
-    const [isUpdatingRequest, setIsUpdatingRequest] = useState(false)
-
-    // Debounced attachment options to prevent rapid API calls during typing
-    const debouncedAttachmentOptions = useDebounce(attachmentOptions, 500)
-
-    // Track the last saved state to determine if updates are needed
-    const lastSavedAttachmentRef = useRef<IAttachmentOptions>({
-        message: '',
-        fileUrl: '',
-        rawFile: undefined,
-    })
-
-    // Refs for cleanup
-    const createLinkAbortRef = useRef<AbortController | null>(null)
-
-    // Derived state — displayed total spendable, single-sourced + formatted by the
-    // hook; empty while loading so we don't flash "$0.00".
-    const peanutWalletBalance = useMemo(
-        () => (balance === undefined ? '' : formattedSpendableBalance),
-        [balance, formattedSpendableBalance]
-    )
-
-    const _usdValue = useMemo(() => {
-        if (!selectedTokenData?.price || !tokenValue) return ''
-        return (parseFloat(tokenValue) * selectedTokenData.price).toString()
-    }, [tokenValue, selectedTokenData?.price])
-
-    // Harness-only: when the playwright session sets the passkey-bypass flag,
-    // fall back to the user's peanut-wallet identifier (seeded by the harness)
-    // so Create doesn't block on wagmi connection state. HARNESS_ENABLED is
-    // inlined at build time — prod bundles tree-shake this entire branch.
-    const harnessFallbackAddress = useMemo(() => {
-        if (!HARNESS_ENABLED) return ''
-        if (typeof window === 'undefined') return ''
-        if (window.localStorage?.getItem('__harness_skip_passkey') !== 'true') return ''
-        const peanutAccount = user?.accounts?.find((a) => a.type === 'peanut-wallet')
-        return peanutAccount?.identifier || ''
-    }, [user?.accounts])
-
-    const recipientAddress = useMemo(() => {
-        if (isConnected && address) return address
-        return harnessFallbackAddress
-    }, [isConnected, address, harnessFallbackAddress])
-
-    const _isValidRecipient = useMemo(() => {
-        return (isConnected && !!address) || !!harnessFallbackAddress
-    }, [isConnected, address, harnessFallbackAddress])
-
-    const _hasAttachment = useMemo(() => {
-        return !!(attachmentOptions.rawFile || attachmentOptions.message)
-    }, [attachmentOptions.rawFile, attachmentOptions.message])
-
-    const qrCodeLink = useMemo(() => {
-        if (generatedLink) return generatedLink
-
-        return `${BASE_URL}${tokenValue ? `/${user?.user.username}/${tokenValue}USDC` : `/send/${user?.user.username}`}`
-    }, [user?.user.username, tokenValue, generatedLink])
-
-    const createRequestLink = useCallback(
-        async (attachmentOptions: IAttachmentOptions) => {
-            if (!recipientAddress) {
-                setErrorState({
-                    showError: true,
-                    errorMessage: t('errors.enterRecipient'),
-                })
-                return null
-            }
-            // Cleanup previous request
-            if (createLinkAbortRef.current) {
-                createLinkAbortRef.current.abort()
-            }
-            createLinkAbortRef.current = new AbortController()
-
-            setIsCreatingLink(true)
-            setLoadingState('Creating link')
-            setErrorState({ showError: false, errorMessage: '' })
-
-            try {
-                let tokenData: Pick<IToken, 'chainId' | 'address' | 'decimals' | 'symbol'>
-                if (selectedTokenData) {
-                    tokenData = {
-                        chainId: selectedTokenData.chainId,
-                        address: selectedTokenData.address,
-                        decimals: selectedTokenData.decimals,
-                        symbol: selectedTokenData.symbol,
-                    }
-                } else {
-                    const tokenDetails = await fetchTokenDetails(selectedTokenAddress, selectedChainID)
-                    tokenData = {
-                        address: selectedTokenAddress,
-                        chainId: selectedChainID,
-                        symbol: (await fetchTokenSymbol(selectedTokenAddress, selectedChainID)) ?? '',
-                        decimals: tokenDetails.decimals,
-                    }
-                }
-
-                const tokenType = isNativeCurrency(tokenData.address)
-                    ? peanutInterfaces.EPeanutLinkType.native
-                    : peanutInterfaces.EPeanutLinkType.erc20
-
-                const requestData = {
-                    chainId: tokenData.chainId,
-                    tokenAmount: tokenValue,
-                    recipientAddress,
-                    tokenAddress: tokenData.address,
-                    tokenDecimals: tokenData.decimals.toString(),
-                    tokenType: tokenType.valueOf().toString(),
-                    tokenSymbol: tokenData.symbol,
-                    reference: attachmentOptions.message || undefined,
-                    attachment: attachmentOptions.rawFile || undefined,
-                    mimeType: attachmentOptions.rawFile?.type || undefined,
-                    filename: attachmentOptions.rawFile?.name || undefined,
-                }
-
-                // POST new request
-                const requestDetails = await requestsApi.create(requestData)
-                setRequestId(requestDetails.uuid)
-
-                const link = getRequestLink({
-                    ...requestDetails,
-                })
-
-                // Update the last saved state
-                lastSavedAttachmentRef.current = { ...attachmentOptions }
-
-                queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
-                return link
-            } catch (error) {
-                if (error && typeof error === 'object' && 'name' in error && error.name === 'AbortError') {
-                    return null
-                }
-                setErrorState({
-                    showError: true,
-                    errorMessage: t('errors.createFailed'),
-                })
-                console.error('Failed to create link:', error)
-                Sentry.captureException(error)
-                toast.error(t('errors.createFailed'))
-                return null
-            } finally {
-                setLoadingState('Idle')
-                setIsCreatingLink(false)
-            }
-        },
-        [
-            recipientAddress,
-            tokenValue,
-            selectedTokenData,
-            selectedTokenAddress,
-            selectedChainID,
-            toast,
-            queryClient,
-            setLoadingState,
-            t,
-        ]
-    )
-
-    const updateRequestLink = useCallback(
-        async (attachmentOptions: IAttachmentOptions) => {
-            if (!requestId) return null
-
-            setIsUpdatingRequest(true)
-            setLoadingState('Requesting')
-            setErrorState({ showError: false, errorMessage: '' })
-
-            try {
-                const requestData = {
-                    reference: attachmentOptions.message || undefined,
-                    attachment: attachmentOptions.rawFile || undefined,
-                    mimeType: attachmentOptions.rawFile?.type || undefined,
-                    filename: attachmentOptions.rawFile?.name || undefined,
-                }
-
-                // PATCH existing request
-                await requestsApi.update(requestId, requestData)
-
-                // Update the last saved state
-                lastSavedAttachmentRef.current = { ...attachmentOptions }
-
-                toast.success(t('requestUpdatedToast'))
-                queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
-                return generatedLink
-            } catch (error) {
-                setErrorState({
-                    showError: true,
-                    errorMessage: t('errors.updateFailed'),
-                })
-                console.error('Failed to update request:', error)
-                Sentry.captureException(error)
-                toast.error(t('errors.updateFailed'))
-                return null
-            } finally {
-                setLoadingState('Idle')
-                setIsUpdatingRequest(false)
-            }
-        },
-        [requestId, generatedLink, toast, queryClient, setLoadingState, t]
-    )
-
-    const hasUnsavedChanges = useMemo(() => {
-        if (!requestId) return false
-
-        const lastSaved = lastSavedAttachmentRef.current
-        return (
-            lastSaved.message !== debouncedAttachmentOptions.message ||
-            lastSaved.rawFile !== debouncedAttachmentOptions.rawFile
-        )
-    }, [requestId, debouncedAttachmentOptions.message, debouncedAttachmentOptions.rawFile])
-
-    // Handle debounced attachment changes
-    const handleDebouncedChange = useCallback(async () => {
-        if (isCreatingLink || isUpdatingRequest) return
-
-        if (requestId) {
-            // Check for unsaved changes inline to avoid dependency issues
-            const lastSaved = lastSavedAttachmentRef.current
-            const hasChanges =
-                lastSaved.message !== debouncedAttachmentOptions.message ||
-                lastSaved.rawFile !== debouncedAttachmentOptions.rawFile
-
-            if (hasChanges) {
-                await updateRequestLink(debouncedAttachmentOptions)
-            }
-        }
-    }, [debouncedAttachmentOptions, requestId, isCreatingLink, isUpdatingRequest, updateRequestLink])
-
-    useEffect(() => {
-        handleDebouncedChange()
-    }, [handleDebouncedChange])
-
-    const handleTokenValueChange = useCallback(
-        (value: string | undefined) => {
-            const newValue = value || ''
-            setTokenValue(newValue)
-
-            // Reset link and request when token value changes
-            if (newValue !== tokenValue) {
-                setGeneratedLink(null)
-                setRequestId(null)
-                lastSavedAttachmentRef.current = {
-                    message: '',
-                    fileUrl: '',
-                    rawFile: undefined,
-                }
-            }
-        },
-        [tokenValue]
-    )
-
-    const handleAttachmentOptionsChange = useCallback((options: IAttachmentOptions) => {
-        setAttachmentOptions(options)
-        setErrorState({ showError: false, errorMessage: '' })
-    }, [])
-
-    const handleTokenAmountSubmit = useCallback(async () => {
-        if (!tokenValue || parseFloat(tokenValue) <= 0) return
-        if (isCreatingLink || isUpdatingRequest) return // Prevent duplicate calls
-
-        if (hasUnsavedChanges) {
-            // PATCH: Update existing request
-            await updateRequestLink(debouncedAttachmentOptions)
-        }
-    }, [
+    const {
         tokenValue,
-        debouncedAttachmentOptions,
-        hasUnsavedChanges,
-        updateRequestLink,
+        attachmentOptions,
+        errorState,
+        generatedLink,
+        requestId,
         isCreatingLink,
         isUpdatingRequest,
-    ])
-
-    const generateLink = useCallback(async () => {
-        if (generatedLink) return generatedLink
-        if (isCreatingLink || isUpdatingRequest) return '' // Prevent duplicate operations
-
-        // reserved before the await: WebKit rejects a clipboard write once the
-        // click's user activation is spent, and creating the request spends it
-        const pendingCopy = beginClipboardCopy()
-
-        // Create new request when share button is clicked
-        const link = await createRequestLink(attachmentOptions)
-        if (!link) {
-            pendingCopy.cancel()
-            return ''
-        }
-
-        setGeneratedLink(link)
-        const copied = await pendingCopy.resolve(link)
-        toast.success(copied ? t('linkCreatedAndCopiedToast') : t('linkCreatedToast'))
-        return link
-    }, [generatedLink, attachmentOptions, createRequestLink, isCreatingLink, isUpdatingRequest, toast, t])
-
-    // Set wallet defaults when connected
-    useMemo(() => {
-        if (isConnected && address) {
-            setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
-            setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
-        }
-    }, [isConnected, address, setSelectedChainID, setSelectedTokenAddress])
-
-    // Auto-create request for bill payments
-    useEffect(() => {
-        if (recipientAddress && !generatedLink && merchantComment && tokenValue) {
-            generateLink()
-        }
-    }, [merchantComment, tokenValue, generateLink, recipientAddress])
+        peanutWalletBalance,
+        qrCodeLink,
+        handleTokenValueChange,
+        handleAttachmentOptionsChange,
+        handleTokenAmountSubmit,
+        generateLink,
+    } = useCreateRequestLink()
 
     return (
-        <div className="flex min-h-[inherit] w-full flex-col justify-start gap-8">
+        <div className="flex min-h-inherit w-full flex-col justify-start gap-8">
             <NavHeader onPrev={onBack} title={tNav('request')} />
             <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                 {/* board order (17831:78719): card, amount, helper note, qr, message, cta */}
@@ -413,33 +68,14 @@ export const CreateRequestLinkView = () => {
                     setAttachmentOptions={handleAttachmentOptionsChange}
                 />
 
-                {!requestId && (
-                    <Button
-                        loading={isCreatingLink || isUpdatingRequest}
-                        disabled={isCreatingLink || isUpdatingRequest}
-                        onClick={generateLink}
-                        shadowSize="4"
-                    >
-                        {t('createRequest')}
-                    </Button>
-                )}
-
-                {/* the share button waits for the link itself, not just the request id:
-                    it shares what create produced, it never creates */}
-                {requestId &&
-                    (isCreatingLink || isUpdatingRequest || !generatedLink ? (
-                        <Button disabled={true} shadowSize="4">
-                            <div className="flex w-full flex-row items-center justify-center gap-2">
-                                <Loading /> {tLoading('loading')}
-                            </div>
-                        </Button>
-                    ) : (
-                        <ShareButton url={generatedLink}>
-                            {!tokenValue || !parseFloat(tokenValue) || parseFloat(tokenValue) === 0
-                                ? t('shareOpenRequest')
-                                : t('shareAmountRequest', { amount: tokenValue })}
-                        </ShareButton>
-                    ))}
+                <CreateRequestLinkCta
+                    requestId={requestId}
+                    generatedLink={generatedLink}
+                    isCreatingLink={isCreatingLink}
+                    isUpdatingRequest={isUpdatingRequest}
+                    tokenValue={tokenValue}
+                    onGenerate={generateLink}
+                />
 
                 {errorState.showError && (
                     <div className="text-start">

@@ -19,8 +19,34 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import posthog from 'posthog-js'
-import { Children, type ReactNode, cloneElement, memo, type ReactElement, useState } from 'react'
+import {
+    Children,
+    type ReactNode,
+    cloneElement,
+    createContext,
+    memo,
+    type ReactElement,
+    useContext,
+    useEffect,
+    useState,
+} from 'react'
 import { twMerge } from '@/utils/tw'
+
+const SetupImageContext = createContext<(src: string | null) => void>(() => {})
+
+/**
+ * Lets a step's sub-view swap the wrapper's illustration for as long as it is
+ * mounted — the residence step's "Good news" outcome celebrates, while the
+ * selector it shares a step with keeps the neutral greeting. Sub-views are not
+ * steps, so they have no step config of their own to carry an image.
+ */
+export const useSetupImageOverride = (src: string | null) => {
+    const setImage = useContext(SetupImageContext)
+    useEffect(() => {
+        setImage(src)
+        return () => setImage(null)
+    }, [src, setImage])
+}
 
 /**
  * props interface for the SetupWrapper component
@@ -91,7 +117,7 @@ function LoginButton() {
             if (!isAlreadyReported(error)) {
                 Sentry.captureException(error, { extra: { errorCode } })
             }
-            posthog.capture(ANALYTICS_EVENTS.SIGNUP_LOGIN_ERROR, { error_code: errorCode })
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_LOGIN_ERROR, { error_code: errorCode, native: isCapacitor() })
         }
     }
 
@@ -139,8 +165,12 @@ const Navigation = memo(function Navigation({
 
     // Icons inherit currentColor: the stroke button inverts on hover/active, and
     // a hard-coded fill vanished into the black background.
+    // The row's containing block is the initial one (no positioned ancestor), so a
+    // bare top-8 is 32px from the VIEWPORT — under the status bar on any device
+    // whose inset is deeper than that, and under the shell's inset cover with it.
+    // Same max() shape the QR scanner header uses.
     return (
-        <div className="absolute top-8 z-20 flex w-full items-center justify-between px-6">
+        <div className="absolute top-[max(2rem,calc(var(--safe-top)_+_0.5rem))] z-20 flex w-full items-center justify-between px-6">
             <div>
                 {showBackButton && (
                     <Button
@@ -203,7 +233,7 @@ const ImageSection = ({
             <div
                 className={twMerge(
                     containerClass,
-                    'relative flex w-full flex-row items-center justify-center overflow-hidden bg-blue-300/100 px-4 md:h-[100dvh] md:w-7/12 md:px-6'
+                    'relative flex w-full flex-row items-center justify-center overflow-hidden bg-blue-300/100 px-4 md:h-dvh md:w-7/12 md:px-6'
                 )}
             >
                 {/* render animated star decorations */}
@@ -238,7 +268,7 @@ const ImageSection = ({
         <div
             className={classNames(
                 containerClass,
-                'flex w-full flex-row items-center justify-center bg-blue-300/100 md:h-[100dvh] md:w-7/12',
+                'flex w-full flex-row items-center justify-center bg-blue-300/100 md:h-dvh md:w-7/12',
                 screenId === 'success' && 'bg-action-secondary/15'
             )}
         >
@@ -282,6 +312,7 @@ export const SetupWrapper = memo(function SetupWrapper({
     titleClassName,
 }: SetupWrapperProps) {
     const t = useTranslations('setup.braveInstall')
+    const [imageOverride, setImageOverride] = useState<string | null>(null)
     const { isBrave } = useBravePWAInstallState()
     const [showBraveSuccessMessage, setShowBraveSuccessMessage] = useState(false)
     const prefersReducedMotion = useReducedMotion()
@@ -328,7 +359,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                     imageClassName={imageClassName}
                     screenId={screenId}
                     layoutType={layoutType}
-                    image={image}
+                    image={imageOverride ?? image}
                 />
 
                 {/* content section */}
@@ -337,7 +368,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                     animate={animatePanelIn ? { y: 0 } : undefined}
                     transition={{ type: 'spring', stiffness: 260, damping: 30 }}
                     className={twMerge(
-                        'flex flex-col justify-between overflow-hidden bg-white px-6 pt-6 pb-8 md:space-y-4 md:h-[100dvh] md:justify-center',
+                        'flex flex-col justify-between overflow-hidden bg-white px-6 pt-6 pb-8 md:space-y-4 md:h-dvh md:justify-center',
                         // signup: panel hugs its content so the hero absorbs the slack
                         // (paired with the grow classes in IMAGE_CONTAINER_CLASSES)
                         layoutType === 'signup' ? 'grow-0 md:grow' : 'flex-grow',
@@ -369,7 +400,12 @@ export const SetupWrapper = memo(function SetupWrapper({
                                 </h1>
                             )}
                             {headingDescription && (
-                                <p className={twMerge('text-body-m text-black', sunsetLanding && 'md:text-center')}>
+                                <p
+                                    className={twMerge(
+                                        'text-body-m text-foreground-primary',
+                                        sunsetLanding && 'md:text-center'
+                                    )}
+                                >
                                     {headingDescription}
                                 </p>
                             )}
@@ -377,18 +413,20 @@ export const SetupWrapper = memo(function SetupWrapper({
                     )}
                     {/* main content area */}
                     <div className="mx-auto w-full md:max-w-xs">
-                        {Children.map(children, (child) => {
-                            if ((child as ReactElement).type === InstallPWA) {
-                                return cloneElement(child as ReactElement, {
-                                    deferredPrompt,
-                                    canInstall,
-                                    deviceType,
-                                    screenId,
-                                    setShowBraveSuccessMessage,
-                                })
-                            }
-                            return child
-                        })}
+                        <SetupImageContext.Provider value={setImageOverride}>
+                            {Children.map(children, (child) => {
+                                if ((child as ReactElement).type === InstallPWA) {
+                                    return cloneElement(child as ReactElement, {
+                                        deferredPrompt,
+                                        canInstall,
+                                        deviceType,
+                                        screenId,
+                                        setShowBraveSuccessMessage,
+                                    })
+                                }
+                                return child
+                            })}
+                        </SetupImageContext.Provider>
                     </div>
                 </motion.div>
             </div>

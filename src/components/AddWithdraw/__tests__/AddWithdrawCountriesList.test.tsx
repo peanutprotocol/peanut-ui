@@ -129,6 +129,10 @@ jest.mock('@/hooks/useGetDeviceType', () => ({
     DeviceType: { IOS: 'IOS', ANDROID: 'ANDROID', WEB: 'WEB' },
     useDeviceType: () => ({ deviceType: 'WEB' }),
 }))
+// the bank intent hook reads residence restrictions; default to unrestricted
+jest.mock('@/hooks/useResidenceRestrictions', () => ({
+    useResidenceRestrictions: () => ({ banking: false, card: false }),
+}))
 jest.mock('@/app/actions/users', () => ({ addBankAccount: jest.fn() }))
 jest.mock('@/utils/native-routes', () => ({
     rewriteMethodPath: (p: string) => p,

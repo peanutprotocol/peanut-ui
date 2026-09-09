@@ -1,22 +1,27 @@
 {
-    "rawHex": 65,
-    "rawHexFiles": 41,
-    "inlineStyle": 50,
-    "stockTextSize": 361,
-    "dsTextScale": 10,
-    "nonDsClassesInViews": 138,
-    "useSearchParamsFiles": 47,
-    "nuqsFiles": 19,
+    "rawHex": 26,
+    "rawHexFiles": 19,
+    "inlineStyle": 21,
+    "stockTextSize": 8,
+    "dsTextScale": 11,
+    "nonDsClassesInViews": 19,
+    "useSearchParamsFiles": 41,
+    "nuqsFiles": 31,
     "legacyColorClasses": 0,
     "offRampPalette": 0,
     "deadLegacyTokens": 0,
     "consumedUndefinedTokens": 0,
-    "classNameSitesInPages": 314,
+    "classNameSitesInPages": 225,
     "fontWeightOnTypeToken": 47,
-    "offScaleSpacing": 204,
-    "iconOffScale": 81,
+    "offScaleSpacing": 188,
+    "iconOffScale": 68,
     "offScaleRadius": 37,
-    "rawDuration": 9,
+    "rawDuration": 6,
+    "retypedCardLiteral": 16,
+    "hoverNoActiveFiles": 44,
+    "arbitraryFontSize": 111,
+    "rawErrorText": 25,
+    "handRolledCloseGlyphFiles": 9,
     "_meta": [
         {
             "date": "2026-09-01",
@@ -27,6 +32,31 @@
             "date": "2026-09-01",
             "metrics": ["iconOffScale 64 -> 81"],
             "reason": "chip round 9 on #2905: icon metric now counts non-literal size expressions conservatively — the +17 are dynamic size maps (Button/IconBubble resolve to board steps) and variable-sized call sites held for static resolution"
+        },
+        {
+            "date": "2026-09-03",
+            "metrics": ["inlineStyle 50 -> 51"],
+            "reason": "nav pill positions via style transform/width — interpolated transform tailwind cannot JIT; compositor pill ruling 2026-09-03"
+        },
+        {
+            "date": "2026-09-03",
+            "metrics": ["offScaleSpacing 188 -> 190", "arbitraryFontSize 110 -> 111"],
+            "reason": "dev-side debt: PRs merged to dev (es419 landing, kyc restart) pre-date this branch's new ratchet metrics; counted in on merge, not authored here"
+        },
+        {
+            "date": "2026-09-04",
+            "metrics": ["inlineStyle 20 -> 21"],
+            "reason": "toast countdown bar: the animation duration is computed per toast from its message length, so it cannot be a class — an arbitrary ms value has to reach css through the element. one inline style, in the ds component itself, not a page."
+        },
+        {
+            "date": "2026-09-04",
+            "metrics": ["classNameSitesInPages 310 -> 312"],
+            "reason": "dev-side, not authored here: the exchange-rate page gained 2 className sites in dev's exchange-currencies work (profile/exchange-rate/page.tsx), counted in on the merge. this branch touches no (mobile-ui) page.tsx at all."
+        },
+        {
+            "date": "2026-09-06",
+            "metrics": ["nonDsClassesInViews 16 -> 19"],
+            "reason": "dev-side, not authored here: min-h-[inherit] x3 in features/withdraw/views/WithdrawMethodView.tsx landed via the tech-debt merge (withdraw rebuild) and was never baselined there; qr-pay is net-zero for this metric. follow-up for the merge-back: use the native min-h-inherit utility from 51e84273c"
         }
     ]
 }

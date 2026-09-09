@@ -5,6 +5,7 @@ import {
     type CreateMantecaOnrampParams,
 } from '@/types/manteca.types'
 import { serverFetch } from '@/utils/api-fetch'
+import { ApiError } from '@/services/api-error'
 import { isNetworkLayerFailure } from '@/utils/network-triage'
 import { jsonStringify } from '@/utils/general.utils'
 import type { Address } from 'viem'
@@ -14,6 +15,13 @@ export interface QrPaymentRequest {
     qrCode: string
     amount?: string
     qrType?: string
+    /**
+     * Stable per-scan key. The backend replays the price lock it already
+     * created for this key instead of minting a second one at Manteca, which is
+     * what makes retrying this POST after a timeout safe. Optional so an API
+     * build without the guard still accepts the request.
+     */
+    idempotencyKey?: string
 }
 
 export type QrPayment = {
@@ -73,6 +81,11 @@ export type QrPaymentLock = {
     paymentAgainst: string
     expireAt: string
     creationTime: string
+    /** Entity-aware Manteca deposit address served by the API (per-entity
+     *  balances from 2026-09-14). Optional only while an older API without
+     *  the field may still be deployed — prefer it over local constants. */
+    depositAddress?: Address
+    legalEntity?: string
 }
 
 export type QrPaymentResponse =
@@ -113,18 +126,34 @@ export type WithdrawPriceLock = {
     usdAmount: string
     fiatAmount: string
     currency: string
+    /** Entity-aware Manteca deposit address served by the API (per-entity
+     *  balances from 2026-09-14). Optional only while an older API without
+     *  the field may still be deployed — prefer it over local constants. */
+    depositAddress?: Address
+    legalEntity?: string
 }
 
 export const mantecaApi = {
-    initiateQrPayment: async (data: QrPaymentRequest): Promise<QrPaymentLock> => {
+    initiateQrPayment: async (data: QrPaymentRequest, options?: { timeoutMs?: number }): Promise<QrPaymentLock> => {
         const response = await serverFetch('/manteca/qr-payment/init', {
             method: 'POST',
             body: jsonStringify(data),
+            ...(options?.timeoutMs !== undefined && { timeoutMs: options.timeoutMs }),
         })
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}))
-            throw new Error(errorData.error || errorData.message || `QR payment failed: ${response.statusText}`)
+            /*
+             * ApiError, not Error: the KYC rejection's discriminant is its
+             * `code` (MANTECA_KYC_REQUIRED) while its `error` is a plain English
+             * sentence, so a caller matching the prose breaks the moment the
+             * backend rewords it. Message order is unchanged, so every existing
+             * `error.message.includes(...)` matcher still sees what it did.
+             */
+            throw new ApiError(errorData.error || errorData.message || `QR payment failed: ${response.statusText}`, {
+                status: response.status,
+                code: errorData.code,
+            })
         }
 
         return response.json()

@@ -7,7 +7,7 @@ import { useTranslations } from 'next-intl'
  * The rollout-gated EVM deposit chain chips, annotated with per-chain token
  * exceptions (USDT-only chains) — a USDC deposit on a chain where Rhino only
  * accepts USDT has no webhook, so the annotation is a funds-safety surface,
- * not decoration. Shared by ChooseNetworkDrawer and SupportedNetworksModal.
+ * not decoration. Shared by NetworkList and SupportedNetworksModal.
  */
 const EvmChainChips = () => {
     const isChainRolledOut = useChainRollout()

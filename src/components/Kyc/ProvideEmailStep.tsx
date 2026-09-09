@@ -87,8 +87,8 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
                 {
                     text: t('provideEmail.notNow'),
                     onClick: onSkip,
-                    variant: 'transparent' as const,
-                    className: 'underline text-body-s w-full h-fit mt-3',
+                    variant: 'stroke' as const,
+                    className: 'w-full',
                 },
             ]}
             content={

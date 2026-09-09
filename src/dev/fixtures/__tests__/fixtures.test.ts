@@ -11,8 +11,8 @@ const APP_DIR = join(process.cwd(), 'src', 'app', '(mobile-ui)')
 // pathname resolves against the filesystem.
 function routeExists(route: string): boolean {
     let dir = APP_DIR
-    const pathname = route.split('?')[0]
-    for (const segment of pathname.split('/').filter(Boolean)) {
+    // a fixture may open a route with its own query (nuqs URL state)
+    for (const segment of new URL(route, 'http://fixture.local').pathname.split('/').filter(Boolean)) {
         if (existsSync(join(dir, segment))) {
             dir = join(dir, segment)
             continue

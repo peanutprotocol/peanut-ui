@@ -180,7 +180,7 @@ const CardRejectionScreen: FC<Props> = ({
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-6">
+        <div className="flex min-h-inherit flex-col justify-between gap-6">
             <NavHeader title={t('navTitle')} onPrev={onPrev} />
 
             <div className="flex flex-col gap-6">

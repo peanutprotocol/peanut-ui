@@ -11,7 +11,7 @@ import AdvisoryPreemptModal from '@/components/Kyc/AdvisoryPreemptModal'
 import { useModalsContext } from '@/context/ModalsContext'
 import { resolveKycModalVariant, getGateUserMessage, getGateReasonCode } from '@/utils/capability-gate'
 import { getCountryFromPath } from '@/utils/bridge.utils'
-import { getRegionIntent } from '@/utils/regions.utils'
+import { useBankRegionIntent } from '@/hooks/useBankRegionIntent'
 import { shortenStringLong } from '@/utils/general.utils'
 import { useLocale, useTranslations } from 'next-intl'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
@@ -30,6 +30,7 @@ export default function WithdrawBankPage() {
     const tNav = useTranslations('navigation')
     const router = useRouter()
     const flow = useBridgeOfframpFlow()
+    const bankRegionIntent = useBankRegionIntent()
     const { setIsSupportModalOpen } = useModalsContext()
 
     const {
@@ -49,7 +50,7 @@ export default function WithdrawBankPage() {
     }
 
     return (
-        <div className="flex min-h-[inherit] w-full flex-col justify-start gap-8 self-start">
+        <div className="flex min-h-inherit w-full flex-col justify-start gap-8 self-start">
             <NavHeader
                 title={fromSendFlow ? tNav('send') : tNav('withdraw')}
                 icon={step === 'success' ? 'cancel' : undefined}
@@ -115,7 +116,7 @@ export default function WithdrawBankPage() {
                         await sumsubFlow.handleSelfHealResubmit('BRIDGE')
                     } else {
                         await sumsubFlow.handleInitiateKyc(
-                            getRegionIntent(getCountryFromPath(country)?.region ?? 'rest-of-the-world'),
+                            bankRegionIntent(getCountryFromPath(country)?.region ?? 'rest-of-the-world'),
                             undefined,
                             gate.kind === 'needs-enrollment' || undefined,
                             getCountryFromPath(country)?.id

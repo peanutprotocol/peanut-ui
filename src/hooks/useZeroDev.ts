@@ -9,10 +9,17 @@ import { useZeroDevFlow, zeroDevFlowActions } from '@/hooks/useZeroDevFlow'
 import { getFromCookie, removeFromCookie, saveToCookie, saveToLocalStorage } from '@/utils/general.utils'
 import { clearAuthState } from '@/utils/auth.utils'
 import { isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
-import { capturePasskeySignFailure, classifyPasskeyError, normalizePasskeyServerError } from '@/utils/webauthn.utils'
+import {
+    capturePasskeySignFailure,
+    classifyPasskeyError,
+    normalizeNativePasskeyError,
+    normalizePasskeyServerError,
+} from '@/utils/webauthn.utils'
 import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
 import {
     captureCeremonyGuardError,
+    CeremonyConflictError,
+    currentCeremonyId,
     guardPasskeyCeremony,
     isCeremonyGuardError,
     isPasskeyShimInstalled,
@@ -28,7 +35,6 @@ import {
     isUnavailableBadgeCampaignClaim,
 } from '@/services/badge-campaigns'
 import { settleAcceptedInviteAcquisition } from '@/services/invite-acquisition'
-import { persistRegistrationBadgeCampaignDestination } from '@/services/registration-acquisition'
 import { getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 import { settleShhhhhCampaignContinuation } from '@/app/shhhhh/shhhhh-acquisition'
 import { signupConsentDocuments } from '@/services/consent'
@@ -74,6 +80,21 @@ export const useZeroDev = () => {
 
     // register function
     const handleRegister = async (username: string): Promise<void> => {
+        /*
+         * Bail BEFORE the reset below when a ceremony already owns the window.
+         * A second tap used to run the whole prologue anyway: it wiped the
+         * address and passkey cookie the in-flight registration was about to
+         * fill, then its catch dispatched setIsRegistering(false) — releasing
+         * the *winner's* flag and re-enabling the button mid-ceremony, which is
+         * how one impatient double-tap turned into a run of
+         * CeremonyConflictErrors (PEANUT-UI-T09).
+         */
+        if (currentCeremonyId() !== null) {
+            const conflict = new CeremonyConflictError()
+            captureCeremonyGuardError(conflict, 'register')
+            throw conflict
+        }
+
         // CRITICAL: clear any stale state from previous user before registering new passkey
         // this is the SINGLE place where cleanup happens for new signups
         // handles cases where: old cookies persist, session expired, user didn't logout properly
@@ -208,12 +229,11 @@ export const useZeroDev = () => {
                 const confirmed = batch.claims.filter(isConfirmedBadgeCampaignClaim)
                 const unavailable = batch.claims.filter(isUnavailableBadgeCampaignClaim)
 
-                // Explicit/UTM badge campaigns do not pass through `/invites/accept`.
-                // Shhhhh owns one compatibility continuation: only a confirmed
-                // Skip Pass replaces its safe /home marker with /card. Every
-                // other entrypoint uses backend-owned acquisition navigation.
-                const shhhhhDestination = settleShhhhhCampaignContinuation(batch.claims)
-                if (shhhhhDestination === undefined) persistRegistrationBadgeCampaignDestination(batch.claims)
+                // Explicit badge campaigns do not pass through `/invites/accept`.
+                // Shhhhh owns the one remaining compatibility continuation: only a
+                // confirmed Skip Pass replaces its safe /home marker with /card.
+                // Bespoke campaign destinations retired with TASK-21226.
+                settleShhhhhCampaignContinuation(batch.claims)
 
                 if (confirmed.length > 0) {
                     posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, {
@@ -251,15 +271,19 @@ export const useZeroDev = () => {
                 zeroDevFlowActions.setIsRegistering(false)
                 return
             }
-            const err = e as Error
+            const err = normalizeNativePasskeyError(e) as Error
             console.error('[useZeroDev] registration failed:', err.name, err.message, err, {
                 shimInstalled: isPasskeyShimInstalled(),
             })
             if (isCeremonyGuardError(err)) {
                 captureCeremonyGuardError(err, 'register')
             }
-            zeroDevFlowActions.setIsRegistering(false)
-            throw e
+            // A conflict means another ceremony owns isRegistering — clearing it
+            // here would unlock the button while that one is still on screen.
+            if (err.name !== 'CeremonyConflictError') {
+                zeroDevFlowActions.setIsRegistering(false)
+            }
+            throw err
         }
     }
 
@@ -299,7 +323,11 @@ export const useZeroDev = () => {
         } catch (e) {
             const err = normalizePasskeyServerError(e)
             const { code, message } = classifyPasskeyError(err)
-            zeroDevFlowActions.setIsLoggingIn(false)
+            // Same ownership rule as registration: the losing ceremony must not
+            // release the flag the running one set.
+            if (!(err instanceof Error && err.name === 'CeremonyConflictError')) {
+                zeroDevFlowActions.setIsLoggingIn(false)
+            }
             // Ceremony guards and server/network failures: nothing was
             // authenticated, so keep any existing state (no clearAuthState) and
             // report with a discriminating tag — this is the telemetry that

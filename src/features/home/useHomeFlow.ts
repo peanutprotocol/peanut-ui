@@ -1,5 +1,6 @@
 'use client'
 
+import { useAvatarKey } from '@/components/Avatar/useAvatarKey'
 import { useAuth } from '@/context/authContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useActivationStatus } from '@/hooks/useActivationStatus'
@@ -48,15 +49,14 @@ export function useHomeFlow() {
         }
     }, [isWagmiConnected, disconnectWagmi])
 
-    // respect the showFullName preference for the avatar initials; a
-    // usernameless user still gets initials from their full name (initials
-    // only — the preference governs showing the full name, not its initials)
-    const avatarName = (user?.user.showFullName && user?.user.fullName) || username || user?.user.fullName || undefined
+    // the picked avatar (TASK-22142); null keeps the first-letter fallback,
+    // which the top nav seeds from the username, never the display name
+    const avatarKey = useAvatarKey(user?.user.avatarKey, user?.user.userId)
 
     return {
         isPageLoading: isFetchingUser && !username,
         username,
-        avatarName,
+        avatarKey,
         isActivated,
         activationStep,
         dismissCardStep,

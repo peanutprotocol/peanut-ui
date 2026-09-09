@@ -109,7 +109,12 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const [accessToken, setAccessToken] = useState<string | null>(null)
     const [showWrapper, setShowWrapper] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
+    const [error, setErrorState] = useState<string | null>(null)
+    const [errorCooldown, setErrorCooldown] = useState<{ retryAt?: string } | null>(null)
+    const setError = useCallback((message: string | null) => {
+        setErrorState(message)
+        setErrorCooldown(null)
+    }, [])
     // Some initiate failures are terminal: the user has no action that could
     // change the outcome, so offering a retry is worse than offering nothing.
     // Callers must suppress their retry CTA on this rather than inferring
@@ -553,48 +558,73 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // user lands back on the document-upload screen so they can verify with a
     // different ID. Used as the CTA for the `restart-identity` gate state
     // (Manteca country-ineligibility — uploaded a non-AR/BR document).
-    const handleRestartIdentity = useCallback(async () => {
-        setIsLoading(true)
-        setError(null)
-        setIsTerminalError(false)
-        userInitiatedRef.current = true
-        // Clear any prior self-heal context so refreshToken (below) doesn't
-        // mistakenly hit the self-heal endpoint after a restart-identity flow
-        // (CodeRabbit caught: stale selfHealProviderRef would route the next
-        // refresh through initiateSelfHealResubmission instead of the regular path).
-        selfHealProviderRef.current = null
-        actionKeyRef.current = null
+    const handleRestartIdentity = useCallback(
+        async (overrideIntent?: KYCRegionIntent) => {
+            setIsLoading(true)
+            setError(null)
+            setIsTerminalError(false)
+            userInitiatedRef.current = true
+            // A residence change may target another provider's level; the caller
+            // passes the new intent synchronously because the hook prop only
+            // catches up on the next render.
+            if (overrideIntent) regionIntentRef.current = overrideIntent
+            // Clear any prior self-heal context so refreshToken (below) doesn't
+            // mistakenly hit the self-heal endpoint after a restart-identity flow
+            // (CodeRabbit caught: stale selfHealProviderRef would route the next
+            // refresh through initiateSelfHealResubmission instead of the regular path).
+            selfHealProviderRef.current = null
+            actionKeyRef.current = null
 
-        try {
-            const response = await restartIdentityVerification()
-            if (response.error) {
+            try {
+                // Only an EXPLICIT override is forwarded, never the local ref.
+                // `resolveRestartIntent` on the route returns the intent canonical
+                // to the DECLARED residence in every non-null branch and never the
+                // one asked for, so a stale ref can only no-op — or 400, when it
+                // crosses the provider axis. Eight of this hook's ten restart call
+                // sites pass no override, and an Argentine resident who had tapped
+                // a locked non-LATAM region first (`activeRegionIntent` survives an
+                // initiate error) would have sent ROW/EU against a LATAM residence
+                // and seen an error instead of the document upload. The residence
+                // -change caller still passes the NEWLY declared intent, which the
+                // route accepts because it already matches the canonical one.
+                const response = await restartIdentityVerification(overrideIntent)
+                if (response.error) {
+                    userInitiatedRef.current = false
+                    setError(actionErrorMessage(response))
+                    setErrorCooldown(response.cooldown ?? null)
+                    return
+                }
+                if (response.data?.token) {
+                    setAccessToken(response.data.token)
+                    // The restart no longer reopens the applicant's existing level:
+                    // the backend targets the level the newly declared residence
+                    // needs, and can overrule the intent we sent. So the multi-level
+                    // flag comes from the intent the SERVER resolved, falling back to
+                    // ours only for a backend that predates the field. Left false, a
+                    // restarted LATAM `general` session closes on first submit —
+                    // before the manteca-requirements questionnaire.
+                    //
+                    // `levelName` cannot substitute: EU and NA both mint
+                    // `bridge-requirements`, LATAM and ROW both mint `general`, and
+                    // only EU and LATAM are multi-level.
+                    const resolvedIntent = response.data.regionIntent ?? regionIntentRef.current
+                    regionIntentRef.current = resolvedIntent
+                    setIsMultiLevel(isMultiLevelIntent(resolvedIntent))
+                    setShowWrapper(true)
+                } else {
+                    userInitiatedRef.current = false
+                    setError(t('errorRestartFailed'))
+                }
+            } catch (e: unknown) {
                 userInitiatedRef.current = false
-                setError(actionErrorMessage(response))
-                return
+                const message = e instanceof Error ? e.message : t('unexpectedError')
+                setError(message)
+            } finally {
+                setIsLoading(false)
             }
-            if (response.data?.token) {
-                setAccessToken(response.data.token)
-                // The restart reopens the SAME workflow the original initiate ran
-                // (the token targets the applicant's existing level), so re-derive
-                // the multi-level flag. Left false, a restarted LATAM `general`
-                // session would close on first submit — before the
-                // manteca-requirements questionnaire. Best-effort: the ref is
-                // undefined when this hook instance never initiated, which keeps
-                // today's single-level behavior.
-                setIsMultiLevel(isMultiLevelIntent(regionIntentRef.current))
-                setShowWrapper(true)
-            } else {
-                userInitiatedRef.current = false
-                setError(t('errorRestartFailed'))
-            }
-        } catch (e: unknown) {
-            userInitiatedRef.current = false
-            const message = e instanceof Error ? e.message : t('unexpectedError')
-            setError(message)
-        } finally {
-            setIsLoading(false)
-        }
-    }, [t, actionErrorMessage])
+        },
+        [t, actionErrorMessage]
+    )
 
     // initiate self-heal document resubmission: calls the resubmit API
     // and opens the sumsub SDK with the action token. `requirementKey` targets a
@@ -691,9 +721,13 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         [handleStartAction, handleSelfHealResubmit]
     )
 
+    const dismissErrorCooldown = useCallback(() => setError(null), [setError])
+
     return {
         isLoading,
-        error,
+        error: errorCooldown ? null : error,
+        errorCooldown,
+        dismissErrorCooldown,
         isTerminalError,
         showWrapper,
         accessToken,

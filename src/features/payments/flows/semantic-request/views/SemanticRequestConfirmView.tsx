@@ -17,6 +17,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
+import NetworkFeeRow from '@/components/Global/NetworkFeeRow'
 import Loading from '@/components/Global/Loading'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import DisplayIcon from '@/components/Global/DisplayIcon'
@@ -48,6 +49,7 @@ export function SemanticRequestConfirmView() {
         error,
         calculatedReceiveAmount,
         calculatedGasCost,
+        calculatedFeeUsd,
         isCalculatingRoute,
         isFeeEstimationError,
         routeError,
@@ -108,24 +110,6 @@ export function SemanticRequestConfirmView() {
         return `${formatAmount(usdAmount || amount)}`
     }, [amount, usdAmount, isTokenDenominated])
 
-    // get network fee display
-    const networkFee = useMemo<string | React.ReactNode>(() => {
-        if (isFeeEstimationError) return '-'
-        if (calculatedGasCost === undefined) {
-            return tCommon('sponsoredByPeanut')
-        }
-        if (calculatedGasCost < 0.01) {
-            return tCommon('sponsoredByPeanut')
-        }
-        return (
-            <>
-                <span className="line-through">$ {calculatedGasCost.toFixed(2)}</span>
-                {' - '}
-                <span className="font-medium text-foreground-secondary">{tCommon('sponsoredByPeanut')}</span>
-            </>
-        )
-    }, [calculatedGasCost, isFeeEstimationError, tCommon])
-
     // Receive amount from Rhino preview. Same-token bridges are 1:1 minus flat
     // fee (no slippage) — the preview value is deterministic, not a "minimum".
     const minReceived = useMemo<string | null>(() => {
@@ -176,14 +160,14 @@ export function SemanticRequestConfirmView() {
     // show loading if we don't have charge details yet or fetching
     if (!charge || isFetchingCharge) {
         return (
-            <div className="flex min-h-[inherit] flex-col items-center justify-center">
+            <div className="flex min-h-inherit flex-col items-center justify-center">
                 <Loading variant="mascot" />
             </div>
         )
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+        <div className="flex min-h-inherit flex-col justify-between gap-8">
             <NavHeader onPrev={handleBack} title={t('headers.confirmPayment')} />
 
             <div className="my-auto space-y-4 flex h-full flex-col justify-center pb-4">
@@ -242,10 +226,13 @@ export function SemanticRequestConfirmView() {
                         />
                     )}
 
-                    <PaymentInfoRow
+                    <NetworkFeeRow
                         loading={isCalculatingRoute}
                         label={t('confirm.networkFee')}
-                        value={networkFee}
+                        feeUsd={calculatedFeeUsd}
+                        isCrossChain={isCrossChainPayment}
+                        sponsoredGasUsd={calculatedGasCost}
+                        estimationFailed={isFeeEstimationError}
                         hideBottomBorder={isCardPioneer}
                     />
 

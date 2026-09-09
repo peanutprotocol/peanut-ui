@@ -41,6 +41,7 @@ import { areEvmAddressesEqual, getExplorerUrl, isTxReverted } from '@/utils/gene
 import { decodeRecoveryKey, toRescueWebAuthnKey, type RecoveryKeyInput } from '@/utils/walletRescue.utils'
 import { captureException } from '@sentry/nextjs'
 import { useSearchParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { type Address, encodeFunctionData, erc20Abi, formatUnits, isAddress } from 'viem'
 
@@ -58,6 +59,7 @@ export default function RecoverWalletPage() {
 }
 
 function RecoverWalletInner() {
+    const tCommon = useTranslations('common')
     const searchParams = useSearchParams()
     const blob = searchParams.get('k')
 
@@ -195,7 +197,7 @@ function RecoverWalletInner() {
         return (
             <PageStack>
                 <PageStack.Center>
-                    <h1 className="text-heading-s">Funds on the way 🎉</h1>
+                    <h1 className="text-heading-s">{tCommon('fundsOnTheWay')}</h1>
                     <Card className="flex flex-col gap-1 p-4">
                         <span className="text-body-s text-foreground-secondary">
                             Sent to <AddressLink address={recipient.address} />

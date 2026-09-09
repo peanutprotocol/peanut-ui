@@ -1,3 +1,4 @@
+const path = require('path')
 const os = require('os')
 const { execSync } = require('child_process')
 const withBundleAnalyzer =
@@ -225,6 +226,14 @@ try {
     console.error('Error getting IP address:', error)
 }
 
+// Mirrors DEV_TOOLS_ENABLED in src/constants/dev-tools.consts.ts. Kept in sync
+// by hand: the constant cannot be imported here (this file is CommonJS and runs
+// before the TS pipeline), and the two disagreeing would ship a dev chunk or
+// break the ds-shots preview build.
+const devToolsEnabled =
+    process.env.NODE_ENV === 'development' ||
+    (process.env.NEXT_PUBLIC_VERCEL_ENV ?? process.env.VERCEL_ENV ?? '') === 'preview'
+
 /** @type {import('next').NextConfig} */
 let nextConfig = {
     env: {
@@ -252,6 +261,16 @@ let nextConfig = {
         .map((o) => o.trim())
         .filter(Boolean),
     images: {
+        // 16.3.1 predates the 16.3.3 fix for GHSA-2xp9-vwfh-vxw4: decoding an
+        // attacker-supplied AVIF through sharp/libheif is RCE. Production is
+        // covered by Vercel's managed optimizer, which has AVIF disabled
+        // platform-side, and the native export is already unoptimized — but a
+        // dev server runs the optimizer in-process, and remotePatterns below
+        // is a wildcard, so any page a developer visits can drive
+        // /_next/image?url=<attacker>.avif. `unoptimized` 404s the endpoint
+        // before the upstream fetch. Drop this line when the release-age floor
+        // allows 16.3.4.
+        unoptimized: process.env.NODE_ENV === 'development',
         remotePatterns: [
             {
                 hostname: '*',
@@ -269,11 +288,23 @@ let nextConfig = {
         resolveAlias: {
             // Optimize common aliases
             '@': './src',
+            // The /dev/surfaces gallery mounts ~50 app components. Its route
+            // gate keeps it from answering outside dev/preview, and its dynamic
+            // import keeps it out of the eager graph — but a chunk is still
+            // emitted for every import() in source. Swap the registry for an
+            // empty stub on the builds that can never render it, so production
+            // and the native export stop carrying it.
+            ...(devToolsEnabled ? {} : { '@/dev/surfaces/registry': './src/dev/surfaces/registry.prod-stub.ts' }),
         },
     },
 
     // Disable source maps in production (already handled by Sentry)
     productionBrowserSourceMaps: false,
+
+    // AGENTS.md and CLAUDE.md are both tracked symlinks to ../AGENTS.md, so
+    // Next 16.3's default agent-rules writer would follow them out of the repo
+    // and overwrite mono's shared instructions on `next dev`.
+    agentRules: false,
 
     // Transpile packages for better compatibility
     transpilePackages: ['@squirrel-labs/peanut-sdk'],
@@ -309,7 +340,23 @@ let nextConfig = {
         webpackBuildWorker: true,
     },
 
-    webpack: (config, { isServer, dev }) => {
+    webpack: (config, { isServer, dev, webpack }) => {
+        // `pnpm build` is `next build --webpack`, and the native builder runs the
+        // same webpack path — so a turbopack resolveAlias alone never reaches a
+        // build the repo actually runs. A resolve.alias does not work either:
+        // Next maps the `@/*` tsconfig path itself, before this alias is
+        // consulted. NormalModuleReplacementPlugin rewrites the resolved
+        // request, which is the one hook that survives both. Without it,
+        // production and the native export emit a chunk for the dev-surfaces
+        // registry and its ~50 component imports on a route that cannot answer.
+        if (!devToolsEnabled) {
+            config.plugins.push(
+                new webpack.NormalModuleReplacementPlugin(
+                    /dev[\\/]surfaces[\\/]registry$/,
+                    path.resolve(__dirname, 'src/dev/surfaces/registry.prod-stub.ts')
+                )
+            )
+        }
         if (!dev || !process.env.NEXT_TURBO) {
             if (isServer) {
                 config.ignoreWarnings = [{ module: /@opentelemetry\/instrumentation/, message: /Critical dependency/ }]

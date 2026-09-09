@@ -22,12 +22,13 @@ jest.mock('posthog-js', () => ({
 
 // module-level so it applies to every isolateModules registry freshStore builds
 const mockCookiesGet = jest.fn()
+const mockCookiesSet = jest.fn()
 
 jest.mock('js-cookie', () => ({
     __esModule: true,
     default: {
         get: (...args: unknown[]) => mockCookiesGet(...args),
-        set: jest.fn(),
+        set: (...args: unknown[]) => mockCookiesSet(...args),
     },
 }))
 
@@ -226,12 +227,40 @@ describe('emitDeviceContextToAnalytics', () => {
         expect(registered).not.toHaveProperty('binary_version')
     })
 
+    // Two registers on the first emit — the context, then the device identity as
+    // its own step so a bridge that never answers cannot take `platform` and
+    // `app_release` down with it. What must not repeat is the emit itself.
     it('emits once per session', async () => {
         setNavigatorLanguage('pt-BR')
         const store = freshStore()
         await store.emitDeviceContextToAnalytics()
+        const afterFirst = mockRegister.mock.calls.length
         await store.emitDeviceContextToAnalytics()
-        expect(mockRegister).toHaveBeenCalledTimes(1)
+        expect(mockRegister).toHaveBeenCalledTimes(afterFirst)
+    })
+
+    // The cached context is what authContext re-registers after posthog.reset()
+    // wipes super properties, so the identity has to be folded into it — not
+    // just registered — or a logout would silently drop device segmentation.
+    it('folds the device identity into the context it exposes for logout re-register', async () => {
+        setNavigatorLanguage('en-US')
+        const store = freshStore()
+        await store.emitDeviceContextToAnalytics()
+        expect(store.currentDeviceContext()).toEqual(
+            expect.objectContaining({ platform: 'web', device_class: expect.any(String) })
+        )
+    })
+
+    // Super properties reach events, not the person profile. A visitor still
+    // anonymous when the identity resolved gets no $set, so authContext folds
+    // this into its identify payload — without it the cohort omits everyone who
+    // logs in after startup.
+    it('exposes the resolved identity for the identify payload', async () => {
+        setNavigatorLanguage('en-US')
+        const store = freshStore()
+        expect(store.currentDeviceIdentity()).toBeNull()
+        await store.emitDeviceContextToAnalytics()
+        expect(store.currentDeviceIdentity()).toEqual(expect.objectContaining({ device_class: expect.any(String) }))
     })
 
     it('a posthog throw never propagates and leaves the context unset so a retry can register', async () => {
@@ -289,5 +318,26 @@ describe('localeReady', () => {
         const first = store.localeReady()
         expect(store.localeReady()).toBe(first)
         await expect(first).resolves.toBe('es-419')
+    })
+
+    // A locale derived from the browser language used to live only in memory:
+    // a full document load (a PWA relaunching at start_url after a new-tab
+    // detour) re-derived it and the proxy never saw an app-locale cookie.
+    it('persists the startup locale so a full document load finds the cookie', async () => {
+        setNavigatorLanguage('pt-BR')
+        const store = freshStore()
+        await store.localeReady()
+        expect(mockCookiesSet).toHaveBeenCalledWith('app-locale', 'pt-BR', expect.objectContaining({ path: '/' }))
+        expect(window.localStorage.getItem('app-locale')).toBe('pt-BR')
+    })
+
+    it('never overwrites a manual switch that landed before resolution finished', async () => {
+        setNavigatorLanguage('pt-BR')
+        const store = freshStore()
+        const pending = store.localeReady()
+        store.persistLocale('es-419')
+        await pending
+        expect(mockCookiesSet).not.toHaveBeenCalledWith('app-locale', 'pt-BR', expect.anything())
+        expect(window.localStorage.getItem('app-locale')).toBe('es-419')
     })
 })

@@ -30,7 +30,8 @@ import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 import { sendLinksApi } from '@/services/sendLinks'
 import { useSearchParams } from 'next/navigation'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
-import { getRegionIntent } from '@/utils/regions.utils'
+import { useBankRegionIntent } from '@/hooks/useBankRegionIntent'
+import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { getKycModalVariant, getGateUserMessage, getGateReasonCode } from '@/utils/capability-gate'
@@ -84,6 +85,8 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     // leverage the sender's KYC and bypass `gate` entirely below), so this reads
     // the *claimer's* own capabilities. See utils/capability-gate.ts.
     const { gateFor } = useCapabilities()
+    const bankRegionIntent = useBankRegionIntent()
+    const { banking: isBankRestricted } = useResidenceRestrictions()
     const gate = useMemo(() => gateFor('deposit', { channel: 'bank' }), [gateFor])
     const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
     const [showKycModal, setShowKycModal] = useState(false)
@@ -307,6 +310,41 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
      * @description Callback for when the DynamicBankAccountForm is successfully submitted.
      * It handles different logic based on the bank claim type (guest, user, kyc needed).
      */
+    // Defined once and rendered by both the form and confirm steps: the direct
+    // claim path refuses inside handleSuccess, and the modal has to exist where
+    // that refusal happens or the submit is a silent no-op.
+    const kycModal = (
+        <InitiateKycModal
+            visible={showKycModal}
+            onClose={() => setShowKycModal(false)}
+            onVerify={async () => {
+                if (gate.kind === 'restart-identity') {
+                    await sumsubFlow.handleRestartIdentity()
+                } else if (gate.kind === 'fixable-rejection') {
+                    await sumsubFlow.handleSelfHealResubmit('BRIDGE')
+                } else {
+                    await sumsubFlow.handleInitiateKyc(
+                        bankRegionIntent(selectedCountry?.region ?? 'rest-of-the-world'),
+                        undefined,
+                        gate.kind === 'needs-enrollment' || undefined,
+                        selectedCountry?.id
+                    )
+                }
+                // only close if sdk opened — if it errored, keep modal open to show error
+                if (sumsubFlow.showWrapper) setShowKycModal(false)
+            }}
+            onContactSupport={() => {
+                setShowKycModal(false)
+                setIsSupportModalOpen(true)
+            }}
+            isLoading={sumsubFlow.isLoading}
+            error={sumsubFlow.error}
+            variant={getKycModalVariant(gate.kind)}
+            providerMessage={getGateUserMessage(gate)}
+            reasonCode={getGateReasonCode(gate)}
+        />
+    )
+
     const handleSuccess = async (
         payload: AddBankAccountPayload,
         rawData: IBankAccountDetails
@@ -317,8 +355,16 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         // scenario 1: receiver needs KYC
         // name and email are now collected by sumsub sdk — no need to save them beforehand
         if (bankClaimType === BankClaimType.ReceiverKycNeeded && !justCompletedKyc) {
+            // This branch opens the SDK without going through InitiateKycModal, so
+            // the residence choke point never sees it. A ROW intent still mints a
+            // general-level token, which is a verification this residence cannot
+            // turn into a bank rail — hand it to the modal for the honest ending.
+            if (isBankRestricted) {
+                setShowKycModal(true)
+                return {}
+            }
             await sumsubFlow.handleInitiateKyc(
-                getRegionIntent(selectedCountry?.region ?? 'rest-of-the-world'),
+                bankRegionIntent(selectedCountry?.region ?? 'rest-of-the-world'),
                 undefined,
                 undefined,
                 selectedCountry?.id
@@ -539,7 +585,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             return <CountryListRouter claimLinkData={claimLinkData} inputTitle={t('bank.selectCountry')} />
         case ClaimBankFlowStep.BankDetailsForm:
             return (
-                <div className="flex min-h-[inherit] flex-col justify-between gap-8 md:min-h-fit">
+                <div className="flex min-h-inherit flex-col justify-between gap-8 md:min-h-fit">
                     <div>
                         <NavHeader
                             title={t('receive')}
@@ -571,6 +617,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                         initialData={{}}
                         error={error}
                     />
+                    {kycModal}
                     <SumsubKycModals flow={sumsubFlow} />
                 </div>
             )
@@ -603,35 +650,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                             onSkip={hideTos}
                             reasonCode={gate.kind === 'accept-tos' ? gate.reason?.code : undefined}
                         />
-                        <InitiateKycModal
-                            visible={showKycModal}
-                            onClose={() => setShowKycModal(false)}
-                            onVerify={async () => {
-                                if (gate.kind === 'restart-identity') {
-                                    await sumsubFlow.handleRestartIdentity()
-                                } else if (gate.kind === 'fixable-rejection') {
-                                    await sumsubFlow.handleSelfHealResubmit('BRIDGE')
-                                } else {
-                                    await sumsubFlow.handleInitiateKyc(
-                                        getRegionIntent(selectedCountry?.region ?? 'rest-of-the-world'),
-                                        undefined,
-                                        gate.kind === 'needs-enrollment' || undefined,
-                                        selectedCountry?.id
-                                    )
-                                }
-                                // only close if sdk opened — if it errored, keep modal open to show error
-                                if (sumsubFlow.showWrapper) setShowKycModal(false)
-                            }}
-                            onContactSupport={() => {
-                                setShowKycModal(false)
-                                setIsSupportModalOpen(true)
-                            }}
-                            isLoading={sumsubFlow.isLoading}
-                            error={sumsubFlow.error}
-                            variant={getKycModalVariant(gate.kind)}
-                            providerMessage={getGateUserMessage(gate)}
-                            reasonCode={getGateReasonCode(gate)}
-                        />
+                        {kycModal}
                     </>
                 )
             }

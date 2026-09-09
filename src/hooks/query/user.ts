@@ -8,8 +8,8 @@ import { USER } from '@/constants/query.consts'
 import { apiFetch } from '@/utils/api-fetch'
 import { clearAuthToken, getAuthToken, getClearEpoch, setAuthToken } from '@/utils/auth-token'
 import { isDemoMode } from '@/utils/demo'
-import { isNativeBridge } from '@/utils/capacitor'
 import { DEMO_USER } from '@/constants/demo-data'
+import { isNativeBridge } from '@/utils/capacitor'
 
 // custom error class for backend errors (5xx) that should trigger retry
 export class BackendError extends Error {
@@ -25,9 +25,15 @@ export const useUserQuery = (dependsOn: boolean = true) => {
     const { deviceType } = useDeviceType()
 
     const fetchUser = async (): Promise<IUserProfile | null> => {
-        // Demo mode: no backend/JWT/passkey — return the synthetic user.
+        // Demo mode: no backend/JWT/passkey — the synthetic user, read through
+        // the demo /users/me handler so state the demo routes mutate (the
+        // picked avatar, the celebration stamp) survives a refetch. Lazy
+        // import keeps the demo module out of the main bundle (api-fetch
+        // does the same).
         if (isDemoMode()) {
-            return DEMO_USER
+            const { demoRespond } = await import('@/utils/demo-api')
+            const payload: IUserProfile = await (await demoRespond('/users/me')).json()
+            return payload
         }
 
         const epochAtRequest = getClearEpoch()

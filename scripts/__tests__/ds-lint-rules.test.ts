@@ -4,6 +4,11 @@ import {
     countOffScaleRadius,
     OFF_SCALE_ICON_RE,
     RAW_DURATION_RE,
+    RETYPED_CARD_RE,
+    hasHoverWithoutActive,
+    ARBITRARY_FONT_SIZE_RE,
+    RAW_ERROR_TEXT_RE,
+    hasHandRolledCloseGlyph,
 } from '../ds-lint-rules.cjs'
 
 const countMatches = (text: string, re: RegExp) => (text.match(re) ?? []).length
@@ -112,10 +117,12 @@ describe('fontWeightOnTypeToken (countWeightStacks)', () => {
             'font-[650.5]',
             'font-(weight:--my-weight)',
             'font-[weight:var(--my-font-weight)]',
+            // untyped custom property = font-weight in tailwind 4
+            'font-(--my-weight)',
         ]) {
             expect(countWeightStacks(`<p className="text-body-s ${w}" />`)).toBe(1)
         }
-        for (const notWeight of ['font-sans', 'font-roboto', 'font-(--brand-face)', 'font-blackout']) {
+        for (const notWeight of ['font-sans', 'font-roboto', 'font-(family-name:--brand-face)', 'font-blackout']) {
             expect(countWeightStacks(`<p className="text-body-s ${notWeight}" />`)).toBe(0)
         }
     })
@@ -240,5 +247,66 @@ describe('rawDuration', () => {
         for (const cls of ['duration-instant', 'duration-fast', 'duration-moderate', 'duration-slow']) {
             expect(countMatches(`className="${cls}"`, RAW_DURATION_RE)).toBe(0)
         }
+    })
+})
+
+describe('retypedCardLiteral', () => {
+    it('flags the Global/Card chrome respelled as a literal', () => {
+        expect(
+            countMatches(
+                'className="rounded-sm border border-border-default bg-background-default p-4"',
+                RETYPED_CARD_RE
+            )
+        ).toBe(1)
+    })
+
+    it('accepts the classes apart', () => {
+        expect(countMatches('className="rounded-sm border border-border-default"', RETYPED_CARD_RE)).toBe(0)
+    })
+})
+
+describe('hoverNoActiveFiles', () => {
+    it('flags a file with hover styling and no pressed state', () => {
+        expect(hasHoverWithoutActive('className="hover:bg-action-primary"')).toBe(true)
+    })
+
+    it('accepts a file that pairs hover with active', () => {
+        expect(hasHoverWithoutActive('className="hover:bg-action-primary active:bg-action-primary"')).toBe(false)
+    })
+})
+
+describe('arbitraryFontSize', () => {
+    it('flags arbitrary font sizes', () => {
+        for (const cls of ['text-[13px]', 'text-[1.4rem]', 'text-[11px]']) {
+            expect(countMatches(`className="${cls}"`, ARBITRARY_FONT_SIZE_RE)).toBe(1)
+        }
+    })
+
+    it('accepts type tokens and arbitrary colors', () => {
+        for (const cls of ['text-body-m', 'text-[#ffffff]', 'text-[color:var(--x)]']) {
+            expect(countMatches(`className="${cls}"`, ARBITRARY_FONT_SIZE_RE)).toBe(0)
+        }
+    })
+})
+
+describe('rawErrorText', () => {
+    it('flags raw error-colored text', () => {
+        expect(countMatches('className="text-body-s text-foreground-error"', RAW_ERROR_TEXT_RE)).toBe(1)
+    })
+
+    it('leaves border-error and badge tokens alone', () => {
+        expect(countMatches('className="border-border-error bg-background-badge-error"', RAW_ERROR_TEXT_RE)).toBe(0)
+    })
+})
+
+describe('handRolledCloseGlyphFiles', () => {
+    it('flags a file pairing <button with a cancel icon', () => {
+        expect(hasHandRolledCloseGlyph('<button onClick={onClose}><Icon name="cancel" size={20} /></button>')).toBe(
+            true
+        )
+    })
+
+    it('accepts DS Button closes', () => {
+        expect(hasHandRolledCloseGlyph('<Button shape="square"><Icon name="cancel" size={20} /></Button>')).toBe(false)
     })
 })

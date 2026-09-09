@@ -84,6 +84,7 @@ jest.mock('@/utils/balance.utils', () => ({
 }))
 
 jest.mock('@/utils/withdraw.utils', () => ({
+    ...jest.requireActual('@/utils/withdraw.utils'),
     isBelowRhinoMinDeposit: () => false,
 }))
 
@@ -234,6 +235,8 @@ const withdrawData = {
 const mockSetRecipient = jest.fn()
 const mockSetIsValidRecipient = jest.fn()
 const mockWithdrawFlow = {
+    isMaxWithdrawal: false,
+    setIsMaxWithdrawal: jest.fn(),
     withdrawData,
     recipient: { address: RECIPIENT, name: '' },
     transactionHash: null as string | null,
@@ -261,13 +264,15 @@ jest.mock('@/features/withdraw/WithdrawFlowContext', () => ({
 
 const mockSendMoney = jest.fn()
 const mockSendTransactions = jest.fn()
+// mutable so the frozen-spend tests can move the balance between setup and confirm
+const mockWalletState = { spendableBalance: (100n * 10n ** 6n) as bigint | undefined }
 jest.mock('@/hooks/wallet/useWallet', () => ({
     useWallet: () => ({
         isConnected: true,
         address: USER_ADDRESS,
         sendMoney: mockSendMoney,
         sendTransactions: mockSendTransactions,
-        spendableBalance: 100n * 10n ** 6n,
+        spendableBalance: mockWalletState.spendableBalance,
     }),
 }))
 
@@ -281,6 +286,8 @@ const mockCrossChainTransfer = {
     isCalculating: false,
     isXChain: false,
     isDiffToken: false,
+    isFeeEstimationError: false,
+    quoteExpiresAt: null as string | null,
     error: null,
     calculate: jest.fn(),
     reset: jest.fn(),
@@ -316,11 +323,107 @@ const confirm = async () => {
 beforeEach(() => {
     jest.clearAllMocks()
     mockRecordPayment.mockResolvedValue(PAYMENT_RESULT)
-    Object.assign(mockCrossChainTransfer, { isXChain: false, isDiffToken: false })
+    Object.assign(mockCrossChainTransfer, { isXChain: false, isDiffToken: false, quoteExpiresAt: null })
     mockUrlAmount = '50'
     mockStepper.step = 'review'
+    mockWithdrawFlow.isMaxWithdrawal = false
+    mockWalletState.spendableBalance = 100n * 10n ** 6n
     mockIsAmountWithinBalance.mockReset()
     mockIsAmountWithinBalance.mockImplementation(() => true)
+})
+
+describe('crypto withdraw confirm — expired Rhino quote', () => {
+    afterEach(() => jest.useRealTimers())
+
+    it('re-quotes instead of signing when the quote aged out while the screen sat open', async () => {
+        jest.useFakeTimers({ now: new Date('2026-09-01T12:00:00Z') })
+        // Fresh at render: expires in 60s.
+        Object.assign(mockCrossChainTransfer, {
+            isXChain: true,
+            quoteExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+        })
+        render(<WithdrawCryptoPage />)
+
+        const quotesBeforeTap = mockCrossChainTransfer.calculate.mock.calls.length
+
+        // …then the user waits past it. No render happens in between.
+        jest.setSystemTime(Date.now() + 120_000)
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+
+        await waitFor(() => expect(mockCrossChainTransfer.calculate).toHaveBeenCalledTimes(quotesBeforeTap + 1))
+        expect(mockSendTransactions).not.toHaveBeenCalled()
+        expect(mockSendMoney).not.toHaveBeenCalled()
+        expect(mockStepperGoTo).not.toHaveBeenCalledWith('success')
+    })
+
+    it('a tap with nothing prepared (an expiry refresh that failed) re-quotes instead of dead-ending', async () => {
+        Object.assign(mockCrossChainTransfer, { isXChain: true, transactions: null, quoteExpiresAt: null })
+        try {
+            render(<WithdrawCryptoPage />)
+            const quotesBeforeTap = mockCrossChainTransfer.calculate.mock.calls.length
+
+            fireEvent.click(screen.getByTestId('confirm-withdraw'))
+
+            await waitFor(() => expect(mockCrossChainTransfer.calculate).toHaveBeenCalledTimes(quotesBeforeTap + 1))
+            expect(mockSendTransactions).not.toHaveBeenCalled()
+            expect(mockSetWithdrawError).not.toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+        } finally {
+            Object.assign(mockCrossChainTransfer, { transactions: [{ to: RECIPIENT, value: 0n, data: '0x' }] })
+        }
+    })
+
+    // A failed quote is copied into the page-level error. If a later tap
+    // re-quotes successfully, that copy has to go — otherwise the screen keeps
+    // the old failure and a Retry CTA over a route that is actually ready, and
+    // the next tap broadcasts under a stale error.
+    it('drops the copied route error when a retry re-quotes', async () => {
+        Object.assign(mockCrossChainTransfer, {
+            isXChain: true,
+            transactions: null,
+            quoteExpiresAt: null,
+            error: 'Rhino route unavailable',
+        })
+        try {
+            render(<WithdrawCryptoPage />)
+            // The propagation effect copies the hook's error onto the page.
+            await waitFor(() => expect(mockSetPaymentError).toHaveBeenCalledWith('Rhino route unavailable'))
+            mockSetPaymentError.mockClear()
+
+            fireEvent.click(screen.getByTestId('confirm-withdraw'))
+
+            await waitFor(() => expect(mockSetPaymentError).toHaveBeenCalledWith(null))
+            expect(mockSendTransactions).not.toHaveBeenCalled()
+        } finally {
+            Object.assign(mockCrossChainTransfer, {
+                isXChain: false,
+                transactions: [{ to: RECIPIENT, value: 0n, data: '0x' }],
+                error: null,
+            })
+        }
+    })
+
+    it('signs while the quote is still fresh', async () => {
+        jest.useFakeTimers({ now: new Date('2026-09-01T12:00:00Z') })
+        Object.assign(mockCrossChainTransfer, {
+            isXChain: true,
+            quoteExpiresAt: new Date(Date.now() + 120_000).toISOString(),
+        })
+        mockSendTransactions.mockResolvedValue({
+            userOpHash: '0xuserop',
+            receipt: { transactionHash: '0xmined', status: 'success' },
+            strategy: 'mixed',
+            intentId: 'prep-intent-9',
+        })
+        render(<WithdrawCryptoPage />)
+        // Entering the review step quotes once; the tap must not quote again.
+        const quotesBeforeTap = mockCrossChainTransfer.calculate.mock.calls.length
+
+        jest.setSystemTime(Date.now() + 10_000)
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+
+        await waitFor(() => expect(mockSendTransactions).toHaveBeenCalled())
+        expect(mockCrossChainTransfer.calculate).toHaveBeenCalledTimes(quotesBeforeTap)
+    })
 })
 
 // ---------- tests ----------
@@ -674,5 +777,116 @@ describe('crypto withdraw — URL amount validation (Chip review round 4)', () =
 
         await waitFor(() => expect(mockSetPaymentError).toHaveBeenCalled())
         expect(mockSendMoney).not.toHaveBeenCalled()
+    })
+})
+
+// ============================================================
+// The spend is frozen with the charge (max withdrawal / TASK-21899)
+// ============================================================
+describe('crypto withdraw — the spend is frozen with the charge', () => {
+    const { requestsApi } = jest.requireMock('@/services/requests') as {
+        requestsApi: { create: jest.Mock }
+    }
+    const { chargesApi } = jest.requireMock('@/services/charges') as {
+        chargesApi: { create: jest.Mock; get: jest.Mock }
+    }
+    const { parseUnits } = jest.requireActual('viem') as { parseUnits: (v: string, d: number) => bigint }
+
+    const armHappyPersistence = () => {
+        requestsApi.create.mockResolvedValue({ uuid: 'req-1' })
+        chargesApi.create.mockResolvedValue({ data: { id: CHARGE_UUID } })
+        chargesApi.get.mockResolvedValue(chargeDetails)
+    }
+
+    const SENT = {
+        txHash: '0xsent',
+        userOpHash: undefined,
+        receipt: { transactionHash: '0xsent', status: 'success' },
+        strategy: 'smart-only',
+        intentId: undefined,
+    }
+
+    // drive the real setup path so the charge pins the RESOLVED amount
+    const setupThenShowConfirm = async () => {
+        mockStepper.step = 'recipient'
+        const view = render(<WithdrawCryptoPage />)
+        fireEvent.click(screen.getByTestId('review-cta'))
+        await waitFor(() => expect(chargesApi.get).toHaveBeenCalled())
+        mockStepper.step = 'review'
+        view.rerender(<WithdrawCryptoPage />)
+        return view
+    }
+
+    // The feature exists to drain the dust. Nothing asserted the amount that
+    // actually leaves the wallet, so wiring sendMoney back to the displayed
+    // 2-decimal amount would keep the suite green while the remainder stayed
+    // stranded — displaying as $0.00 and never withdrawable.
+    it('a max withdrawal sends the sub-cent remainder, not the displayed cents', async () => {
+        mockWithdrawFlow.isMaxWithdrawal = true
+        mockUrlAmount = '50'
+        mockWalletState.spendableBalance = 50_006123n
+        armHappyPersistence()
+        mockSendMoney.mockResolvedValue(SENT)
+
+        const view = await setupThenShowConfirm()
+        // the request/charge rows are created from the full-precision balance
+        expect(chargesApi.create).toHaveBeenCalledWith(
+            expect.objectContaining({ local_price: { amount: '50.006123', currency: 'USD' } })
+        )
+
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+        await waitFor(() => expect(mockSendMoney).toHaveBeenCalled())
+        expect(mockSendMoney).toHaveBeenCalledWith(RECIPIENT, '50.006123', expect.anything())
+        view.unmount()
+    })
+
+    // The charge records one number and the API validator settles against it.
+    // Deriving the spend live would let the balance move underneath while both
+    // values still floored to the same displayed cents — the wallet would
+    // underpay its own charge.
+    it('a balance drop after the charge is prepared does not change what is sent', async () => {
+        mockWithdrawFlow.isMaxWithdrawal = true
+        mockUrlAmount = '10.12'
+        mockWalletState.spendableBalance = 10_126123n
+        armHappyPersistence()
+        // real balance math so the pre-broadcast gate sees the drop
+        mockIsAmountWithinBalance.mockImplementation(
+            (amt: unknown, bal: unknown) => parseUnits(String(amt), 6) <= (bal as bigint)
+        )
+        mockSendMoney.mockResolvedValue(SENT)
+
+        const view = await setupThenShowConfirm()
+        expect(chargesApi.create).toHaveBeenCalledWith(
+            expect.objectContaining({ local_price: { amount: '10.126123', currency: 'USD' } })
+        )
+
+        // the drifted 10.121111 still floors to the on-screen 10.12, but the
+        // frozen 10.126123 no longer fits — the gate must refuse, and above all
+        // the drifted value must never be what gets signed
+        mockWalletState.spendableBalance = 10_121111n
+        view.rerender(<WithdrawCryptoPage />)
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+        await waitFor(() => expect(mockSetPaymentError).toHaveBeenCalled())
+        expect(mockSendMoney).not.toHaveBeenCalled()
+        expect(mockSendTransactions).not.toHaveBeenCalled()
+    })
+
+    it('a balance rise after the charge is prepared does not enlarge what is sent', async () => {
+        mockWithdrawFlow.isMaxWithdrawal = true
+        mockUrlAmount = '10.12'
+        mockWalletState.spendableBalance = 10_126123n
+        armHappyPersistence()
+        mockIsAmountWithinBalance.mockImplementation(
+            (amt: unknown, bal: unknown) => parseUnits(String(amt), 6) <= (bal as bigint)
+        )
+        mockSendMoney.mockResolvedValue(SENT)
+
+        const view = await setupThenShowConfirm()
+
+        mockWalletState.spendableBalance = 10_129999n
+        view.rerender(<WithdrawCryptoPage />)
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+        await waitFor(() => expect(mockSendMoney).toHaveBeenCalled())
+        expect(mockSendMoney).toHaveBeenCalledWith(RECIPIENT, '10.126123', expect.anything())
     })
 })

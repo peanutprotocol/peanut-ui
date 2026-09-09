@@ -3,7 +3,7 @@ import { supportedPeanutChains, peanutTokenDetails } from '@/constants/token-reg
 import { toInviteCode } from '@/utils/invite-code.utils'
 import { jsonStringify, jsonParse, saveToCookie, getFromCookie, sanitizeRedirectURL } from '@/utils/cookie-url.utils'
 import { STABLE_COINS, ENS_NAME_REGEX } from '@/constants/general.consts'
-import { shareableUrl } from '@/utils/url.utils'
+import { payLinkUrl, shareableUrl } from '@/utils/url.utils'
 import { isCapacitor } from '@/utils/capacitor'
 import * as Sentry from '@/utils/sentry-lazy'
 import type { Address, TransactionReceipt } from 'viem'
@@ -41,6 +41,14 @@ export const shortenStringLong = (s?: string, chars?: number, firstChars?: numbe
     const endingBit = s.substring(s.length - lastBitLength, s.length)
 
     return firstBit + '...' + endingBit
+}
+
+// one-line account identifiers: head + ellipsis + the last 4 characters
+// (whitespace ignored) people recognize an account by. no-op when it fits.
+export const middleEllipsisAccount = (value: string, max: number): string => {
+    if (value.length <= max) return value
+    const tail = value.replace(/\s/g, '').slice(-4)
+    return `${value.slice(0, max - 7).trimEnd()} … ${tail}`
 }
 
 // Address detection patterns (permissive to handle lowercase-stored addresses)
@@ -411,14 +419,24 @@ export type UserPreferences = {
      *  legacy permanent `notifModalClosed` so we can re-ask after a cooldown
      *  during the migration window. */
     notifModalClosedAt?: string
-    /** ISO timestamp the app-review prompt was shown (asked once, ever). */
-    reviewPromptShownAt?: string
+    /** App-review nudge budget (see utils/app-review.ts). `moments` counts
+     *  qualifying happy moments seen; `requestedAt` holds the ISO timestamps of
+     *  past OS review requests, oldest first. */
+    reviewNudge?: { moments: number; requestedAt: string[] }
     /** Dismissal fingerprints (`bridgeTaskDismissalKey`: key|requirement|due)
      *  of the pending Bridge verification tasks the user individually
      *  dismissed on /home. A task that turns blocking or changes substance
      *  gets a new fingerprint and re-surfaces; the tasks always stay
      *  reachable under Profile → Unlocked regions. */
     pendingVerificationTasksDismissed?: string[]
+    /** ISO timestamp of a Manteca cap-nudge source-of-funds submission this
+     *  device made. Optimistic only: the backend stamps `submittedAt` on the
+     *  marker a webhook later, and until it does this is the only thing that
+     *  knows the document is already in. Deliberately SHORT-LIVED — see
+     *  CAP_NUDGE_SUBMITTED_TTL_MS — so a lost webhook re-offers the upload
+     *  rather than hiding it forever, and a genuinely new cap block is never
+     *  suppressed by a stale local flag. */
+    capNudgeSubmittedAt?: string
 }
 
 export const updateUserPreferences = (
@@ -672,7 +690,7 @@ export function getRequestLink(
     const recipient = username || recipientAddress
     const chain = !username && chainId ? `@${chainId}` : ''
 
-    let link = shareableUrl(`/${recipient}${chain}/`)
+    let link = payLinkUrl(`/${recipient}${chain}/`)
     if (tokenAmount) {
         link += `${formatAmount(tokenAmount)}`
     }

@@ -49,10 +49,11 @@ function countOffScaleSpacing(text) {
 // per-line pass over the remaining text.
 // stock weight names + the theme's own extraBlack (globals.css
 // --font-weight-extraBlack, registered in tw.ts) + arbitrary numeric brackets
-// (decimals included) + the font-(weight:…) custom-property form. bare
-// font-(--x) is a font-FAMILY custom property, not a weight — excluded.
+// (decimals included) + the font-(weight:…) and bare font-(--x) custom-property
+// forms: tailwind 4 compiles an untyped font-(--x) as font-WEIGHT, and a family
+// needs the family-name: hint, so only that typed form is excluded.
 const WEIGHT_STACK_RE =
-    /\bfont-(?:thin|extralight|light|normal|medium|semibold|extrabold|extraBlack|bold|black|\[[0-9]+(?:\.[0-9]+)?\]|\[weight:[^\]]+\]|\(weight:[^)]+\))(?![a-zA-Z0-9-])/
+    /\bfont-(?:thin|extralight|light|normal|medium|semibold|extrabold|extraBlack|bold|black|\[[0-9]+(?:\.[0-9]+)?\]|\[weight:[^\]]+\]|\(weight:[^)]+\)|\(--[^)]+\))(?![a-zA-Z0-9-])/
 const TYPE_TOKEN_RE = /\btext-(?:body|heading|label|button)-[a-z-]+\b/
 
 function classNameExpressions(text) {
@@ -184,6 +185,34 @@ function countOffScaleRadius(text) {
 // moderate/slow); arbitrary values (duration-[250ms]) count too.
 const RAW_DURATION_RE = /\bduration-(?:[0-9]+\b|\[[^\]]+\]|\(--[^)]+\))/g
 
+// the Global/Card container chrome retyped as a class literal instead of
+// composing the component (TASK-22121 sweep).
+const RETYPED_CARD_RE = /rounded-sm border border-border-default bg-background-default/g
+
+// hover styling with no pressed state anywhere in the file: touch users get
+// zero press feedback (design.md law 7). element-level pairing needs the AST
+// scanner, so this counts files — a file with hover: and zero active: has at
+// least one unpaired hover.
+function hasHoverWithoutActive(text) {
+    return /\bhover:/.test(text) && !/\bactive:/.test(text)
+}
+
+// arbitrary font sizes (text-[13px], text-[1.4rem]) — the type ramp is the
+// only size source. leading digit keeps colors (text-[#fff]) and custom
+// properties out.
+const ARBITRARY_FONT_SIZE_RE = /\btext-\[[0-9][^\]]*\]/g
+
+// raw error-colored text — field errors ride 0_Bruddle/FieldError; the counts
+// script excludes FieldError.tsx itself.
+const RAW_ERROR_TEXT_RE = /\btext-foreground-error\b/g
+
+// hand-rolled close glyph: a lowercase <button and an Icon name="cancel" in
+// the same file — close buttons ride Button shape="square". per-file, and the
+// counts script excludes 0_Bruddle/.
+function hasHandRolledCloseGlyph(text) {
+    return text.includes('<button') && /name=["']cancel["']/.test(text)
+}
+
 module.exports = {
     SPACING_STEPS,
     NUMERIC_SPACING_RE,
@@ -193,4 +222,9 @@ module.exports = {
     countOffScaleRadius,
     OFF_SCALE_ICON_RE,
     RAW_DURATION_RE,
+    RETYPED_CARD_RE,
+    hasHoverWithoutActive,
+    ARBITRARY_FONT_SIZE_RE,
+    RAW_ERROR_TEXT_RE,
+    hasHandRolledCloseGlyph,
 }

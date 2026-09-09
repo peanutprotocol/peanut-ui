@@ -7,13 +7,13 @@ import { getBadgeIcon } from './badge.utils'
 import { useBadgeCopy } from './useBadgeCopy'
 import { getCardPosition } from '../Global/Card/card.utils'
 import EmptyState from '../Global/EmptyStates/EmptyState'
-import { Icon } from '../Global/Icons/Icon'
 import { BadgeDetailModal } from './BadgeDetailModal'
 import { useMemo, useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { useAuth } from '@/context/authContext'
 import { BadgeImage } from './BadgeImage'
+import { displayableBadges } from '@/constants/badges.consts'
 
 type BadgeView = { code: string; title: string; description: string; logo: string | StaticImageData }
 
@@ -33,7 +33,7 @@ export const Badges = () => {
     // map api badges to view badges
     const badges: BadgeView[] = useMemo(() => {
         // get badges from user object and map to card fields
-        const raw = authUser?.user?.badges || []
+        const raw = displayableBadges(authUser?.user?.badges || [])
         return raw.map((b) => {
             const copy = badgeCopy(b.code, b.name, b.description)
             return {
@@ -47,7 +47,7 @@ export const Badges = () => {
 
     if (!badges.length) {
         return (
-            <div className="flex min-h-[inherit] flex-col items-center justify-center gap-8">
+            <div className="flex min-h-inherit flex-col items-center justify-center gap-8">
                 <NavHeader title={t('yourBadges')} onPrev={onBack} />
                 <div className="my-auto">
                     <EmptyState icon="achievements" title={t('emptyTitle')} description={t('emptyDescription')} />
@@ -93,7 +93,6 @@ export const Badges = () => {
                 </div>
 
                 <div className="flex items-center justify-center gap-2 text-body-xs text-foreground-secondary">
-                    <Icon name="info" width={16} height={16} />
                     <span>{t('publicProfileNote')}</span>
                 </div>
             </div>

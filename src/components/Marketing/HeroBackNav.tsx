@@ -24,7 +24,10 @@ export function HeroBackNav({ fallbackHref = '/' }: { fallbackHref?: string }) {
 
     return (
         <div className="absolute top-4 left-4 z-30">
-            <NavHeader onPrev={onBack} hideLabel />
+            {/* no maintenance banner on marketing pages / shhhhh (ruled
+                2026-09-03) — and a banner inside this absolute overlay would
+                cover the hero anyway */}
+            <NavHeader onPrev={onBack} hideLabel hideMaintenanceBanner />
         </div>
     )
 }

@@ -18,15 +18,10 @@ const PASSTHROUGH_TIMEOUT_MS = 10_000
 
 // Public read-only rate endpoints proxied to the real backend so demo shows live
 // FX rates. Best-effort: any failure falls through to the canned handler below.
-// /tokens/* are public too — the canned {} fallback is NOT a valid shape for
-// them (fetchWalletBalances crashed on `{}.balances.filter` in recover-funds).
-const PASSTHROUGH_GET = new Set([
-    '/bridge/exchange-rate',
-    '/manteca/prices',
-    '/fx/rate',
-    '/tokens/price',
-    '/tokens/wallet-portfolio',
-])
+// /tokens/price is public too — the canned {} fallback is NOT a valid shape
+// for it. /tokens/wallet-portfolio is owner-only (session required), so it
+// gets a synthetic handler instead of a passthrough that would 401.
+const PASSTHROUGH_GET = new Set(['/bridge/exchange-rate', '/manteca/prices', '/fx/rate', '/tokens/price'])
 
 const EMPTY_GRAPH = {
     nodes: [] as unknown[],
@@ -45,6 +40,8 @@ function json(data: unknown, status = 200): Response {
 }
 
 type DemoRequestBody = {
+    /** profile avatar pick (TASK-22142): string sets, null clears */
+    avatarKey?: string | null
     tokenAmount?: string | number
     requestProps?: { tokenAmount?: string | number }
     local_price?: { amount?: string | number }
@@ -365,6 +362,11 @@ const stampDemoActivationCelebrated = (): void => {
     } catch {}
 }
 
+// The picked profile avatar (TASK-22142), tab-scoped like the rest of the
+// demo state: a pick made through the picker must survive the next
+// GET /users/me or the tile snaps back. Fixtures still override on top.
+let demoAvatarKey: string | null = null
+
 // ---- routes (ordered: literal paths before :param paths) ----
 
 const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
@@ -374,9 +376,14 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         pattern: '/users/me',
         handler: () => {
             const celebratedAt = getDemoActivationCelebratedAt()
-            return celebratedAt
-                ? { ...DEMO_USER, user: { ...DEMO_USER.user, activationCelebratedAt: celebratedAt } }
-                : DEMO_USER
+            return {
+                ...DEMO_USER,
+                user: {
+                    ...DEMO_USER.user,
+                    avatarKey: demoAvatarKey,
+                    ...(celebratedAt ? { activationCelebratedAt: celebratedAt } : {}),
+                },
+            }
         },
     },
     {
@@ -443,6 +450,8 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         handler: ({ options }) => {
             const body = parseBody(options)
             if (body.dismissActivationCelebration) stampDemoActivationCelebrated()
+            // string sets, null clears, absent leaves it alone — as the API does
+            if ('avatarKey' in body) demoAvatarKey = body.avatarKey ?? null
             return demoApiUser(body.username ?? 'demo')
         },
     },
@@ -486,6 +495,26 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         method: 'GET',
         pattern: '/fx/rate',
         handler: () => json({ error: 'FX_UNAVAILABLE', message: 'Exchange rates are unavailable.' }, 503),
+    },
+
+    // The demo wallet holds nothing to recover; the shape is what
+    // fetchWalletBalances reads.
+    { method: 'GET', pattern: '/tokens/wallet-portfolio', handler: () => ({ balances: [], totalBalance: 0 }) },
+
+    // Without a handler this landed on defaultShape ({}), and the recovery page
+    // called BigInt(undefined) during render.
+    {
+        method: 'GET',
+        pattern: '/rain/cards/recover-funds/preview',
+        handler: () => ({
+            collateralProxy: '0x0000000000000000000000000000000000000000',
+            recipient: '0x1111111111111111111111111111111111111111',
+            amountWei: '0',
+            amountCents: '0',
+            dustWei: '0',
+            autoBalanceEnabled: false,
+            hasRecoverableCard: false,
+        }),
     },
 
     // bridge on/off-ramp

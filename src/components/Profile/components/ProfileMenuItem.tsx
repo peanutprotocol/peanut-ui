@@ -51,8 +51,9 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
     badge,
 }) => {
     const locale = useLocale()
+    // min-h-6 + p-4 = the 56px DS ListItem row; the old py-1 made it 60px
     const content = (
-        <div className="flex items-center justify-between py-1">
+        <div className="flex min-h-6 items-center justify-between">
             <div className="flex items-center gap-2">
                 {typeof icon === 'string' ? (
                     <Icon name={icon as IconName} size={20} fill="black" className={iconClassName} />

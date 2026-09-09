@@ -83,7 +83,7 @@ describe('ResidenceStep', () => {
     it('renders the step title as the only heading on the select view', () => {
         render(<ResidenceStep />)
         expect(screen.getAllByRole('heading')).toHaveLength(1)
-        expect(screen.getByRole('heading', { level: 1, name: 'Where are you a resident?' })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { level: 1, name: 'Where do you legally live?' })).toBeInTheDocument()
     })
 
     it('prefills from geo as a suggestion without advancing', () => {
@@ -102,9 +102,9 @@ describe('ResidenceStep', () => {
 
     it('reveals the second selector via the multi-doc link', () => {
         render(<ResidenceStep />)
-        expect(screen.queryByText('Select your second country')).not.toBeInTheDocument()
+        expect(screen.queryByPlaceholderText('Select your second country')).not.toBeInTheDocument()
         fireEvent.click(screen.getByText('Have documents from more than one country?'))
-        expect(screen.getByText('Select your second country')).toBeInTheDocument()
+        expect(screen.getByPlaceholderText('Select your second country')).toBeInTheDocument()
     })
 
     it('clears the stored second residence when the selector is collapsed', () => {
@@ -121,11 +121,76 @@ describe('ResidenceStep', () => {
         render(<ResidenceStep />)
         expect(screen.getByText('Available with Brazil')).toBeInTheDocument()
         expect(screen.getByText('Available with Germany')).toBeInTheDocument()
-        // BR is PIX-only — no BANK_TRANSFER_BR rail exists, so the item must not claim one
-        expect(screen.getByText('PIX')).toBeInTheDocument()
-        expect(screen.getByText('SEPA transfers')).toBeInTheDocument()
+        // BR rides Manteca only — no Bridge rail exists for it, so the card must not claim one
+        expect(screen.getByText('PIX payments & transfers')).toBeInTheDocument()
+        // DE is Bridge-served: one verification opens every Bridge virtual-account rail
+        expect(screen.getByText('SEPA transfers (EUR)')).toBeInTheDocument()
+        expect(screen.getByText('GBP transfers (Faster Payments)')).toBeInTheDocument()
+        expect(screen.getByText('USD transfers (ACH & Wire)')).toBeInTheDocument()
+        expect(screen.getAllByText('Peanut-to-Peanut payments')).toHaveLength(2)
         expect(screen.getByText('Which country goes first?')).toBeInTheDocument()
         expect(screen.getByText(/genuinely hold legal residence/)).toBeInTheDocument()
+    })
+
+    it('replaces Next with one main-residence button per declared country', () => {
+        mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
+        render(<ResidenceStep />)
+        expect(screen.queryByRole('button', { name: 'Next' })).not.toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Select Brazil' })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Select Germany' })).toBeInTheDocument()
+    })
+
+    it('promotes the picked country to main residence before continuing', () => {
+        // The tap IS the declaration: picking the second entry swaps the pair's
+        // order, and the outcome must be evaluated against the picked country —
+        // not the store value this render closed over.
+        mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
+        render(<ResidenceStep />)
+        fireEvent.click(screen.getByRole('button', { name: 'Select Germany' }))
+        expect(mockSetResidenceCountry).toHaveBeenCalledWith('DE')
+        expect(mockSetSecondResidenceCountry).toHaveBeenCalledWith('BR')
+        expect(mockedCapture).toHaveBeenCalledWith(
+            ANALYTICS_EVENTS.SIGNUP_RESIDENCE_SELECTED,
+            expect.objectContaining({ residence_country: 'DE', second_residence_country: 'BR' })
+        )
+    })
+
+    it('clearing the first country leaves the second as the only residence', () => {
+        mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
+        render(<ResidenceStep />)
+        fireEvent.click(screen.getByRole('button', { name: 'Remove Brazil' }))
+        expect(mockSetResidenceCountry).toHaveBeenCalledWith('DE')
+        expect(mockSetSecondResidenceCountry).toHaveBeenCalledWith('')
+        expect(screen.queryByText('Available with Brazil')).not.toBeInTheDocument()
+    })
+
+    it('stops attributing a promoted country to the geo suggestion', () => {
+        // BR was suggested by geo; the user added DE and then cleared BR. DE was
+        // typed, so continuing must not report it as a prefilled geo match.
+        mockGeoCountry = 'br'
+        const view = render(<ResidenceStep />)
+        // the geo effect prefilled BR and latched the flag
+        expect(mockSetResidenceCountry).toHaveBeenCalledWith('BR')
+        mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
+        view.rerender(<ResidenceStep />)
+        fireEvent.click(screen.getByText('Have documents from more than one country?'))
+        fireEvent.click(screen.getByRole('button', { name: 'Remove Brazil' }))
+        mockSetupState = { residenceCountry: 'DE', secondResidenceCountry: '' }
+        view.rerender(<ResidenceStep />)
+        fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+        expect(mockedCapture).toHaveBeenCalledWith(
+            ANALYTICS_EVENTS.SIGNUP_RESIDENCE_SELECTED,
+            expect.objectContaining({ residence_country: 'DE', was_prefilled: false })
+        )
+    })
+
+    it('clearing the second country keeps the first and collapses the pair', () => {
+        mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
+        render(<ResidenceStep />)
+        fireEvent.click(screen.getByRole('button', { name: 'Remove Germany' }))
+        expect(mockSetResidenceCountry).not.toHaveBeenCalledWith('DE')
+        expect(mockSetSecondResidenceCountry).toHaveBeenCalledWith('')
+        expect(screen.queryByText('Available with Germany')).not.toBeInTheDocument()
     })
 
     it('shows the congrats screen for an unrestricted residence and continues on demand', () => {
@@ -147,11 +212,14 @@ describe('ResidenceStep', () => {
         // the screen itself never names a country
         expect(screen.queryByText(/Brazil/)).not.toBeInTheDocument()
         // gates stay separated in prose: no-ID features first, the bank rail
-        // behind the ID check (named per country); the card is deliberately
-        // absent — its beta stays unnamed in onboarding, and any mention
-        // would have to state every access gate
+        // behind the ID check (named per country), then the card behind BOTH
+        // of its remaining gates. Naming the card without the waitlist is the
+        // regression this guards (2026-09-05 policy change).
         expect(screen.getByText(/work right away, and a quick ID check unlocks PIX transfers/)).toBeInTheDocument()
-        expect(screen.queryByText(/Peanut card/)).not.toBeInTheDocument()
+        expect(screen.getByText(/The Peanut card is also available/)).toBeInTheDocument()
+        expect(screen.getByText(/it needs an ID check, and you'll join a waitlist/)).toBeInTheDocument()
+        // Rain §7 bans availability framing keyed to a place — no country here
+        expect(screen.queryByText(/in your country/)).not.toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
         expect(mockHandleNext).toHaveBeenCalled()
     })
@@ -163,8 +231,11 @@ describe('ResidenceStep', () => {
         mockSetupState.residenceCountry = 'NG'
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: 'Next' }))
-        expect(screen.getByText(/work right away\.$/)).toBeInTheDocument()
-        expect(screen.queryByText(/Peanut card/)).not.toBeInTheDocument()
+        // the rail clause disappears; the card clause is self-contained, so the
+        // same string serves both branches
+        expect(screen.getByText(/work right away\./)).toBeInTheDocument()
+        expect(screen.getByText(/it needs an ID check, and you'll join a waitlist/)).toBeInTheDocument()
+        expect(screen.queryByText(/in your country/)).not.toBeInTheDocument()
         expect(screen.queryByText(/unlocks/)).not.toBeInTheDocument()
         expect(screen.queryByText(/bank transfers/i)).not.toBeInTheDocument()
     })
@@ -211,7 +282,7 @@ describe('ResidenceStep', () => {
         // silently, like the flow did before the congrats screen existed.
         mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'GB' }
         render(<ResidenceStep />)
-        fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Select Brazil' }))
         expect(mockHandleNext).toHaveBeenCalled()
         expect(screen.queryByText('Good news')).not.toBeInTheDocument()
         expect(mockedCapture).not.toHaveBeenCalledWith(

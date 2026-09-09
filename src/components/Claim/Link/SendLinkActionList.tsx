@@ -9,6 +9,10 @@
  * - mercadopago/pix (regional, requires verification)
  * - external wallet (claim to any address)
  *
+ * the alternate rails are for recipients we cannot identify as Peanut users.
+ * once a session or a passkey from an earlier registration says otherwise, the
+ * screen collapses to the Peanut option alone
+ *
  * handles invite link logic - shows invite modal before allowing
  * non-peanut claim methods
  *
@@ -47,6 +51,7 @@ import { useCapabilities } from '@/hooks/useCapabilities'
 import { CLAIM_RAIL_MINIMUMS, validateMinimumAmount } from '@/constants/payment.consts'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { useTranslations } from 'next-intl'
+import { useKnownPeanutDevice } from '@/hooks/useKnownPeanutDevice'
 import { stashInvite } from '@/utils/invite-stash'
 
 const SHOW_INVITE_MODAL_FOR_DEVCONNECT = false
@@ -91,6 +96,7 @@ export default function SendLinkActionList({
     const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null)
     const [showInviteModal, setShowInviteModal] = useState(false)
     const { user } = useAuth()
+    const knownDevice = useKnownPeanutDevice()
     const { interceptGuestCta, storeHandoffModal } = useGuestStoreHandoff({ trackImpressionWhenGuest: !isLoggedIn })
     const {
         setSelectedTokenAddress,
@@ -210,13 +216,18 @@ export default function SendLinkActionList({
     const userHasAppAccess = user?.user?.hasAppAccess ?? false
     const devconnectMethod = DEVCONNECT_CLAIM_METHODS.find((m) => m.id === 'devconnect')!
 
-    if (isGeoLoading) {
-        return (
-            <div className="flex w-full items-center justify-center py-8">
-                <Loading />
-            </div>
-        )
-    }
+    /*
+     * The alternate rails (bank, mercadopago, pix, exchange/wallet) are what a
+     * recipient without a Peanut account claims to — the published Send Links
+     * flow, so they stay. They only make sense for a recipient we cannot place:
+     * a live session, or passkey credentials from an earlier registration on
+     * this device, means the account already exists and Peanut is the answer.
+     *
+     * `knownDevice` is null until the storage read lands after mount. Treat that
+     * tick as identified: appending the rails a frame late is invisible, while
+     * showing them to a returning user and then pulling them away is not.
+     */
+    const showAltRails = !isLoggedIn && knownDevice === false
 
     return (
         <div className="space-y-2">
@@ -269,33 +280,43 @@ export default function SendLinkActionList({
                 </div>
             )}
 
-            <Divider text={tCommon('or')} />
+            {showAltRails && (
+                <>
+                    <Divider text={tCommon('or')} />
 
-            <div className="space-y-2">
-                {sortedActionMethods.map((method) => {
-                    let methodRequiresVerification = method.id === 'bank' && requiresVerification
-                    if (!isMantecaPayEnabled && ['mercadopago', 'pix'].includes(method.id)) {
-                        methodRequiresVerification = true
-                    }
-
-                    return (
-                        <MethodCard
-                            onClick={() => {
-                                if (isInviteLink && !userHasAppAccess && method.id !== 'devconnect') {
-                                    setSelectedMethod(method)
-                                    setShowInviteModal(true)
-                                } else {
-                                    handleMethodClick(method)
+                    {isGeoLoading ? (
+                        <div className="flex w-full items-center justify-center py-8">
+                            <Loading />
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            {sortedActionMethods.map((method) => {
+                                let methodRequiresVerification = method.id === 'bank' && requiresVerification
+                                if (!isMantecaPayEnabled && ['mercadopago', 'pix'].includes(method.id)) {
+                                    methodRequiresVerification = true
                                 }
-                            }}
-                            key={method.id}
-                            method={method}
-                            requiresVerification={methodRequiresVerification}
-                            soon={method.id === 'bank' && isGuestBankClaim}
-                        />
-                    )
-                })}
-            </div>
+
+                                return (
+                                    <MethodCard
+                                        onClick={() => {
+                                            if (isInviteLink && !userHasAppAccess && method.id !== 'devconnect') {
+                                                setSelectedMethod(method)
+                                                setShowInviteModal(true)
+                                            } else {
+                                                handleMethodClick(method)
+                                            }
+                                        }}
+                                        key={method.id}
+                                        method={method}
+                                        requiresVerification={methodRequiresVerification}
+                                        soon={method.id === 'bank' && isGuestBankClaim}
+                                    />
+                                )
+                            })}
+                        </div>
+                    )}
+                </>
+            )}
 
             {!isLoggedIn && <SupportCTA />}
 

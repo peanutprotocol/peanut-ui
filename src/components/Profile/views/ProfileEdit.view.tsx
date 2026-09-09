@@ -1,5 +1,6 @@
 'use client'
 import { updateUserById } from '@/app/actions/users'
+import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { Button } from '@/components/0_Bruddle/Button'
 import NavHeader from '@/components/Global/NavHeader'
@@ -17,6 +18,10 @@ import ProfileHeader from '../components/ProfileHeader'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
 
+// Bio / phone / website have no backend yet. Kept as dead code behind a switch
+// (same pattern as OPEN_GATED) so the fields come back with the feature.
+const SHOW_COMING_SOON_FIELDS = false
+
 export const ProfileEditView = () => {
     const t = useTranslations('profile.edit')
     const tMenu = useTranslations('profile.menu')
@@ -31,7 +36,17 @@ export const ProfileEditView = () => {
     const { isVerified: isKycApproved } = useIdentityVerification()
 
     const [isLoading, setIsLoading] = useState(false)
+    // backend/API failures — rendered in the Notification. client-side name
+    // validation renders as the name field's own error instead.
     const [errorMessage, setErrorMessage] = useState('')
+    const [nameError, setNameError] = useState('')
+    // Mirrors `showFullName` so the header above updates the moment the toggle
+    // flips, instead of waiting for the background user refetch to land.
+    const [showFullName, setShowFullName] = useState(user?.user.showFullName ?? false)
+
+    useEffect(() => {
+        setShowFullName(user?.user.showFullName ?? false)
+    }, [user?.user.showFullName])
 
     // split the full name into name and surname
     const splitName = useCallback((fullName: string) => {
@@ -96,6 +111,8 @@ export const ProfileEditView = () => {
             ...prev,
             [field]: value,
         }))
+        // typing in the name field releases its validation error
+        if (field === 'name') setNameError('')
     }, [])
 
     // handle form submission
@@ -103,13 +120,14 @@ export const ProfileEditView = () => {
         try {
             setIsLoading(true)
             setErrorMessage('')
+            setNameError('')
 
             // only require the name when the field is editable — requiring it
             // while it's locked (verified user, provider owns the name) would
             // trap users whose fullName is empty at load (can't type, can't
             // save) when all they want is to set their email.
             if (canEditName && !formData.name?.trim()) {
-                setErrorMessage(t('errors.nameRequired'))
+                setNameError(t('errors.nameRequired'))
                 return
             }
 
@@ -161,26 +179,30 @@ export const ProfileEditView = () => {
         }
     }, [formData, user, fetchUser, router, isEmailSet, canEditName, t, tCommon])
 
-    const fullName = user?.user.fullName || user?.user?.username || ''
     const username = user?.user.username || ''
+    // The header shows what the rest of the world sees: the full name only
+    // while it is public, the username otherwise.
+    const displayName = showFullName && user?.user.fullName ? user.user.fullName : username
 
     return (
         <div className="flex flex-col gap-8">
             <NavHeader title={t('title')} onPrev={onBack} />
 
-            <ProfileHeader name={fullName} username={username} isVerified={isKycApproved} />
+            <ProfileHeader name={displayName} username={username} isVerified={isKycApproved} showShareButton={false} />
 
             {/* two groups — who you are, then how we reach you. gap-6 (XL,
                 the section step) against gap-4 (L) inside a group, so the
                 rhythm reads 8 (label → field) < 16 (field → field) < 24. */}
             <div className="flex flex-col gap-6">
                 <div className="flex flex-col gap-4">
-                    <ProfileEditField
-                        label={t('fields.name')}
-                        value={formData.name}
-                        onChange={(value) => handleChange('name', value)}
-                        disabled={!canEditName}
-                    />
+                    <FieldColumn error={nameError}>
+                        <ProfileEditField
+                            label={t('fields.name')}
+                            value={formData.name}
+                            onChange={(value) => handleChange('name', value)}
+                            disabled={!canEditName}
+                        />
+                    </FieldColumn>
 
                     <ProfileEditField
                         label={t('fields.surname')}
@@ -189,13 +211,15 @@ export const ProfileEditView = () => {
                         disabled={!canEditName}
                     />
 
-                    <ProfileEditField
-                        label={t('fields.bio')}
-                        value={formData.bio}
-                        onChange={(value) => handleChange('bio', value)}
-                        badge={t('soonBadge')}
-                        disabled
-                    />
+                    {SHOW_COMING_SOON_FIELDS && (
+                        <ProfileEditField
+                            label={t('fields.bio')}
+                            value={formData.bio}
+                            onChange={(value) => handleChange('bio', value)}
+                            badge={t('soonBadge')}
+                            disabled
+                        />
+                    )}
                 </div>
 
                 <div className="flex flex-col gap-4">
@@ -207,23 +231,27 @@ export const ProfileEditView = () => {
                         disabled={isEmailSet}
                     />
 
-                    <ProfileEditField
-                        label={t('fields.phoneNumber')}
-                        value={formData.phone}
-                        onChange={(value) => handleChange('phone', value)}
-                        type="tel"
-                        badge={t('soonBadge')}
-                        disabled
-                    />
+                    {SHOW_COMING_SOON_FIELDS && (
+                        <>
+                            <ProfileEditField
+                                label={t('fields.phoneNumber')}
+                                value={formData.phone}
+                                onChange={(value) => handleChange('phone', value)}
+                                type="tel"
+                                badge={t('soonBadge')}
+                                disabled
+                            />
 
-                    <ProfileEditField
-                        label={t('fields.website')}
-                        value={formData.website}
-                        onChange={(value) => handleChange('website', value)}
-                        type="url"
-                        badge={t('soonBadge')}
-                        disabled
-                    />
+                            <ProfileEditField
+                                label={t('fields.website')}
+                                value={formData.website}
+                                onChange={(value) => handleChange('website', value)}
+                                type="url"
+                                badge={t('soonBadge')}
+                                disabled
+                            />
+                        </>
+                    )}
                 </div>
 
                 {/* Name visibility belongs with the name itself; only shown
@@ -233,7 +261,7 @@ export const ProfileEditView = () => {
                         position="single"
                         leading={<Icon name="eye" size={24} />}
                         title={tMenu('showMyFullName')}
-                        trailing={<ShowNameToggle />}
+                        trailing={<ShowNameToggle checked={showFullName} onChange={setShowFullName} />}
                     />
                 )}
             </div>

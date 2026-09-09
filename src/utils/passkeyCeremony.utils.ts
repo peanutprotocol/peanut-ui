@@ -1,6 +1,7 @@
 import { captureException } from '@/utils/sentry-lazy'
 import { isCapacitor } from '@/utils/capacitor'
 import { setAuthToken } from '@/utils/auth-token'
+import { setCachedStepUpToken } from '@/services/step-up-cache'
 
 /**
  * Guards for the passkey ceremony (TASK-21782).
@@ -127,6 +128,11 @@ export const waitForPasskeyShim = async (timeoutMs: number = SHIM_WAIT_TIMEOUT_M
 let ceremonySeq = 0
 let activeCeremonyId: number | null = null
 let stashedVerifyToken: string | null = null
+type StashedStepUp = { token: string; expiresIn: number }
+let stashedStepUp: StashedStepUp | null = null
+// Read through a function: TS narrows the module `let` to null across the
+// await below and cannot see the fetch wrapper assigning it meanwhile.
+const takeStashedStepUp = (): StashedStepUp | null => stashedStepUp
 export const currentCeremonyId = (): number | null => activeCeremonyId
 export const isCeremonyStillActive = (id: number | null): boolean => id !== null && id === activeCeremonyId
 
@@ -138,6 +144,11 @@ export const isCeremonyStillActive = (id: number | null): boolean => id !== null
  */
 export const stashCeremonyVerifyToken = (token: string, issuingCeremonyId: number | null): void => {
     if (isCeremonyStillActive(issuingCeremonyId)) stashedVerifyToken = token
+}
+
+/** Same window rule as the session token: the step-up proof a login mints is committed only with its ceremony. */
+export const stashCeremonyStepUpToken = (token: string, expiresIn: number, issuingCeremonyId: number | null): void => {
+    if (isCeremonyStillActive(issuingCeremonyId)) stashedStepUp = { token, expiresIn }
 }
 
 /**
@@ -177,15 +188,19 @@ export const guardPasskeyCeremony = async <T>(startCeremony: () => Promise<T>): 
     const ceremonyId = ++ceremonySeq
     activeCeremonyId = ceremonyId
     stashedVerifyToken = null
+    stashedStepUp = null
     try {
         const result = await raceCeremonyTimeout(
             startCeremony(),
             native ? CEREMONY_TIMEOUT_MS : WEB_CEREMONY_TIMEOUT_MS
         )
         if (stashedVerifyToken !== null) setAuthToken(stashedVerifyToken)
+        const stepUp = takeStashedStepUp()
+        if (stepUp !== null) setCachedStepUpToken(stepUp.token, stepUp.expiresIn)
         return result
     } finally {
         if (activeCeremonyId === ceremonyId) activeCeremonyId = null
         stashedVerifyToken = null
+        stashedStepUp = null
     }
 }

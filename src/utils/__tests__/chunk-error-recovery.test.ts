@@ -1,4 +1,9 @@
-import { CHUNK_ERROR_RECOVERY_SCRIPT, isChunkLoadError, recoverFromChunkError } from '../chunk-error-recovery'
+import {
+    CHUNK_ERROR_RECOVERY_SCRIPT,
+    importWithChunkRetry,
+    isChunkLoadError,
+    recoverFromChunkError,
+} from '../chunk-error-recovery'
 
 type Listener = (event: { reason?: unknown; error?: unknown; message?: string }) => void
 
@@ -145,5 +150,33 @@ describe('recoverFromChunkError', () => {
         expect(recoverFromChunkError(chunkError())).toBe(true)
         expect(recoverFromChunkError(chunkError())).toBe(false)
         expect(reload).toHaveBeenCalledTimes(1)
+    })
+})
+
+describe('importWithChunkRetry', () => {
+    /*
+     * A frozen process resuming fires every overdue timer at once, webpack's
+     * chunkLoadTimeout included, so an import() that was merely in flight
+     * rejects for a local file that is intact (PEANUT-UI-SVT).
+     */
+    it('retries once when the chunk load timed out', async () => {
+        const load = jest
+            .fn()
+            .mockRejectedValueOnce(new Error('Loading chunk 8789 failed.\n(timeout: https://localhost/_next/x.js)'))
+            .mockResolvedValue('module')
+        await expect(importWithChunkRetry(load)).resolves.toBe('module')
+        expect(load).toHaveBeenCalledTimes(2)
+    })
+
+    it('rethrows a non-chunk failure untouched, so it is not a general retry', async () => {
+        const load = jest.fn().mockRejectedValue(new Error('boom'))
+        await expect(importWithChunkRetry(load)).rejects.toThrow('boom')
+        expect(load).toHaveBeenCalledTimes(1)
+    })
+
+    it('gives up after the second attempt rather than looping', async () => {
+        const load = jest.fn().mockRejectedValue(new Error('ChunkLoadError'))
+        await expect(importWithChunkRetry(load)).rejects.toThrow('ChunkLoadError')
+        expect(load).toHaveBeenCalledTimes(2)
     })
 })

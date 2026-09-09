@@ -5,9 +5,9 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
 import { PEANUTMAN } from '@/assets/mascot'
 import { ETHEREUM_ICON } from '@/assets/icons'
+import { QR_DRAWER_PASTE_GAP_PX, QR_DRAWER_PEEK_PX } from '@/constants/qr-drawer.consts'
 import Image from 'next/image'
 import { Icon } from '../Icons/Icon'
-import { QR_DRAWER_PASTE_GAP_PX, QR_DRAWER_PEEK_PX } from '@/constants/qr-drawer.consts'
 import { useQRScanner, type QRScanHandler } from './useQRScanner'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import CameraPermissionModal from './CameraPermissionModal'
@@ -38,6 +38,24 @@ const CORNER_POSITIONS = [
     { position: '-bottom-1 -left-1', rotation: '-rotate-90' },
     { position: '-bottom-1 -right-1', rotation: '-rotate-180' },
 ] as const
+
+// The same 730px threshold the icon grid uses. Tracked in JS (not CSS
+// dual-render): rendering PasteActions twice put duplicate interactive
+// controls in the DOM and the a11y tree order could not be trusted.
+const SHORT_VIEWPORT_QUERY = '(max-height: 729px)'
+
+function useIsShortViewport(): boolean {
+    const [isShort, setIsShort] = useState(false)
+    useEffect(() => {
+        if (typeof window.matchMedia !== 'function') return
+        const mq = window.matchMedia(SHORT_VIEWPORT_QUERY)
+        const update = () => setIsShort(mq.matches)
+        update()
+        mq.addEventListener('change', update)
+        return () => mq.removeEventListener('change', update)
+    }, [])
+    return isShort
+}
 
 // ============================================================================
 // Types
@@ -83,9 +101,10 @@ function ScannerControls({ onClose, onToggleCamera }: { onClose: () => void; onT
     return (
         // portalled overlay escapes the layout's safe-area padding; max() keeps the old 2.5rem on web
         <div className="fixed top-0 left-0 z-50 grid w-full grid-flow-col items-center pt-[max(2.5rem,calc(var(--safe-top)_+_0.5rem))] pb-2 text-center text-white">
+            {/* ds icon-button recipe: 40px circle + 20px icon */}
             <Button
                 variant="transparent-light"
-                className="mx-auto flex h-8 w-8 items-center justify-center border-white p-0"
+                className="mx-auto flex size-10 items-center justify-center border-white p-0"
                 onClick={onClose}
             >
                 <Icon name="cancel" size={20} fill="white" />
@@ -93,10 +112,10 @@ function ScannerControls({ onClose, onToggleCamera }: { onClose: () => void; onT
             <span className="text-heading-m text-foreground-inverse">{t('qrScanner.scanToPay')}</span>
             <Button
                 variant="transparent-light"
-                className="mx-auto flex h-8 w-8 items-center justify-center border-white p-0"
+                className="mx-auto flex size-10 items-center justify-center border-white p-0"
                 onClick={onToggleCamera}
             >
-                <Icon name="camera-flip" fill="white" height={24} width={24} />
+                <Icon name="camera-flip" fill="white" size={20} />
             </Button>
         </div>
     )
@@ -120,7 +139,7 @@ function PasteActions({
         <>
             <button
                 onClick={onPaste}
-                className="justify mx-auto mt-10 flex items-center gap-1 text-center text-white underline underline-offset-2"
+                className="mx-auto mt-4 flex items-center gap-1 text-center text-white underline underline-offset-2"
             >
                 <Icon name="paste" fill="white" height={16} width={16} />
                 <span className="text-body-s">{t('qrScanner.clickToPaste')}</span>
@@ -160,6 +179,7 @@ function ScanRegionOverlay({
     onUsePasteChip: () => void
 }) {
     const t = useTranslations('global')
+    const isShortViewport = useIsShortViewport()
     return (
         <>
             <div className="fixed left-1/2 flex h-64 w-64 -translate-x-1/2 translate-y-1/2 justify-center">
@@ -171,49 +191,58 @@ function ScanRegionOverlay({
                     ))}
                 </div>
 
-                {/* Supported payment methods. This row is pinned to the top of the
-                    viewport while the paste actions rise from the bottom, so on a short
-                    screen the two meet. Measured: the gap between them is
-                    `viewportHeight - 714` px with the clipboard chip showing, so below
-                    730px it drops under the 16px this layout keeps elsewhere — hide the
-                    row rather than let it collide. */}
-                <div className="flex-column z-50 translate-y-[100%] transform items-center text-center">
-                    <div className="mt-10 flex flex-wrap justify-center gap-2 [@media(max-height:729px)]:hidden">
-                        {PAYMENT_METHODS.map((method) => (
-                            <PaymentMethodBadge
-                                key={method.name ?? 'evm'}
-                                src={method.src}
-                                alt={method.alt ?? t('qrScanner.paymentMethods.evmAlt')}
-                                name={method.name ?? t('qrScanner.paymentMethods.evmName')}
-                            />
-                        ))}
+                {/* Icons (2-per-row grid) then paste actions, hanging one XL
+                    section gap (24px) below the scan square so the group reads
+                    as part of it. Ruled 2026-09-02 (TASK-22121 #20), replacing
+                    the drawer-anchored strip. Tall viewports only: the short
+                    fallback below cannot live in this subtree, because the
+                    square's transform makes it the containing block for
+                    position:fixed — a bottom offset here would resolve against
+                    the 256px square, not the viewport. */}
+                {!isShortViewport && (
+                    <div className="pointer-events-auto absolute inset-x-0 top-full z-50 mt-6 flex flex-col items-center">
+                        <div className="grid grid-cols-2 gap-2">
+                            {PAYMENT_METHODS.map((method) => (
+                                <PaymentMethodBadge
+                                    key={method.name ?? 'evm'}
+                                    src={method.src}
+                                    alt={method.alt ?? t('qrScanner.paymentMethods.evmAlt')}
+                                    name={method.name ?? t('qrScanner.paymentMethods.evmName')}
+                                />
+                            ))}
+                        </div>
+                        <PasteActions
+                            onPaste={onPaste}
+                            detectedAddress={detectedAddress}
+                            onUseDetected={onUseDetected}
+                            showPasteChip={showPasteChip}
+                            onUsePasteChip={onUsePasteChip}
+                        />
                     </div>
-                </div>
+                )}
             </div>
 
-            {/* The paste link and clipboard chips sit a fixed gap above the My QR
-                drawer's collapsed peek, so no locale's text length and no screen
-                height can push them underneath it. They used to hang off the scan
-                square, which is pinned to the top of the viewport, while the peek
-                grows from the bottom — two coordinate systems that only lined up
-                on a tall screen in English. Tailwind cannot JIT an interpolated
-                arbitrary value, so the offset is an inline style. The strip is
-                full-width and transparent, so it is click-through except for the
-                actions themselves. */}
-            <div
-                className="pointer-events-none fixed inset-x-0 z-50 flex flex-col items-center"
-                style={{ bottom: QR_DRAWER_PEEK_PX + QR_DRAWER_PASTE_GAP_PX }}
-            >
-                <div className="pointer-events-auto flex flex-col items-center">
-                    <PasteActions
-                        onPaste={onPaste}
-                        detectedAddress={detectedAddress}
-                        onUseDetected={onUseDetected}
-                        showPasteChip={showPasteChip}
-                        onUsePasteChip={onUsePasteChip}
-                    />
+            {/* Short-viewport fallback: a viewport-fixed sibling OUTSIDE the
+                transformed square, anchored a gap above the drawer peek (the
+                pre-#20 geometry) — inside the square's subtree the transform
+                would hijack the containing block for position:fixed. Exactly
+                one PasteActions copy renders (useIsShortViewport), never two. */}
+            {isShortViewport && (
+                <div
+                    className="pointer-events-none fixed inset-x-0 z-50 flex flex-col items-center"
+                    style={{ bottom: QR_DRAWER_PEEK_PX + QR_DRAWER_PASTE_GAP_PX }}
+                >
+                    <div className="pointer-events-auto flex flex-col items-center">
+                        <PasteActions
+                            onPaste={onPaste}
+                            detectedAddress={detectedAddress}
+                            onUseDetected={onUseDetected}
+                            showPasteChip={showPasteChip}
+                            onUsePasteChip={onUsePasteChip}
+                        />
+                    </div>
                 </div>
-            </div>
+            )}
         </>
     )
 }
@@ -363,7 +392,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                  * for a copied Pix code. The modal owns the whole screen here, so the
                  * action has to sit inside it to be reachable.
                  */
-                <CameraPermissionModal visible onRetry={retryCamera} onClose={close} onPaste={handlePaste} />
+                <CameraPermissionModal visible onRetry={retryCamera} onClose={close} />
             ) : error ? (
                 <ErrorView message={error} onClose={close} onRetry={retryCamera}>
                     <PasteActions

@@ -23,6 +23,8 @@ export default function WithdrawRoot() {
                 heading={flow.isFromSendFlow ? t('amountToSend') : t('amountToWithdraw')}
                 initialAmount={flow.rawTokenAmount}
                 walletBalance={flow.walletBalance}
+                balanceFillAmount={flow.maxDecimalAmount}
+                onBalanceFilled={flow.handleBalanceFilled}
                 onAmountChange={flow.handleAmountChange}
                 onBack={flow.handleAmountBack}
                 onContinue={flow.handleAmountContinue}

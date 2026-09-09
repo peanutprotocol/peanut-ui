@@ -20,12 +20,14 @@ export const LEGACY_PENDING_BADGE_CAMPAIGNS_V2_COOKIE = 'campaignTagsV2'
 export const PENDING_BADGE_CAMPAIGN_INTENT_EPOCH_STORAGE_KEY = 'campaignIntentEpoch'
 export const BADGE_CAMPAIGN_QUERY_PARAM = 'badge_campaign'
 export const MAX_BADGE_CAMPAIGNS = 20
-export const LEGACY_UTM_BADGE_CAMPAIGN_PREFIX = 'utm:'
-/** Maximum raw length for explicit and UTM values before source qualification. */
+/** Maximum raw length for explicit values before source qualification. */
 export const MAX_RAW_BADGE_CAMPAIGN_LENGTH = 64
-/** `utm:` plus the maximum 64-character raw UTM value. */
-export const MAX_BADGE_CAMPAIGN_IDENTITY_LENGTH =
-    MAX_RAW_BADGE_CAMPAIGN_LENGTH + LEGACY_UTM_BADGE_CAMPAIGN_PREFIX.length
+/**
+ * Deferred install payloads queued before the utm path retired (TASK-21226)
+ * can still carry 68-character `utm:`-prefixed identities; keep accepting
+ * that wire bound so in-flight queues settle instead of being rejected.
+ */
+export const MAX_BADGE_CAMPAIGN_IDENTITY_LENGTH = MAX_RAW_BADGE_CAMPAIGN_LENGTH + 'utm:'.length
 
 // Explicit logout invalidates every settlement that began under the prior
 // account. The durable epoch is shared by tabs; the process counter preserves
@@ -102,15 +104,9 @@ function badgeCampaignsFromSearchParamsWithExplicitBound(
         return sanitizeBadgeCampaignIdentities(legacyExplicitValues, explicitMaxLength)
     }
 
-    // utm_campaign is analytics-only. It is still source-qualified and forwarded
-    // so the backend can honour its own dated compatibility aliases (today: only
-    // `offramp`, which expires 2026-09-07). Everything else resolves `unknown`,
-    // so a marketing link can no longer mint a badge as a side effect.
-    const utmValues = sanitizeBadgeCampaignIdentities(
-        split(searchParams.getAll('utm_campaign')),
-        MAX_RAW_BADGE_CAMPAIGN_LENGTH
-    )
-    return sanitizeBadgeCampaignIdentities(utmValues.map((value) => `${LEGACY_UTM_BADGE_CAMPAIGN_PREFIX}${value}`))
+    // utm_campaign is analytics-only (TASK-21226 retired the last badge alias);
+    // it never becomes a badge identity.
+    return []
 }
 
 /** Parse raw public URL values. Canonical slugs and legacy raw aliases are at most 64 characters. */

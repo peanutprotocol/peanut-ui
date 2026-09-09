@@ -50,3 +50,14 @@ export function setUser(user: Parameters<SentryModule['setUser']>[0]): void {
 export function withScope(callback: (scope: Scope) => unknown): void {
     withSdk((S) => S.withScope(callback as (scope: Scope) => void))
 }
+
+/*
+ * The timestamp is stamped here rather than left to the SDK: a breadcrumb
+ * recorded before the import resolves is delivered on a later microtask, and
+ * the SDK would date it to delivery, putting it out of order against the very
+ * error it was left to explain.
+ */
+export function addBreadcrumb(breadcrumb: Parameters<SentryModule['addBreadcrumb']>[0]): void {
+    const timestamp = Date.now() / 1000
+    withSdk((S) => S.addBreadcrumb({ timestamp, ...breadcrumb }))
+}

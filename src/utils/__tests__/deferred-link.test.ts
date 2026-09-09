@@ -31,6 +31,7 @@ jest.mock('../capacitor', () => ({
     getPlatform: jest.fn(() => 'web'),
     isAndroidNative: jest.fn(() => false),
     isIOSNative: jest.fn(() => false),
+    isNativeBridge: jest.fn(() => true),
 }))
 
 jest.mock('../clipboard-detect', () => ({
@@ -120,9 +121,12 @@ describe('buildDeferredPayload / parseDeferredPayload round-trip', () => {
         ).toEqual({ badgeCampaigns: ['canonical-first', 'canonical-second'] })
     })
 
-    it('keeps a marked historical UTM source-qualified for backend allowlist resolution', () => {
+    it('ignores a bare historical UTM in an old deferred payload (TASK-21226)', () => {
         expect(parseDeferredPayload('pnutdl=1&utm_campaign=token-nation-2026')).toEqual({
-            badgeCampaigns: ['utm:token-nation-2026'],
+            badgeCampaigns: undefined,
+            dest: undefined,
+            invite: undefined,
+            lang: undefined,
         })
     })
 
