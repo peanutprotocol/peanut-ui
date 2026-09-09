@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+    res/xml/config.xml is the Cordova plugin registry: cap sync generates it and
+    Cordova's ConfigXmlParser loads it only through reflection, so the resource
+    shrinker sees no reference and strips it. Binary 1.5.0+21653381 shipped that
+    way and every Android KYC launch failed with "Class not found" (TASK-22471).
+    android-release.yml asserts the pin held in the final AAB.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@xml/config" />
