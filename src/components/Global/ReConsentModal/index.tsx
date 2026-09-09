@@ -4,7 +4,10 @@ import { useTranslations } from 'next-intl'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { Fragment } from 'react'
-import ActionModal from '../ActionModal'
+import { Button } from '@/components/0_Bruddle/Button'
+import Checkbox from '@/components/0_Bruddle/Checkbox'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import DocsLink from '@/components/Global/DocsLink'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { legalPolicyForSlug } from '@/constants/legal-policies'
@@ -13,10 +16,6 @@ import { acceptedLegalDocument, consentApi, type ConsentStatusDocument } from '@
 import { LEGAL_DOCUMENT_VERSIONS, type LegalDocumentSlug } from '@/constants/legal-versions.generated'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 import { isReConsentSnoozed, snoozeReConsent } from './utils'
-
-/** Keep "Not now" stacked BELOW the primary CTA at every width — side-by-side
- *  would read as two equally-weighted choices. */
-const STACKED_CTAS = 'flex-col sm:flex-col'
 
 /**
  * Re-consent click-through (tos-v1 phase 2, ToS §17): when a legal document's
@@ -37,7 +36,7 @@ const ReConsentModal = () => {
     const [outdatedDocs, setOutdatedDocs] = useState<ConsentStatusDocument[]>([])
     const [checked, setChecked] = useState(false)
     const [submitting, setSubmitting] = useState(false)
-    const [error, setError] = useState<string | null>(null)
+    const [error, setError] = useState(false)
     const lastCheckedUserId = useRef<string | null>(null)
 
     useEffect(() => {
@@ -50,7 +49,7 @@ const ReConsentModal = () => {
         // into this session (an already-populated modal or a pre-ticked box)
         setOutdatedDocs([])
         setChecked(false)
-        setError(null)
+        setError(false)
         // a recent "Not now" defers the prompt — don't even spend the request
         if (isReConsentSnoozed(userId)) return
         consentApi
@@ -80,7 +79,7 @@ const ReConsentModal = () => {
     const handleAccept = async () => {
         if (!checked || submitting) return
         setSubmitting(true)
-        setError(null)
+        setError(false)
         try {
             await consentApi.accept(outdatedDocs.map((d) => acceptedLegalDocument(d.slug as LegalDocumentSlug)))
             // CTA_CLICKED, not DISMISSED — acceptance and refusal must be
@@ -97,7 +96,7 @@ const ReConsentModal = () => {
             // Sentry (not console): if /accept fails systematically, nobody can
             // record consent at all — that must be visible in prod
             Sentry.captureException(e, { tags: { feature: 're-consent', action: 'accept' } })
-            setError('Could not save your acceptance — please try again.')
+            setError(true)
         } finally {
             setSubmitting(false)
         }
@@ -120,79 +119,87 @@ const ReConsentModal = () => {
         })
         setOutdatedDocs([])
         setChecked(false)
-        setError(null)
+        setError(false)
     }
 
     if (!outdatedDocs.length) return null
 
     return (
-        <ActionModal
-            visible
-            onClose={handlePostpone}
-            tone="info"
-            title={t('reConsent.title')}
-            description={
-                /* The first sentence answers the question this modal actually raises
-                 * ("is something being taken from me?") before anything else. The
-                 * what-changed line describes the 2026-07-15 tos-v1 rewrite — revisit
-                 * it when a future version bump shows this modal for a different
-                 * change. "No rush" is literal: "Not now" snoozes to the effective
-                 * date (see utils.ts). */
-                <div className="space-y-3">
-                    <p>{t('reConsent.reassurance')}</p>
-                    <p>{t('reConsent.whatChanged')}</p>
-                </div>
-            }
-            content={
-                <div className="space-y-3 w-full">
-                    {/* the updated documents on one centered line, separator-joined
-                        (wraps when it must) — inline-link treatment per the Signup
-                        consent line; DocsLink handles web/PWA/native targets */}
-                    <p className="text-body-s">
-                        {outdatedDocs.map((doc, index) => {
-                            const policy = legalPolicyForSlug(doc.slug)
-                            return (
-                                <Fragment key={doc.slug}>
-                                    {index > 0 && <span className="text-foreground-secondary"> · </span>}
-                                    <DocsLink
-                                        href={policy?.href ?? `/${doc.slug}`}
-                                        className="text-foreground-primary underline underline-offset-2"
-                                    >
-                                        {policy ? tPolicies(policy.key) : doc.slug}
-                                    </DocsLink>
-                                </Fragment>
-                            )
-                        })}
-                    </p>
-                    {error && <Notification priority="error">{error}</Notification>}
-                </div>
-            }
-            checkbox={{
-                text: 'I accept the updated documents',
-                checked,
-                onChange: setChecked,
+        <Drawer
+            open
+            onOpenChange={(isOpen) => {
+                if (!isOpen) handlePostpone()
             }}
-            ctas={[
-                {
-                    text: submitting ? 'Saving…' : 'Accept & continue',
-                    variant: 'purple',
-                    shadowSize: '4',
-                    disabled: !checked || submitting,
-                    onClick: handleAccept,
-                    // ActionModal's sm:flex-1 (meant for its side-by-side layout)
-                    // squashes h-13 buttons when the CTAs are stacked
-                    className: 'sm:flex-none',
-                },
-                {
-                    text: 'Not now',
-                    variant: 'stroke',
-                    disabled: submitting,
-                    onClick: handlePostpone,
-                    className: 'sm:flex-none',
-                },
-            ]}
-            ctaClassName={STACKED_CTAS}
-        />
+        >
+            <DrawerContent>
+                <div className="flex flex-col items-center pt-1 pb-6 text-center">
+                    {/* the head owns the M/12 beneath it; everything after it
+                        keeps the drawer's L/16 rhythm */}
+                    <div className="mb-3 flex w-full flex-col items-center gap-4">
+                        <IconBubble icon="info" color="blue" />
+                        <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
+                            <DrawerTitle>{t('reConsent.title')}</DrawerTitle>
+                            {/* The first sentence answers the question this prompt actually raises
+                                ("is something being taken from me?") before anything else. The
+                                what-changed line describes the 2026-07-15 tos-v1 rewrite — revisit
+                                it when a future version bump shows this prompt for a different
+                                change. "No rush" is literal: "Not now" snoozes to the effective
+                                date (see utils.ts). */}
+                            <DrawerDescription className="space-y-3">
+                                <span className="block">{t('reConsent.reassurance')}</span>
+                                <span className="block">{t('reConsent.whatChanged')}</span>
+                            </DrawerDescription>
+                        </DrawerHeader>
+                    </div>
+                    <div className="flex w-full flex-col items-center gap-4">
+                        {/* the updated documents on one centered line, separator-joined
+                            (wraps when it must) — inline-link treatment per the Signup
+                            consent line; DocsLink handles web/PWA/native targets */}
+                        <p className="text-body-s">
+                            {outdatedDocs.map((doc, index) => {
+                                const policy = legalPolicyForSlug(doc.slug)
+                                return (
+                                    <Fragment key={doc.slug}>
+                                        {index > 0 && <span className="text-foreground-secondary"> · </span>}
+                                        <DocsLink
+                                            href={policy?.href ?? `/${doc.slug}`}
+                                            className="text-foreground-primary underline underline-offset-2"
+                                        >
+                                            {policy ? tPolicies(policy.key) : doc.slug}
+                                        </DocsLink>
+                                    </Fragment>
+                                )
+                            })}
+                        </p>
+                        {error && <Notification priority="error">{t('reConsent.saveError')}</Notification>}
+                        <Checkbox
+                            label={t('reConsent.acceptLabel')}
+                            value={checked}
+                            onChange={(e) => setChecked(e.target.checked)}
+                        />
+                        {/* "Not now" stacked BELOW the primary CTA — side-by-side
+                            would read as two equally-weighted choices */}
+                        <Button
+                            variant="purple"
+                            shadowSize="4"
+                            disabled={!checked || submitting}
+                            className="w-full justify-center"
+                            onClick={handleAccept}
+                        >
+                            {submitting ? t('reConsent.saving') : t('reConsent.acceptCta')}
+                        </Button>
+                        <Button
+                            variant="stroke"
+                            disabled={submitting}
+                            className="w-full justify-center"
+                            onClick={handlePostpone}
+                        >
+                            {t('reConsent.notNow')}
+                        </Button>
+                    </div>
+                </div>
+            </DrawerContent>
+        </Drawer>
     )
 }
 

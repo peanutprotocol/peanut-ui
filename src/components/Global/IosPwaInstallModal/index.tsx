@@ -1,7 +1,9 @@
 import React from 'react'
 import { useTranslations } from 'next-intl'
 
-import ActionModal from '../ActionModal'
+import { Button } from '@/components/0_Bruddle/Button'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { BrowserType, useGetBrowserType } from '@/hooks/useGetBrowserType'
 import { useModalsContext } from '@/context/ModalsContext'
 
@@ -32,7 +34,7 @@ const IosPwaInstallModal = () => {
 
     const videoContent =
         !isFirefox && !isLoading ? (
-            <video className="max-h-[60vh] w-full object-contain" autoPlay loop muted playsInline key={videoSource}>
+            <video className="max-h-[50vh] w-full object-contain" autoPlay loop muted playsInline key={videoSource}>
                 {/* .mov assets are H.264 in a QuickTime container — Chrome/Edge/Firefox
                     play them under video/mp4 but reject video/quicktime. mp4 first;
                     quicktime stays as a fallback for older Safari. */}
@@ -43,22 +45,36 @@ const IosPwaInstallModal = () => {
         ) : undefined
 
     return (
-        <ActionModal
-            visible={isIosPwaInstallModalOpen}
-            onClose={onClose}
-            title={t('iosPwaInstallModal.title')}
-            description={isFirefox ? t('iosPwaInstallModal.firefoxDescription') : t('iosPwaInstallModal.description')}
-            icon="mobile-install"
-            ctas={[
-                {
-                    text: t('iosPwaInstallModal.gotItCta'),
-                    onClick: onClose,
-                    shadowSize: '4',
-                    variant: 'purple',
-                },
-            ]}
-            content={videoContent}
-        />
+        <Drawer
+            open={isIosPwaInstallModalOpen}
+            onOpenChange={(isOpen) => {
+                if (!isOpen) onClose()
+            }}
+        >
+            <DrawerContent>
+                <div className="flex flex-col items-center pt-1 pb-6 text-center">
+                    {/* the head owns the M/12 beneath it; everything after it
+                        keeps the drawer's L/16 rhythm */}
+                    <div className="mb-3 flex w-full flex-col items-center gap-4">
+                        <IconBubble icon="mobile-install" className="bg-action-primary" />
+                        <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
+                            <DrawerTitle>{t('iosPwaInstallModal.title')}</DrawerTitle>
+                            <DrawerDescription>
+                                {isFirefox
+                                    ? t('iosPwaInstallModal.firefoxDescription')
+                                    : t('iosPwaInstallModal.description')}
+                            </DrawerDescription>
+                        </DrawerHeader>
+                    </div>
+                    <div className="flex w-full flex-col items-center gap-4">
+                        {videoContent}
+                        <Button variant="purple" shadowSize="4" className="w-full justify-center" onClick={onClose}>
+                            {t('iosPwaInstallModal.gotItCta')}
+                        </Button>
+                    </div>
+                </div>
+            </DrawerContent>
+        </Drawer>
     )
 }
 

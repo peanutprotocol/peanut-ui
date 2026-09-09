@@ -1,6 +1,9 @@
 'use client'
 
-import ActionModal from '@/components/Global/ActionModal'
+import { Button } from '@/components/0_Bruddle/Button'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { Icon } from '@/components/Global/Icons/Icon'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 
@@ -48,33 +51,43 @@ const EasterEggModal = ({ visible, onClose, countryCode }: EasterEggModalProps) 
     if (!config || !countryCopy) return null
 
     return (
-        <ActionModal
-            visible={visible}
-            onClose={onClose}
-            title={countryCopy.caption}
-            description={countryCopy.subtitle}
-            // upside-down smile in the standard pink bubble: the joke is the tone, not a status
-            icon="smile"
-            iconProps={{ className: 'text-black rotate-180' }}
-            content={
-                <Image
-                    src={config.image}
-                    alt={t('easterEggImageAlt')}
-                    width={400}
-                    height={400}
-                    className="h-auto w-full"
-                    priority
-                />
-            }
-            ctas={[
-                {
-                    text: tCommon('gotIt'),
-                    variant: 'stroke',
-                    shadowSize: '4',
-                    onClick: onClose,
-                },
-            ]}
-        />
+        <Drawer
+            open={visible}
+            onOpenChange={(isOpen) => {
+                if (!isOpen) onClose()
+            }}
+        >
+            <DrawerContent>
+                <div className="flex flex-col items-center pt-1 pb-6 text-center">
+                    {/* the head owns the M/12 beneath it; everything after it
+                        keeps the drawer's L/16 rhythm */}
+                    <div className="mb-3 flex w-full flex-col items-center gap-4">
+                        {/* upside-down smile in the standard pink bubble: the joke is the tone, not a status */}
+                        <IconBubble
+                            icon={<Icon name="smile" size={24} className="rotate-180 text-black" />}
+                            className="bg-action-primary"
+                        />
+                        <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
+                            <DrawerTitle>{countryCopy.caption}</DrawerTitle>
+                            <DrawerDescription>{countryCopy.subtitle}</DrawerDescription>
+                        </DrawerHeader>
+                    </div>
+                    <div className="flex w-full flex-col items-center gap-4">
+                        <Image
+                            src={config.image}
+                            alt={t('easterEggImageAlt')}
+                            width={400}
+                            height={400}
+                            className="h-auto w-full"
+                            priority
+                        />
+                        <Button variant="stroke" shadowSize="4" className="w-full justify-center" onClick={onClose}>
+                            {tCommon('gotIt')}
+                        </Button>
+                    </div>
+                </div>
+            </DrawerContent>
+        </Drawer>
     )
 }
 

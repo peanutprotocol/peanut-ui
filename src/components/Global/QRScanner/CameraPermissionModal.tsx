@@ -4,8 +4,9 @@ import { useEffect, useRef } from 'react'
 import Image from 'next/image'
 import type { StaticImageData } from 'next/image'
 import { useTranslations } from 'next-intl'
-import ActionModal from '@/components/Global/ActionModal'
 import { Button } from '@/components/0_Bruddle/Button'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import Carousel from '@/components/Global/Carousel'
 import { useDeviceType, DeviceType } from '@/hooks/useGetDeviceType'
 import { useGetBrowserType, BrowserType } from '@/hooks/useGetBrowserType'
@@ -129,82 +130,89 @@ export default function CameraPermissionModal({ visible, onRetry, onClose }: Cam
     }, [visible, canDeepLinkToSettings])
 
     return (
-        <ActionModal
-            visible={visible}
-            onClose={onClose}
-            icon="camera"
-            iconContainerClassName="bg-action-secondary"
-            iconProps={{ className: 'text-foreground-primary' }}
-            title={t('qrScanner.cameraPermission.title')}
-            modalClassName="!z-[60]"
-            modalPanelClassName="max-w-md mx-8"
-            // one primary + one secondary (Dismiss, in the footer) — the old
-            // paste CTA made two secondaries, off the modal recipe (ruled
-            // 2026-09-03, kush). trade-off accepted: a camera-denied native
-            // user loses the paste entry on this screen
-            ctas={[
-                canDeepLinkToSettings
-                    ? {
-                          text: t('qrScanner.cameraPermission.native.openSettings'),
-                          variant: 'purple' as const,
-                          shadowSize: '4' as const,
-                          onClick: () => {
-                              void openAppSettings()
-                          },
-                      }
-                    : {
-                          text: tCommon('tryAgain'),
-                          variant: 'purple' as const,
-                          shadowSize: '4' as const,
-                          onClick: onRetry,
-                      },
-            ]}
-            footer={
-                <Button variant="stroke" className="w-full" onClick={onClose}>
-                    {t('qrScanner.cameraPermission.dismiss')}
-                </Button>
-            }
-            content={
-                <div className="flex w-full flex-col gap-4">
-                    <p className="text-body-s text-foreground-secondary">
-                        {nativeStepKeys
-                            ? t('qrScanner.cameraPermission.native.hint')
-                            : steps
-                              ? t('qrScanner.cameraPermission.withStepsHint')
-                              : t('qrScanner.cameraPermission.noStepsHint')}
-                    </p>
+        <Drawer
+            open={visible}
+            onOpenChange={(isOpen) => {
+                if (!isOpen) onClose()
+            }}
+        >
+            <DrawerContent>
+                <div className="flex flex-col items-center pt-1 pb-6 text-center">
+                    {/* the head owns the M/12 beneath it; everything after it
+                        keeps the drawer's L/16 rhythm */}
+                    <div className="mb-3 flex w-full flex-col items-center gap-4">
+                        <IconBubble icon="camera" className="bg-action-secondary" />
+                        <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
+                            <DrawerTitle>{t('qrScanner.cameraPermission.title')}</DrawerTitle>
+                        </DrawerHeader>
+                    </div>
+                    <div className="flex w-full flex-col gap-4 text-left">
+                        <p className="text-body-s text-foreground-secondary">
+                            {nativeStepKeys
+                                ? t('qrScanner.cameraPermission.native.hint')
+                                : steps
+                                  ? t('qrScanner.cameraPermission.withStepsHint')
+                                  : t('qrScanner.cameraPermission.noStepsHint')}
+                        </p>
 
-                    {nativeStepKeys && (
-                        <ol className="flex flex-col gap-2">
-                            {nativeStepKeys.map((stepKey, i) => (
-                                <li key={stepKey} className="flex gap-2 text-body-s text-foreground-secondary">
-                                    <span className="text-foreground-primary">{i + 1}.</span>
-                                    <span>{t(stepKey)}</span>
-                                </li>
-                            ))}
-                        </ol>
-                    )}
+                        {nativeStepKeys && (
+                            <ol className="flex flex-col gap-2">
+                                {nativeStepKeys.map((stepKey, i) => (
+                                    <li key={stepKey} className="flex gap-2 text-body-s text-foreground-secondary">
+                                        <span className="text-foreground-primary">{i + 1}.</span>
+                                        <span>{t(stepKey)}</span>
+                                    </li>
+                                ))}
+                            </ol>
+                        )}
 
-                    {steps && (
-                        <Carousel>
-                            {steps.map((step, i) => {
-                                const label = t(step.labelKey)
-                                return (
-                                    <div key={i} className="embla__slide flex flex-col items-center gap-2">
-                                        <Image
-                                            src={step.image}
-                                            alt={label}
-                                            className="w-full rounded-sm"
-                                            placeholder="blur"
-                                        />
-                                        <p className="text-center text-body-xs text-foreground-secondary">{label}</p>
-                                    </div>
-                                )
-                            })}
-                        </Carousel>
-                    )}
+                        {steps && (
+                            <Carousel>
+                                {steps.map((step, i) => {
+                                    const label = t(step.labelKey)
+                                    return (
+                                        <div key={i} className="embla__slide flex flex-col items-center gap-2">
+                                            <Image
+                                                src={step.image}
+                                                alt={label}
+                                                className="w-full rounded-sm"
+                                                placeholder="blur"
+                                            />
+                                            <p className="text-center text-body-xs text-foreground-secondary">
+                                                {label}
+                                            </p>
+                                        </div>
+                                    )
+                                })}
+                            </Carousel>
+                        )}
+
+                        {/* one primary + one secondary (Dismiss) — the old
+                            paste CTA made two secondaries, off the recipe (ruled
+                            2026-09-03, kush). trade-off accepted: a camera-denied
+                            native user loses the paste entry on this screen */}
+                        {canDeepLinkToSettings ? (
+                            <Button
+                                variant="purple"
+                                shadowSize="4"
+                                className="w-full justify-center"
+                                onClick={() => {
+                                    void openAppSettings()
+                                }}
+                            >
+                                {t('qrScanner.cameraPermission.native.openSettings')}
+                            </Button>
+                        ) : (
+                            <Button variant="purple" shadowSize="4" className="w-full justify-center" onClick={onRetry}>
+                                {tCommon('tryAgain')}
+                            </Button>
+                        )}
+                        <Button variant="stroke" className="w-full justify-center" onClick={onClose}>
+                            {t('qrScanner.cameraPermission.dismiss')}
+                        </Button>
+                    </div>
                 </div>
-            }
-        />
+            </DrawerContent>
+        </Drawer>
     )
 }

@@ -78,7 +78,6 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     },
     '29-b-kycstatusdrawer': { name: 'KycStatusDrawer (action-needed)', path: 'Kyc/KycStatusDrawer.tsx' },
     '30-b-unlockmethodmodal': { name: 'UnlockMethodModal', path: 'IdentityVerification/UnlockMethodModal.tsx' },
-    '31-b-unlockregionmodal': { name: 'UnlockRegionModal', path: 'IdentityVerification/UnlockRegionModal.tsx' },
     '32-c-cancelcardmodal': { name: 'CancelCardModal (confirm phase)', path: 'Card/CancelCardModal.tsx' },
     '33-c-cardlimiteditmodal': { name: 'CardLimitEditModal', path: 'Card/CardLimitEditModal.tsx' },
     '34-c-lockcardmodal': { name: 'LockCardModal (lock)', path: 'Card/LockCardModal.tsx' },

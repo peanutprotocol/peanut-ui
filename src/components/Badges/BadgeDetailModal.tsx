@@ -2,7 +2,7 @@
 
 import type { StaticImageData } from 'next/image'
 import { useLocale, useTranslations } from 'next-intl'
-import ActionModal from '../Global/ActionModal'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { BadgeImage } from './BadgeImage'
 import ShareButton from '../Global/ShareButton'
 import { captureBadgeShare, getBadgeShareLink, getBadgeShareText } from './badge.utils'
@@ -19,8 +19,9 @@ type BadgeDetailModalProps = {
     logo: string | StaticImageData
 }
 
-// Shared by the badges list and the badge-unlock drawer. The primary action
-// shares the badge, while the top-right close button remains the dismiss action.
+// Shared by the badges list and the badge-unlock drawer (which closes itself
+// before opening this, so the two sheets never stack). The primary action
+// shares the badge; swipe / hardware back / overlay dismiss.
 export const BadgeDetailModal = ({ isOpen, onClose, code, title, description, logo }: BadgeDetailModalProps) => {
     const t = useTranslations('badges')
     const locale = useLocale()
@@ -36,36 +37,43 @@ export const BadgeDetailModal = ({ isOpen, onClose, code, title, description, lo
     })
 
     return (
-        <ActionModal
-            icon={
-                <BadgeImage
-                    height={240}
-                    width={240}
-                    src={logo}
-                    alt={title}
-                    className="w-60 object-contain"
-                    unoptimized
-                />
-            }
-            iconContainerClassName="bg-transparent min-w-60 h-auto"
-            modalPanelClassName="m-0"
-            visible={isOpen}
-            onClose={onClose}
-            title={title}
-            description={description}
-            content={
-                <ShareButton
-                    title=""
-                    className="w-full"
-                    onSuccess={() => {
-                        captureBadgeShare(REFERRAL_SOURCES.BADGE_DETAIL, username)
-                        onClose()
-                    }}
-                    generateText={() => Promise.resolve(shareText)}
-                >
-                    {t('shareAchievement')}
-                </ShareButton>
-            }
-        />
+        <Drawer
+            open={isOpen}
+            onOpenChange={(open) => {
+                if (!open) onClose()
+            }}
+        >
+            <DrawerContent>
+                <div className="flex flex-col items-center pt-1 pb-6 text-center">
+                    {/* the head owns the M/12 beneath it; everything after it
+                        keeps the drawer's L/16 rhythm */}
+                    <div className="mb-3 flex w-full flex-col items-center gap-4">
+                        <BadgeImage
+                            height={240}
+                            width={240}
+                            src={logo}
+                            alt={title}
+                            className="w-60 object-contain"
+                            unoptimized
+                        />
+                        <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
+                            <DrawerTitle>{title}</DrawerTitle>
+                            <DrawerDescription>{description}</DrawerDescription>
+                        </DrawerHeader>
+                    </div>
+                    <ShareButton
+                        title=""
+                        className="w-full"
+                        onSuccess={() => {
+                            captureBadgeShare(REFERRAL_SOURCES.BADGE_DETAIL, username)
+                            onClose()
+                        }}
+                        generateText={() => Promise.resolve(shareText)}
+                    >
+                        {t('shareAchievement')}
+                    </ShareButton>
+                </div>
+            </DrawerContent>
+        </Drawer>
     )
 }

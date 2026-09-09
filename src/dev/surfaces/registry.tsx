@@ -13,7 +13,6 @@
 
 import React from 'react'
 import { useTranslations } from 'next-intl'
-import type { Region } from '@/utils/regions.utils'
 import { setupSteps } from '@/components/Setup/Setup.consts'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
 import type { ScreenId } from '@/components/Setup/Setup.types'
@@ -35,7 +34,6 @@ import { KycProcessingModal } from '@/components/Kyc/modals/KycProcessingModal'
 import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
 import { KycStatusDrawer } from '@/components/Kyc/KycStatusDrawer'
 import UnlockMethodModal from '@/components/IdentityVerification/UnlockMethodModal'
-import UnlockRegionModal from '@/components/IdentityVerification/UnlockRegionModal'
 import CancelCardModal from '@/components/Card/CancelCardModal'
 import CardLimitEditModal from '@/components/Card/CardLimitEditModal'
 import LockCardModal from '@/components/Card/LockCardModal'
@@ -113,8 +111,6 @@ export type Surface = SurfaceMeta & {
     /** Opened by flipping a ModalsContext flag rather than a prop. */
     modalsContextFlag?: 'signIn' | 'support' | 'iosPwaInstall'
 }
-
-const europe: Region = { path: 'europe', name: 'Europe', icon: '' }
 
 export const SURFACES: Record<string, Surface> = {
     '01-a-landing': {
@@ -306,11 +302,6 @@ export const SURFACES: Record<string, Surface> = {
         name: 'UnlockMethodModal',
         path: 'IdentityVerification/UnlockMethodModal.tsx',
         render: () => <UnlockMethodModal visible onClose={noop} onUnlock={noop} methodLabel="SEPA transfers" />,
-    },
-    '31-b-unlockregionmodal': {
-        name: 'UnlockRegionModal',
-        path: 'IdentityVerification/UnlockRegionModal.tsx',
-        render: () => <UnlockRegionModal visible onClose={noop} onStartVerification={noop} selectedRegion={europe} />,
     },
     '32-c-cancelcardmodal': {
         name: 'CancelCardModal (confirm phase)',

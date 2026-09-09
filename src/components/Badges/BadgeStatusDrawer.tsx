@@ -64,8 +64,8 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                     <div>
                         {/* centered head per the TX Details chrome (board 17490:115877):
                             badge art → one-line title. Tapping it opens the detail
-                            modal — close the unlock drawer (z-50) first so the modal
-                            (z-20) isn't occluded. */}
+                            drawer — close the unlock drawer first so the two
+                            sheets never stack. */}
                         <button
                             type="button"
                             className="mb-3 flex w-full cursor-pointer flex-col items-center gap-4 text-center"
