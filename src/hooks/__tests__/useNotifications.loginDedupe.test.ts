@@ -33,7 +33,7 @@ jest.mock('@/utils/general.utils', () => ({
 }))
 jest.mock('@/utils/migration.utils', () => ({ isPwaSunsetOn: () => false }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
-jest.mock('@/redux/hooks', () => ({ useUserStore: () => ({ user: { user: { userId } } }) }))
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId } } }) }))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 jest.mock('@sentry/nextjs', () => ({
     addBreadcrumb: jest.fn(),

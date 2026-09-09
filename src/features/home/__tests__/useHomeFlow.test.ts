@@ -6,7 +6,6 @@ import { useHomeFlow } from '../useHomeFlow'
 
 const mockFetchUser = jest.fn()
 const mockResetClaimBankFlow = jest.fn()
-const mockResetWithdrawFlow = jest.fn()
 const mockDisconnect = jest.fn()
 
 let mockUser: any = null
@@ -16,20 +15,14 @@ let mockWagmiConnected = false
 jest.mock('@/hooks/wallet/useWallet', () => ({
     useWallet: () => ({ spendableBalance: 123n, isFetchingSpendableBalance: false }),
 }))
-jest.mock('@/redux/hooks', () => ({
-    useUserStore: () => ({ user: mockUser }),
-}))
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ isFetchingUser: mockIsFetchingUser, fetchUser: mockFetchUser }),
+    useAuth: () => ({ user: mockUser, isFetchingUser: mockIsFetchingUser, fetchUser: mockFetchUser }),
 }))
 jest.mock('@/hooks/useActivationStatus', () => ({
     useActivationStatus: () => ({ isActivated: true, activationStep: 'verify', dismissCardStep: jest.fn() }),
 }))
 jest.mock('@/context/ClaimBankFlowContext', () => ({
     useClaimBankFlow: () => ({ resetFlow: mockResetClaimBankFlow }),
-}))
-jest.mock('@/context/WithdrawFlowContext', () => ({
-    useWithdrawFlow: () => ({ resetWithdrawFlow: mockResetWithdrawFlow }),
 }))
 jest.mock('@/hooks/useCardInfo', () => ({
     useCardInfo: jest.fn(() => ({})),
@@ -69,7 +62,6 @@ describe('useHomeFlow', () => {
         renderHook(() => useHomeFlow())
         expect(mockFetchUser).toHaveBeenCalledTimes(1)
         expect(mockResetClaimBankFlow).toHaveBeenCalled()
-        expect(mockResetWithdrawFlow).toHaveBeenCalled()
     })
 
     it('disconnects an external wallet on home', () => {

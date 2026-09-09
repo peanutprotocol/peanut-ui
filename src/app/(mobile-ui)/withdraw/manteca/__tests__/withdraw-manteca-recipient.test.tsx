@@ -10,6 +10,7 @@
  */
 /* eslint-disable react/display-name */
 import React from 'react'
+import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -103,7 +104,7 @@ jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({ SumsubKycWrapper: () => 
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/RateUnavailable/RateGateScreen', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/SoundPlayer', () => ({ SoundPlayer: () => null }))
-jest.mock('@/components/Withdraw/views/PixKeySend.view', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/features/withdraw/views/PixKeySendView', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/Banner/MantecaTransfersMaintenanceView', () => ({
     MantecaTransfersMaintenanceView: () => null,
 }))
@@ -175,12 +176,14 @@ function renderPage() {
     mockSearchParams.set('isSavedAccount', 'true')
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     const view = () => (
-        <IntlWrapper>
-            <QueryClientProvider client={queryClient}>
-                <MantecaWithdrawPage />
-                <TapBeforePassiveEffects />
-            </QueryClientProvider>
-        </IntlWrapper>
+        <NuqsTestingAdapter searchParams={Object.fromEntries(mockSearchParams)}>
+            <IntlWrapper>
+                <QueryClientProvider client={queryClient}>
+                    <MantecaWithdrawPage />
+                    <TapBeforePassiveEffects />
+                </QueryClientProvider>
+            </IntlWrapper>
+        </NuqsTestingAdapter>
     )
     const result = render(view())
     return () => result.rerender(view())

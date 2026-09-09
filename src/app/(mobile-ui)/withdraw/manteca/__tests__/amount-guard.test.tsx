@@ -1,4 +1,5 @@
 import React from 'react'
+import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { fireEvent, screen } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -47,7 +48,7 @@ jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => nu
 jest.mock('@/components/Kyc/InitiateKycModal', () => ({ InitiateKycModal: () => null }))
 jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({ SumsubKycWrapper: () => null }))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
-jest.mock('@/components/Withdraw/views/PixKeySend.view', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/features/withdraw/views/PixKeySendView', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/services/manteca', () => ({ mantecaApi: {} }))
 
 beforeEach(() => {
@@ -56,7 +57,9 @@ beforeEach(() => {
 function setup() {
     renderWithIntl(
         <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-            <MantecaWithdrawFlow />
+            <NuqsTestingAdapter searchParams="country=argentina&method=bank-transfer">
+                <MantecaWithdrawFlow />
+            </NuqsTestingAdapter>
         </QueryClientProvider>
     )
     return screen.getByRole('textbox')

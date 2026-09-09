@@ -6,7 +6,6 @@ import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useAuth } from '@/context/authContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
-import { useUserStore } from '@/redux/hooks'
 import { useClaimSuccessPolling, type ClaimPollFailure } from './useClaimSuccessPolling'
 import { formatTokenAmount, getTokenDetails, shortenStringLong } from '@/utils/general.utils'
 import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
@@ -47,8 +46,7 @@ export const SuccessClaimLinkView = ({
     // CLAIMED can settle before the on-chain txHash has projected, so success is
     // its own flag rather than "we have a hash".
     const [claimConfirmed, setClaimConfirmed] = useState(false)
-    const { user: authUser } = useUserStore()
-    const { fetchUser } = useAuth()
+    const { user: authUser, fetchUser } = useAuth()
     const router = useRouter()
     const queryClient = useQueryClient()
     const { offrampDetails, claimType, bankDetails } = useClaimBankFlow()

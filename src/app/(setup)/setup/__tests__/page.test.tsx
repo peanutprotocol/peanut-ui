@@ -3,9 +3,8 @@ import { renderWithIntl } from '@/test-utils/intl'
 import type { ISetupStep } from '@/components/Setup/Setup.types'
 import SetupPage from '../page'
 import * as Sentry from '@sentry/nextjs'
-import { useSetupStepUrlSync } from '@/hooks/useSetupStepUrlSync'
+import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
 
-const mockDispatch = jest.fn()
 const mockSupport = jest.fn()
 const mockResolve = jest.fn()
 const mockRouter = { replace: jest.fn(), push: jest.fn() }
@@ -19,12 +18,15 @@ const mockStore = { steps: [] as ISetupStep[], inviteCode: undefined }
 const mockAuth = { user: undefined, isFetchingUser: false, logoutUser: jest.fn(), isLoggingOut: false }
 let mockNative = true
 
-jest.mock('@/redux/hooks', () => ({ useAppDispatch: () => mockDispatch, useSetupStore: () => mockStore }))
-jest.mock('@/redux/slices/setup-slice', () => ({
-    setupActions: { setStep: (step: number) => ({ type: 'step', payload: step }) },
+jest.mock('@/features/setup/SetupFlowContext', () => ({
+    useSetupFlowContext: () => ({ ...mockStore, resetSetupFlow: jest.fn(), setNoBackLockScreenId: jest.fn() }),
 }))
+jest.mock('@/hooks/useIosPwaInstallGate', () => ({
+    useIosPwaInstallGate: () => ({ setShowIosPwaInstallScreen: jest.fn() }),
+}))
+jest.mock('@/utils/invite-stash', () => ({ readInviteCode: jest.fn(), stashInvite: jest.fn() }))
 jest.mock('@/hooks/useSetupFlow', () => ({ useSetupFlow: () => mockFlow }))
-jest.mock('@/hooks/useSetupStepUrlSync', () => ({ useSetupStepUrlSync: jest.fn() }))
+jest.mock('@/features/setup/useSetupStepAnalytics', () => ({ useSetupStepAnalytics: jest.fn() }))
 jest.mock('@/hooks/useSetupBackHandler', () => ({ useSetupBackHandler: jest.fn() }))
 jest.mock('@/hooks/useGeoLocation', () => ({ useGeoLocation: jest.fn() }))
 jest.mock('@/hooks/useGetDeviceType', () => ({
@@ -92,7 +94,7 @@ it('shows retry and support when no current setup step can render', async () => 
     fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
     expect(mockSupport).toHaveBeenCalledWith(true)
     expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
-    expect(useSetupStepUrlSync).toHaveBeenLastCalledWith(expect.objectContaining({ enabled: false }))
+    expect(useSetupStepAnalytics).toHaveBeenLastCalledWith(expect.objectContaining({ enabled: false }))
 })
 
 it.each([true, false])('does not select the wrong step when the entry step is absent (native=%s)', async (native) => {
@@ -105,7 +107,7 @@ it.each([true, false])('does not select the wrong step when the entry step is ab
     renderWithIntl(<SetupPage />)
     await advance(100)
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
-    expect(mockDispatch).not.toHaveBeenCalled()
+    expect(mockFlow.setScreenId).not.toHaveBeenCalled()
     expect(screen.queryByText('Landing step')).not.toBeInTheDocument()
 })
 
@@ -152,7 +154,7 @@ it('ignores an authenticator check that completes after initialization timed out
     await act(async () => {
         resolveSupport(true)
     })
-    expect(mockDispatch).not.toHaveBeenCalled()
+    expect(mockFlow.setScreenId).not.toHaveBeenCalled()
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
 })
 
@@ -184,12 +186,12 @@ it.each([true, false])('preserves the resolved entry flow (native=%s)', async (n
     renderWithIntl(<SetupPage />)
     await advance(100)
     expect(screen.getByText('Landing step')).toBeInTheDocument()
-    expect(mockDispatch).toHaveBeenCalledWith({ type: 'step', payload: 1 })
+    expect(mockFlow.setScreenId).toHaveBeenCalledWith('landing', { history: 'replace' })
 })
 
 it('does not initialize after unmount', async () => {
     const view = renderWithIntl(<SetupPage />)
     view.unmount()
     await advance(100)
-    expect(mockDispatch).not.toHaveBeenCalled()
+    expect(mockFlow.setScreenId).not.toHaveBeenCalled()
 })

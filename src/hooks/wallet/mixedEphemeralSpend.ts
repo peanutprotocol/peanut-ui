@@ -35,6 +35,9 @@ export interface MixedEphemeralSpendArgs {
     recipient?: Hex
     requiredUsdcAmount: bigint
     subsequentCalls: { to: Hex; value: bigint; data: Hex }[]
+    /** Fired immediately before the UserOp broadcast — the caller's
+     *  "failures after this are execution-ambiguous" boundary (TASK-21815). */
+    onBroadcastAttempt?: () => void
 }
 
 export type MixedEphemeralSpendResult =
@@ -118,10 +121,26 @@ export async function tryMixedEphemeralSpend(args: MixedEphemeralSpendArgs): Pro
             session.uninstallCall,
         ]
 
-        const userOpHash = await session.client.sendUserOperation({
+        // Decomposed prepare → sign → transport (same rule as useZeroDev's
+        // helper): estimation, paymaster work, and the ephemeral-key signature
+        // all complete BEFORE onBroadcastAttempt, so any failure in them is
+        // provably pre-broadcast; the final call is pure transport.
+        const callData = await session.account.encodeCalls(calls)
+        const preparedOp = await session.client.prepareUserOperation({
             account: session.account,
-            callData: await session.account.encodeCalls(calls),
+            callData,
         })
+        // Same cast viem's sendUserOperation applies internally.
+        const signature = await session.account.signUserOperation(
+            preparedOp as Parameters<typeof session.account.signUserOperation>[0]
+        )
+        args.onBroadcastAttempt?.()
+        const userOpHash = await session.client.sendUserOperation({
+            ...preparedOp,
+            account: session.account,
+            signature,
+            parameters: [],
+        } as never)
 
         let receipt: TransactionReceipt | null = null
         try {

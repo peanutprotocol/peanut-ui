@@ -12,10 +12,12 @@ jest.mock('next-intl', () => ({
 jest.mock('@tanstack/react-query', () => ({
     useQueryClient: () => ({ setQueryData: jest.fn(), invalidateQueries: jest.fn() }),
 }))
-jest.mock('@/redux/hooks', () => ({
-    useUserStore: () => ({ user: { user: { userId: 'user-1', username: 'alice', badges: [] }, accounts: [] } }),
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({
+        user: { user: { userId: 'user-1', username: 'alice', badges: [] }, accounts: [] },
+        fetchUser: jest.fn(),
+    }),
 }))
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ fetchUser: jest.fn() }) }))
 jest.mock('@/hooks/useCardInfo', () => ({ useCardInfo: () => ({ cardInfo: undefined }) }))
 jest.mock('@/hooks/useRainCardOverview', () => ({ useRainCardOverview: () => ({ overview: undefined }) }))
 jest.mock('@/hooks/useWebSocket', () => ({ useWebSocket: jest.fn() }))
