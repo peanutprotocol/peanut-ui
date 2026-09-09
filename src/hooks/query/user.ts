@@ -78,8 +78,8 @@ export const useUserQuery = (dependsOn: boolean = true) => {
             return payload
         }
 
-        // 5xx = backend error, throw so tanstack retries
-        if (userResponse.status >= 500) {
+        // Temporary failures must preserve the cached session.
+        if (userResponse.status >= 500 || userResponse.status === 429 || userResponse.status === 408) {
             console.error('Backend error fetching user:', userResponse.status)
             throw new BackendError('Backend error fetching user', userResponse.status)
         }
@@ -110,7 +110,9 @@ export const useUserQuery = (dependsOn: boolean = true) => {
     return useQuery({
         queryKey: [USER],
         queryFn: fetchUser,
-        retry: (failureCount, _error) => {
+        retry: (failureCount, error) => {
+            // Retrying immediately would extend the rate-limit incident.
+            if (error instanceof BackendError && error.status === 429) return false
             // retry all errors (5xx, network timeouts, connection failures) up to 2 times
             // previously only BackendError (5xx) was retried, meaning a single network
             // blip would instantly show the BackendErrorScreen with zero retries

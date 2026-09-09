@@ -84,3 +84,11 @@ describe('useReceiptActions.cancelSendLink', () => {
         expect(mockToast.success).toHaveBeenCalledWith('toast.linkCancelled')
     })
 })
+
+test('confirmed cancellation finishes while history is still pending', async () => {
+    mockCancelLinkAndClaim.mockResolvedValue('0xtx')
+    mockInvalidateQueries.mockImplementationOnce(() => new Promise(() => {}))
+    const { result } = renderHook(() => useReceiptActions(tx))
+    await expect(result.current.cancelSendLink()).resolves.toBe('cancelled')
+    expect(mockToast.success).toHaveBeenCalledWith('toast.linkCancelled')
+})

@@ -216,3 +216,19 @@ describe('useUserQuery — demo mode', () => {
         expect(data?.user.avatarKey).toBe('basic.frog')
     })
 })
+
+describe('useUserQuery transient failures', () => {
+    it.each([429, 408, 503])('keeps the cached session after HTTP %s', async (status) => {
+        const profile = { user: { userId: 'u1', username: 'alice' } }
+        mockApiFetch.mockReset()
+        mockClearAuthToken.mockClear()
+        mockApiFetch.mockResolvedValueOnce(mockResponse(200, profile))
+        const { result } = renderHook(() => useUserQuery(), { wrapper: makeWrapper() })
+        await waitFor(() => expect(result.current.isSuccess).toBe(true))
+        mockApiFetch.mockResolvedValue(mockResponse(status, {}))
+        const refreshed = await result.current.refetch()
+        expect(refreshed.data).toEqual(profile)
+        expect(refreshed.isError).toBe(true)
+        expect(mockClearAuthToken).not.toHaveBeenCalled()
+    })
+})
