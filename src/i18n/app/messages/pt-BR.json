@@ -132,12 +132,6 @@
             "descriptionError": "Não conseguimos terminar de configurar seu cartão. Tente de novo ou pule por enquanto — vamos pedir de novo no seu primeiro pagamento com o cartão.",
             "working": "Processando…"
         },
-        "cardLaunch": {
-            "title": "shhhh",
-            "subtitle": "Toque para saber se você está dentro",
-            "cta": "Tente a porta →",
-            "dismissAriaLabel": "Fechar anúncio de lançamento"
-        },
         "history": {
             "activity": "Atividade",
             "pendingTransactions": "Transações pendentes",
@@ -185,10 +179,6 @@
             "rewardReady": "Recompensa de <b>+${amount}</b> pronta!",
             "usedPeanutTapToClaim": "<name>{inviteeName}</name> usou o Peanut. Toque para resgatar.",
             "tapToClaim": "Toque para resgatar sua recompensa.",
-            "card": {
-                "title": "Peça seu <b>Peanut Card</b>",
-                "description": "Beta fechado. <b>Emblemas furam a fila.</b>"
-            },
             "invite": {
                 "title": "Convide amigos. Ganhe recompensas",
                 "description": "Ganhe recompensas sempre que seus amigos usarem o Peanut."
@@ -1130,7 +1120,7 @@
         "backToCard": "Voltar para o cartão",
         "slideHandleAria": "Controle deslizante",
         "entry": {
-            "navTitle": "Adicionar cartão",
+            "navTitle": "Cartão Peanut",
             "title": "Gaste onde a Visa é aceita",
             "description": "Use seu saldo em mais de 150M de lojas. Online, por aproximação, seu.",
             "featureBalance": "Um saldo único",
@@ -1166,20 +1156,6 @@
             "geoBlockedTitle": "Os cartões ainda não estão disponíveis na sua região",
             "geoBlockedBody": "Devido a restrições regulatórias, não podemos emitir cartões na sua região. Você ainda pode usar o Peanut livremente para depositar, sacar e pagar com cripto.",
             "geoBlockedPolicyLink": "Veja quais regiões estão restritas"
-        },
-        "celebration": {
-            "navTitle": "Bem-vindo",
-            "lookingUpTitle": "Procurando você…",
-            "lookingUpBody": "Conferindo suas badges.",
-            "headlineOg": "Acesso OG. Você furou a fila.",
-            "headlineDevconnect": "Turma da Devconnect. Você furou a fila.",
-            "headlineArbiverse": "Arbiverse. Você furou a fila.",
-            "headlineSkip": "Você furou a fila.",
-            "headlineNoBadge": "Você está dentro.",
-            "sublineBadge": "Você tem uma badge que fura a fila do beta fechado. O cartão é seu.",
-            "sublineNoBadge": "Bem-vindo ao beta fechado. O cartão é seu.",
-            "hideUsername": "Ocultar nome de usuário",
-            "continueToCard": "Continuar para seu cartão"
         },
         "cancel": {
             "title": "Cancelar cartão?",
@@ -1223,23 +1199,15 @@
             "title": "Confirme seu país de residência",
             "description": "Sua verificação mostra dois países diferentes. Escolha aquele onde você mora hoje — seu pedido de cartão é processado pelas regras dele."
         },
-        "eligibility": {
-            "navTitle": "A porta",
-            "titleWithUsername": "Vamos ver, @{username}…",
-            "title": "Vamos ver se você passa",
-            "description": "Pressione e segure o botão. Estamos procurando você.",
-            "holdAriaLabel": "Pressione e segure para conferir se você passa",
-            "cta": "Ver se você passa"
-        },
         "face": {
-            "peanutPioneer": "Peanut Pioneer",
             "valid": "Válido",
             "virtual": "Virtual",
             "copyCardNumber": "Copiar número do cartão",
             "copyCvv": "Copiar CVV",
             "hideDetails": "Ocultar dados do cartão",
             "showDetails": "Mostrar dados do cartão",
-            "retryDetails": "Tentar mostrar os dados do cartão de novo"
+            "retryDetails": "Tentar mostrar os dados do cartão de novo",
+            "cardholder": "Titular"
         },
         "limits": {
             "navTitle": "Limite do cartão",
@@ -1282,17 +1250,6 @@
             "validationRepeating": "Sem dígitos repetidos (ex.: 1111)",
             "validationSequential": "Sem dígitos sequenciais (ex.: 1234)"
         },
-        "rejection": {
-            "navTitle": "Cartão Peanut",
-            "title": "hoje a porta está apertada.",
-            "tally": "<strong>{applicants}</strong> tentaram · <strong>{admitted}</strong> entraram.",
-            "appealLine": "tuíte e marque <strong>@joinpeanut</strong> para apelar.",
-            "comeBackTomorrow": "volte amanhã",
-            "tweetToAppeal": "Tuitar para apelar",
-            "onTheList": "Você está na lista — avisamos quando chegar sua vez",
-            "joinAnyway": "Entrar na lista de espera mesmo assim",
-            "joinFailed": "Não foi possível entrar na lista de espera. Tente de novo."
-        },
         "terms": {
             "title": "Termos do cartão",
             "description": "Leia e aceite",
@@ -1301,24 +1258,6 @@
             "accuracy": "Certifico que as informações que forneci são corretas e que vou seguir todas as regras e exigências relacionadas ao meu cartão {partner} Spend.",
             "solicitation": "Reconheço que pedir o cartão {partner} Spend não constitui solicitação não autorizada.",
             "accountOpeningPrivacy": "Aceito o <link>Aviso de privacidade de abertura de conta</link>"
-        },
-        "unlockHistory": {
-            "badgeTitle": "Você furou a fila",
-            "badgeSubtitle": "Toque para reabrir sua imagem de compartilhamento",
-            "adminTitle": "Acesso ao cartão liberado",
-            "adminSubtitle": "Bem-vindo. Toque para compartilhar.",
-            "publicLaunchTitle": "Acesso ao cartão liberado",
-            "publicLaunchSubtitle": "Já está aberto para todo mundo. Toque para compartilhar.",
-            "openAssetAria": "{title} — abrir a imagem de compartilhamento",
-            "drawerTitleBadge": "Você furou a fila",
-            "drawerTitleUnlocked": "Acesso ao cartão liberado",
-            "hideUsername": "Ocultar nome de usuário"
-        },
-        "share": {
-            "share": "Compartilhar",
-            "saveImage": "Salvar imagem",
-            "shareFailed": "Não foi possível compartilhar",
-            "saveFailed": "Não foi possível salvar"
         },
         "physical": {
             "navTitle": "Cartão físico",
@@ -3240,91 +3179,64 @@
     },
     "shhhhh": {
         "hero": {
-            "wordmark": "shhhhh.",
-            "tagline": "O cartão do Peanut chegou. Para você. Talvez.",
-            "body": "Um cartão aceito em mais de 150 milhões de estabelecimentos que aceitam Visa. Estamos liberando o beta aos poucos: <counter></counter> por semana. Se você tiver o selo certo, fura a fila direto.",
-            "onlyCount": "só {count}",
-            "tryTheDoor": "TESTE A PORTA",
-            "orJoinWaitlist": "ou entre na lista de espera →",
-            "disclaimer": "Verificação obrigatória para todos os titulares do cartão. Sem tarifas mensais ou anuais. Tarifas e limites padrão se aplicam conforme os termos do titular. Programa beta.",
-            "joinError": "Não conseguimos te colocar na lista de espera. Teste a porta de novo."
-        },
-        "waitlist": {
-            "joined": "✓ Você está na lista de espera",
-            "joinedWithPosition": "✓ Você está na lista de espera · #{position}",
-            "holler": "A gente avisa quando chegar sua vez."
-        },
-        "marquee": {
-            "iykyk": "IYKYK",
-            "wordTravels": "A NOTÍCIA CORRE",
-            "closedBeta": "BETA FECHADO",
-            "shhhh": "SHHHH",
-            "peanutClub": "PEANUT CLUB"
+            "wordmark": "Cartão Peanut",
+            "tagline": "Seu dinheiro. Pronto para pagar.",
+            "body": "Use seu Peanut Card para pagar online e por aproximação onde Visa é aceita.",
+            "cta": "Peça seu cartão",
+            "disclaimer": "Verificação e aprovação obrigatórias. Sem mensalidade ou anuidade. Aplicam-se as tarifas e os limites dos termos do titular."
         },
         "whatItDoes": {
-            "titleLine1": "É um cartão.",
-            "titleLine2": "O truque é esse.",
-            "body": "Abasteça o cartão do jeito que você já move seu dinheiro: transferência bancária, saque de uma exchange ou stablecoins (USDC, USDT). Seu saldo é seu. Sem custódia. Sem taxas mensais. Sem taxas anuais.",
-            "statMerchants": "estabelecimentos que aceitam Visa",
-            "statBalance": "saldo",
-            "statCard": "cartão",
-            "statMiddlemen": "intermediários"
+            "titleLine1": "Um cartão.",
+            "titleLine2": "Seus pagamentos do dia a dia.",
+            "body": "Adicione dinheiro ao Peanut por transferência bancária, saque de corretora ou stablecoins compatíveis. Pague online ou adicione seu cartão ao Apple Pay ou Google Pay onde estiverem disponíveis."
         },
-        "whoItsFor": {
-            "title": "Se você vive em mais de um país, isso é para você.",
-            "body": "Criamos o peanut para quem não se encaixa. Nômades digitais que travam na verificação de todo neobanco assim que cruzam uma fronteira. Expatriados que pagam 4% em cada envio para casa. Quem ganha em uma moeda e gasta em outra."
+        "howToApply": {
+            "title": "Como pedir seu cartão",
+            "verify": "Entre na sua conta e conclua a verificação de identidade.",
+            "terms": "Leia e aceite os termos do titular.",
+            "spend": "Após a aprovação, adicione saldo e comece a pagar."
         },
-        "howToGetIn": {
-            "title": "Como entrar.",
-            "subtitle": "Confere as credenciais. O selo fura a fila.",
-            "badgeTitle": "Tem um selo.",
-            "badgeBody": "Você fura a fila. Estamos liberando quem tiver:",
-            "badgeFooter": "Entre, conferimos os selos da sua conta e você vai direto para a verificação. Ainda não tem conta no peanut? Crie uma primeiro — leva um minuto.",
-            "badgeShowMore": "+{count} mais →",
-            "badgeShowLess": "mostrar menos",
-            "noBadgeTitle": "Sem selo.",
-            "noBadgeBody": "Entre na lista de espera. Liberamos 50 pessoas por semana.",
-            "noBadgeFooter": "Coloque seu nome na lista e a gente avisa quando chegar sua vez."
-        },
-        "notForYou": {
-            "title": "Provavelmente não é para você.",
-            "body1": "Se seu dinheiro vive em um só país e uma só moeda, o cartão do seu banco já resolve. Fique com ele.",
-            "body2": "Se seu dinheiro vive em outro lugar — cruzando fronteiras, em dólares, em autocustódia —, o cartão do peanut foi feito para você."
+        "marquee": {
+            "peanutCard": "PEANUT CARD",
+            "contactless": "POR APROXIMAÇÃO",
+            "available": "PEÇA SEU CARTÃO",
+            "online": "PAGAMENTOS ONLINE",
+            "noMonthlyFee": "SEM MENSALIDADE"
         },
         "faq": {
-            "title": "PERGUNTAS FREQUENTES.",
+            "title": "Perguntas sobre o Peanut Card",
             "q1": {
-                "question": "O QUE É O CARTÃO DO PEANUT?",
-                "answer": "Um cartão sem custódia. Abasteça com stablecoins e use no dia a dia onde a Visa é aceita."
+                "question": "O que é o Peanut Card?",
+                "answer": "Peanut Card é um cartão Visa virtual para usar seu saldo Peanut online e com carteiras digitais compatíveis."
             },
             "q2": {
-                "question": "ONDE FUNCIONA?",
-                "answer": "Aceito onde a Visa é aceita — cerca de 150 milhões de estabelecimentos. Online, em lojas e em caixas eletrônicos."
+                "question": "Onde posso pagar?",
+                "answer": "Use seu cartão em lojas online que aceitam Visa e para pagamentos por aproximação com Apple Pay ou Google Pay onde estiverem disponíveis."
             },
             "q3": {
-                "question": "MEU DINHEIRO ESTÁ SEGURO?",
-                "answer": "É seu. Sem custódia — suas stablecoins ficam na sua carteira até a hora em que você usa o cartão. Não temos a custódia. Não emprestamos seu dinheiro."
+                "question": "Como o cartão é financiado?",
+                "answer": "Os pagamentos com cartão usam USDC em um contrato inteligente dedicado. Você pode adicionar fundos da sua carteira Peanut ao saldo do cartão."
             },
             "q5": {
-                "question": "QUANTO TEMPO DEMORA A LISTA DE ESPERA?",
-                "answer": "Durante o beta fechado, liberamos cerca de 50 pessoas por semana. A ordem importa. Os selos furam a fila por completo."
+                "question": "Como consigo um cartão?",
+                "answer": "Entre na sua conta, conclua a verificação e aceite os termos do titular. Sua solicitação está sujeita à aprovação."
             },
             "q6": {
-                "question": "POSSO USAR ONDE EU MORO?",
-                "answer": "É um cartão Visa — aceito onde a Visa é aceita, em lojas, online e em caixas eletrônicos. Entre e teste a porta para ver o próximo passo da sua conta."
+                "question": "Preciso depositar antes de pedir o cartão?",
+                "answer": "Não. Você pode pedir o cartão antes de adicionar dinheiro. Adicione saldo quando o cartão estiver pronto para pagar."
             },
             "q7": {
-                "question": "TEM TAXAS?",
-                "answer": "Sem taxas mensais. Sem taxas anuais. Valem as taxas e os limites padrão previstos nos termos do titular do cartão."
+                "question": "Há tarifas?",
+                "answer": "Sem mensalidade ou anuidade. Aplicam-se as tarifas e os limites dos termos do titular."
             },
             "q8": {
-                "question": "POR QUE \"SHHHHH\"?",
-                "answer": "Preferimos prometer menos e entregar mais para um grupo pequeno do que gritar para a internet inteira no primeiro dia. A notícia corre."
+                "question": "Há um cartão físico?",
+                "answer": "Peanut Card é virtual. Você pode registrar seu interesse em um cartão físico pelo app."
             }
         },
         "ready": {
-            "title": "tudo pronto?",
-            "subtitle": "Teste a porta."
+            "title": "Peça seu Peanut Card",
+            "subtitle": "Comece sua solicitação hoje."
         }
     }
 }

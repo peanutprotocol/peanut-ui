@@ -71,13 +71,6 @@ export default function DevToolsPage() {
             icon: 'docs',
         },
         {
-            name: 'Rejection screen builder',
-            description:
-                'Iterate the full mobile CardRejectionScreen — bouncer mascot, door tally, waitlist state — inside a phone frame.',
-            path: '/dev/rejection-builder',
-            icon: 'credit-card',
-        },
-        {
             name: 'Share asset builder',
             description:
                 'Iterate the card share asset (sticker collage): badge set, username length, hero variant, seed reroll, PNG capture.',

@@ -42,7 +42,7 @@ const HomeCarouselCTA = () => {
         }, [queryClient]),
     })
 
-    // Only show card waitlist perks on home carousel.
+    // Keep previously earned Card Pioneer rewards claimable.
     // Referral rewards and surprise moments are claimed inline after QR payment, not from home.
     const claimablePerks = useMemo(() => {
         return (

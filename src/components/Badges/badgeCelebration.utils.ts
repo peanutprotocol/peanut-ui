@@ -7,7 +7,7 @@
 // at once → stacked popups). See BadgeEarnToast.tsx.
 //
 // Persistence is a per-user localStorage seen-set + a 7-day freshness window —
-// same house pattern as the card skip celebration (card/page.tsx). The window
+// shared across badge surfaces. The window
 // is what makes that safe: an old badge is never "fresh", so it can't re-toast
 // on a new device or on the day this ships. No backend column, no migration.
 
@@ -26,9 +26,9 @@ export type CelebrationBadge = {
 export const FRESHNESS_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
 
 // Badges that should NOT trigger the toast:
-//  - WAITLIST_SKIP keeps its bespoke card-flow celebration (BadgeSkipCelebration).
+//  - WAITLIST_SKIP is a retired admission grant, retained only as history.
 //  - BETA_TESTER is awarded to every signup — too universal to be worth surfacing.
-// Other card-access "skip" badges (OG/Devconnect/Arbiverse) are historical, so
+// Event badges (OG/Devconnect/Arbiverse) are historical, so
 // the freshness window already keeps them out.
 const EXCLUDED_CODES = new Set<string>(['WAITLIST_SKIP', 'BETA_TESTER'])
 

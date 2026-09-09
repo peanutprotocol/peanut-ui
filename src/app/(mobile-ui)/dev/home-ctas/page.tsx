@@ -3,7 +3,6 @@
 import { type ReactNode } from 'react'
 import type { StaticImageData } from 'next/image'
 import { type IconName } from '@/components/Global/Icons/Icon'
-import CardLaunchCTABanner from '@/components/Home/CardLaunchCTA/CardLaunchCTABanner'
 import CarouselCTA from '@/components/Home/HomeCarouselCTA/CarouselCTA'
 import ActivationCTAs from '@/components/Home/ActivationCTAs'
 import { type ActivationStep } from '@/hooks/useActivationStatus'
@@ -17,7 +16,7 @@ import DevSectionLabel from '../_components/DevSectionLabel'
  * /dev/home-ctas — force-renders every home-screen CTA in isolation so they can
  * be reviewed visually on demand, ignoring real auth/state/launch gating.
  *
- * Each CTA's container (CardLaunchCTA/index, HomeCarouselCTA/index,
+ * Each CTA's container (HomeCarouselCTA/index,
  * ActivationCTAs' parent) self-gates and would return null. This page renders
  * the *presentational* pieces directly with mock props, so what's below is the
  * full visual catalogue regardless of who's logged in.
@@ -59,23 +58,6 @@ const CAROUSEL_PREVIEWS: CarouselPreview[] = [
             <p>
                 <b>Alice</b> used Peanut. Tap to claim.
             </p>
-        ),
-    },
-    {
-        id: 'card-pioneer',
-        label: 'Card Pioneer — get your Peanut Card',
-        icon: 'credit-card',
-        iconContainerClassName: 'bg-purple-1',
-        iconSize: 16,
-        title: (
-            <span>
-                Get your <b>Peanut Card</b>
-            </span>
-        ),
-        description: (
-            <span>
-                Closed beta. <b>Badges skip the line.</b> $10 unlocks on your first $100 spend.
-            </span>
         ),
     },
     {
@@ -178,12 +160,6 @@ export default function HomeCTAsPreviewPage() {
             width="prose"
         >
             <div className="flex flex-col gap-8">
-                {/* Card launch banner */}
-                <section className="flex flex-col gap-3">
-                    <DevSectionLabel>Card launch banner (CardLaunchCTABanner)</DevSectionLabel>
-                    <CardLaunchCTABanner onTryDoor={noop('onTryDoor')} onDismiss={noop('onDismiss')} />
-                </section>
-
                 {/* Carousel CTAs */}
                 <section className="flex flex-col gap-4">
                     <DevSectionLabel>Carousel CTAs (CarouselCTA)</DevSectionLabel>

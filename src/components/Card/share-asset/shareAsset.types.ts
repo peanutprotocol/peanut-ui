@@ -30,11 +30,11 @@ export interface ShareAssetStats {
 
 export type TierLevel = 0 | 1 | 2 | 3
 
-/** Visual treatment for the hero "I got in" message sticker at the top. */
+/** Visual treatment for the hero message sticker at the top. */
 export type HeroVariant = 'burst' | 'pill' | 'banner'
 
 export interface HeroMessage {
-    /** The headline copy, e.g. "I'M IN" or "shhhh, i'm in". */
+    /** The headline copy, e.g. "My Peanut Card". */
     text: string
     /** Sticker shape/treatment. */
     variant: HeroVariant
@@ -43,11 +43,6 @@ export interface HeroMessage {
     /** Tilt in degrees (clockwise). Defaults to a small per-variant lean. */
     tilt?: number
 }
-
-/** Which smug peanut mascot to slap on the rejection ("not tonight") asset.
- *  'none' hides it. cool = pixel-shades flex, mock = grinning point-and-laugh,
- *  chill = whistling "whatever". */
-export type RejectionMascot = 'none' | 'cool' | 'mock' | 'chill'
 
 /** Background colour for the username pill. */
 export type UsernameBg = 'white' | 'pink' | 'blue'
@@ -82,7 +77,7 @@ export interface ShareAssetD3Props {
     /** Last 4 of card PAN — rendered on the card face. */
     cardLast4?: string
 
-    /** Optional hero "I got in" message sticker at the top.
+    /** Optional hero message sticker at the top.
      *  Omitted (`undefined`) = the shipped default hero; `null` = no hero. */
     heroMessage?: HeroMessage | null
 

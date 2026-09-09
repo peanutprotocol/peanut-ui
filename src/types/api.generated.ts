@@ -61,10 +61,10 @@ export interface paths {
                     "application/json": {
                         accountIdentifier: string;
                         accountType: "iban" | "us" | "evm-address" | "peanut-wallet" | "bridgeBankAccount" | "manteca" | "clabe" | "cbu" | "cvu" | "pix";
-                        userId: string;
                         bridgeAccountIdentifier?: string;
                         chainId?: string;
                         telegramHandle?: string;
+                        userId: string;
                     };
                 };
             };
@@ -75,77 +75,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/card-waitlist/release": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Release users from the card waitlist */
-        post: {
-            parameters: {
-                query?: never;
-                header: {
-                    "x-admin-token": string;
-                };
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        userIds: string[];
-                    };
-                };
-            };
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            released: string[];
-                            skipped: string[];
-                        };
-                    };
-                };
-                /** @description Default Response */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                            message: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                            message: string;
-                        };
-                    };
                 };
             };
         };
@@ -176,9 +105,9 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        username: string;
-                        override?: boolean;
                         amountUsd?: number;
+                        override?: boolean;
+                        username: string;
                     };
                 };
             };
@@ -335,8 +264,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            token: string;
                             expiresIn: number;
+                            token: string;
                         };
                     };
                 };
@@ -347,8 +276,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -359,8 +288,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -371,8 +300,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -418,27 +347,27 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            message: string;
                             claim: {
+                                acquisition?: {
+                                    destination: "offramp_migration" | "normal_app";
+                                    /** @enum {string} */
+                                    fallback: "normal_app";
+                                };
+                                badge?: {
+                                    /** @description Stable badge code. Clients must tolerate codes added after SDK generation. */
+                                    code: string;
+                                    description: string;
+                                    iconUrl: string;
+                                    name: string;
+                                    publicDescription: string;
+                                };
                                 /** @description Opaque badge-acquisition campaign value. New integrations use the badge_campaign slug. */
                                 badgeCampaign: string;
                                 /** @description Stable badge code. Clients must tolerate codes added after SDK generation. */
                                 badgeCode?: string;
-                                badge?: {
-                                    /** @description Stable badge code. Clients must tolerate codes added after SDK generation. */
-                                    code: string;
-                                    name: string;
-                                    description: string;
-                                    publicDescription: string;
-                                    iconUrl: string;
-                                };
                                 outcome: "awarded" | "already_owned" | "inactive" | "expired" | "unknown" | "definition_missing";
-                                acquisition?: {
-                                    /** @enum {string} */
-                                    fallback: "normal_app";
-                                    destination: "offramp_migration" | "normal_app";
-                                };
                             };
+                            message: string;
                         };
                     };
                 };
@@ -484,24 +413,24 @@ export interface paths {
                     content: {
                         "application/json": {
                             claims: {
+                                acquisition?: {
+                                    destination: "offramp_migration" | "normal_app";
+                                    /** @enum {string} */
+                                    fallback: "normal_app";
+                                };
+                                badge?: {
+                                    /** @description Stable badge code. Clients must tolerate codes added after SDK generation. */
+                                    code: string;
+                                    description: string;
+                                    iconUrl: string;
+                                    name: string;
+                                    publicDescription: string;
+                                };
                                 /** @description Opaque badge-acquisition campaign value. New integrations use the badge_campaign slug. */
                                 badgeCampaign: string;
                                 /** @description Stable badge code. Clients must tolerate codes added after SDK generation. */
                                 badgeCode?: string;
-                                badge?: {
-                                    /** @description Stable badge code. Clients must tolerate codes added after SDK generation. */
-                                    code: string;
-                                    name: string;
-                                    description: string;
-                                    publicDescription: string;
-                                    iconUrl: string;
-                                };
                                 outcome: "awarded" | "already_owned" | "inactive" | "expired" | "unknown" | "definition_missing";
-                                acquisition?: {
-                                    /** @enum {string} */
-                                    fallback: "normal_app";
-                                    destination: "offramp_migration" | "normal_app";
-                                };
                             }[];
                         };
                     };
@@ -694,25 +623,25 @@ export interface paths {
                 content: {
                     "application/json": {
                         accountNumber: string;
-                        bic?: string;
-                        country: string;
-                        address?: {
-                            street: string;
-                            city: string;
-                            country: string;
-                            state?: string;
-                            postalCode: string;
-                        };
                         accountOwnerName: {
+                            businessName?: string;
                             firstName?: string;
                             lastName?: string;
-                            businessName?: string;
                         };
                         accountOwnerType: "business" | "individual";
+                        accountType: "iban" | "us" | "clabe" | "gb";
+                        address?: {
+                            city: string;
+                            country: string;
+                            postalCode: string;
+                            state?: string;
+                            street: string;
+                        };
+                        bic?: string;
+                        country: string;
+                        reuseOnError?: boolean;
                         routingNumber?: string;
                         sortCode?: string;
-                        accountType: "iban" | "us" | "clabe" | "gb";
-                        reuseOnError?: boolean;
                     };
                 };
             };
@@ -830,31 +759,31 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        onBehalfOf: string;
-                        provider?: string;
                         amount?: string;
-                        sendLinkPubKey?: string;
-                        source: {
-                            currency: "usdc" | "eurc" | "usdt" | "dai";
-                            paymentRail: "ethereum" | "polygon" | "base" | "optimism" | "solana" | "stellar" | "arbitrum" | "avalance_c_chain";
-                            fromAddress?: string;
-                        };
                         destination: {
-                            currency: "usd" | "eur" | "mxn" | "gbp";
-                            paymentRail: "ach" | "ach_push" | "ach_same_day" | "wire" | "sepa" | "swift" | "spei" | "faster_payments";
-                            externalAccountId: string;
-                            wireMessage?: string;
-                            sepaReference?: string;
                             achReference?: string;
+                            currency: "usd" | "eur" | "mxn" | "gbp";
+                            externalAccountId: string;
                             fasterPaymentsReference?: string;
-                        };
-                        features?: {
-                            flexibleAmount?: boolean;
-                            staticTemplate?: boolean;
-                            allowAnyFromAddress?: boolean;
+                            paymentRail: "ach" | "ach_push" | "ach_same_day" | "wire" | "sepa" | "swift" | "spei" | "faster_payments";
+                            sepaReference?: string;
+                            wireMessage?: string;
                         };
                         developerFee?: string;
                         developerFeePercent?: string;
+                        features?: {
+                            allowAnyFromAddress?: boolean;
+                            flexibleAmount?: boolean;
+                            staticTemplate?: boolean;
+                        };
+                        onBehalfOf: string;
+                        provider?: string;
+                        sendLinkPubKey?: string;
+                        source: {
+                            currency: "usdc" | "eurc" | "usdt" | "dai";
+                            fromAddress?: string;
+                            paymentRail: "ethereum" | "polygon" | "base" | "optimism" | "solana" | "stellar" | "arbitrum" | "avalance_c_chain";
+                        };
                     };
                 };
             };
@@ -866,11 +795,11 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            transferId: string;
                             depositInstructions: {
-                                toAddress: string;
                                 blockchainMemo?: string;
+                                toAddress: string;
                             };
+                            transferId: string;
                         };
                     };
                 };
@@ -929,31 +858,31 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        userId: string;
-                        provider?: string;
                         amount?: string;
+                        beneficiaryAddress?: {
+                            city: string;
+                            country: string;
+                            postalCode?: string;
+                            state?: string;
+                            street: string;
+                        };
+                        beneficiaryName?: string;
+                        destination: {
+                            achReference?: string;
+                            currency: "usd" | "eur" | "mxn" | "gbp";
+                            externalAccountId: string;
+                            paymentRail: "ach" | "ach_push" | "ach_same_day" | "wire" | "sepa" | "swift" | "spei" | "faster_payments";
+                            sepaReference?: string;
+                            wireMessage?: string;
+                        };
+                        provider?: string;
                         sendLinkPubKey?: string;
                         source: {
                             currency: "usdc" | "eurc" | "usdt" | "dai";
-                            paymentRail: "ethereum" | "polygon" | "base" | "optimism" | "solana" | "stellar" | "arbitrum" | "avalance_c_chain";
                             fromAddress?: string;
+                            paymentRail: "ethereum" | "polygon" | "base" | "optimism" | "solana" | "stellar" | "arbitrum" | "avalance_c_chain";
                         };
-                        destination: {
-                            currency: "usd" | "eur" | "mxn" | "gbp";
-                            paymentRail: "ach" | "ach_push" | "ach_same_day" | "wire" | "sepa" | "swift" | "spei" | "faster_payments";
-                            externalAccountId: string;
-                            wireMessage?: string;
-                            sepaReference?: string;
-                            achReference?: string;
-                        };
-                        beneficiaryName?: string;
-                        beneficiaryAddress?: {
-                            street: string;
-                            city: string;
-                            country: string;
-                            state?: string;
-                            postalCode?: string;
-                        };
+                        userId: string;
                     };
                 };
             };
@@ -965,24 +894,24 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            transferId: string;
                             depositInstructions: {
-                                toAddress: string;
                                 blockchainMemo?: string;
+                                toAddress: string;
                             };
                             quote?: {
-                                initial_amount: string;
+                                destination_tx_hash?: string;
                                 developer_fee: string;
                                 exchange_fee: string;
-                                subtotal_amount: string;
-                                remaining_prefunded_amount?: string;
-                                gas_fee?: string;
-                                final_amount?: string;
-                                source_tx_hash?: string;
-                                destination_tx_hash?: string;
                                 exchange_rate?: string;
+                                final_amount?: string;
+                                gas_fee?: string;
+                                initial_amount: string;
+                                remaining_prefunded_amount?: string;
+                                source_tx_hash?: string;
+                                subtotal_amount: string;
                                 url?: string;
                             };
+                            transferId: string;
                         };
                     };
                 };
@@ -1071,25 +1000,25 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            transferId: string;
                             depositInstructions: {
+                                accountHolderName?: string;
+                                accountNumber?: string;
                                 amount: string;
+                                bankAccountNumber?: string;
+                                bankAddress?: string;
+                                bankBeneficiaryAddress?: string;
+                                bankBeneficiaryName?: string;
+                                bankName?: string;
+                                bankRoutingNumber?: string;
+                                bic?: string;
+                                clabe?: string;
                                 currency: string;
                                 depositMessage: string;
-                                bankName?: string;
-                                bankAddress?: string;
-                                bankRoutingNumber?: string;
-                                bankAccountNumber?: string;
-                                bankBeneficiaryName?: string;
-                                bankBeneficiaryAddress?: string;
                                 iban?: string;
-                                bic?: string;
-                                accountHolderName?: string;
-                                clabe?: string;
-                                sortCode?: string;
-                                accountNumber?: string;
                                 reference?: string;
+                                sortCode?: string;
                             };
+                            transferId: string;
                         };
                     };
                 };
@@ -1194,8 +1123,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            success: boolean;
                             message: string;
+                            success: boolean;
                         };
                     };
                 };
@@ -1294,8 +1223,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -1347,10 +1276,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * Get card info + waitlist state
-         * @description Returns the authenticated user's card flow access, eligibility, waitlist state, and skip-badge holdings.
-         */
+        /** Get card geographic eligibility */
         get: {
             parameters: {
                 query?: never;
@@ -1369,17 +1295,18 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            hasCardAccess: boolean;
-                            isEligible: boolean;
+                            admittedTotal: number;
                             eligibilityReason?: string;
                             flowEarlyAccess: boolean;
+                            geoProhibited: boolean;
+                            hasCardAccess: boolean;
+                            isEligible: boolean;
                             isPublicLaunched: boolean;
+                            skipBadges: string[];
                             waitlistJoinedAt: string | null;
                             waitlistPosition: number | null;
                             waitlistReleasedAt: string | null;
-                            skipBadges: string[];
                             waitlistTotal: number;
-                            admittedTotal: number;
                         };
                     };
                 };
@@ -1405,56 +1332,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/card/flow-early-access": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Grant the user early access to the /card flow (via /shhhhh) */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            grantedAt: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                            message: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/card/waitlist/join": {
         parameters: {
             query?: never;
@@ -1464,7 +1341,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Join the virtual-card waitlist */
+        /**
+         * Compatibility response for clients predating public card access
+         * @deprecated
+         */
         post: {
             parameters: {
                 query?: never;
@@ -1486,72 +1366,8 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Default Response */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                            message: string;
-                        };
-                    };
-                };
             };
         };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/card/waitlist/state": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get the user’s current waitlist state */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            joinedAt: string | null;
-                            position: number | null;
-                            releasedAt: string | null;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                            message: string;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1599,82 +1415,82 @@ export interface paths {
             requestBody?: {
                 content: {
                     "multipart/form-data": ({
-                        pricing_type: "fixed_price" | "no_price";
+                        attachment?: unknown;
+                        baseUrl?: string;
+                        filename?: string;
                         local_price: {
                             amount: string;
                             currency?: string;
                         };
-                        baseUrl?: string;
+                        mimetype?: string;
+                        pricing_type: "fixed_price" | "no_price";
                         reference?: string;
                         transactionType?: "REQUEST" | "DIRECT_SEND" | "SEND_LINK" | "DEPOSIT" | "WITHDRAW";
-                        attachment?: unknown;
-                        mimetype?: string;
-                        filename?: string;
                     } & {
                         checkout_id: string;
                         requestId?: unknown;
                         requestProps?: {
                             chainId?: string;
-                            tokenAddress?: string;
-                            tokenType?: string;
-                            tokenSymbol?: string;
-                            tokenDecimals?: number;
                             recipientAddress?: string;
                             recipientEnsName?: string;
                             requesteeUsername?: string;
+                            tokenAddress?: string;
                             tokenAmount?: string;
+                            tokenDecimals?: number;
+                            tokenSymbol?: string;
+                            tokenType?: string;
                         };
                     }) | ({
-                        pricing_type: "fixed_price" | "no_price";
+                        attachment?: unknown;
+                        baseUrl?: string;
+                        filename?: string;
                         local_price: {
                             amount: string;
                             currency?: string;
                         };
-                        baseUrl?: string;
+                        mimetype?: string;
+                        pricing_type: "fixed_price" | "no_price";
                         reference?: string;
                         transactionType?: "REQUEST" | "DIRECT_SEND" | "SEND_LINK" | "DEPOSIT" | "WITHDRAW";
-                        attachment?: unknown;
-                        mimetype?: string;
-                        filename?: string;
                     } & {
                         checkout_id?: unknown;
                         requestId: string;
                         requestProps?: {
                             chainId?: string;
-                            tokenAddress?: string;
-                            tokenType?: string;
-                            tokenSymbol?: string;
-                            tokenDecimals?: number;
                             recipientAddress?: string;
                             recipientEnsName?: string;
                             requesteeUsername?: string;
+                            tokenAddress?: string;
                             tokenAmount?: string;
+                            tokenDecimals?: number;
+                            tokenSymbol?: string;
+                            tokenType?: string;
                         };
                     }) | ({
-                        pricing_type: "fixed_price" | "no_price";
+                        attachment?: unknown;
+                        baseUrl?: string;
+                        filename?: string;
                         local_price: {
                             amount: string;
                             currency?: string;
                         };
-                        baseUrl?: string;
+                        mimetype?: string;
+                        pricing_type: "fixed_price" | "no_price";
                         reference?: string;
                         transactionType?: "REQUEST" | "DIRECT_SEND" | "SEND_LINK" | "DEPOSIT" | "WITHDRAW";
-                        attachment?: unknown;
-                        mimetype?: string;
-                        filename?: string;
                     } & {
                         checkout_id?: unknown;
                         requestId?: unknown;
                         requestProps: {
                             chainId: string;
-                            tokenAddress: string;
-                            tokenType: string;
-                            tokenSymbol: string;
-                            tokenDecimals: number;
                             recipientAddress: string;
                             recipientEnsName?: string;
                             requesteeUsername?: string;
+                            tokenAddress: string;
                             tokenAmount?: string;
+                            tokenDecimals: number;
+                            tokenSymbol: string;
+                            tokenType: string;
                         };
                     });
                 };
@@ -1770,13 +1586,13 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        hash: string;
                         chainId: string;
-                        tokenAddress: string;
+                        hash: string;
                         payerAddress: string;
                         sourceChainId?: string;
                         sourceTokenAddress?: string;
                         sourceTokenSymbol?: string;
+                        tokenAddress: string;
                     };
                 };
             };
@@ -1815,25 +1631,25 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        campaignTag?: string;
                         chainId: string;
-                        /** @default v4.3 */
-                        version?: "v4.3" | "v4.4";
                         claimParams: unknown[];
-                        /** @default false */
-                        withMFA?: boolean;
                         depositDetails?: {
-                            pubKey20: string;
                             amount: string;
-                            tokenAddress: string;
-                            contractType: number;
                             claimed: boolean;
+                            contractType: number;
+                            pubKey20: string;
                             requiresMFA: boolean;
-                            timestamp: number;
-                            tokenId: string;
                             senderAddress: string;
+                            timestamp: number;
+                            tokenAddress: string;
+                            tokenId: string;
                         };
                         optimisticReturn?: boolean;
-                        campaignTag?: string;
+                        /** @default v4.3 */
+                        version?: "v4.3" | "v4.4";
+                        /** @default false */
+                        withMFA?: boolean;
                     };
                 };
             };
@@ -1847,6 +1663,45 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/config/residence-restrictions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            bankingOnly: string[];
+                            cardOnly: string[];
+                            full: string[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1905,10 +1760,10 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        userId: string;
-                        provider: "bridge" | "manteca" | "sumsub";
                         /** @description ISO-2 (AR/BR/US/GB/DE/MX) */
                         country?: string;
+                        provider: "bridge" | "manteca" | "sumsub";
+                        userId: string;
                     };
                 };
             };
@@ -1920,10 +1775,10 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            details: unknown;
                             /** @enum {boolean} */
                             ok: true;
                             updated: string;
-                            details: unknown;
                         };
                     };
                 };
@@ -1934,9 +1789,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -1947,9 +1802,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -1992,14 +1847,14 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            /** @enum {boolean} */
-                            ok: true;
                             completed: {
+                                finalState: string;
                                 intentId: string;
                                 kind: string;
                                 provider: string;
-                                finalState: string;
                             }[];
+                            /** @enum {boolean} */
+                            ok: true;
                             skipped: {
                                 intentId: string;
                                 kind: string;
@@ -2016,9 +1871,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -2029,79 +1884,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/dev/cheats/clear-skip-celebration": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        userId: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            ok: true;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            ok: false;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -2132,9 +1917,9 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        intentOrTransferId: string;
-                        exchangeRate?: number;
                         developerFee?: string;
+                        exchangeRate?: number;
+                        intentOrTransferId: string;
                     };
                 };
             };
@@ -2146,11 +1931,11 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            finalState: string;
+                            intentId?: string;
                             /** @enum {boolean} */
                             ok: true;
                             providerEventId: string;
-                            intentId?: string;
-                            finalState: string;
                             statusChanged: boolean;
                         };
                     };
@@ -2162,9 +1947,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -2175,9 +1960,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -2208,10 +1993,10 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        developerFee?: string;
+                        exchangeRate?: number;
                         /** @description Either a TransactionIntent.id or a Bridge transfer id. */
                         intentOrTransferId: string;
-                        exchangeRate?: number;
-                        developerFee?: string;
                     };
                 };
             };
@@ -2223,11 +2008,11 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            finalState: string;
+                            intentId?: string;
                             /** @enum {boolean} */
                             ok: true;
                             providerEventId: string;
-                            intentId?: string;
-                            finalState: string;
                             statusChanged: boolean;
                         };
                     };
@@ -2239,9 +2024,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -2252,9 +2037,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -2285,19 +2070,19 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        depositAddress: string;
-                        /** @description Rhino's source-chain enum, e.g. BASE / ARBITRUM / BINANCE */
-                        chainIn: string;
-                        token: "USDC" | "USDT";
-                        /** @description Source-chain wallet that funded the SDA */
-                        depositor: string;
-                        /** @description Destination peanut wallet address on Arbitrum */
-                        recipient: string;
                         /** @description Human-unit source amount, e.g. "1.00" */
                         amountIn: string;
                         /** @description Human-unit destination amount after FX + fees */
                         amountOut: string;
                         amountOutUsd: number;
+                        /** @description Rhino's source-chain enum, e.g. BASE / ARBITRUM / BINANCE */
+                        chainIn: string;
+                        depositAddress: string;
+                        /** @description Source-chain wallet that funded the SDA */
+                        depositor: string;
+                        /** @description Destination peanut wallet address on Arbitrum */
+                        recipient: string;
+                        token: "USDC" | "USDT";
                     };
                 };
             };
@@ -2309,10 +2094,10 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            finalState: string;
                             /** @enum {boolean} */
                             ok: true;
                             providerEventId: string;
-                            finalState: string;
                             statusChanged: boolean;
                         };
                     };
@@ -2324,9 +2109,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -2337,9 +2122,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -2370,19 +2155,19 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        depositAddress: string;
-                        /** @description Rhino's source-chain enum, e.g. BASE / ARBITRUM / BINANCE */
-                        chainIn: string;
-                        token: "USDC" | "USDT";
-                        /** @description Source-chain wallet that funded the SDA */
-                        depositor: string;
-                        /** @description Destination peanut wallet address on Arbitrum */
-                        recipient: string;
                         /** @description Human-unit source amount, e.g. "1.00" */
                         amountIn: string;
                         /** @description Human-unit destination amount after FX + fees */
                         amountOut: string;
                         amountOutUsd: number;
+                        /** @description Rhino's source-chain enum, e.g. BASE / ARBITRUM / BINANCE */
+                        chainIn: string;
+                        depositAddress: string;
+                        /** @description Source-chain wallet that funded the SDA */
+                        depositor: string;
+                        /** @description Destination peanut wallet address on Arbitrum */
+                        recipient: string;
+                        token: "USDC" | "USDT";
                     };
                 };
             };
@@ -2394,10 +2179,10 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            finalState: string;
                             /** @enum {boolean} */
                             ok: true;
                             providerEventId: string;
-                            finalState: string;
                             statusChanged: boolean;
                         };
                     };
@@ -2409,9 +2194,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -2422,9 +2207,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -2455,19 +2240,19 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        depositAddress: string;
-                        /** @description Rhino's source-chain enum, e.g. BASE / ARBITRUM / BINANCE */
-                        chainIn: string;
-                        token: "USDC" | "USDT";
-                        /** @description Source-chain wallet that funded the SDA */
-                        depositor: string;
-                        /** @description Destination peanut wallet address on Arbitrum */
-                        recipient: string;
                         /** @description Human-unit source amount, e.g. "1.00" */
                         amountIn: string;
                         /** @description Human-unit destination amount after FX + fees */
                         amountOut: string;
                         amountOutUsd: number;
+                        /** @description Rhino's source-chain enum, e.g. BASE / ARBITRUM / BINANCE */
+                        chainIn: string;
+                        depositAddress: string;
+                        /** @description Source-chain wallet that funded the SDA */
+                        depositor: string;
+                        /** @description Destination peanut wallet address on Arbitrum */
+                        recipient: string;
+                        token: "USDC" | "USDT";
                     };
                 };
             };
@@ -2479,11 +2264,11 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            finalState: string;
+                            intentId?: string;
                             /** @enum {boolean} */
                             ok: true;
                             providerEventId: string;
-                            intentId?: string;
-                            finalState: string;
                             statusChanged: boolean;
                         };
                     };
@@ -2495,9 +2280,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -2508,9 +2293,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -2541,19 +2326,19 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        depositAddress: string;
-                        /** @description Rhino's source-chain enum, e.g. BASE / ARBITRUM / BINANCE */
-                        chainIn: string;
-                        token: "USDC" | "USDT";
-                        /** @description Source-chain wallet that funded the SDA */
-                        depositor: string;
-                        /** @description Destination peanut wallet address on Arbitrum */
-                        recipient: string;
                         /** @description Human-unit source amount, e.g. "1.00" */
                         amountIn: string;
                         /** @description Human-unit destination amount after FX + fees */
                         amountOut: string;
                         amountOutUsd: number;
+                        /** @description Rhino's source-chain enum, e.g. BASE / ARBITRUM / BINANCE */
+                        chainIn: string;
+                        depositAddress: string;
+                        /** @description Source-chain wallet that funded the SDA */
+                        depositor: string;
+                        /** @description Destination peanut wallet address on Arbitrum */
+                        recipient: string;
+                        token: "USDC" | "USDT";
                     };
                 };
             };
@@ -2565,11 +2350,11 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            finalState: string;
+                            intentId?: string;
                             /** @enum {boolean} */
                             ok: true;
                             providerEventId: string;
-                            intentId?: string;
-                            finalState: string;
                             statusChanged: boolean;
                         };
                     };
@@ -2581,9 +2366,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -2594,9 +2379,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -2641,11 +2426,11 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            finalState: string;
+                            intentId?: string;
                             /** @enum {boolean} */
                             ok: true;
                             providerEventId: string;
-                            intentId?: string;
-                            finalState: string;
                             statusChanged: boolean;
                         };
                     };
@@ -2657,9 +2442,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -2670,9 +2455,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -2703,20 +2488,20 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        depositAddress: string;
-                        /** @description Rhino's source-chain enum, e.g. BASE / ARBITRUM / BINANCE */
-                        chainIn: string;
-                        token: "USDC" | "USDT";
-                        /** @description Source-chain wallet that funded the SDA */
-                        depositor: string;
-                        /** @description Destination peanut wallet address on Arbitrum */
-                        recipient: string;
                         /** @description Human-unit source amount, e.g. "1.00" */
                         amountIn: string;
                         /** @description Human-unit destination amount after FX + fees */
                         amountOut: string;
                         amountOutUsd: number;
+                        /** @description Rhino's source-chain enum, e.g. BASE / ARBITRUM / BINANCE */
+                        chainIn: string;
+                        depositAddress: string;
+                        /** @description Source-chain wallet that funded the SDA */
+                        depositor: string;
                         reason?: string;
+                        /** @description Destination peanut wallet address on Arbitrum */
+                        recipient: string;
+                        token: "USDC" | "USDT";
                     };
                 };
             };
@@ -2728,11 +2513,11 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            finalState: string;
+                            intentId?: string;
                             /** @enum {boolean} */
                             ok: true;
                             providerEventId: string;
-                            intentId?: string;
-                            finalState: string;
                             statusChanged: boolean;
                         };
                     };
@@ -2744,9 +2529,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -2757,9 +2542,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -2790,17 +2575,17 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        userId: string;
-                        /** @description Defaults to 100 USDC. */
-                        usdcMicros?: string;
-                        /** @description Defaults to 25. */
-                        bridgeDepositUsd?: string;
                         /** @description ISO-2; defaults to US. */
                         bridgeCountry?: string;
+                        /** @description Defaults to 25. */
+                        bridgeDepositUsd?: string;
                         /** @description Defaults to AR. */
                         mantecaCountry?: string;
                         /** @description Defaults to US. */
                         sumsubCountry?: string;
+                        /** @description Defaults to 100 USDC. */
+                        usdcMicros?: string;
+                        userId: string;
                     };
                 };
             };
@@ -2815,9 +2600,9 @@ export interface paths {
                             /** @enum {boolean} */
                             ok: true;
                             steps: {
+                                detail: unknown;
                                 name: string;
                                 ok: boolean;
-                                detail: unknown;
                             }[];
                         };
                     };
@@ -2829,9 +2614,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -2842,9 +2627,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -2875,8 +2660,8 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        userId: string;
                         amountMicros?: string;
+                        userId: string;
                     };
                 };
             };
@@ -2888,11 +2673,11 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            amountMicros: string;
                             /** @enum {boolean} */
                             ok: true;
                             saAddress: string;
                             tokenAddress: string;
-                            amountMicros: string;
                             txHash: string;
                         };
                     };
@@ -2904,9 +2689,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -2917,9 +2702,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -2950,10 +2735,10 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        userId: string;
+                        ethWei?: string;
                         /** @description 6-decimal USDC, default 10000000 = $10 */
                         usdc?: string;
-                        ethWei?: string;
+                        userId: string;
                     };
                 };
             };
@@ -2965,12 +2750,12 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            ethSent: string;
                             /** @enum {boolean} */
                             ok: true;
-                            txHash: string;
                             saAddress: string;
+                            txHash: string;
                             usdcSent: string;
-                            ethSent: string;
                         };
                     };
                 };
@@ -2981,9 +2766,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -2994,9 +2779,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -3027,10 +2812,10 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        userId: string;
                         /** @description Stable badge code. Clients must tolerate codes added after SDK generation. */
                         code: string;
                         revoke?: boolean;
+                        userId: string;
                     };
                 };
             };
@@ -3042,86 +2827,12 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            /** @enum {boolean} */
-                            ok: true;
-                            userId: string;
                             code: string;
-                            granted: boolean;
                             earnedAt: string | null;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            ok: false;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            ok: false;
-                            error: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/dev/cheats/grant-card-access": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        userId: string;
-                        revoke?: boolean;
-                    };
-                };
-            };
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
+                            granted: boolean;
                             /** @enum {boolean} */
                             ok: true;
                             userId: string;
-                            username: string | null;
-                            cardAccessGrantedAt: string | null;
                         };
                     };
                 };
@@ -3132,9 +2843,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -3145,80 +2856,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/dev/cheats/grant-flow-early-access": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        userId: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            ok: true;
-                            grantedAt: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            ok: false;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -3261,10 +2901,10 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            note: string;
                             /** @enum {boolean} */
                             ok: true;
                             syntheticIntentId: string;
-                            note: string;
                         };
                     };
                 };
@@ -3275,9 +2915,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -3288,9 +2928,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -3327,10 +2967,10 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            /** @enum {boolean} */
-                            ok: true;
                             inviteCode: string;
                             inviterUsername: string;
+                            /** @enum {boolean} */
+                            ok: true;
                         };
                     };
                 };
@@ -3341,9 +2981,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -3351,77 +2991,6 @@ export interface paths {
         };
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/dev/cheats/join-card-waitlist": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        userId: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            ok: true;
-                            joinedAt: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            ok: false;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            ok: false;
-                            error: string;
-                        };
-                    };
-                };
-            };
-        };
         delete?: never;
         options?: never;
         head?: never;
@@ -3454,8 +3023,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            users: string[];
                             totalUsers: number;
+                            users: string[];
                         };
                     };
                 };
@@ -3570,15 +3139,15 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            amount: string;
+                            claimParams: unknown[];
+                            depositIdx: number;
+                            makeDepositTxHash: string;
                             /** @enum {boolean} */
                             ok: true;
-                            vaultAddress: string;
-                            depositIdx: number;
                             password: string;
                             pubKey20: string;
-                            claimParams: unknown[];
-                            makeDepositTxHash: string;
-                            amount: string;
+                            vaultAddress: string;
                         };
                     };
                 };
@@ -3589,9 +3158,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -3602,80 +3171,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/dev/cheats/release-from-waitlist": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        userId: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            ok: true;
-                            releasedAt: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            ok: false;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -3707,8 +3205,6 @@ export interface paths {
                 content: {
                     "application/json": {
                         userId: string;
-                        /** @description If true, leave card_access_granted_at intact; only clear the card rows. */
-                        keepCardAccess?: boolean;
                     };
                 };
             };
@@ -3720,81 +3216,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            /** @enum {boolean} */
-                            ok: true;
                             deletedCards: number;
-                            cardAccessGrantedAt: string | null;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            ok: false;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {boolean} */
-                            ok: false;
-                            error: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/dev/cheats/reset-card-waitlist": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        userId: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
                             /** @enum {boolean} */
                             ok: true;
-                            deletedPerkUsages: number;
                         };
                     };
                 };
@@ -3805,9 +3229,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -3818,9 +3242,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -3863,12 +3287,12 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            /** @enum {boolean} */
-                            ok: true;
                             cleared: {
                                 kycVerifications: number;
                                 ledgerIntents: number;
                             };
+                            /** @enum {boolean} */
+                            ok: true;
                         };
                     };
                 };
@@ -3879,9 +3303,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -3892,9 +3316,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -3925,8 +3349,8 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        userId: string;
                         amountUsd: string;
+                        userId: string;
                     };
                 };
             };
@@ -3940,8 +3364,8 @@ export interface paths {
                         "application/json": {
                             /** @enum {boolean} */
                             ok: true;
-                            virtualAccountId: string;
                             simulateResponse: unknown;
+                            virtualAccountId: string;
                         };
                     };
                 };
@@ -3952,9 +3376,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -3965,9 +3389,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -4011,11 +3435,11 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            eoaAddress: string;
+                            kernelAddress: string;
                             /** @enum {boolean} */
                             ok: true;
                             txHash: string;
-                            eoaAddress: string;
-                            kernelAddress: string;
                             usdcSwept: string;
                         };
                     };
@@ -4027,9 +3451,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -4040,9 +3464,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -4132,20 +3556,20 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            bridgeKycStatus: string | null;
+                            email: string | null;
+                            hasBridgeCustomerId: boolean;
+                            hasMantecaUserId: boolean;
+                            kycVerifications: {
+                                mantecaGeo: string | null;
+                                provider: string;
+                                status: string;
+                            }[];
                             /** @enum {boolean} */
                             ok: true;
                             userId: string;
                             username: string | null;
-                            email: string | null;
-                            hasMantecaUserId: boolean;
-                            hasBridgeCustomerId: boolean;
-                            bridgeKycStatus: string | null;
                             walletAddresses: string[];
-                            kycVerifications: {
-                                provider: string;
-                                status: string;
-                                mantecaGeo: string | null;
-                            }[];
                         };
                     };
                 };
@@ -4156,9 +3580,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
                             /** @enum {boolean} */
                             ok: false;
-                            error: string;
                         };
                     };
                 };
@@ -4199,23 +3623,23 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            ok: boolean;
-                            userId: string;
                             count: number;
                             intents: {
+                                completedAt: string | null;
+                                createdAt: string;
+                                entryCount: number;
+                                fxRate: string | null;
                                 id: string;
                                 kind: string;
                                 provider: string;
-                                status: string;
                                 requestedAmount: string | null;
                                 requestedAsset: string | null;
                                 settledAmount: string | null;
                                 settledAsset: string | null;
-                                fxRate: string | null;
-                                createdAt: string;
-                                completedAt: string | null;
-                                entryCount: number;
+                                status: string;
                             }[];
+                            ok: boolean;
+                            userId: string;
                         };
                     };
                 };
@@ -4226,8 +3650,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            ok: boolean;
                             error: string;
+                            ok: boolean;
                         };
                     };
                 };
@@ -4270,8 +3694,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            ok: boolean;
                             ms: number;
+                            ok: boolean;
                         };
                     };
                 };
@@ -4282,8 +3706,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            ok: boolean;
                             error: string;
+                            ok: boolean;
                         };
                     };
                 };
@@ -4341,8 +3765,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            ok: boolean;
                             error: string;
+                            ok: boolean;
                         };
                     };
                 };
@@ -4375,8 +3799,6 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        /** @description qa scenario name for logging */
-                        scenario: string;
                         entry: {
                             /** @default /home */
                             route: string;
@@ -4385,17 +3807,19 @@ export interface paths {
                         localStorage?: {
                             [key: string]: unknown;
                         };
+                        notes?: string;
+                        /** @description qa scenario name for logging */
+                        scenario: string;
+                        stepActions?: unknown[];
                         stepSnapshot?: {
-                            userIds: string[];
+                            capturedAt?: string;
                             tables: {
                                 [key: string]: {
                                     [key: string]: unknown;
                                 }[];
                             };
-                            capturedAt?: string;
+                            userIds: string[];
                         };
-                        stepActions?: unknown[];
-                        notes?: string;
                     };
                 };
             };
@@ -4407,14 +3831,14 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            url: string;
-                            sessionId: string;
-                            userId: string;
-                            token: string;
                             localStorage: {
                                 [key: string]: unknown;
                             };
                             restored?: boolean;
+                            sessionId: string;
+                            token: string;
+                            url: string;
+                            userId: string;
                         };
                     };
                 };
@@ -4473,7 +3897,6 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            scenario: string;
                             entry: {
                                 route: string;
                                 userId: string | null;
@@ -4481,9 +3904,10 @@ export interface paths {
                             localStorage: {
                                 [key: string]: unknown;
                             };
+                            scenario: string;
                             stepActions?: unknown[];
-                            userId: string;
                             token: string;
+                            userId: string;
                         };
                     };
                 };
@@ -4533,10 +3957,10 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            lastProcessedBlock: string;
                             ok: boolean;
                             registeredAddresses: number;
                             skippedInvalid: number;
-                            lastProcessedBlock: string;
                         };
                     };
                 };
@@ -4547,8 +3971,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            ok: boolean;
                             error: string;
+                            ok: boolean;
                         };
                     };
                 };
@@ -4588,9 +4012,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            ok: boolean;
                             deleted: number;
                             label: string;
+                            ok: boolean;
                         };
                     };
                 };
@@ -4601,8 +4025,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            ok: boolean;
                             error: string;
+                            ok: boolean;
                         };
                     };
                 };
@@ -4635,8 +4059,8 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        scenario: "send-link-pending" | "send-link-claimed" | "request-pot-open" | "kyc-matrix" | "user-with-bank-accounts" | "withdraw-ready" | "manteca-qr-payment" | "multi-user-send" | "points-and-perks";
                         harnessLabel?: string;
+                        scenario: "send-link-pending" | "send-link-claimed" | "request-pot-open" | "kyc-matrix" | "user-with-bank-accounts" | "withdraw-ready" | "manteca-qr-payment" | "multi-user-send" | "points-and-perks";
                     };
                 };
             };
@@ -4648,8 +4072,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            scenario: string;
                             data: unknown;
+                            scenario: string;
                         };
                     };
                 };
@@ -4706,10 +4130,10 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        /** @description Peanut user_id whose rails to submit */
-                        userId: string;
                         /** @description Sumsub applicant id with approved docs + extracted data */
                         applicantId: string;
+                        /** @description Peanut user_id whose rails to submit */
+                        userId: string;
                     };
                 };
             };
@@ -4721,8 +4145,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            ok: boolean;
                             ms: number;
+                            ok: boolean;
                         };
                     };
                 };
@@ -4733,8 +4157,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            ok: boolean;
                             error: string;
+                            ok: boolean;
                         };
                     };
                 };
@@ -4767,14 +4191,14 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        country?: string;
                         /** @description Email. Finds or creates the user. */
                         email: string;
-                        userId?: string;
-                        country?: string;
+                        harnessLabel?: string;
                         kyc?: "verified" | "pending" | "rejected" | "none";
                         provider?: "sumsub" | "bridge" | "manteca";
+                        userId?: string;
                         username?: string;
-                        harnessLabel?: string;
                     };
                 };
             };
@@ -4788,10 +4212,10 @@ export interface paths {
                         "application/json": {
                             token: string;
                             user: {
-                                userId: string;
                                 email: string;
-                                username?: string;
                                 harnessLabel: string;
+                                userId: string;
+                                username?: string;
                             };
                         };
                     };
@@ -4842,11 +4266,11 @@ export interface paths {
                         applicantId: string;
                         /** @description Peanut user_id (applicant.externalUserId) */
                         externalUserId: string;
+                        levelName?: string;
                         /** @default GREEN */
                         reviewAnswer?: "GREEN" | "RED" | "ERROR";
                         /** @description Sumsub reviewStatus (default: "completed") */
                         reviewStatus?: string;
-                        levelName?: string;
                         /** @description e.g. "applicantReviewed" */
                         webhookType?: string;
                     };
@@ -4860,8 +4284,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            ok: boolean;
                             ms: number;
+                            ok: boolean;
                         };
                     };
                 };
@@ -4872,8 +4296,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            ok: boolean;
                             error: string;
+                            ok: boolean;
                         };
                     };
                 };
@@ -4904,16 +4328,16 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        recipientAddress: string;
                         chainId: string;
+                        hash: string;
+                        memo?: string;
+                        payerAddress: string;
+                        recipientAddress: string;
                         tokenAddress: string;
                         tokenAmount: string;
                         tokenDecimals: number;
                         tokenSymbol?: string;
                         tokenType?: string;
-                        hash: string;
-                        payerAddress: string;
-                        memo?: string;
                     };
                 };
             };
@@ -5032,19 +4456,19 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            currency: string;
-                            markupPct: string;
-                            source: "live" | "static";
-                            /** @enum {boolean} */
-                            indicative: true;
                             components?: {
-                                peanutUsdRate: string;
-                                officialUsdRate: string;
                                 issuerFeePct: string;
+                                officialUsdRate: string;
+                                peanutUsdRate: string;
                             };
+                            currency: string;
                             effectiveAt: string | null;
                             /** Format: date-time */
                             generatedAt: string;
+                            /** @enum {boolean} */
+                            indicative: true;
+                            markupPct: string;
+                            source: "live" | "static";
                         };
                     };
                 };
@@ -5134,19 +4558,19 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            from: string;
-                            to: string;
-                            rate: string;
                             /** @enum {string} */
                             basis: "display_sell";
-                            /** @enum {boolean} */
-                            indicative: true;
-                            selection: "identity" | "provider_pair" | "reference_pair";
-                            fromSource: "identity" | "bridge" | "manteca" | "reference";
-                            toSource: "identity" | "bridge" | "manteca" | "reference";
                             effectiveAt: string | null;
+                            from: string;
+                            fromSource: "identity" | "bridge" | "manteca" | "reference";
                             /** Format: date-time */
                             generatedAt: string;
+                            /** @enum {boolean} */
+                            indicative: true;
+                            rate: string;
+                            selection: "identity" | "provider_pair" | "reference_pair";
+                            to: string;
+                            toSource: "identity" | "bridge" | "manteca" | "reference";
                         };
                     };
                 };
@@ -5237,17 +4661,17 @@ export interface paths {
                             base: string;
                             /** @enum {string} */
                             basis: "display_sell";
-                            /** @enum {boolean} */
-                            indicative: true;
                             /** Format: date-time */
                             generatedAt: string;
+                            /** @enum {boolean} */
+                            indicative: true;
                             rates: {
-                                code: string;
-                                unitsPerBase: string;
-                                selection: "identity" | "provider_pair" | "reference_pair";
                                 baseSource: "identity" | "bridge" | "manteca" | "reference";
-                                quoteSource: "identity" | "bridge" | "manteca" | "reference";
+                                code: string;
                                 effectiveAt: string | null;
+                                quoteSource: "identity" | "bridge" | "manteca" | "reference";
+                                selection: "identity" | "provider_pair" | "reference_pair";
+                                unitsPerBase: string;
                             }[];
                         };
                     };
@@ -5383,6 +4807,173 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/healthz/bridge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/healthz/manteca/{geo}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    geo: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/healthz/rain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/healthz/rhino": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/healthz/sumsub": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/history/{entryId}": {
         parameters: {
             query?: never;
@@ -5474,9 +5065,9 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        campaignTag?: string;
                         inviteCode: string;
                         type: "DIRECT" | "PAYMENT_LINK";
-                        campaignTag?: string;
                     };
                 };
             };
@@ -5488,38 +5079,38 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            message: string;
+                            attributionKind: "PERSONAL" | "SYSTEM" | "LEGACY_UNRESOLVED";
                             /** @enum {boolean} */
                             attributionResolved: true;
-                            /** @enum {boolean} */
-                            onboardingResolved: true;
-                            attributionKind: "PERSONAL" | "SYSTEM" | "LEGACY_UNRESOLVED";
                             claims: {
+                                acquisition?: {
+                                    destination: "offramp_migration" | "normal_app";
+                                    /** @enum {string} */
+                                    fallback: "normal_app";
+                                };
+                                badge?: {
+                                    /** @description Stable badge code. Clients must tolerate codes added after SDK generation. */
+                                    code: string;
+                                    description: string;
+                                    iconUrl: string;
+                                    name: string;
+                                    publicDescription: string;
+                                };
                                 /** @description Opaque badge-acquisition campaign value. New integrations use the badge_campaign slug. */
                                 badgeCampaign: string;
                                 /** @description Stable badge code. Clients must tolerate codes added after SDK generation. */
                                 badgeCode?: string;
-                                badge?: {
-                                    /** @description Stable badge code. Clients must tolerate codes added after SDK generation. */
-                                    code: string;
-                                    name: string;
-                                    description: string;
-                                    publicDescription: string;
-                                    iconUrl: string;
-                                };
                                 outcome: "awarded" | "already_owned" | "inactive" | "expired" | "unknown" | "definition_missing";
-                                acquisition?: {
-                                    /** @enum {string} */
-                                    fallback: "normal_app";
-                                    destination: "offramp_migration" | "normal_app";
-                                };
                             }[];
                             legacyAcquisition?: {
                                 campaignTag: string;
+                                destination: "offramp_migration" | "normal_app";
                                 /** @enum {string} */
                                 fallback: "normal_app";
-                                destination: "offramp_migration" | "normal_app";
                             };
+                            message: string;
+                            /** @enum {boolean} */
+                            onboardingResolved: true;
                         };
                     };
                 };
@@ -5541,37 +5132,37 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            message: string;
                             /** @enum {boolean} */
                             attributionResolved: false;
-                            /** @enum {boolean} */
-                            onboardingResolved: false;
                             claims: {
+                                acquisition?: {
+                                    destination: "offramp_migration" | "normal_app";
+                                    /** @enum {string} */
+                                    fallback: "normal_app";
+                                };
+                                badge?: {
+                                    /** @description Stable badge code. Clients must tolerate codes added after SDK generation. */
+                                    code: string;
+                                    description: string;
+                                    iconUrl: string;
+                                    name: string;
+                                    publicDescription: string;
+                                };
                                 /** @description Opaque badge-acquisition campaign value. New integrations use the badge_campaign slug. */
                                 badgeCampaign: string;
                                 /** @description Stable badge code. Clients must tolerate codes added after SDK generation. */
                                 badgeCode?: string;
-                                badge?: {
-                                    /** @description Stable badge code. Clients must tolerate codes added after SDK generation. */
-                                    code: string;
-                                    name: string;
-                                    description: string;
-                                    publicDescription: string;
-                                    iconUrl: string;
-                                };
                                 outcome: "awarded" | "already_owned" | "inactive" | "expired" | "unknown" | "definition_missing";
-                                acquisition?: {
-                                    /** @enum {string} */
-                                    fallback: "normal_app";
-                                    destination: "offramp_migration" | "normal_app";
-                                };
                             }[];
                             legacyAcquisition?: {
                                 campaignTag: string;
+                                destination: "offramp_migration" | "normal_app";
                                 /** @enum {string} */
                                 fallback: "normal_app";
-                                destination: "offramp_migration" | "normal_app";
                             };
+                            message: string;
+                            /** @enum {boolean} */
+                            onboardingResolved: false;
                         };
                     };
                 };
@@ -5713,19 +5304,19 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            message: string;
+                            attributionKind: "PERSONAL" | "SYSTEM" | "LEGACY_UNRESOLVED";
                             /** @enum {boolean} */
                             attributionResolved: true;
-                            /** @enum {boolean} */
-                            onboardingResolved: true;
-                            attributionKind: "PERSONAL" | "SYSTEM" | "LEGACY_UNRESOLVED";
-                            username: string;
                             legacyAcquisition?: {
                                 campaignTag: string;
+                                destination: "offramp_migration" | "normal_app";
                                 /** @enum {string} */
                                 fallback: "normal_app";
-                                destination: "offramp_migration" | "normal_app";
                             };
+                            message: string;
+                            /** @enum {boolean} */
+                            onboardingResolved: true;
+                            username: string;
                         };
                     };
                 };
@@ -5747,17 +5338,17 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            message: string;
                             /** @enum {boolean} */
                             attributionResolved: false;
-                            /** @enum {boolean} */
-                            onboardingResolved: false;
                             legacyAcquisition?: {
                                 campaignTag: string;
+                                destination: "offramp_migration" | "normal_app";
                                 /** @enum {string} */
                                 fallback: "normal_app";
-                                destination: "offramp_migration" | "normal_app";
                             };
+                            message: string;
+                            /** @enum {boolean} */
+                            onboardingResolved: false;
                         };
                     };
                 };
@@ -5867,9 +5458,9 @@ export interface paths {
                 content: {
                     "application/json": {
                         amount: string;
-                        isUsdDenominated?: boolean;
-                        currency: "ARS" | "BRL" | "CLP" | "COP" | "PUSD" | "CRC" | "GTQ" | "MXN" | "PHP" | "BOB";
                         chargeId?: string;
+                        currency: "ARS" | "BRL" | "CLP" | "COP" | "PUSD" | "CRC" | "GTQ" | "MXN" | "PHP" | "BOB";
+                        isUsdDenominated?: boolean;
                     };
                 };
             };
@@ -6034,51 +5625,51 @@ export interface paths {
             requestBody?: {
                 content: {
                     "application/json": {
+                        chainId: string;
+                        entryPointAddress: string;
                         /** @enum {string} */
                         kind: "userOp";
                         /** @description The payment lock code from init */
                         paymentLockCode: string;
                         /** @description Type of QR code (e.g. PIX, QR30, CODI). Used to select the correct fallback user for non-Manteca users. */
                         qrType?: string;
+                        rainPreparationId?: string;
                         signedUserOp: {
-                            sender: string;
-                            nonce: unknown;
                             callData: string;
-                            signature: string;
+                            callGasLimit: unknown;
                             factory?: string;
                             factoryData?: string;
-                            callGasLimit: unknown;
-                            verificationGasLimit: unknown;
-                            preVerificationGas: unknown;
                             maxFeePerGas: unknown;
                             maxPriorityFeePerGas: unknown;
+                            nonce: unknown;
                             paymaster?: string;
                             paymasterData?: string;
-                            paymasterVerificationGasLimit: unknown;
                             paymasterPostOpGasLimit: unknown;
+                            paymasterVerificationGasLimit: unknown;
+                            preVerificationGas: unknown;
+                            sender: string;
+                            signature: string;
+                            verificationGasLimit: unknown;
                         };
-                        chainId: string;
-                        entryPointAddress: string;
-                        rainPreparationId?: string;
                     } | {
+                        chainId: string;
                         /** @enum {string} */
                         kind: "rainWithdrawal";
                         /** @description The payment lock code from init */
                         paymentLockCode: string;
                         qrType?: string;
                         signedRainWithdrawal: {
-                            preparationId: string;
-                            amount: string;
-                            recipientAddress: string;
-                            directTransfer: boolean;
-                            adminSalt: string;
                             adminNonce: string;
+                            adminSalt: string;
                             adminSignature: string;
-                            executorSignature: string;
+                            amount: string;
+                            directTransfer: boolean;
                             executorSalt: string;
+                            executorSignature: string;
                             expiresAt: number;
+                            preparationId: string;
+                            recipientAddress: string;
                         };
-                        chainId: string;
                     };
                 };
             };
@@ -6123,10 +5714,10 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        /** @description The QR code string to process for payment */
-                        qrCode: string;
                         /** @description Amount for static QR codes (optional for dynamic QR codes) */
                         amount?: string;
+                        /** @description The QR code string to process for payment */
+                        qrCode: string;
                         /** @description Type of QR code (e.g. PIX, QR30, CODI). Used to select the correct fallback user for non-Manteca users. */
                         qrType?: string;
                     };
@@ -6174,10 +5765,10 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        /** @description Event type from Manteca */
-                        event: string;
                         /** @description Event payload from Manteca */
                         data: unknown;
+                        /** @description Event type from Manteca */
+                        event: string;
                     };
                 };
             };
@@ -6222,17 +5813,17 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        accountType?: "SAVINGS" | "CHECKING" | "DEBIT" | "PHONE" | "VISTA" | "RUT";
                         /** @description Amount to withdraw in crypto asset */
                         amount: string;
-                        /** @description Transaction hash of the withdrawal */
-                        txHash: string;
+                        bankCode?: string;
+                        currency?: "ARS" | "BRL" | "CLP" | "COP" | "PUSD" | "CRC" | "GTQ" | "MXN" | "PHP" | "BOB";
                         /** @description Destination address to withdraw to */
                         destinationAddress: string;
-                        bankCode?: string;
-                        accountType?: "SAVINGS" | "CHECKING" | "DEBIT" | "PHONE" | "VISTA" | "RUT";
-                        currency?: "ARS" | "BRL" | "CLP" | "COP" | "PUSD" | "CRC" | "GTQ" | "MXN" | "PHP" | "BOB";
                         /** @description Price lock code from /withdraw/init. If not provided, a new price lock is created. */
                         priceLockCode?: string;
+                        /** @description Transaction hash of the withdrawal */
+                        txHash: string;
                     };
                 };
             };
@@ -6277,64 +5868,64 @@ export interface paths {
             requestBody?: {
                 content: {
                     "application/json": {
+                        accountType?: "SAVINGS" | "CHECKING" | "DEBIT" | "PHONE" | "VISTA" | "RUT";
+                        /** @description Amount to withdraw in USD (USDC) */
+                        amount: string;
+                        bankCode?: string;
+                        chainId: string;
+                        /** @description Target fiat currency (must match price lock) */
+                        currency: "ARS" | "BRL" | "CLP" | "COP" | "PUSD" | "CRC" | "GTQ" | "MXN" | "PHP" | "BOB";
+                        /** @description Destination bank account address */
+                        destinationAddress: string;
+                        entryPointAddress: string;
                         /** @enum {string} */
                         kind: "userOp";
                         /** @description The price lock code from /withdraw/init */
                         priceLockCode: string;
-                        /** @description Amount to withdraw in USD (USDC) */
-                        amount: string;
-                        /** @description Destination bank account address */
-                        destinationAddress: string;
-                        bankCode?: string;
-                        accountType?: "SAVINGS" | "CHECKING" | "DEBIT" | "PHONE" | "VISTA" | "RUT";
-                        /** @description Target fiat currency (must match price lock) */
-                        currency: "ARS" | "BRL" | "CLP" | "COP" | "PUSD" | "CRC" | "GTQ" | "MXN" | "PHP" | "BOB";
+                        rainPreparationId?: string;
                         signedUserOp: {
-                            sender: string;
-                            nonce: unknown;
                             callData: string;
-                            signature: string;
+                            callGasLimit: unknown;
                             factory?: string;
                             factoryData?: string;
-                            callGasLimit: unknown;
-                            verificationGasLimit: unknown;
-                            preVerificationGas: unknown;
                             maxFeePerGas: unknown;
                             maxPriorityFeePerGas: unknown;
+                            nonce: unknown;
                             paymaster?: string;
                             paymasterData?: string;
-                            paymasterVerificationGasLimit: unknown;
                             paymasterPostOpGasLimit: unknown;
+                            paymasterVerificationGasLimit: unknown;
+                            preVerificationGas: unknown;
+                            sender: string;
+                            signature: string;
+                            verificationGasLimit: unknown;
                         };
-                        chainId: string;
-                        entryPointAddress: string;
-                        rainPreparationId?: string;
                     } | {
+                        accountType?: "SAVINGS" | "CHECKING" | "DEBIT" | "PHONE" | "VISTA" | "RUT";
+                        /** @description Amount to withdraw in USD (USDC) */
+                        amount: string;
+                        bankCode?: string;
+                        chainId: string;
+                        /** @description Target fiat currency (must match price lock) */
+                        currency: "ARS" | "BRL" | "CLP" | "COP" | "PUSD" | "CRC" | "GTQ" | "MXN" | "PHP" | "BOB";
+                        /** @description Destination bank account address */
+                        destinationAddress: string;
                         /** @enum {string} */
                         kind: "rainWithdrawal";
                         /** @description The price lock code from /withdraw/init */
                         priceLockCode: string;
-                        /** @description Amount to withdraw in USD (USDC) */
-                        amount: string;
-                        /** @description Destination bank account address */
-                        destinationAddress: string;
-                        bankCode?: string;
-                        accountType?: "SAVINGS" | "CHECKING" | "DEBIT" | "PHONE" | "VISTA" | "RUT";
-                        /** @description Target fiat currency (must match price lock) */
-                        currency: "ARS" | "BRL" | "CLP" | "COP" | "PUSD" | "CRC" | "GTQ" | "MXN" | "PHP" | "BOB";
                         signedRainWithdrawal: {
-                            preparationId: string;
-                            amount: string;
-                            recipientAddress: string;
-                            directTransfer: boolean;
-                            adminSalt: string;
                             adminNonce: string;
+                            adminSalt: string;
                             adminSignature: string;
-                            executorSignature: string;
+                            amount: string;
+                            directTransfer: boolean;
                             executorSalt: string;
+                            executorSignature: string;
                             expiresAt: number;
+                            preparationId: string;
+                            recipientAddress: string;
                         };
-                        chainId: string;
                     };
                 };
             };
@@ -6465,18 +6056,18 @@ export interface paths {
                     content: {
                         "application/json": {
                             items: {
-                                id: string;
-                                eventType: string;
                                 channel: string;
-                                status: "PENDING" | "SENT" | "FAILED" | "SKIPPED";
-                                skipReason: string | null;
-                                providerId: string | null;
-                                error: {
-                                    reason: string | null;
-                                    name: string | null;
-                                } | null;
                                 createdAt: string;
+                                error: {
+                                    name: string | null;
+                                    reason: string | null;
+                                } | null;
+                                eventType: string;
+                                id: string;
+                                providerId: string | null;
                                 sentAt: string | null;
+                                skipReason: string | null;
+                                status: "PENDING" | "SENT" | "FAILED" | "SKIPPED";
                             }[];
                         };
                     };
@@ -6567,16 +6158,16 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        externalUserIds: string[];
-                        title?: string;
-                        message?: string;
-                        url?: string;
+                        channel?: "push" | "email";
                         data?: {
                             [key: string]: unknown;
                         };
-                        templateId?: string;
+                        externalUserIds: string[];
                         idempotencyKey?: string;
-                        channel?: "push" | "email";
+                        message?: string;
+                        templateId?: string;
+                        title?: string;
+                        url?: string;
                     };
                 };
             };
@@ -6733,8 +6324,8 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        username: string;
                         rpID?: string;
+                        username: string;
                     };
                 };
             };
@@ -6775,15 +6366,15 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        userId: string;
-                        username: string;
-                        cred: unknown;
-                        rpID?: string;
                         acceptedLegal?: {
+                            hash?: string;
                             slug: string;
                             version: string;
-                            hash?: string;
                         }[];
+                        cred: unknown;
+                        rpID?: string;
+                        userId: string;
+                        username: string;
                     };
                 };
             };
@@ -6879,13 +6470,13 @@ export interface paths {
                     content: {
                         "application/json": {
                             perks: {
-                                id: string;
-                                name?: string;
-                                description?: string;
-                                reason?: string;
                                 amountUsd: number;
                                 createdAt: string;
+                                description?: string;
+                                id: string;
                                 inviteeName?: string;
+                                name?: string;
+                                reason?: string;
                             }[];
                         };
                     };
@@ -6968,9 +6559,9 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        userId: string;
                         pointsChange: number;
                         reason: string;
+                        userId: string;
                     };
                 };
             };
@@ -7011,9 +6602,9 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        actionType: "BRIDGE_TRANSFER" | "MANTECA_TRANSFER" | "MANTECA_QR_PAYMENT" | "P2P_SEND_LINK" | "P2P_REQUEST_PAYMENT" | "KYC_VERIFIED";
-                        usdAmount?: number;
+                        actionType: ("BRIDGE_TRANSFER" | "MANTECA_TRANSFER" | "MANTECA_QR_PAYMENT" | "P2P_SEND_LINK" | "P2P_REQUEST_PAYMENT" | "KYC_VERIFIED") | "DIRECT_TRANSFER" | "P2P_SEND" | "P2P_REQUEST_FULFILL" | "SEND_LINK" | "QR_PAY" | "ONRAMP" | "OFFRAMP" | "CRYPTO_WITHDRAW" | "CARD_SPEND_AUTH" | "CARD_SPEND_CLEAR";
                         otherUserId?: string;
+                        usdAmount?: number;
                     };
                 };
             };
@@ -7326,34 +6917,34 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            status: {
-                                hasApplication: boolean;
-                                railStatus?: string;
-                                applicationStatus?: string;
-                                rainUserId?: string;
-                                contractAddress?: string;
-                                coordinatorAddress?: string;
-                            };
                             balance: null | {
+                                balanceDue: number;
                                 creditLimit: number;
+                                inTransitToCollateralCents: number;
                                 pendingCharges: number;
                                 postedCharges: number;
-                                balanceDue: number;
                                 spendingPower: number;
-                                inTransitToCollateralCents: number;
                             };
                             balanceUnavailable: boolean;
                             cards: {
-                                id: string;
-                                rainCardId: string;
-                                last4: string;
                                 expiryMonth: number;
                                 expiryYear: number;
-                                status: string;
-                                network: string;
-                                issuedAt: string;
                                 hasWithdrawApproval: boolean;
+                                id: string;
+                                issuedAt: string;
+                                last4: string;
+                                network: string;
+                                rainCardId: string;
+                                status: string;
                             }[];
+                            status: {
+                                applicationStatus?: string;
+                                contractAddress?: string;
+                                coordinatorAddress?: string;
+                                hasApplication: boolean;
+                                railStatus?: string;
+                                rainUserId?: string;
+                            };
                         };
                     };
                 };
@@ -7370,14 +6961,14 @@ export interface paths {
             requestBody?: {
                 content: {
                     "application/json": {
-                        termsAccepted?: boolean;
-                        serializedApproval?: string;
-                        confirmedResidenceCountry?: string;
                         acceptedDocuments?: {
+                            hash?: string;
                             slug: string;
                             version: string;
-                            hash?: string;
                         }[];
+                        confirmedResidenceCountry?: string;
+                        serializedApproval?: string;
+                        termsAccepted?: boolean;
                     };
                 };
             };
@@ -7389,38 +6980,38 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            message: string;
+                            rainUserId: string;
                             /** @enum {string} */
                             status: "pending";
-                            rainUserId: string;
-                            message: string;
                         } | {
-                            /** @enum {string} */
-                            status: "incomplete";
                             missing: string[];
                             questionnaireComplete: boolean;
+                            /** @enum {string} */
+                            status: "incomplete";
                             sumsubAccessToken: string;
                         } | {
+                            missingDocTypes: string[];
                             /** @enum {string} */
                             status: "main-kyc-required";
-                            missingDocTypes: string[];
                             sumsubAccessToken: string;
                         } | {
+                            isUsResident: boolean;
                             /** @enum {string} */
                             status: "terms-required";
-                            isUsResident: boolean;
                             termsVersion: string;
                         } | {
-                            /** @enum {string} */
-                            status: "country-confirmation-required";
                             candidates: string[];
                             evidence: {
                                 addressCountry: string | null;
                                 idDocumentCountry: string | null;
                             };
+                            /** @enum {string} */
+                            status: "country-confirmation-required";
                         } | {
-                            status: string;
-                            rainUserId?: string;
                             message: string;
+                            rainUserId?: string;
+                            status: string;
                         };
                     };
                 };
@@ -7451,8 +7042,8 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        serializedApproval: string;
                         cardLimit?: number;
+                        serializedApproval: string;
                     };
                 };
             };
@@ -7475,8 +7066,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -7487,8 +7078,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -7523,10 +7114,10 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            balanceDue: number;
                             creditLimit: number;
                             pendingCharges: number;
                             postedCharges: number;
-                            balanceDue: number;
                             spendingPower: number;
                         };
                     };
@@ -7538,8 +7129,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -7550,8 +7141,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -7588,8 +7179,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            ready: boolean;
                             hasApplication: boolean;
+                            ready: boolean;
                             readyAt?: string;
                         };
                     };
@@ -7633,22 +7224,22 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            preparationId: string;
-                            coordinatorAddress: string;
-                            collateralProxy: string;
                             adminAddress: string;
-                            chainId: string;
-                            tokenAddress: string;
-                            amount: string;
-                            recipientAddress: string;
-                            directTransfer: boolean;
-                            adminSalt: string;
                             adminNonce: string;
-                            executorSignature: string;
-                            executorSalt: string;
-                            expiresAt: number;
+                            adminSalt: string;
+                            amount: string;
                             amountCents: string;
+                            chainId: string;
+                            collateralProxy: string;
+                            coordinatorAddress: string;
+                            directTransfer: boolean;
                             dustWei: string;
+                            executorSalt: string;
+                            executorSignature: string;
+                            expiresAt: number;
+                            preparationId: string;
+                            recipientAddress: string;
+                            tokenAddress: string;
                         };
                     };
                 };
@@ -7659,8 +7250,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -7671,8 +7262,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -7683,8 +7274,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -7695,8 +7286,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -7731,13 +7322,13 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            collateralProxy: string;
-                            recipient: string;
-                            amountWei: string;
                             amountCents: string;
-                            dustWei: string;
+                            amountWei: string;
                             autoBalanceEnabled: boolean;
+                            collateralProxy: string;
+                            dustWei: string;
                             hasRecoverableCard: boolean;
+                            recipient: string;
                         };
                     };
                 };
@@ -7748,8 +7339,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -7760,8 +7351,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -7772,8 +7363,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -7821,8 +7412,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -7859,11 +7450,11 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            hasApplication: boolean;
-                            status?: string;
                             applicationStatus?: string;
-                            rainUserId?: string;
                             contractAddress?: string;
+                            hasApplication: boolean;
+                            rainUserId?: string;
+                            status?: string;
                         };
                     };
                 };
@@ -7897,11 +7488,11 @@ export interface paths {
                 content: {
                     "application/json": {
                         amount: string;
-                        recipientAddress: string;
+                        chargeId?: string;
                         directTransfer: boolean;
                         kind: "P2P_SEND" | "QR_PAY" | "LINK_CREATE" | "CRYPTO_WITHDRAW" | "FIAT_OFFRAMP" | "FIAT_ONRAMP" | "REQUEST_PAY" | "AUTO_REBALANCE" | "CARD_SPEND" | "DEPOSIT_EXTERNAL" | "OTHER";
+                        recipientAddress: string;
                         totalAmountCents?: string;
-                        chargeId?: string;
                     };
                 };
             };
@@ -7913,20 +7504,20 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            preparationId: string;
-                            coordinatorAddress: string;
-                            collateralProxy: string;
                             adminAddress: string;
-                            chainId: string;
-                            tokenAddress: string;
-                            amount: string;
-                            recipientAddress: string;
-                            directTransfer: boolean;
-                            adminSalt: string;
                             adminNonce: string;
-                            executorSignature: string;
+                            adminSalt: string;
+                            amount: string;
+                            chainId: string;
+                            collateralProxy: string;
+                            coordinatorAddress: string;
+                            directTransfer: boolean;
                             executorSalt: string;
+                            executorSignature: string;
                             expiresAt: number;
+                            preparationId: string;
+                            recipientAddress: string;
+                            tokenAddress: string;
                         };
                     };
                 };
@@ -7937,8 +7528,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -7949,8 +7540,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -7961,8 +7552,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -7973,8 +7564,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                             retryAfterSec?: number;
                         };
                     };
@@ -7986,8 +7577,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -7998,8 +7589,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -8053,8 +7644,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -8065,8 +7656,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -8077,8 +7668,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -8127,14 +7718,26 @@ export interface paths {
                     };
                 };
                 /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
                 404: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -8145,8 +7748,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -8177,16 +7780,16 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        preparationId: string;
-                        amount: string;
-                        recipientAddress: string;
-                        directTransfer: boolean;
-                        adminSalt: string;
                         adminNonce: string;
+                        adminSalt: string;
                         adminSignature: string;
-                        executorSignature: string;
+                        amount: string;
+                        directTransfer: boolean;
                         executorSalt: string;
+                        executorSignature: string;
                         expiresAt: number;
+                        preparationId: string;
+                        recipientAddress: string;
                     };
                 };
             };
@@ -8209,8 +7812,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -8221,8 +7824,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -8233,9 +7836,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             /** @enum {string} */
                             code?: "STALE_CARD_APPROVAL";
+                            error: string;
                         };
                     };
                 };
@@ -8246,8 +7849,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -8258,8 +7861,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -8296,12 +7899,12 @@ export interface paths {
             requestBody?: {
                 content: {
                     "application/json": {
+                        autoBalanceEnabled?: boolean;
                         cardLimit?: number;
                         limits?: {
                             amount: number;
                             frequency: "perAuthorization" | "per24HourPeriod" | "per30DayPeriod" | "perAllTime";
                         }[];
-                        autoBalanceEnabled?: boolean;
                     };
                 };
             };
@@ -8324,8 +7927,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -8336,8 +7939,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -8403,16 +8006,16 @@ export interface paths {
                     "application/json": {
                         feedback?: string;
                         verifiedWithdrawal?: {
-                            preparationId: string;
-                            amount: string;
-                            recipientAddress: string;
-                            directTransfer: boolean;
-                            adminSalt: string;
                             adminNonce: string;
+                            adminSalt: string;
                             adminSignature: string;
-                            executorSignature: string;
+                            amount: string;
+                            directTransfer: boolean;
                             executorSalt: string;
+                            executorSignature: string;
                             expiresAt: number;
+                            preparationId: string;
+                            recipientAddress: string;
                         };
                     };
                 };
@@ -8477,8 +8080,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -8489,8 +8092,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -8527,13 +8130,13 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            pan: string;
+                            cardholderName?: string;
                             cvv: string;
                             expiryMonth: number;
                             expiryYear: number;
                             last4: string;
                             network: string;
-                            cardholderName?: string;
+                            pan: string;
                         };
                     };
                 };
@@ -8544,8 +8147,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -8556,8 +8159,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -8568,8 +8171,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -8622,8 +8225,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -8634,8 +8237,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -8671,16 +8274,16 @@ export interface paths {
                 content: {
                     "application/json": {
                         verifiedWithdrawal?: {
-                            preparationId: string;
-                            amount: string;
-                            recipientAddress: string;
-                            directTransfer: boolean;
-                            adminSalt: string;
                             adminNonce: string;
+                            adminSalt: string;
                             adminSignature: string;
-                            executorSignature: string;
+                            amount: string;
+                            directTransfer: boolean;
                             executorSalt: string;
+                            executorSignature: string;
                             expiresAt: number;
+                            preparationId: string;
+                            recipientAddress: string;
                         };
                     };
                 };
@@ -8738,8 +8341,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -8776,8 +8379,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -8825,8 +8428,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -8837,8 +8440,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -8849,8 +8452,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -8891,8 +8494,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -8903,8 +8506,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -8915,8 +8518,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -8927,8 +8530,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
                             code?: string;
+                            error: string;
                         };
                     };
                 };
@@ -9051,24 +8654,24 @@ export interface paths {
                 content: {
                     "application/json": {
                         chainId?: string;
-                        tokenAmount?: string;
                         recipientAddress: string;
-                        trackId?: string;
                         reference?: string;
-                        tokenType?: unknown;
                         tokenAddress?: unknown;
+                        tokenAmount?: string;
                         tokenDecimals?: unknown;
                         tokenSymbol?: unknown;
+                        tokenType?: unknown;
+                        trackId?: string;
                     } | {
                         chainId: string;
-                        tokenAmount?: string;
                         recipientAddress: string;
-                        trackId?: string;
                         reference?: string;
-                        tokenType: string;
                         tokenAddress: string;
+                        tokenAmount?: string;
                         tokenDecimals: string;
                         tokenSymbol: string;
+                        tokenType: string;
+                        trackId?: string;
                     };
                 };
             };
@@ -9154,14 +8757,14 @@ export interface paths {
                 content: {
                     "application/json": {
                         chainId?: string;
-                        tokenAmount?: string;
                         recipientAddress?: string;
-                        trackId?: string;
                         reference?: string;
                         tokenAddress?: string;
+                        tokenAmount?: string;
                         tokenDecimals?: string;
-                        tokenType?: string;
                         tokenSymbol?: string;
+                        tokenType?: string;
+                        trackId?: string;
                     };
                 };
             };
@@ -9231,9 +8834,12 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        quoteId: string;
-                        isSwap: boolean;
+                        context?: "withdraw" | "pay-request";
+                        /** Format: uuid */
+                        contextId?: string;
                         isSameChainSwap: boolean;
+                        isSwap: boolean;
+                        quoteId: string;
                     };
                 };
             };
@@ -9275,12 +8881,14 @@ export interface paths {
                 content: {
                     "application/json": {
                         amount: string;
-                        tokenIn: string;
-                        tokenOut: string;
                         chainOut: string;
-                        recipient: string;
+                        context?: "withdraw" | "pay-request";
+                        contextId?: string;
                         depositor: string;
                         mode: "pay" | "receive";
+                        recipient: string;
+                        tokenIn: string;
+                        tokenOut: string;
                     };
                 };
             };
@@ -9398,9 +9006,9 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        type: "EVM" | "SOL" | "TRON";
                         chargeId: string;
                         senderPeanutWalletAddress?: string;
+                        type: "EVM" | "SOL" | "TRON";
                     };
                 };
             };
@@ -9512,13 +9120,13 @@ export interface paths {
                         context: "withdraw" | "pay-request" | "claim-xchain";
                         contextId: string;
                         depositChain: string;
-                        destinationChain: string;
                         destinationAddress: string;
-                        tokenOut: string;
-                        senderPeanutWalletAddress?: string;
+                        destinationChain: string;
                         feeUsd?: number;
                         payAmount?: string;
                         receiveAmount?: string;
+                        senderPeanutWalletAddress?: string;
+                        tokenOut: string;
                     };
                 };
             };
@@ -9559,11 +9167,11 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        amount: string;
                         chainIn: string;
                         chainOut: string;
-                        token: string;
-                        amount: string;
                         mode: "pay" | "receive";
+                        token: string;
                     };
                 };
             };
@@ -9655,7 +9263,24 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        amount?: string | number;
+                        attachment?: unknown;
+                        chainId?: string;
+                        contractVersion?: string;
+                        depositIdx?: string | number;
+                        filename?: string;
+                        mimetype?: string;
+                        preparationId?: string;
+                        pubKey: string;
+                        reference?: string;
+                        tokenAddress?: string;
+                        txHash?: string;
+                    };
+                };
+            };
             responses: {
                 /** @description Default Response */
                 200: {
@@ -9752,6 +9377,44 @@ export interface paths {
                 };
                 cookie?: never;
             };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        amount: string | number;
+                        chainId: string;
+                        contractVersion: string;
+                        depositIdx: string | number;
+                        tokenAddress: string;
+                        txHash: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/status/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
             requestBody?: never;
             responses: {
                 /** @description Default Response */
@@ -9763,6 +9426,12 @@ export interface paths {
                 };
             };
         };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/sumsub/webhooks": {
@@ -9978,18 +9647,22 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        userId: string;
-                        username?: string;
+                        avatarKey?: string | null;
+                        bridgeKycStatus?: "not_started" | "incomplete" | "under_review" | "approved" | "rejected";
+                        bridge_customer_id?: string;
+                        dismissActivationCelebration?: boolean;
                         email?: string;
                         fullName?: string;
-                        bridge_customer_id?: string;
-                        telegramUsername?: string;
+                        hasSeenEarlyUserModal?: boolean;
+                        locale?: string;
                         offrampHandle?: string;
                         pushSubscriptionId?: string;
+                        residenceCountry?: string;
+                        secondResidenceCountry?: string;
                         showFullName?: boolean;
-                        hasSeenEarlyUserModal?: boolean;
-                        bridgeKycStatus?: "not_started" | "incomplete" | "under_review" | "approved" | "rejected";
-                        dismissActivationCelebration?: boolean;
+                        telegramUsername?: string;
+                        userId: string;
+                        username?: string;
                     };
                 };
             };
@@ -9999,10 +9672,102 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Invalid input — malformed email, rejected username, or a residence country that is not a real ISO-3166 alpha-2 code. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                            success: boolean;
+                        };
+                    };
+                };
+                /** @description The declared residence changed too recently. Only the residence keys were refused — every other field in the request was applied. Retry the residence change at `retryAt`; `/users/me` reports the same instant as `residence.nextChangeAllowedAt`. */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            code: "RESIDENCE_CHANGE_COOLDOWN";
+                            error: string;
+                            /** Format: date-time */
+                            retryAt: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                            success: boolean;
+                        };
+                    };
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/user/crisp-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            crispTokenId: string;
+                            userId: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -10031,24 +9796,24 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        accountType: "iban" | "us" | "clabe" | "gb";
                         accountNumber: string;
-                        countryCode: string;
-                        countryName: string;
-                        accountOwnerType: "individual" | "business";
                         accountOwnerName: {
+                            businessName?: string;
                             firstName?: string;
                             lastName?: string;
-                            businessName?: string;
                         };
+                        accountOwnerType: "individual" | "business";
+                        accountType: "iban" | "us" | "clabe" | "gb";
                         address: {
-                            street: string;
                             city: string;
                             country: string;
-                            state?: string;
                             postalCode: string;
+                            state?: string;
+                            street: string;
                         };
                         bic?: string;
+                        countryCode: string;
+                        countryName: string;
                         routingNumber?: string;
                         sortCode?: string;
                     };
@@ -10132,8 +9897,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            tosLink: string;
                             endorsement: string;
+                            tosLink: string;
                         };
                     };
                 };
@@ -10174,59 +9939,59 @@ export interface paths {
                     content: {
                         "application/json": {
                             capabilities: {
+                                nextActions: {
+                                    effectiveDate?: string;
+                                    key: string;
+                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted";
+                                    levelKey?: string;
+                                    purpose: string;
+                                    requirementKey?: string;
+                                    tosUrl?: string;
+                                }[];
                                 rails: {
-                                    /** @description `${provider}.${method}` e.g. "bridge.ach_us" */
-                                    id: string;
-                                    provider: "bridge" | "manteca" | "rain";
-                                    method: string;
+                                    blockingActions?: string[];
                                     channel: "bank" | "card" | "qr-only";
                                     country: string;
                                     currency: string;
-                                    status: "enabled" | "pending" | "requires-info" | "blocked";
+                                    hintActions?: string[];
+                                    /** @description `${provider}.${method}` e.g. "bridge.ach_us" */
+                                    id: string;
+                                    method: string;
                                     operations?: {
-                                        pay?: "enabled" | "pending" | "requires-info" | "blocked";
                                         deposit?: "enabled" | "pending" | "requires-info" | "blocked";
+                                        pay?: "enabled" | "pending" | "requires-info" | "blocked";
                                         withdraw?: "enabled" | "pending" | "requires-info" | "blocked";
                                     };
-                                    blockingActions?: string[];
-                                    hintActions?: string[];
+                                    provider: "bridge" | "manteca" | "rain";
                                     reason?: {
                                         code: string;
-                                        userMessage: string;
                                         details?: string;
+                                        userMessage: string;
                                     };
                                     resolved?: {
-                                        status: "enabled" | "pending" | "fixable" | "blocked";
                                         blocking?: {
                                             code: string;
-                                            userMessage: string;
-                                            selfHealable: boolean;
-                                            selfHealKind?: "document-resubmit" | "restart-identity" | "provide-email" | "contact-support";
                                             details?: string;
+                                            selfHealKind?: "document-resubmit" | "restart-identity" | "provide-email" | "contact-support";
+                                            selfHealable: boolean;
+                                            userMessage: string;
                                         };
                                         nextAction?: {
+                                            effectiveDate?: string;
                                             key: string;
                                             kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted";
-                                            purpose: string;
                                             levelKey?: string;
-                                            tosUrl?: string;
-                                            effectiveDate?: string;
+                                            purpose: string;
                                             requirementKey?: string;
+                                            tosUrl?: string;
                                         };
+                                        status: "enabled" | "pending" | "fixable" | "blocked";
                                     };
-                                }[];
-                                nextActions: {
-                                    key: string;
-                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted";
-                                    purpose: string;
-                                    levelKey?: string;
-                                    tosUrl?: string;
-                                    effectiveDate?: string;
-                                    requirementKey?: string;
+                                    status: "enabled" | "pending" | "requires-info" | "blocked";
                                 }[];
                                 restrictions: {
-                                    code: string;
                                     affectedRailIds: string[];
+                                    code: string;
                                     userMessage: string;
                                 }[];
                             };
@@ -10263,9 +10028,9 @@ export interface paths {
                 content: {
                     "application/json": {
                         documents: {
+                            hash?: string;
                             slug: string;
                             version: string;
-                            hash?: string;
                         }[];
                     };
                 };
@@ -10336,11 +10101,11 @@ export interface paths {
                     content: {
                         "application/json": {
                             documents: {
-                                slug: string;
-                                currentVersion: string;
-                                acceptedVersion: string | null;
                                 acceptedAt: string | null;
+                                acceptedVersion: string | null;
+                                currentVersion: string;
                                 needsAcceptance: boolean;
+                                slug: string;
                             }[];
                             needsReConsent: boolean;
                         };
@@ -10468,6 +10233,112 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/identity/restart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Reset the Sumsub IDENTITY step after a residence change and mint a fresh SDK token. Allowed only while the declared residence differs from the verified one. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @description Level the token must target. The declared residence decides (AR/BR → LATAM, US/MX → NA, SEPA zone → EU, else ROW); a request for another provider's level is rejected with 400, an EU/ROW request is corrected. Defaults to the level the declared residence needs. */
+                        regionIntent?: "LATAM" | "ROW" | "EU" | "NA";
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            applicantId: string;
+                            levelName: string;
+                            /** @description The intent the server resolved for this restart. The caller must drive its SDK session from THIS value, not from what it asked for: the declared residence can overrule the request, and `levelName` alone cannot tell EU from NA or LATAM from ROW (each pair shares a level). */
+                            regionIntent: string;
+                            token: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** Format: date-time */
+                            retryAt?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
                 };
             };
         };
@@ -10650,9 +10521,9 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            sumsubAccessToken?: string;
-                            levelName?: string;
                             externalActionId?: string;
+                            levelName?: string;
+                            sumsubAccessToken?: string;
                             verificationUrl?: string;
                         };
                     };
@@ -10762,68 +10633,85 @@ export interface paths {
                     content: {
                         "application/json": {
                             capabilities: {
+                                nextActions: {
+                                    effectiveDate?: string;
+                                    key: string;
+                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted";
+                                    levelKey?: string;
+                                    purpose: string;
+                                    requirementKey?: string;
+                                    tosUrl?: string;
+                                }[];
                                 rails: {
-                                    /** @description `${provider}.${method}` e.g. "bridge.ach_us" */
-                                    id: string;
-                                    provider: "bridge" | "manteca" | "rain";
-                                    method: string;
+                                    blockingActions?: string[];
                                     channel: "bank" | "card" | "qr-only";
                                     country: string;
                                     currency: string;
-                                    status: "enabled" | "pending" | "requires-info" | "blocked";
+                                    hintActions?: string[];
+                                    /** @description `${provider}.${method}` e.g. "bridge.ach_us" */
+                                    id: string;
+                                    method: string;
                                     operations?: {
-                                        pay?: "enabled" | "pending" | "requires-info" | "blocked";
                                         deposit?: "enabled" | "pending" | "requires-info" | "blocked";
+                                        pay?: "enabled" | "pending" | "requires-info" | "blocked";
                                         withdraw?: "enabled" | "pending" | "requires-info" | "blocked";
                                     };
-                                    blockingActions?: string[];
-                                    hintActions?: string[];
+                                    provider: "bridge" | "manteca" | "rain";
                                     reason?: {
                                         code: string;
-                                        userMessage: string;
                                         details?: string;
+                                        userMessage: string;
                                     };
                                     resolved?: {
-                                        status: "enabled" | "pending" | "fixable" | "blocked";
                                         blocking?: {
                                             code: string;
-                                            userMessage: string;
-                                            selfHealable: boolean;
-                                            selfHealKind?: "document-resubmit" | "restart-identity" | "provide-email" | "contact-support";
                                             details?: string;
+                                            selfHealKind?: "document-resubmit" | "restart-identity" | "provide-email" | "contact-support";
+                                            selfHealable: boolean;
+                                            userMessage: string;
                                         };
                                         nextAction?: {
+                                            effectiveDate?: string;
                                             key: string;
                                             kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted";
-                                            purpose: string;
                                             levelKey?: string;
-                                            tosUrl?: string;
-                                            effectiveDate?: string;
+                                            purpose: string;
                                             requirementKey?: string;
+                                            tosUrl?: string;
                                         };
+                                        status: "enabled" | "pending" | "fixable" | "blocked";
                                     };
-                                }[];
-                                nextActions: {
-                                    key: string;
-                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted";
-                                    purpose: string;
-                                    levelKey?: string;
-                                    tosUrl?: string;
-                                    effectiveDate?: string;
-                                    requirementKey?: string;
+                                    status: "enabled" | "pending" | "requires-info" | "blocked";
                                 }[];
                                 restrictions: {
-                                    code: string;
                                     affectedRailIds: string[];
+                                    code: string;
                                     userMessage: string;
                                 }[];
                             };
                             identityVerification: {
-                                status: "not_started" | "processing" | "verified" | "action_required" | "failed";
                                 actionMessage?: string;
+                                canRetry?: boolean;
+                                reason?: {
+                                    code: string;
+                                    details?: string;
+                                    userMessage: string;
+                                };
                                 rejectLabels?: string[];
-                                submittedAt?: string;
                                 reviewedAt?: string;
+                                status: "not_started" | "processing" | "verified" | "action_required" | "failed";
+                                submittedAt?: string;
+                            };
+                            residence: {
+                                declared: string | null;
+                                declaredSecond: string | null;
+                                kycReported: string | null;
+                                nextChangeAllowedAt: string | null;
+                                verified: string | null;
+                            };
+                            residenceRestrictions: {
+                                banking: boolean;
+                                card: boolean;
                             };
                         } & {
                             [key: string]: unknown;
@@ -10925,6 +10813,250 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/saved-addresses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            savedAddresses: {
+                                address: string;
+                                chainId: string;
+                                createdAt: string;
+                                id: string;
+                                lastUsedAt: string;
+                                nickname: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        address: string;
+                        chainId: string;
+                        nickname: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            savedAddress: {
+                                address: string;
+                                chainId: string;
+                                createdAt: string;
+                                id: string;
+                                lastUsedAt: string;
+                                nickname: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/saved-addresses/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            deleted: true;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        nickname: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            savedAddress: {
+                                address: string;
+                                chainId: string;
+                                createdAt: string;
+                                id: string;
+                                lastUsedAt: string;
+                                nickname: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
     "/users/search": {
         parameters: {
             query?: never;
@@ -11020,12 +11152,12 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            userId: string;
-                            fullName: string | null;
-                            username: string | null;
-                            showFullName: boolean;
                             canReceiveBankOfframp: boolean;
+                            fullName: string | null;
                             isVerified: boolean;
+                            showFullName: boolean;
+                            userId: string;
+                            username: string | null;
                         };
                     };
                 };
@@ -11190,7 +11322,24 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         put?: never;
         post: {
             parameters: {

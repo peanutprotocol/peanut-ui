@@ -19,10 +19,6 @@ import { type CardPosition, getCardPosition } from '../Global/Card/card.utils'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { KycStatusItem, isKycStatusItem, type KycHistoryEntry } from '../Kyc/KycStatusItem'
 import { buildKycHistoryEntry } from '@/utils/kyc-grouping.utils'
-import CardUnlockHistoryItem from '../Card/CardUnlockHistoryItem'
-import { deriveCardUnlockEntry, isCardUnlockHistoryItem, type CardUnlockHistoryEntry } from '../Card/cardUnlock.types'
-import { useCardInfo } from '@/hooks/useCardInfo'
-import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { BadgeStatusItem } from '@/components/Badges/BadgeStatusItem'
 import { isBadgeHistoryItem, type BadgeHistoryEntry } from '@/components/Badges/badge.types'
@@ -89,15 +85,6 @@ const HomeHistory = ({
         () => (isLoggedIn && !username) || (isLoggedIn && username === user?.user.username),
         [isLoggedIn, username, user?.user.username]
     )
-    // Pull /card response to derive the synthetic "card unlocked" history
-    // entry. Mirrors how kyc derives from user state. Only meaningful when
-    // viewing your own history.
-    const { cardInfo } = useCardInfo()
-    // The card-unlock row gates on an ACTUALLY-issued card, not mere access.
-    // Same query key the wallet already loads on home → cache read, no extra
-    // fetch. Card *access* (skip badge / admin grant) is held by ~33% of
-    // users who never got a card; only an issued card means they got through.
-    const { overview: rainOverview } = useRainCardOverview()
 
     // WebSocket for real-time updates.
     //
@@ -158,9 +145,9 @@ const HomeHistory = ({
     )
 
     // Combine fetched history with real-time updates
-    const [combinedEntries, setCombinedEntries] = useState<
-        Array<HistoryEntry | KycHistoryEntry | CardUnlockHistoryEntry | BadgeHistoryEntry>
-    >([])
+    const [combinedEntries, setCombinedEntries] = useState<Array<HistoryEntry | KycHistoryEntry | BadgeHistoryEntry>>(
+        []
+    )
 
     // get all the user ids from the combined entries to check for interactions
     const userIds = useMemo(() => {
@@ -169,8 +156,7 @@ const HomeHistory = ({
             new Set(
                 combinedEntries
                     .map((entry) => {
-                        if (isKycStatusItem(entry) || isBadgeHistoryItem(entry) || isCardUnlockHistoryItem(entry))
-                            return null
+                        if (isKycStatusItem(entry) || isBadgeHistoryItem(entry)) return null
                         if (entry.userRole === 'SENDER') return entry.recipientAccount.userId
                         if (entry.userRole === 'RECIPIENT') return entry.senderAccount?.userId
                         return null
@@ -190,9 +176,7 @@ const HomeHistory = ({
             // Process entries asynchronously to handle completeHistoryEntry
             const processEntries = async () => {
                 // Start with the fetched entries
-                const entries: Array<HistoryEntry | KycHistoryEntry | CardUnlockHistoryEntry | BadgeHistoryEntry> = [
-                    ...historyData.entries,
-                ]
+                const entries: Array<HistoryEntry | KycHistoryEntry | BadgeHistoryEntry> = [...historyData.entries]
 
                 // inject badge entries using user's badges (newest first) and earnedAt chronology
                 // filter out beta tester badge — it creates confusing first impressions for new users
@@ -264,31 +248,10 @@ const HomeHistory = ({
                     if (kycEntry) entries.push(kycEntry)
                 }
 
-                // Synthetic card-unlock entry — once the user has card
-                // access (hasCardAccess=true), regardless of WHY (waitlist
-                // released, admin grant, OR skip-badge held). Falls back to
-                // the earliest skip-badge earnedAt when BE didn't stamp an
-                // explicit cardAccessGrantedAt — common for badge-only
-                // access where the user has been "in" since they earned the
-                // badge.
-                if (isViewingOwnHistory && cardInfo) {
-                    const unlock = deriveCardUnlockEntry({
-                        hasIssuedCard: (rainOverview?.cards.length ?? 0) > 0,
-                        hasCardAccess: cardInfo.hasCardAccess,
-                        cardAccessGrantedAt: cardInfo.waitlistReleasedAt,
-                        skipBadges: cardInfo.skipBadges,
-                        userBadges: user?.user?.badges,
-                    })
-                    if (unlock) entries.push(unlock)
-                }
-
                 // Check cancellation before setting state
                 if (cancelled) return
 
-                // Newest-first, capped at RECENT_ACTIVITY_LIMIT. The card-unlock
-                // row is NOT pinned — it sorts chronologically and ages out
-                // behind newer activity like any other entry (pinning it made it
-                // "always there"). It stays reachable on the paginated /history page.
+                // Newest-first, capped at RECENT_ACTIVITY_LIMIT.
                 setCombinedEntries(selectRecentEntries(entries, RECENT_ACTIVITY_LIMIT))
             }
 
@@ -300,7 +263,7 @@ const HomeHistory = ({
             }
         }
         return undefined
-    }, [historyData, liveEntries, user, isLoading, isViewingOwnHistory, cardInfo, rainOverview])
+    }, [historyData, liveEntries, user, isLoading, isViewingOwnHistory])
 
     // Memoize per-row drawer projection — `mapTransactionDataForDrawer`
     // dispatches a strategy + builds derived view-model state per call;
@@ -309,7 +272,7 @@ const HomeHistory = ({
     const drawerByUuid = useMemo(() => {
         const m = new Map<string, ReturnType<typeof mapTransactionDataForDrawer>>()
         for (const item of combinedEntries) {
-            if (isKycStatusItem(item) || isBadgeHistoryItem(item) || isCardUnlockHistoryItem(item)) continue
+            if (isKycStatusItem(item) || isBadgeHistoryItem(item)) continue
             if (!m.has(item.uuid)) m.set(item.uuid, mapTransactionDataForDrawer(item))
         }
         return m
@@ -425,19 +388,6 @@ const HomeHistory = ({
                     // render badge milestone entries
                     if (isBadgeHistoryItem(item)) {
                         return <BadgeStatusItem key={item.uuid} position={position} entry={item} />
-                    }
-
-                    // render the card-unlock milestone entry
-                    if (isCardUnlockHistoryItem(item)) {
-                        return (
-                            <CardUnlockHistoryItem
-                                key={item.uuid}
-                                entry={item}
-                                position={position}
-                                username={user?.user?.username ?? undefined}
-                                badges={user?.user?.badges}
-                            />
-                        )
                     }
 
                     const { transactionDetails, transactionCardType } =

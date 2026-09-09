@@ -8,13 +8,12 @@ import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { useRouter } from 'next/navigation'
 import { useModalsContext } from '@/context/ModalsContext'
 import Card from '../Global/Card'
-import CardLaunchCTABanner from '@/components/Home/CardLaunchCTA/CardLaunchCTABanner'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { useCardInfo } from '@/hooks/useCardInfo'
+import { useCardSurfaceAccess } from '@/hooks/useCardSurfaceAccess'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import ActionModal from '@/components/Global/ActionModal'
 import { useAuth } from '@/context/authContext'
@@ -53,11 +52,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     const { setIsQRScannerOpen, openSupportWithMessage } = useModalsContext()
     const { rails, channelOf, nextActions } = useCapabilities()
     const { user } = useAuth()
-    // Card spend counts as activation too — card-access users get a card+QR
-    // chooser on the outbound step instead of jumping straight to the scanner.
-    // `undefined` while loading collapses to false → scanner behavior (never
-    // tease the card to a user we can't confirm has access).
-    const { hasCardAccess } = useCardInfo()
+    const { showCardSurface: canApplyForCard } = useCardSurfaceAccess()
     // Suppress the "Unlock payments" verify CTA while identity is mid-flight
     // (Sumsub processing / action_required). The user already took the verify
     // action; the identity-verification page surfaces the in-progress modal,
@@ -131,8 +126,8 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     // If card access is revoked (or the card-info refetch flips it) while the
     // chooser is open, close it — a no-access user must never see the card option.
     useEffect(() => {
-        if (hasCardAccess !== true) setShowSpendChooser(false)
-    }, [hasCardAccess])
+        if (canApplyForCard !== true) setShowSpendChooser(false)
+    }, [canApplyForCard])
 
     const steps: Record<Exclude<ActivationStep, 'completed'>, StepConfig> = useMemo(
         () => ({
@@ -212,7 +207,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     // (This preserves the shielding the pre-2026-08-20 card-first step gave
     // this exact cohort; a fixable RFI still surfaces in the /add-money bank
     // flow, in context.)
-    const hasCardPath = hasCardAccess === true
+    const hasCardPath = canApplyForCard === true
     const hasProviderRejection =
         activationStep !== 'verify' &&
         activationStep !== 'card' &&
@@ -265,10 +260,10 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             }
         }
 
-        // Card-access users can activate by swiping too — broaden the QR-only
-        // framing. Users without card access keep the QR copy untouched so we
+        // Card-eligible users can activate by swiping too — broaden the QR-only
+        // framing. Users with a prohibited residence keep the QR copy untouched so we
         // never tease a card they can't get.
-        if (activationStep === 'outbound' && hasCardAccess) {
+        if (activationStep === 'outbound' && canApplyForCard) {
             return {
                 ...steps.outbound,
                 icon: 'credit-card',
@@ -288,28 +283,10 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         localizedRejectionMessage,
         isIdentityProcessing,
         isIdentityActionRequired,
-        hasCardAccess,
+        canApplyForCard,
     ])
 
     if (!step) return null
-
-    // The card step renders the mysterious /shhhhh-tone launch banner (#2295's
-    // CardLaunchCTABanner) instead of the plain funnel card — so non-activated
-    // card-eligible users get the same CTA as the activated launch splash.
-    // Keeps the funnel's /card routing + the "Maybe later" dismissal.
-    if (activationStep === 'card') {
-        return (
-            <CardLaunchCTABanner
-                onTryDoor={() => {
-                    posthog.capture(ANALYTICS_EVENTS.CARD_LAUNCH_CTA_CLICKED)
-                    // /shhhhh (not /card): the landing page explains the feature
-                    // and funnels into the canonical flow — /card alone is confusing.
-                    router.push('/shhhhh')
-                }}
-                onDismiss={() => onDismissCard?.()}
-            />
-        )
-    }
 
     return (
         <Card position="single" className="p-0">
@@ -345,7 +322,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                                 actionKey: fixableActionKey,
                             })
                         } else if (activationStep === 'outbound' && !hasProviderRejection) {
-                            if (hasCardAccess) {
+                            if (canApplyForCard) {
                                 posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SHOWN)
                                 setShowSpendChooser(true)
                             } else {
@@ -370,7 +347,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                 onSkip={() => setShowProvideEmail(false)}
             />
             <ActionModal
-                visible={showSpendChooser && hasCardAccess === true}
+                visible={showSpendChooser && canApplyForCard === true}
                 onClose={() => setShowSpendChooser(false)}
                 icon="credit-card"
                 title={t('spendChooser.title')}

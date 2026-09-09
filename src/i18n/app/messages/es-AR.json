@@ -46,10 +46,6 @@
             "title": "Terminá de configurar tu tarjeta",
             "descriptionError": "No pudimos terminar de configurar tu tarjeta. Intentá de nuevo u omitilo por ahora: te lo volveremos a pedir en tu primer pago con tarjeta."
         },
-        "cardLaunch": {
-            "subtitle": "Tocá para saber si estás dentro",
-            "cta": "Probá la puerta →"
-        },
         "history": {
             "networkErrorDescription": "Revisá tu conexión e intentá de nuevo.",
             "errorDescription": "Por favor contactá a Soporte.",
@@ -75,9 +71,6 @@
         "carousel": {
             "usedPeanutTapToClaim": "<name>{inviteeName}</name> usó Peanut. Tocá para reclamar.",
             "tapToClaim": "Tocá para reclamar tu recompensa.",
-            "card": {
-                "title": "Conseguí tu <b>Peanut Card</b>"
-            },
             "invite": {
                 "title": "Invitá amigos. Ganá recompensas",
                 "description": "Ganá recompensas cada vez que tus amigos usan Peanut."
@@ -544,9 +537,6 @@
             "rejectedBody": "Podés seguir usando Peanut sin problema para depositar, retirar y pagar con cripto.",
             "geoBlockedBody": "Por restricciones regulatorias, no podemos emitir tarjetas en tu región. Igual podés usar Peanut libremente para depositar, retirar y pagar con cripto."
         },
-        "celebration": {
-            "sublineBadge": "Tenés una insignia que se salta la fila de la beta cerrada. La tarjeta es tuya."
-        },
         "cancel": {
             "body": "Esto cancelará tu tarjeta de forma permanente. No servirá para ninguna transacción. Tendrás que pedir una nueva si cambiás de opinión.",
             "slideToCancel": "Deslizá para cancelar",
@@ -569,10 +559,6 @@
             "title": "Confirmá tu país de residencia",
             "description": "Tu verificación muestra dos países distintos. Elegí aquel donde vivís actualmente — tu solicitud de tarjeta se procesa con sus reglas."
         },
-        "eligibility": {
-            "description": "Mantené presionado el botón. Te estamos buscando.",
-            "holdAriaLabel": "Mantené presionado para revisar si calificás"
-        },
         "limits": {
             "subtitle": "Definí tu límite de gasto por transacción.",
             "invalidAmount": "Ingresá un monto válido",
@@ -587,17 +573,8 @@
             "chooseTitle": "Elegí un PIN de 4 dígitos",
             "ruleChangeLater": "Podés cambiar tu PIN más adelante"
         },
-        "rejection": {
-            "comeBackTomorrow": "volvé mañana",
-            "joinFailed": "No se pudo unir a la lista de espera. Intentalo de nuevo."
-        },
         "terms": {
             "description": "Revisá y aceptá"
-        },
-        "unlockHistory": {
-            "badgeSubtitle": "Tocá para volver a abrir tu imagen para compartir",
-            "adminSubtitle": "Bienvenido. Tocá para compartir.",
-            "publicLaunchSubtitle": "Ya está abierto para todos. Tocá para compartir."
         },
         "physical": {
             "onListBody": "Sos el #{position} en la lista. Te avisamos cuando las tarjetas estén listas para enviarse.",
@@ -1288,44 +1265,38 @@
     },
     "shhhhh": {
         "hero": {
-            "tagline": "La tarjeta de Peanut ya salió. Para vos. Quizás.",
-            "body": "Una tarjeta aceptada en más de 150 millones de comercios que aceptan Visa. Vamos dejando entrar a los usuarios beta de a poco: <counter></counter> por semana. Si tenés la insignia correcta, te saltás la fila por completo.",
-            "tryTheDoor": "PROBÁ LA PUERTA",
-            "orJoinWaitlist": "o sumate a la lista de espera →",
-            "disclaimer": "Verificación requerida para todos los titulares de tarjeta. Sin cuotas mensuales ni anuales. Se aplican tarifas y límites estándar según los términos del titular. Programa beta.",
-            "joinError": "No pudimos sumarte a la lista de espera. Probá la puerta de nuevo."
+            "tagline": "Tu plata. Lista para pagar.",
+            "body": "Usá tu Peanut Card para pagar en línea y sin contacto donde se acepta Visa.",
+            "cta": "Conseguí tu tarjeta"
         },
         "whatItDoes": {
-            "body": "Cargá la tarjeta como ya movés tu plata: transferencia bancaria, retiro de un exchange o stablecoins (USDC, USDT). Tu saldo es tuyo. Sin custodia. Sin comisiones mensuales. Sin comisiones anuales."
+            "body": "Agregá dinero a Peanut por transferencia bancaria, desde un exchange o con stablecoins compatibles. Pagá en línea o agregá tu tarjeta a Apple Pay o Google Pay donde estén disponibles."
         },
-        "whoItsFor": {
-            "title": "Si vivís en más de un país, esto es para vos."
+        "howToApply": {
+            "verify": "Iniciá sesión y completá la verificación de identidad.",
+            "terms": "Revisá y aceptá los términos del titular.",
+            "spend": "Una vez aprobada, agregá fondos y empezá a pagar."
         },
-        "howToGetIn": {
-            "badgeTitle": "Tenés una insignia.",
-            "badgeBody": "Te saltás la fila. Estamos habilitando a quienes tengan:",
-            "badgeFooter": "Iniciá sesión, revisamos las insignias de tu cuenta y pasás directo a la verificación. ¿Todavía no tenés cuenta de peanut? Registrate primero: toma un minuto.",
-            "noBadgeBody": "Sumate a la lista de espera. Dejamos entrar a 50 personas por semana.",
-            "noBadgeFooter": "Anotá tu nombre en la lista y te avisamos cuando llegue tu turno."
-        },
-        "notForYou": {
-            "title": "Probablemente no es para vos.",
-            "body1": "Si tu plata vive en un solo país y una sola moneda, la tarjeta de tu banco ya te sirve. Quedátela.",
-            "body2": "Si tu plata vive en otro lado —cruzando fronteras, en dólares, en autocustodia—, la tarjeta de peanut se construyó para vos."
+        "marquee": {
+            "available": "OBTENÉ TU TARJETA"
         },
         "faq": {
-            "q1": {
-                "answer": "Una tarjeta sin custodia. Cargala con stablecoins y usala para tus gastos diarios donde acepten Visa."
-            },
             "q3": {
-                "answer": "Es tuya. Sin custodia: tus stablecoins se quedan en tu billetera hasta el momento en que usás la tarjeta. No tenemos la custodia. No la prestamos."
+                "answer": "Los pagos con tarjeta usan USDC en un contrato inteligente dedicado. Podés agregar fondos de tu billetera Peanut al saldo de tu tarjeta."
+            },
+            "q5": {
+                "answer": "Iniciá sesión, completá la verificación y aceptá los términos del titular. Tu solicitud está sujeta a aprobación."
             },
             "q6": {
-                "answer": "Es una tarjeta Visa: se acepta donde acepten Visa, en tiendas, en línea y en cajeros. Iniciá sesión y probá la puerta para ver qué sigue en tu cuenta."
+                "answer": "No. Podés solicitarla antes de agregar dinero. Agregá fondos cuando tu tarjeta esté lista para pagar."
+            },
+            "q8": {
+                "answer": "Peanut Card es virtual. Podés registrar tu interés en una tarjeta física desde la app."
             }
         },
         "ready": {
-            "subtitle": "Probá la puerta."
+            "title": "Obtené tu Peanut Card",
+            "subtitle": "Empezá tu solicitud hoy."
         }
     }
 }

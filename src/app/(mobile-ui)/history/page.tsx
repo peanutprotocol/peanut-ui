@@ -18,14 +18,6 @@ import { buildKycHistoryEntry } from '@/utils/kyc-grouping.utils'
 import { useAuth } from '@/context/authContext'
 import { BadgeStatusItem } from '@/components/Badges/BadgeStatusItem'
 import { isBadgeHistoryItem, type BadgeHistoryEntry } from '@/components/Badges/badge.types'
-import CardUnlockHistoryItem from '@/components/Card/CardUnlockHistoryItem'
-import {
-    deriveCardUnlockEntry,
-    isCardUnlockHistoryItem,
-    type CardUnlockHistoryEntry,
-} from '@/components/Card/cardUnlock.types'
-import { useCardInfo } from '@/hooks/useCardInfo'
-import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import React, { useMemo } from 'react'
 import { useFormatter, useTranslations } from 'next-intl'
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query'
@@ -48,8 +40,6 @@ const HistoryPage = () => {
     const queryClient = useQueryClient()
     const { fetchUser } = useAuth()
     // Synthetic card-unlock row inputs — same cached queries HomeHistory uses.
-    const { cardInfo } = useCardInfo()
-    const { overview: rainOverview } = useRainCardOverview()
     const userId = user?.user.userId
     const hideTxnAmount = useMemo(() => getUserPreferences(userId)?.balanceHidden ?? false, [userId])
 
@@ -175,9 +165,7 @@ const HistoryPage = () => {
         if (isLoading) {
             return []
         }
-        const entries: Array<HistoryEntry | BadgeHistoryEntry | KycHistoryEntry | CardUnlockHistoryEntry> = [
-            ...allEntries,
-        ]
+        const entries: Array<HistoryEntry | BadgeHistoryEntry | KycHistoryEntry> = [...allEntries]
 
         // inject badge items from user profile, placed by earnedAt
         const badges = user?.user?.badges ?? []
@@ -200,19 +188,6 @@ const HistoryPage = () => {
             if (kycEntry) entries.push(kycEntry)
         }
 
-        // add the card-unlock milestone row, placed chronologically. Unlike
-        // the home top-5 (where it ages out), the full page always carries it.
-        if (cardInfo) {
-            const unlock = deriveCardUnlockEntry({
-                hasIssuedCard: (rainOverview?.cards.length ?? 0) > 0,
-                hasCardAccess: cardInfo.hasCardAccess,
-                cardAccessGrantedAt: cardInfo.waitlistReleasedAt,
-                skipBadges: cardInfo.skipBadges,
-                userBadges: user?.user?.badges,
-            })
-            if (unlock) entries.push(unlock)
-        }
-
         entries.sort((a, b) => {
             const dateA = new Date(a.timestamp || 0).getTime()
             const dateB = new Date(b.timestamp || 0).getTime()
@@ -220,7 +195,7 @@ const HistoryPage = () => {
         })
 
         return entries
-    }, [allEntries, user, isLoading, cardInfo, rainOverview])
+    }, [allEntries, user, isLoading])
 
     // Memoize per-row drawer projection so the .map() below doesn't recompute
     // mapTransactionDataForDrawer per row on every parent rerender (websocket
@@ -228,7 +203,7 @@ const HistoryPage = () => {
     const drawerByUuid = useMemo(() => {
         const m = new Map<string, ReturnType<typeof mapTransactionDataForDrawer>>()
         for (const item of combinedAndSortedEntries) {
-            if (isKycStatusItem(item) || isBadgeHistoryItem(item) || isCardUnlockHistoryItem(item)) continue
+            if (isKycStatusItem(item) || isBadgeHistoryItem(item)) continue
             if (!m.has(item.uuid)) m.set(item.uuid, mapTransactionDataForDrawer(item))
         }
         return m
@@ -308,13 +283,6 @@ const HistoryPage = () => {
                                 <KycStatusItem position={position} />
                             ) : isBadgeHistoryItem(item) ? (
                                 <BadgeStatusItem position={position} entry={item} />
-                            ) : isCardUnlockHistoryItem(item) ? (
-                                <CardUnlockHistoryItem
-                                    entry={item}
-                                    position={position}
-                                    username={user?.user?.username ?? undefined}
-                                    badges={user?.user?.badges}
-                                />
                             ) : (
                                 (() => {
                                     const { transactionDetails, transactionCardType } =

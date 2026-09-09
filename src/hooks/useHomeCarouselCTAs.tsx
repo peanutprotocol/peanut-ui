@@ -19,7 +19,6 @@ import { useCardInfo } from './useCardInfo'
 import { useActivationStatus } from './useActivationStatus'
 import { useTransactionHistory } from './useTransactionHistory'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
-import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { PEANUTMAN_MOBILE, PeanutWavingHello } from '@/assets/mascot'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
@@ -115,7 +114,7 @@ export const useHomeCarouselCTAs = () => {
 
     const { setIsQRScannerOpen } = useModalsContext()
     const { countryCode: userCountryCode } = useGeoLocation()
-    const { hasCardAccess: hasCardAccessGranted } = useCardInfo()
+    const { isEligible: isCardEligible } = useCardInfo()
     const { isActivated } = useActivationStatus()
 
     // Completion signals — used to hide educational CTAs from users who've already
@@ -201,25 +200,6 @@ export const useHomeCarouselCTAs = () => {
         // Rain (card) does NOT count; a card-only user must still see the verify CTA.
         const hasKycApproval = bankRails().some((r) => r.status === 'enabled') || canDo('pay')
         const isLatamUser = userCountryCode === 'AR' || userCountryCode === 'BR'
-
-        // Card CTA — Pioneers replaced by free badge-gated waitlist (M2).
-        // Show to all users who don't already have card access.
-        // Routes via /shhhhh so the user passes the outer gate AND lands on
-        // the marketing context for the closed beta. Users with badges that
-        // skip the queue will go straight to celebration on /card.
-        if (!underMaintenanceConfig.disableCardPioneers && hasCardAccessGranted === false) {
-            _carouselCTAs.push({
-                id: 'card-pioneer',
-                title: <span>{t.rich('card.title', { b })}</span>,
-                description: <span>{t.rich('card.description', { b })}</span>,
-                iconContainerClassName: 'bg-purple-1',
-                icon: 'credit-card',
-                onClick: () => {
-                    router.push('/shhhhh')
-                },
-                iconSize: 16,
-            })
-        }
 
         // Generic invite CTA for non-LATAM activated users who haven't invited yet.
         if (!isLatamUser && isActivated && !hasSentInvites) {
@@ -345,13 +325,8 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
-        // Don't push card-eligible users (skip badge / admin grant) to the
-        // region picker. This CTA routes to /profile/identity-verification,
-        // where EU/NA users get `bridge-requirements` + Bridge bank rails — the
-        // detour we steer eligible users away from (they go to /card instead,
-        // which KYCs on `rain-requirements`). `=== false` so we suppress while
-        // card-info is still loading too, mirroring the card-pioneer gate above.
-        if (!hasKycApproval && !isInFlight && hasCardAccessGranted === false) {
+        // Card-eligible users use card verification instead of bank onboarding.
+        if (!hasKycApproval && !isInFlight && isCardEligible === false) {
             _carouselCTAs.push({
                 id: 'kyc-prompt',
                 title: <span>{t.rich('kyc.title', { b })}</span>,
@@ -382,7 +357,7 @@ export const useHomeCarouselCTAs = () => {
         deviceType,
         isPwa,
         userCountryCode,
-        hasCardAccessGranted,
+        isCardEligible,
         isActivated,
         hasMadeQrPayment,
         hasSentInvites,

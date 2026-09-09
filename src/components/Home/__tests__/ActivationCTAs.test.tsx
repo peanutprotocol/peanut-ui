@@ -30,7 +30,7 @@ let mockRails: Array<{
     }
 }> = []
 let mockUser: { user?: { isActivated?: boolean; userId?: string } } | null = null
-let mockHasCardAccess: boolean | undefined = false
+let mockCanApplyForCard: boolean | undefined = false
 const mockHeal = jest.fn()
 const mockPush = jest.fn()
 const mockSetIsQRScannerOpen = jest.fn()
@@ -52,8 +52,8 @@ jest.mock('@/hooks/useIdentityVerification', () => ({
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({ setIsQRScannerOpen: mockSetIsQRScannerOpen, openSupportWithMessage: jest.fn() }),
 }))
-jest.mock('@/hooks/useCardInfo', () => ({
-    useCardInfo: () => ({ hasCardAccess: mockHasCardAccess }),
+jest.mock('@/hooks/useCardSurfaceAccess', () => ({
+    useCardSurfaceAccess: () => ({ showCardSurface: mockCanApplyForCard }),
 }))
 jest.mock('@/components/Global/ActionModal', () => ({
     __esModule: true,
@@ -73,11 +73,6 @@ jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockPush }),
 }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
-jest.mock('@/components/Home/CardLaunchCTA/CardLaunchCTABanner', () => ({
-    __esModule: true,
-
-    default: () => null,
-}))
 
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => ({ handleFixableRejection: mockHeal }),
@@ -102,7 +97,7 @@ beforeEach(() => {
     jest.clearAllMocks()
     mockRails = []
     mockUser = { user: { isActivated: false, userId: 'u1' } }
-    mockHasCardAccess = false
+    mockCanApplyForCard = false
 })
 
 describe('ActivationCTAs — rejection override respects existing transacting ability', () => {
@@ -134,7 +129,7 @@ describe('ActivationCTAs — rejection override respects existing transacting ab
         // "Contact support" dead end over a rail the old region-picker detour
         // auto-enrolled. Crypto deposit → card is their working path.
         mockRails = [bankRejected]
-        mockHasCardAccess = true
+        mockCanApplyForCard = true
         render(<ActivationCTAs activationStep="deposit" />)
         expect(screen.queryByText('Complete your setup')).not.toBeInTheDocument()
         expect(screen.getByText('Deposit')).toBeInTheDocument()
@@ -196,7 +191,7 @@ describe('ActivationCTAs — outbound step spend chooser (card + QR)', () => {
     })
 
     it('while card access is still loading (undefined): treated as no access — scanner, no chooser', () => {
-        mockHasCardAccess = undefined
+        mockCanApplyForCard = undefined
         render(<ActivationCTAs activationStep="outbound" />)
         expect(screen.getByText('Make your first payment')).toBeInTheDocument()
         fireEvent.click(screen.getByText('Start Spending'))
@@ -205,7 +200,7 @@ describe('ActivationCTAs — outbound step spend chooser (card + QR)', () => {
     })
 
     it('with card access: card-inclusive copy, CTA opens the chooser (not the scanner) and tracks it', () => {
-        mockHasCardAccess = true
+        mockCanApplyForCard = true
         render(<ActivationCTAs activationStep="outbound" />)
         expect(screen.getByText('Spend with Peanut')).toBeInTheDocument()
         fireEvent.click(screen.getByText('Start Spending'))
@@ -215,7 +210,7 @@ describe('ActivationCTAs — outbound step spend chooser (card + QR)', () => {
     })
 
     it('chooser → card navigates to /card and tracks the choice', () => {
-        mockHasCardAccess = true
+        mockCanApplyForCard = true
         render(<ActivationCTAs activationStep="outbound" />)
         fireEvent.click(screen.getByText('Start Spending'))
         fireEvent.click(screen.getByText('Pay with your card'))
@@ -224,7 +219,7 @@ describe('ActivationCTAs — outbound step spend chooser (card + QR)', () => {
     })
 
     it('chooser → QR opens the existing scanner and tracks the choice', () => {
-        mockHasCardAccess = true
+        mockCanApplyForCard = true
         render(<ActivationCTAs activationStep="outbound" />)
         fireEvent.click(screen.getByText('Start Spending'))
         fireEvent.click(screen.getByText('Scan a QR code'))
@@ -234,11 +229,11 @@ describe('ActivationCTAs — outbound step spend chooser (card + QR)', () => {
     })
 
     it('card access revoked while the chooser is open: chooser closes (no stale card option)', () => {
-        mockHasCardAccess = true
+        mockCanApplyForCard = true
         const { rerender } = render(<ActivationCTAs activationStep="outbound" />)
         fireEvent.click(screen.getByText('Start Spending'))
         expect(screen.getByTestId('spend-chooser')).toBeInTheDocument()
-        mockHasCardAccess = false
+        mockCanApplyForCard = false
         rerender(<ActivationCTAs activationStep="outbound" />)
         expect(screen.queryByTestId('spend-chooser')).not.toBeInTheDocument()
     })

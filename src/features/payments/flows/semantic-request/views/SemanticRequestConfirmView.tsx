@@ -28,17 +28,11 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_SYMBOL } 
 import PeanutActionDetailsCard, {
     type PeanutActionDetailsCardRecipientType,
 } from '@/components/Global/PeanutActionDetailsCard'
-import { useSearchParams, useRouter } from 'next/navigation'
-import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
 import { useTranslations } from 'next-intl'
 
 export function SemanticRequestConfirmView() {
-    const router = useRouter()
     const t = useTranslations('payment')
     const tCommon = useTranslations('common')
-    const searchParams = useSearchParams()
-    const context = searchParams.get('context')
-    const isCardPioneer = context === 'card-pioneer'
     const {
         amount,
         usdAmount,
@@ -161,18 +155,6 @@ export function SemanticRequestConfirmView() {
         }
     }
 
-    // handle back navigation - for card pioneer, go back to card flow instead of INITIAL view
-    // TODO: consider using router.back() for normal request flow too instead of goBackToInitial()
-    // which manipulates internal state. router.back() would be more consistent and handle
-    // browser history properly (e.g., if user came from a shared link vs navigating in-app)
-    const handleBack = () => {
-        if (isCardPioneer) {
-            router.push('/card?step=geo')
-        } else {
-            goBackToInitial()
-        }
-    }
-
     // show loading if we don't have charge details yet or fetching
     if (!charge || isFetchingCharge) {
         return (
@@ -184,7 +166,7 @@ export function SemanticRequestConfirmView() {
 
     return (
         <div className="flex min-h-[inherit] flex-col justify-between gap-8">
-            <NavHeader onPrev={handleBack} title={t('headers.confirmPayment')} />
+            <NavHeader onPrev={goBackToInitial} title={t('headers.confirmPayment')} />
 
             <div className="my-auto flex h-full flex-col justify-center space-y-4 pb-5">
                 {recipient && recipient.recipientType && (
@@ -201,16 +183,14 @@ export function SemanticRequestConfirmView() {
                 )}
                 {/* payment details card */}
                 <Card className="rounded-sm">
-                    {!isCardPioneer && (
-                        <PaymentInfoRow
-                            label={t('confirm.minReceived')}
-                            loading={!minReceived || isCalculatingRoute}
-                            value={minReceived ?? '-'}
-                            moreInfoText={t('confirm.slippageInfo')}
-                        />
-                    )}
+                    <PaymentInfoRow
+                        label={t('confirm.minReceived')}
+                        loading={!minReceived || isCalculatingRoute}
+                        value={minReceived ?? '-'}
+                        moreInfoText={t('confirm.slippageInfo')}
+                    />
 
-                    {!isCardPioneer && isCrossChainPayment && (
+                    {isCrossChainPayment && (
                         <PaymentInfoRow
                             label={t('confirm.requested')}
                             value={
@@ -226,30 +206,23 @@ export function SemanticRequestConfirmView() {
                         />
                     )}
 
-                    {!isCardPioneer && (
-                        <PaymentInfoRow
-                            label={isCrossChainPayment ? t('confirm.sending') : t('confirm.tokenAndNetwork')}
-                            value={
-                                <TokenChainInfoDisplay
-                                    tokenIconUrl={sendingTokenIconUrl}
-                                    chainIconUrl={sendingChainIconUrl}
-                                    resolvedTokenSymbol={sendingResolvedTokenSymbol}
-                                    fallbackTokenSymbol={PEANUT_WALLET_TOKEN_SYMBOL}
-                                    resolvedChainName={sendingResolvedChainName}
-                                    fallbackChainName="Arbitrum"
-                                />
-                            }
-                        />
-                    )}
-
                     <PaymentInfoRow
-                        loading={isCalculatingRoute}
-                        label={t('confirm.networkFee')}
-                        value={networkFee}
-                        hideBottomBorder={isCardPioneer}
+                        label={isCrossChainPayment ? t('confirm.sending') : t('confirm.tokenAndNetwork')}
+                        value={
+                            <TokenChainInfoDisplay
+                                tokenIconUrl={sendingTokenIconUrl}
+                                chainIconUrl={sendingChainIconUrl}
+                                resolvedTokenSymbol={sendingResolvedTokenSymbol}
+                                fallbackTokenSymbol={PEANUT_WALLET_TOKEN_SYMBOL}
+                                resolvedChainName={sendingResolvedChainName}
+                                fallbackChainName="Arbitrum"
+                            />
+                        }
                     />
 
-                    {!isCardPioneer && <PaymentInfoRow hideBottomBorder label={tCommon('peanutFee')} value="$ 0.00" />}
+                    <PaymentInfoRow loading={isCalculatingRoute} label={t('confirm.networkFee')} value={networkFee} />
+
+                    <PaymentInfoRow hideBottomBorder label={tCommon('peanutFee')} value="$ 0.00" />
                 </Card>
 
                 {/* buttons and error */}
@@ -266,12 +239,6 @@ export function SemanticRequestConfirmView() {
                         >
                             {tCommon('retry')}
                         </Button>
-                    ) : isCardPioneer ? (
-                        <SendWithPeanutCta
-                            disabled={isLoading || isCalculatingRoute || isFeeEstimationError}
-                            onClick={handleConfirm}
-                            loading={isLoading || isCalculatingRoute}
-                        />
                     ) : (
                         <Button
                             disabled={isLoading || isCalculatingRoute || isFeeEstimationError}

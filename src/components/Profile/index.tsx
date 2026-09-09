@@ -13,7 +13,7 @@ import { LOCALE_LABELS } from '@/i18n/app/config'
 import { useAppLocale } from '@/i18n/app/locale-context'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
-import { useCardInfo } from '@/hooks/useCardInfo'
+import { useCardSurfaceAccess } from '@/hooks/useCardSurfaceAccess'
 import Card from '../Global/Card'
 import DeleteAccountButton from '@/components/Settings/DeleteAccountButton'
 import ShowNameToggle from './components/ShowNameToggle'
@@ -31,7 +31,7 @@ export const Profile = () => {
     // Rain) to the provider-blind identityVerification projection, which today mirrors Sumsub
     // applicant state. Bridge/Manteca rail approval does NOT flip this badge.
     const { isVerified: isUserSumsubKycApproved } = useIdentityVerification()
-    const { hasCardAccess } = useCardInfo()
+    const { showCardSurface, cardHref } = useCardSurfaceAccess()
     const t = useAppTranslations('profile')
     const { locale } = useAppLocale()
 
@@ -58,25 +58,19 @@ export const Profile = () => {
                     />
                     {/* Menu Items - First Group */}
                     <div>
-                        {/* Card row shows for everyone. Holders go straight to /card;
-                            everyone else lands on /shhhhh — the waitlist/explainer door,
-                            the canonical card entry point — whose CTA forwards on to /card
-                            post-launch. We deliberately DON'T send non-holders to /card:
-                            it notFound()s users without card access. `hasCardAccess` is
-                            undefined while useCardInfo loads, falling to the /shhhhh path —
-                            the safe default (never 404s; the gated /card route would). */}
-                        <ProfileMenuItem
-                            icon="credit-card"
-                            label={hasCardAccess ? t('menu.yourCard') : t('menu.peanutCard')}
-                            href={hasCardAccess ? '/card' : '/shhhhh'}
-                            badge={hasCardAccess ? undefined : t('menu.newBadge')}
-                            position="first"
-                        />
+                        {showCardSurface && (
+                            <ProfileMenuItem
+                                icon="credit-card"
+                                label={t('menu.peanutCard')}
+                                href={cardHref}
+                                position="first"
+                            />
+                        )}
                         <ProfileMenuItem
                             icon="achievements"
                             label={t('menu.yourBadges')}
                             href="/badges"
-                            position="middle"
+                            position={showCardSurface ? 'middle' : 'first'}
                         />
                         <ProfileMenuItem
                             icon={<Image src={STAR_STRAIGHT_ICON} alt={t('menu.starAlt')} width={20} height={20} />}

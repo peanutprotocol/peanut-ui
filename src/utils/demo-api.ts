@@ -582,29 +582,7 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     {
         method: 'GET',
         pattern: '/card',
-        handler: () => ({
-            hasPurchased: false,
-            hasCardAccess: false,
-            isEligible: false,
-            eligibilityReason: 'demo',
-            price: 50,
-            currentTier: 1,
-            slotsRemaining: 100,
-            recentPurchases: 0,
-        }),
-    },
-    {
-        method: 'POST',
-        pattern: '/card/purchase',
-        handler: () => ({
-            chargeUuid: 'demo-charge',
-            paymentUrl: '',
-            price: 50,
-            recipientAddress: DEMO_ADDRESS,
-            chainId: CHAIN_ID,
-            tokenAmount: '50',
-            tokenSymbol: PEANUT_WALLET_TOKEN_SYMBOL,
-        }),
+        handler: () => ({ isEligible: true, geoProhibited: false }),
     },
     // useRainCardOverview polls this for every logged-in user; the fallback {}
     // has no `status`/`cards` and crashes consumers that deref them
