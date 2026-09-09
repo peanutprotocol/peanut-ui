@@ -1,6 +1,6 @@
 name: Release OTA
 
-# The single entry point for a production OTA. Click "Run workflow" on `dev`; the
+# The single entry point for a production OTA. Click "Run workflow" on `dev` or `release/android-kyc`; the
 # bundle version is resolved from the channel's current bundle, not typed.
 #
 # Nothing here is automatic — merging to `dev` still only reaches the staging
@@ -43,8 +43,8 @@ jobs:
             # workflow_dispatch dropdown was left on.
             - name: Guard release ref
               run: |
-                  if [ "$GITHUB_REF_NAME" != "dev" ]; then
-                      echo "::error::OTAs are shipped from dev, not $GITHUB_REF_NAME" >&2
+                  if [ "$GITHUB_REF_NAME" != "dev" ] && [ "$GITHUB_REF_NAME" != "release/android-kyc" ]; then
+                      echo "::error::OTAs are shipped from dev or release/android-kyc, not $GITHUB_REF_NAME" >&2
                       exit 1
                   fi
 
