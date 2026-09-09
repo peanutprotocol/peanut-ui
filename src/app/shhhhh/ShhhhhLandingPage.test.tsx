@@ -56,7 +56,6 @@ jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 // Page furniture — this suite is about the door's routing branch, nothing else.
 jest.mock('@/components/LandingPage', () => ({ Marquee: () => null }))
 jest.mock('@/components/LandingPage/ScarcityCounter', () => ({ ScarcityCounter: () => null }))
-jest.mock('@/components/Marketing/HeroBackNav', () => ({ HeroBackNav: () => null }))
 jest.mock('@/components/Card/share-asset/PixelatedCardFace', () => ({ PixelatedCardFace: () => null }))
 jest.mock('@/components/Badges/badge.utils', () => ({ getBadgeIcon: () => '/badge.svg' }))
 jest.mock('next/image', () => ({ __esModule: true, default: () => null }))
