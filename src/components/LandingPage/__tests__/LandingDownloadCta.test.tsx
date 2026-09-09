@@ -68,7 +68,8 @@ it('hides footer stores while migration is off', () => {
 it('offers only the store download in the sticky bar while migration is on', () => {
     mockDevice = 'ios'
     Object.defineProperty(window, 'scrollY', { configurable: true, value: 400 })
-    render(<StickyMobileCTA strings={{ logIn: 'Log in' } as LandingStrings} />)
+    // main's LandingStrings has no logIn key (the web Log in link is dev-only)
+    render(<StickyMobileCTA strings={{} as LandingStrings} />)
     expect(screen.getAllByRole('link')).toHaveLength(1)
     expect(screen.getByRole('link', { name: 'downloadNow' })).toHaveAttribute('href', '/store')
 })

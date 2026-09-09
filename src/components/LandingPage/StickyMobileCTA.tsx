@@ -94,24 +94,11 @@ export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
                             </Button>
                         </a>
                     ) : (
-                        <div className="pointer-events-auto flex items-center gap-4">
-                            <Link prefetch={false} href="/setup" className="block flex-1">
-                                <Button
-                                    variant="purple"
-                                    shadowSize="4"
-                                    className="w-full py-3 text-base font-extrabold"
-                                >
-                                    {strings.signUpNow}
-                                </Button>
-                            </Link>
-                            <Link
-                                prefetch={false}
-                                href="/setup?step=login"
-                                className="text-body-s shrink-0 text-n-1 underline"
-                            >
-                                {strings.logIn}
-                            </Link>
-                        </div>
+                        <Link prefetch={false} href="/setup" className="pointer-events-auto block">
+                            <Button variant="purple" shadowSize="4" className="w-full py-3 text-base font-extrabold">
+                                {strings.signUpNow}
+                            </Button>
+                        </Link>
                     )}
                 </div>
             }

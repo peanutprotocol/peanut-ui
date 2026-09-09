@@ -1,13 +1,11 @@
 'use client'
 
-import gotItHand from '@/assets/illustrations/got-it-hand.svg'
-import gotItHandFlipped from '@/assets/illustrations/got-it-hand-flipped.svg'
-import scribbleCircle from '@/assets/illustrations/scribble-circle.svg'
+import noHiddenFees from '@/assets/illustrations/no-hidden-fees.svg'
 import Star from '@/assets/illustrations/star.svg'
 import Image from 'next/image'
 import ExchangeRateWidget from '../Global/ExchangeRateWidget'
 import { useRouter } from 'next/navigation'
-import { twMerge } from '@/utils/tw'
+import { twMerge } from 'tailwind-merge'
 import { ContextualLinks } from './ContextualLinks'
 import { AnimateOnView } from '@/components/Global/AnimateOnView'
 import { CloudsCss } from './CloudsCss'
@@ -27,23 +25,6 @@ export function NoFees({
 }) {
     const router = useRouter()
     const interceptAppCta = useAppModal()
-
-    // One vw ramp can't serve every locale: "TRANSFER" only clips under ~340px,
-    // while "TRANSFERENCIA"/"TRANSFERÊNCIA" (both 491px at 60px) need ~545px.
-    // <html lang> is SSR'd as "en" and only corrected after hydration, so a
-    // :lang() ramp would first paint at the EN size and jump on the es/pt pages.
-    // At 320px the ramps carry a longest word of 337px / 540px at 60px, which
-    // is 8 / 14 characters — messages.test.ts holds the catalogs to that.
-    const headlineSize =
-        Math.max(...strings.zeroFees.split(' ').map((word) => word.length)) > 8
-            ? 'text-[min(10vw,3.75rem)]'
-            : 'text-[min(16vw,3.75rem)]'
-
-    // The scribble circles the closing word of the line, so each catalog picks
-    // what gets circled just by putting that word last.
-    const lastSpace = strings.reallyZero.lastIndexOf(' ')
-    const reallyZeroLead = lastSpace === -1 ? '' : strings.reallyZero.slice(0, lastSpace + 1)
-    const reallyZeroCircled = lastSpace === -1 ? strings.reallyZero : strings.reallyZero.slice(lastSpace + 1)
 
     /*
      * Session is read from the cookie rather than AuthProvider: that context is
@@ -103,37 +84,19 @@ export function NoFees({
                     <Image src={Star} alt="Floating Star" width={50} height={50} />
                 </AnimateOnView>
 
-                {/* fluid below md so the longest word of the headline still
-                    fits at 320px; unchanged from md up */}
-                <h1 className={`font-roboto-flex-extrabold ${headlineSize} text-black md:text-headingMedium`}>
+                <h1 className="font-roboto-flex-extrabold text-heading text-black md:text-headingMedium">
                     {strings.zeroFees}
                 </h1>
 
-                {/* Was a single SVG with the copy baked into vector paths — the
-                    lettering is real text now so it localizes; only the doodles
-                    stay as art. Sizes are cqw/em so the block scales exactly as
-                    the SVG did. */}
-                <div className="@container mx-auto mb-1 w-full max-w-xs md:max-w-md">
-                    {/* cqw sizing has to sit inside the container, not on it */}
-                    <div className="pt-[0.23em] font-sans text-[9.79cqw]/[1.21] font-[450] tracking-[-0.058em] text-black">
-                        <p>
-                            {reallyZeroLead}
-                            <span className="relative inline-block">
-                                {reallyZeroCircled}
-                                <Image
-                                    src={scribbleCircle}
-                                    alt=""
-                                    aria-hidden
-                                    className="pointer-events-none absolute -left-[0.27em] -top-[0.23em] h-[1.54em] w-[calc(100%+0.52em)] max-w-none"
-                                />
-                            </span>
-                        </p>
-                        <p className="flex items-center justify-center gap-[0.19em]">
-                            <Image src={gotItHand} alt="" aria-hidden className="w-[0.887em] shrink-0" />
-                            <span>{strings.noHiddenFees}</span>
-                            <Image src={gotItHandFlipped} alt="" aria-hidden className="w-[0.887em] shrink-0" />
-                        </p>
-                    </div>
+                {/* No hidden fees SVG */}
+                <div className="mb-1">
+                    <Image
+                        src={noHiddenFees}
+                        alt="Really, we mean zero. No hidden fees"
+                        width={600}
+                        height={150}
+                        className="mx-auto h-auto w-full max-w-xs md:max-w-md"
+                    />
                 </div>
 
                 <ExchangeRateWidget
@@ -141,7 +104,6 @@ export function NoFees({
                     ctaLabel={strings.sendMoney}
                     ctaAction={handleCtaAction}
                     labels={strings.exchange}
-                    restrictToRoutable
                 />
 
                 <ContextualLinks

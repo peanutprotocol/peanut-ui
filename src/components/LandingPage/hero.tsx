@@ -3,11 +3,10 @@
 import { PeanutWhistling } from '@/assets/mascot'
 import { GlobalCashLocalFeel, Star } from '@/assets/illustrations'
 import Link from 'next/link'
-import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import Image from 'next/image'
 import { useEffect, useCallback, useRef, type CSSProperties } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
-import { CloudsCss, type CloudConfig } from './CloudsCss'
+import { CloudsCss } from './CloudsCss'
 import { AnimateOnView } from '@/components/Global/AnimateOnView'
 import type { LandingStrings } from './landingStrings'
 import type { Locale } from '@/i18n/types'
@@ -82,26 +81,6 @@ function PeanutMascot() {
     )
 }
 
-/*
- * The hero's own cloud bands, PHONE ONLY — three, against the default five.
- * A phone is a third of the width, so five read as overcast rather than sky.
- *
- * The shared default spreads five clouds over the whole section (down to 80%),
- * which on a phone drifts them straight through the CTA — a white cloud behind
- * the white pill erases the button for the length of the loop. These stop at
- * 56%, which puts the lowest one across the headline's second line and leaves
- * the CTA in clear sky. The headline can take it: 38px black extrabold reads
- * over white. The button cannot, being white itself.
- *
- * Desktop keeps the default. The hero is far wider than its centred copy, so
- * the low bands ride the gutters either side of it instead of crossing it.
- */
-const heroClouds: CloudConfig[] = [
-    { top: '18%', width: 180, speed: '38s', direction: 'ltr' },
-    { top: '35%', width: 220, speed: '44s', direction: 'rtl' },
-    { top: '52.8%', width: 190, speed: '36s', direction: 'ltr' },
-]
-
 type HeroProps = {
     strings: LandingStrings
     locale: Locale
@@ -131,7 +110,6 @@ const getButtonContainerClasses = (variant: 'primary' | 'secondary') =>
     `relative z-20 mt-8 flex flex-col items-center justify-center ${variant === 'primary' ? 'mx-auto w-fit' : 'right-[calc(50%-120px)]'}`
 
 export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strings, locale }: HeroProps) {
-    const migrationOn = useMigrationFlag()
     const renderCTAButton = (cta: CTAButton, variant: 'primary' | 'secondary') => {
         return (
             <div
@@ -173,8 +151,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
             id="hero"
             className="relative flex min-h-[85vh] w-full flex-col items-center justify-between bg-primary-1 px-4 pb-12 pt-4 md:pb-16 xl:h-fit xl:justify-center xl:pb-4"
         >
-            <CloudsCss clouds={heroClouds} className="md:hidden" />
-            <CloudsCss className="hidden md:block" />
+            <CloudsCss />
             <div className="relative mt-10 w-full md:mt-0">
                 {/* 23rem = the fixed stack below the artwork (h2 -> CTA) + 3rem slack, so the CTA stays inside the first fold on short laptop viewports */}
                 <Image
@@ -232,16 +209,6 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
                 </span>
                 {primaryCta ? renderCTAButton(primaryCta, 'primary') : customCta ? renderCustomCta() : null}
                 {secondaryCta && renderCTAButton(secondaryCta, 'secondary')}
-                {/* Web login remains available until migration moves authentication into the app. */}
-                {!migrationOn && (
-                    <Link
-                        prefetch={false}
-                        href="/setup?step=login"
-                        className="text-body-s mt-4 block text-center text-n-1 underline"
-                    >
-                        {strings.logIn}
-                    </Link>
-                )}
                 <AnimateOnView
                     className="absolute bottom-[-4%] left-[1%] w-8 sm:bottom-[11%] sm:left-[12%] md:bottom-[18%] md:left-[5%] md:w-12"
                     y="20px"

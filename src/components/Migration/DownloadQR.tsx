@@ -28,7 +28,7 @@ export default function DownloadQR({ surface, handoff }: { surface: MigrationSur
     return (
         <div className="flex w-full flex-col items-center gap-3 py-2">
             <QRCodeWrapper url={`${origin}/app${payload ? `?${payload}` : ''}`} />
-            <span className="text-body-xs text-foreground-secondary">{t('qr.scanHint')}</span>
+            <span className="text-xs text-grey-1">{t('qr.scanHint')}</span>
             <StoreBadges surface={surface} payload={payload} />
         </div>
     )
