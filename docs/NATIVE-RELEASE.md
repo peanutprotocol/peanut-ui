@@ -197,15 +197,28 @@ and it is fine for it to lag behind what ships.
 
 ### Cutting a release
 
-Two `workflow_dispatch` buttons, both run from `dev` (they refuse any other ref — `main`
-runs well behind, and a release off the wrong ref would look correctly numbered while
-shipping stale code):
+All three manual workflows accept `dev`, `main`, and `release/android-kyc`.
+Select the source branch before dispatch. A supported branch name does not prove
+that its current commit is ready to ship.
+
+1. Inspect the selected branch's current commit and confirm its release QA is complete.
+2. Before dispatching from `main`, verify it contains the reviewed native changes and
+   completed KYC fixes. A workflow change alone does not include those fixes.
+3. Before integrating `release/android-kyc`, compare it with current production and
+   preserve later production fixes. This branch started from an older OTA commit.
+4. Complete the reviewed back-merge into `dev` and production release into `main`
+   before using `main` for those fixes. Never replace the newer tree with the older OTA tree.
+
+Use the workflow that matches the release:
 
 | | button | what it does |
 |-|--------|--------------|
 | native | **Release Native** | resolves `<major>.<build+1>.0` → builds iOS + Android from that one number → TestFlight + Play `internal` → tags `v<version>` |
-| Android replacement | **Android Release (Play)** | leave `versionName` blank on `dev` → rebuilds the current tagged Android version with a new Play `versionCode`; refuses iOS/shared native changes and does not move the shared OTA floor |
+| Android replacement | **Android Release (Play)** | leave `versionName` blank on the selected supported branch → rebuilds the current tagged Android version with a new Play `versionCode`; refuses iOS/shared native changes and does not move the shared OTA floor |
 | OTA | **Release OTA** | resolves `<major>.<build>.<ota+1>` off the production channel → uploads the bundle → tags `ota-<version>` |
+
+For production OTA, use **Release OTA** so it resolves the version before calling Capgo.
+Do not dispatch the Capgo production workflow directly without a resolved version.
 
 None is automatic: no push, merge or commit reaches them. They are the same deliberate
 act as the `git tag … && git push` they replace, minus the hand-picked number.
