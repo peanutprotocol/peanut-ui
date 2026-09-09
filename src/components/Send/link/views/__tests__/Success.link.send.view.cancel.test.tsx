@@ -11,6 +11,7 @@ import { TRANSACTIONS } from '@/constants/query.consts'
 
 const mockPush = jest.fn()
 const mockCancelLinkAndClaim = jest.fn()
+const mockPollForClaimConfirmation = jest.fn(async () => true)
 const mockInvalidateQueries = jest.fn(async () => undefined)
 const mockToast = { success: jest.fn(), error: jest.fn(), info: jest.fn(), warning: jest.fn() }
 const mockCaptureException = jest.fn()
@@ -40,7 +41,7 @@ jest.mock('@/components/Claim/useClaimLink', () => ({
     __esModule: true,
     default: () => ({
         cancelLinkAndClaim: mockCancelLinkAndClaim,
-        pollForClaimConfirmation: jest.fn(async () => true),
+        pollForClaimConfirmation: mockPollForClaimConfirmation,
     }),
 }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => mockToast }))
@@ -123,4 +124,17 @@ describe('LinkSendSuccessView — cancel on an already-claimed link', () => {
         expect(mockPush).not.toHaveBeenCalled()
         expect(mockInvalidateQueries).not.toHaveBeenCalled()
     })
+})
+
+test('confirmed cancellation leaves for home while history is still pending', async () => {
+    mockCancelLinkAndClaim.mockResolvedValue('0xtx')
+    mockInvalidateQueries.mockImplementationOnce(() => new Promise(() => {}))
+
+    await cancelFromView()
+
+    await waitFor(() => expect(mockToast.success).toHaveBeenCalledWith('link.cancelSuccess'))
+    expect(mockPollForClaimConfirmation).not.toHaveBeenCalled()
+    expect(screen.queryByTestId('confirm-cancel')).toBeNull()
+    expect(mockToast.error).not.toHaveBeenCalled()
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/home'), { timeout: 3000 })
 })
