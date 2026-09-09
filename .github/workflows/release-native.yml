@@ -1,6 +1,6 @@
 name: Release Native
 
-# The single entry point for a store build. Click "Run workflow" on `dev`; the
+# The single entry point for a store build. Click "Run workflow" on `dev` or `release/android-kyc`; the
 # version is resolved here, not typed, and both platforms build from that one
 # number so they can never disagree about what a release is called.
 #
@@ -54,8 +54,8 @@ jobs:
             # and ship stale code.
             - name: Guard release ref
               run: |
-                  if [ "$GITHUB_REF_NAME" != "dev" ]; then
-                      echo "::error::releases are cut from dev, not $GITHUB_REF_NAME" >&2
+                  if [ "$GITHUB_REF_NAME" != "dev" ] && [ "$GITHUB_REF_NAME" != "release/android-kyc" ]; then
+                      echo "::error::releases are cut from dev or release/android-kyc, not $GITHUB_REF_NAME" >&2
                       exit 1
                   fi
 
@@ -88,6 +88,11 @@ jobs:
     android:
         needs: resolve
         uses: ./.github/workflows/android-release.yml
+        # the called workflow's record-replacement-baseline job writes one
+        # annotated tag; a caller must grant what its callee's jobs request or
+        # the whole workflow fails validation at dispatch (TASK-22471).
+        permissions:
+            contents: write
         secrets: inherit
         with:
             versionName: ${{ needs.resolve.outputs.version }}
