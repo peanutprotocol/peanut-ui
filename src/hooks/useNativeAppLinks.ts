@@ -9,12 +9,10 @@ import { isCapacitor, openExternalUrl, closeInAppBrowser, markInAppBrowserClosed
 import { deepLinkToNativePath, isNativeExportPath, redactNativePath } from '@/utils/native-routes'
 import { BASE_URL } from '@/constants/general.consts'
 import { hasDeepLinkNavigated, markDeepLinkNavigated } from '@/utils/deep-link-state'
-import { sanitizeRedirectURL } from '@/utils/cookie-url.utils'
+import { sanitizeRedirectURL, saveToCookie } from '@/utils/cookie-url.utils'
 import { toInviteCode } from '@/utils/invite-code.utils'
 import { getOneSignalAdapter } from '@/services/onesignal'
 import { dispatchBackPress } from '@/utils/back-handler'
-import { stashInvite } from '@/utils/invite-stash'
-import { EInviteType } from '@/services/services.types'
 
 /*
  * App-lifecycle + deep-link listeners (back button, appStateChange focus,
@@ -134,7 +132,7 @@ export function useNativeAppLinks() {
                 const parsed = new URL(url, 'https://peanut.me')
                 if (parsed.pathname.split('/').filter(Boolean)[0] === 'invite') {
                     const code = toInviteCode(parsed.searchParams.get('code') ?? '')
-                    if (code) stashInvite(code, EInviteType.DIRECT)
+                    if (code) saveToCookie('inviteCode', code)
                 }
             } catch {}
             lastDispatchedUrl = url

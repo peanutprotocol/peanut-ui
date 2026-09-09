@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useWebSocket } from '@/hooks/useWebSocket'
-import { useAuth } from '@/context/authContext'
+import { useUserStore } from '@/redux/hooks'
 import {
     initiateSumsubKyc,
     initiateSelfHealResubmission,
@@ -92,7 +92,7 @@ const getKycPollDelayMs = (elapsedMs: number): number => {
 }
 
 export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: UseSumsubKycFlowOptions = {}) => {
-    const { user } = useAuth()
+    const { user } = useUserStore()
     const router = useRouter()
     const t = useTranslations('kyc')
 

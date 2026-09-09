@@ -22,7 +22,7 @@ const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper 
 import type { GrantSessionKeyError } from '@/hooks/wallet/useGrantSessionKey'
 
 let mockKernelReady = true
-jest.mock('@/hooks/useZeroDevFlow', () => ({ useZeroDevFlow: () => ({ isKernelClientReady: mockKernelReady }) }))
+jest.mock('@/redux/hooks', () => ({ useZerodevStore: () => ({ isKernelClientReady: mockKernelReady }) }))
 const mockGrant = jest.fn<Promise<{ ok: boolean; overviewFresh?: boolean }>, []>()
 let mockLastError: GrantSessionKeyError | null = null
 jest.mock('@/hooks/wallet/useGrantSessionKey', () => ({

@@ -12,7 +12,8 @@ import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestr
 import { useGeoLocation } from '@/hooks/useGeoLocation'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useBackHandler } from '@/hooks/useBackHandler'
-import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
+import { useAppDispatch, useSetupStore } from '@/redux/hooks'
+import { setupActions } from '@/redux/slices/setup-slice'
 import { isValidEmail } from '@/utils/format.utils'
 import { residenceAvailability } from '@/utils/residence-availability'
 import { buildResidenceCountryOptions } from '@/utils/residence-options'
@@ -37,8 +38,8 @@ const BULLET_DOT = 'size-1 rounded-round bg-action-primary'
 const ResidenceStep = () => {
     const t = useTranslations('setup')
     const locale = useLocale()
-    const { residenceCountry, setResidenceCountry, secondResidenceCountry, setSecondResidenceCountry } =
-        useSetupFlowContext()
+    const dispatch = useAppDispatch()
+    const { residenceCountry, secondResidenceCountry } = useSetupStore()
     const { handleNext, isLoading } = useSetupFlow()
     const { countryCode: geoCountryCode } = useGeoLocation()
     // server-authoritative tier lists with the bundled mirror as fallback
@@ -77,12 +78,12 @@ const ResidenceStep = () => {
     useEffect(() => {
         if (residenceCountry || !geoSuggestion) return
         wasPrefilledRef.current = true
-        setResidenceCountry(geoSuggestion)
-    }, [geoSuggestion, residenceCountry, setResidenceCountry])
+        dispatch(setupActions.setResidenceCountry(geoSuggestion))
+    }, [geoSuggestion, residenceCountry, dispatch])
 
     const onResidenceChange = (value: string) => {
         wasPrefilledRef.current = false
-        setResidenceCountry(value)
+        dispatch(setupActions.setResidenceCountry(value))
     }
 
     // The picked primary is passed in, not read off the store: the dual-residence
@@ -153,8 +154,8 @@ const ResidenceStep = () => {
         const second = primary === residenceCountry ? secondResidenceCountry : residenceCountry
         if (primary !== residenceCountry) {
             wasPrefilledRef.current = false
-            setResidenceCountry(primary)
-            setSecondResidenceCountry(second)
+            dispatch(setupActions.setResidenceCountry(primary))
+            dispatch(setupActions.setSecondResidenceCountry(second))
         }
         continueWith(primary, second)
     }
@@ -166,9 +167,9 @@ const ResidenceStep = () => {
             // the promoted country was typed, not suggested — leaving the flag set
             // would attribute it to the geo guess for the rest of the step
             wasPrefilledRef.current = false
-            setResidenceCountry(secondResidenceCountry)
+            dispatch(setupActions.setResidenceCountry(secondResidenceCountry))
         }
-        setSecondResidenceCountry('')
+        dispatch(setupActions.setSecondResidenceCountry(''))
         setShowSecondCountry(false)
     }
 
@@ -407,7 +408,7 @@ const ResidenceStep = () => {
                         // analytics and persisted after signup. Dispatch stays
                         // outside the updater (React may replay updaters).
                         if (showSecondCountry && secondResidenceCountry) {
-                            setSecondResidenceCountry('')
+                            dispatch(setupActions.setSecondResidenceCountry(''))
                         }
                         setShowSecondCountry((current) => !current)
                     }}
@@ -419,7 +420,7 @@ const ResidenceStep = () => {
                         options={countryOptions}
                         placeholder={t('residenceStep.secondCountryPlaceholder')}
                         value={secondResidenceCountry || undefined}
-                        onValueChange={(value) => setSecondResidenceCountry(value)}
+                        onValueChange={(value) => dispatch(setupActions.setSecondResidenceCountry(value))}
                         onClear={hasPair ? () => onRemoveCountry('second') : undefined}
                     />
                 )}

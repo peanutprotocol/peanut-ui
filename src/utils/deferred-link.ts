@@ -10,11 +10,9 @@ import { isValidLocale } from '@/i18n/config'
 import { type AppLocale, resolveLocaleOrNull } from '@/i18n/app/config'
 import { isAndroidNative, isIOSNative } from './capacitor'
 import { nativeCapability } from './native-capability'
-import { getFromCookie, sanitizeRedirectURL } from './cookie-url.utils'
+import { getFromCookie, saveToCookie, sanitizeRedirectURL } from './cookie-url.utils'
 import { toInviteCode } from './invite-code.utils'
 import { deepLinkToNativePath } from './native-routes'
-import { stashInvite } from '@/utils/invite-stash'
-import { EInviteType } from '@/services/services.types'
 import {
     BADGE_CAMPAIGN_QUERY_PARAM,
     badgeCampaignIdentitiesFromDeferredSearchParams,
@@ -340,9 +338,7 @@ export function applyDeferredPayload(payload: DeferredPayload): RestoredContext 
     // regression class). session scope keeps attribution for the
     // install→open→signup funnel and self-heals on app restart.
     const invite = payload.invite ? toInviteCode(payload.invite) : ''
-    // a deferred link carries only a bare code — DIRECT, and through the one
-    // writer so the type can never be a stale leftover from an earlier flow
-    if (invite) stashInvite(invite, EInviteType.DIRECT)
+    if (invite) saveToCookie('inviteCode', invite)
     // Badge campaigns do not gate the setup step, so they can safely outlive the
     // session for a network/configuration retry. Preserve the first trimmed
     // spelling; backend resolution is case-insensitive.

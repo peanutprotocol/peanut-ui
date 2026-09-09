@@ -19,7 +19,7 @@ import { hasReferralNudge, isRequestEntry, isSendLinkEntry, isSplittable } from 
 import { buildSplitBillRequestUrl } from './splitBill.utils'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { useActivationStatus } from '@/hooks/useActivationStatus'
-import { useAuth } from '@/context/authContext'
+import { useUserStore } from '@/redux/hooks'
 import { openExternalUrl } from '@/utils/capacitor'
 import { generateInviteCodeLink } from '@/utils/general.utils'
 import { getReceiptUrl, isTestTransaction } from '@/utils/history.utils'
@@ -62,7 +62,7 @@ export function ReceiptActions({
 }) {
     const t = useAppTranslations('transaction')
     const router = useRouter()
-    const { user } = useAuth()
+    const { user } = useUserStore()
     const { isActivated } = useActivationStatus()
     const { closeRequest, rejectRequest, cancelSendLink } = useReceiptActions(transaction)
     const { isPendingBankRequest, isPendingRequestee, isPendingRequester, isPendingSentLink } = vm

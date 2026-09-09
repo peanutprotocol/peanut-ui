@@ -2,7 +2,7 @@ import { act, renderHook } from '@testing-library/react'
 import { useZeroDev } from '../useZeroDev'
 import { clearAuthState } from '@/utils/auth.utils'
 
-const mockSetIsLoggingIn = jest.fn()
+const mockDispatch = jest.fn()
 const mockCaptureException = jest.fn()
 const mockToWebAuthnKey = jest.fn()
 const mockHydrateLoginSession = jest.fn()
@@ -26,27 +26,28 @@ jest.mock('@/context/loadingStates.context', () => {
     const React = jest.requireActual<typeof import('react')>('react')
     return { loadingStateContext: React.createContext({ setLoadingState: jest.fn() }) }
 })
-jest.mock('@/hooks/useZeroDevFlow', () => ({
-    useZeroDevFlow: () => ({
+jest.mock('@/redux/hooks', () => ({
+    useAppDispatch: () => mockDispatch,
+    useSetupStore: () => ({ inviteCode: '', inviteType: undefined }),
+    useZerodevStore: () => ({
         isKernelClientReady: true,
         isRegistering: false,
         isLoggingIn: false,
         isSendingUserOp: false,
         address: undefined,
     }),
-    zeroDevFlowActions: {
-        reset: jest.fn(),
-        setIsKernelClientReady: jest.fn(),
-        setIsRegistering: jest.fn(),
-        setIsLoggingIn: (value: boolean) => mockSetIsLoggingIn(value),
-        setIsSendingUserOp: jest.fn(),
-        setAddress: jest.fn(),
+}))
+jest.mock('@/redux/slices/zerodev-slice', () => ({
+    zerodevActions: {
+        resetZeroDevState: () => ({ type: 'zerodev/reset' }),
+        setIsRegistering: (payload: boolean) => ({ type: 'zerodev/registering', payload }),
+        setIsLoggingIn: (payload: boolean) => ({ type: 'zerodev/logging-in', payload }),
+        setIsSendingUserOp: (payload: boolean) => ({ type: 'zerodev/sending', payload }),
+        setAddress: (payload: string) => ({ type: 'zerodev/address', payload }),
     },
 }))
-jest.mock('@/utils/invite-stash', () => ({
-    readInviteCode: () => '',
-    readInviteType: () => 'DIRECT',
-    clearInvite: jest.fn(),
+jest.mock('@/redux/slices/setup-slice', () => ({
+    setupActions: { setInviteCode: (payload: string) => ({ type: 'setup/invite-code', payload }) },
 }))
 jest.mock('@/utils/general.utils', () => ({
     getFromCookie: () => null,
@@ -121,7 +122,7 @@ describe('useZeroDev handleLogin — passkey-server failures keep the session', 
                 expect.objectContaining({ name: 'PasskeyServerError' }),
                 expect.objectContaining({ tags: { error_type: 'passkey_server_failure' } })
             )
-            expect(mockSetIsLoggingIn).toHaveBeenCalledWith(false)
+            expect(mockDispatch).toHaveBeenCalledWith({ type: 'zerodev/logging-in', payload: false })
         }
     )
 

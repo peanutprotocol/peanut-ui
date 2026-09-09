@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react'
 import {
     type ExternalNode,
     type ExternalNodeType,
@@ -161,97 +160,6 @@ export const DEFAULT_ACTIVITY_FILTER: ActivityFilter = {
     activityDays: 30,
     enabled: true,
     hideInactive: false, // Default: show inactive as greyed out
-}
-
-/** Graph mode determines which features are enabled */
-export type GraphMode = 'full' | 'payment' | 'user'
-
-/** Props passed to the renderOverlays render prop */
-export interface GraphOverlayProps {
-    showUsernames: boolean
-    setShowUsernames: (v: boolean) => void
-    /** Top N nodes limit (0 = all). Changing triggers backend refetch. */
-    topNodes: number
-    setTopNodes: (v: number) => void
-    activityFilter: ActivityFilter
-    setActivityFilter: (v: ActivityFilter) => void
-    forceConfig: ForceConfig
-    setForceConfig: (v: ForceConfig) => void
-    visibilityConfig: VisibilityConfig
-    setVisibilityConfig: (v: VisibilityConfig) => void
-    externalNodesConfig: ExternalNodesConfig
-    setExternalNodesConfig: (v: ExternalNodesConfig) => void
-    externalNodes: ExternalNode[]
-    externalNodesLoading: boolean
-    externalNodesError: string | null
-    handleResetView: () => void
-    handleReset: () => void
-    handleRecalculate: () => void
-    /** Set of activity statuses to hide visually (no re-layout). Values: 'new' | 'active' | 'inactive' | 'jailed' */
-    hiddenStatuses: Set<string>
-    setHiddenStatuses: (v: Set<string>) => void
-}
-
-export interface BaseProps {
-    width?: number
-    height?: number
-    backgroundColor?: string
-    /** Show usernames on nodes */
-    showUsernames?: boolean
-    /** Limit to top N nodes by points (0 = all nodes, default 5000). Backend filtering. */
-    topNodes?: number
-    /** Activity filter for highlighting active/inactive/new users */
-    activityFilter?: ActivityFilter
-    /** Force configuration for layout tuning */
-    forceConfig?: ForceConfig
-    /** Visibility configuration for toggling element rendering */
-    visibilityConfig?: VisibilityConfig
-    /** Seed the selected/focused node by username on first load. Used for
-     *  deep-links like /dev/payment-graph?user=alice from Discord live-log.
-     *  Resolution happens once after the graph data arrives; subsequent
-     *  user clicks override it normally. Case-insensitive match. */
-    initialFocusUsername?: string
-    /** Render prop for additional overlays */
-    renderOverlays?: (props: GraphOverlayProps) => ReactNode
-}
-
-export interface FullModeProps extends BaseProps {
-    /** Admin API key to fetch full graph */
-    apiKey: string
-    /** Graph mode: 'full' shows all features, 'payment' shows P2P only (no invites, fixed 120-day window) */
-    mode?: GraphMode
-    /** Close/back button handler */
-    onClose?: () => void
-    /** Performance mode: limit to top 1000 nodes (frontend-filtered, no refetch) */
-    performanceMode?: boolean
-    /** Minimal mode disabled */
-    minimal?: false
-    data?: never
-}
-
-export interface MinimalModeProps extends BaseProps {
-    /** Graph data passed directly */
-    data: GraphData
-    /** Minimal mode - just the graph canvas, no controls */
-    minimal: true
-    apiKey?: never
-    onClose?: never
-}
-
-export type InvitesGraphProps = FullModeProps | MinimalModeProps
-
-/** Display settings tracked in a ref so canvas render callbacks read fresh values without re-renders */
-export type GraphDisplaySettings = {
-    showUsernames: boolean
-    selectedUserId: string | null
-    isMinimal: boolean
-    mode: GraphMode
-    activityFilter: ActivityFilter
-    visibilityConfig: VisibilityConfig
-    externalNodesConfig: ExternalNodesConfig
-    p2pActiveNodes: Set<string>
-    inviterNodes: Set<string>
-    hiddenStatuses: Set<string>
 }
 
 /** Re-export types from points service for convenience */

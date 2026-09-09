@@ -12,8 +12,8 @@ jest.mock('@/context/authContext', () => ({
 }))
 
 let mockSetupState: { residenceCountry: string }
-jest.mock('@/features/setup/SetupFlowContext', () => ({
-    useOptionalSetupFlow: () => mockSetupState,
+jest.mock('@/redux/hooks', () => ({
+    useSetupStore: () => mockSetupState,
 }))
 
 // Hermetic: the real sets hook fetches the server tier lists on first mount.

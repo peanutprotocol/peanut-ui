@@ -1,10 +1,7 @@
 /** @jest-environment jsdom */
 // inviteFlowUrl — the one route into the invite flow for guest CTAs. web goes
-// to the /invite landing page; native (page pruned from the export) goes
-// straight to signup. Pure URL builder: the invite itself is stashed by the
-// caller via stashInvite with its TRUE type — the old native-side code-only
-// cookie write here could leave a stale inviteType behind (Chip review,
-// PR #2949).
+// to the /invite landing page; native (page pruned from the export) writes the
+// session invite cookie and goes straight to signup.
 
 let mockIsCapacitor = false
 jest.mock('@/utils/capacitor', () => ({
@@ -24,9 +21,9 @@ describe('inviteFlowUrl', () => {
         expect(getFromCookie('inviteCode')).toBeFalsy()
     })
 
-    it('native goes straight to signup and writes no cookie either — stashing is the caller`s job', () => {
+    it('native writes the session cookie and goes straight to signup', () => {
         mockIsCapacitor = true
         expect(inviteFlowUrl('alice', '%2Fclaim%2FX')).toBe('/setup?step=signup&redirect_uri=%2Fclaim%2FX')
-        expect(getFromCookie('inviteCode')).toBeFalsy()
+        expect(getFromCookie('inviteCode')).toBe('alice')
     })
 })

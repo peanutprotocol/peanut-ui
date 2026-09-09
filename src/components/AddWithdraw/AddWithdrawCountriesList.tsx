@@ -20,11 +20,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DynamicBankAccountForm, type IBankAccountDetails } from './DynamicBankAccountForm'
 import { addBankAccount } from '@/app/actions/users'
 import { type AddBankAccountPayload } from '@/app/actions/types/users.types'
-import { useOptionalWithdrawFlow } from '@/features/withdraw/WithdrawFlowContext'
-import { useWithdrawAmount } from '@/features/withdraw/useWithdrawAmount'
+import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import { type Account } from '@/interfaces/interfaces'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
+import { useAppDispatch } from '@/redux/hooks'
+import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import TokenAndNetworkConfirmationModal from '../Global/TokenAndNetworkConfirmationModal'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
@@ -67,11 +68,14 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     // hooks
     const { deviceType } = useDeviceType()
     const { user, fetchUser } = useAuth()
-    // Withdraw flow memory is scoped to /withdraw — null under /add-money.
-    // Every write below is inside a `flow === 'withdraw'` branch.
-    const withdrawFlow = useOptionalWithdrawFlow()
-    // the one typed amount, carried in the URL across /withdraw/* routes
-    const [urlAmount, setUrlAmount] = useWithdrawAmount()
+    const {
+        setSelectedBankAccount,
+        amountToWithdraw,
+        setSelectedMethod,
+        setAmountToWithdraw,
+        setShowAllWithdrawMethods,
+    } = useWithdrawFlow()
+    const dispatch = useAppDispatch()
 
     // inline sumsub kyc flow for bridge bank users who need verification
     // regionIntent is NOT passed here to avoid creating a backend record on mount.
@@ -102,7 +106,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     })
 
     // component level states
-    const [view, setView] = useState<'list' | 'form'>(flow === 'withdraw' && urlAmount ? 'form' : 'list')
+    const [view, setView] = useState<'list' | 'form'>(flow === 'withdraw' && amountToWithdraw ? 'form' : 'list')
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
     const formRef = useRef<{ handleSubmit: () => void }>(null)
     const [isSupportedTokensModalOpen, setIsSupportedTokensModalOpen] = useState(false)
@@ -229,7 +233,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             const newAccount = updatedUser?.accounts.find((acc) => !currentAccountIds.has(acc.id))
 
             if (newAccount) {
-                withdrawFlow?.setSelectedBankAccount(newAccount)
+                setSelectedBankAccount(newAccount)
             } else {
                 // fallback to the previous method if we can't find the new account
                 // this can happen if the user object is not updated immediately
@@ -250,16 +254,12 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     bankName: newAccountFromResponse.details?.bankName || null,
                     accountOwnerName: `${payload.accountOwnerName.firstName} ${payload.accountOwnerName.lastName}`,
                 }
-                withdrawFlow?.setSelectedBankAccount(newAccountFromResponse)
+                setSelectedBankAccount(newAccountFromResponse)
             }
 
             if (currentCountry) {
-                // carry the typed amount + send marker to the review screen
-                const params = new URLSearchParams()
-                if (isBankFromSend && methodParam) params.set('method', methodParam)
-                if (urlAmount) params.set('amount', urlAmount)
-                const qs = params.toString()
-                router.push(withdrawBankUrl(currentCountry.path, qs ? `?${qs}` : ''))
+                const queryParams = isBankFromSend ? `?method=${methodParam}` : ''
+                router.push(withdrawBankUrl(currentCountry.path, queryParams))
             }
             return {}
         }
@@ -280,6 +280,9 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
     const handleWithdrawMethodClick = (method: SpecificPaymentMethod) => {
         const title = method.id.endsWith('-sepa-instant-withdraw') ? t('methods.euroBankTransfers') : method.title
+        // preserve method param only if coming from bank send flow (not crypto)
+        const methodQueryParam = isBankFromSend ? `?method=${methodParam}` : ''
+
         if (method.path && method.path.includes('/manteca')) {
             // Manteca methods route directly (has own amount input)
             const extraParams = isBankFromSend ? `method=${methodParam}` : undefined
@@ -287,22 +290,22 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         } else if (method.id.includes('default-bank-withdraw') || method.id.includes('sepa-instant-withdraw')) {
             if (checkBridgeGate(() => handleWithdrawMethodClick(method))) return
 
-            // Bridge methods: set in context and land on the amount step
-            withdrawFlow?.setSelectedMethod({
+            // Bridge methods: Set in context and navigate for amount input
+            setSelectedMethod({
                 type: 'bridge',
                 countryPath: currentCountry?.path,
                 currency: currentCountry?.currency,
                 title,
             })
-            router.push(`/withdraw?step=amount${isBankFromSend ? `&method=${methodParam}` : ''}`)
+            router.push(`/withdraw${methodQueryParam}`)
             return
         } else if (method.id.includes('crypto-withdraw')) {
-            withdrawFlow?.setSelectedMethod({
+            setSelectedMethod({
                 type: 'crypto',
                 countryPath: 'crypto',
                 title: 'Crypto',
             })
-            router.push(`/withdraw?step=amount${isBankFromSend ? `&method=${methodParam}` : ''}`)
+            router.push(`/withdraw${methodQueryParam}`)
         } else if (method.path) {
             // other methods with paths — rewrite dynamic routes for native
             const extraParams = isBankFromSend ? `method=${methodParam}` : undefined
@@ -429,26 +432,28 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                         flow === 'withdraw' ? (isBankFromSend ? tNav('send') : tNav('withdraw')) : tAddMoney('title')
                     }
                     onPrev={() => {
-                        void setUrlAmount(null)
+                        // clear dynamicbankaccountform data
+                        dispatch(bankFormActions.clearFormData())
+                        setAmountToWithdraw('')
                         // ensure kyc modal isn't open so late success events don't flip view
                         setIsKycModalOpen(false)
 
                         // if coming from send flow, go back to amount input on /withdraw?method=bank
                         if (flow === 'withdraw' && isBankFromSend) {
                             if (currentCountry) {
-                                withdrawFlow?.setSelectedMethod({
+                                setSelectedMethod({
                                     type: 'bridge',
                                     countryPath: currentCountry.path,
                                     currency: currentCountry.currency,
                                     title: 'To Bank',
                                 })
                             }
-                            router.push(`/withdraw?step=amount&method=${methodParam}`)
+                            router.push(`/withdraw?method=${methodParam}`)
                             return
                         }
 
                         // otherwise go back to list
-                        withdrawFlow?.setSelectedMethod(null)
+                        setSelectedMethod(null)
                         setView('list')
                     }}
                 />
@@ -458,17 +463,6 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     onSuccess={handleFormSubmit}
                     initialData={{}}
                     error={null}
-                    amountDisplay={urlAmount}
-                    onExistingAccount={(account) => {
-                        // the typed account already exists — select it and go
-                        // straight to review, keeping amount + send marker
-                        withdrawFlow?.setSelectedBankAccount(account)
-                        const params = new URLSearchParams()
-                        if (isBankFromSend && methodParam) params.set('method', methodParam)
-                        if (urlAmount) params.set('amount', urlAmount)
-                        const qs = params.toString()
-                        router.push(withdrawBankUrl(currentCountry.path, qs ? `?${qs}` : ''))
-                    }}
                 />
                 {sharedModals}
             </div>
@@ -561,15 +555,14 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             <NavHeader
                 title={localizedCountryTitle(locale, currentCountry)}
                 onPrev={() => {
+                    setAmountToWithdraw('')
                     if (flow === 'add') {
                         router.push('/add-money?method=bank')
                     } else {
-                        withdrawFlow?.setSelectedMethod(null)
-                        withdrawFlow?.setSelectedBankAccount(null)
-                        void setUrlAmount(null)
-                        router.push(
-                            isBankFromSend ? `/withdraw?showAll=true&method=${methodParam}` : '/withdraw?showAll=true'
-                        )
+                        setSelectedMethod(null)
+                        setSelectedBankAccount(null)
+                        setShowAllWithdrawMethods(true)
+                        router.push(isBankFromSend ? `/withdraw?method=${methodParam}` : '/withdraw')
                     }
                 }}
             />

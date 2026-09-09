@@ -6,8 +6,8 @@ import { FieldError } from '@/components/0_Bruddle/FieldError'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { useEffect, useState } from 'react'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
-import { stashInvite } from '@/utils/invite-stash'
-import { EInviteType } from '@/services/services.types'
+import { useAppDispatch } from '@/redux/hooks'
+import { setupActions } from '@/redux/slices/setup-slice'
 import { invitesApi } from '@/services/invites'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -17,6 +17,7 @@ import { isCapacitor } from '@/utils/capacitor'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { USER } from '@/constants/query.consts'
+import { userActions } from '@/redux/slices/user-slice'
 import { DEMO_USER } from '@/constants/demo-data'
 import { toInviteCode } from '@/utils/general.utils'
 import { USERNAME_MIN_LENGTH } from '@/constants/general.consts'
@@ -31,6 +32,7 @@ const JoinWaitlist = () => {
     const [error, setError] = useState('')
 
     const { handleNext } = useSetupFlow()
+    const dispatch = useAppDispatch()
     const router = useRouter()
     const queryClient = useQueryClient()
 
@@ -106,11 +108,12 @@ const JoinWaitlist = () => {
                     // readable. Seed the user query so the app is logged-in instantly.
                     if (isCapacitor() && isDemoInviteCode(inviteCode)) {
                         enableDemoMode()
+                        dispatch(userActions.setUser(DEMO_USER))
                         queryClient.setQueryData([USER], DEMO_USER)
                         router.push('/home')
                         return
                     }
-                    stashInvite(inviteCode, EInviteType.DIRECT)
+                    dispatch(setupActions.setInviteCode(inviteCode))
                     handleNext()
                 }}
                 shadowSize="4"

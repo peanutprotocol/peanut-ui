@@ -10,7 +10,6 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
-import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 // ---------- module-level mocks (must be before imports that depend on them) ----------
@@ -284,6 +283,10 @@ jest.mock('@/context/loadingStates.context', () => {
 // DirectRequestInitialView deps — only this view uses them (PayRequestLink does
 // not), so stubbing them globally is safe. Defaults resolve to a logged-in user
 // viewing a valid recipient, so the main form (incl. AmountInput) renders.
+const mockUseUserStore = jest.fn(() => ({ user: { user: { userId: 'user-1', username: 'me' } } }))
+jest.mock('@/redux/hooks', () => ({
+    useUserStore: () => mockUseUserStore(),
+}))
 
 const mockUseUserByUsername = jest.fn(() => ({
     user: { userId: 'recip-1', username: 'test-user', fullName: 'Test User', isVerified: false },
@@ -329,13 +332,11 @@ function renderCreateRequest(params: Record<string, string> = {}) {
     const queryClient = createQueryClient()
 
     return render(
-        <NuqsTestingAdapter searchParams={params}>
-            <IntlWrapper>
-                <QueryClientProvider client={queryClient}>
-                    <CreateRequestLinkView />
-                </QueryClientProvider>
-            </IntlWrapper>
-        </NuqsTestingAdapter>
+        <IntlWrapper>
+            <QueryClientProvider client={queryClient}>
+                <CreateRequestLinkView />
+            </QueryClientProvider>
+        </IntlWrapper>
     )
 }
 

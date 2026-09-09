@@ -3,7 +3,8 @@ import PasskeyInfoModal from '@/components/Setup/components/PasskeyInfoModal'
 import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Notification } from '@/components/0_Bruddle/Notification'
-import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
+import { setupActions } from '@/redux/slices/setup-slice'
+import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { updateUserById } from '@/app/actions/users'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useAccountSetup } from '@/hooks/useAccountSetup'
@@ -24,10 +25,11 @@ import { useTranslations } from 'next-intl'
 const SignTestTransaction = () => {
     const t = useTranslations('setup')
     const tCommon = useTranslations('common')
+    const dispatch = useAppDispatch()
     const { address, handleSendUserOpEncoded } = useZeroDev()
     const { finalizeAccountSetup, isProcessing, error: setupError, handleRedirect } = useAccountSetup()
     const { user, isFetchingUser, fetchUser } = useAuth()
-    const { residenceCountry, secondResidenceCountry, setIsLoading: setSetupLoading } = useSetupFlowContext()
+    const { residenceCountry, secondResidenceCountry } = useSetupStore()
     const [error, setError] = useState<string | null>(null)
     const [isSigning, setIsSigning] = useState(false)
     const [testTransactionCompleted, setTestTransactionCompleted] = useState(false)
@@ -118,7 +120,7 @@ const SignTestTransaction = () => {
         })
         setIsSigning(true)
         setError(null)
-        setSetupLoading(true)
+        dispatch(setupActions.setLoading(true))
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_TEST_TX_STARTED)
 
         try {
@@ -161,7 +163,7 @@ const SignTestTransaction = () => {
                     console.error('[SignTestTransaction] Failed to finalize account setup')
                     setError(setupError || t('testTransaction.errors.setupFailed'))
                     setIsSigning(false)
-                    setSetupLoading(false)
+                    dispatch(setupActions.setLoading(false))
                     return
                 }
 
@@ -207,7 +209,7 @@ const SignTestTransaction = () => {
                 // without ID, and plant the honest KYC expectation before home
                 // ever asks. The redirect moves to its CTA.
                 setIsSigning(false)
-                setSetupLoading(false)
+                dispatch(setupActions.setLoading(false))
                 setAccountReady(true)
             } else {
                 // if account already exists, just navigate home (login flow)
@@ -234,7 +236,7 @@ const SignTestTransaction = () => {
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_TEST_TX_FAILED, { error_name: (e as Error).name })
             setError(t('testTransaction.errors.supportNeeded'))
             setIsSigning(false)
-            setSetupLoading(false)
+            dispatch(setupActions.setLoading(false))
         }
     }
 

@@ -76,7 +76,7 @@ const INLINE_STYLE_ALLOW = [
     'dev/loading-words/', // dev tooling
     'app/layout.tsx', // colorScheme on <html> — must be a style prop
     '0_Bruddle/BaseSelect.tsx', // width from radix var(--radix-select-trigger-width)
-    'qr-pay/views/QrPaySuccessView.tsx', // hold button: -webkit-touch-callout + clip-path progress fill — no utility
+    'qr-pay/page.tsx', // -webkit-touch-callout on the hold button — no utility
     'Global/ValidatedInput/', // -webkit tap-highlight/text-fill — no utility
 ]
 

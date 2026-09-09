@@ -11,7 +11,7 @@ import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import { useLinkSendFlow } from '@/context/LinkSendFlowContext'
-import { useAuth } from '@/context/authContext'
+import { useUserStore } from '@/redux/hooks'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
@@ -30,7 +30,7 @@ const LinkSendSuccessView = () => {
     const { link, attachmentOptions, tokenValue, resetLinkSendFlow } = useLinkSendFlow()
     const queryClient = useQueryClient()
     const { fetchBalance } = useWallet()
-    const { user } = useAuth()
+    const { user } = useUserStore()
     const { cancelLinkAndClaim, pollForClaimConfirmation } = useClaimLink()
     const toast = useToast()
     const friendly = useFriendlyError()

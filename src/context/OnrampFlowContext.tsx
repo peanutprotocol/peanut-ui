@@ -1,7 +1,11 @@
 'use client'
 
 import React, { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from 'react'
-import type { FlowErrorState } from '@/interfaces/interfaces'
+
+export interface InitialViewErrorState {
+    showError: boolean
+    errorMessage: string
+}
 
 export interface IOnrampData {
     transferId?: string
@@ -40,8 +44,8 @@ export interface IOnrampData {
  * - `onrampData` - API response data (not appropriate for URL)
  */
 interface OnrampFlowContextType {
-    error: FlowErrorState
-    setError: (error: FlowErrorState) => void
+    error: InitialViewErrorState
+    setError: (error: InitialViewErrorState) => void
     fromBankSelected: boolean
     setFromBankSelected: (selected: boolean) => void
     onrampData: IOnrampData | null
@@ -53,7 +57,7 @@ const OnrampFlowContext = createContext<OnrampFlowContextType | undefined>(undef
 
 export const OnrampFlowContextProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     // Transient UI state - not appropriate for URL
-    const [error, setError] = useState<FlowErrorState>({
+    const [error, setError] = useState<InitialViewErrorState>({
         showError: false,
         errorMessage: '',
     })

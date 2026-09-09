@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
-import { useAuth } from '@/context/authContext'
+import { useUserStore } from '@/redux/hooks'
 import { loadSeenCodes, persistSeenCodes, pickCelebrationBadges, type CelebrationBadge } from './badgeCelebration.utils'
 
 type UseBadgeEarnToast = {
@@ -18,7 +18,7 @@ type UseBadgeEarnToast = {
  * badgeCelebration.utils.ts for the why.
  */
 export function useBadgeEarnToast(): UseBadgeEarnToast {
-    const { user } = useAuth()
+    const { user } = useUserStore()
     const userId = user?.user?.userId
     const badges = user?.user?.badges
 

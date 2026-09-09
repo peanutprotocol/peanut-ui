@@ -53,7 +53,7 @@ export function AppGlobals({ children }: { children: React.ReactNode }) {
             <BadgeEarnToast />
             {/* Mounted inside the providers (not called in ClientProviders'
                 component body like OtaUpdateProvider) because it reads the query
-                client and loading-state context to know when a reload
+                client, redux and loading-state context to know when a reload
                 is safe. */}
             <StaleDeploymentReload />
             {/* Wraps rather than sits beside the page: while the native app is

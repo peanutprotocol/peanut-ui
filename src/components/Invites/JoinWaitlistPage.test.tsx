@@ -5,7 +5,7 @@ import JoinWaitlistPage from './JoinWaitlistPage'
 
 const mockAcceptInvite = jest.fn()
 const mockFetchUser = jest.fn()
-const mockClearInvite = jest.fn()
+const mockRemoveFromCookie = jest.fn()
 const mockSetStep = jest.fn()
 const mockSettleAcceptedInviteAcquisition = jest.fn()
 const mockCapture = jest.fn()
@@ -34,11 +34,8 @@ jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }))
 jest.mock('@tanstack/react-query', () => ({
     useQuery: () => ({ data: { success: true, position: 7 }, isLoading: false }),
 }))
-jest.mock('@/utils/invite-stash', () => ({
-    readInviteCode: () => '',
-    readInviteType: () => 'PAYMENT_LINK',
-    clearInvite: () => mockClearInvite(),
-    stashInvite: jest.fn(),
+jest.mock('@/redux/hooks', () => ({
+    useSetupStore: () => ({ inviteType: 'PAYMENT_LINK', inviteCode: '' }),
 }))
 jest.mock('@/hooks/useNotifications', () => ({
     useNotifications: () => ({
@@ -54,6 +51,7 @@ jest.mock('nuqs', () => ({
 }))
 jest.mock('@/utils/general.utils', () => ({
     getFromCookie: () => null,
+    removeFromCookie: (...args: unknown[]) => mockRemoveFromCookie(...args),
     toInviteCode: (value: string) => value.trim().toLowerCase(),
 }))
 jest.mock('@/utils/format.utils', () => ({ isValidEmail: () => true }))
@@ -137,7 +135,7 @@ describe('JoinWaitlistPage invite onboarding boundary', () => {
                 [expect.objectContaining({ badgeCampaign: 'offramp', badgeCode: 'OFFRAMP_USER', outcome })]
             )
             expect(sessionStorage.getItem('showNoMoreJailModal')).toBeNull()
-            expect(mockClearInvite).toHaveBeenCalled()
+            expect(mockRemoveFromCookie).toHaveBeenCalledWith('inviteCode')
             if (shouldRefresh) expect(mockFetchUser).toHaveBeenCalledTimes(1)
             else expect(mockFetchUser).not.toHaveBeenCalled()
             expect(screen.queryByText('Something went wrong. Please try again or contact support.')).toBeNull()

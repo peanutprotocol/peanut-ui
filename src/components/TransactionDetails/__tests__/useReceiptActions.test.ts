@@ -25,8 +25,8 @@ jest.mock('@/components/Claim/useClaimLink', () => ({
 }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => mockToast }))
 jest.mock('@/hooks/wallet/useWallet', () => ({ useWallet: () => ({ fetchBalance: jest.fn() }) }))
-jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({
+jest.mock('@/redux/hooks', () => ({
+    useUserStore: () => ({
         user: { user: { userId: 'u1' }, accounts: [{ type: 'peanut-wallet', identifier: '0xwallet' }] },
     }),
 }))

@@ -1,6 +1,8 @@
 'use client'
 
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
+import { useAppDispatch, useWalletStore } from '@/redux/hooks'
+import { walletActions } from '@/redux/slices/wallet-slice'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useIsFetching } from '@tanstack/react-query'
@@ -54,7 +56,9 @@ type SendTransactionsOptions = {
 }
 
 export const useWallet = () => {
+    const dispatch = useAppDispatch()
     const { address, isKernelClientReady, handleSendUserOpEncoded } = useZeroDev()
+    const { balance: reduxBalance } = useWalletStore()
     const { user } = useAuth()
 
     // check if address matches user's wallet address
@@ -95,6 +99,13 @@ export const useWallet = () => {
         isLoading: isFetchingBalance,
         refetch: refetchBalance,
     } = useBalance(shouldFetchBalance ? (address as Address) : undefined)
+
+    // Sync TanStack Query balance with Redux (for backward compatibility)
+    useEffect(() => {
+        if (balanceFromQuery !== undefined) {
+            dispatch(walletActions.setBalance(balanceFromQuery))
+        }
+    }, [balanceFromQuery, dispatch])
 
     // Rain collateral overview — loaded here so `sendTransactions` can consult
     // the current `spendingPower` when callers opt into collateral top-up.
@@ -205,12 +216,14 @@ export const useWallet = () => {
     const demoMode = isDemoMode() || !!peekActiveFixture()
     const demoBalanceUnits = useDemoBalanceUnits()
 
-    // The TanStack ['balance', address] query is the single owner (the redux
-    // mirror it used to fall back on only ever echoed this same query —
-    // TASK-21462). While the address gate is unresolved the balance is
-    // undefined, which every downstream gate already treats as "loading",
-    // never as headroom.
-    const balance = demoMode ? demoBalanceUnits : balanceFromQuery
+    // Use balance from query if available, otherwise fall back to Redux
+    const balance = demoMode
+        ? demoBalanceUnits
+        : balanceFromQuery !== undefined
+          ? balanceFromQuery
+          : reduxBalance !== undefined
+            ? BigInt(reduxBalance)
+            : undefined
 
     // consider balance as fetching until: address is validated and query has resolved
     const isBalanceLoading = demoMode ? false : !isAddressReady || isFetchingBalance

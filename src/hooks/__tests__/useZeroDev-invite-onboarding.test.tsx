@@ -2,6 +2,7 @@ import { act, renderHook } from '@testing-library/react'
 import { useZeroDev } from '../useZeroDev'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
+const mockDispatch = jest.fn()
 const mockAcceptInvite = jest.fn()
 const mockRemoveFromCookie = jest.fn()
 const mockSaveToCookie = jest.fn()
@@ -32,28 +33,30 @@ jest.mock('@/context/loadingStates.context', () => {
     const React = jest.requireActual<typeof import('react')>('react')
     return { loadingStateContext: React.createContext({ setLoadingState: jest.fn() }) }
 })
-jest.mock('@/hooks/useZeroDevFlow', () => ({
-    useZeroDevFlow: () => ({
+jest.mock('@/redux/hooks', () => ({
+    useAppDispatch: () => mockDispatch,
+    useSetupStore: () => ({ inviteCode: 'founderhaus', inviteType: 'PAYMENT_LINK' }),
+    useZerodevStore: () => ({
         isKernelClientReady: true,
         isRegistering: false,
         isLoggingIn: false,
         isSendingUserOp: false,
         address: undefined,
     }),
-    zeroDevFlowActions: {
-        reset: jest.fn(),
-        setIsKernelClientReady: jest.fn(),
-        setIsRegistering: jest.fn(),
-        setIsLoggingIn: jest.fn(),
-        setIsSendingUserOp: jest.fn(),
-        setAddress: jest.fn(),
+}))
+jest.mock('@/redux/slices/zerodev-slice', () => ({
+    zerodevActions: {
+        resetZeroDevState: () => ({ type: 'zerodev/reset' }),
+        setIsRegistering: (payload: boolean) => ({ type: 'zerodev/registering', payload }),
+        setIsLoggingIn: (payload: boolean) => ({ type: 'zerodev/logging-in', payload }),
+        setIsSendingUserOp: (payload: boolean) => ({ type: 'zerodev/sending', payload }),
+        setAddress: (payload: string) => ({ type: 'zerodev/address', payload }),
     },
 }))
-const mockClearInvite = jest.fn()
-jest.mock('@/utils/invite-stash', () => ({
-    readInviteCode: () => 'founderhaus',
-    readInviteType: () => 'PAYMENT_LINK',
-    clearInvite: (...args: unknown[]) => mockClearInvite(...args),
+jest.mock('@/redux/slices/setup-slice', () => ({
+    setupActions: {
+        setInviteCode: (payload: string) => ({ type: 'setup/invite-code', payload }),
+    },
 }))
 jest.mock('@/utils/general.utils', () => ({
     getFromCookie: (key: string) => (key === 'inviteCode' ? 'founderhaus' : null),
@@ -135,7 +138,8 @@ describe('useZeroDev registration invite boundary', () => {
                 expect.objectContaining({ campaignTag: 'founderhaus' }),
                 [expect.objectContaining({ badgeCampaign: 'founderhaus', outcome })]
             )
-            expect(mockClearInvite).toHaveBeenCalled()
+            expect(mockRemoveFromCookie).toHaveBeenCalledWith('inviteCode')
+            expect(mockDispatch).toHaveBeenCalledWith({ type: 'setup/invite-code', payload: '' })
             expect(mockSaveToCookie).not.toHaveBeenCalledWith('inviteCode', expect.anything(), expect.anything())
             expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.INVITE_ACCEPTED, expect.anything())
             expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.INVITE_ACCEPT_FAILED, expect.anything())

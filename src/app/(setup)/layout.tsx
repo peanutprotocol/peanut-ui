@@ -1,8 +1,8 @@
 'use client'
 
 import { usePWAStatus } from '@/hooks/usePWAStatus'
-import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
-import { useIosPwaInstallGate } from '@/hooks/useIosPwaInstallGate'
+import { useAppDispatch } from '@/redux/hooks'
+import { setupActions } from '@/redux/slices/setup-slice'
 import { useEffect, useRef, useState, Suspense } from 'react'
 import { setupSteps } from '../../components/Setup/Setup.consts'
 import '../../styles/globals.css'
@@ -19,8 +19,7 @@ import { isPwaSunsetOn, shouldShowSunsetBlock } from '@/utils/migration.utils'
 import { isCapacitor } from '@/utils/capacitor'
 
 function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
-    const { setSteps } = useSetupFlowContext()
-    const { setShowIosPwaInstallScreen } = useIosPwaInstallGate()
+    const dispatch = useAppDispatch()
     const isPWA = usePWAStatus()
     const { deviceType } = useDeviceType()
     const migrationOn = useMigrationFlag()
@@ -72,7 +71,7 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
         }
         const migrationSteps = migrationOnAtEntry.current
 
-        // filter steps and hand them to the setup flow provider
+        // filter steps and set them in redux state
         const filteredSteps = setupSteps.filter((step) => {
             // pwa-sunset notice window: stop onboarding new users into the PWA —
             // the InstallPWA screens go away, store links show on the landing
@@ -88,16 +87,16 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
 
             return true
         })
-        setSteps(filteredSteps)
+        dispatch(setupActions.setSteps(filteredSteps))
 
         // if ios and not in pwa, show ios pwa install screen after setup flow is completed
         // (retired during the migration window — the app download replaces the PWA)
         if (!migrationSteps && deviceType === DeviceType.IOS && !isPWA) {
-            setShowIosPwaInstallScreen(true)
+            dispatch(setupActions.setShowIosPwaInstallScreen(true))
         } else {
-            setShowIosPwaInstallScreen(false)
+            dispatch(setupActions.setShowIosPwaInstallScreen(false))
         }
-    }, [isPWA, deviceType, setSteps, setShowIosPwaInstallScreen])
+    }, [isPWA, deviceType, dispatch])
 
     usePullToRefresh({ shouldPullToRefresh: useShouldPullToRefresh() })
 
@@ -122,11 +121,9 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
 
 const SetupLayout = ({ children }: { children?: React.ReactNode }) => {
     return (
-        <SetupFlowProvider>
-            <Suspense fallback={<Loading variant="mascot" coverFullScreen />}>
-                <SetupLayoutContent>{children}</SetupLayoutContent>
-            </Suspense>
-        </SetupFlowProvider>
+        <Suspense fallback={<Loading variant="mascot" coverFullScreen />}>
+            <SetupLayoutContent>{children}</SetupLayoutContent>
+        </Suspense>
     )
 }
 

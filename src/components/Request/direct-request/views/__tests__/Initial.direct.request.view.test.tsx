@@ -18,8 +18,8 @@ jest.mock('@/hooks/useSafeBack', () => ({
 }))
 
 // unauthenticated visitor — the recipient input renders in this state
-jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: null }),
+jest.mock('@/redux/hooks', () => ({
+    useUserStore: () => ({ user: null }),
 }))
 
 jest.mock('@/hooks/wallet/useWallet', () => ({

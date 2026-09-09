@@ -4,6 +4,7 @@ import InvitesPage from './InvitesPage'
 
 const mockPush = jest.fn()
 const mockReplace = jest.fn()
+const mockDispatch = jest.fn()
 const mockFetchUser = jest.fn().mockResolvedValue(null)
 const mockLogin = jest.fn().mockResolvedValue(undefined)
 const mockClaimBadgeCampaigns = jest.fn()
@@ -46,12 +47,12 @@ jest.mock('next/navigation', () => ({
 
 jest.mock('@tanstack/react-query', () => ({ useQuery: () => mockQueryResult }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => mockAuth }))
-const mockStashInvite = jest.fn()
-jest.mock('@/utils/invite-stash', () => ({
-    stashInvite: (...args: unknown[]) => mockStashInvite(...args),
-    readInviteCode: () => '',
-    readInviteType: () => 'DIRECT',
-    clearInvite: jest.fn(),
+jest.mock('@/redux/hooks', () => ({ useAppDispatch: () => mockDispatch }))
+jest.mock('@/redux/slices/setup-slice', () => ({
+    setupActions: {
+        setInviteCode: (value: string) => ({ type: 'invite/code', payload: value }),
+        setInviteType: (value: string) => ({ type: 'invite/type', payload: value }),
+    },
 }))
 jest.mock('@/hooks/useLogin', () => ({ useLogin: () => ({ handleLoginClick: mockLogin, isLoggingIn: false }) }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({
@@ -443,7 +444,8 @@ describe('invite and badge campaign routing boundaries', () => {
         render(<InvitesPage />)
         fireEvent.click(await screen.findByRole('button', { name: 'Claim your spot' }))
 
-        expect(mockStashInvite).toHaveBeenCalledWith('alice', 'PAYMENT_LINK')
+        expect(mockDispatch).toHaveBeenCalledWith({ type: 'invite/code', payload: 'alice' })
+        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'alice')
         expect(mockQueuePendingBadgeCampaigns).toHaveBeenCalledWith(['Creator/Summer', 'second'])
         expect(mockPush).toHaveBeenCalledWith('/setup?step=signup')
     })
@@ -466,7 +468,7 @@ describe('invite and badge campaign routing boundaries', () => {
         render(<InvitesPage />)
         fireEvent.click(await screen.findByRole('button', { name: 'Claim your spot' }))
 
-        expect(mockStashInvite).toHaveBeenCalledWith('offramp', 'PAYMENT_LINK')
+        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'offramp')
         expect(mockQueuePendingBadgeCampaigns).not.toHaveBeenCalled()
         expect(mockPush).toHaveBeenCalledWith('/setup?step=signup')
     })
@@ -492,7 +494,7 @@ describe('invite and badge campaign routing boundaries', () => {
         expect(screen.queryByText(/legacy-placeholder invited you/i)).not.toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Sign up' }))
 
-        expect(mockStashInvite).toHaveBeenCalledWith('founderhaus', 'PAYMENT_LINK')
+        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'founderhaus')
         expect(mockQueuePendingBadgeCampaigns).not.toHaveBeenCalled()
         expect(mockPush).toHaveBeenCalledWith('/setup?step=signup')
     })
@@ -518,7 +520,7 @@ describe('invite and badge campaign routing boundaries', () => {
         expect(screen.queryByText('Claim your badge')).not.toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Claim your spot' }))
 
-        expect(mockStashInvite).toHaveBeenCalledWith('squirrelinvitesyou', 'PAYMENT_LINK')
+        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'squirrelinvitesyou')
         // utm values stopped being badge identities (TASK-21226); nothing queues
         expect(mockQueuePendingBadgeCampaigns).not.toHaveBeenCalled()
         expect(mockPush).toHaveBeenCalledWith('/setup?step=signup')
@@ -618,7 +620,7 @@ describe('invite and badge campaign routing boundaries', () => {
         fireEvent.click(await screen.findByRole('button', { name: 'Claim your spot' }))
 
         // invite bookkeeping still runs so post-install signup recovers context
-        expect(mockStashInvite).toHaveBeenCalledWith('alice', 'PAYMENT_LINK')
+        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'alice')
         expect(mockInterceptGuestCta).toHaveBeenCalledTimes(1)
         expect(mockPush).not.toHaveBeenCalledWith('/setup?step=signup')
         // the CTA rendered for a settled guest — the impression must be armed
@@ -660,6 +662,7 @@ describe('invite and badge campaign routing boundaries', () => {
         fireEvent.click(await screen.findByRole('button', { name: 'Sign up' }))
 
         expect(mockSaveToCookie).not.toHaveBeenCalled()
+        expect(mockDispatch).not.toHaveBeenCalled()
         expect(mockQueuePendingBadgeCampaigns).toHaveBeenCalledWith(['nita'])
         expect(mockPush).toHaveBeenCalledWith('/setup?step=signup')
     })
