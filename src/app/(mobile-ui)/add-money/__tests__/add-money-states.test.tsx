@@ -1397,6 +1397,22 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
         expect(screen.getByText('How much do you want to add?')).toBeInTheDocument()
     })
 
+    test('mexico needs-enrollment unlock sends the NA intent', async () => {
+        setParams({ country: 'mexico' })
+        setGate('needs-enrollment')
+        resetQueryState({ step: 'verify' })
+        const handleInitiateKyc = jest.fn()
+        mockUseMultiPhaseKycFlow.mockReturnValue({ ...mockUseMultiPhaseKycFlow(), handleInitiateKyc })
+
+        renderWithProviders(<OnrampBankPage />)
+
+        await act(async () => {
+            fireEvent.click(screen.getByTestId('kyc-verify-button'))
+        })
+
+        expect(handleInitiateKyc.mock.calls[0].slice(0, 3)).toEqual(['NA', undefined, true])
+    })
+
     // Was: the amount step showed, and Continue raised the KYC modal. The flow
     // asks first now, so the same property — no deposit confirmation without
     // KYC — is enforced a step earlier, before a number is ever typed.
