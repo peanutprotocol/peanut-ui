@@ -48,6 +48,7 @@ jest.mock('@/utils/general.utils', () => ({
     removeFromCookie: jest.fn(),
     saveToCookie: jest.fn(),
     saveToLocalStorage: jest.fn(),
+    updateUserPreferences: jest.fn(),
 }))
 jest.mock('@zerodev/passkey-validator', () => ({
     toWebAuthnKey: (...args: unknown[]) => mockToWebAuthnKey(...args),

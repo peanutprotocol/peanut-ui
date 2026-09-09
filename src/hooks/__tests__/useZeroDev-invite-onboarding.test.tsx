@@ -19,7 +19,11 @@ const mockSettleShhhhhCampaignContinuation = jest.fn()
 let mockPendingBadgeCampaigns: string[] = []
 
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: null, logoutUser: jest.fn() }),
+    useAuth: () => ({
+        user: null,
+        logoutUser: jest.fn(),
+        hydrateLoginSession: jest.fn().mockResolvedValue({ user: { userId: 'registered-user' } }),
+    }),
 }))
 jest.mock('@/context/kernelClient.context', () => ({
     useKernelClient: () => ({
@@ -56,6 +60,7 @@ jest.mock('@/utils/invite-stash', () => ({
     clearInvite: (...args: unknown[]) => mockClearInvite(...args),
 }))
 jest.mock('@/utils/general.utils', () => ({
+    updateUserPreferences: jest.fn(),
     getFromCookie: (key: string) => (key === 'inviteCode' ? 'founderhaus' : null),
     removeFromCookie: (...args: unknown[]) => mockRemoveFromCookie(...args),
     saveToCookie: (...args: unknown[]) => mockSaveToCookie(...args),
