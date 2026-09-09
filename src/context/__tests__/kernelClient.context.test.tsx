@@ -19,6 +19,14 @@ const mockStopReconnect = jest.fn()
 const mockToPasskeyValidator = jest.fn()
 const mockUpdateUserPreferences = jest.fn()
 let mockUserId = 'u1'
+let mockCookieOnly = false
+const mockCookieKey = {
+    pubX: 1n,
+    pubY: 2n,
+    authenticatorId: 'cookie-key',
+    authenticatorIdHash: '0x01',
+    rpID: 'localhost',
+}
 let mockAccounts: Array<{ type: string; identifier: string }> = []
 let mockReconnectCallback: (() => void) | undefined
 
@@ -50,16 +58,19 @@ jest.mock('@/hooks/useZeroDevFlow', () => ({
     },
 }))
 jest.mock('@/utils/general.utils', () => ({
-    getFromCookie: () => null,
-    getUserPreferences: (userId: string) => ({
-        webAuthnKey: {
-            pubX: 1n,
-            pubY: 2n,
-            authenticatorId: userId === 'u1' ? 'auth-1' : 'auth-2',
-            authenticatorIdHash: '0x01',
-            rpID: 'localhost',
-        },
-    }),
+    getFromCookie: () => (mockCookieOnly ? mockCookieKey : null),
+    getUserPreferences: (userId: string) =>
+        mockCookieOnly
+            ? {}
+            : {
+                  webAuthnKey: {
+                      pubX: 1n,
+                      pubY: 2n,
+                      authenticatorId: userId === 'u1' ? 'auth-1' : 'auth-2',
+                      authenticatorIdHash: '0x01',
+                      rpID: 'localhost',
+                  },
+              },
     updateUserPreferences: (...args: unknown[]) => mockUpdateUserPreferences(...args),
 }))
 jest.mock('@zerodev/passkey-validator', () => ({
@@ -129,6 +140,7 @@ beforeEach(() => {
     mockReconnectCallback = undefined
     mockAccounts = []
     mockUserId = 'u1'
+    mockCookieOnly = false
     jest.spyOn(console, 'error').mockImplementation(() => {})
     jest.spyOn(console, 'warn').mockImplementation(() => {})
 })
@@ -387,3 +399,39 @@ it('persists the new account key after success and ignores the old account build
     })
     expect(mockUpdateUserPreferences).not.toHaveBeenCalledWith('u1', expect.anything())
 })
+
+it.each([true, false])(
+    'a cookie-only key is persisted only after wallet ownership is checked (matches=%s)',
+    async (matches) => {
+        mockCookieOnly = true
+        mockAccounts = [{ type: 'peanut-wallet', identifier: '0x1111111111111111111111111111111111111111' }]
+        mockToPasskeyValidator.mockRejectedValue(new Error('offline'))
+        renderProvider()
+        await waitFor(() => expect(mockReconnectCallback).toBeDefined())
+        expect(mockUpdateUserPreferences).not.toHaveBeenCalled()
+        expect(mockLogoutUser).not.toHaveBeenCalled()
+
+        const sdk = jest.requireMock('@zerodev/sdk')
+        mockToPasskeyValidator.mockResolvedValue({})
+        sdk.createKernelAccount.mockResolvedValue({
+            address: matches
+                ? '0x1111111111111111111111111111111111111111'
+                : '0x2222222222222222222222222222222222222222',
+        })
+        sdk.createKernelAccountClient.mockImplementation(({ account }: { account: object }) => ({
+            account,
+            sendUserOperation: jest.fn(),
+        }))
+        act(() => mockReconnectCallback!())
+        if (matches) {
+            await waitFor(() =>
+                expect(mockUpdateUserPreferences).toHaveBeenCalledWith('u1', { webAuthnKey: mockCookieKey })
+            )
+            expect(mockLogoutUser).not.toHaveBeenCalled()
+        } else {
+            await waitFor(() => expect(mockLogoutUser).toHaveBeenCalledTimes(1))
+            expect(mockUpdateUserPreferences).not.toHaveBeenCalledWith('u1', { webAuthnKey: mockCookieKey })
+            expect(mockUpdateUserPreferences).toHaveBeenCalledWith('u1', { webAuthnKey: undefined })
+        }
+    }
+)
