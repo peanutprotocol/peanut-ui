@@ -581,7 +581,11 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                 storeClient(primaryChainId, kernelClient)
                 // Persist after the current build passes the wallet ownership check.
                 // A user-id effect can pair the new user with the old key.
-                if (user?.user.userId) updateUserPreferences(user.user.userId, { webAuthnKey })
+                // Legacy builds inject the profile address; equality proves no key ownership.
+                // Their fresh ceremony keys are already saved against the authenticated user.
+                if (user?.user.userId && isAfterZeroDevMigration && expectedAddress && derivedAddress) {
+                    updateUserPreferences(user.user.userId, { webAuthnKey })
+                }
                 fetchUser()
                 zeroDevFlowActions.setIsKernelClientReady(true)
                 zeroDevFlowActions.setIsRegistering(false)

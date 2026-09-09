@@ -331,3 +331,21 @@ it.each(['login', 'registration'])(
         }
     }
 )
+
+it('retains a newly registered key if API session hydration fails', async () => {
+    const { PasskeyServerError } = jest.requireActual('@/utils/webauthn.utils')
+    const { saveToCookie } = jest.requireMock('@/utils/general.utils')
+    const { WEB_AUTHN_COOKIE_KEY } = jest.requireActual('@/constants/auth.consts')
+    const key = { authenticatorId: 'created-before-api-outage' }
+    mockToWebAuthnKey.mockResolvedValue(key)
+    mockHydrateLoginSession.mockRejectedValue(new PasskeyServerError(new Error('Session hydration timed out')))
+    const { result } = renderHook(() => useZeroDev())
+    await act(async () => {
+        await expect(result.current.handleRegister('alice')).rejects.toMatchObject({ name: 'PasskeyServerError' })
+    })
+    expect(saveToCookie).toHaveBeenCalledWith(WEB_AUTHN_COOKIE_KEY, key, 90)
+    expect(mockUpdateUserPreferences).not.toHaveBeenCalled()
+    expect(mockSetWebAuthnKey).not.toHaveBeenCalled()
+    const { zeroDevFlowActions } = jest.requireMock('@/hooks/useZeroDevFlow')
+    expect(zeroDevFlowActions.setIsRegistering).toHaveBeenCalledWith(false)
+})

@@ -132,6 +132,9 @@ export const useZeroDev = () => {
                 )
             )
 
+            // Keep the new key recoverable even if the API session cannot load yet.
+            saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
+
             // Bind the ceremony key to the fresh API session, never the render's previous user.
             // Native cookies may disappear on restart; persist before any RPC-dependent build.
             const registeredUser = await hydrateLoginSession()
@@ -276,7 +279,6 @@ export const useZeroDev = () => {
             }
 
             setWebAuthnKey(webAuthnKey)
-            saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
         } catch (e) {
             if ((e as Error).message.includes('pending')) {
                 // the concurrent-request bail must still release the button

@@ -19,6 +19,7 @@ const mockStopReconnect = jest.fn()
 const mockToPasskeyValidator = jest.fn()
 const mockUpdateUserPreferences = jest.fn()
 let mockUserId = 'u1'
+let mockCreatedAt = '2026-01-01T00:00:00.000Z'
 let mockCookieOnly = false
 const mockCookieKey = {
     pubX: 1n,
@@ -33,7 +34,7 @@ let mockReconnectCallback: (() => void) | undefined
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({
         user: {
-            user: { userId: mockUserId, username: 'alice', createdAt: '2026-01-01T00:00:00.000Z' },
+            user: { userId: mockUserId, username: 'alice', createdAt: mockCreatedAt },
             accounts: mockAccounts,
         },
         logoutUser: mockLogoutUser,
@@ -140,6 +141,7 @@ beforeEach(() => {
     mockReconnectCallback = undefined
     mockAccounts = []
     mockUserId = 'u1'
+    mockCreatedAt = '2026-01-01T00:00:00.000Z'
     mockCookieOnly = false
     jest.spyOn(console, 'error').mockImplementation(() => {})
     jest.spyOn(console, 'warn').mockImplementation(() => {})
@@ -359,6 +361,7 @@ it('never persists the previous account credential under a newly active user', a
 })
 
 it('persists the new account key after success and ignores the old account build finishing last', async () => {
+    mockAccounts = [{ type: 'peanut-wallet', identifier: '0x1111111111111111111111111111111111111111' }]
     const sdk = jest.requireMock('@zerodev/sdk')
     sdk.createKernelAccount.mockImplementation(
         (_client: unknown, options: { plugins: { sudo: { address: string } } }) => ({
@@ -381,6 +384,7 @@ it('persists the new account key after success and ignores the old account build
     const view = renderProvider()
     await waitFor(() => expect(mockToPasskeyValidator).toHaveBeenCalled())
     mockUserId = 'u2'
+    mockAccounts = [{ type: 'peanut-wallet', identifier: '0x2222222222222222222222222222222222222222' }]
     view.rerender(
         <KernelClientProvider>
             <div />
@@ -400,11 +404,20 @@ it('persists the new account key after success and ignores the old account build
     expect(mockUpdateUserPreferences).not.toHaveBeenCalledWith('u1', expect.anything())
 })
 
-it.each([true, false])(
-    'a cookie-only key is persisted only after wallet ownership is checked (matches=%s)',
-    async (matches) => {
+it.each([
+    [true, true, true],
+    [true, false, true],
+    [false, true, true],
+    [false, false, true],
+    [true, true, false],
+])(
+    'a cookie-only key needs independent ownership proof (modern=%s, matches=%s, wallet=%s)',
+    async (modern, matches, hasWallet) => {
+        mockCreatedAt = modern ? '2026-01-01T00:00:00.000Z' : '2025-01-01T00:00:00.000Z'
         mockCookieOnly = true
-        mockAccounts = [{ type: 'peanut-wallet', identifier: '0x1111111111111111111111111111111111111111' }]
+        mockAccounts = hasWallet
+            ? [{ type: 'peanut-wallet', identifier: '0x1111111111111111111111111111111111111111' }]
+            : []
         mockToPasskeyValidator.mockRejectedValue(new Error('offline'))
         renderProvider()
         await waitFor(() => expect(mockReconnectCallback).toBeDefined())
@@ -412,7 +425,10 @@ it.each([true, false])(
         expect(mockLogoutUser).not.toHaveBeenCalled()
 
         const sdk = jest.requireMock('@zerodev/sdk')
-        mockToPasskeyValidator.mockResolvedValue({})
+        mockToPasskeyValidator.mockResolvedValue({ address: matches ? 'owned-validator' : 'other-validator' })
+        sdk.createKernelMigrationAccount.mockImplementation((_client: unknown, { address }: { address: string }) => ({
+            address,
+        }))
         sdk.createKernelAccount.mockResolvedValue({
             address: matches
                 ? '0x1111111111111111111111111111111111111111'
@@ -423,7 +439,11 @@ it.each([true, false])(
             sendUserOperation: jest.fn(),
         }))
         act(() => mockReconnectCallback!())
-        if (matches) {
+        if (!modern || !hasWallet) {
+            await waitFor(() => expect(mockDispatch).toHaveBeenCalledWith({ type: 'zerodev/ready', payload: true }))
+            expect(mockUpdateUserPreferences).not.toHaveBeenCalled()
+            expect(mockLogoutUser).not.toHaveBeenCalled()
+        } else if (matches) {
             await waitFor(() =>
                 expect(mockUpdateUserPreferences).toHaveBeenCalledWith('u1', { webAuthnKey: mockCookieKey })
             )
