@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- These resources are looked up by name by MeaWallet and OneSignal. -->
+<!-- These resources are looked up by name by MeaWallet, OneSignal and Cordova.
+     xml/config is the Cordova plugin registry: cap sync generates it and
+     ConfigXmlParser loads it only through reflection, so the shrinker sees no
+     reference. Binary 1.5.0+21653381 shipped without it and every Android KYC
+     launch failed with "Class not found" (TASK-22471). android-release.yml
+     asserts it survived in the final AAB. -->
 <resources xmlns:tools="http://schemas.android.com/tools"
-    tools:keep="@raw/mea_config,@drawable/ic_stat_onesignal_default" />
+    tools:keep="@raw/mea_config,@drawable/ic_stat_onesignal_default,@xml/config" />
