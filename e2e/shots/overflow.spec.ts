@@ -138,11 +138,15 @@ for (const [name, fixture] of Object.entries(FIXTURES)) {
             .toBe(name)
         await settle(page)
 
-        // prove the app actually rendered this locale, or the gate is a no-op
-        const locale = testInfo.project.use.locale
+        // prove the app actually RENDERED this locale, or the gate scans the
+        // English it hydrates with: IntlCore stamps <html lang> only after the
+        // async catalog is applied, so wait for that — navigator.language only
+        // proves the browser asked for it
         await expect
-            .poll(() => page.evaluate(() => navigator.language), { message: 'context locale not applied' })
-            .toBe(locale)
+            .poll(() => page.evaluate(() => document.documentElement.lang), {
+                message: 'translated catalog never rendered',
+            })
+            .toBe(testInfo.project.use.locale)
 
         await assertNoOverflow(page, `fixture:${name}`, testInfo)
     })
@@ -204,6 +208,14 @@ for (const route of SETUP_ROUTES) {
         if (route.includes('step=signup')) {
             await expect(page.locator('input:visible').first()).toBeVisible()
         }
+
+        // same catalog race as the fixture tests: scan only after the app
+        // stamps the rendered locale
+        await expect
+            .poll(() => page.evaluate(() => document.documentElement.lang), {
+                message: 'translated catalog never rendered',
+            })
+            .toBe(testInfo.project.use.locale)
 
         await assertNoOverflow(page, `setup:${route}`, testInfo)
     })
