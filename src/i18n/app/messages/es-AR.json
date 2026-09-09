@@ -535,7 +535,7 @@
             "requiresInfoBody": "Nuestro equipo te ayudará a terminar tu solicitud de tarjeta — escribile a soporte para continuar.",
             "requiresSupportBody": "Tuvimos un problema al procesar tu solicitud de tarjeta. Nuestro equipo necesita revisarlo — escribile a soporte y lo resolvemos.",
             "rejectedBody": "Podés seguir usando Peanut sin problema para depositar, retirar y pagar con cripto.",
-            "geoBlockedBody": "Por restricciones regulatorias, no podemos emitir tarjetas en tu región. Igual podés usar Peanut libremente para depositar, retirar y pagar con cripto."
+            "geoBlockedBody": "La disponibilidad de la tarjeta depende de dónde vivís. Podés seguir usando las otras funciones de Peanut disponibles para vos."
         },
         "cancel": {
             "body": "Esto cancelará tu tarjeta de forma permanente. No servirá para ninguna transacción. Tendrás que pedir una nueva si cambiás de opinión.",
@@ -1194,12 +1194,12 @@
             "payWhatYouWant": "Pagá lo que quieras",
             "sendExactAmount": "¡Enviá el monto exacto!"
         },
-        "betaBanner": "¡Peanut está en beta! Gracias por ser un usuario temprano, compartí tu opinión aquí",
         "iosCopy": {
             "inviteFriendsModal": {
                 "description": "Compartí tu enlace. Cada vez que un amigo que trajiste haga un pago, ganás cashback."
             }
-        }
+        },
+        "feedbackBanner": "Ayudanos a mejorar Peanut. Compartí tus comentarios acá."
     },
     "errors": {
         "balanceSettling": "Tu saldo aún no está totalmente disponible. Intentalo de nuevo en unos segundos.",

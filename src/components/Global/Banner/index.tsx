@@ -22,11 +22,11 @@ export function Banner() {
     if (!pathname) return null
 
     // Demo mode is the app-store review sandbox: synthetic data, no real
-    // backend — none of the banners (beta feedback, connectivity, maintenance)
+    // backend — none of the banners (feedback, connectivity, maintenance)
     // apply there.
     if (isDemoMode()) return null
 
-    // Connectivity wins over the beta/maintenance banners: if the app can't reach
+    // Connectivity wins over the feedback/maintenance banners: if the app can't reach
     // the backend, that's the most actionable thing to tell the user right now.
     if (connectivity.show) {
         return <ConnectivityBanner isOffline={connectivity.isOffline} />
@@ -37,7 +37,7 @@ export function Banner() {
         return <MaintenanceBanner />
     }
 
-    // don't show beta feedback banner on landing pages, setup page, or quests pages
+    // don't show feedback banner on landing pages, setup page, or quests pages
     if (
         pathname === '/' ||
         pathname === '/setup' ||
@@ -47,15 +47,15 @@ export function Banner() {
     )
         return null
 
-    // The beta feedback banner is hidden in the iOS app: it's a marquee strip
+    // The feedback banner is hidden in the iOS app: it's a marquee strip
     // pinned above every screen, and on iPhone it eats vertical space directly
-    // under the notch for what is a web-era "we're in beta, tell us things"
+    // under the notch for what is a web-era "share your feedback"
     // prompt. Support is still reachable from Settings. Deliberately iOS-only —
     // Android and web keep it, and so does the non-prod run-mode pill below,
     // which is how testers tell sandbox from real money at a glance.
     if (isIOSNative()) return null
 
-    // show beta feedback banner when not in maintenance
+    // show feedback banner when not in maintenance
     return <FeedbackBanner />
 }
 
@@ -82,8 +82,8 @@ function FeedbackBanner() {
         <button onClick={handleClick} className="w-full cursor-pointer">
             <MarqueeWrapper backgroundColor="bg-primary-1" direction="left">
                 <span className="z-10 mx-4 flex items-center gap-2 text-sm font-semibold">
-                    {t('betaBanner')}
-                    <Image src={HandThumbsUp} alt={t('betaBannerThumbsUpAlt')} className="h-4 w-4" />
+                    {t('feedbackBanner')}
+                    <Image src={HandThumbsUp} alt={t('feedbackBannerThumbsUpAlt')} className="h-4 w-4" />
                     {!IS_PRODUCTION && <span className="ml-2 text-sm font-semibold">version: {GIT_COMMIT_HASH}</span>}
                     {mode && (
                         // High-contrast yellow-on-black pill. Visually impossible

@@ -7,6 +7,18 @@ const emptyOverview = { status: { hasApplication: false }, cards: [], balance: n
 type CardFixture = 'application' | 'prohibited' | 'pending' | 'holder' | 'guest'
 
 async function installCardFixture(page: Page, fixture: CardFixture) {
+    // Synthetic accounts have no real passkey; use the existing local harness bypass.
+    await page.addInitScript(() => localStorage.setItem('__harness_skip_passkey', 'true'))
+    if (fixture !== 'guest') {
+        await page.context().addCookies([
+            {
+                name: 'jwt-token',
+                value: 'card-public-fixture',
+                url: test.info().project.use.baseURL || 'http://localhost:8766',
+            },
+        ])
+    }
+    await page.routeWebSocket('**/*', (socket) => socket.close())
     const user = {
         ...DEMO_USER,
         user: { ...DEMO_USER.user, username: 'cardapplicant', badges: [], isActivated: false },
@@ -59,7 +71,7 @@ async function installCardFixture(page: Page, fixture: CardFixture) {
             body = { isEligible: false, geoProhibited: fixture === 'prohibited' || fixture === 'holder' }
         } else if (url.pathname === '/rain/cards') {
             body = method === 'POST' ? { status: 'terms-required', isUsResident: false } : overview
-        } else if (url.pathname === '/consent/status') {
+        } else if (url.pathname === '/users/consent/status') {
             body = { documents: [], needsAcceptance: false }
         } else if (url.pathname === '/tokens/wallet-portfolio') {
             body = { balances: [], totalBalance: 0 }
@@ -88,6 +100,8 @@ test('an ordinary account reaches the application and card terms without a queue
     await expect(apply).toBeVisible()
     await expect(page.getByText(/closed beta|try the door|join.*waitlist/i)).toHaveCount(0)
     await shot(page, 'application')
+    await apply.scrollIntoViewIfNeeded()
+    await shot(page, 'application-cta')
     await apply.click()
     await expect(page.getByText('Card Terms', { exact: true })).toBeVisible()
     expect(calls).toContain('POST /rain/cards')

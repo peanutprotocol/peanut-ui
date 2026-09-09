@@ -1154,7 +1154,7 @@
             "rejectedTitle": "We couldn't issue you a card",
             "rejectedBody": "You can still use Peanut freely to deposit, withdraw, and pay with crypto.",
             "geoBlockedTitle": "Cards aren't available in your region yet",
-            "geoBlockedBody": "Due to regulatory restrictions, we can't issue cards in your region. You can still use Peanut freely to deposit, withdraw, and pay with crypto.",
+            "geoBlockedBody": "Card availability depends on where you live. You can keep using the other features available to you in Peanut.",
             "geoBlockedPolicyLink": "See which regions are restricted"
         },
         "cancel": {
@@ -3065,10 +3065,8 @@
             "payWhatYouWant": "Pay what you want",
             "sendExactAmount": "Send the exact amount!"
         },
-        "betaBanner": "Peanut is in beta! Thank you for being an early user, share your feedback here",
         "demoBanner": "Demo mode — you're previewing Peanut with a simulated wallet. Balances and transactions aren't real.",
         "rainCooldownPill": "Card cool-down",
-        "betaBannerThumbsUpAlt": "Thumbs up",
         "easterEggImageAlt": "Easter egg illustration",
         "reConsent": {
             "reassurance": "Nothing changes about your fees, your funds, or how we handle your data.",
@@ -3080,7 +3078,9 @@
             "inviteFriendsModal": {
                 "description": "Share your link. Every time a friend you brought makes a payment, you earn cashback."
             }
-        }
+        },
+        "feedbackBanner": "Help us improve Peanut. Share your feedback here.",
+        "feedbackBannerThumbsUpAlt": "Thumbs up"
     },
     "errors": {
         "balanceSettling": "Your balance isn't fully available yet. Please try again in a few seconds.",

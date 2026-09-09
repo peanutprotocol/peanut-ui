@@ -17,7 +17,7 @@ import { parsePaymentURL, type ParseUrlError } from '@/lib/url-parser/parser'
 import PeanutLoading from '@/components/Global/PeanutLoading'
 import ErrorAlert from '@/components/Global/ErrorAlert'
 import NavHeader from '@/components/Global/NavHeader'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useEffect, useState } from 'react'
 import { type ParsedURL } from '@/lib/url-parser/types/payment'
@@ -33,6 +33,8 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
     const t = useTranslations('payment')
     const searchParams = useSearchParams()
     const chargeIdFromUrl = searchParams.get('chargeId')
+    const isRetiredCardPayment = searchParams.get('context') === 'card-pioneer'
+    const router = useRouter()
 
     const [parsedUrl, setParsedUrl] = useState<ParsedURL | null>(null)
     const [isLoading, setIsLoading] = useState(true)
@@ -40,6 +42,11 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
 
     // parse the url segments
     useEffect(() => {
+        // Old admission links must never open a payable charge after public launch.
+        if (isRetiredCardPayment) {
+            router.replace('/card')
+            return
+        }
         // if we have a chargeId, skip URL parsing — charge will provide all needed data.
         // check this before recipient validation so /pay-request?chargeId=X works with empty recipient.
         if (chargeIdFromUrl) {
@@ -82,10 +89,10 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
             .finally(() => {
                 setIsLoading(false)
             })
-    }, [recipient, chargeIdFromUrl, t])
+    }, [recipient, chargeIdFromUrl, isRetiredCardPayment, router, t])
 
     // loading state
-    if (isLoading) {
+    if (isRetiredCardPayment || isLoading) {
         return (
             <div className="flex min-h-[inherit] w-full flex-col gap-4">
                 <NavHeader title={t('headers.pay')} onPrev={onBack} />
