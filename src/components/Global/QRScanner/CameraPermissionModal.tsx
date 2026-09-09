@@ -167,24 +167,27 @@ export default function CameraPermissionModal({ visible, onRetry, onClose }: Cam
                         )}
 
                         {steps && (
-                            <Carousel>
-                                {steps.map((step, i) => {
-                                    const label = t(step.labelKey)
-                                    return (
-                                        <div key={i} className="embla__slide flex flex-col items-center gap-2">
-                                            <Image
-                                                src={step.image}
-                                                alt={label}
-                                                className="w-full rounded-sm"
-                                                placeholder="blur"
-                                            />
-                                            <p className="text-center text-body-xs text-foreground-secondary">
-                                                {label}
-                                            </p>
-                                        </div>
-                                    )
-                                })}
-                            </Carousel>
+                            /* data-vaul-no-drag: the horizontal carousel swipe must not start a drawer drag */
+                            <div data-vaul-no-drag>
+                                <Carousel>
+                                    {steps.map((step, i) => {
+                                        const label = t(step.labelKey)
+                                        return (
+                                            <div key={i} className="embla__slide flex flex-col items-center gap-2">
+                                                <Image
+                                                    src={step.image}
+                                                    alt={label}
+                                                    className="w-full rounded-sm"
+                                                    placeholder="blur"
+                                                />
+                                                <p className="text-center text-body-xs text-foreground-secondary">
+                                                    {label}
+                                                </p>
+                                            </div>
+                                        )
+                                    })}
+                                </Carousel>
+                            </div>
                         )}
 
                         {/* one primary + one secondary (Dismiss) — the old

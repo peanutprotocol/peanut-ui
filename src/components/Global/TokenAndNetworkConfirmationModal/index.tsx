@@ -76,7 +76,8 @@ export default function TokenAndNetworkConfirmationModal({
                             </div>
                         </div>
 
-                        <div className="w-full">
+                        {/* data-vaul-no-drag: the horizontal slide gesture must not start a drawer drag */}
+                        <div className="w-full" data-vaul-no-drag>
                             <SlideToConfirm
                                 onConfirm={onAccept}
                                 label={t('tokenAndNetworkConfirmationModal.slideToProceed')}
