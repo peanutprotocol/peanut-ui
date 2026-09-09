@@ -4,7 +4,7 @@ name: Android Release (Play)
 # Removes the "release only builds on one laptop" gap: the upload keystore lives
 # as CI secrets, the build is reproducible, and the AAB lands on a Play track.
 #
-# Trigger: normally called by release-native.yml. A manual run on `dev` with no
+# Trigger: normally called by release-native.yml. A manual run on `dev` or `release/android-kyc` with no
 # versionName rebuilds the current tagged Android version only: versionName stays
 # put, Play receives a new monotonic versionCode, the shared iOS OTA floor does
 # not advance, and a credentialless follow-up job records the attested Android
@@ -49,7 +49,7 @@ on:
                 type: choice
                 options: [internal, alpha, beta, production]
             versionName:
-                description: 'Leave blank to rebuild the current Android version on dev; explicit values are break-glass'
+                description: 'Leave blank to rebuild the current Android version on dev or release/android-kyc; explicit values are break-glass'
                 required: false
                 type: string
             pushDebug:
@@ -164,8 +164,8 @@ jobs:
                   VERSION_NAME="$INPUT_VERSION"
                   DIRECT_REBUILD=false
                   if [ -z "$VERSION_NAME" ] && [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && [ "$GITHUB_REF_TYPE" != "tag" ]; then
-                      if [ "$GITHUB_REF_NAME" != "dev" ]; then
-                          echo "::error::Android replacement builds are cut from dev, not $GITHUB_REF_NAME" >&2
+                      if [ "$GITHUB_REF_NAME" != "dev" ] && [ "$GITHUB_REF_NAME" != "release/android-kyc" ]; then
+                          echo "::error::Android replacement builds are cut from dev or release/android-kyc, not $GITHUB_REF_NAME" >&2
                           exit 1
                       fi
                       VERSION_NAME="$(node scripts/release-version.mjs native-floor)"
