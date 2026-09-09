@@ -1,13 +1,12 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useLocale, useTranslations } from 'next-intl'
+import { useLocale } from 'next-intl'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
-import Modal from '@/components/Global/Modal'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { toSumsubLocale } from '@/i18n/app/sumsub-locale'
-import { SumsubSdkErrorView } from './SumsubSdkErrorView'
+import { SumsubWebSdkModal } from './SumsubWebSdkModal'
 import type { SumsubSdkProps } from './sumsubSdk.types'
 
 /**
@@ -21,12 +20,16 @@ const SUBMITTED_STATES = new Set(['Pending', 'TemporarilyDeclined', 'FinallyReje
 /**
  * Drives the Sumsub Cordova SDK inside the Capacitor shell.
  *
- * The native SDK owns the whole screen, so this renders nothing while it is up
- * — only the failure state gets UI. That failure state is the entire point of
- * the component: run the WebSDK in the WebView instead and a Sumsub-side init
- * failure paints *their* "Initialization error" screen inside the iframe, which
- * throws nothing we can catch and reports nothing. Here every exit path is
- * either a resolved launch or a captured exception.
+ * The native SDK owns the whole screen, so this renders nothing while it is up.
+ * When the native SDK cannot start at all (plugin missing from the binary,
+ * init throw, launch rejection — e.g. the 1.5.0+21653381 Android build that
+ * shipped without the Cordova plugin's native class), falling over to the
+ * WebSDK in the WebView beats a dead-end error screen: the WebSDK is the
+ * battle-tested PWA path and runs in the WebView. The trade-off that made
+ * native primary still stands — a Sumsub-side init failure in the web iframe
+ * is silent to our handlers — but as a fallback that risk only exists for
+ * users who otherwise could not verify at all. Every native failure is still
+ * captured to Sentry/PostHog before the fallback renders.
  */
 export const SumsubNativeSdk = ({
     visible,
@@ -38,13 +41,11 @@ export const SumsubNativeSdk = ({
     onSubmitted,
     isMultiLevel,
 }: SumsubSdkProps) => {
-    const t = useTranslations('kyc')
     const locale = useLocale()
     const [failure, setFailure] = useState<'sdk-missing' | 'launch' | null>(null)
 
     const onCloseRef = useRef(onClose)
     const onCompleteRef = useRef(onComplete)
-    const onErrorRef = useRef(onError)
     const onRefreshTokenRef = useRef(onRefreshToken)
     const accessTokenRef = useRef(accessToken)
     const isMultiLevelRef = useRef(isMultiLevel)
@@ -54,12 +55,11 @@ export const SumsubNativeSdk = ({
     useEffect(() => {
         onCloseRef.current = onClose
         onCompleteRef.current = onComplete
-        onErrorRef.current = onError
         onRefreshTokenRef.current = onRefreshToken
         accessTokenRef.current = accessToken
         isMultiLevelRef.current = isMultiLevel
         onSubmittedRef.current = onSubmitted
-    }, [onClose, onComplete, onError, onRefreshToken, accessToken, isMultiLevel, onSubmitted])
+    }, [onClose, onComplete, onRefreshToken, accessToken, isMultiLevel, onSubmitted])
 
     useEffect(() => {
         sumsubLocaleRef.current = toSumsubLocale(locale)
@@ -84,8 +84,11 @@ export const SumsubNativeSdk = ({
                 tags: { sumsub_sdk: 'native', sumsub_failure: reason },
                 extra: { detail },
             })
+            // Falling back to the WebSDK is recovery, not a terminal error, so
+            // the parent's onError stays quiet here; the web driver still calls
+            // it if the fallback itself fails.
+            posthog.capture(ANALYTICS_EVENTS.KYC_WEB_FALLBACK_USED, { platform: 'native', reason })
             setFailure(kind)
-            onErrorRef.current?.(detail)
         }
 
         const sumsub = window.SNSMobileSDK
@@ -158,22 +161,19 @@ export const SumsubNativeSdk = ({
 
     if (!visible || !failure) return null
 
+    // Native SDK could not start — hand the same session to the WebSDK. The web
+    // driver owns its own load-error UI, so a fallback that also fails still
+    // ends in an actionable error screen rather than a blank modal.
     return (
-        <Modal
-            visible
+        <SumsubWebSdkModal
+            visible={visible}
+            accessToken={accessToken}
             onClose={onClose}
-            classWrap="h-full w-full !max-w-none sm:!max-w-[600px] border-none sm:m-auto m-0"
-            classOverlay="bg-black/50"
-            video={false}
-            className="z-[100] !p-0 md:!p-6"
-            classButtonClose="hidden"
-            preventClose={true}
-            hideOverlay={false}
-        >
-            <SumsubSdkErrorView
-                onClose={onClose}
-                message={failure === 'sdk-missing' ? t('errorSdkUnavailable') : t('wrapper.loadError')}
-            />
-        </Modal>
+            onComplete={onComplete}
+            onSubmitted={onSubmitted}
+            onError={onError}
+            onRefreshToken={onRefreshToken}
+            isMultiLevel={isMultiLevel}
+        />
     )
 }

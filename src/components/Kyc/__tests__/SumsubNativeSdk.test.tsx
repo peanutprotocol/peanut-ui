@@ -17,11 +17,11 @@ jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: (...a: un
 const captureException = jest.fn()
 jest.mock('@sentry/nextjs', () => ({ captureException: (...a: unknown[]) => captureException(...a) }))
 
-jest.mock('@/components/Global/Modal', () => ({
+jest.mock('../SumsubWebSdkModal', () => ({
     __esModule: true,
-    default: function MockModal({ visible, children }: { visible: boolean; children: ReactNode }) {
+    SumsubWebSdkModal: ({ visible, accessToken }: { visible: boolean; accessToken: string | null }) => {
         if (!visible) return null
-        return <div data-testid="modal">{children}</div>
+        return <div data-testid="web-fallback" data-token={accessToken ?? ''} />
     },
 }))
 
@@ -185,10 +185,11 @@ describe('SumsubNativeSdk', () => {
         }
     )
 
-    // The whole point of moving off the WebSDK: a Sumsub-side failure used to
-    // paint their "Initialization error" screen inside a cross-origin iframe and
-    // report nothing. It must now reach the user AND both reporters.
-    it('surfaces and reports a failed launch', async () => {
+    // A native SDK that cannot start must not dead-end the user: the WebSDK
+    // takes over with the same session token, and both reporters still hear
+    // about the native failure (that telemetry is how the broken 21653381
+    // Android binary was caught).
+    it('falls back to the WebSDK and reports a failed launch', async () => {
         launch.mockResolvedValue({ success: false, status: 'Failed', errorType: 'Unknown', errorMsg: 'boom' })
         const props = baseProps()
         const { rerender } = render(<SumsubNativeSdk visible={false} {...props} />)
@@ -197,12 +198,14 @@ describe('SumsubNativeSdk', () => {
             rerender(<SumsubNativeSdk visible {...props} />)
         })
 
-        expect(await screen.findByText(/failed to load verification/i)).toBeInTheDocument()
+        const fallback = await screen.findByTestId('web-fallback')
+        expect(fallback).toHaveAttribute('data-token', 'tok_abc')
         expect(capture).toHaveBeenCalledWith('kyc_sdk_init_failed', expect.objectContaining({ platform: 'native' }))
+        expect(capture).toHaveBeenCalledWith('kyc_web_fallback_used', expect.objectContaining({ reason: 'Unknown' }))
         expect(captureException).toHaveBeenCalled()
     })
 
-    it('surfaces and reports a missing plugin instead of opening nothing', async () => {
+    it('falls back to the WebSDK when the plugin is missing from the binary', async () => {
         delete (window as unknown as { SNSMobileSDK?: unknown }).SNSMobileSDK
         const props = baseProps()
 
@@ -210,11 +213,24 @@ describe('SumsubNativeSdk', () => {
             render(<SumsubNativeSdk visible {...props} />)
         })
 
-        expect(screen.getByText(/not available/i)).toBeInTheDocument()
+        expect(screen.getByTestId('web-fallback')).toBeInTheDocument()
         expect(capture).toHaveBeenCalledWith(
             'kyc_sdk_init_failed',
             expect.objectContaining({ reason: 'sdk-unavailable' })
         )
+        expect(capture).toHaveBeenCalledWith(
+            'kyc_web_fallback_used',
+            expect.objectContaining({ reason: 'sdk-unavailable' })
+        )
+    })
+
+    it('does not render the fallback while the native SDK is up', async () => {
+        const props = baseProps()
+        await act(async () => {
+            render(<SumsubNativeSdk visible {...props} />)
+        })
+        expect(launch).toHaveBeenCalledTimes(1)
+        expect(screen.queryByTestId('web-fallback')).not.toBeInTheDocument()
     })
 
     // Without this the plugin's module-level lock is never released and every

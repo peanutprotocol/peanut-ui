@@ -192,6 +192,8 @@ export const ANALYTICS_EVENTS = {
     KYC_SDK_LAUNCHED: 'kyc_sdk_launched',
     KYC_SDK_LAUNCH_TIMEOUT: 'kyc_sdk_launch_timeout',
     KYC_SDK_INIT_FAILED: 'kyc_sdk_init_failed',
+    // native SDK failed and the WebSDK rendered in its place
+    KYC_WEB_FALLBACK_USED: 'kyc_web_fallback_used',
 
     // ── Card: acquisition funnel (Rain virtual card) ──
     // State observed on /card mount or transition. `state` matches CardTopLevelState.
