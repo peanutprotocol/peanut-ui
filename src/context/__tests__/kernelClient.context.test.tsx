@@ -18,13 +18,14 @@ const mockCaptureException = jest.fn()
 const mockStopReconnect = jest.fn()
 const mockToPasskeyValidator = jest.fn()
 const mockUpdateUserPreferences = jest.fn()
+let mockUserId = 'u1'
 let mockAccounts: Array<{ type: string; identifier: string }> = []
 let mockReconnectCallback: (() => void) | undefined
 
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({
         user: {
-            user: { userId: 'u1', username: 'alice', createdAt: '2026-01-01T00:00:00.000Z' },
+            user: { userId: mockUserId, username: 'alice', createdAt: '2026-01-01T00:00:00.000Z' },
             accounts: mockAccounts,
         },
         logoutUser: mockLogoutUser,
@@ -50,8 +51,14 @@ jest.mock('@/hooks/useZeroDevFlow', () => ({
 }))
 jest.mock('@/utils/general.utils', () => ({
     getFromCookie: () => null,
-    getUserPreferences: () => ({
-        webAuthnKey: { pubX: 1n, pubY: 2n, authenticatorId: 'auth-1', authenticatorIdHash: '0x01', rpID: 'localhost' },
+    getUserPreferences: (userId: string) => ({
+        webAuthnKey: {
+            pubX: 1n,
+            pubY: 2n,
+            authenticatorId: userId === 'u1' ? 'auth-1' : 'auth-2',
+            authenticatorIdHash: '0x01',
+            rpID: 'localhost',
+        },
     }),
     updateUserPreferences: (...args: unknown[]) => mockUpdateUserPreferences(...args),
 }))
@@ -121,6 +128,7 @@ beforeEach(() => {
     jest.clearAllMocks()
     mockReconnectCallback = undefined
     mockAccounts = []
+    mockUserId = 'u1'
     jest.spyOn(console, 'error').mockImplementation(() => {})
     jest.spyOn(console, 'warn').mockImplementation(() => {})
 })
@@ -309,4 +317,73 @@ it('stops handing out the previous credential client while a new credential init
         await pending
     })
     expect(context.getClientForChain(chainId).account?.address).toBe('0x2222222222222222222222222222222222222222')
+})
+
+it('never persists the previous account credential under a newly active user', async () => {
+    mockToPasskeyValidator.mockRejectedValue(new Error('offline'))
+    const view = renderProvider()
+    await waitFor(() => expect(mockToPasskeyValidator).toHaveBeenCalled())
+    mockUpdateUserPreferences.mockClear()
+    mockUserId = 'u2'
+    view.rerender(
+        <KernelClientProvider>
+            <div />
+        </KernelClientProvider>
+    )
+    await waitFor(() =>
+        expect(mockToPasskeyValidator).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+                webAuthnKey: expect.objectContaining({ authenticatorId: 'auth-2' }),
+            })
+        )
+    )
+    expect(mockUpdateUserPreferences).not.toHaveBeenCalledWith(
+        'u2',
+        expect.objectContaining({
+            webAuthnKey: expect.objectContaining({ authenticatorId: 'auth-1' }),
+        })
+    )
+})
+
+it('persists the new account key after success and ignores the old account build finishing last', async () => {
+    const sdk = jest.requireMock('@zerodev/sdk')
+    sdk.createKernelAccount.mockImplementation(
+        (_client: unknown, options: { plugins: { sudo: { address: string } } }) => ({
+            address: options.plugins.sudo.address,
+        })
+    )
+    sdk.createKernelAccountClient.mockImplementation(({ account }: { account: object }) => ({
+        account,
+        sendUserOperation: jest.fn(),
+    }))
+    let resolveOld!: (value: object) => void
+    mockToPasskeyValidator
+        .mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    resolveOld = resolve
+                })
+        )
+        .mockResolvedValue({ address: '0x2222222222222222222222222222222222222222' })
+    const view = renderProvider()
+    await waitFor(() => expect(mockToPasskeyValidator).toHaveBeenCalled())
+    mockUserId = 'u2'
+    view.rerender(
+        <KernelClientProvider>
+            <div />
+        </KernelClientProvider>
+    )
+    await waitFor(() =>
+        expect(mockUpdateUserPreferences).toHaveBeenCalledWith('u2', {
+            webAuthnKey: expect.objectContaining({ authenticatorId: 'auth-2' }),
+        })
+    )
+    await act(async () => {
+        resolveOld({ address: '0x1111111111111111111111111111111111111111' })
+    })
+    expect(mockUpdateUserPreferences).not.toHaveBeenCalledWith('u2', {
+        webAuthnKey: expect.objectContaining({ authenticatorId: 'auth-1' }),
+    })
+    expect(mockUpdateUserPreferences).not.toHaveBeenCalledWith('u1', expect.anything())
 })

@@ -217,8 +217,10 @@ const SignTestTransaction = () => {
         } catch (e) {
             console.error('[SignTestTransaction] Test transaction failed:', e)
 
-            // capture comprehensive debug info for troubleshooting
-            await capturePasskeyDebugInfo('test-transaction-failed')
+            // Browser capability probes must not delay recovery from a failed signature.
+            void capturePasskeyDebugInfo('test-transaction-failed').catch((debugError) => {
+                console.warn('[SignTestTransaction] Diagnostics failed:', debugError)
+            })
 
             // capture the error with additional context
             Sentry.captureException(e, {
