@@ -28,41 +28,6 @@ jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: mockUser }),
 }))
 
-jest.mock('@/components/Global/ActionModal', () => ({
-    __esModule: true,
-    default: (props: {
-        visible: boolean
-        title?: string
-        description?: React.ReactNode
-        content?: React.ReactNode
-        checkbox?: { text: string; checked: boolean; onChange: (checked: boolean) => void }
-        ctas?: { text: string; disabled?: boolean; onClick: () => void }[]
-    }) => {
-        const checkbox = props.checkbox
-        if (!props.visible) return null
-        return (
-            <div data-testid="modal">
-                <h3>{props.title}</h3>
-                <div>{props.description}</div>
-                <div>{props.content}</div>
-                {checkbox && (
-                    <input
-                        type="checkbox"
-                        data-testid="consent-checkbox"
-                        checked={checkbox.checked}
-                        onChange={(e) => checkbox.onChange(e.target.checked)}
-                    />
-                )}
-                {props.ctas?.map((c) => (
-                    <button key={c.text} disabled={c.disabled} onClick={c.onClick}>
-                        {c.text}
-                    </button>
-                ))}
-            </div>
-        )
-    },
-}))
-
 jest.mock('@/components/Global/DocsLink', () => ({
     __esModule: true,
     default: ({ children }: { children: React.ReactNode }) => <a>{children}</a>,
@@ -137,7 +102,7 @@ describe('ReConsentModal', () => {
         mockGetStatus.mockRejectedValue(new Error('api down'))
         render(<ReConsentModal />)
         await flush()
-        expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
         // ...but prod is told about it
         expect(mockCaptureException).toHaveBeenCalledTimes(1)
     })
@@ -146,7 +111,7 @@ describe('ReConsentModal', () => {
         mockGetStatus.mockResolvedValue({ needsReConsent: false, documents: [] })
         render(<ReConsentModal />)
         await flush()
-        expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 
     it('stays hidden when the only outdated docs are ones this client cannot display', async () => {
@@ -156,7 +121,7 @@ describe('ReConsentModal', () => {
         })
         render(<ReConsentModal />)
         await flush()
-        expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 
     it('shows outdated docs and records acceptance of exactly what was displayed', async () => {
@@ -168,23 +133,23 @@ describe('ReConsentModal', () => {
         render(<ReConsentModal />)
         await flush()
 
-        expect(screen.getByTestId('modal')).toBeInTheDocument()
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
         // document names come from the catalog (shared with the About screen), not a literal
         expect(screen.getByText('Terms of Service')).toBeInTheDocument()
         expect(screen.getByText('Privacy Policy')).toBeInTheDocument()
-        const cta = screen.getByText('Accept & continue')
+        const cta = screen.getByRole('button', { name: 'Accept & continue' })
         expect(cta).toBeDisabled()
 
-        fireEvent.click(screen.getByTestId('consent-checkbox'))
+        fireEvent.click(screen.getByRole('checkbox'))
         await act(async () => {
-            fireEvent.click(screen.getByText('Accept & continue'))
+            fireEvent.click(screen.getByRole('button', { name: 'Accept & continue' }))
         })
 
         expect(mockAccept).toHaveBeenCalledWith([
             expect.objectContaining({ slug: 'terms' }),
             expect.objectContaining({ slug: 'privacy' }),
         ])
-        expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
         // acceptance must be distinguishable from refusal in analytics —
         // the accept-vs-postpone ratio is the rollout's headline metric
         expect(capturedEvents()).toEqual(['modal_shown', 'modal_cta_clicked'])
@@ -195,9 +160,9 @@ describe('ReConsentModal', () => {
         render(<ReConsentModal />)
         await flush()
 
-        expect(screen.getByText('Accept & continue')).toBeDisabled()
+        expect(screen.getByRole('button', { name: 'Accept & continue' })).toBeDisabled()
         // the escape hatch must not require ticking a consent box first
-        expect(screen.getByText('Not now')).not.toBeDisabled()
+        expect(screen.getByRole('button', { name: 'Not now' })).not.toBeDisabled()
     })
 
     it('"Not now" dismisses without recording any consent (a refusal is not a ledger row)', async () => {
@@ -206,10 +171,10 @@ describe('ReConsentModal', () => {
         await flush()
 
         await act(async () => {
-            fireEvent.click(screen.getByText('Not now'))
+            fireEvent.click(screen.getByRole('button', { name: 'Not now' }))
         })
 
-        expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
         expect(mockAccept).not.toHaveBeenCalled()
         expect(capturedEvents()).toEqual(['modal_shown', 'modal_dismissed'])
     })
@@ -219,14 +184,14 @@ describe('ReConsentModal', () => {
         const first = render(<ReConsentModal />)
         await flush()
         await act(async () => {
-            fireEvent.click(screen.getByText('Not now'))
+            fireEvent.click(screen.getByRole('button', { name: 'Not now' }))
         })
         first.unmount()
 
         // fresh session (remount → fresh refs), still inside the snooze window
         render(<ReConsentModal />)
         await flush()
-        expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
         // and we don't even spend the request while snoozed
         expect(mockGetStatus).toHaveBeenCalledTimes(1)
 
@@ -234,7 +199,7 @@ describe('ReConsentModal', () => {
         window.localStorage.setItem('peanut.reconsent.snoozedUntil.user-1', String(Date.now() - 1))
         render(<ReConsentModal />)
         await flush()
-        expect(screen.getByTestId('modal')).toBeInTheDocument()
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
     })
 
     it('one user postponing does not suppress the prompt for a different account', async () => {
@@ -242,14 +207,14 @@ describe('ReConsentModal', () => {
         const first = render(<ReConsentModal />)
         await flush()
         await act(async () => {
-            fireEvent.click(screen.getByText('Not now'))
+            fireEvent.click(screen.getByRole('button', { name: 'Not now' }))
         })
         first.unmount()
 
         mockUser = { user: { userId: 'user-2' } }
         render(<ReConsentModal />)
         await flush()
-        expect(screen.getByTestId('modal')).toBeInTheDocument()
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
     })
 
     it('a failed accept keeps the modal, shows the error, and leaves retry enabled', async () => {
@@ -258,14 +223,14 @@ describe('ReConsentModal', () => {
         render(<ReConsentModal />)
         await flush()
 
-        fireEvent.click(screen.getByTestId('consent-checkbox'))
+        fireEvent.click(screen.getByRole('checkbox'))
         await act(async () => {
-            fireEvent.click(screen.getByText('Accept & continue'))
+            fireEvent.click(screen.getByRole('button', { name: 'Accept & continue' }))
         })
 
-        expect(screen.getByTestId('modal')).toBeInTheDocument()
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
         expect(screen.getByText(/could not save your acceptance/i)).toBeInTheDocument()
-        expect(screen.getByText('Accept & continue')).not.toBeDisabled()
+        expect(screen.getByRole('button', { name: 'Accept & continue' })).not.toBeDisabled()
         expect(mockCaptureException).toHaveBeenCalledTimes(1)
     })
 
@@ -283,7 +248,7 @@ describe('ReConsentModal', () => {
         await act(async () => {
             resolvePreviousUser({ needsReConsent: true, documents: [statusDoc('terms')] })
         })
-        expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 
     it('re-checks (and resets state) for each distinct user, once per session', async () => {
