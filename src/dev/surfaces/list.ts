@@ -11,6 +11,13 @@ export type SurfaceMeta = {
     name: string
     path: string
     blocked?: string
+    /** Fixture the shot spec must load instead of its default — for surfaces
+     *  whose open state depends on an API answer the demo baseline lacks. */
+    shotFixture?: string
+    /** Accessible name of a button the shot spec clicks after load — for
+     *  surfaces that mount closed and open on an in-surface action. The spec
+     *  asserts a dialog is open before capturing. */
+    shotClick?: string
 }
 
 export const SURFACE_META: Record<string, SurfaceMeta> = {
@@ -159,7 +166,12 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '64-d-nodataemptystate': { name: 'NoDataEmptyState', path: 'Global/EmptyStates/NoDataEmptyState.tsx' },
     '65-d-faqs': { name: 'FAQs', path: 'Global/FAQs/index.tsx' },
     '69-d-perkclaimsuccess': { name: 'PerkClaimSuccessModal', path: 'Home/PerkClaimSuccessModal.tsx' },
-    '70-d-activationctas-outbound': { name: 'ActivationCTAs (outbound)', path: 'Home/ActivationCTAs.tsx' },
+    '70-d-activationctas-outbound': {
+        name: 'ActivationCTAs (outbound)',
+        path: 'Home/ActivationCTAs.tsx',
+        shotFixture: 'card-access',
+        shotClick: 'Start Spending',
+    },
     '66-d-backupfaqlosephone': { name: 'Backup FAQ — lose phone', path: 'Profile/BackupFaqModals.tsx' },
     '67-d-backupfaqchangephone': { name: 'Backup FAQ — change phone', path: 'Profile/BackupFaqModals.tsx' },
     '68-d-backupfaqexportkeys': { name: 'Backup FAQ — export keys', path: 'Profile/BackupFaqModals.tsx' },

@@ -11,7 +11,6 @@ import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent } from '@/components/Global/Drawer'
 import { Button } from '@/components/0_Bruddle/Button'
-import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
 import { useRouter } from 'next/navigation'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { useAuth } from '@/context/authContext'
@@ -25,13 +24,21 @@ interface PerkClaimSuccessModalProps {
     claimPhase: ClaimPhase
     onClose: () => void
     onDismiss: () => void
+    /** Open the invite drawer — rendered by the host, which survives this sheet's unmount. */
+    onShareInvite?: () => void
 }
 
 /**
  * Success sheet for a claimed perk — celebration content, so it rides in a
  * drawer; the invite handoff closes this sheet before opening its own.
  */
-export function PerkClaimSuccessModal({ perk, claimPhase, onClose, onDismiss }: PerkClaimSuccessModalProps) {
+export function PerkClaimSuccessModal({
+    perk,
+    claimPhase,
+    onClose,
+    onDismiss,
+    onShareInvite,
+}: PerkClaimSuccessModalProps) {
     const t = useAppTranslations('home.perk')
     const tCommon = useTranslations('common')
     const inviteeName = perk.inviteeName ?? extractInviteeName(perk.reason)
@@ -39,7 +46,6 @@ export function PerkClaimSuccessModal({ perk, claimPhase, onClose, onDismiss }: 
     const router = useRouter()
     const { user } = useAuth()
     const [canDismiss, setCanDismiss] = useState(false)
-    const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
     const isExiting = claimPhase === 'exiting'
 
     // Surprise moment claim count: read synchronously so first render has correct copy.
@@ -118,7 +124,7 @@ export function PerkClaimSuccessModal({ perk, claimPhase, onClose, onDismiss }: 
                                                     source: REFERRAL_SOURCES.SURPRISE_MOMENT,
                                                 })
                                                 onDismiss()
-                                                setIsInviteModalOpen(true)
+                                                onShareInvite?.()
                                             }}
                                         >
                                             {t('shareAndEarn')}
@@ -149,14 +155,6 @@ export function PerkClaimSuccessModal({ perk, claimPhase, onClose, onDismiss }: 
                     </div>
                 </DrawerContent>
             </Drawer>
-            {user?.user.username && (
-                <InviteFriendsModal
-                    visible={isInviteModalOpen}
-                    onClose={() => setIsInviteModalOpen(false)}
-                    username={user.user.username}
-                    source="surprise_moment"
-                />
-            )}
         </>
     )
 }

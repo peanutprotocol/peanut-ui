@@ -12,6 +12,7 @@ import { useAuth } from '@/context/authContext'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { extractInviteeName } from '@/utils/general.utils'
 import PerkClaimModal from '../PerkClaimModal'
+import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
 import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
 
 const HomeCarouselCTA = () => {
@@ -23,6 +24,18 @@ const HomeCarouselCTA = () => {
     // Perk claim modal state
     const [selectedPerk, setSelectedPerk] = useState<PendingPerk | null>(null)
     const [claimedPerkIds, setClaimedPerkIds] = useState<Set<string>>(new Set())
+    // The success sheet's share CTA. The invite drawer lives HERE because the
+    // perk tree unmounts 400ms after dismissal — a drawer inside it dies
+    // mid-open, and two open vaul roots would double-apply the background
+    // scale. Deferred until the perk sheet is gone, so the two never overlap.
+    const [pendingInvite, setPendingInvite] = useState(false)
+    const [inviteOpen, setInviteOpen] = useState(false)
+    useEffect(() => {
+        if (!selectedPerk && pendingInvite) {
+            setPendingInvite(false)
+            setInviteOpen(true)
+        }
+    }, [selectedPerk, pendingInvite])
 
     useEffect(() => {
         setClaimedPerkIds(new Set())
@@ -126,6 +139,15 @@ const HomeCarouselCTA = () => {
                     visible={!!selectedPerk}
                     onClose={handleModalClose}
                     onClaimed={handlePerkClaimed}
+                    onShareInvite={() => setPendingInvite(true)}
+                />
+            )}
+            {user?.user.username && (
+                <InviteFriendsModal
+                    visible={inviteOpen}
+                    onClose={() => setInviteOpen(false)}
+                    username={user.user.username}
+                    source="surprise_moment"
                 />
             )}
         </>

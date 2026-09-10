@@ -71,7 +71,9 @@ for (const [id, surface] of Object.entries(SURFACE_META)) {
         await page.clock.setFixedTime(FROZEN_NOW)
         await page.addInitScript(seenOnceModals)
 
-        await page.goto(`/dev/surfaces?s=${id}&__fixture=${FIXTURE}`, { waitUntil: 'domcontentloaded' })
+        await page.goto(`/dev/surfaces?s=${id}&__fixture=${surface.shotFixture ?? FIXTURE}`, {
+            waitUntil: 'domcontentloaded',
+        })
 
         // Prove fixture mode engaged — without it a protected surface bounces to
         // /setup and we would happily shoot 65 pictures of the wrong screen.
@@ -85,6 +87,14 @@ for (const [id, surface] of Object.entries(SURFACE_META)) {
         // otherwise be photographed as whatever it landed on, under this id's
         // filename — which is how a home screen ended up labelled InstallPWA.
         expect(new URL(page.url()).pathname, 'the surface navigated away from the harness').toBe('/dev/surfaces')
+
+        // A staged surface mounts closed and opens on an in-surface action —
+        // click it and prove the dialog opened, or the shot silently reviews
+        // the wrong UI.
+        if (surface.shotClick) {
+            await page.getByRole('button', { name: surface.shotClick }).click()
+            await expect(page.getByRole('dialog')).toBeVisible()
+        }
 
         // Radix/vaul mount their portals a frame after open; the freeze stylesheet
         // has to land after that or the drawer slides during the shot.
