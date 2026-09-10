@@ -67,6 +67,27 @@ jobs:
               with:
                   node-version: '22'
 
+            # `native` returns latestBuild + 1 — a number, derived from the tags,
+            # with no opinion on whether this commit contains the build it is
+            # numbering itself after. Cut from a ref that lags the newest release
+            # and the store gets a HIGHER version carrying OLDER code, which only
+            # another store release can undo. The OTA lane makes the same check
+            # for the same reason (see release-ota.yml).
+            - name: Guard release provenance
+              run: |
+                  # native-floor has no answer for the first release of a new major
+                  # (`native` starts it at <major>.1.0), and there is no earlier
+                  # build for this commit to contain.
+                  if ! FLOOR="$(node scripts/release-version.mjs native-floor 2>/dev/null)"; then
+                      echo "no previous native release for this major — nothing to contain"
+                      exit 0
+                  fi
+                  if ! git merge-base --is-ancestor "v$FLOOR" HEAD; then
+                      echo "::error::$GITHUB_REF_NAME (${GITHUB_SHA:0:7}) does not contain the newest native release v$FLOOR — a build from it would ship a higher version than v$FLOOR carrying older code. Back-merge the release into this ref first." >&2
+                      exit 1
+                  fi
+                  echo "${GITHUB_SHA:0:7} contains v$FLOOR"
+
             - name: Resolve next build version
               id: resolve
               run: |

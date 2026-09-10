@@ -197,6 +197,22 @@ and it is fine for it to lag behind what ships.
 
 ### Cutting a release
 
+> **Owed to the next native release: the `/app` App Links claim.**
+> `d91ea7cee` added `/app` + `/app/*` to `public/.well-known/apple-app-site-association`
+> and `/app` + `/app/` to `android/app/src/main/AndroidManifest.xml`. `v1.6.0` predates
+> that commit, so no shipped binary or AASA ever carried the claim — but the manifest half
+> moved the native fingerprint, and `check-native-ota-surface` compares that fingerprint
+> against the binary an OTA targets. The two lines therefore blocked every production
+> bundle while delivering nothing, with the fleet stuck on JS older than its own binary.
+> Both platforms were reverted together so the iOS↔Android parity case in
+> `src/utils/__tests__/app-links.test.ts` stays enforced; only the two `/app`-presence
+> cases are `it.skip`.
+>
+> **Restore all three in the PR that cuts the next native release** — the AASA entries, the
+> manifest entries, and the two skipped cases. Never restore them on `dev` alone: an intent
+> filter cannot ship over the air, so on their own they block OTA again for no user-visible
+> gain. `native-routes.ts` still maps `/app/*` → `/app`, so nothing else needs touching.
+
 All three manual workflows accept `dev`, `main`, and `release/android-kyc`.
 Select the source branch before dispatch. A supported branch name does not prove
 that its current commit is ready to ship.
@@ -381,6 +397,39 @@ OTA** (§6). The workflow only accepts a dispatch from `dev`, `main`, or
 production channel and refuses other refs.
 Staging is published separately and manually through **App Staging OTA**; there is no
 automatic staging publish or `ota-*` break-glass workflow.
+
+### Provenance: the ref must contain the newest native release
+
+Both release workflows assert that the dispatched commit contains the newest
+`v<major>.<build>.0` tag, before anything is built. Neither resolver can tell on its own:
+`ota` lands the next bundle inside the newest native build's range and `native` returns
+`latestBuild + 1`, so **both produce a number that outranks the binary whether or not the
+commit contains it**. A bundle numbered above the binary is accepted by every device, and
+an OTA carrying pre-release code is therefore a silent downgrade of the JS the binary
+shipped with; a store build in that state is worse, since only another store release
+undoes it.
+
+This is not hypothetical. On **2026-09-10** production bundle `1.6.1` was published from
+`ff3489650` — the tip of `main`, which did not yet contain the `v1.6.0` release cut from
+`dev` the day before. Every install on the 1.6.0 binary took it and ran JS older than its
+own. Two things had to line up:
+
+- **`main` lagged `dev`**, so the code was old. The routine fix is a back-merge (§ release
+  flow); the guard now names it as the remedy instead of leaving the operator to work it
+  out from a fingerprint diff.
+- **The bundle shipped through a tag push at that old commit.** A `push`-triggered workflow
+  runs the workflow file **as it existed at the pushed ref**, so `ota-1.6.1` ran the
+  long-retired `capgo-deploy.yml` still present at `ff3489650` — with no floor check, no
+  surface check and `--auto-min-update-version`. Retiring a workflow on `dev`/`main` does
+  **not** retire it at older commits, and the same trap applies to the `v*` prefix. Treat
+  every `ota-*` / `v*` tag push as running last month's pipeline, and ship through the
+  dispatch workflows instead.
+
+`check-native-ota-surface.mjs` already asserted the same ancestry, but only as a
+precondition of its fingerprint diff — in the deploy job, after a full install and native
+build, and reported as `v1.6.0 is not an ancestor of HEAD`. The explicit guard fails in
+seconds and says what the consequence would have been. A stale ref whose native surface
+happened to match would have passed the fingerprint diff entirely.
 
 One deliberate exception to "opt-in per release": a **native release auto-publishes a
 matching production bundle** when its versionName is ahead of the newest production

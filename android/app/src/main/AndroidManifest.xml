@@ -37,8 +37,6 @@
 
                 <data android:scheme="https" android:host="peanut.me" />
 
-                <data android:path="/app" />
-                <data android:pathPrefix="/app/" />
                 <data android:path="/home" />
                 <data android:pathPrefix="/home/" />
                 <data android:path="/card" />
