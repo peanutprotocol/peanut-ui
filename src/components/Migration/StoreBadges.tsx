@@ -20,7 +20,7 @@ export default function StoreBadges({ surface, payload }: { surface: MigrationSu
     const thisPlatform = deviceType === DeviceType.IOS ? 'ios' : deviceType === DeviceType.ANDROID ? 'android' : null
     const stores = thisPlatform ? ([thisPlatform] as const) : (['ios', 'android'] as const)
     return (
-        <div className="flex w-full flex-col gap-3">
+        <div className="flex w-full flex-col gap-4">
             {stores.map((s, i) => (
                 <a
                     key={s}
@@ -38,10 +38,12 @@ export default function StoreBadges({ surface, payload }: { surface: MigrationSu
                     }}
                     className="w-full"
                 >
+                    {/* no size: full-width store CTAs are medium (44px, 20px icon) like
+                        every primary/secondary CTA — small (40px) was under the DS default
+                        and mismatched the setup flow's h-11 siblings */}
                     <Button
                         variant={i === 0 ? 'purple' : 'stroke'}
                         shadowSize="4"
-                        size="small"
                         icon={s === 'ios' ? 'apple-logo' : 'google-play'}
                         className="w-full"
                     >
