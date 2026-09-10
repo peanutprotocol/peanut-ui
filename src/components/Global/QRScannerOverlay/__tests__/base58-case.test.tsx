@@ -69,7 +69,7 @@ jest.mock('@/components/Global/QRScanner', () => ({
 }))
 
 import QRScannerOverlay from '../index'
-import { readScannedDestination } from '@/features/withdraw/destination'
+import { SCAN_ID_PARAM, takeScannedDestination } from '@/features/withdraw/destination'
 
 // Real, publicly known addresses. The Solana one holds an uppercase L, the
 // character that a `.toLowerCase()` turns into the one letter base58 excludes.
@@ -124,10 +124,12 @@ describe('QRScannerOverlay case handling', () => {
             // the amount step, on the crypto rail — method selection is implied
             expect(params.get('step')).toBe('amount')
             expect(params.get('method')).toBe('crypto')
-            expect(params.get('from')).toBe('scan')
             // the address goes in process, never in the URL PostHog records
             expect(pushed).not.toContain(SOLANA_WITH_UPPERCASE_L)
-            expect(readScannedDestination()).toEqual({ address: SOLANA_WITH_UPPERCASE_L, chainId: 'solana' })
+            expect(takeScannedDestination(params.get(SCAN_ID_PARAM))).toEqual({
+                address: SOLANA_WITH_UPPERCASE_L,
+                chainId: 'solana',
+            })
         })
     })
 
@@ -156,7 +158,7 @@ describe('QRScannerOverlay case handling', () => {
             await scan(SOLANA_ONLY_AFTER_LOWERCASING)
             expect(screen.getByText('Unrecognized QR code')).toBeInTheDocument()
             expect(screen.queryByText('Payment Confirmation')).not.toBeInTheDocument()
-            expect(readScannedDestination()?.address).not.toBe(SOLANA_ONLY_AFTER_LOWERCASING.toLowerCase())
+            expect(mockPush).not.toHaveBeenCalled()
         })
     })
 

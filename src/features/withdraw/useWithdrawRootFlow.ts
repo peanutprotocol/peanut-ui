@@ -16,7 +16,7 @@ import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { withdrawBankUrl, withdrawCountryUrl } from '@/utils/native-routes'
-import { readScannedDestination, SCAN_ENTRY_PARAM, SCAN_ENTRY_VALUE, withdrawTokenForChain } from './destination'
+import { SCAN_ID_PARAM, takeScannedDestination, withdrawTokenForChain } from './destination'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
 import { parseAsString, parseAsBoolean, useQueryState } from 'nuqs'
@@ -39,7 +39,7 @@ export function useWithdrawRootFlow() {
 
     const [, setShowAll] = useQueryState('showAll', parseAsBoolean.withDefault(false))
     const [methodParam] = useQueryState('method', parseAsString)
-    const [scanEntryParam] = useQueryState(SCAN_ENTRY_PARAM, parseAsString)
+    const [scanIdParam] = useQueryState(SCAN_ID_PARAM, parseAsString)
     const [returnToParam] = useQueryState(RETURN_TO_PARAM, parseAsString)
     const { isFromSendFlow, isCryptoFromSend, isBankFromSend } = useSendFlowOrigin()
 
@@ -56,16 +56,6 @@ export function useWithdrawRootFlow() {
     } = useWithdrawFlow()
 
     const { supportedChainsAndTokens, setSelectedChainID, setSelectedTokenAddress } = useContext(tokenSelectorContext)
-
-    // A destination the user picked before entering the flow (a scanned QR
-    // code). Only the "you got here from a scan" marker travels in the URL; the
-    // address itself is handed over in process, so it never reaches a pageview,
-    // a session replay or a Sentry breadcrumb. The marker is also what fences
-    // out a stale one — nothing but a scan produces this entry.
-    const scannedDestination = useMemo(
-        () => (scanEntryParam === SCAN_ENTRY_VALUE ? readScannedDestination() : null),
-        [scanEntryParam]
-    )
 
     const [urlAmount, setUrlAmount] = useWithdrawAmount()
     // raw amount currently typed in the input; the URL is the commit point
@@ -98,12 +88,18 @@ export function useWithdrawRootFlow() {
     // is implied, so commit it and land straight on the amount step.
     useEffect(() => {
         if (!isCryptoFromSend) return
-        if (!selectedMethod) {
+        // A scan names the rail, so it replaces a method the user left selected —
+        // /withdraw keeps its layout mounted, so scanning from the amount step of
+        // a bank withdrawal arrives with that bank method still in flow memory,
+        // and Continue would follow the old bank route (and apply its fiat
+        // minimum) instead of paying the scanned address.
+        if (!selectedMethod || (scanIdParam && selectedMethod.type !== 'crypto')) {
             setSelectedMethod({ type: 'crypto', title: 'Crypto', countryPath: undefined })
+            setSelectedBankAccount(null)
         }
         if (stepper.step === 'method') void stepper.goTo('amount')
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isCryptoFromSend, selectedMethod, stepper.step])
+    }, [isCryptoFromSend, selectedMethod, stepper.step, scanIdParam])
 
     // flag to know if the user has manually entered something
     const userTypedRef = useRef<boolean>(false)
@@ -307,10 +303,13 @@ export function useWithdrawRootFlow() {
             // Hand the scanned destination to the recipient step the way an
             // address-book tap does — chain, token and a pre-validated address
             // in flow state, which InitialWithdrawView then preserves instead
-            // of resetting to USDC on Arbitrum.
+            // of resetting to USDC on Arbitrum. Consumed here, at its one
+            // legitimate use, so nothing can re-apply it over a destination the
+            // user picks afterwards.
             // No token means the chain list has not arrived yet — seeding the chain and
             // recipient without one opens the step with a valid recipient and nothing to
             // send, so leave it to its own defaults instead.
+            const scannedDestination = takeScannedDestination(scanIdParam)
             const token = scannedDestination
                 ? withdrawTokenForChain(supportedChainsAndTokens?.[scannedDestination.chainId]?.tokens)
                 : undefined
@@ -372,7 +371,7 @@ export function useWithdrawRootFlow() {
         downstreamQuery,
         setError,
         t,
-        scannedDestination,
+        scanIdParam,
         supportedChainsAndTokens,
         setSelectedChainID,
         setSelectedTokenAddress,

@@ -10,19 +10,25 @@ export interface WithdrawDestination {
 
 /**
  * Where a destination chosen outside the flow — today a scanned QR code — enters
- * the withdraw flow: the amount step of the crypto rail, marked as arriving from
- * a scan so the flow knows to pick the destination up.
+ * the withdraw flow: the amount step of the crypto rail, carrying the id of the
+ * scan that sent the user there.
  *
- * The marker is all the URL carries. The address itself is handed over in
- * process (see stashScannedDestination) because a query parameter rides into
+ * The id is all the URL carries. The address itself is handed over in process
+ * (see {@link stashScannedDestination}) because a query parameter rides into
  * PostHog's automatic pageviews, session replay and Sentry breadcrumbs, and
  * redactQrTelemetry only scrubs the QR-specific parameter names — so a payout
  * address in the URL would tie "where this person sent their money" to an
  * identified user. The address-book hand-off already works this way.
+ *
+ * It is an id rather than a bare marker because /withdraw keeps its layout
+ * mounted: a second scan from that page navigates without remounting, so a
+ * value that never changes would leave the flow holding the first destination.
  */
-export const SCAN_ENTRY_PARAM = 'from'
-export const SCAN_ENTRY_VALUE = 'scan'
-export const WITHDRAW_SCAN_ENTRY_URL = `/withdraw?step=amount&method=crypto&${SCAN_ENTRY_PARAM}=${SCAN_ENTRY_VALUE}`
+export const SCAN_ID_PARAM = 'scan'
+
+export function withdrawScanEntryUrl(scanId: string): string {
+    return `/withdraw?step=amount&method=crypto&${SCAN_ID_PARAM}=${encodeURIComponent(scanId)}`
+}
 
 /**
  * The destination an address and chain name, or null when they name none we can
@@ -42,29 +48,36 @@ export function readWithdrawDestination(
     return { address, chainId }
 }
 
-let scanned: WithdrawDestination | null = null
+let scanned: (WithdrawDestination & { id: string }) | null = null
+let scanCount = 0
 
 /**
- * Offer a scanned destination to the withdraw flow. Returns false — and stores
- * nothing — when it is not one we can pay out to, which is the caller's cue to
- * say so rather than navigate.
+ * Offer a scanned destination to the withdraw flow. Returns the id to put in the
+ * entry URL, or null — storing nothing — when it is not one we can pay out to,
+ * which is the caller's cue to say so rather than navigate.
  */
-export function stashScannedDestination(address: string, chainId: string): boolean {
+export function stashScannedDestination(address: string, chainId: string): string | null {
     const destination = readWithdrawDestination(address, chainId)
-    if (!destination) return false
-    scanned = destination
-    return true
+    if (!destination) return null
+    scanned = { ...destination, id: `scan-${++scanCount}` }
+    return scanned.id
 }
 
 /**
- * The last scanned destination. Read, not consumed: React re-invokes state
- * initializers in development, and a one-shot read would hand the second call
- * nothing. Staleness is fenced by {@link SCAN_ENTRY_PARAM} instead — only a
- * navigation that a scan produced asks for this, and that navigation has just
- * overwritten it.
+ * The destination that scan handed over, consumed. Only the scan named by `id`
+ * gets one, so a URL left over from an earlier scan hands out nothing, and
+ * pressing on twice cannot re-apply a destination the user has moved past.
  */
-export function readScannedDestination(): WithdrawDestination | null {
-    return scanned
+export function takeScannedDestination(id: string | null | undefined): WithdrawDestination | null {
+    if (!id || scanned?.id !== id) return null
+    const { address, chainId } = scanned
+    scanned = null
+    return { address, chainId }
+}
+
+/** Drop a pending hand-off — the user has chosen a destination by hand instead. */
+export function clearScannedDestination(): void {
+    scanned = null
 }
 
 /**

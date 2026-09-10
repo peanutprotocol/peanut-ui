@@ -20,7 +20,7 @@ import { pixKeyToQrPayUrl } from '@/utils/pix.utils'
 import { extractPaymentValue } from '@/utils/clipboard-extract.utils'
 import { recipientPayUrl, qrClaimUrl, deepLinkToNativePath } from '@/utils/native-routes'
 import { qrTelemetry, reportQrScanError } from '@/components/Global/QRScanner/utils'
-import { stashScannedDestination, WITHDRAW_SCAN_ENTRY_URL } from '@/features/withdraw/destination'
+import { stashScannedDestination, withdrawScanEntryUrl } from '@/features/withdraw/destination'
 import { useChainRollout } from '@/hooks/useChainRollout'
 import { useTranslations } from 'next-intl'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
@@ -390,14 +390,14 @@ export default function QRScannerOverlay() {
                 // process, never in the URL: see stashScannedDestination. It is
                 // still behind its rollout flag and behind the ops kill-switch;
                 // while either is off, the notify-me path is the truth.
-                const accepted =
-                    isChainRolledOut(SOLANA_WITHDRAW_CHAIN_ID) &&
-                    stashScannedDestination(scanned, SOLANA_WITHDRAW_CHAIN_ID)
-                if (!accepted) {
+                const scanId = isChainRolledOut(SOLANA_WITHDRAW_CHAIN_ID)
+                    ? stashScannedDestination(scanned, SOLANA_WITHDRAW_CHAIN_ID)
+                    : null
+                if (!scanId) {
                     showModal(EModalType.QR_NOT_SUPPORTED)
                     return { success: true }
                 }
-                toConfirmUrl = WITHDRAW_SCAN_ENTRY_URL
+                toConfirmUrl = withdrawScanEntryUrl(scanId)
                 break
             }
             case EQrType.BITCOIN_ONCHAIN:

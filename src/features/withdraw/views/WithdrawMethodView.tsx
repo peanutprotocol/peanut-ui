@@ -16,7 +16,7 @@ import { isMantecaCountry } from '@/constants/manteca.consts'
 import { getFromLocalStorage } from '@/utils/general.utils'
 import { withdrawCountryUrl } from '@/utils/native-routes'
 import { mantecaWithdrawUrl } from '@/features/withdraw/routes'
-import { withdrawTokenForChain } from '@/features/withdraw/destination'
+import { clearScannedDestination, withdrawTokenForChain } from '@/features/withdraw/destination'
 import { useWithdrawFlow } from '@/features/withdraw/WithdrawFlowContext'
 import { useSavedAddresses } from '@/hooks/useSavedAddresses'
 import SavedAddressEditDrawer from '@/features/withdraw/components/AddressBook/SavedAddressEditDrawer'
@@ -113,6 +113,8 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
     // pick the crypto method exactly like the "Crypto" tile (no navigation — the
     // withdraw page owns the amount step and pushes /withdraw/crypto after Continue)
     const handleSavedAddressClick = (saved: SavedAddress) => {
+        // A destination picked by hand wins over one a scan is still offering.
+        clearScannedDestination()
         const token = withdrawTokenForChain(supportedChainsAndTokens?.[saved.chainId]?.tokens)
         setSelectedChainID(saved.chainId)
         setSelectedTokenAddress(token?.address ?? '')
@@ -124,6 +126,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
     // the plain "Exchange or Wallet" tile is a fresh destination — drop anything
     // an address-book tap left in the recipient state before picking the method
     const handleCryptoTileClick = () => {
+        clearScannedDestination()
         setRecipient({ name: undefined, address: '' })
         setIsValidRecipient(false)
         handleMethodSelected({ id: 'crypto', type: 'crypto', title: 'Crypto', path: 'crypto' })

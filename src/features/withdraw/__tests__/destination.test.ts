@@ -12,47 +12,77 @@ const mockConfig = { disableXchainWithdraw: false }
 jest.mock('@/config/underMaintenance.config', () => ({ __esModule: true, default: mockConfig }))
 
 import {
-    readScannedDestination,
+    clearScannedDestination,
     readWithdrawDestination,
+    SCAN_ID_PARAM,
     stashScannedDestination,
-    WITHDRAW_SCAN_ENTRY_URL,
+    takeScannedDestination,
+    withdrawScanEntryUrl,
     withdrawTokenForChain,
 } from '../destination'
 
 const SOLANA_ADDRESS = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM'
 const EVM_ADDRESS = '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed'
+const OTHER_SOLANA_ADDRESS = 'DRpbCBMxVnDK7maPM5tGv6MvB3v1sRMC86PZ8okm21hy'
 
-describe('WITHDRAW_SCAN_ENTRY_URL', () => {
-    it('lands on the amount step of the crypto rail and says a scan sent you', () => {
-        const params = new URLSearchParams(WITHDRAW_SCAN_ENTRY_URL.split('?')[1])
-        expect(Object.fromEntries(params)).toEqual({ step: 'amount', method: 'crypto', from: 'scan' })
+describe('withdrawScanEntryUrl', () => {
+    it('lands on the amount step of the crypto rail, carrying the scan id', () => {
+        const params = new URLSearchParams(withdrawScanEntryUrl('scan-1').split('?')[1])
+        expect(Object.fromEntries(params)).toEqual({ step: 'amount', method: 'crypto', [SCAN_ID_PARAM]: 'scan-1' })
     })
 
     it('carries no address — the whole point of the in-process hand-off', () => {
-        stashScannedDestination(SOLANA_ADDRESS, 'solana')
-        expect(WITHDRAW_SCAN_ENTRY_URL).not.toContain(SOLANA_ADDRESS)
+        const id = stashScannedDestination(SOLANA_ADDRESS, 'solana')!
+        expect(withdrawScanEntryUrl(id)).not.toContain(SOLANA_ADDRESS)
     })
 })
 
 describe('the scanned-destination hand-off', () => {
     beforeEach(() => {
         mockConfig.disableXchainWithdraw = false
+        clearScannedDestination()
     })
 
-    it('accepts a payable destination and hands it on', () => {
-        expect(stashScannedDestination(SOLANA_ADDRESS, 'solana')).toBe(true)
-        expect(readScannedDestination()).toEqual({ address: SOLANA_ADDRESS, chainId: 'solana' })
+    it('hands a payable destination to the scan that stashed it', () => {
+        const id = stashScannedDestination(SOLANA_ADDRESS, 'solana')
+        expect(id).toBeTruthy()
+        expect(takeScannedDestination(id)).toEqual({ address: SOLANA_ADDRESS, chainId: 'solana' })
     })
 
-    it('reads the same destination twice — a one-shot read would lose it to a re-invoked initializer', () => {
+    it('hands it over once — pressing on again cannot re-apply it', () => {
+        const id = stashScannedDestination(SOLANA_ADDRESS, 'solana')
+        takeScannedDestination(id)
+        expect(takeScannedDestination(id)).toBeNull()
+    })
+
+    // /withdraw keeps its layout mounted, so a second scan navigates without
+    // remounting. Each scan gets its own id, and only the current one is served.
+    it('serves the newest scan, never the one it replaced', () => {
+        const first = stashScannedDestination(SOLANA_ADDRESS, 'solana')
+        const second = stashScannedDestination(OTHER_SOLANA_ADDRESS, 'solana')
+        expect(first).not.toBe(second)
+        expect(takeScannedDestination(first)).toBeNull()
+        expect(takeScannedDestination(second)).toEqual({ address: OTHER_SOLANA_ADDRESS, chainId: 'solana' })
+    })
+
+    it.each([
+        ['no id at all', null],
+        ['an id from no scan', 'scan-does-not-exist'],
+    ])('hands nothing to %s', (_case, id) => {
         stashScannedDestination(SOLANA_ADDRESS, 'solana')
-        expect(readScannedDestination()).toEqual(readScannedDestination())
+        expect(takeScannedDestination(id)).toBeNull()
     })
 
     it('stores nothing it cannot pay out to, and keeps what it had', () => {
-        stashScannedDestination(SOLANA_ADDRESS, 'solana')
-        expect(stashScannedDestination(EVM_ADDRESS, 'solana')).toBe(false)
-        expect(readScannedDestination()?.address).toBe(SOLANA_ADDRESS)
+        const id = stashScannedDestination(SOLANA_ADDRESS, 'solana')
+        expect(stashScannedDestination(EVM_ADDRESS, 'solana')).toBeNull()
+        expect(takeScannedDestination(id)?.address).toBe(SOLANA_ADDRESS)
+    })
+
+    it('drops a pending hand-off when the user picks a destination by hand', () => {
+        const id = stashScannedDestination(SOLANA_ADDRESS, 'solana')
+        clearScannedDestination()
+        expect(takeScannedDestination(id)).toBeNull()
     })
 })
 
