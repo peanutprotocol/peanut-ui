@@ -136,7 +136,7 @@ const GettingStartedChecklist = () => {
                             chevron={tappable}
                             disabled={!tappable}
                             onClick={tappable ? item.onTap : undefined}
-                            className={item.done ? 'bg-background-icon-bubble-green/10' : undefined}
+                            className={item.done ? 'border-border-default bg-background-icon-bubble-green/10' : undefined}
                         />
                     )
                 })}
