@@ -7,9 +7,9 @@ import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 // store-button pair. compact: under download CTAs and QRs, same design
 // language as /app (purple App Store, stroke Google Play). hero: the landing
 // hero's desktop CTA row — two equal white buttons on the pink hero. stacked:
-// inside a modal, where the platform is usually known — one full-width white
-// button for the device you are on, falling back to both, one under the other,
-// when it is not.
+// inside a modal or setup gate, where the platform is usually known — one
+// full-width pink button for the device you are on, falling back to both, one
+// under the other, when it is not.
 export default function StoreBadges({
     surface,
     appearance = 'compact',
@@ -34,7 +34,7 @@ export default function StoreBadges({
                     className={isStacked ? 'w-full' : undefined}
                 >
                     <Button
-                        variant={isHero || isStacked ? 'stroke' : s === 'ios' ? 'purple' : 'stroke'}
+                        variant={isHero ? 'stroke' : isStacked ? 'purple' : s === 'ios' ? 'purple' : 'stroke'}
                         shadowSize="4"
                         size={isHero ? undefined : 'small'}
                         icon={s === 'ios' ? 'apple-logo' : 'google-play'}
@@ -42,7 +42,7 @@ export default function StoreBadges({
                             isHero
                                 ? 'w-52 bg-white px-6 py-3 text-button-m hover:bg-white/90 md:py-7 md:text-button-l'
                                 : isStacked
-                                  ? 'w-full justify-center bg-white hover:bg-white/90'
+                                  ? 'h-11 w-full justify-center'
                                   : 'w-auto px-4'
                         }
                     >
