@@ -52,9 +52,7 @@ export const STORE_URL = {
     android: 'https://play.google.com/store/apps/details?id=me.peanut.wallet',
 } as const
 
-// The iOS listing (App Store Connect app 6786373552) is not published yet:
-// the store URL 404s, so store-update prompts stay hidden on iOS until then.
-export const IOS_APP_STORE_LISTING_LIVE = false
+export const IOS_APP_STORE_LISTING_LIVE = true
 
 export const STORE_NAME = {
     ios: 'App Store',

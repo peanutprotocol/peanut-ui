@@ -3,48 +3,6 @@
         "apps": [],
         "details": [
             {
-                "appID": "4K73GMPZP8.com.squirrellabs.peanut-app",
-                "paths": [
-                    "/home", "/home/*",
-                    "/card", "/card/*",
-                    "/claim", "/claim/*",
-                    "/pay", "/pay/*",
-                    "/pay-request", "/pay-request/*",
-                    "/send", "/send/*",
-                    "/request", "/request/*",
-                    "/qr", "/qr/*",
-                    "/add-money", "/add-money/*",
-                    "/withdraw", "/withdraw/*",
-                    "/receipt", "/receipt/*",
-                    "/history", "/history/*",
-                    "/rewards", "/rewards/*",
-                    "/badges", "/badges/*",
-                    "/profile", "/profile/*",
-                    "/invite", "/invite/*"
-                ]
-            },
-            {
-                "appID": "web.app.peanut",
-                "paths": [
-                    "/home", "/home/*",
-                    "/card", "/card/*",
-                    "/claim", "/claim/*",
-                    "/pay", "/pay/*",
-                    "/pay-request", "/pay-request/*",
-                    "/send", "/send/*",
-                    "/request", "/request/*",
-                    "/qr", "/qr/*",
-                    "/add-money", "/add-money/*",
-                    "/withdraw", "/withdraw/*",
-                    "/receipt", "/receipt/*",
-                    "/history", "/history/*",
-                    "/rewards", "/rewards/*",
-                    "/badges", "/badges/*",
-                    "/profile", "/profile/*",
-                    "/invite", "/invite/*"
-                ]
-            },
-            {
                 "appID": "PW388G893L.me.peanut.wallet",
                 "paths": [
                     "/home", "/home/*",
@@ -68,9 +26,9 @@
         ]
     },
     "webcredentials": {
-        "apps": ["web.app.peanut", "PW388G893L.me.peanut.wallet"]
+        "apps": ["PW388G893L.me.peanut.wallet"]
     },
     "activitycontinuation": {
-        "apps": ["web.app.peanut", "PW388G893L.me.peanut.wallet"]
+        "apps": ["PW388G893L.me.peanut.wallet"]
     }
 }

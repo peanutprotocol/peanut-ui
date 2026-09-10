@@ -2,7 +2,7 @@
 
 > Spend, send, and cash out digital dollars anywhere — pay local QR codes in Argentina and Brazil with just your passport, spend on a card, and move money across borders without a local bank account or local tax ID.
 
-Peanut is a self-custody money app built on digital dollars (USDC). You hold dollars in an account only you control, then spend them like a local — scanning the same QR codes locals use, paying with a card, or sending a link to anyone. Verification (when needed) takes a passport and under two minutes: no DNI, no CPF, no local bank account, no residency. Core crypto features need no verification at all.
+Peanut is a self-custody money app built on digital dollars (USDC), available on the App Store and Google Play in select markets. You hold dollars in an account only you control, then spend them like a local — scanning the same QR codes locals use, paying with a card, or sending a link to anyone. Verification (when needed) takes a passport and under two minutes: no DNI, no CPF, no local bank account, no residency. Core crypto features need no verification at all.
 
 ## Pay PIX in Brazil — no CPF needed
 
@@ -71,6 +71,8 @@ Tourists, digital nomads, expats, remote workers, freelancers, and families movi
 ## Links
 
 - Website: https://peanut.me
+- iOS app: https://apps.apple.com/app/id6786373552
+- Android app: https://play.google.com/store/apps/details?id=me.peanut.wallet
 - Pay with PIX (Brazil): https://peanut.me/en/pay-with/pix
 - Pay with MercadoPago (Argentina): https://peanut.me/en/pay-with/mercadopago
 - Brazil guide: https://peanut.me/en/brazil

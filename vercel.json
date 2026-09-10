@@ -1,16 +1,4 @@
 {
-    "rewrites": [
-        {
-            "source": "/",
-            "has": [
-                {
-                    "type": "host",
-                    "value": "app.acme.com"
-                }
-            ],
-            "destination": "/app"
-        }
-    ],
     "functions": {
         "app/api/**/*": {
             "maxDuration": 300
