@@ -190,6 +190,28 @@ describe('post-auth redirect reads one snapshot', () => {
             deferred: false,
         })
     })
+
+    it('does not clear a newer record after consuming an older snapshot', () => {
+        const stale = JSON.stringify({ destination: '/profile', origin: 'session-end' })
+        const fresher = JSON.stringify({ destination: '/receipt?id=abc', origin: 'deep-link' })
+        localStorage.setItem('redirect', stale)
+        let replaced = false
+        Storage.prototype.getItem = function patched(key: string) {
+            const value = originalGetItem.call(this, key)
+            if (key === 'redirect' && !replaced) {
+                replaced = true
+                localStorage.setItem('redirect', fresher)
+            }
+            return value
+        }
+
+        expect(consumePostAuthRedirect(null, { rejectSessionEndOrigin: true })).toEqual({
+            destination: '/home',
+            source: 'fallback',
+            deferred: false,
+        })
+        expect(getRedirectUrl()).toBe('/receipt?id=abc')
+    })
 })
 
 describe('post-auth redirect across two tabs', () => {

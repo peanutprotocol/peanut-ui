@@ -68,7 +68,7 @@ import {
     getRedirectOrigin,
     getRedirectUrl,
 } from '@/utils/general.utils'
-import { clearSessionHeld, markSessionHeld } from '@/utils/session-presence'
+import { clearSessionHeld, hasHeldSession, markSessionHeld } from '@/utils/session-presence'
 
 const CACHED_USER = {
     user: { userId: 'u1', username: 'probe', hasAppAccess: true },
@@ -216,6 +216,29 @@ describe('(mobile-ui) layout — no user', () => {
 
             expect(getRedirectUrl()).toBe('/card')
             expect(getRedirectOrigin()).toBe('session-end')
+        })
+
+        it('consumes passive session residue so a later protected link is intent again', () => {
+            markSessionHeld()
+            window.history.replaceState({}, '', '/card')
+            mockUseAuth.mockReturnValue(authState())
+
+            const firstBounce = renderLayout()
+
+            expect(mockRouterReplace).toHaveBeenCalledWith('/setup')
+            expect(getRedirectOrigin()).toBe('session-end')
+            expect(hasHeldSession()).toBe(false)
+
+            firstBounce.unmount()
+            clearRedirectUrl()
+            mockRouterReplace.mockClear()
+            window.history.replaceState({}, '', '/card')
+
+            const laterDeepLink = renderLayout()
+
+            expect(mockRouterReplace).toHaveBeenCalledWith('/setup')
+            expect(getRedirectOrigin()).toBe('deep-link')
+            laterDeepLink.unmount()
         })
 
         it('but a logged-out tab opening a deep link later is intent again', () => {

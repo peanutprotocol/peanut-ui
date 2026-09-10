@@ -23,7 +23,7 @@ import { ShellBannerFallback } from '@/components/Global/Banner/ShellBannerFallb
 import ForceIOSPWAInstall from '@/components/ForceIOSPWAInstall'
 import { isPublicRoute } from '@/constants/routes'
 import { saveRedirectUrl } from '@/utils/general.utils'
-import { hasHeldSession, markSessionHeld } from '@/utils/session-presence'
+import { consumeHeldSession, markSessionHeld } from '@/utils/session-presence'
 import { IS_DEV } from '@/constants/general.consts'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import { FixtureBanner } from '@/dev/fixtures/FixtureBanner'
@@ -131,7 +131,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             // consume this via consumePostAuthRedirect — which is why the
             // origin rides along: a fresh signup must not inherit the page a
             // previous session was standing on.
-            saveRedirectUrl(hasHeldSession() ? 'session-end' : 'deep-link')
+            saveRedirectUrl(consumeHeldSession() ? 'session-end' : 'deep-link')
             router.replace('/setup')
             // Hard-nav fallback if the soft nav silently fails; re-check at fire time.
             const fallback = setTimeout(() => {

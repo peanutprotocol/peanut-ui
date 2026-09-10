@@ -1,5 +1,5 @@
 /**
- * Whether THIS TAB has ever held an authenticated session.
+ * Whether THIS TAB has an unconsumed authenticated session marker.
  *
  * It separates the two reasons the app can find itself logged out on a
  * protected route: someone arrived at a deep link they cannot have yet (their
@@ -38,10 +38,9 @@ export function hasHeldSession(): boolean {
 }
 
 /**
- * Called when the session ends deliberately: this tab is a logged-out tab
+ * Called when the session ends deliberately or after the auth gate has
+ * observed the first passive session collapse: this tab is a logged-out tab
  * again, so a later deep link opened in it is that person's own intent.
- * Passive expiry deliberately does NOT clear it — the tab did hold a session,
- * which is the whole point of the marker.
  */
 export function clearSessionHeld(): void {
     try {
@@ -49,4 +48,15 @@ export function clearSessionHeld(): void {
     } catch {
         // storage unavailable — see the note above
     }
+}
+
+/**
+ * Consume the marker when the auth gate records the first unauthenticated
+ * bounce after a session collapse. The current route is session residue; a
+ * later protected route in this same tab is a new visitor intent.
+ */
+export function consumeHeldSession(): boolean {
+    if (!hasHeldSession()) return false
+    clearSessionHeld()
+    return true
 }

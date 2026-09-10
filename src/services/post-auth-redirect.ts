@@ -70,7 +70,7 @@ export function consumePostAuthRedirect(
         // Consumed, not merely skipped: leaving it would hand the same page to
         // whoever authenticates next on this device.
         if (options.rejectSessionEndOrigin && stored.origin === 'session-end') {
-            clearRedirectUrl()
+            clearRedirectUrl(stored)
             return { destination: fallbackRoute, source: 'fallback', deferred: false }
         }
 
@@ -79,7 +79,7 @@ export function consumePostAuthRedirect(
             return { destination: fallbackRoute, source: 'stored', deferred: true }
         }
 
-        clearRedirectUrl()
+        clearRedirectUrl(stored)
         return { destination, source: 'stored', deferred: false }
     }
 

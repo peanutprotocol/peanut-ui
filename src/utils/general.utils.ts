@@ -813,8 +813,19 @@ export const getRedirectOrigin = (): RedirectOrigin | null => {
     return getStoredRedirect()?.origin ?? null
 }
 
-export const clearRedirectUrl = () => {
+/**
+ * Clear the stored redirect, optionally only if it is still the snapshot a
+ * caller consumed. That optimistic compare-and-clear keeps a newer same-origin
+ * tab's continuation from being removed after this tab has made its decision.
+ */
+export const clearRedirectUrl = (expected?: StoredRedirect) => {
     if (typeof localStorage !== 'undefined') {
+        if (expected) {
+            const current = getStoredRedirect()
+            if (!current || current.destination !== expected.destination || current.origin !== expected.origin) {
+                return
+            }
+        }
         localStorage.removeItem(REDIRECT_KEY)
         localStorage.removeItem(LEGACY_REDIRECT_ORIGIN_KEY)
     }
