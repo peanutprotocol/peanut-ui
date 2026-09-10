@@ -130,7 +130,7 @@ export default function SmartStoreRedirect() {
                         </p>
                     )}
                 </div>
-                <div className="mx-auto flex w-full max-w-md flex-col gap-4">
+                <div className="mx-auto flex w-full max-w-md flex-col gap-4 md:max-w-xs">
                     {settled && migrationOn ? (
                         stores.map((s, i) => (
                             <a
