@@ -5,6 +5,7 @@ describe('BulletList', () => {
     test('renders semantic list items with pink action markers', () => {
         render(<BulletList items={['First point', 'Second point']} />)
 
+        expect(screen.getByRole('list')).toHaveAttribute('role', 'list')
         const listItems = screen.getAllByRole('listitem')
         expect(listItems).toHaveLength(2)
         expect(listItems[0].querySelector('div')).toHaveClass('text-body-s', 'text-foreground-secondary')
