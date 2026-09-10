@@ -5,7 +5,7 @@
 // TASK-20772 — the download modal (TASK-20769) is the eventual web consumer.
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, DEFERRED_LINK_OUTCOMES, type DeferredLinkOutcome } from '@/constants/analytics.consts'
-import { PLAY_STORE_URL } from '@/constants/general.consts'
+import { STORE_URL } from '@/constants/migration.consts'
 import { isValidLocale } from '@/i18n/config'
 import { type AppLocale, resolveLocaleOrNull } from '@/i18n/app/config'
 import { isAndroidNative, isIOSNative } from './capacitor'
@@ -119,7 +119,7 @@ export function buildDeferredPayload(dest?: string, invite?: string): string {
 
 /** play store listing url with the payload riding the install referrer. */
 export function playStoreUrlWithReferrer(payload: string): string {
-    return `${PLAY_STORE_URL}&referrer=${encodeURIComponent(payload)}`
+    return `${STORE_URL.android}&referrer=${encodeURIComponent(payload)}`
 }
 
 /**

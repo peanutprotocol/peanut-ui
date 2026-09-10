@@ -41,12 +41,14 @@ export const KEEP_WEB_COOKIE_DAYS = 90
  * release valve for a user whose OS quota silently swallowed the sheet.
  */
 export const REVIEW_URL = {
-    ios: 'https://apps.apple.com/us/app/id6786373552?action=write-review',
+    ios: 'https://apps.apple.com/app/id6786373552?action=write-review',
     android: 'https://play.google.com/store/apps/details?id=me.peanut.wallet',
 } as const
 
+// No storefront segment in the iOS URL: Apple resolves it to the visitor's own
+// storefront, and the app is not on sale in every country.
 export const STORE_URL = {
-    ios: 'https://apps.apple.com/us/app/id6786373552',
+    ios: 'https://apps.apple.com/app/id6786373552',
     android: 'https://play.google.com/store/apps/details?id=me.peanut.wallet',
 } as const
 

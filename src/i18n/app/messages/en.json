@@ -3605,7 +3605,7 @@
     "migration": {
         "downloadPrompt": {
             "earlyTitle": "The Peanut app is here!",
-            "earlyDescription": "Peanut is now an app, on the App Store and Google Play. Same account, faster experience, instant alerts when money lands.",
+            "earlyDescription": "Peanut is now an app, on the App Store and Google Play in select markets. Same account, faster experience, instant alerts when money lands.",
             "maybeLater": "I'll download it later",
             "title": "Peanut is going app-only",
             "description": "In {days, plural, one {# day} other {# days}} Peanut moves fully to the app. Download it now and pick up right where you left off. Your account and money move with you automatically.",

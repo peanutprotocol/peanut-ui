@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next'
+import { STORE_URL } from '@/constants/migration.consts'
 
 // note: @dev incase you wanna change the icons,
 // better approach is to rename the image files so that browsers dont serve the cached old ones
@@ -71,7 +72,7 @@ export default function manifest(): MetadataRoute.Manifest {
             },
             {
                 platform: 'ios',
-                url: 'https://peanut.me',
+                url: STORE_URL.ios,
             },
         ],
         scope: '/',

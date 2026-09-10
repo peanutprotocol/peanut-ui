@@ -51,7 +51,7 @@
     },
     "migration": {
         "downloadPrompt": {
-            "earlyDescription": "Peanut ya vive en el App Store y Google Play. Más rápida, más fluida y te avisa al instante cuando llega tu dinero. Tu cuenta va con vos, sin configurar nada.",
+            "earlyDescription": "Peanut ya vive en el App Store y Google Play en algunos países. Más rápida, más fluida y te avisa al instante cuando llega tu dinero. Tu cuenta va con vos, sin configurar nada.",
             "description": "En {days, plural, one {# día} other {# días}} Peanut se muda por completo a la app. Descargala ahora y continuá justo donde quedaste. Tu cuenta y tu dinero se mudan con vos automáticamente."
         },
         "sunset": {

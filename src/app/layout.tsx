@@ -5,6 +5,7 @@ import localFont from 'next/font/local'
 import Script from 'next/script'
 import '../styles/globals.css'
 import { PEANUT_API_URL, BASE_URL } from '@/constants/general.consts'
+import { STORE_URL } from '@/constants/migration.consts'
 import { CHUNK_ERROR_RECOVERY_SCRIPT } from '@/utils/chunk-error-recovery'
 import { NATIVE_APP_READY_SCRIPT } from '@/utils/native-app-ready'
 import { isProductionDomain } from '@/constants/seo-route-policy'
@@ -50,7 +51,7 @@ export const metadata: Metadata = {
     applicationName: process.env.NODE_ENV === 'development' ? 'Peanut Dev' : 'Peanut',
 }
 
-// JSON-LD structured data — site-wide schemas (Organization, WebApplication, WebSite)
+// JSON-LD structured data — site-wide schemas (Organization, MobileApplication, WebSite)
 // FAQPage schema moved to page.tsx (homepage) where it belongs
 const jsonLd = {
     '@context': 'https://schema.org',
@@ -71,12 +72,13 @@ const jsonLd = {
             ],
         },
         {
-            '@type': 'WebApplication',
+            '@type': 'MobileApplication',
             '@id': `${baseUrl}/#app`,
-            name: 'Peanut',
+            name: 'Peanut: Send Money & Card',
             url: baseUrl,
             applicationCategory: 'FinanceApplication',
-            operatingSystem: 'Web',
+            operatingSystem: 'iOS, Android',
+            downloadUrl: [STORE_URL.ios, STORE_URL.android],
             offers: {
                 '@type': 'Offer',
                 price: '0',

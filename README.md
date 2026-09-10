@@ -7,7 +7,8 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![i18n](https://img.shields.io/badge/i18n-5_locales-blue)](https://peanut.me)
-[![PWA Ready](https://img.shields.io/badge/PWA-ready-5A0FC8?logo=pwa)](https://peanut.me)
+[![App Store](https://img.shields.io/badge/App_Store-Peanut-0D96F6?logo=apple&logoColor=white)](https://apps.apple.com/app/id6786373552)
+[![Google Play](https://img.shields.io/badge/Google_Play-Peanut-414141?logo=googleplay&logoColor=white)](https://play.google.com/store/apps/details?id=me.peanut.wallet)
 
 Live at: [peanut.me](https://peanut.me) | [staging.peanut.me](https://staging.peanut.me)
 

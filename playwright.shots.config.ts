@@ -58,7 +58,7 @@ export default defineConfig({
         deviceScaleFactor: 1,
         isMobile: true,
         hasTouch: true,
-        // Peanut is a mobile-first PWA and sniffs the user agent in places. The
+        // Peanut is a mobile-first app and sniffs the user agent in places. The
         // default headless UA takes desktop branches. Pixel 7 matches the two
         // existing Playwright configs; only the string is borrowed, the viewport
         // and pixel ratio stay as set here.

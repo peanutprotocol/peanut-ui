@@ -486,7 +486,7 @@ function EndFold({ merchant }: { merchant: Merchant }) {
                 <div className="mt-10 flex justify-center">
                     <Link href={buildInviteHref(merchant, 'end_fold')} className="inline-block">
                         <Button shadowSize="4" className={ctaButtonClassName}>
-                            INSTALL PEANUT
+                            GET PEANUT
                         </Button>
                     </Link>
                 </div>
