@@ -52,6 +52,11 @@ export const useSupportUnread = (): boolean => {
 
     const coalesceTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
     const scheduleRefresh = useCallback(() => {
+        // Invalidate any in-flight response NOW. Before the coalescer this
+        // happened inside refresh() on the same tick as the trigger; without
+        // it, a count fetched before the trigger can resolve inside the
+        // coalesce window and win back state the trigger just made stale.
+        ++latestRequestId.current
         clearTimeout(coalesceTimer.current)
         coalesceTimer.current = setTimeout(refresh, REFRESH_COALESCE_MS)
     }, [refresh])
