@@ -15,7 +15,7 @@ import type { RhinoChainType } from '@/services/services.types'
 // no config, so no webhook and no intent.
 const NON_EVM_NETWORK: Record<string, RhinoChainType> = { SOLANA: 'SOL', TRON: 'TRON' }
 
-export default function TokenAndNetworkConfirmationModal({
+export default function TokenAndNetworkConfirmationDrawer({
     onClose,
     onAccept,
     isVisible = true,

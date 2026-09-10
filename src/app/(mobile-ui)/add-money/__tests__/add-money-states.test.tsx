@@ -543,12 +543,12 @@ jest.mock('@/components/AddMoney/components/ChainChip', () => ({
     default: (props: any) => <span data-testid="chain-chip">{props.chainName}</span>,
 }))
 
-jest.mock('@/components/AddMoney/components/HowToDepositModal', () => ({
+jest.mock('@/components/AddMoney/components/HowToDepositDrawer', () => ({
     __esModule: true,
     default: (props: any) => (props.visible ? <div data-testid="how-to-deposit-modal">How to Deposit</div> : null),
 }))
 
-jest.mock('@/components/AddMoney/components/SupportedNetworksModal', () => ({
+jest.mock('@/components/AddMoney/components/SupportedNetworksDrawer', () => ({
     __esModule: true,
     default: (props: any) =>
         props.visible ? <div data-testid="supported-networks-modal">Supported Networks</div> : null,

@@ -37,7 +37,7 @@ const TRANSFER_OPS: RailOperation[] = ['deposit', 'withdraw']
 const grantsTransfers = (rail: RailCapability): boolean =>
     TRANSFER_OPS.some((op) => (rail.operations?.[op] ?? rail.status) === 'enabled')
 
-const WelcomeUnlockModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+const WelcomeUnlockDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
     const t = useTranslations('home.welcomeUnlock')
 
     // Provider-blind: the celebration modal splits its rows by what CHANNEL the
@@ -160,4 +160,4 @@ const WelcomeUnlockModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () 
     )
 }
 
-export default WelcomeUnlockModal
+export default WelcomeUnlockDrawer

@@ -148,7 +148,7 @@ export const DEMO_USER: IUserProfile = {
     contacts: [],
     rails: [],
     invitesSent: [],
-    showEarlyUserModal: false,
+    showEarlyUserDrawer: false,
     invitedBy: null,
     capabilities: DEMO_CAPABILITIES,
     identityVerification: DEMO_IDENTITY_VERIFICATION,

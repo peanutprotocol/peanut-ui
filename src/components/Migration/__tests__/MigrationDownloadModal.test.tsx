@@ -7,7 +7,7 @@
  * flag-off-regression check for the migration PR.
  */
 import React from 'react'
-import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { DOWNLOAD_PROMPT_SNOOZE_DAYS, MIGRATION_CUTOVER_DATE } from '@/constants/migration.consts'
 
@@ -97,16 +97,15 @@ describe('MigrationDownloadModal', () => {
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 
-    it('remind-me-later snoozes and reports visibility', () => {
+    it('remind-me-later snoozes and reports visibility', async () => {
         mockFlagOn = true
         const onVisibilityChange = jest.fn()
         render(<MigrationDownloadModal onVisibilityChange={onVisibilityChange} />)
         expect(onVisibilityChange).toHaveBeenLastCalledWith(true)
 
         fireEvent.click(screen.getByRole('button', { name: /later/i }))
-        // vaul keeps the closing sheet mounted for its exit animation; the
-        // state attribute is the honest closed signal in jsdom
-        expect(screen.getByRole('dialog')).toHaveAttribute('data-state', 'closed')
+        // headlessui keeps the closing dialog mounted through its leave transition
+        await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
         expect(mockUpdatePrefs).toHaveBeenCalledWith('user-1', {
             migrationPromptSnoozedAt: expect.any(String),
         })

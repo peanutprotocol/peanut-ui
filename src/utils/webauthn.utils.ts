@@ -322,7 +322,7 @@ export async function withWebAuthnRetry<T>(
  *
  * RISK: If Android/iOS change their credential manager behavior, these may become outdated
  */
-// Step ids, not copy — PasskeySetupHelpModal resolves them against
+// Step ids, not copy — PasskeySetupHelpDrawer resolves them against
 // setup.passkey.help.steps.* so the guidance is translatable.
 export const PASSKEY_TROUBLESHOOTING_STEPS = {
     android: {
@@ -352,7 +352,7 @@ export const PASSKEY_TROUBLESHOOTING_STEPS = {
 
 /**
  * Platform-specific warnings for common issues — warning ids resolved against
- * setup.passkey.help.warnings.* by PasskeySetupHelpModal.
+ * setup.passkey.help.warnings.* by PasskeySetupHelpDrawer.
  */
 export const PASSKEY_WARNINGS = {
     android: {

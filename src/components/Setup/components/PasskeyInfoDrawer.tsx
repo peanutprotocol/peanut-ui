@@ -12,7 +12,7 @@ import { useTranslations } from 'next-intl'
  * before the passkey ceremony — the short answer lives here, and the full
  * help-center guide stays one tap away for those who want it.
  */
-const PasskeyInfoModal = ({ visible, onClose }: { visible: boolean; onClose: () => void }) => {
+const PasskeyInfoDrawer = ({ visible, onClose }: { visible: boolean; onClose: () => void }) => {
     const t = useTranslations('setup.passkey.info')
     const tCommon = useTranslations('common')
 
@@ -54,4 +54,4 @@ const PasskeyInfoModal = ({ visible, onClose }: { visible: boolean; onClose: () 
     )
 }
 
-export default PasskeyInfoModal
+export default PasskeyInfoDrawer

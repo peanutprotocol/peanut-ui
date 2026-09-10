@@ -10,7 +10,7 @@ import Image from 'next/image'
 import { Icon } from '../Icons/Icon'
 import { useQRScanner, type QRScanHandler } from './useQRScanner'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import CameraPermissionModal from './CameraPermissionModal'
+import CameraPermissionDrawer from './CameraPermissionDrawer'
 import { Clipboard } from '@capacitor/clipboard'
 import { clipboardHasStrings } from '@/utils/clipboard-detect'
 import { extractPaymentValue, readClipboard } from '@/utils/clipboard-extract.utils'
@@ -389,7 +389,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                  * for a copied Pix code. The modal owns the whole screen here, so the
                  * action has to sit inside it to be reachable.
                  */
-                <CameraPermissionModal visible onRetry={retryCamera} onClose={close} />
+                <CameraPermissionDrawer visible onRetry={retryCamera} onClose={close} />
             ) : error ? (
                 <ErrorView message={error} onClose={close} onRetry={retryCamera}>
                     <PasteActions

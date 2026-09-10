@@ -2,6 +2,7 @@
 
 import type { StaticImageData } from 'next/image'
 import { useLocale, useTranslations } from 'next-intl'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { BadgeImage } from './BadgeImage'
 import ShareButton from '../Global/ShareButton'
@@ -10,7 +11,7 @@ import { useBadgeShareImpression } from './useBadgeShareImpression'
 import { useAuth } from '@/context/authContext'
 import { REFERRAL_SOURCES } from '@/constants/analytics.consts'
 
-type BadgeDetailModalProps = {
+type BadgeDetailDrawerProps = {
     isOpen: boolean
     onClose: () => void
     code?: string
@@ -22,7 +23,7 @@ type BadgeDetailModalProps = {
 // Shared by the badges list and the badge-unlock drawer (which closes itself
 // before opening this, so the two sheets never stack). The primary action
 // shares the badge; swipe / hardware back / overlay dismiss.
-export const BadgeDetailModal = ({ isOpen, onClose, code, title, description, logo }: BadgeDetailModalProps) => {
+export const BadgeDetailDrawer = ({ isOpen, onClose, code, title, description, logo }: BadgeDetailDrawerProps) => {
     const t = useTranslations('badges')
     const locale = useLocale()
     const { user: authUser } = useAuth()
@@ -48,13 +49,20 @@ export const BadgeDetailModal = ({ isOpen, onClose, code, title, description, lo
                     {/* the head owns the M/12 beneath it; everything after it
                         keeps the drawer's L/16 rhythm */}
                     <div className="mb-3 flex w-full flex-col items-center gap-4">
-                        <BadgeImage
-                            height={240}
-                            width={240}
-                            src={logo}
-                            alt={title}
-                            className="w-60 object-contain"
-                            unoptimized
+                        {/* the DS hero slot: l bubble, logo fill — the badge art IS the mark */}
+                        <IconBubble
+                            size="l"
+                            color="logo"
+                            icon={
+                                <BadgeImage
+                                    height={100}
+                                    width={100}
+                                    src={logo}
+                                    alt={title}
+                                    className="size-full object-contain"
+                                    unoptimized
+                                />
+                            }
                         />
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                             <DrawerTitle>{title}</DrawerTitle>

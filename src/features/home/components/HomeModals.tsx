@@ -17,12 +17,12 @@ import { formatUnits } from 'viem'
 // lazy load heavy modal components (~20-30KB each) to reduce initial bundle size
 // components are only loaded when user triggers them
 // wrapped in error boundaries to gracefully handle chunk load failures
-const BalanceWarningModal = lazy(() => import('@/components/Global/BalanceWarningModal'))
+const BalanceWarningDrawer = lazy(() => import('@/components/Global/BalanceWarningDrawer'))
 const SetupNotificationsModal = lazy(() => import('@/components/Notifications/SetupNotificationsModal'))
-const NoMoreJailModal = lazy(() => import('@/components/Global/NoMoreJailModal'))
-const EarlyUserModal = lazy(() => import('@/components/Global/EarlyUserModal'))
-const WelcomeUnlockModal = lazy(() => import('@/components/Home/WelcomeUnlockModal'))
-const IosPwaInstallModal = lazy(() => import('@/components/Global/IosPwaInstallModal'))
+const NoMoreJailDrawer = lazy(() => import('@/components/Global/NoMoreJailDrawer'))
+const EarlyUserDrawer = lazy(() => import('@/components/Global/EarlyUserDrawer'))
+const WelcomeUnlockDrawer = lazy(() => import('@/components/Home/WelcomeUnlockDrawer'))
+const IosPwaInstallDrawer = lazy(() => import('@/components/Global/IosPwaInstallDrawer'))
 const MigrationDownloadModal = lazy(() => import('@/components/Migration/MigrationDownloadModal'))
 const ScanToDownloadModal = lazy(() => import('@/components/Migration/ScanToDownloadModal'))
 
@@ -40,12 +40,12 @@ const BALANCE_WARNING_EXPIRY = Number.isNaN(parsedExpiry) ? 1814400 : parsedExpi
  */
 export function HomeModals() {
     const { showPermissionModal } = useNotifications()
-    const { isGetAppModalOpen, setIsGetAppModalOpen, isIosPwaInstallModalOpen } = useModalsContext()
+    const { isGetAppModalOpen, setIsGetAppModalOpen, isIosPwaInstallDrawerOpen } = useModalsContext()
     const { balance, isFetchingBalance } = useWallet()
     const { user, fetchUser } = useAuth()
     const { isKycApproved } = useCapabilities()
 
-    const [showBalanceWarningModal, setShowBalanceWarningModal] = useState(false)
+    const [showBalanceWarningDrawer, setShowBalanceWarningDrawer] = useState(false)
     const [isPostSignupActionModalVisible, setIsPostSignupActionModalVisible] = useState(false)
     const [showKycModal, setShowKycModal] = useState(false)
     // migration download prompt outranks every other home modal (self-gating,
@@ -88,7 +88,7 @@ export function HomeModals() {
             !showKycModal &&
             !isPostSignupActionModalVisible
         ) {
-            setShowBalanceWarningModal(true)
+            setShowBalanceWarningDrawer(true)
         }
     }, [
         balance,
@@ -102,7 +102,7 @@ export function HomeModals() {
 
     return (
         <>
-            {showPermissionModal && !showBalanceWarningModal && !showMigrationModal && (
+            {showPermissionModal && !showBalanceWarningDrawer && !showMigrationModal && (
                 <LazyLoadErrorBoundary>
                     <Suspense fallback={null}>
                         <SetupNotificationsModal />
@@ -130,17 +130,17 @@ export function HomeModals() {
             )}
 
             {/* these modals manage their own state internally */}
-            {!showBalanceWarningModal && !showMigrationModal && (
+            {!showBalanceWarningDrawer && !showMigrationModal && (
                 <>
                     <LazyLoadErrorBoundary>
                         <Suspense fallback={null}>
-                            <NoMoreJailModal />
+                            <NoMoreJailDrawer />
                         </Suspense>
                     </LazyLoadErrorBoundary>
 
                     <LazyLoadErrorBoundary>
                         <Suspense fallback={null}>
-                            <EarlyUserModal />
+                            <EarlyUserDrawer />
                         </Suspense>
                     </LazyLoadErrorBoundary>
                 </>
@@ -150,8 +150,8 @@ export function HomeModals() {
             {showKycModal && (
                 <LazyLoadErrorBoundary>
                     <Suspense fallback={null}>
-                        <WelcomeUnlockModal
-                            isOpen={showKycModal && !showBalanceWarningModal && !showMigrationModal}
+                        <WelcomeUnlockDrawer
+                            isOpen={showKycModal && !showBalanceWarningDrawer && !showMigrationModal}
                             onClose={async () => {
                                 // close the modal immediately for better ux
                                 setShowKycModal(false)
@@ -171,10 +171,10 @@ export function HomeModals() {
 
             <LazyLoadErrorBoundary>
                 <Suspense fallback={null}>
-                    <BalanceWarningModal
-                        visible={showBalanceWarningModal && !showMigrationModal}
+                    <BalanceWarningDrawer
+                        visible={showBalanceWarningDrawer && !showMigrationModal}
                         onCloseAction={() => {
-                            setShowBalanceWarningModal(false)
+                            setShowBalanceWarningDrawer(false)
                             // no non-null assertion: user can log out while the modal is open
                             if (user?.user.userId) {
                                 updateUserPreferences(user.user.userId, {
@@ -191,10 +191,10 @@ export function HomeModals() {
 
             {/* mount-gated: the modal is purely context-driven, so the chunk
                 only loads once something opens it */}
-            {isIosPwaInstallModalOpen && (
+            {isIosPwaInstallDrawerOpen && (
                 <LazyLoadErrorBoundary>
                     <Suspense fallback={null}>
-                        <IosPwaInstallModal />
+                        <IosPwaInstallDrawer />
                     </Suspense>
                 </LazyLoadErrorBoundary>
             )}

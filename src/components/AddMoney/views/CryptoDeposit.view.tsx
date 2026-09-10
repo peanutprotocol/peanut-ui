@@ -10,8 +10,8 @@ import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import Loading from '@/components/Global/Loading'
 import CyclingLoading from '@/components/Global/Loading/CyclingLoading'
 import ChainChip from '../components/ChainChip'
-import HowToDepositModal from '../components/HowToDepositModal'
-import SupportedNetworksModal from '../components/SupportedNetworksModal'
+import HowToDepositDrawer from '../components/HowToDepositDrawer'
+import SupportedNetworksDrawer from '../components/SupportedNetworksDrawer'
 import { useCryptoDepositPolling } from '../hooks/useCryptoDepositPolling'
 import {
     CHAIN_LOGOS,
@@ -282,8 +282,8 @@ const CryptoDepositView = ({
             </div>
 
             {/* modals */}
-            <HowToDepositModal visible={showHowToDeposit} onClose={() => setShowHowToDeposit(false)} />
-            <SupportedNetworksModal visible={showSupportedNetworks} onClose={() => setShowSupportedNetworks(false)} />
+            <HowToDepositDrawer visible={showHowToDeposit} onClose={() => setShowHowToDeposit(false)} />
+            <SupportedNetworksDrawer visible={showSupportedNetworks} onClose={() => setShowSupportedNetworks(false)} />
         </div>
     )
 }

@@ -41,7 +41,7 @@ const PLATFORM_INFO = {
     },
 } as const
 
-interface BalanceWarningModalProps {
+interface BalanceWarningDrawerProps {
     visible: boolean
     onCloseAction: () => void
 }
@@ -74,7 +74,7 @@ function detectPlatform(): Platform {
     return Platform.UNKNOWN
 }
 
-export default function BalanceWarningModal({ visible, onCloseAction }: BalanceWarningModalProps) {
+export default function BalanceWarningDrawer({ visible, onCloseAction }: BalanceWarningDrawerProps) {
     const t = useTranslations('global')
     const platformInfo = useMemo(() => {
         const platform = detectPlatform()

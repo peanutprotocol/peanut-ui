@@ -14,7 +14,7 @@ import { readSecondResidence, storeDeclaredResidence, storeSecondResidence } fro
 import { useEffect, useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 
-interface ResidenceChangeModalProps {
+interface ResidenceChangeDrawerProps {
     visible: boolean
     onClose: () => void
     userId: string | undefined
@@ -42,7 +42,7 @@ interface ResidenceChangeModalProps {
  * re-verifies with new-country documents, and offers that re-verification as
  * an explicit second action — never as a silent side effect of saving.
  */
-const ResidenceChangeModal = ({
+const ResidenceChangeDrawer = ({
     visible,
     onClose,
     userId,
@@ -52,7 +52,7 @@ const ResidenceChangeModal = ({
     nextChangeAllowedAt,
     onSaved,
     onReverify,
-}: ResidenceChangeModalProps) => {
+}: ResidenceChangeDrawerProps) => {
     const t = useTranslations('profile.unlockPayments.changeModal')
     const tCommon = useTranslations('common')
     const restrictionSets = useResidenceRestrictionSets()
@@ -207,4 +207,4 @@ const ResidenceChangeModal = ({
     )
 }
 
-export default ResidenceChangeModal
+export default ResidenceChangeDrawer

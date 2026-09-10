@@ -11,8 +11,8 @@ import { perksApi, type PendingPerk } from '@/services/perks'
 import { useAuth } from '@/context/authContext'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { extractInviteeName } from '@/utils/general.utils'
-import PerkClaimModal from '../PerkClaimModal'
-import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
+import PerkClaimDrawer from '../PerkClaimDrawer'
+import InviteFriendsDrawer from '@/components/Global/InviteFriendsDrawer'
 import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
 
 const HomeCarouselCTA = () => {
@@ -101,7 +101,7 @@ const HomeCarouselCTA = () => {
     }, [])
 
     // reward claimed and our modal gone: a friend joined, money landed, and
-    // nothing of ours is on screen. Lives here rather than in PerkClaimModal,
+    // nothing of ours is on screen. Lives here rather than in PerkClaimDrawer,
     // which unmounts with `selectedPerk` and would take the pending ask with it.
     useAppReviewNudge(user?.user.userId, 'reward_claimed', claimedPerkIds.size > 0 && !selectedPerk)
 
@@ -134,7 +134,7 @@ const HomeCarouselCTA = () => {
 
             {/* Perk Claim Modal */}
             {selectedPerk && (
-                <PerkClaimModal
+                <PerkClaimDrawer
                     perk={selectedPerk}
                     visible={!!selectedPerk}
                     onClose={handleModalClose}
@@ -143,7 +143,7 @@ const HomeCarouselCTA = () => {
                 />
             )}
             {user?.user.username && (
-                <InviteFriendsModal
+                <InviteFriendsDrawer
                     visible={inviteOpen}
                     onClose={() => setInviteOpen(false)}
                     username={user.user.username}

@@ -7,12 +7,12 @@ import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } f
 import EvmChainChips from './EvmChainChips'
 import { useTranslations } from 'next-intl'
 
-interface SupportedNetworksModalProps {
+interface SupportedNetworksDrawerProps {
     visible: boolean
     onClose: () => void
 }
 
-const SupportedNetworksModal = ({ visible, onClose }: SupportedNetworksModalProps) => {
+const SupportedNetworksDrawer = ({ visible, onClose }: SupportedNetworksDrawerProps) => {
     const t = useTranslations('addMoney.supportedNetworksModal')
     return (
         <Drawer
@@ -26,7 +26,7 @@ const SupportedNetworksModal = ({ visible, onClose }: SupportedNetworksModalProp
                     {/* the head owns the M/12 beneath it; everything after it
                         keeps the drawer's L/16 rhythm */}
                     <div className="mb-3 flex w-full flex-col items-center gap-4">
-                        {/* same bright-yellow bubble as TokenAndNetworkConfirmationModal — the two
+                        {/* same bright-yellow bubble as TokenAndNetworkConfirmationDrawer — the two
                             screens carry the same permanent-loss warning and should read alike */}
                         <IconBubble icon="alert" color="yellow" />
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
@@ -49,4 +49,4 @@ const SupportedNetworksModal = ({ visible, onClose }: SupportedNetworksModalProp
     )
 }
 
-export default SupportedNetworksModal
+export default SupportedNetworksDrawer

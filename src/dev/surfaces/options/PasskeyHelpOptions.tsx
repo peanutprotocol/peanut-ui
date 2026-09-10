@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * PasskeySetupHelpModal — the four reworks, as real renders.
+ * PasskeySetupHelpDrawer — the four reworks, as real renders.
  *
  * Harness-only: these live under src/dev/surfaces so the options can be
  * photographed with the real DS components and the real catalog strings before

@@ -10,19 +10,19 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { PeanutWhistling } from '@/assets/mascot'
 
-const NoMoreJailModal = () => {
+const NoMoreJailDrawer = () => {
     const t = useTranslations('global')
     const [isOpen, setisOpen] = useState(false)
 
     const onClose = () => {
         posthog.capture(ANALYTICS_EVENTS.MODAL_CTA_CLICKED, { modal_type: MODAL_TYPES.POST_SIGNUP, cta: 'start_using' })
         setisOpen(false)
-        sessionStorage.removeItem('showNoMoreJailModal')
+        sessionStorage.removeItem('showNoMoreJailDrawer')
     }
 
     useEffect(() => {
-        const showNoMoreJailModal = sessionStorage.getItem('showNoMoreJailModal')
-        if (showNoMoreJailModal === 'true') {
+        const showNoMoreJailDrawer = sessionStorage.getItem('showNoMoreJailDrawer')
+        if (showNoMoreJailDrawer === 'true') {
             setisOpen(true)
             posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.POST_SIGNUP })
         }
@@ -62,4 +62,4 @@ const NoMoreJailModal = () => {
     )
 }
 
-export default NoMoreJailModal
+export default NoMoreJailDrawer

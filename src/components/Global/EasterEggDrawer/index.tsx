@@ -26,13 +26,13 @@ export const EASTER_EGG_COUNTRIES: Record<string, EasterEggCountryConfig> = {
     TK: { image: '/easter-eggs/tokelau.webp' },
 }
 
-interface EasterEggModalProps {
+interface EasterEggDrawerProps {
     visible: boolean
     onClose: () => void
     countryCode: string
 }
 
-const EasterEggModal = ({ visible, onClose, countryCode }: EasterEggModalProps) => {
+const EasterEggDrawer = ({ visible, onClose, countryCode }: EasterEggDrawerProps) => {
     const t = useTranslations('global')
     const tCommon = useTranslations('common')
     const config = EASTER_EGG_COUNTRIES[countryCode]
@@ -91,4 +91,4 @@ const EasterEggModal = ({ visible, onClose, countryCode }: EasterEggModalProps) 
     )
 }
 
-export default EasterEggModal
+export default EasterEggDrawer

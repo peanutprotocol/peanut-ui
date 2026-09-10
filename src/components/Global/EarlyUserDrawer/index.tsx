@@ -11,7 +11,7 @@ import { updateUserById } from '@/app/actions/users'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 
-const EarlyUserModal = () => {
+const EarlyUserDrawer = () => {
     const t = useTranslations('global')
     const { user, fetchUser } = useAuth()
     const inviteLink = generateInviteCodeLink(user?.user.username ?? '').inviteLink
@@ -19,7 +19,7 @@ const EarlyUserModal = () => {
     const hasTrackedShow = useRef(false)
 
     useEffect(() => {
-        if (user && user.showEarlyUserModal) {
+        if (user && user.showEarlyUserDrawer) {
             setShowModal(true)
             if (!hasTrackedShow.current) {
                 hasTrackedShow.current = true
@@ -31,7 +31,7 @@ const EarlyUserModal = () => {
     const handleCloseModal = async () => {
         posthog.capture(ANALYTICS_EVENTS.MODAL_DISMISSED, { modal_type: MODAL_TYPES.EARLY_USER })
         setShowModal(false)
-        await updateUserById({ userId: user?.user.userId, hasSeenEarlyUserModal: true })
+        await updateUserById({ userId: user?.user.userId, hasSeenEarlyUserDrawer: true })
         fetchUser()
     }
 
@@ -71,4 +71,4 @@ const EarlyUserModal = () => {
     )
 }
 
-export default EarlyUserModal
+export default EarlyUserDrawer

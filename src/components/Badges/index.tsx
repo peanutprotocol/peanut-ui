@@ -7,7 +7,7 @@ import { getBadgeIcon } from './badge.utils'
 import { useBadgeCopy } from './useBadgeCopy'
 import { getCardPosition } from '../Global/Card/card.utils'
 import EmptyState from '../Global/EmptyStates/EmptyState'
-import { BadgeDetailModal } from './BadgeDetailModal'
+import { BadgeDetailDrawer } from './BadgeDetailDrawer'
 import { useMemo, useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
@@ -97,7 +97,7 @@ export const Badges = () => {
                 </div>
             </div>
             {selectedBadge && (
-                <BadgeDetailModal
+                <BadgeDetailDrawer
                     isOpen={isBadgeModalOpen}
                     onClose={() => {
                         setIsBadgeModalOpen(false)

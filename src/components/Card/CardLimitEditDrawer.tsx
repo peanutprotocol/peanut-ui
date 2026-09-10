@@ -23,7 +23,7 @@ interface Props {
     onClose: () => void
 }
 
-const CardLimitEditModal: FC<Props> = ({ cardId, frequency, label, initialAmountCents, isOpen, onClose }) => {
+const CardLimitEditDrawer: FC<Props> = ({ cardId, frequency, label, initialAmountCents, isOpen, onClose }) => {
     const t = useTranslations('card.limits')
     const format = useFormatter()
     const queryClient = useQueryClient()
@@ -173,4 +173,4 @@ const CardLimitEditModal: FC<Props> = ({ cardId, frequency, label, initialAmount
     )
 }
 
-export default CardLimitEditModal
+export default CardLimitEditDrawer

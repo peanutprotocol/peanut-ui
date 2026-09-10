@@ -9,7 +9,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import Loading from '@/components/Global/Loading'
-import CardLimitEditModal, { CARD_LIMITS_QUERY_KEY } from '@/components/Card/CardLimitEditModal'
+import CardLimitEditDrawer, { CARD_LIMITS_QUERY_KEY } from '@/components/Card/CardLimitEditDrawer'
 import { rainApi, type RainCardLimit } from '@/services/rain'
 
 interface Props {
@@ -72,7 +72,7 @@ const CardLimitsScreen: FC<Props> = ({ cardId, onPrev }) => {
                 )}
             </Section>
 
-            <CardLimitEditModal
+            <CardLimitEditDrawer
                 cardId={cardId}
                 frequency={FREQUENCY}
                 label={label}

@@ -4,10 +4,10 @@ import { type PendingPerk } from '@/services/perks'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { Drawer, DrawerContent } from '@/components/Global/Drawer'
 import { usePerkClaimFlow } from './usePerkClaimFlow'
-import { PerkClaimSuccessModal } from './PerkClaimSuccessModal'
+import { PerkClaimSuccessDrawer } from './PerkClaimSuccessDrawer'
 import { PerkClaimGiftBox } from './PerkClaimGiftBox'
 
-interface PerkClaimModalProps {
+interface PerkClaimDrawerProps {
     perk: PendingPerk
     visible: boolean
     onClose: () => void
@@ -22,7 +22,7 @@ interface PerkClaimModalProps {
  * Drawer for claiming perks with gift box animation.
  * Contains the shake/hold interaction, confetti, and success state.
  */
-function PerkClaimModal({ perk, visible, onClose, onClaimed, onShareInvite }: PerkClaimModalProps) {
+function PerkClaimDrawer({ perk, visible, onClose, onClaimed, onShareInvite }: PerkClaimDrawerProps) {
     const t = useAppTranslations('home.perk')
     const { claimPhase, lastClaimedPerk, isSuccessPhase, handleHoldComplete, handleDismissSuccess, handleModalClose } =
         usePerkClaimFlow({ perk, visible, onClose, onClaimed })
@@ -32,7 +32,7 @@ function PerkClaimModal({ perk, visible, onClose, onClaimed, onShareInvite }: Pe
     // The success phase renders its own sheet, the gift box phase this one
     if (isSuccessPhase) {
         return (
-            <PerkClaimSuccessModal
+            <PerkClaimSuccessDrawer
                 perk={lastClaimedPerk!}
                 claimPhase={claimPhase}
                 onClose={handleModalClose}
@@ -61,4 +61,4 @@ function PerkClaimModal({ perk, visible, onClose, onClaimed, onShareInvite }: Pe
     )
 }
 
-export default PerkClaimModal
+export default PerkClaimDrawer

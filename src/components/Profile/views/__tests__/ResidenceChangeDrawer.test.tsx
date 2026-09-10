@@ -2,7 +2,7 @@
 import React from 'react'
 import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
-import ResidenceChangeModal from '@/components/Profile/views/ResidenceChangeModal'
+import ResidenceChangeDrawer from '@/components/Profile/views/ResidenceChangeDrawer'
 import { updateUserById } from '@/app/actions/users'
 import { readSecondResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
 
@@ -10,12 +10,12 @@ jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 jest.mock('@/app/actions/users', () => ({ updateUserById: jest.fn() }))
 const mockedUpdate = updateUserById as jest.MockedFunction<typeof updateUserById>
 
-const render = (props?: Partial<React.ComponentProps<typeof ResidenceChangeModal>>) => {
+const render = (props?: Partial<React.ComponentProps<typeof ResidenceChangeDrawer>>) => {
     const onClose = jest.fn()
     const onSaved = jest.fn()
     const onReverify = jest.fn()
     rtlRender(
-        <ResidenceChangeModal
+        <ResidenceChangeDrawer
             visible
             onClose={onClose}
             userId="u1"
@@ -30,7 +30,7 @@ const render = (props?: Partial<React.ComponentProps<typeof ResidenceChangeModal
     return { onClose, onSaved, onReverify }
 }
 
-describe('ResidenceChangeModal', () => {
+describe('ResidenceChangeDrawer', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         window.localStorage.clear()

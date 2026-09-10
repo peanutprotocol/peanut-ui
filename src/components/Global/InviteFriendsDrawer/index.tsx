@@ -10,7 +10,7 @@ import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { useEffect, useRef } from 'react'
 import QRCode from 'react-qr-code'
 
-interface InviteFriendsModalProps {
+interface InviteFriendsDrawerProps {
     visible: boolean
     onClose: () => void
     username: string
@@ -24,7 +24,7 @@ interface InviteFriendsModalProps {
  *
  * Used in: CardSuccessScreen, Profile, PointsPage
  */
-export default function InviteFriendsModal({ visible, onClose, username, source }: InviteFriendsModalProps) {
+export default function InviteFriendsDrawer({ visible, onClose, username, source }: InviteFriendsDrawerProps) {
     const t = useAppTranslations('global')
     const { inviteLink } = generateInviteCodeLink(username)
 

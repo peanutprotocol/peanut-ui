@@ -1,5 +1,5 @@
 import DocsLink from '@/components/Global/DocsLink'
-import PasskeyInfoModal from '@/components/Setup/components/PasskeyInfoModal'
+import PasskeyInfoDrawer from '@/components/Setup/components/PasskeyInfoDrawer'
 import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Notification } from '@/components/0_Bruddle/Notification'
@@ -309,7 +309,7 @@ const SignTestTransaction = () => {
                     </p>
                 </div>
             </div>
-            <PasskeyInfoModal visible={isPasskeyInfoOpen} onClose={() => setIsPasskeyInfoOpen(false)} />
+            <PasskeyInfoDrawer visible={isPasskeyInfoOpen} onClose={() => setIsPasskeyInfoOpen(false)} />
         </div>
     )
 }

@@ -31,8 +31,8 @@ const FROZEN_NOW = new Date('2026-08-15T12:00:00.000Z')
 // alone they photograph themselves on top of whatever surface is under test.
 // Both are localStorage-gated (same keys e2e/shots/fixtures.spec.ts uses).
 function seenOnceModals(): void {
-    // NoMoreJailModal reads this on mount; nothing else in the app does.
-    window.sessionStorage.setItem('showNoMoreJailModal', 'true')
+    // NoMoreJailDrawer reads this on mount; nothing else in the app does.
+    window.sessionStorage.setItem('showNoMoreJailDrawer', 'true')
     window.localStorage.setItem('peanut_demo_activation_celebrated_at', '2026-01-01T00:00:00.000Z')
     window.localStorage.setItem(
         'demo-user:user-preferences',

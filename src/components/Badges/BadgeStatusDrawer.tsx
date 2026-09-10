@@ -4,7 +4,7 @@ import { useFormatter, useLocale, useTranslations } from 'next-intl'
 import Card from '../Global/Card'
 import { DataRow } from '../0_Bruddle/DataRow'
 import ShareButton from '../Global/ShareButton'
-import { BadgeDetailModal } from './BadgeDetailModal'
+import { BadgeDetailDrawer } from './BadgeDetailDrawer'
 import { captureBadgeShare, getBadgeIcon, getBadgeShareLink, getBadgeShareText } from './badge.utils'
 import { useBadgeCopy } from './useBadgeCopy'
 import { useBadgeShareImpression } from './useBadgeShareImpression'
@@ -118,7 +118,7 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                     </div>
                 </DrawerContent>
             </Drawer>
-            <BadgeDetailModal
+            <BadgeDetailDrawer
                 isOpen={isDetailOpen}
                 onClose={() => setIsDetailOpen(false)}
                 code={badge.code}

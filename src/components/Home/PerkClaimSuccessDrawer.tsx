@@ -19,7 +19,7 @@ import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts
 import type { ClaimPhase } from './perkClaim.types'
 import { SURPRISE_CLAIM_COUNT_KEY } from './perkClaim.consts'
 
-interface PerkClaimSuccessModalProps {
+interface PerkClaimSuccessDrawerProps {
     perk: PendingPerk
     claimPhase: ClaimPhase
     onClose: () => void
@@ -32,13 +32,13 @@ interface PerkClaimSuccessModalProps {
  * Success sheet for a claimed perk — celebration content, so it rides in a
  * drawer; the invite handoff closes this sheet before opening its own.
  */
-export function PerkClaimSuccessModal({
+export function PerkClaimSuccessDrawer({
     perk,
     claimPhase,
     onClose,
     onDismiss,
     onShareInvite,
-}: PerkClaimSuccessModalProps) {
+}: PerkClaimSuccessDrawerProps) {
     const t = useAppTranslations('home.perk')
     const tCommon = useTranslations('common')
     const inviteeName = perk.inviteeName ?? extractInviteeName(perk.reason)

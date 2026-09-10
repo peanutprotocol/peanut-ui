@@ -6,14 +6,14 @@ import { NumberedList } from '@/components/0_Bruddle/NumberedList'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { useTranslations } from 'next-intl'
 
-interface HowToDepositModalProps {
+interface HowToDepositDrawerProps {
     visible: boolean
     onClose: () => void
 }
 
 const STEP_KEYS = ['step1', 'step2', 'step3', 'step4'] as const
 
-const HowToDepositModal = ({ visible, onClose }: HowToDepositModalProps) => {
+const HowToDepositDrawer = ({ visible, onClose }: HowToDepositDrawerProps) => {
     const t = useTranslations('addMoney.howToDeposit')
     const tCommon = useTranslations('common')
     // the marker carries the number now, so the "Step N" label goes
@@ -44,4 +44,4 @@ const HowToDepositModal = ({ visible, onClose }: HowToDepositModalProps) => {
     )
 }
 
-export default HowToDepositModal
+export default HowToDepositDrawer

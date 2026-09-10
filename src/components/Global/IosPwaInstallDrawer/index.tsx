@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useTranslations } from 'next-intl'
 
 import { Button } from '@/components/0_Bruddle/Button'
@@ -7,12 +7,12 @@ import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } f
 import { BrowserType, useGetBrowserType } from '@/hooks/useGetBrowserType'
 import { useModalsContext } from '@/context/ModalsContext'
 
-const IosPwaInstallModal = () => {
+const IosPwaInstallDrawer = () => {
     const t = useTranslations('global')
     const { browserType, isLoading } = useGetBrowserType()
-    const { setIsIosPwaInstallModalOpen, isIosPwaInstallModalOpen } = useModalsContext()
+    const { setIsIosPwaInstallDrawerOpen, isIosPwaInstallDrawerOpen } = useModalsContext()
     const onClose = () => {
-        setIsIosPwaInstallModalOpen(false)
+        setIsIosPwaInstallDrawerOpen(false)
     }
 
     const getVideoSource = (): string => {
@@ -32,9 +32,21 @@ const IosPwaInstallModal = () => {
     const isFirefox = browserType === BrowserType.FIREFOX
     const videoSource = getVideoSource()
 
+    // an unloaded/failed <video> still reserves layout space, which reads as a
+    // dead gap between the copy and the CTA — keep it at zero height until it
+    // has a frame to show
+    const [videoReady, setVideoReady] = useState(false)
     const videoContent =
         !isFirefox && !isLoading ? (
-            <video className="max-h-[50vh] w-full object-contain" autoPlay loop muted playsInline key={videoSource}>
+            <video
+                className={videoReady ? 'max-h-[50vh] w-full object-contain' : 'h-0 w-full'}
+                autoPlay
+                loop
+                muted
+                playsInline
+                key={videoSource}
+                onCanPlay={() => setVideoReady(true)}
+            >
                 {/* .mov assets are H.264 in a QuickTime container — Chrome/Edge/Firefox
                     play them under video/mp4 but reject video/quicktime. mp4 first;
                     quicktime stays as a fallback for older Safari. */}
@@ -46,7 +58,7 @@ const IosPwaInstallModal = () => {
 
     return (
         <Drawer
-            open={isIosPwaInstallModalOpen}
+            open={isIosPwaInstallDrawerOpen}
             onOpenChange={(isOpen) => {
                 if (!isOpen) onClose()
             }}
@@ -78,4 +90,4 @@ const IosPwaInstallModal = () => {
     )
 }
 
-export default IosPwaInstallModal
+export default IosPwaInstallDrawer

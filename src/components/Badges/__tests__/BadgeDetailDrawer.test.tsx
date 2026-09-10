@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import type { ReactNode } from 'react'
-import { BadgeDetailModal } from '../BadgeDetailModal'
+import { BadgeDetailDrawer } from '../BadgeDetailDrawer'
 import en from '@/i18n/app/messages/en.json'
 import ptBR from '@/i18n/app/messages/pt-BR.json'
 
@@ -49,7 +49,7 @@ function renderModal(locale: 'en' | 'pt-BR') {
 
     return render(
         <NextIntlClientProvider locale={locale} messages={messages}>
-            <BadgeDetailModal
+            <BadgeDetailDrawer
                 isOpen
                 onClose={onClose}
                 code="CARD_FIRST_SWIPE"
@@ -65,7 +65,7 @@ beforeEach(() => {
     jest.clearAllMocks()
 })
 
-describe('BadgeDetailModal', () => {
+describe('BadgeDetailDrawer', () => {
     it('shares bespoke English copy with the signed-in user profile and closes on success', async () => {
         renderModal('en')
 

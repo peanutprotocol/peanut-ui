@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl as render } from '@/test-utils/intl'
-import CardLimitEditModal from '../CardLimitEditModal'
+import CardLimitEditDrawer from '../CardLimitEditDrawer'
 
 const mockUpdate = jest.fn()
 const mockInvalidate = jest.fn().mockResolvedValue(undefined)
@@ -19,7 +19,7 @@ beforeEach(() => {
 
 function edit(value: string) {
     render(
-        <CardLimitEditModal
+        <CardLimitEditDrawer
             cardId="card-test"
             frequency="perAuthorization"
             label="Per transaction"

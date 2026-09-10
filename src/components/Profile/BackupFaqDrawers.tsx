@@ -10,7 +10,7 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/G
 
 export type BackupFaq = 'lose-phone' | 'change-phone' | 'export-keys' | null
 
-interface BackupFaqModalsProps {
+interface BackupFaqDrawersProps {
     active: BackupFaq
     onClose: () => void
     /** 'android' | 'ios' — the platform name the copy interpolates. */
@@ -64,7 +64,7 @@ const FaqDrawer = ({
  * the page so the page composes views instead of respelling their markup, and
  * so each sheet is a named surface the shot harness can find.
  */
-export const BackupFaqModals = ({ active, onClose, platform }: BackupFaqModalsProps) => {
+export const BackupFaqDrawers = ({ active, onClose, platform }: BackupFaqDrawersProps) => {
     const t = useTranslations('profile.backup')
     const tCommon = useTranslations('common')
     const closeLabel = tCommon('close')

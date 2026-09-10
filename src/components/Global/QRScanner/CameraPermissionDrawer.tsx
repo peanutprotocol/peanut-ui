@@ -78,13 +78,13 @@ function getInstructionKey(device: DeviceType, browser: BrowserType | null): key
 // component
 // ============================================================================
 
-interface CameraPermissionModalProps {
+interface CameraPermissionDrawerProps {
     visible: boolean
     onRetry: () => void
     onClose: () => void
 }
 
-export default function CameraPermissionModal({ visible, onRetry, onClose }: CameraPermissionModalProps) {
+export default function CameraPermissionDrawer({ visible, onRetry, onClose }: CameraPermissionDrawerProps) {
     const t = useTranslations('global')
     const tCommon = useTranslations('common')
     const { deviceType } = useDeviceType()

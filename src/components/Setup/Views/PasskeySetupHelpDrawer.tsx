@@ -9,7 +9,7 @@ import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { PASSKEY_TROUBLESHOOTING_STEPS, PASSKEY_WARNINGS, WebAuthnErrorName } from '@/utils/webauthn.utils'
 import { useTranslations } from 'next-intl'
 
-interface PasskeySetupHelpModalProps {
+interface PasskeySetupHelpDrawerProps {
     visible: boolean
     onClose: () => void
     onRetry: () => void
@@ -36,13 +36,13 @@ const getWarningId = (errorName: string, platform: 'android' | 'ios' | 'web'): s
     return null
 }
 
-export const PasskeySetupHelpModal = ({
+export const PasskeySetupHelpDrawer = ({
     visible,
     onClose,
     onRetry,
     errorName,
     platform,
-}: PasskeySetupHelpModalProps) => {
+}: PasskeySetupHelpDrawerProps) => {
     const t = useTranslations('setup.passkey.help')
     const tCommon = useTranslations('common')
 
@@ -91,7 +91,7 @@ export const PasskeySetupHelpModal = ({
                     {/* One Notification on the screen, and it is the device-security
                        caveat — the only line here that is a real warning. The fixes
                        are a sequence, so they read as a numbered list (the same
-                       shape CameraPermissionModal uses for the same job), and their
+                       shape CameraPermissionDrawer uses for the same job), and their
                        heading is the grey mini-header, not a raw bold h3. */}
                     <div className="flex w-full flex-col gap-4 text-left">
                         <p className="text-body-s text-foreground-secondary">{description}</p>

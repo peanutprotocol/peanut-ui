@@ -15,7 +15,7 @@ import { useAppLocale } from '@/i18n/app/locale-context'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useCardSurfaceAccess } from '@/hooks/useCardSurfaceAccess'
-import InviteFriendsModal from '../Global/InviteFriendsModal'
+import InviteFriendsDrawer from '../Global/InviteFriendsDrawer'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import Image from 'next/image'
 import { useQueryState } from 'nuqs'
@@ -29,7 +29,7 @@ import { isIOSNative } from '@/utils/capacitor'
 
 export const Profile = () => {
     const { logoutUser, isLoggingOut, user } = useAuth()
-    const [isInviteFriendsModalOpen, setIsInviteFriendsModalOpen] = useState(false)
+    const [isInviteFriendsDrawerOpen, setIsInviteFriendsDrawerOpen] = useState(false)
     // URL state so the badge-earned toast can deep-link straight into the picker
     const [avatarPickerOpen, setAvatarPickerOpen] = useQueryState(AVATAR_PICKER_PARAM, avatarPickerParser)
     const router = useRouter()
@@ -120,7 +120,7 @@ export const Profile = () => {
                         <ProfileMenuItem
                             icon="smile"
                             label={t('menu.inviteFriends')}
-                            onClick={() => setIsInviteFriendsModalOpen(true)}
+                            onClick={() => setIsInviteFriendsDrawerOpen(true)}
                             href="/dummy" // Dummy link, wont be called
                         />
                         <ProfileMenuItem icon="achievements" label={t('menu.yourBadges')} href="/badges" />
@@ -183,9 +183,9 @@ export const Profile = () => {
                 </div>
             </div>
 
-            <InviteFriendsModal
-                visible={isInviteFriendsModalOpen}
-                onClose={() => setIsInviteFriendsModalOpen(false)}
+            <InviteFriendsDrawer
+                visible={isInviteFriendsDrawerOpen}
+                onClose={() => setIsInviteFriendsDrawerOpen(false)}
                 username={user?.user.username ?? ''}
                 source="profile"
             />

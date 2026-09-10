@@ -11,7 +11,7 @@ import { isAndroidNativeBridge, isNativeBridge } from '@/utils/capacitor'
 import { canOpenAppSettings, openAppSettings } from '@/utils/native-settings'
 import { DeviceType } from '@/hooks/useGetDeviceType'
 import { BrowserType } from '@/hooks/useGetBrowserType'
-import CameraPermissionModal from '../CameraPermissionModal'
+import CameraPermissionDrawer from '../CameraPermissionDrawer'
 
 jest.mock('@/utils/capacitor', () => ({
     ...jest.requireActual('@/utils/capacitor'),
@@ -53,7 +53,7 @@ const mockedIsAndroidNativeBridge = isAndroidNativeBridge as jest.Mock
 const mockedCanOpenAppSettings = canOpenAppSettings as jest.Mock
 
 function renderModal(onRetry = jest.fn()) {
-    const result = renderWithIntl(<CameraPermissionModal visible onRetry={onRetry} onClose={jest.fn()} />)
+    const result = renderWithIntl(<CameraPermissionDrawer visible onRetry={onRetry} onClose={jest.fn()} />)
     return { ...result, onRetry }
 }
 
