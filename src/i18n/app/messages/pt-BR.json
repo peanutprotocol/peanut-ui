@@ -723,7 +723,7 @@
             },
             "signup": {
                 "title": "Como devemos te chamar?",
-                "description": "Seu @usuário é como os amigos enviam dinheiro para você. Pense nele como um número de conta que dá para falar em voz alta."
+                "description": "Escolha seu nome de usuário. Você vai usá-lo para enviar e receber dinheiro."
             },
             "residence": {
                 "title": "Onde você mora legalmente?",
