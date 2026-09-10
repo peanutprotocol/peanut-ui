@@ -12,6 +12,7 @@
  * translation, never a crash.
  */
 export const API_ERROR_CODES = {
+    USER_OP_REVERTED: 'USER_OP_REVERTED',
     INSUFFICIENT_COLLATERAL: 'INSUFFICIENT_COLLATERAL',
     WITHDRAWAL_COOLDOWN_ACTIVE: 'WITHDRAWAL_COOLDOWN_ACTIVE',
     WITHDRAWAL_SIGNATURE_COOLDOWN: 'WITHDRAWAL_SIGNATURE_COOLDOWN',
@@ -23,8 +24,12 @@ export const API_ERROR_CODES = {
     NO_COLLATERAL_CONTRACT: 'NO_COLLATERAL_CONTRACT',
     CARD_SECRETS_RATE_LIMITED: 'CARD_SECRETS_RATE_LIMITED',
     MANTECA_KYC_REQUIRED: 'MANTECA_KYC_REQUIRED',
+    MANTECA_TEMPORARILY_UNAVAILABLE: 'MANTECA_TEMPORARILY_UNAVAILABLE',
+    QR_PAYMENT_CANCELLED: 'QR_PAYMENT_CANCELLED',
     TRANSFER_ALREADY_CONFIRMED: 'TRANSFER_ALREADY_CONFIRMED',
     CHAIN_INFRA_UNAVAILABLE: 'CHAIN_INFRA_UNAVAILABLE',
+    LINK_ALREADY_CLAIMED: 'LINK_ALREADY_CLAIMED',
+    BELOW_MIN_BRIDGE_AMOUNT: 'BELOW_MIN_BRIDGE_AMOUNT',
     XCHAIN_WITHDRAW_LIMIT_REACHED: 'XCHAIN_WITHDRAW_LIMIT_REACHED',
 } as const
 
@@ -106,6 +111,8 @@ export async function apiErrorFromResponse(response: Response, fallbackMessage: 
         if (typeof parsed.message === 'string' && parsed.message) message = parsed.message
         else if (typeof parsed.error === 'string' && parsed.error) message = parsed.error
         if (typeof parsed.code === 'string' && parsed.code) code = parsed.code
+        // Older submit routes put the wire discriminant in `error`.
+        else if (Object.values(API_ERROR_CODES).some((value) => value === parsed.error)) code = parsed.error as string
         if (
             typeof parsed.retryAfterSec === 'number' &&
             Number.isFinite(parsed.retryAfterSec) &&

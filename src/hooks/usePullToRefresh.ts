@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { isCapacitor } from '@/utils/capacitor'
 import { impactHaptic, notifyHaptic } from '@/utils/haptics'
@@ -37,6 +37,23 @@ interface UsePullToRefreshOptions {
     enabled?: boolean
     // element that gets the "content settled" fade once the refetch lands
     refreshTargetSelector?: string
+}
+
+/**
+ * The layouts' pull guard: a pull only starts when both the window and the
+ * app scroll container (`#scrollable-content`) sit at the top. The element is
+ * looked up lazily and cached — DOM queries per touch would be waste.
+ */
+export function useShouldPullToRefresh(): () => boolean {
+    const scrollableContentRef = useRef<Element | null>(null)
+    return useCallback(() => {
+        if (window.scrollY > 0) return false
+        if (!scrollableContentRef.current) {
+            scrollableContentRef.current = document.querySelector(DEFAULT_REFRESH_TARGET)
+        }
+        const scrollableContent = scrollableContentRef.current
+        return !scrollableContent || scrollableContent.scrollTop === 0
+    }, [])
 }
 
 /**
@@ -149,8 +166,22 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
             setIndicator(0, true)
         }
 
+        const hasOpenDialog = () =>
+            !!document.querySelector(
+                ':is([role="dialog"], [role="alertdialog"]):is([data-state="open"], [aria-modal="true"]):not([hidden])'
+            )
+
         const onTouchStart = (e: TouchEvent) => {
-            if (refreshing || e.touches.length !== 1) return
+            if (refreshing) return
+            if (hasOpenDialog() || e.touches.length !== 1) {
+                resetPull()
+                return
+            }
+            const target = e.target as Element | null
+            if (target?.closest?.('[data-vaul-drawer],[data-vaul-overlay]')) {
+                resetPull()
+                return
+            }
             const allowed = shouldPullToRefreshRef.current ? shouldPullToRefreshRef.current() : window.scrollY === 0
             if (!allowed) return
             // a new pull can start inside the retract window — put the arrow back
@@ -166,6 +197,10 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
 
         const onTouchMove = (e: TouchEvent) => {
             if (!pulling || refreshing) return
+            if (hasOpenDialog()) {
+                resetPull()
+                return
+            }
             const dx = e.touches[0].clientX - startX
             const dy = e.touches[0].clientY - startY
             if (!axisLock && (Math.abs(dx) > AXIS_LOCK_SLOP_PX || Math.abs(dy) > AXIS_LOCK_SLOP_PX)) {
@@ -220,6 +255,10 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
 
         const onTouchEnd = () => {
             if (!pulling || refreshing) return
+            if (hasOpenDialog()) {
+                resetPull()
+                return
+            }
             const triggered = pullDistance >= DIST_RELOAD
             if (!triggered) {
                 resetPull()
@@ -256,13 +295,13 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
         document.addEventListener('touchstart', onTouchStart, listenerOptions)
         document.addEventListener('touchmove', onTouchMove, listenerOptions)
         document.addEventListener('touchend', onTouchEnd, listenerOptions)
-        document.addEventListener('touchcancel', onTouchEnd, listenerOptions)
+        document.addEventListener('touchcancel', resetPull, listenerOptions)
 
         return () => {
             document.removeEventListener('touchstart', onTouchStart)
             document.removeEventListener('touchmove', onTouchMove)
             document.removeEventListener('touchend', onTouchEnd)
-            document.removeEventListener('touchcancel', onTouchEnd)
+            document.removeEventListener('touchcancel', resetPull)
             timers.forEach(clearTimeout)
             spinAnimation?.cancel()
             indicator.remove()

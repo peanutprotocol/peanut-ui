@@ -2,7 +2,7 @@ import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
 import { useState } from 'react'
 import { useFormatter, useLocale, useTranslations } from 'next-intl'
 import Card from '../Global/Card'
-import { PaymentInfoRow } from '../Payment/PaymentInfoRow'
+import { DataRow } from '../0_Bruddle/DataRow'
 import ShareButton from '../Global/ShareButton'
 import { BadgeDetailModal } from './BadgeDetailModal'
 import { captureBadgeShare, getBadgeIcon, getBadgeShareLink, getBadgeShareText } from './badge.utils'
@@ -55,43 +55,45 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
     return (
         <>
             <Drawer open={isOpen} onOpenChange={onClose}>
-                <DrawerContent className="py-5">
-                    <div className="space-y-5 p-5">
-                        <Card
-                            className="relative cursor-pointer p-4 md:p-6"
-                            position="single"
-                            // close the unlock drawer (z-50) before opening the
-                            // detail modal (z-20) so the modal isn't occluded.
+                {/* no top padding: the drawer handle already carries the board's
+                    8px-above / 24px-below spacing (TX Details 17835:84492), and
+                    the TX receipt drawer starts its content right after it.
+                    py-4 + p-4 here stacked 32px of extra head room (PR #2813
+                    review, Jota). */}
+                <DrawerContent className="pb-4">
+                    <div>
+                        {/* centered head per the TX Details chrome (board 17490:115877):
+                            badge art → one-line title. Tapping it opens the detail
+                            modal — close the unlock drawer (z-50) first so the modal
+                            (z-20) isn't occluded. */}
+                        <button
+                            type="button"
+                            className="mb-3 flex w-full cursor-pointer flex-col items-center gap-4 text-center"
                             onClick={() => {
                                 onClose()
                                 setIsDetailOpen(true)
                             }}
                         >
-                            <div className="flex items-center gap-3">
-                                <div className="flex h-12 w-12 items-center justify-center rounded-full">
-                                    <BadgeImage
-                                        src={displayIcon}
-                                        alt={t('iconAlt', { name: displayName })}
-                                        className="size-full object-contain"
-                                        width={160}
-                                        height={160}
-                                    />
-                                </div>
-
-                                <div className="space-y-1">
-                                    <h2 className="flex items-center gap-2 text-xs font-medium text-grey-1">
-                                        {t('unlocked')}
-                                    </h2>
-                                    <DrawerTitle className="text-lg font-extrabold md:text-4xl">
-                                        {displayName}
-                                    </DrawerTitle>
-                                </div>
+                            <div className="flex size-8 items-center justify-center rounded-full">
+                                <BadgeImage
+                                    src={displayIcon}
+                                    alt={t('iconAlt', { name: displayName })}
+                                    className="size-full object-contain"
+                                    width={160}
+                                    height={160}
+                                />
                             </div>
-                        </Card>
+                            {/* the same sentence the unlock toast uses — `unlocked`
+                                is the bare eyebrow BadgeStatusItem needs, where the
+                                badge name is already the row's title */}
+                            <DrawerTitle className="text-heading-s text-foreground-primary">
+                                {t('toastSingle', { name: displayName })}
+                            </DrawerTitle>
+                        </button>
 
-                        <Card position="single">
-                            <PaymentInfoRow label={t('unlockedAtLabel')} value={dateStr} />
-                            <PaymentInfoRow label={t('reasonLabel')} value={displayDescription} hideBottomBorder />
+                        <Card position="single" className="mb-4 divide-y divide-dashed divide-border-default px-4 py-0">
+                            <DataRow label={t('unlockedAtLabel')} value={dateStr} />
+                            <DataRow label={t('reasonLabel')} value={displayDescription} />
                         </Card>
 
                         <div className="pb-4">

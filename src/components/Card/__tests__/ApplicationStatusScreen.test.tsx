@@ -128,6 +128,39 @@ describe('ApplicationStatusScreen — proof-of-address upload CTA', () => {
     })
 })
 
+describe('ApplicationStatusScreen — identity-document upload CTA (TASK-21687)', () => {
+    it('renders the identity upload CTA as primary when the rail carries a rain-hosted action', () => {
+        const onUpload = jest.fn()
+        render(
+            <ApplicationStatusScreen
+                variant="requires-info"
+                reasonMessage="We couldn't verify the identity documents on your card application."
+                onContactSupport={jest.fn()}
+                onUploadIdentity={onUpload}
+            />
+        )
+        fireEvent.click(screen.getByText('Upload identity documents'))
+        expect(onUpload).toHaveBeenCalledTimes(1)
+        // Contact support stays available as the fallback path.
+        expect(screen.getByText('Contact support')).toBeInTheDocument()
+    })
+
+    it('renders the identity upload CTA on the rejected variant too', () => {
+        render(<ApplicationStatusScreen variant="rejected" onContactSupport={jest.fn()} onUploadIdentity={jest.fn()} />)
+        expect(screen.getByText('Upload identity documents')).toBeInTheDocument()
+    })
+
+    it('omits the identity upload CTA when no rain-hosted action exists', () => {
+        render(<ApplicationStatusScreen variant="requires-info" onContactSupport={jest.fn()} />)
+        expect(screen.queryByText('Upload identity documents')).not.toBeInTheDocument()
+    })
+
+    it('never renders the identity upload CTA on non-support variants', () => {
+        render(<ApplicationStatusScreen variant="pending" onUploadIdentity={jest.fn()} />)
+        expect(screen.queryByText('Upload identity documents')).not.toBeInTheDocument()
+    })
+})
+
 describe('ApplicationStatusScreen — pending', () => {
     // The pending variant carries no CTA of its own, so its back button is the
     // screen's ONLY control. A caller that omits onPrev leaves the user with a

@@ -234,7 +234,7 @@ export default function NetworkCanvas({
             data-graph-layout-ready={String(layoutReady)}
         >
             <p className="sr-only">Use the relationship table for keyboard navigation and exact connection details.</p>
-            <div className="pointer-events-none absolute left-3 top-3 z-10 flex flex-wrap gap-2 text-[10px] font-semibold">
+            <div className="pointer-events-none absolute top-3 left-3 z-10 flex flex-wrap gap-2 text-[10px] font-semibold">
                 {presentTypes.map((type) => (
                     <span
                         key={type}
@@ -250,7 +250,7 @@ export default function NetworkCanvas({
                 ))}
             </div>
             {denseGraph && visibleRelationshipIds ? (
-                <div className="absolute right-3 top-3 z-10 inline-flex items-center gap-1 rounded-full border border-n-1 bg-white px-2 py-1 text-[10px] font-semibold">
+                <div className="absolute top-3 right-3 z-10 inline-flex items-center gap-1 rounded-full border border-n-1 bg-white px-2 py-1 text-[10px] font-semibold">
                     <span>Overview · {visibleRelationshipIds.size.toLocaleString()} links</span>
                     <InfoTooltip label="dense graph overview">
                         The overview emphasizes the strongest connections. Zoom in or select a node to reveal more; all{' '}

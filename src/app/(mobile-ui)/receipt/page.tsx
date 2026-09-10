@@ -4,7 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import NavHeader from '@/components/Global/NavHeader'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsReceipt'
 import { ReceiptUnavailable } from '@/components/TransactionDetails/ReceiptUnavailable'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
@@ -47,7 +47,8 @@ export default function NativeReceiptPage() {
     const unavailable = !entryId || !kind ? 'gone' : isError && !entry ? 'loadFailed' : undefined
 
     return (
-        <PageContainer className="receipt-page flex min-h-[100dvh] flex-col items-center justify-center p-6">
+        <PageContainer className="receipt-page flex min-h-dvh flex-col items-center justify-center p-4">
+            {/* app chrome: mobile only, and never on the printed/PDF receipt */}
             <div className="md:hidden print:hidden">
                 <NavHeader titleKey="receipt" />
             </div>
@@ -58,7 +59,7 @@ export default function NativeReceiptPage() {
                         onRetry={unavailable === 'loadFailed' ? () => void refetch() : undefined}
                     />
                 ) : isLoading || !entry ? (
-                    <PeanutLoading />
+                    <Loading variant="mascot" />
                 ) : (
                     <TransactionDetailsReceipt
                         className="w-full"

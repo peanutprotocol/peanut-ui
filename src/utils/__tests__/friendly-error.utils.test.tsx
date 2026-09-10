@@ -46,6 +46,14 @@ describe('friendlyError', () => {
                 code: 'operationTimedOut',
             })
         })
+
+        test('unverifiable claim minimum maps to the retryable copy, not contact-support', () => {
+            expect(
+                friendlyError(
+                    new Error('Could not verify the claim amount against the bridge minimum. Please try again.')
+                )
+            ).toEqual({ kind: 'code', code: 'networkBusyTimeout' })
+        })
     })
 
     describe('WebAuthn NotAllowedError (passkey ceremony refused)', () => {
@@ -356,6 +364,14 @@ describe('chain-infrastructure outage on claim', () => {
         expect(friendlyError(outage)).toEqual({ kind: 'code', code: 'networkBusyTimeout' })
     })
 
+    // A cancel on a link the recipient already claimed reverts in the vault;
+    // the API leaves the link CLAIMED and answers 409 with this code
+    // (TASK-22091). Same copy the claimer-side text matcher already produces.
+    test('an already-claimed link maps to the existing already-claimed copy', () => {
+        const err = Object.assign(new Error('This link was already claimed.'), { code: 'LINK_ALREADY_CLAIMED' })
+        expect(friendlyError(err)).toEqual({ kind: 'code', code: 'sendLinkAlreadyClaimed' })
+    })
+
     test('the same prose WITHOUT the code keeps the support fallback', () => {
         // the code is the only new signal — an API that predates it, or a
         // genuinely unclassified 500, must not start advertising a retry
@@ -390,7 +406,6 @@ describe('browser-native fetch rejection (TASK-21956)', () => {
     test.each([
         ['chargesApi.get on a 500', new Error('Failed to fetch charge: Internal Server Error')],
         ['useLimits on a 503', new Error('Failed to fetch limits: Service Unavailable')],
-        ['quests leaderboard', new Error('Failed to fetch leaderboards')],
     ])('%s is a server error, not lost connectivity', (_case, error) => {
         expect(friendlyError(error)).toEqual({ kind: 'code', code: 'genericSupport' })
     })
@@ -399,6 +414,25 @@ describe('browser-native fetch rejection (TASK-21956)', () => {
         expect(friendlyError(new TypeError('Failed to fetch charge: Internal Server Error'))).toEqual({
             kind: 'code',
             code: 'genericSupport',
+        })
+    })
+})
+
+describe('confirmed mixed-spend revert display', () => {
+    it.each([
+        {
+            code: 'USER_OP_REVERTED',
+            error: 'USER_OP_REVERTED',
+            message: 'This payment could not be completed. Please try again.',
+        },
+        Object.assign(new Error('USER_OP_REVERTED: signed operation reverted on-chain'), { code: 'USER_OP_REVERTED' }),
+    ])('localizes the wire code independently of backend prose', (failure) => {
+        expect(friendlyError(failure)).toEqual({ kind: 'code', code: 'userOpReverted' })
+    })
+    it('does not offer confirmed-revert copy for an unknown receipt', () => {
+        expect(friendlyError(new Error('UserOp receipt timeout - transaction may still be pending'))).not.toEqual({
+            kind: 'code',
+            code: 'userOpReverted',
         })
     })
 })
@@ -455,4 +489,15 @@ describe('cross-chain withdraw cap (XCHAIN_WITHDRAW_LIMIT_REACHED)', () => {
         for (const unit of ['minutes', 'hours', 'days']) expect(msg).toContain(`{${unit}, plural`)
         expect(msg).toContain('Arbitrum')
     })
+})
+
+test('corporate rejection codes select localized availability guidance without matching provider prose', () => {
+    expect(
+        friendlyError(
+            new ApiError('Company has exceeded their debt limit', {
+                status: 500,
+                code: 'MANTECA_TEMPORARILY_UNAVAILABLE',
+            })
+        )
+    ).toEqual({ kind: 'code', code: 'transferTemporarilyUnavailable' })
 })

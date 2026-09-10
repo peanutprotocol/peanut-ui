@@ -1,5 +1,6 @@
 {
     "common": {
+        "fundsOnTheWay": "Fondos en camino",
         "cancel": "Cancelar",
         "continue": "Continuar",
         "back": "Atrás",
@@ -54,7 +55,9 @@
             "custom": "Personalizado",
             "unknown": "Desconocido"
         },
-        "exchangeRate": "Tipo de cambio"
+        "exchangeRate": "Tipo de cambio",
+        "slideToProceed": "Desliza para continuar",
+        "userAvatarAlt": "Avatar de {username}"
     },
     "errors": {
         "balanceSettling": "Tu saldo aún no está totalmente disponible. Inténtalo de nuevo en unos segundos.",
@@ -107,12 +110,14 @@
         "cardApprovalFailed": "No se pudo aprobar la tarjeta. Inténtalo de nuevo.",
         "logoutFailed": "No pudimos cerrar tu sesión. Inténtalo de nuevo.",
         "loginIncomplete": "No se completó el inicio de sesión. Inténtalo de nuevo.",
-        "rateUnavailable": "Los tipos de cambio no están disponibles por el momento. Inténtalo de nuevo en un momento."
+        "rateUnavailable": "Los tipos de cambio no están disponibles por el momento. Inténtalo de nuevo en un momento.",
+        "transferTemporarilyUnavailable": "Las transferencias no están disponibles por el momento. Revisa tu actividad antes de volver a intentarlo.",
+        "userOpReverted": "No se pudo completar el pago. Intenta de nuevo."
     },
     "migration": {
         "downloadPrompt": {
             "earlyTitle": "¡La app de Peanut ya está aquí!",
-            "earlyDescription": "Peanut ya vive en el App Store y Google Play. Más rápida, más fluida y te avisa al instante cuando llega tu dinero. Tu cuenta va contigo, sin configurar nada.",
+            "earlyDescription": "Peanut ahora es una app, en la App Store y Google Play. La misma cuenta, más rápida, y avisos al instante cuando llega dinero.",
             "maybeLater": "La descargo más tarde",
             "title": "Peanut será solo app",
             "description": "En {days, plural, one {# día} other {# días}} Peanut se muda por completo a la app. Descárgala ahora y continúa justo donde quedaste. Tu cuenta y tu dinero se mudan contigo automáticamente.",
@@ -131,18 +136,33 @@
             "title": "¡La app de Peanut ya está aquí!",
             "description": "Más rápida, más fluida y te avisa cuando llega tu dinero."
         },
-        "review": {
-            "title": "¿Te está gustando Peanut?",
-            "description": "Una calificación rápida ayuda a que otros nos encuentren.",
-            "loveIt": "Me encanta",
-            "meh": "Podría mejorar",
-            "supportPrefill": "Tengo comentarios sobre la app, esto es lo que podría mejorar: "
-        },
         "downloadNow": "Descargar ahora",
         "smartLink": {
             "redirecting": "Te llevamos a la tienda…",
             "pickStore": "Elige tu tienda y descarga la app."
         }
+    },
+    "navigation": {
+        "home": "Inicio",
+        "send": "Enviar",
+        "request": "Recibir",
+        "add": "Agregar",
+        "withdraw": "Retirar",
+        "history": "Historial",
+        "docs": "Docs",
+        "support": "Soporte",
+        "logout": "Cerrar sesión",
+        "loggingOut": "Cerrando sesión...",
+        "dashboard": "Panel",
+        "pay": "Pagar",
+        "cashout": "Retiro",
+        "claim": "Reclamar",
+        "peanutLogoAlt": "Logo de Peanut",
+        "receipt": "Recibo",
+        "supportUnread": "Nueva respuesta de soporte",
+        "card": "Tarjeta",
+        "exchangeRates": "Tipos de cambio",
+        "scanQr": "Escanear QR"
     },
     "shhhhh": {
         "hero": {

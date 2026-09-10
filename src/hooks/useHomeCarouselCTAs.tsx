@@ -212,7 +212,7 @@ export const useHomeCarouselCTAs = () => {
                 id: 'card-pioneer',
                 title: <span>{t.rich('card.title', { b })}</span>,
                 description: <span>{t.rich('card.description', { b })}</span>,
-                iconContainerClassName: 'bg-purple-1',
+                iconContainerClassName: 'bg-action-primary',
                 icon: 'credit-card',
                 onClick: () => {
                     router.push('/shhhhh')
@@ -282,7 +282,7 @@ export const useHomeCarouselCTAs = () => {
                 id: 'ios-pwa-install',
                 title: t('iosPwa.title'),
                 description: t('iosPwa.description'),
-                iconContainerClassName: 'bg-secondary-1',
+                iconContainerClassName: 'bg-action-secondary',
                 icon: 'mobile-install',
                 onClick: () => {
                     setIsIosPwaInstallModalOpen(true)
@@ -298,7 +298,7 @@ export const useHomeCarouselCTAs = () => {
                 id: 'qr-payment',
                 title: <span>{t.rich('qrPay.title', { b })}</span>,
                 description: <span>{t.rich('qrPay.description', { b })}</span>,
-                iconContainerClassName: 'bg-secondary-1',
+                iconContainerClassName: 'bg-action-secondary',
                 icon: 'qr-code',
                 onClick: () => {
                     setIsQRScannerOpen(true)
@@ -315,7 +315,7 @@ export const useHomeCarouselCTAs = () => {
                 id: 'latam-cashback-invite',
                 title: <span>{t.rich('latamInvite.title', { b })}</span>,
                 description: <span>{t.rich('latamInvite.description', { b })}</span>,
-                iconContainerClassName: 'bg-secondary-1',
+                iconContainerClassName: 'bg-action-secondary',
                 icon: 'gift',
                 onClick: () => {
                     router.push('/rewards')
@@ -334,7 +334,7 @@ export const useHomeCarouselCTAs = () => {
                 id: 'bug-bounty',
                 title: <span>{t.rich('bugBounty.title', { b })}</span>,
                 description: t('bugBounty.description'),
-                iconContainerClassName: 'bg-primary-1',
+                iconContainerClassName: 'bg-action-primary',
                 icon: 'bug',
                 iconSize: 20,
                 // (mobile-ui) routes don't load the Crisp script directly —
@@ -356,7 +356,7 @@ export const useHomeCarouselCTAs = () => {
                 id: 'kyc-prompt',
                 title: <span>{t.rich('kyc.title', { b })}</span>,
                 description: <span>{t.rich('kyc.description', { b })}</span>,
-                iconContainerClassName: 'bg-secondary-1',
+                iconContainerClassName: 'bg-action-secondary',
                 icon: 'qr-code',
                 iconSize: 16,
                 onClick: () => {

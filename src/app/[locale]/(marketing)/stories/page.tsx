@@ -66,7 +66,7 @@ export default async function StoriesIndexPage({ params }: PageProps) {
             ]}
         >
             <Hero title={i18n.storiesTitle} subtitle={i18n.storiesSubtitle} />
-            <div className="mx-auto mb-8 mt-10 max-w-[640px] px-6 md:mt-12 md:px-4">
+            <div className="mx-auto mt-10 mb-8 max-w-[640px] px-6 md:mt-12 md:px-4">
                 {stories.length === 0 ? (
                     <p className="text-center text-grey-1">{i18n.noStoriesPublished}</p>
                 ) : (
@@ -75,7 +75,7 @@ export default async function StoriesIndexPage({ params }: PageProps) {
                             <Link
                                 key={story.slug}
                                 href={story.href}
-                                className="flex flex-col gap-1.5 bg-white px-5 py-4 transition-colors hover:bg-gray-50"
+                                className="flex flex-col gap-1.5 bg-white px-5 py-4 transition-colors hover:bg-gray-100"
                             >
                                 <span className="text-sm font-medium text-n-1">{story.title}</span>
                                 <span className="line-clamp-2 text-xs text-grey-1">{story.description}</span>

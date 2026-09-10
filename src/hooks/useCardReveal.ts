@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { rainApi, RainCardRateLimitError, type RainCardDetailsResponse } from '@/services/rain'
+import { isCapacitor } from '@/utils/capacitor'
+import { useTranslations } from 'next-intl'
 
 interface UseCardRevealArgs {
     cardId: string
@@ -25,16 +27,26 @@ const DEFAULT_AUTO_MASK_MS = 30_000
 
 /**
  * Fetches a card's PAN/CVV/expiry from the backend and holds it in memory
- * with a safety auto-mask: hides on timeout, tab blur, and page unload so
- * secrets don't linger on screen. Never persist the revealed payload — let
- * it be recomputed on the next reveal.
+ * with a safety auto-mask on timeout so secrets don't linger on screen.
+ * While the page is hidden the secrets are COVERED, not cleared: iOS and
+ * Android snapshot the backgrounded webview for the task switcher, so the
+ * PAN must not be painted then — but on native, switching to the merchant
+ * app to paste the number is the whole point, and clearing meant the user
+ * came back to a masked card and a rate-limited re-reveal. Not masked on
+ * blur: native fires it spuriously. Never persist the revealed payload —
+ * let it be recomputed on the next reveal.
  */
 export function useCardReveal({ cardId, autoMaskMs = DEFAULT_AUTO_MASK_MS }: UseCardRevealArgs): UseCardRevealResult {
+    const t = useTranslations('card.reveal')
     const [revealed, setRevealed] = useState<RainCardDetailsResponse | null>(null)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [isRateLimited, setIsRateLimited] = useState(false)
+    // ponytail: a JS cover races the OS snapshot; FLAG_SECURE / an iOS privacy
+    // overlay is the upgrade if a device check ever catches the PAN in recents.
+    const [obscured, setObscured] = useState(false)
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const inFlightRef = useRef(false)
 
     const hide = useCallback(() => {
         setRevealed(null)
@@ -47,6 +59,10 @@ export function useCardReveal({ cardId, autoMaskMs = DEFAULT_AUTO_MASK_MS }: Use
     }, [])
 
     const reveal = useCallback(async () => {
+        // A second tap while the step-up sheet is up would open a second ceremony
+        // that fails instantly (overlapped=true in telemetry) and loops.
+        if (inFlightRef.current) return
+        inFlightRef.current = true
         setIsLoading(true)
         setError(null)
         setIsRateLimited(false)
@@ -65,14 +81,14 @@ export function useCardReveal({ cardId, autoMaskMs = DEFAULT_AUTO_MASK_MS }: Use
         } catch (e) {
             if (e instanceof RainCardRateLimitError) {
                 setIsRateLimited(true)
-                setError(e.message)
+                setError(t('rateLimited'))
                 posthog.capture(ANALYTICS_EVENTS.CARD_PAN_RATE_LIMITED)
             } else {
                 // Never surface the raw error to the UI: the backend forwards
                 // internal/upstream detail in its message (e.g. a raw Rain 500
                 // body), and CardFace renders the error string verbatim on the
                 // card. Show a friendly, actionable message instead.
-                setError('Could not load card details. Please try again or contact support.')
+                setError(t('loadFailed'))
                 // Telemetry gets a bounded slice for segmenting failures — not the
                 // full message, to keep raw upstream error bodies out of client
                 // analytics. The complete, sanitized detail is already in Sentry
@@ -81,9 +97,10 @@ export function useCardReveal({ cardId, autoMaskMs = DEFAULT_AUTO_MASK_MS }: Use
                 posthog.capture(ANALYTICS_EVENTS.CARD_PAN_FAILED, { error_message: errorMessage.slice(0, 120) })
             }
         } finally {
+            inFlightRef.current = false
             setIsLoading(false)
         }
-    }, [cardId, autoMaskMs])
+    }, [cardId, autoMaskMs, t])
 
     const toggle = useCallback(async () => {
         if (revealed) {
@@ -93,29 +110,34 @@ export function useCardReveal({ cardId, autoMaskMs = DEFAULT_AUTO_MASK_MS }: Use
         await reveal()
     }, [revealed, hide, reveal])
 
-    // Auto-mask when the user switches tabs or the window loses focus — a
-    // bystander who glances at an unattended screen shouldn't see secrets.
     useEffect(() => {
-        if (!revealed) return
-        const onHide = () => setRevealed(null)
-        const onVisibilityChange = () => {
-            if (document.visibilityState === 'hidden') setRevealed(null)
-        }
-        window.addEventListener('blur', onHide)
-        window.addEventListener('pagehide', onHide)
-        document.addEventListener('visibilitychange', onVisibilityChange)
-        return () => {
-            window.removeEventListener('blur', onHide)
-            window.removeEventListener('pagehide', onHide)
-            document.removeEventListener('visibilitychange', onVisibilityChange)
-        }
-    }, [revealed])
+        const sync = () => setObscured(document.visibilityState === 'hidden')
+        document.addEventListener('visibilitychange', sync)
 
-    useEffect(() => {
+        // Android WebViews do not reliably fire visibilitychange, so the native
+        // lifecycle is the authority there — the same appStateChange listener
+        // AppLock uses to know it was backgrounded.
+        let removeNative: (() => void) | undefined
+        let cancelled = false
+        if (isCapacitor()) {
+            import('@capacitor/app')
+                .then(({ App }) => App.addListener('appStateChange', ({ isActive }) => setObscured(!isActive)))
+                .then((handle) => {
+                    if (cancelled) handle.remove()
+                    else removeNative = () => handle.remove()
+                })
+                .catch(() => {
+                    // no bridge (web bundle, old native shell) — the DOM event covers it
+                })
+        }
+
         return () => {
+            cancelled = true
+            removeNative?.()
+            document.removeEventListener('visibilitychange', sync)
             if (timeoutRef.current) clearTimeout(timeoutRef.current)
         }
     }, [])
 
-    return { revealed, isLoading, error, isRateLimited, reveal, hide, toggle }
+    return { revealed: obscured ? null : revealed, isLoading, error, isRateLimited, reveal, hide, toggle }
 }

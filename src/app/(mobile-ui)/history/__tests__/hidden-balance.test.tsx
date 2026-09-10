@@ -12,14 +12,27 @@ jest.mock('next-intl', () => ({
 jest.mock('@tanstack/react-query', () => ({
     useQueryClient: () => ({ setQueryData: jest.fn(), invalidateQueries: jest.fn() }),
 }))
-jest.mock('@/redux/hooks', () => ({
-    useUserStore: () => ({ user: { user: { userId: 'user-1', username: 'alice', badges: [] }, accounts: [] } }),
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({
+        user: { user: { userId: 'user-1', username: 'alice', badges: [] }, accounts: [] },
+        fetchUser: jest.fn(),
+    }),
 }))
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ fetchUser: jest.fn() }) }))
 jest.mock('@/hooks/useCardInfo', () => ({ useCardInfo: () => ({ cardInfo: undefined }) }))
 jest.mock('@/hooks/useRainCardOverview', () => ({ useRainCardOverview: () => ({ overview: undefined }) }))
 jest.mock('@/hooks/useWebSocket', () => ({ useWebSocket: jest.fn() }))
 jest.mock('@/hooks/useInfiniteScroll', () => ({ useInfiniteScroll: () => ({ loaderRef: { current: null } }) }))
+// selection is hoisted to the list — the page computes isSelected per row from
+// this hook (rows no longer subscribe to `?tx=` themselves)
+let mockSelectedTxId: string | null = null
+jest.mock('@/hooks/useTransactionDetailsDrawer', () => ({
+    useTransactionDetailsDrawer: () => ({
+        selectedTxId: mockSelectedTxId,
+        isTransactionSelected: (id?: string | null) => mockSelectedTxId != null && mockSelectedTxId === id,
+        openTransactionDetails: jest.fn(),
+        closeTransactionDetails: jest.fn(),
+    }),
+}))
 jest.mock('@/hooks/useTransactionHistory', () => ({
     useTransactionHistory: () => ({
         data: { pages: [{ entries: [{ uuid: 'tx-1', timestamp: '2026-01-01T00:00:00Z', type: 'SEND' }] }] },
@@ -46,13 +59,13 @@ jest.mock('@/components/Card/cardUnlock.types', () => ({
     isCardUnlockHistoryItem: () => false,
 }))
 jest.mock('@/components/Global/NavHeader', () => () => null)
-jest.mock('@/components/Global/PeanutLoading', () => () => null)
+jest.mock('@/components/Global/Loading', () => () => null)
 jest.mock('@/components/Global/EmptyStates/EmptyState', () => () => null)
 jest.mock('@/components/Global/EmptyStates/NoDataEmptyState', () => () => null)
 jest.mock('@/components/TransactionDetails/transactionTransformer', () => ({
     mapTransactionDataForDrawer: () => ({
         transactionCardType: 'send',
-        transactionDetails: { userName: 'bob', amount: '12.5', status: 'completed', initials: 'B' },
+        transactionDetails: { id: 'tx-1', userName: 'bob', amount: '12.5', status: 'completed', initials: 'B' },
     }),
 }))
 jest.mock('@/components/TransactionDetails/TransactionCard', () => {
@@ -69,6 +82,7 @@ describe('HistoryPage hidden-balance preference', () => {
     beforeEach(() => {
         mockGetUserPreferences.mockReset()
         mockTransactionCard.mockClear()
+        mockSelectedTxId = null
     })
 
     it('masks transaction amounts when balanceHidden is set', () => {
@@ -84,5 +98,26 @@ describe('HistoryPage hidden-balance preference', () => {
         render(<HistoryPage />)
         expect(mockTransactionCard).toHaveBeenCalledWith(expect.objectContaining({ hideTxnAmount: false }))
         expect(screen.getByTestId('txn-card')).toHaveTextContent('amount')
+    })
+
+    // deep-link wiring: `?tx=` (via the hoisted hook) still selects the right
+    // row after the per-row subscription moved to the list level
+    it('marks the row matching the url tx id as selected', () => {
+        mockGetUserPreferences.mockReturnValue(undefined)
+        mockSelectedTxId = 'tx-1'
+        render(<HistoryPage />)
+        expect(mockTransactionCard).toHaveBeenCalledWith(
+            expect.objectContaining({
+                isSelected: true,
+                onOpen: expect.any(Function),
+                onClose: expect.any(Function),
+            })
+        )
+    })
+
+    it('passes isSelected=false when no tx id is in the url', () => {
+        mockGetUserPreferences.mockReturnValue(undefined)
+        render(<HistoryPage />)
+        expect(mockTransactionCard).toHaveBeenCalledWith(expect.objectContaining({ isSelected: false }))
     })
 })

@@ -1,14 +1,17 @@
 /**
  * Withdraw Page — State Matrix Tests
  *
- * Tests the WithdrawPage component across 15 state combinations covering:
- * method selection, amount input, validation, limits, and navigation.
+ * Tests the root withdraw flow (WithdrawRoot on the URL stepper) across
+ * method selection, amount input, validation, limits, navigation, and the
+ * native (?country=…) sub-views.
  *
- * Strategy: mock every hook and service at the module level, then configure
- * per-test via mockReturnValue / mockImplementation.
+ * Strategy: mock hooks/services at the module level; run the REAL stepper and
+ * flow hook against the nuqs testing adapter, so the URL contract
+ * (?step=amount, ?amount=, send marker forwarding) is what's asserted.
  */
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { IntlWrapper } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { parseUnits } from 'viem'
@@ -18,6 +21,7 @@ import { parseUnits } from 'viem'
 // next/navigation
 const mockRouterPush = jest.fn()
 const mockRouterBack = jest.fn()
+const mockRouterReplace = jest.fn()
 const mockSearchParams = new Map<string, string>()
 
 jest.mock('next/navigation', () => ({
@@ -27,7 +31,7 @@ jest.mock('next/navigation', () => ({
     useRouter: () => ({
         push: mockRouterPush,
         back: mockRouterBack,
-        replace: jest.fn(),
+        replace: mockRouterReplace,
         prefetch: jest.fn(),
     }),
     usePathname: () => '/withdraw',
@@ -55,41 +59,28 @@ jest.mock('posthog-js', () => ({
 
 // ---------- hooks & services ----------
 
-const mockSetAmountToWithdraw = jest.fn()
 const mockSetError = jest.fn()
-const mockSetUsdAmount = jest.fn()
 const mockSetSelectedBankAccount = jest.fn()
 const mockSetSelectedMethod = jest.fn()
-const mockSetShowAllWithdrawMethods = jest.fn()
+const mockSetIsMaxWithdrawal = jest.fn()
 
 const mockWithdrawFlow = {
-    amountToWithdraw: '',
-    setAmountToWithdraw: mockSetAmountToWithdraw,
-    setError: mockSetError,
     error: { showError: false, errorMessage: '' },
-    setUsdAmount: mockSetUsdAmount,
+    setError: mockSetError,
+    setIsMaxWithdrawal: mockSetIsMaxWithdrawal,
     selectedMethod: null as any,
     selectedBankAccount: null as any,
     setSelectedBankAccount: mockSetSelectedBankAccount,
     setSelectedMethod: mockSetSelectedMethod,
-    setShowAllWithdrawMethods: mockSetShowAllWithdrawMethods,
 }
 
-jest.mock('@/context/WithdrawFlowContext', () => ({
+jest.mock('@/features/withdraw/WithdrawFlowContext', () => ({
     useWithdrawFlow: () => mockWithdrawFlow,
 }))
 
 const mockUseWallet = jest.fn()
 jest.mock('@/hooks/wallet/useWallet', () => ({
     useWallet: () => mockUseWallet(),
-}))
-
-jest.mock('@/context/tokenSelector.context', () => ({
-    tokenSelectorContext: React.createContext({
-        selectedTokenData: { price: 1 },
-        selectedTokenAddress: '',
-        selectedChainID: '',
-    }),
 }))
 
 jest.mock('@/utils/general.utils', () => ({
@@ -155,6 +146,20 @@ jest.mock('@/components/Global/AmountInput', () => ({
                 disabled={props.disabled}
             />
             {props.walletBalance && <span data-testid="wallet-balance">{props.walletBalance}</span>}
+            {!!props.balanceFillAmount && (
+                <button
+                    data-testid="use-full-balance"
+                    data-fill={String(props.balanceFillAmount)}
+                    onClick={() => {
+                        // real component floors to cents, then reports both ways
+                        const filled = (Math.floor(props.balanceFillAmount * 100) / 100).toString()
+                        props.onBalanceFilled?.(filled)
+                        props.setPrimaryAmount?.(filled)
+                    }}
+                >
+                    Use full balance
+                </button>
+            )}
         </div>
     ),
 }))
@@ -169,15 +174,6 @@ jest.mock('@/components/Global/NavHeader', () => ({
                     Back
                 </button>
             )}
-        </div>
-    ),
-}))
-
-jest.mock('@/components/Global/ErrorAlert', () => ({
-    __esModule: true,
-    default: (props: any) => (
-        <div data-testid="error-alert" role="alert">
-            {props.description}
         </div>
     ),
 }))
@@ -211,20 +207,29 @@ jest.mock('@/components/AddWithdraw/AddWithdrawCountriesList', () => ({
     default: () => <div data-testid="native-countries-list" />,
 }))
 
-jest.mock('@/components/AddWithdraw/AddWithdrawRouterView', () => ({
-    AddWithdrawRouterView: (props: any) => (
-        <div data-testid="add-withdraw-router-view">
-            <span data-testid="page-title">{props.pageTitle}</span>
-            <span data-testid="main-heading">{props.mainHeading}</span>
-            <button data-testid="router-view-back" onClick={props.onBackClick}>
-                Back
-            </button>
-        </div>
-    ),
+// The method step's composition (saved accounts / country list) has its own
+// suite — here it stands in as a probe for titles + flow wiring.
+jest.mock('@/features/withdraw/views/WithdrawMethodView', () => ({
+    WithdrawMethodView: (props: any) => {
+        const [showAll] = jest.requireActual('nuqs').useQueryState('showAll')
+        return (
+            <div data-testid="withdraw-method-view" data-show-all={showAll}>
+                <span data-testid="page-title">{props.pageTitle}</span>
+                <span data-testid="main-heading">{props.mainHeading}</span>
+                <button data-testid="method-view-back" onClick={props.onExit}>
+                    Back
+                </button>
+                <button data-testid="method-view-choose" onClick={props.onMethodChosen}>
+                    Choose
+                </button>
+            </div>
+        )
+    },
 }))
 
 // ---------- import component under test AFTER all mocks ----------
 import WithdrawPage from '../page'
+import { __testing as safeBackTesting } from '@/hooks/useSafeBack'
 
 // ---------- helpers ----------
 
@@ -241,22 +246,25 @@ function createQueryClient() {
     })
 }
 
+const mockOnUrlUpdate = jest.fn()
+
 function renderWithdraw(params: Record<string, string> = {}) {
     setSearchParams(params)
     const queryClient = createQueryClient()
     return render(
-        <IntlWrapper>
-            <QueryClientProvider client={queryClient}>
-                <WithdrawPage />
-            </QueryClientProvider>
-        </IntlWrapper>
+        <NuqsTestingAdapter searchParams={params} onUrlUpdate={mockOnUrlUpdate}>
+            <IntlWrapper>
+                <QueryClientProvider client={queryClient}>
+                    <WithdrawPage />
+                </QueryClientProvider>
+            </IntlWrapper>
+        </NuqsTestingAdapter>
     )
 }
 
 // ---------- default mock values ----------
 
 function applyDefaults() {
-    mockWithdrawFlow.amountToWithdraw = ''
     mockWithdrawFlow.error = { showError: false, errorMessage: '' }
     mockWithdrawFlow.selectedMethod = null
     mockWithdrawFlow.selectedBankAccount = null
@@ -286,6 +294,7 @@ function applyDefaults() {
 beforeEach(() => {
     jest.clearAllMocks()
     mockSearchParams.clear()
+    safeBackTesting.reset()
     applyDefaults()
     // clearAllMocks() resets call history but not implementations, so restore
     // the default country resolution here — tests that override it (GROUP 6)
@@ -294,28 +303,45 @@ beforeEach(() => {
 })
 
 // ============================================================
-// GROUP 1: Method Selection
+// GROUP 1: Method Selection (?step absent → method step)
 // ============================================================
 describe('GROUP 1: Method Selection', () => {
-    test('No method selected shows AddWithdrawRouterView', () => {
+    test('No step in the URL shows the method view', () => {
         renderWithdraw()
 
-        expect(screen.getByTestId('add-withdraw-router-view')).toBeInTheDocument()
+        expect(screen.getByTestId('withdraw-method-view')).toBeInTheDocument()
         expect(screen.getByTestId('main-heading')).toHaveTextContent('How would you like to withdraw?')
     })
 
     test('Method=bank from send flow shows "Send" title and send heading', () => {
         renderWithdraw({ method: 'bank' })
 
-        expect(screen.getByTestId('add-withdraw-router-view')).toBeInTheDocument()
+        expect(screen.getByTestId('withdraw-method-view')).toBeInTheDocument()
         expect(screen.getByTestId('page-title')).toHaveTextContent('Send')
         expect(screen.getByTestId('main-heading')).toHaveTextContent('How would you like to send?')
+    })
+
+    test('?step=amount with no method in flow memory falls back to the method view (guard)', () => {
+        // refresh/deep-link into the amount step after the flow memory died —
+        // the stepper guard resolves to method selection, never a dead screen
+        renderWithdraw({ step: 'amount' })
+
+        expect(screen.getByTestId('withdraw-method-view')).toBeInTheDocument()
+        expect(screen.queryByTestId('amount-input')).not.toBeInTheDocument()
+    })
+
+    test('Choosing a method advances to the amount step in place', async () => {
+        mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
+        renderWithdraw()
+
+        fireEvent.click(screen.getByTestId('method-view-choose'))
+        expect(await screen.findByTestId('amount-input')).toBeInTheDocument()
     })
 
     test('Back from method selection navigates to /home', () => {
         renderWithdraw()
 
-        fireEvent.click(screen.getByTestId('router-view-back'))
+        fireEvent.click(screen.getByTestId('method-view-back'))
         expect(mockRouterPush).toHaveBeenCalledWith('/home')
     })
 
@@ -324,7 +350,7 @@ describe('GROUP 1: Method Selection', () => {
     test('Back honours ?returnTo when the flow was entered from another screen', () => {
         renderWithdraw({ returnTo: '/profile/exchange-rate?from=USD&to=EUR' })
 
-        fireEvent.click(screen.getByTestId('router-view-back'))
+        fireEvent.click(screen.getByTestId('method-view-back'))
         expect(mockRouterPush).toHaveBeenCalledWith('/profile/exchange-rate?from=USD&to=EUR')
         expect(mockRouterPush).not.toHaveBeenCalledWith('/home')
     })
@@ -332,62 +358,80 @@ describe('GROUP 1: Method Selection', () => {
     test('Back ignores an off-origin ?returnTo and still resets to /home', () => {
         renderWithdraw({ returnTo: 'https://evil.example/phish' })
 
-        fireEvent.click(screen.getByTestId('router-view-back'))
+        fireEvent.click(screen.getByTestId('method-view-back'))
         expect(mockRouterPush).toHaveBeenCalledWith('/home')
     })
 
     test('Back from the send flow still goes to /send, ignoring ?returnTo', () => {
         renderWithdraw({ method: 'bank', returnTo: '/profile/exchange-rate' })
 
-        fireEvent.click(screen.getByTestId('router-view-back'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/send')
+        fireEvent.click(screen.getByTestId('method-view-back'))
+        expect(mockRouterReplace).toHaveBeenCalledWith('/send')
+        expect(mockRouterPush).not.toHaveBeenCalled()
     })
 
-    test('Back from bank send method selection navigates to /send', () => {
+    // Regression: this branch used to router.push('/send') over the retained
+    // /withdraw?method=bank entry, so send's safe-back popped right back into
+    // the withdraw step — Back looped instead of unwinding (TASK-22424).
+    test('Back from bank send method selection pops in-app history, not push', () => {
+        window.history.pushState({}, '', '/withdraw?method=bank')
         renderWithdraw({ method: 'bank' })
 
-        fireEvent.click(screen.getByTestId('router-view-back'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/send')
+        fireEvent.click(screen.getByTestId('method-view-back'))
+        expect(mockRouterBack).toHaveBeenCalledTimes(1)
+        expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
+    test('Back from bank send method selection replaces to /send on a cold deep link', () => {
+        renderWithdraw({ method: 'bank' })
+
+        fireEvent.click(screen.getByTestId('method-view-back'))
+        expect(mockRouterReplace).toHaveBeenCalledWith('/send')
+        expect(mockRouterPush).not.toHaveBeenCalled()
     })
 })
 
 // ============================================================
-// GROUP 2: Amount Input
+// GROUP 2: Amount Input (?step=amount)
 // ============================================================
 describe('GROUP 2: Amount Input', () => {
     test('With method selected shows amount input and continue button', () => {
         mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
-        renderWithdraw()
+        renderWithdraw({ step: 'amount' })
 
         expect(screen.getByTestId('amount-input')).toBeInTheDocument()
         expect(screen.getByText('Continue')).toBeInTheDocument()
         expect(screen.getByText('Amount to withdraw')).toBeInTheDocument()
     })
 
+    test('?method=crypto entry lands on the amount step without a step param (send hand-off)', async () => {
+        // /withdraw?method=crypto is send's entry URL — the method is implied,
+        // so the flow commits it and moves to the amount step by itself
+        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+        renderWithdraw({ method: 'crypto', step: 'amount' })
+
+        expect(await screen.findByTestId('amount-input')).toBeInTheDocument()
+    })
+
     test('With method=crypto from send flow shows "Amount to send" heading', () => {
         mockWithdrawFlow.selectedMethod = { type: 'crypto' }
-        renderWithdraw({ method: 'crypto' })
+        renderWithdraw({ method: 'crypto', step: 'amount' })
 
         expect(screen.getByText('Amount to send')).toBeInTheDocument()
     })
 
     test('Send flow shows "Send" in nav header', () => {
         mockWithdrawFlow.selectedMethod = { type: 'crypto' }
-        renderWithdraw({ method: 'crypto' })
+        renderWithdraw({ method: 'crypto', step: 'amount' })
 
         expect(screen.getByTestId('nav-header')).toHaveTextContent('Send')
     })
 
-    test.skip('Balance displayed in amount input', () => {
-        // SKIP 2026-04-24: post feat/card-ui merge, AmountInput no longer
-        // receives `walletBalance` through this code path; the value comes
-        // from useWithdrawFlow internally. Test mock signature drifted.
-        // FOLLOW-UP: rewrite to assert against the unified spendable balance
-        // surfaced by card-ui's wallet refactor (see useRainCardOverview).
+    test('The URL amount pre-fills the input (refresh-safe)', () => {
         mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
-        renderWithdraw()
+        renderWithdraw({ step: 'amount', amount: '42' })
 
-        expect(screen.getByTestId('wallet-balance')).toBeInTheDocument()
+        expect(screen.getByTestId('amount-field')).toHaveValue('42')
     })
 })
 
@@ -397,21 +441,21 @@ describe('GROUP 2: Amount Input', () => {
 describe('GROUP 3: Amount Validation', () => {
     test('Empty amount disables continue button', () => {
         mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
-        renderWithdraw()
+        renderWithdraw({ step: 'amount' })
 
         const continueBtn = screen.getByText('Continue')
         expect(continueBtn).toBeDisabled()
     })
 
-    test('Error state shows ErrorAlert', () => {
+    test('Error state shows the error banner', () => {
         mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
         mockWithdrawFlow.error = { showError: true, errorMessage: 'Not enough balance. Add funds to continue.' }
-        renderWithdraw()
+        renderWithdraw({ step: 'amount' })
 
         expect(screen.getByTestId('error-alert')).toHaveTextContent('Not enough balance. Add funds to continue.')
     })
 
-    test('Error hidden when limits blocking card is displayed', () => {
+    test('Error hidden when limits blocking card is displayed (fiat)', () => {
         mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
         mockWithdrawFlow.error = { showError: true, errorMessage: 'Some error' }
         mockUseLimitsValidation.mockReturnValue({
@@ -426,11 +470,29 @@ describe('GROUP 3: Amount Validation', () => {
             message: 'Monthly limit exceeded',
         })
 
-        renderWithdraw()
+        renderWithdraw({ step: 'amount' })
 
-        // ErrorAlert should NOT be shown when limits is blocking
+        // the banner yields to the limits card — the card is the one reason shown
         expect(screen.queryByTestId('error-alert')).not.toBeInTheDocument()
         expect(screen.getByTestId('limits-warning-card')).toBeInTheDocument()
+    })
+
+    test('Crypto: the balance error stays visible even while limits are blocking (TASK-21666)', () => {
+        // Regression: above the off-ramp limit, crypto rendered NOTHING — the
+        // limits card never renders for crypto and the banner was suppressed.
+        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+        mockWithdrawFlow.error = { showError: true, errorMessage: 'Not enough balance. Add funds to continue.' }
+        mockUseLimitsValidation.mockReturnValue({
+            isBlocking: true,
+            isWarning: false,
+            isLoading: false,
+            currency: 'USD',
+        })
+
+        renderWithdraw({ step: 'amount' })
+
+        expect(screen.queryByTestId('limits-warning-card')).not.toBeInTheDocument()
+        expect(screen.getByTestId('error-alert')).toHaveTextContent('Not enough balance. Add funds to continue.')
     })
 
     test('Crypto withdrawal has no amount-step minimum (parity with send-via-link)', () => {
@@ -440,36 +502,42 @@ describe('GROUP 3: Amount Validation', () => {
         // have no minimum at all; Rhino's per-network bridge minimums are
         // enforced at review time, once the destination is known.
         mockWithdrawFlow.selectedMethod = { type: 'crypto' }
-        mockWithdrawFlow.amountToWithdraw = '0.4'
 
-        renderWithdraw()
+        renderWithdraw({ step: 'amount', amount: '0.4' })
 
         const continueBtn = screen.getByText('Continue')
         expect(continueBtn).not.toBeDisabled()
 
         fireEvent.click(continueBtn)
-        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto')
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto?amount=0.4')
     })
 
-    test('Crypto send forwards the send marker to the next step', () => {
-        // `?method=` is the ONLY send-vs-withdraw signal. Drop it on this hop and
-        // every screen after the amount step reverts to withdraw copy — the user
-        // picks "Send -> Exchange or Wallet" and the next screen says
-        // "You're withdrawing". Losing it here is the original bug.
+    test('Crypto send forwards the send marker AND the amount to the next step', () => {
+        // `?method=` is the ONLY send-vs-withdraw signal, and `?amount=` is the
+        // one typed amount — both must survive the hop (TASK-21664/21665).
         mockWithdrawFlow.selectedMethod = { type: 'crypto' }
-        mockWithdrawFlow.amountToWithdraw = '25'
 
-        renderWithdraw({ method: 'crypto' })
+        renderWithdraw({ method: 'crypto', step: 'amount', amount: '25' })
 
         fireEvent.click(screen.getByText('Continue'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto?method=crypto')
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto?method=crypto&amount=25')
+    })
+
+    test('Manteca method carries the amount into the manteca flow (TASK-21664)', () => {
+        mockWithdrawFlow.selectedMethod = { type: 'manteca', countryPath: 'argentina', title: 'Bank Transfer' }
+
+        renderWithdraw({ step: 'amount', amount: '50' })
+
+        fireEvent.click(screen.getByText('Continue'))
+        expect(mockRouterPush).toHaveBeenCalledWith(expect.stringContaining('/withdraw/manteca'))
+        expect(mockRouterPush).toHaveBeenCalledWith(expect.stringContaining('country=argentina'))
+        expect(mockRouterPush).toHaveBeenCalledWith(expect.stringContaining('amount=50'))
     })
 
     test('Bank withdrawal keeps the $1 minimum for sub-$1 amounts', async () => {
         mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
-        mockWithdrawFlow.amountToWithdraw = '0.5'
 
-        renderWithdraw()
+        renderWithdraw({ step: 'amount', amount: '0.5' })
 
         expect(screen.getByText('Continue')).toBeDisabled()
         // validation is debounced 300ms behind typing
@@ -484,13 +552,99 @@ describe('GROUP 3: Amount Validation', () => {
     test('Stale bank method entering via ?method=crypto keeps the bank minimum', () => {
         // Regression: the crypto exemption must follow selectedMethod (the
         // routing source of truth), not the URL param. A leftover bank method
-        // from an abandoned withdraw survives in the app-wide context and
-        // still routes Continue to the bank flow — so sub-$1 must stay blocked.
+        // from an abandoned withdraw still routes Continue to the bank flow —
+        // so sub-$1 must stay blocked.
         mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
-        mockWithdrawFlow.amountToWithdraw = '0.5'
 
-        renderWithdraw({ method: 'crypto' })
+        renderWithdraw({ method: 'crypto', step: 'amount', amount: '0.5' })
 
+        expect(screen.getByText('Continue')).toBeDisabled()
+    })
+
+    test('Marks the amount as a max withdrawal, and unmarks it on any edit', () => {
+        // The flag is what lets the crypto path settle the sub-cent remainder
+        // the displayed 2 decimals leave behind (TASK-21899).
+        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+        mockUseWallet.mockReturnValue({
+            spendableBalance: parseUnits('12.345678', 6),
+            formattedSpendableBalance: '12.34',
+            hasSufficientSpendableBalance: (amt: string | number) => Number(amt) <= 12.345678,
+        })
+
+        renderWithdraw({ step: 'amount' })
+
+        fireEvent.click(screen.getByTestId('use-full-balance'))
+        expect(mockSetIsMaxWithdrawal).toHaveBeenLastCalledWith(true)
+
+        fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '5' } })
+        expect(mockSetIsMaxWithdrawal).toHaveBeenLastCalledWith(false)
+    })
+
+    test('Hands down the full-precision balance while the field shows cents', () => {
+        // The flow passes the number its own validation compares against, not
+        // the rounded label; the input is what floors it for display, and the
+        // crypto path recovers the remainder from the flag (TASK-21899).
+        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+        mockUseWallet.mockReturnValue({
+            spendableBalance: parseUnits('12.345678', 6),
+            formattedSpendableBalance: '12.34',
+            hasSufficientSpendableBalance: (amt: string | number) => Number(amt) <= 12.345678,
+        })
+
+        renderWithdraw({ step: 'amount' })
+        expect(screen.getByTestId('use-full-balance')).toHaveAttribute('data-fill', '12.345678')
+
+        fireEvent.click(screen.getByTestId('use-full-balance'))
+
+        expect(screen.getByTestId('amount-field')).toHaveValue('12.34')
+        expect(screen.getByText('Continue')).not.toBeDisabled()
+    })
+
+    test('Full balance passes validation and continues with that amount', () => {
+        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+
+        renderWithdraw({ step: 'amount' })
+        fireEvent.click(screen.getByTestId('use-full-balance'))
+
+        const continueBtn = screen.getByText('Continue')
+        expect(continueBtn).not.toBeDisabled()
+
+        fireEvent.click(continueBtn)
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto?amount=100')
+    })
+
+    test('Full balance below the method minimum keeps Continue disabled', async () => {
+        mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
+        mockUseWallet.mockReturnValue({
+            spendableBalance: parseUnits('0.5', 6),
+            formattedSpendableBalance: '0.50',
+            hasSufficientSpendableBalance: (amt: string | number) => Number(amt) <= 0.5,
+        })
+
+        renderWithdraw({ step: 'amount' })
+        fireEvent.click(screen.getByTestId('use-full-balance'))
+
+        expect(screen.getByText('Continue')).toBeDisabled()
+        // validation is debounced 300ms behind typing
+        await waitFor(() =>
+            expect(mockSetError).toHaveBeenCalledWith({
+                showError: true,
+                errorMessage: 'Minimum withdrawal is $1.',
+            })
+        )
+    })
+
+    test('No fill action while the balance is still loading', () => {
+        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+        mockUseWallet.mockReturnValue({
+            spendableBalance: undefined,
+            formattedSpendableBalance: '0.00',
+            hasSufficientSpendableBalance: () => false,
+        })
+
+        renderWithdraw({ step: 'amount' })
+
+        expect(screen.queryByTestId('use-full-balance')).not.toBeInTheDocument()
         expect(screen.getByText('Continue')).toBeDisabled()
     })
 })
@@ -513,7 +667,7 @@ describe('GROUP 4: Limits Validation', () => {
             message: 'Monthly limit exceeded',
         })
 
-        renderWithdraw()
+        renderWithdraw({ step: 'amount' })
 
         expect(screen.getByTestId('limits-warning-card')).toBeInTheDocument()
         expect(screen.getByText('Continue')).toBeDisabled()
@@ -521,7 +675,6 @@ describe('GROUP 4: Limits Validation', () => {
 
     test('Limits warning for bank withdrawal shows LimitsWarningCard but keeps continue enabled', () => {
         mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
-        mockWithdrawFlow.amountToWithdraw = '50'
         mockUseLimitsValidation.mockReturnValue({
             isBlocking: false,
             isWarning: true,
@@ -534,7 +687,7 @@ describe('GROUP 4: Limits Validation', () => {
             message: 'Approaching limit',
         })
 
-        renderWithdraw()
+        renderWithdraw({ step: 'amount', amount: '50' })
 
         expect(screen.getByTestId('limits-warning-card')).toBeInTheDocument()
     })
@@ -553,7 +706,7 @@ describe('GROUP 4: Limits Validation', () => {
             message: 'Monthly limit exceeded',
         })
 
-        renderWithdraw()
+        renderWithdraw({ step: 'amount' })
 
         expect(screen.queryByTestId('limits-warning-card')).not.toBeInTheDocument()
     })
@@ -563,23 +716,45 @@ describe('GROUP 4: Limits Validation', () => {
 // GROUP 5: Navigation
 // ============================================================
 describe('GROUP 5: Navigation', () => {
-    test('Back from crypto send navigates to /send', () => {
+    // Regression: this handler used to router.push('/send') over the retained
+    // /withdraw?method=crypto entry, so send's safe-back popped right back into
+    // the amount step and ?method=crypto re-selected crypto — Back looped
+    // between Send and the amount screen forever (TASK-22424).
+    test('Back from crypto send pops in-app history, not push', () => {
         mockWithdrawFlow.selectedMethod = { type: 'crypto' }
-        renderWithdraw({ method: 'crypto' })
+        window.history.pushState({}, '', '/withdraw?method=crypto')
+        renderWithdraw({ method: 'crypto', step: 'amount' })
 
         fireEvent.click(screen.getByTestId('nav-back'))
         expect(mockSetSelectedMethod).toHaveBeenCalledWith(null)
-        expect(mockRouterPush).toHaveBeenCalledWith('/send')
+        expect(mockRouterBack).toHaveBeenCalledTimes(1)
+        expect(mockRouterPush).not.toHaveBeenCalled()
     })
 
-    test('Back from bank withdraw resets method and goes to method selection', () => {
-        mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
-        renderWithdraw()
+    test('Back from crypto send replaces to /send on a cold deep link', () => {
+        mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+        renderWithdraw({ method: 'crypto', step: 'amount' })
 
         fireEvent.click(screen.getByTestId('nav-back'))
         expect(mockSetSelectedMethod).toHaveBeenCalledWith(null)
-        expect(mockSetAmountToWithdraw).toHaveBeenCalledWith('')
+        expect(mockRouterReplace).toHaveBeenCalledWith('/send')
+        expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
+    test('Back from a selected bank country returns to the country list', async () => {
+        mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
+        renderWithdraw({ step: 'amount' })
+
+        fireEvent.click(screen.getByTestId('nav-back'))
+        expect(mockSetSelectedMethod).toHaveBeenCalledWith(null)
         expect(mockSetSelectedBankAccount).toHaveBeenCalledWith(null)
+        await waitFor(() => expect(mockOnUrlUpdate).toHaveBeenCalled())
+        expect(mockOnUrlUpdate.mock.calls.at(-1)?.[0].searchParams.get('showAll')).toBe('true')
+    })
+
+    test('a bank-send return does not reset an explicit country-list choice', () => {
+        renderWithdraw({ method: 'bank', showAll: 'true' })
+        expect(screen.getByTestId('withdraw-method-view')).toHaveAttribute('data-show-all', 'true')
     })
 })
 
@@ -594,16 +769,10 @@ describe('GROUP 6: Continue never dead-buttons', () => {
         // feedback (Sentry: incomplete-app-router-transaction, 6 users/14d).
         mockGetCountryFromAccount.mockReturnValue(undefined)
 
-        mockUseWallet.mockReturnValue({
-            spendableBalance: parseUnits('100', 6),
-            formattedSpendableBalance: '100.00',
-            hasSufficientSpendableBalance: (amt: string | number) => Number(amt) <= 100,
-        })
         mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
         mockWithdrawFlow.selectedBankAccount = { type: 'iban', details: { countryName: '', countryCode: '' } }
-        mockWithdrawFlow.amountToWithdraw = '50'
 
-        renderWithdraw()
+        renderWithdraw({ step: 'amount', amount: '50' })
 
         // Pressing Continue must NOT throw and must NOT navigate...
         expect(() => fireEvent.click(screen.getByText('Continue'))).not.toThrow()
@@ -619,16 +788,10 @@ describe('GROUP 6: Continue never dead-buttons', () => {
         // Manteca (AR/BR) accounts set selectedBankAccount too; the manteca
         // method check must win over the generic bank branch so they reach
         // /withdraw/manteca rather than the Bridge bank page (or the throw).
-        mockUseWallet.mockReturnValue({
-            spendableBalance: parseUnits('100', 6),
-            formattedSpendableBalance: '100.00',
-            hasSufficientSpendableBalance: (amt: string | number) => Number(amt) <= 100,
-        })
         mockWithdrawFlow.selectedMethod = { type: 'manteca', countryPath: 'argentina', title: 'Bank Transfer' }
         mockWithdrawFlow.selectedBankAccount = { type: 'manteca', details: { countryName: 'argentina' } }
-        mockWithdrawFlow.amountToWithdraw = '50'
 
-        renderWithdraw()
+        renderWithdraw({ step: 'amount', amount: '50' })
 
         fireEvent.click(screen.getByText('Continue'))
         expect(mockRouterPush).toHaveBeenCalledWith(expect.stringContaining('/withdraw/manteca'))
@@ -660,11 +823,13 @@ describe('GROUP 7: Native sub-view mounting', () => {
 
         const queryClient = createQueryClient()
         rerender(
-            <IntlWrapper>
-                <QueryClientProvider client={queryClient}>
-                    <WithdrawPage />
-                </QueryClientProvider>
-            </IntlWrapper>
+            <NuqsTestingAdapter searchParams={{ country: 'us', view: 'bank' }}>
+                <IntlWrapper>
+                    <QueryClientProvider client={queryClient}>
+                        <WithdrawPage />
+                    </QueryClientProvider>
+                </IntlWrapper>
+            </NuqsTestingAdapter>
         )
 
         // synchronously after the re-render — no awaiting a second import

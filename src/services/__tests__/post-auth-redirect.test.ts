@@ -2,7 +2,7 @@ import { consumePostAuthRedirect } from '../post-auth-redirect'
 import { getRedirectUrl, saveToLocalStorage } from '@/utils/general.utils'
 
 const FINANCIAL_REDIRECT = '/claim?step=claim&id=payment-1'
-const CAMPAIGN_REDIRECT = '/add-money/crypto?network=EVM&source=offramp'
+const CAMPAIGN_REDIRECT = '/add-money/crypto?network=EVM'
 
 describe('post-auth redirect consumption', () => {
     beforeEach(() => localStorage.clear())

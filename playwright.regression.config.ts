@@ -1,56 +1,59 @@
 /**
- * Lightweight Playwright config for regression specs that don't need harness auth.
+ * The behaviour specs in e2e/flows: what a screen does, not how it looks.
+ * Looks are covered by playwright.shots.config.ts.
  *
- * Difference from playwright.config.ts:
- *   - No globalSetup (skips the `/dev/test-session` hit on the API — so these
- *     specs run even when TEST_HARNESS_SECRET + ENABLE_TEST_ROUTES aren't set)
- *   - No pre-loaded storageState
- *   - Same webServer reuse (assume UI is already running at :3050)
- *   - Only picks up *.regression.spec.ts files + icon-regression.spec.ts
+ * Every spec here asserts, needs no API and needs no login. There is no
+ * globalSetup and no storageState — the old ones called /dev/test-session with
+ * TEST_HARNESS_SECRET, which nobody had, so nothing ran for months.
  *
- * Usage:
- *   UI_BASE_URL=http://localhost:3050 npx playwright test --config=playwright.regression.config.ts
+ * Runs against `next start`, like the shot capture: /dev pages need
+ * NEXT_PUBLIC_VERCEL_ENV=preview at build time or DEV_TOOLS_ENABLED is false.
+ *
+ *   NEXT_PUBLIC_VERCEL_ENV=preview npm run build
+ *   npm run test:e2e:regression
+ *
+ * Anything that needs a real backend, provider or chain belongs in the
+ * Nutcracker harness in mono, not here.
  */
 
 import { defineConfig, devices } from '@playwright/test'
 
-const UI_BASE = process.env.UI_BASE_URL || 'http://localhost:3000'
+// 3080-3089 only: other sessions own 3050, 3060 and 5050.
+const PORT = Number(process.env.REGRESSION_PORT ?? 3081)
+const BASE = `http://127.0.0.1:${PORT}`
 
 export default defineConfig({
     testDir: './e2e/flows',
-    testMatch: ['**/icon-regression.spec.ts', '**/send-link-e2e.spec.ts', '**/*.regression.spec.ts'],
     outputDir: './e2e/__results__',
 
-    fullyParallel: false,
-    workers: 1,
+    fullyParallel: true,
+    workers: process.env.CI ? 2 : 4,
     retries: 1,
-    timeout: 60_000,
+    timeout: 90_000,
     expect: { timeout: 10_000 },
 
     reporter: [['list']],
 
     use: {
-        baseURL: UI_BASE,
+        baseURL: BASE,
         trace: 'retain-on-failure',
+        video: 'off',
         screenshot: 'off',
+        // The serwist worker serves cached responses from an earlier run.
+        serviceWorkers: 'block',
+        ...devices['Pixel 7'],
+        viewport: { width: 390, height: 844 },
     },
 
-    projects: [
-        {
-            name: 'mobile',
-            use: {
-                ...devices['Pixel 7'],
-                viewport: { width: 390, height: 844 },
-                isMobile: true,
-                hasTouch: true,
-            },
-        },
-    ],
+    projects: [{ name: 'mobile' }],
 
     webServer: {
-        command: 'npm run dev',
-        url: UI_BASE,
-        reuseExistingServer: true,
+        command: `npx next start -p ${PORT}`,
+        url: BASE,
+        // Locally, adopting a running server is the fast path. In CI it would
+        // silently adopt a stale `next start` from an earlier step and run
+        // against the wrong build.
+        reuseExistingServer: !process.env.CI,
         timeout: 120_000,
     },
 })

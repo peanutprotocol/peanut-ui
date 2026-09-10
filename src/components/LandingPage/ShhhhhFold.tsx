@@ -34,12 +34,12 @@ export function ShhhhhFold() {
                     <Link
                         prefetch={false}
                         href="/shhhhh"
-                        className="font-roboto-flex-extrabold inline-block text-headingMedium font-extraBlack leading-none md:text-headingLarge"
+                        className="font-roboto-flex-extrabold inline-block text-headingMedium leading-none font-extraBlack md:text-headingLarge"
                     >
                         {t('wordmark')}
                     </Link>
 
-                    <p className="font-roboto-flex-extrabold mt-5 max-w-xl text-2xl font-extraBlack uppercase leading-tight md:text-3xl">
+                    <p className="font-roboto-flex-extrabold mt-5 max-w-xl text-2xl leading-tight font-extraBlack uppercase md:text-3xl">
                         {t('tagline')}
                     </p>
 

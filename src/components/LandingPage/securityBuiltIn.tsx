@@ -90,7 +90,7 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                                     <h3 className="font-roboto-flex-extrabold text-2xl lg:text-3xl">{feature.title}</h3>
                                 </div>
                                 <p
-                                    className="font-roboto-flex w-full max-w-[360px] text-left text-lg font-normal leading-relaxed md:text-xl"
+                                    className="font-roboto-flex w-full max-w-[360px] text-left text-lg leading-relaxed font-normal md:text-xl"
                                     style={{ letterSpacing: '-0.5px' }}
                                 >
                                     {feature.description}

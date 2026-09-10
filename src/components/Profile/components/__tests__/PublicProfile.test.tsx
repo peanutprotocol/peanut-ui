@@ -9,7 +9,7 @@ import en from '@/i18n/app/messages/en.json'
 
 const mockPush = jest.fn()
 const mockBack = jest.fn()
-const mockSaveToCookie = jest.fn()
+const mockStashInvite = jest.fn()
 const mockGetByUsername = jest.fn()
 const mockValidateInviteCode = jest.fn()
 const mockInterceptGuestCta = jest.fn(() => false)
@@ -31,9 +31,12 @@ jest.mock('@/hooks/useGuestStoreHandoff', () => ({
         storeHandoffModal: <div data-testid="store-handoff" />,
     }),
 }))
+jest.mock('@/utils/invite-stash', () => ({
+    stashInvite: (...args: unknown[]) => mockStashInvite(...args),
+}))
 jest.mock('@/utils/general.utils', () => {
     const actual = jest.requireActual('@/utils/general.utils')
-    return { ...actual, saveToCookie: (...args: unknown[]) => mockSaveToCookie(...args) }
+    return { ...actual }
 })
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
@@ -52,18 +55,17 @@ jest.mock('@/components/Global/NavHeader', () => ({
     default: ({ onPrev }: { onPrev?: () => void }) =>
         onPrev ? <button data-testid="nav-back" onClick={onPrev} /> : null,
 }))
-jest.mock('@/components/Global/ActionModal', () => ({
-    __esModule: true,
-    // Renders description + content when visible so the guest Request-gate
-    // modal (the second crediting door) is assertable.
-    default: ({ visible, description, content }: { visible?: boolean; description?: string; content?: ReactNode }) =>
-        visible ? (
-            <div data-testid="action-modal">
-                <p>{description}</p>
-                {content}
-            </div>
-        ) : null,
+// Renders children when open so the guest Request-gate drawer (the second
+// crediting door) is assertable.
+jest.mock('@/components/Global/Drawer', () => ({
+    Drawer: ({ open, children }: { open?: boolean; children?: ReactNode }) =>
+        open ? <div data-testid="invite-drawer">{children}</div> : null,
+    DrawerContent: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+    DrawerHeader: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+    DrawerTitle: ({ children }: { children?: ReactNode }) => <h2>{children}</h2>,
+    DrawerDescription: ({ children }: { children?: ReactNode }) => <p>{children}</p>,
 }))
+jest.mock('@/components/0_Bruddle/IconBubble', () => ({ IconBubble: () => null }))
 jest.mock('@/components/Global/ShareButton', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
 jest.mock('next/image', () => ({ __esModule: true, default: () => null }))
@@ -132,7 +134,7 @@ describe('PublicProfile guest door', () => {
 
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/invite?code=satoshi'))
         expect(mockValidateInviteCode).toHaveBeenCalledWith('satoshi')
-        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'satoshi')
+        expect(mockStashInvite).toHaveBeenCalledWith('satoshi', 'DIRECT')
         expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
             source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,
             link_type: 'invite_code',
@@ -150,7 +152,7 @@ describe('PublicProfile guest door', () => {
         // runs in a promise continuation — so it must fire before the validation
         // response lands, not after it
         expect(mockInterceptGuestCta).toHaveBeenCalled()
-        expect(mockSaveToCookie).not.toHaveBeenCalled()
+        expect(mockStashInvite).not.toHaveBeenCalled()
 
         settleValidation({
             success: true,
@@ -160,7 +162,7 @@ describe('PublicProfile guest door', () => {
         })
 
         // the handoff opens `_blank`, so this tab lives on and the cookie lands
-        await waitFor(() => expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'satoshi'))
+        await waitFor(() => expect(mockStashInvite).toHaveBeenCalledWith('satoshi', 'DIRECT'))
         expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
             source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,
             link_type: 'invite_code',
@@ -195,21 +197,21 @@ describe('PublicProfile guest door', () => {
         })
     })
 
-    it('routes a guest through the crediting door from the Request-gate modal too', async () => {
+    it('routes a guest through the crediting door from the Request-gate drawer too', async () => {
         renderWithIntl(<PublicProfile username="Satoshi" />)
 
-        // Request opens the invite-gate modal for guests — it must offer the
+        // Request opens the invite-gate drawer for guests — it must offer the
         // same crediting door as the join card, not the old beg-for-an-invite
         // dead end.
         fireEvent.click(await screen.findByRole('button', { name: en.navigation.request }))
-        const modal = await screen.findByTestId('action-modal')
-        expect(modal).toHaveTextContent(en.profile.publicProfile.invitedLine.replace('{username}', 'Satoshi'))
+        const drawer = await screen.findByTestId('invite-drawer')
+        expect(drawer).toHaveTextContent(en.profile.publicProfile.invitedLine.replace('{username}', 'Satoshi'))
 
         const joinButtons = screen.getAllByRole('button', { name: JOIN_CTA })
         fireEvent.click(joinButtons[joinButtons.length - 1])
 
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/invite?code=satoshi'))
-        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'satoshi')
+        expect(mockStashInvite).toHaveBeenCalledWith('satoshi', 'DIRECT')
     })
 
     // Three ways a code fails to credit. All three still navigate — /invite owns
@@ -230,7 +232,7 @@ describe('PublicProfile guest door', () => {
             fireEvent.click(await screen.findByRole('button', { name: JOIN_CTA }))
 
             await waitFor(() => expect(mockPush).toHaveBeenCalledWith(`/invite?code=${expectedCode}`))
-            expect(mockSaveToCookie).not.toHaveBeenCalled()
+            expect(mockStashInvite).not.toHaveBeenCalled()
             expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
                 source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,
                 link_type: 'none',

@@ -1,6 +1,9 @@
 import { Dialog, DialogBackdrop, DialogPanel, Transition } from '@headlessui/react'
 import { Fragment, useRef } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { useTranslations } from 'next-intl'
+import { twMerge } from '@/utils/tw'
+import { useBackHandler } from '@/hooks/useBackHandler'
+import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '../Icons/Icon'
 
 type ModalProps = {
@@ -35,6 +38,12 @@ const Modal = ({
     preventClose = false,
 }: ModalProps) => {
     let dialogRef = useRef(null)
+    const tCommon = useTranslations('common')
+
+    useBackHandler(() => {
+        if (!preventClose) onClose()
+        return true
+    }, visible)
 
     return (
         <Transition show={visible} as={Fragment}>
@@ -50,10 +59,10 @@ const Modal = ({
             >
                 <Transition.Child
                     as={Fragment}
-                    enter="ease-out duration-300"
+                    enter="ease-out duration-moderate"
                     enterFrom="opacity-0"
                     enterTo="opacity-100"
-                    leave="ease-in duration-200"
+                    leave="ease-in duration-fast"
                     leaveFrom="opacity-100"
                     leaveTo="opacity-0"
                 >
@@ -64,7 +73,7 @@ const Modal = ({
                      * Wire it explicitly here, gated by `preventClose` so
                      * destructive-confirmation modals still keep the gate. */}
                     <DialogBackdrop
-                        className={`fixed inset-0 bottom-0  bg-n-1/85 sm:self-auto ${classOverlay}`}
+                        className={`fixed inset-0 bottom-0 bg-black/85 sm:self-auto ${classOverlay}`}
                         onClick={() => {
                             if (!preventClose) onClose()
                         }}
@@ -72,10 +81,10 @@ const Modal = ({
                 </Transition.Child>
                 <Transition.Child
                     as={Fragment}
-                    enter="ease-out duration-300"
+                    enter="ease-out duration-moderate"
                     enterFrom={`opacity-0 ${!video && 'scale-95'}`}
                     enterTo={`opacity-100 ${!video && 'scale-100'}`}
-                    leave="ease-in duration-200"
+                    leave="ease-in duration-fast"
                     leaveFrom={`opacity-100 ${!video && 'scale-100'}`}
                     leaveTo={`opacity-0 ${!video && 'scale-95'}`}
                 >
@@ -84,9 +93,9 @@ const Modal = ({
                             // transform-gpu + will-change promote the panel to its own
                             // compositor layer up front, so the scale/opacity enter tween
                             // doesn't hitch on first-frame rasterization (Android WebView)
-                            `relative bottom-0 z-10 mx-0 w-full max-w-[26rem] transform-gpu self-end rounded-md border-0 bg-white outline-none will-change-transform dark:bg-n-1 sm:m-auto sm:self-auto ${
+                            `relative bottom-0 z-10 mx-0 w-full max-w-[26rem] transform-gpu self-end rounded-md border-0 bg-white will-change-transform outline-none sm:m-auto sm:self-auto dark:bg-black ${
                                 video
-                                    ? 'static aspect-video max-w-[64rem] overflow-hidden bg-n-1 shadow-[0_2.5rem_8rem_rgba(0,0,0,0.5)] dark:border-transparent'
+                                    ? 'static aspect-video max-w-[64rem] overflow-hidden bg-black shadow-[0_2.5rem_8rem_rgba(0,0,0,0.5)] dark:border-transparent'
                                     : ''
                             } ${classWrap}`
                         )}
@@ -97,7 +106,7 @@ const Modal = ({
                                     <>
                                         <div
                                             className={
-                                                'border-b border-n-1 px-5 py-4 text-start text-h6 dark:border-white'
+                                                'border-b border-border-default px-4 py-4 text-start text-heading-card dark:border-white'
                                             }
                                         >
                                             {title}
@@ -108,16 +117,34 @@ const Modal = ({
                                     children
                                 )}
 
-                                <button
-                                    className={twMerge(
-                                        `absolute right-2 top-2 p-2 text-0 hover:fill-primary-1 dark:fill-white dark:hover:fill-primary-1 ${
-                                            video ? 'absolute right-3 top-3 h-14 w-14 fill-white' : ''
-                                        } ${classButtonClose}`
-                                    )}
-                                    onClick={onClose}
-                                >
-                                    <Icon name="cancel" size={24} className="transition-colors" />
-                                </button>
+                                {/* board 17829:74037: bare black X inside the panel's
+                                    top corner — no circle, border or shadow. The box is
+                                    still 40px for the touch target, inset so the glyph
+                                    lands ~16px from the panel edge. */}
+                                {video ? (
+                                    <button
+                                        type="button"
+                                        aria-label={tCommon('close')}
+                                        className={twMerge(
+                                            'absolute top-3 right-3 h-14 w-14 fill-white p-2 text-0',
+                                            classButtonClose
+                                        )}
+                                        onClick={onClose}
+                                    >
+                                        <Icon name="cancel" size={24} className="transition-colors" />
+                                    </button>
+                                ) : (
+                                    <Button
+                                        type="button"
+                                        variant="transparent"
+                                        size="small"
+                                        shape="square"
+                                        aria-label={tCommon('close')}
+                                        icon={<Icon name="cancel" size={20} className="transition-colors" />}
+                                        className={twMerge('absolute top-1 right-1 z-10 w-10 text-0', classButtonClose)}
+                                        onClick={onClose}
+                                    />
+                                )}
                             </>
                         ) : (
                             <> {children}</>

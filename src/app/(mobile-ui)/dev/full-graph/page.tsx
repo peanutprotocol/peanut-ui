@@ -47,19 +47,16 @@ export default function FullGraphPage() {
     if (!isAllowedUser) {
         return (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900">
-                <div className="w-full max-w-md space-y-6 rounded-2xl bg-white p-8 shadow-2xl">
+                <div className="space-y-6 w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
                     <div className="text-center">
-                        <div className="mb-4 text-6xl">🔒</div>
-                        <h2 className="mb-2 text-2xl font-bold text-gray-900">Access Restricted</h2>
-                        <p className="text-sm text-gray-600">This tool is only available to authorized users.</p>
+                        <div className="mb-4 text-heading-big-input">🔒</div>
+                        <h2 className="mb-2 text-heading-s">Access Restricted</h2>
+                        <p className="text-body-s">This tool is only available to authorized users.</p>
                         {user?.user?.username && (
-                            <p className="mt-2 text-xs text-gray-400">Logged in as: {user.user.username}</p>
+                            <p className="mt-2 text-body-xs">Logged in as: {user.user.username}</p>
                         )}
                     </div>
-                    <button
-                        onClick={() => (window.location.href = '/dev')}
-                        className="w-full text-sm text-gray-500 hover:text-gray-700"
-                    >
+                    <button onClick={() => (window.location.href = '/dev')} className="w-full text-body-s">
                         ← Back to Dev Tools
                     </button>
                 </div>
@@ -71,16 +68,14 @@ export default function FullGraphPage() {
     if (!apiKeySubmitted) {
         return (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900">
-                <div className="w-full max-w-md space-y-6 rounded-2xl bg-white p-8 shadow-2xl">
+                <div className="space-y-6 w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
                     <div className="text-center">
-                        <div className="mb-4 text-6xl">🕸️</div>
-                        <h2 className="mb-2 text-2xl font-bold text-gray-900">Full Graph</h2>
-                        <p className="text-sm text-gray-600">
-                            Admin tool - Enter your API key to visualize the network
-                        </p>
+                        <div className="mb-4 text-heading-big-input">🕸️</div>
+                        <h2 className="mb-2 text-heading-s">Full Graph</h2>
+                        <p className="text-body-s">Admin tool - Enter your API key to visualize the network</p>
                     </div>
                     {error && (
-                        <div className="bg-red-50 text-red-800 rounded-lg p-3 text-sm">
+                        <div className="rounded-lg p-3 text-body-s">
                             <div className="font-semibold">Error</div>
                             <div>{error}</div>
                         </div>
@@ -91,15 +86,12 @@ export default function FullGraphPage() {
                         onChange={(e) => setApiKey(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleApiKeySubmit()}
                         placeholder="Admin API Key"
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm transition-colors focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                        className="w-full rounded-lg border px-4 py-3 text-body-s transition-colors focus:ring-2 focus:outline-none"
                     />
                     <Button onClick={handleApiKeySubmit} className="w-full">
                         Enter Graph
                     </Button>
-                    <button
-                        onClick={() => (window.location.href = '/dev')}
-                        className="w-full text-sm text-gray-500 hover:text-gray-700"
-                    >
+                    <button onClick={() => (window.location.href = '/dev')} className="w-full text-body-s">
                         ← Back to Dev Tools
                     </button>
                 </div>
@@ -108,7 +100,7 @@ export default function FullGraphPage() {
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex flex-col bg-gray-50">
+        <div className="fixed inset-0 z-50 flex flex-col">
             <InvitesGraph
                 apiKey={apiKey}
                 onClose={handleClose}
@@ -137,13 +129,13 @@ export default function FullGraphPage() {
                 }) => (
                     <>
                         {/* Controls Panel - Top Right */}
-                        <div className="absolute right-4 top-4 max-h-[calc(100vh_-_140px)] w-[200px] overflow-y-auto rounded-xl bg-white/95 p-3 shadow-lg backdrop-blur-sm">
+                        <div className="absolute top-4 right-4 max-h-[calc(100vh_-_140px)] w-[200px] overflow-y-auto rounded-xl bg-white/95 p-3 shadow-lg backdrop-blur-sm">
                             {/* FORCES + VISIBILITY merged */}
-                            <h3 className="mb-2 text-xs font-bold text-gray-900">Display & Forces</h3>
+                            <h3 className="mb-2 text-label-m">Display & Forces</h3>
 
                             <div className="space-y-2 text-[11px]">
                                 {/* Scale indicator */}
-                                <div className="-mb-1 flex justify-between text-[8px] text-gray-400">
+                                <div className="-mb-1 flex justify-between text-[8px]">
                                     <span>0.1×</span>
                                     <span>1×</span>
                                     <span>10×</span>
@@ -162,12 +154,12 @@ export default function FullGraphPage() {
                                                         charge: { ...forceConfig.charge, enabled: e.target.checked },
                                                     })
                                                 }
-                                                className="h-3 w-3 rounded border-gray-300 text-purple-600"
+                                                className="h-3 w-3 rounded"
                                             />
-                                            <span className="text-gray-700">Repulsion Force</span>
+                                            <span>Repulsion Force</span>
                                         </div>
                                         {forceConfig.charge.enabled && (
-                                            <span className="text-[9px] text-gray-500">
+                                            <span className="text-[9px]">
                                                 {(
                                                     forceConfig.charge.strength / DEFAULT_FORCE_CONFIG.charge.strength
                                                 ).toFixed(1)}
@@ -195,7 +187,7 @@ export default function FullGraphPage() {
                                                     },
                                                 })
                                             }
-                                            className="h-1 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-purple-600"
+                                            className="h-1 w-full cursor-pointer appearance-none rounded-lg"
                                         />
                                     )}
                                 </div>
@@ -220,13 +212,13 @@ export default function FullGraphPage() {
                                                         inviteEdges: e.target.checked,
                                                     })
                                                 }}
-                                                className="h-3 w-3 rounded border-gray-300 text-purple-600"
+                                                className="h-3 w-3 rounded"
                                             />
-                                            <span className="text-gray-700">Invite Force</span>
-                                            <span className="text-[9px] text-gray-400">+ edges</span>
+                                            <span>Invite Force</span>
+                                            <span className="text-[9px]">+ edges</span>
                                         </div>
                                         {forceConfig.inviteLinks.enabled && (
-                                            <span className="text-[9px] text-gray-500">
+                                            <span className="text-[9px]">
                                                 {(
                                                     forceConfig.inviteLinks.strength /
                                                     DEFAULT_FORCE_CONFIG.inviteLinks.strength
@@ -256,7 +248,7 @@ export default function FullGraphPage() {
                                                     },
                                                 })
                                             }
-                                            className="h-1 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-purple-600"
+                                            className="h-1 w-full cursor-pointer appearance-none rounded-lg"
                                         />
                                     )}
                                 </div>
@@ -281,13 +273,13 @@ export default function FullGraphPage() {
                                                         p2pEdges: e.target.checked,
                                                     })
                                                 }}
-                                                className="h-3 w-3 rounded border-gray-300 text-cyan-600"
+                                                className="h-3 w-3 rounded"
                                             />
-                                            <span className="text-gray-700">P2P Force</span>
-                                            <span className="text-[9px] text-gray-400">+ edges</span>
+                                            <span>P2P Force</span>
+                                            <span className="text-[9px]">+ edges</span>
                                         </div>
                                         {forceConfig.p2pLinks.enabled && (
-                                            <span className="text-[9px] text-gray-500">
+                                            <span className="text-[9px]">
                                                 {(
                                                     forceConfig.p2pLinks.strength /
                                                     DEFAULT_FORCE_CONFIG.p2pLinks.strength
@@ -316,7 +308,7 @@ export default function FullGraphPage() {
                                                     },
                                                 })
                                             }
-                                            className="h-1 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-cyan-600"
+                                            className="h-1 w-full cursor-pointer appearance-none rounded-lg"
                                         />
                                     )}
                                 </div>
@@ -339,12 +331,12 @@ export default function FullGraphPage() {
                                                         },
                                                     })
                                                 }
-                                                className="h-3 w-3 rounded border-gray-300 text-amber-600"
+                                                className="h-3 w-3 rounded text-amber-600"
                                             />
-                                            <span className="text-gray-700">Center Force</span>
+                                            <span>Center Force</span>
                                         </div>
                                         {(forceConfig.center?.enabled ?? DEFAULT_FORCE_CONFIG.center.enabled) && (
-                                            <span className="text-[9px] text-gray-500">
+                                            <span className="text-[9px]">
                                                 {(
                                                     (forceConfig.center?.strength ??
                                                         DEFAULT_FORCE_CONFIG.center.strength) /
@@ -358,7 +350,7 @@ export default function FullGraphPage() {
                                         <>
                                             {/* Strength slider */}
                                             <div className="space-y-0.5 pl-4">
-                                                <div className="flex justify-between text-[9px] text-gray-500">
+                                                <div className="flex justify-between text-[9px]">
                                                     <span>Strength</span>
                                                 </div>
                                                 <input
@@ -382,12 +374,12 @@ export default function FullGraphPage() {
                                                             },
                                                         })
                                                     }
-                                                    className="h-1 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-amber-600"
+                                                    className="h-1 w-full cursor-pointer appearance-none rounded-lg accent-amber-600"
                                                 />
                                             </div>
                                             {/* Size bias slider: 0=uniform, 9=big nodes get 10x pull */}
                                             <div className="space-y-0.5 pl-4">
-                                                <div className="flex justify-between text-[9px] text-gray-500">
+                                                <div className="flex justify-between text-[9px]">
                                                     <span>Size Bias</span>
                                                     <span>
                                                         {(
@@ -416,9 +408,9 @@ export default function FullGraphPage() {
                                                             },
                                                         })
                                                     }
-                                                    className="h-1 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-green-600"
+                                                    className="h-1 w-full cursor-pointer appearance-none rounded-lg"
                                                 />
-                                                <div className="flex justify-between text-[8px] text-gray-400">
+                                                <div className="flex justify-between text-[8px]">
                                                     <span>1x uniform</span>
                                                     <span>10x big→center</span>
                                                 </div>
@@ -428,7 +420,7 @@ export default function FullGraphPage() {
                                 </div>
 
                                 {/* Divider */}
-                                <div className="my-1 border-t border-gray-200"></div>
+                                <div className="my-1 border-t"></div>
 
                                 {/* External Nodes Section */}
                                 <div className="space-y-1">
@@ -442,44 +434,35 @@ export default function FullGraphPage() {
                                                     enabled: e.target.checked,
                                                 })
                                             }
-                                            className="h-3 w-3 rounded border-gray-300 text-orange-600"
+                                            className="h-3 w-3 rounded"
                                         />
-                                        <span className="text-gray-700">External Nodes</span>
+                                        <span>External Nodes</span>
                                         <span className="text-[9px]" title="Experimental feature">
                                             ⚠️
                                         </span>
                                         {externalNodesLoading && (
-                                            <span className="ml-auto animate-pulse text-[9px] text-orange-500">
-                                                loading...
-                                            </span>
+                                            <span className="ml-auto animate-pulse text-[9px]">loading...</span>
                                         )}
                                         {externalNodesError && (
-                                            <span
-                                                className="text-red-500 ml-auto text-[9px]"
-                                                title={externalNodesError}
-                                            >
+                                            <span className="ml-auto text-[9px]" title={externalNodesError}>
                                                 ❌
                                             </span>
                                         )}
                                         {!externalNodesLoading &&
                                             !externalNodesError &&
                                             externalNodesConfig.enabled && (
-                                                <span className="ml-auto text-[9px] text-gray-400">
-                                                    {externalNodes.length}
-                                                </span>
+                                                <span className="ml-auto text-[9px]">{externalNodes.length}</span>
                                             )}
                                     </div>
                                     {externalNodesError && externalNodesConfig.enabled && (
-                                        <div className="text-red-600 pl-4 text-[10px]">
-                                            Failed to load. Check console.
-                                        </div>
+                                        <div className="pl-4 text-[10px]">Failed to load. Check console.</div>
                                     )}
                                     {!externalNodesError && externalNodesConfig.enabled && (
                                         <div className="space-y-1.5 pl-4">
                                             {/* Min connections - discrete options */}
                                             <div className="space-y-0.5">
                                                 <div className="flex items-center justify-between">
-                                                    <span className="text-[9px] text-gray-500">Min users:</span>
+                                                    <span className="text-[9px]">Min users:</span>
                                                     <div className="flex flex-wrap gap-1">
                                                         {[1, 2, 3, 5, 10, 20, 50].map((val) => (
                                                             <button
@@ -492,8 +475,8 @@ export default function FullGraphPage() {
                                                                 }
                                                                 className={`rounded px-1.5 py-0.5 text-[9px] transition-colors ${
                                                                     externalNodesConfig.minConnections === val
-                                                                        ? 'bg-orange-600 text-white'
-                                                                        : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                                                                        ? 'bg-orange-800 text-white'
+                                                                        : ''
                                                                 }`}
                                                             >
                                                                 {val}
@@ -517,9 +500,9 @@ export default function FullGraphPage() {
                                                                 },
                                                             })
                                                         }
-                                                        className="h-2.5 w-2.5 rounded border-gray-300 text-orange-500"
+                                                        className="h-2.5 w-2.5 rounded"
                                                     />
-                                                    <span className="text-orange-600">💳</span>
+                                                    <span>💳</span>
                                                 </label>
                                                 <label className="flex cursor-pointer items-center gap-0.5">
                                                     <input
@@ -534,7 +517,7 @@ export default function FullGraphPage() {
                                                                 },
                                                             })
                                                         }
-                                                        className="h-2.5 w-2.5 rounded border-gray-300 text-blue-500"
+                                                        className="h-2.5 w-2.5 rounded text-blue-500"
                                                     />
                                                     <span className="text-blue-600">🏦</span>
                                                 </label>
@@ -551,9 +534,9 @@ export default function FullGraphPage() {
                                                                 },
                                                             })
                                                         }
-                                                        className="h-2.5 w-2.5 rounded border-gray-300 text-green-500"
+                                                        className="h-2.5 w-2.5 rounded"
                                                     />
-                                                    <span className="text-green-600">🏪</span>
+                                                    <span>🏪</span>
                                                 </label>
                                             </div>
                                             {/* External link force strength */}
@@ -576,13 +559,13 @@ export default function FullGraphPage() {
                                                                     },
                                                                 })
                                                             }
-                                                            className="h-2.5 w-2.5 rounded border-gray-300 text-orange-500"
+                                                            className="h-2.5 w-2.5 rounded"
                                                         />
-                                                        <span className="text-[9px] text-gray-600">Link Force</span>
+                                                        <span className="text-[9px]">Link Force</span>
                                                     </div>
                                                     {(forceConfig.externalLinks?.enabled ??
                                                         DEFAULT_FORCE_CONFIG.externalLinks.enabled) && (
-                                                        <span className="text-[9px] text-gray-500">
+                                                        <span className="text-[9px]">
                                                             {(
                                                                 (forceConfig.externalLinks?.strength ??
                                                                     DEFAULT_FORCE_CONFIG.externalLinks.strength) /
@@ -616,7 +599,7 @@ export default function FullGraphPage() {
                                                                 },
                                                             })
                                                         }
-                                                        className="h-1 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-orange-500"
+                                                        className="h-1 w-full cursor-pointer appearance-none rounded-lg"
                                                     />
                                                 )}
                                             </div>
@@ -625,7 +608,7 @@ export default function FullGraphPage() {
                                 </div>
 
                                 {/* Divider */}
-                                <div className="my-1 border-t border-gray-200"></div>
+                                <div className="my-1 border-t"></div>
 
                                 {/* Node visibility */}
                                 <div className="flex gap-3">
@@ -639,9 +622,9 @@ export default function FullGraphPage() {
                                                     activeNodes: e.target.checked,
                                                 })
                                             }
-                                            className="h-3 w-3 rounded border-gray-300 text-purple-600"
+                                            className="h-3 w-3 rounded"
                                         />
-                                        <span className="text-gray-600">Active</span>
+                                        <span>Active</span>
                                     </label>
                                     <label className="flex cursor-pointer items-center gap-1">
                                         <input
@@ -653,9 +636,9 @@ export default function FullGraphPage() {
                                                     inactiveNodes: e.target.checked,
                                                 })
                                             }
-                                            className="h-3 w-3 rounded border-gray-300 text-gray-400"
+                                            className="h-3 w-3 rounded"
                                         />
-                                        <span className="text-gray-600">Inactive</span>
+                                        <span>Inactive</span>
                                     </label>
                                 </div>
 
@@ -666,17 +649,17 @@ export default function FullGraphPage() {
                                             type="checkbox"
                                             checked={showUsernames}
                                             onChange={(e) => setShowUsernames(e.target.checked)}
-                                            className="h-3 w-3 rounded border-gray-300 text-purple-600"
+                                            className="h-3 w-3 rounded"
                                         />
-                                        <span className="text-gray-600">Names</span>
+                                        <span>Names</span>
                                     </label>
                                 </div>
 
                                 {/* Top nodes slider */}
                                 <div className="space-y-0.5">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-[10px] text-gray-500">Top nodes:</span>
-                                        <span className="text-[9px] text-gray-500">
+                                        <span className="text-[10px]">Top nodes:</span>
+                                        <span className="text-[9px]">
                                             {topNodes === 0 ? 'All' : topNodes.toLocaleString()}
                                         </span>
                                     </div>
@@ -687,9 +670,9 @@ export default function FullGraphPage() {
                                         step="500"
                                         value={topNodes}
                                         onChange={(e) => setTopNodes(parseInt(e.target.value))}
-                                        className="h-1 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-purple-600"
+                                        className="h-1 w-full cursor-pointer appearance-none rounded-lg"
                                     />
-                                    <div className="flex justify-between text-[8px] text-gray-400">
+                                    <div className="flex justify-between text-[8px]">
                                         <span>All</span>
                                         <span>5k</span>
                                         <span>10k</span>
@@ -698,7 +681,7 @@ export default function FullGraphPage() {
 
                                 {/* Activity window */}
                                 <div className="flex items-center gap-1">
-                                    <span className="text-[10px] text-gray-500">Active =</span>
+                                    <span className="text-[10px]">Active =</span>
                                     <select
                                         value={activityFilter.activityDays}
                                         onChange={(e) =>
@@ -708,7 +691,7 @@ export default function FullGraphPage() {
                                                 enabled: true,
                                             })
                                         }
-                                        className="flex-1 rounded border border-gray-200 px-1 py-0.5 text-[10px]"
+                                        className="flex-1 rounded border px-1 py-0.5 text-[10px]"
                                     >
                                         <option value={7}>7d</option>
                                         <option value={14}>14d</option>
@@ -722,14 +705,14 @@ export default function FullGraphPage() {
                                 <div className="flex gap-1">
                                     <button
                                         onClick={handleRecalculate}
-                                        className="flex-1 rounded border border-purple-200 px-2 py-0.5 text-[9px] text-purple-600 hover:bg-purple-50 hover:text-purple-800"
+                                        className="flex-1 rounded border px-2 py-0.5 text-[9px]"
                                         title="Recalculate layout with current settings"
                                     >
                                         🔄 Recalc
                                     </button>
                                     <button
                                         onClick={handleReset}
-                                        className="flex-1 rounded border border-gray-200 px-2 py-0.5 text-[9px] text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                                        className="flex-1 rounded border px-2 py-0.5 text-[9px]"
                                         title="Reset all settings to defaults"
                                     >
                                         ↺ Defaults
@@ -738,10 +721,10 @@ export default function FullGraphPage() {
                             </div>
 
                             {/* Compact Legend — click to toggle visibility */}
-                            <div className="mt-3 border-t border-gray-200 pt-2">
+                            <div className="mt-3 border-t pt-2">
                                 <div className="space-y-1 text-[9px]">
                                     {/* Nodes — clickable toggles */}
-                                    <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-gray-500">
+                                    <div className="flex flex-wrap gap-x-2 gap-y-0.5">
                                         {(
                                             [
                                                 {
@@ -803,9 +786,9 @@ export default function FullGraphPage() {
                                     </div>
                                     {/* External nodes */}
                                     {externalNodesConfig.enabled && (
-                                        <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-gray-500">
+                                        <div className="flex flex-wrap gap-x-2 gap-y-0.5">
                                             <span className="flex items-center gap-0.5">
-                                                <span className="inline-block h-2 w-2 rotate-45 bg-orange-500"></span>
+                                                <span className="inline-block h-2 w-2 rotate-45"></span>
                                                 Wallet
                                             </span>
                                             <span className="flex items-center gap-0.5">
@@ -813,7 +796,7 @@ export default function FullGraphPage() {
                                             </span>
                                             <span className="flex items-center gap-0.5">
                                                 <span
-                                                    className="inline-block h-2 w-2 bg-green-500"
+                                                    className="inline-block h-2 w-2"
                                                     style={{
                                                         clipPath:
                                                             'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
@@ -824,21 +807,19 @@ export default function FullGraphPage() {
                                         </div>
                                     )}
                                     {/* Edges */}
-                                    <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-gray-500">
+                                    <div className="flex flex-wrap gap-x-2 gap-y-0.5">
                                         <span className="flex items-center gap-0.5">
-                                            <span className="inline-block h-0.5 w-3 bg-purple-500/50"></span>Invite
+                                            <span className="inline-block h-0.5 w-3"></span>Invite
                                         </span>
                                         <span className="flex items-center gap-0.5">
                                             <span className="inline-block h-0.5 w-3 bg-pink-500/50"></span>Payment
                                         </span>
                                         <span className="flex items-center gap-0.5">
-                                            <span className="inline-block h-0.5 w-3 bg-cyan-500/50"></span>P2P
+                                            <span className="inline-block h-0.5 w-3"></span>P2P
                                         </span>
                                     </div>
-                                    <p className="text-gray-400">Click → Select | Right-click → Focus</p>
-                                    {topNodes > 0 && (
-                                        <p className="text-gray-400">Showing top {topNodes.toLocaleString()} nodes</p>
-                                    )}
+                                    <p>Click → Select | Right-click → Focus</p>
+                                    {topNodes > 0 && <p>Showing top {topNodes.toLocaleString()} nodes</p>}
                                 </div>
                             </div>
                         </div>

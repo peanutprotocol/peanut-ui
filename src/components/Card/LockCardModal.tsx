@@ -4,10 +4,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import Modal from '@/components/Global/Modal'
-import { Button } from '@/components/0_Bruddle/Button'
-import { Icon } from '@/components/Global/Icons/Icon'
-import SlideToAction from '@/components/Card/SlideToAction'
+import ActionModal from '@/components/Global/ActionModal'
+import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { rainApi } from '@/services/rain'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
@@ -99,6 +97,9 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
                     }
                     verifiedWithdrawal = artifact.rainWithdrawal
                 }
+                // No draft back-out on a lockCard throw: the backend may have
+                // consumed the withdrawal before the error surfaced — cleanup
+                // belongs to the probe-verified TTL sweep (TASK-21815 review).
                 await rainApi.lockCard(cardId, verifiedWithdrawal)
             } else {
                 await rainApi.activateCard(cardId)
@@ -121,47 +122,54 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
         }
     }
 
+    const isSuccess = phase === 'success'
+
+    const showError = phase === 'error' && !!error
+    const showSlide = mode === 'lock'
+    const hasBody = !isSuccess && (showError || showSlide)
+    const bodyContent = (
+        <>
+            {showError && <p className="text-body-s text-foreground-error">{error}</p>}
+            {showSlide && (
+                <SlideToConfirm
+                    label={phase === 'loading' ? t('lockModal.locking') : t('lockModal.slideToLock')}
+                    onConfirm={run}
+                    disabled={phase === 'loading'}
+                />
+            )}
+        </>
+    )
+
     return (
-        <Modal visible={isOpen} onClose={onClose} classWrap="sm:m-auto sm:self-center self-center m-4">
-            <div className="p-6">
-                {phase === 'success' ? (
-                    <div className="flex flex-col items-center gap-4 text-center">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-1">
-                            <Icon name="lock" size={20} />
-                        </div>
-                        <div className="text-xl font-extrabold">{t(copyKeys.success)}</div>
-                        <p className="text-sm text-grey-1">{t(copyKeys.successBody)}</p>
-                    </div>
-                ) : (
-                    <div className="flex flex-col items-center gap-4 text-center">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-1">
-                            <Icon name="lock" size={20} />
-                        </div>
-                        <div className="text-xl font-extrabold">{t(copyKeys.title)}</div>
-                        <p className="text-sm text-grey-1">{t(copyKeys.body)}</p>
-                        {phase === 'error' && error && <p className="text-sm text-red">{error}</p>}
-                        {mode === 'lock' ? (
-                            <SlideToAction
-                                label={phase === 'loading' ? t('lockModal.locking') : t('lockModal.slideToLock')}
-                                onComplete={run}
-                                disabled={phase === 'loading'}
-                            />
-                        ) : (
-                            <Button
-                                variant="purple"
-                                shadowSize="4"
-                                className="w-full"
-                                onClick={run}
-                                loading={phase === 'loading'}
-                                disabled={phase === 'loading'}
-                            >
-                                {t('lockModal.unlockCta')}
-                            </Button>
-                        )}
-                    </div>
-                )}
-            </div>
-        </Modal>
+        <ActionModal
+            visible={isOpen}
+            onClose={onClose}
+            preventClose={phase === 'loading'}
+            hideModalCloseButton={phase === 'loading'}
+            tone="warning"
+            icon="lock"
+            title={t(isSuccess ? copyKeys.success : copyKeys.title)}
+            description={t(isSuccess ? copyKeys.successBody : copyKeys.body)}
+            /* undefined, not an empty fragment: ActionModal reads a truthy
+               `content` as "this modal has a body" and spaces it accordingly, so
+               a fragment whose children are all absent buys the head margin and
+               an empty wrapper for nothing. */
+            content={hasBody ? bodyContent : undefined}
+            ctas={
+                !isSuccess && mode === 'unlock'
+                    ? [
+                          {
+                              text: t('lockModal.unlockCta'),
+                              variant: 'purple',
+                              shadowSize: '4',
+                              onClick: run,
+                              loading: phase === 'loading',
+                              disabled: phase === 'loading',
+                          },
+                      ]
+                    : undefined
+            }
+        />
     )
 }
 

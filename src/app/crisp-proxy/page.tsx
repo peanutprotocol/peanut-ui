@@ -227,5 +227,5 @@ export default function CrispProxyPage() {
         }
     }, [])
 
-    return <div className="h-full w-full" style={{ height: '100vh', width: '100vw', overflow: 'hidden' }} />
+    return <div className="h-screen w-screen overflow-hidden" />
 }

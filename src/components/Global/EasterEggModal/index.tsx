@@ -53,7 +53,10 @@ const EasterEggModal = ({ visible, onClose, countryCode }: EasterEggModalProps) 
             onClose={onClose}
             title={countryCopy.caption}
             description={countryCopy.subtitle}
-            icon={
+            // upside-down smile in the standard pink bubble: the joke is the tone, not a status
+            icon="smile"
+            iconProps={{ className: 'text-black rotate-180' }}
+            content={
                 <Image
                     src={config.image}
                     alt={t('easterEggImageAlt')}
@@ -63,7 +66,6 @@ const EasterEggModal = ({ visible, onClose, countryCode }: EasterEggModalProps) 
                     priority
                 />
             }
-            iconContainerClassName="size-auto rounded-none bg-transparent w-full"
             ctas={[
                 {
                     text: tCommon('gotIt'),

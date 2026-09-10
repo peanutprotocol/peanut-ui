@@ -20,7 +20,7 @@ export default function RelationshipDetails({ relationship, nodes, reciprocity }
 
     return (
         <>
-            <p className="mb-3 break-all font-mono text-[11px] text-grey-1">{relationship.id}</p>
+            <p className="mb-3 font-mono text-[11px] break-all text-grey-1">{relationship.id}</p>
             <dl className="space-y-2">
                 {rows.map(([label, value]) => (
                     <div
@@ -28,7 +28,7 @@ export default function RelationshipDetails({ relationship, nodes, reciprocity }
                         className="grid grid-cols-[105px_minmax(0,1fr)] gap-2 border-b border-n-1/10 pb-2 text-xs"
                     >
                         <dt className="text-grey-1">{label}</dt>
-                        <dd className="break-words font-semibold">{value}</dd>
+                        <dd className="font-semibold break-words">{value}</dd>
                     </div>
                 ))}
             </dl>

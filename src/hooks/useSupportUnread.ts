@@ -1,7 +1,17 @@
 'use client'
 
 import { notificationsApi } from '@/services/notifications'
+import { NOTIFICATIONS_UPDATED_EVENT } from '@/utils/notifications-events'
 import { useCallback, useEffect, useRef, useState } from 'react'
+
+/*
+ * One trigger can arrive several times within a moment: an iOS resume fires
+ * both `visibilitychange` and the native lifecycle event, and a burst of
+ * foreground pushes fires one event each. Coalesce event-driven refetches on
+ * the trailing edge so each burst costs one request. The mount fetch stays
+ * immediate so the badge is right on first paint.
+ */
+const REFRESH_COALESCE_MS = 250
 
 /**
  * True when support has replied since the user last opened the chat.
@@ -12,8 +22,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  * writes one in-app notification row per support reply, and this reads the
  * count for the `support` category.
  *
- * No polling. It refetches on mount, when the notifications list changes, and
- * when the tab or app comes back to the foreground.
+ * No polling. It refetches on mount; after that, refetches are event-driven —
+ * the notifications list changed, the tab or native app came back to the
+ * foreground, or a foreground push arrived (dispatched wherever OneSignal is
+ * wired: useNativeAppLinks on native, useNotifications on web).
  */
 export const useSupportUnread = (): boolean => {
     const [hasUnread, setHasUnread] = useState(false)
@@ -38,20 +50,32 @@ export const useSupportUnread = (): boolean => {
             .catch(() => {})
     }, [])
 
+    const coalesceTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+    const scheduleRefresh = useCallback(() => {
+        // Invalidate any in-flight response NOW. Before the coalescer this
+        // happened inside refresh() on the same tick as the trigger; without
+        // it, a count fetched before the trigger can resolve inside the
+        // coalesce window and win back state the trigger just made stale.
+        ++latestRequestId.current
+        clearTimeout(coalesceTimer.current)
+        coalesceTimer.current = setTimeout(refresh, REFRESH_COALESCE_MS)
+    }, [refresh])
+
     useEffect(() => {
         refresh()
 
         const onVisibilityChange = () => {
-            if (document.visibilityState === 'visible') refresh()
+            if (document.visibilityState === 'visible') scheduleRefresh()
         }
 
-        window.addEventListener('notifications:updated', refresh)
+        window.addEventListener(NOTIFICATIONS_UPDATED_EVENT, scheduleRefresh)
         document.addEventListener('visibilitychange', onVisibilityChange)
         return () => {
-            window.removeEventListener('notifications:updated', refresh)
+            clearTimeout(coalesceTimer.current)
+            window.removeEventListener(NOTIFICATIONS_UPDATED_EVENT, scheduleRefresh)
             document.removeEventListener('visibilitychange', onVisibilityChange)
         }
-    }, [refresh])
+    }, [refresh, scheduleRefresh])
 
     return hasUnread
 }

@@ -1,15 +1,18 @@
 'use client'
 
 import PageContainer from '@/components/0_Bruddle/PageContainer'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import ExchangeRateWidget from '@/components/Global/ExchangeRateWidget'
 import NavHeader from '@/components/Global/NavHeader'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { printableUsdc } from '@/utils/balance.utils'
+import { resolveExchangeCurrencyPair, toSupportedExchangeCurrency } from '@/constants/exchange-currencies.consts'
 import { getExchangeRateWidgetRedirectRoute } from '@/utils/exchangeRateWidget.utils'
 import { withReturnTo } from '@/utils/return-to.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { deriveRegionAccess } from '@/utils/regions.utils'
 import { useTranslations } from 'next-intl'
+import { parseAsString, useQueryStates } from 'nuqs'
 import { useRouter } from 'next/navigation'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useMemo } from 'react'
@@ -19,19 +22,60 @@ export default function ExchangeRatePage() {
     const tCommon = useTranslations('common')
     const router = useRouter()
     const onBack = useSafeBack('/profile', { replace: true })
-    const { balance } = useWallet()
+    const { spendableBalance, isFetchingSpendableBalance } = useWallet()
+    const balancePending = isFetchingSpendableBalance || spendableBalance === undefined
     const { rails } = useCapabilities()
     const unlockedRegionPaths = useMemo(
         () => deriveRegionAccess(rails).unlockedRegions.map((region) => region.path),
         [rails]
     )
 
-    const handleCtaAction = (sourceCurrency: string, destinationCurrency: string) => {
-        const formattedBalance = parseFloat(printableUsdc(balance ?? 0n))
+    // The widget keeps its pair in the URL (nuqs, same keys and defaults), so
+    // the destination is derivable BEFORE the tap — the label has to be,
+    // because a zero balance or a local→USD pair routes to /add-money and a
+    // fixed "Withdraw now" would name the opposite flow.
+    // The same parser the widget uses, so the two cannot disagree about what
+    // the URL says — reading it with parseAsString here meant `?from=usd` or a
+    // stale `?to=PLN` showed USD->EUR in the widget while this page computed a
+    // label and destination from the raw value, sending the user to
+    // /withdraw/poland from a widget that never displayed PLN.
+    const [{ from, to }] = useQueryStates(
+        { from: parseAsString.withDefault('USD'), to: parseAsString.withDefault('EUR') },
+        { shallow: true, history: 'replace', scroll: false }
+    )
+    // Redirects need a currency with an actual rail behind it; display does
+    // not. A pair outside the six falls back to the default rather than
+    // routing into a country flow the product does not serve. Same
+    // pair-aware resolver the widget uses (resolveExchangeCurrencyPair) — an
+    // invalid side falling back to its own independent default could land on
+    // whatever currency the other, valid side already held, e.g. `?from=PLN
+    // &to=USD` used to resolve here to USD/USD while the widget (also
+    // restricted) resolved it to EUR/USD, so the label and the tap disagreed.
+    const [routableFrom, routableTo] = resolveExchangeCurrencyPair(from, to, toSupportedExchangeCurrency)
+    const formattedBalance = parseFloat(printableUsdc(spendableBalance ?? 0n))
+    const destination = getExchangeRateWidgetRedirectRoute(
+        routableFrom,
+        routableTo,
+        formattedBalance,
+        unlockedRegionPaths
+    )
+    const goesToAddMoney = destination.startsWith('/add-money')
 
-        const redirectRoute = getExchangeRateWidgetRedirectRoute(
+    const handleCtaAction = (sourceCurrency: string, destinationCurrency: string) => {
+        if (balancePending) return
+        // The widget is rendered below with `restrictToRoutable`, so these
+        // arguments are already a resolved, non-colliding pair — resolved
+        // again here, through the same function, so the route can never
+        // drift from `destination`/`goesToAddMoney` above, which come from
+        // the same URL independently of the widget.
+        const [clampedFrom, clampedTo] = resolveExchangeCurrencyPair(
             sourceCurrency,
             destinationCurrency,
+            toSupportedExchangeCurrency
+        )
+        const redirectRoute = getExchangeRateWidgetRedirectRoute(
+            clampedFrom,
+            clampedTo,
             formattedBalance,
             unlockedRegionPaths
         )
@@ -45,26 +89,34 @@ export default function ExchangeRatePage() {
     }
 
     return (
-        <PageContainer className="flex flex-col">
-            <NavHeader title={t('title')} onPrev={onBack} />
-            <div className="m-auto">
-                <ExchangeRateWidget
-                    ctaIcon="arrow-down"
-                    ctaLabel={t('tryIt')}
-                    ctaAction={handleCtaAction}
-                    labels={{
-                        youSend: t('widget.youSend'),
-                        recipientGets: t('widget.recipientGets'),
-                        swapCurrencies: t('widget.swapCurrencies'),
-                        rateUnavailable: t('widget.rateUnavailable'),
-                        bankFee: t('widget.bankFee'),
-                        peanutFee: tCommon('peanutFee'),
-                        free: t('widget.free'),
-                        arrivesHours: t('widget.arrivesHours'),
-                        arrivesMinutes: t('widget.arrivesMinutes'),
-                    }}
-                />
-            </div>
+        <PageContainer>
+            <PageStack gap="6">
+                <NavHeader title={t('title')} onPrev={onBack} />
+                <PageStack.Center className="gap-3">
+                    {/* The pair the widget shows is a conversion, not a wallet:
+                        people read "EUR" here as "my balance is in euros". */}
+                    <p className="text-center text-body-s text-foreground-secondary">{t('balanceNote')}</p>
+                    <ExchangeRateWidget
+                        ctaIcon="arrow-down"
+                        ctaLabel={goesToAddMoney ? t('addMoneyCta') : t('tryIt')}
+                        ctaAction={handleCtaAction}
+                        ctaDisabled={balancePending}
+                        restrictToRoutable
+                        shadow={false}
+                        labels={{
+                            youSend: t('widget.youSend'),
+                            recipientGets: t('widget.recipientGets'),
+                            swapCurrencies: t('widget.swapCurrencies'),
+                            rateUnavailable: t('widget.rateUnavailable'),
+                            bankFee: t('widget.bankFee'),
+                            peanutFee: tCommon('peanutFee'),
+                            free: t('widget.free'),
+                            arrivesHours: t('widget.arrivesHours'),
+                            arrivesMinutes: t('widget.arrivesMinutes'),
+                        }}
+                    />
+                </PageStack.Center>
+            </PageStack>
         </PageContainer>
     )
 }

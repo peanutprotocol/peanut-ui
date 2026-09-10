@@ -274,6 +274,14 @@ export async function fetchCardMarkup(
         credentials: 'omit',
         redirect: 'error',
         timeoutMs: 10_000,
+        /*
+         * A timeout here is not an incident: `useCardMarkupRate` catches it,
+         * falls back to the static markup table and renders the row anyway, so
+         * the error-level issue reported a path behaving exactly as designed
+         * (PEANUT-UI-SZT). Scoped to the timeout — a non-2xx, bad JSON or a
+         * broken contract still reports, because none of those are expected.
+         */
+        silentTimeout: true,
     })
     if (!response.ok) {
         throw new FxApiError(response.status, currency, 'card-markup', response.headers?.get?.('Retry-After') ?? null)

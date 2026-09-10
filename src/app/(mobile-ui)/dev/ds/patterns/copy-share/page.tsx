@@ -23,7 +23,7 @@ export default function CopySharePage() {
             {/* CopyField */}
             <DocSection title="CopyField">
                 <DocSection.Content>
-                    <p className="text-sm text-grey-1">
+                    <p className="text-body-s text-foreground-secondary">
                         Input field + Copy button combo. The input is disabled (read-only display). Button shows
                         &quot;Copied&quot; feedback for 3 seconds.
                     </p>
@@ -78,7 +78,7 @@ export default function CopySharePage() {
             {/* CopyToClipboard */}
             <DocSection title="CopyToClipboard">
                 <DocSection.Content>
-                    <p className="text-sm text-grey-1">
+                    <p className="text-body-s text-foreground-secondary">
                         Icon-only or button-style copy trigger. Shows check icon for 2 seconds after copying. Supports
                         imperative copy via ref.
                     </p>
@@ -86,11 +86,11 @@ export default function CopySharePage() {
                     <div className="space-y-4">
                         <div className="flex items-center gap-4">
                             <div className="flex items-center gap-2">
-                                <span className="text-xs">Icon mode:</span>
+                                <span className="text-body-xs">Icon mode:</span>
                                 <CopyToClipboard textToCopy="Hello from Peanut!" />
                             </div>
                             <div className="flex items-center gap-2">
-                                <span className="text-xs">Different sizes:</span>
+                                <span className="text-body-xs">Different sizes:</span>
                                 <CopyToClipboard textToCopy="small" iconSize="3" />
                                 <CopyToClipboard textToCopy="medium" iconSize="4" />
                                 <CopyToClipboard textToCopy="large" iconSize="6" />
@@ -158,7 +158,7 @@ copyRef.current?.copy()`}
             {/* ShareButton */}
             <DocSection title="ShareButton">
                 <DocSection.Content>
-                    <p className="text-sm text-grey-1">
+                    <p className="text-body-s text-foreground-secondary">
                         Reference only. Uses the Web Share API (navigator.share) with clipboard fallback. Typically
                         composed inline rather than imported as a standalone component.
                     </p>
@@ -186,7 +186,7 @@ copyRef.current?.copy()`}
             {/* AddressLink */}
             <DocSection title="AddressLink">
                 <DocSection.Content>
-                    <p className="text-sm text-grey-1">
+                    <p className="text-body-s text-foreground-secondary">
                         Displays a shortened crypto address as a link. Resolves ENS names for Ethereum addresses. Links
                         to the user profile page.
                     </p>
@@ -229,13 +229,13 @@ copyRef.current?.copy()`}
             {/* MoreInfo */}
             <DocSection title="MoreInfo">
                 <DocSection.Content>
-                    <p className="text-sm text-grey-1">
+                    <p className="text-body-s text-foreground-secondary">
                         Info icon that toggles a positioned tooltip on click. Uses HeadlessUI Menu and createPortal for
                         correct z-indexing.
                     </p>
 
-                    <div className="flex items-center gap-2 rounded-sm border border-n-1 p-3">
-                        <span className="text-sm">Network fee</span>
+                    <div className="flex items-center gap-2 rounded-sm border border-border-default p-3">
+                        <span className="text-body-s">Network fee</span>
                         <MoreInfo text="This is the gas fee required to process your transaction on the blockchain. It varies based on network congestion." />
                     </div>
 

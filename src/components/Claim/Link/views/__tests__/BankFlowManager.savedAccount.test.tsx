@@ -66,6 +66,7 @@ jest.mock('@/components/Common/SavedAccountsView', () => ({
 
 // --- KYC plumbing
 const mockHandleInitiateKyc = jest.fn()
+const mockGateFor = jest.fn(() => ({ kind: 'needs-enrollment' }))
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => ({
         handleInitiateKyc: mockHandleInitiateKyc,
@@ -77,7 +78,10 @@ jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     }),
 }))
 jest.mock('@/hooks/useCapabilities', () => ({
-    useCapabilities: () => ({ gateFor: () => ({ kind: 'needs-enrollment' }) }),
+    useCapabilities: () => ({ gateFor: mockGateFor }),
+}))
+jest.mock('@/hooks/useResidenceRestrictions', () => ({
+    useResidenceRestrictions: () => ({ banking: false }),
 }))
 jest.mock('@/utils/capability-gate', () => ({
     getKycModalVariant: () => 'needs_kyc',
@@ -144,8 +148,6 @@ jest.mock('@/components/AddWithdraw/DynamicBankAccountForm', () => ({ DynamicBan
 jest.mock('@/components/Common/CountryListRouter', () => ({ CountryListRouter: () => null }))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Invites/badge-campaign-context', () => ({ badgeCampaignForLegacyWire: () => undefined }))
-jest.mock('@/redux/hooks', () => ({ useAppDispatch: () => jest.fn() }))
-jest.mock('@/redux/slices/bank-form-slice', () => ({ bankFormActions: {} }))
 jest.mock('@/services/sendLinks', () => ({ sendLinksApi: {} }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 jest.mock('next/navigation', () => ({ useSearchParams: () => new URLSearchParams() }))
@@ -177,6 +179,7 @@ function renderView() {
 
 beforeEach(() => {
     jest.clearAllMocks()
+    mockGateFor.mockReturnValue({ kind: 'needs-enrollment' })
     resetCtx()
 })
 
@@ -191,9 +194,23 @@ test('clicking a saved Mexico CLABE account sets selectedCountry to Mexico', asy
     expect(mockSetSelectedCountry).toHaveBeenCalledWith(expect.objectContaining({ id: 'MX', region: 'latam' }))
 })
 
-test('a saved account with no resolvable country does not clobber the country already picked', async () => {
+test('empty CLABE country metadata still resolves Mexico from the account type', async () => {
     resetCtx({ selectedCountry: getCountryFromPath('germany') })
     mockSavedAccounts = [clabeAccount({ countryCode: '', countryName: '', accountOwnerName: 'Ana Perez' })]
+    renderView()
+
+    await act(async () => {
+        fireEvent.click(screen.getByTestId('account-acc-mx'))
+    })
+
+    expect(mockSetSelectedCountry).toHaveBeenCalledWith(expect.objectContaining({ id: 'MX', region: 'latam' }))
+})
+
+test('an account with no country or rail metadata does not clobber the country already picked', async () => {
+    resetCtx({ selectedCountry: getCountryFromPath('germany') })
+    mockSavedAccounts = [
+        { ...clabeAccount({ countryCode: '', countryName: '', accountOwnerName: 'Ana Perez' }), type: 'unknown' },
+    ]
     renderView()
 
     await act(async () => {
@@ -221,5 +238,6 @@ test('unlock CTA after a saved Mexico account sends the NA intent, not LATAM', a
         fireEvent.click(screen.getByTestId('kyc-verify-button'))
     })
 
+    expect(mockGateFor).toHaveBeenCalledWith('deposit', { channel: 'bank', country: 'MX' })
     expect(mockHandleInitiateKyc.mock.calls[0].slice(0, 3)).toEqual(['NA', undefined, true])
 })

@@ -1,49 +1,60 @@
 import { Icon } from '@/components/Global/Icons/Icon'
 import { Button } from '@/components/0_Bruddle/Button'
-import BaseInput from '../0_Bruddle/BaseInput'
+import BaseInput from '@/components/0_Bruddle/BaseInput'
+import { twMerge } from '@/utils/tw'
+import { useTranslations } from 'next-intl'
 
 interface SearchInputProps {
     value: string
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+    onChange: (value: string) => void
     onClear: () => void
+    placeholder?: string
     inputRef?: React.RefObject<HTMLInputElement>
     className?: string
-    placeholder?: string
+    'aria-label'?: string
 }
 
+/**
+ * The one search field: a thin wrapper over the DS input (BaseInput / .input)
+ * with a leading search icon and a clear button. Zero styling of its own
+ * beyond icon placement.
+ */
 export const SearchInput = ({
     value,
     onChange,
     onClear,
+    placeholder,
     inputRef,
     className,
-    placeholder = 'Search by name or username',
+    ...props
 }: SearchInputProps) => {
+    const t = useTranslations('global')
     return (
-        <div className={`relative ${className}`}>
-            {/* icono lupa */}
-            <div className="absolute left-4 top-1/2 z-10 -translate-y-1/2">
-                <Icon name="search" size={15} />
-            </div>
-
-            {/* input */}
+        <div className={twMerge('relative', className)}>
             <BaseInput
                 ref={inputRef}
                 type="text"
                 value={value}
-                onChange={onChange}
+                onChange={(e) => onChange(e.target.value)}
                 placeholder={placeholder}
-                className="h-10 w-full rounded-sm border border-black pl-10 pr-10 font-normal caret-[#FF90E8] focus:border-black focus:outline-none focus:ring-0"
+                className="h-10 w-full px-10 text-body-s font-normal"
+                {...props}
             />
-
-            {/* botón limpiar */}
+            <Icon
+                name="search"
+                size={16}
+                className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-foreground-secondary"
+            />
             {value && (
                 <Button
                     variant="transparent"
                     onClick={onClear}
-                    className="absolute right-2 top-1/2 h-8 w-6 -translate-y-1/2 p-0"
+                    className="absolute top-1/2 right-2 w-fit -translate-y-1/2 p-0 after:absolute after:-inset-3"
+                    aria-label={t('tokenSelector.clearSearch')}
                 >
-                    <Icon name="cancel" size={16} />
+                    <div className="flex size-6 items-center justify-center">
+                        <Icon name="cancel" size={16} className="text-foreground-secondary" />
+                    </div>
                 </Button>
             )}
         </div>

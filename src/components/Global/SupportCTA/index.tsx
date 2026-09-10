@@ -1,5 +1,6 @@
 'use client'
 
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useTranslations } from 'next-intl'
 
@@ -10,13 +11,9 @@ const SupportCTA = () => {
     const { openSupportWithMessage } = useModalsContext()
     return (
         <div className="flex flex-col items-center justify-center">
-            <button
-                type="button"
-                onClick={() => openSupportWithMessage(t('supportCta.prefilledMessage'))}
-                className="mt-2 cursor-pointer text-sm text-grey-1 underline underline-offset-2"
-            >
+            <LinkButton onClick={() => openSupportWithMessage(t('supportCta.prefilledMessage'))} className="mt-2">
                 {t('supportCta.needHelp')}
-            </button>
+            </LinkButton>
         </div>
     )
 }

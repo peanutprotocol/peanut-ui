@@ -28,6 +28,7 @@ export interface CrispUserData {
     walletAddressLink: string | undefined
     bridgeCustomerLink: string | undefined
     mantecaUserId: string | undefined
+    rainUserId: string | undefined
     posthogPersonLink: string | undefined
     sentryIssuesLink: string | undefined
     // Live verification state so agents stop guessing where a user is stuck (#2360).
@@ -164,6 +165,13 @@ function buildCrispUserData(input: CrispUserDataInput): CrispUserData {
     // This ensures we always show the user's wallet address in support metadata,
     // even if ZeroDev client isn't initialized yet. useWallet().address could be
     // undefined during initialization, but we want persistent data for support agents.
+    // Rain's own applicant id — support's key to a stuck card application,
+    // available without a DB lookup (unlike Manteca's) because it rides on the
+    // client-held cached card overview (TASK-21687/21964). We surface the id
+    // ONLY, not a pre-built cardmemberportal.com link: that portal is an
+    // unauthenticated capability URL, so an agent constructs the link on demand
+    // rather than leaving a live credential in Crisp session data.
+    const rainUserId = rainOverview?.status?.rainUserId || undefined
     const links = buildSupportLinks(userId, walletAddress, user?.user?.bridgeCustomerId || undefined)
 
     // DATA GAP (flagged): the Manteca providerUserId used to come from the now-removed
@@ -204,6 +212,7 @@ function buildCrispUserData(input: CrispUserDataInput): CrispUserData {
         walletAddress,
         ...links,
         mantecaUserId,
+        rainUserId,
         identityStatus: verification?.identityStatus,
         emailOnFile: verification?.emailOnFile,
         verificationGates: verification?.gates,

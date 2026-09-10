@@ -12,6 +12,7 @@
  * passed against the broken code.
  */
 import { mantecaApi } from '@/services/manteca'
+import { registerEphemeralArtifact, requiresPasskeyRetry, submitSignedSpend } from '@/hooks/wallet/signSpendRetry'
 import { serverFetch } from '@/utils/api-fetch'
 
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: jest.fn(), serverFetch: jest.fn() }))
@@ -75,4 +76,44 @@ describe('manteca withdraw transport failures', () => {
             message: 'nope',
         })
     })
+})
+
+it('preserves the corporate-unavailability code from the withdrawal response', async () => {
+    const body = {
+        error: 'Transfers temporarily unavailable',
+        message: 'Check Activity',
+        code: 'MANTECA_TEMPORARILY_UNAVAILABLE',
+    }
+    mockServerFetch.mockResolvedValue({ ok: false, json: async () => body } as Response)
+    await expect(mantecaApi.withdrawWithSignedTx(withdrawBody)).resolves.toEqual(body)
+    await expect(mantecaApi.initiateWithdraw(initBody)).resolves.toEqual({ error: body.error, code: body.code })
+})
+
+describe('withdraw transport to sign-only retry guard', () => {
+    it.each([
+        ['USER_OP_REVERTED', true],
+        ['USER_OP_RECEIPT_TIMEOUT', false],
+        [undefined, false],
+    ])('preserves code=%s and pins only a confirmed revert', async (code, pinned) => {
+        const account = `0xwithdraw-${String(code)}`
+        const artifact = registerEphemeralArtifact({}, account)
+        mockServerFetch.mockResolvedValue({
+            ok: false,
+            json: async () => ({ error: 'Payment failed', message: 'Please try later', code }),
+        } as Response)
+        const result = await submitSignedSpend(artifact, () => mantecaApi.withdrawWithSignedTx(withdrawBody))
+        expect(result.code).toBe(code)
+        expect(requiresPasskeyRetry(account)).toBe(pinned)
+        expect(mockServerFetch).toHaveBeenCalledTimes(1)
+    })
+})
+
+it('allows accounting settlement time on an already-funded legacy withdrawal without retrying the POST', async () => {
+    mockServerFetch.mockReset().mockResolvedValue({ ok: true, json: async () => ({ id: 'withdrawal-1' }) } as Response)
+    await mantecaApi.withdraw({ amount: '10', txHash: '0xabc', destinationAddress: 'bank', currency: 'ARS' } as never)
+    expect(mockServerFetch).toHaveBeenCalledTimes(1)
+    expect(mockServerFetch).toHaveBeenCalledWith(
+        '/manteca/withdraw',
+        expect.objectContaining({ method: 'POST', timeoutMs: 120_000 })
+    )
 })

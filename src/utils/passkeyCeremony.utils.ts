@@ -1,6 +1,7 @@
-import { captureException } from '@sentry/nextjs'
+import { captureException } from '@/utils/sentry-lazy'
 import { isCapacitor } from '@/utils/capacitor'
 import { setAuthToken } from '@/utils/auth-token'
+import { setCachedStepUpToken } from '@/services/step-up-cache'
 
 /**
  * Guards for the passkey ceremony (TASK-21782).
@@ -119,7 +120,7 @@ export const waitForPasskeyShim = async (timeoutMs: number = SHIM_WAIT_TIMEOUT_M
 
 // Ceremony-in-flight tracking. Ceremonies are serialized (guardPasskeyCeremony
 // rejects a second concurrent one), so the single active window always has one
-// owner. native-auth-capture STASHES a /passkeys/*/verify token while a
+// owner. passkey-auth-capture STASHES a /passkeys/*/verify token while a
 // ceremony is active; the token is persisted only when the owning ceremony
 // RESOLVES — a verify response from a ceremony that timed out or was told
 // "failed" can never end up persisted (the guard discards the stash on
@@ -127,17 +128,27 @@ export const waitForPasskeyShim = async (timeoutMs: number = SHIM_WAIT_TIMEOUT_M
 let ceremonySeq = 0
 let activeCeremonyId: number | null = null
 let stashedVerifyToken: string | null = null
+type StashedStepUp = { token: string; expiresIn: number }
+let stashedStepUp: StashedStepUp | null = null
+// Read through a function: TS narrows the module `let` to null across the
+// await below and cannot see the fetch wrapper assigning it meanwhile.
+const takeStashedStepUp = (): StashedStepUp | null => stashedStepUp
 export const currentCeremonyId = (): number | null => activeCeremonyId
 export const isCeremonyStillActive = (id: number | null): boolean => id !== null && id === activeCeremonyId
 
 /**
- * Called by native-auth-capture with the ceremony id captured when the verify
+ * Called by passkey-auth-capture with the ceremony id captured when the verify
  * REQUEST was issued. Accepted only while that same ceremony is still the
  * active one — a request issued before the current window opened (e.g. a
  * timed-out ceremony's late verify) cannot enter the retry's stash.
  */
 export const stashCeremonyVerifyToken = (token: string, issuingCeremonyId: number | null): void => {
     if (isCeremonyStillActive(issuingCeremonyId)) stashedVerifyToken = token
+}
+
+/** Same window rule as the session token: the step-up proof a login mints is committed only with its ceremony. */
+export const stashCeremonyStepUpToken = (token: string, expiresIn: number, issuingCeremonyId: number | null): void => {
+    if (isCeremonyStillActive(issuingCeremonyId)) stashedStepUp = { token, expiresIn }
 }
 
 /**
@@ -177,15 +188,19 @@ export const guardPasskeyCeremony = async <T>(startCeremony: () => Promise<T>): 
     const ceremonyId = ++ceremonySeq
     activeCeremonyId = ceremonyId
     stashedVerifyToken = null
+    stashedStepUp = null
     try {
         const result = await raceCeremonyTimeout(
             startCeremony(),
             native ? CEREMONY_TIMEOUT_MS : WEB_CEREMONY_TIMEOUT_MS
         )
         if (stashedVerifyToken !== null) setAuthToken(stashedVerifyToken)
+        const stepUp = takeStashedStepUp()
+        if (stepUp !== null) setCachedStepUpToken(stepUp.token, stepUp.expiresIn)
         return result
     } finally {
         if (activeCeremonyId === ceremonyId) activeCeremonyId = null
         stashedVerifyToken = null
+        stashedStepUp = null
     }
 }

@@ -6,7 +6,6 @@ import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useAuth } from '@/context/authContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
-import { useUserStore } from '@/redux/hooks'
 import { useClaimSuccessPolling, type ClaimPollFailure } from './useClaimSuccessPolling'
 import { formatTokenAmount, getTokenDetails, shortenStringLong } from '@/utils/general.utils'
 import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
@@ -21,9 +20,10 @@ import CreateAccountButton from '@/components/Global/CreateAccountButton'
 import { PeanutCheering } from '@/assets/mascot'
 import Image from 'next/image'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
+import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
 import { useTranslations } from 'next-intl'
-import ErrorAlert from '@/components/Global/ErrorAlert'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import { Notification } from '@/components/0_Bruddle/Notification'
+import Loading from '@/components/Global/Loading'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { API_ERROR_CODES } from '@/services/api-error'
@@ -43,8 +43,10 @@ export const SuccessClaimLinkView = ({
     // The optimistic claim path lands here before the broadcast is known to
     // have succeeded, so a failure can only arrive through the poll below.
     const [claimFailure, setClaimFailure] = useState<{ code: string | null } | null>(null)
-    const { user: authUser } = useUserStore()
-    const { fetchUser } = useAuth()
+    // CLAIMED can settle before the on-chain txHash has projected, so success is
+    // its own flag rather than "we have a hash".
+    const [claimConfirmed, setClaimConfirmed] = useState(false)
+    const { user: authUser, fetchUser } = useAuth()
     const router = useRouter()
     const queryClient = useQueryClient()
     const { offrampDetails, claimType, bankDetails } = useClaimBankFlow()
@@ -64,8 +66,11 @@ export const SuccessClaimLinkView = ({
     }, [queryClient])
 
     const handleClaimConfirmed = useCallback(
-        (txHash: string) => {
-            setTransactionHash(txHash)
+        (txHash: string | null) => {
+            setClaimConfirmed(true)
+            // The hash may still be projecting when CLAIMED settles; set it once
+            // it is there so any hash-dependent path downstream still gets it.
+            if (txHash) setTransactionHash(txHash)
 
             // Force immediate refetch of balance and transactions,
             // bypassing staleTime; only currently mounted queries.
@@ -93,9 +98,13 @@ export const SuccessClaimLinkView = ({
         captureMessage('Claim confirmation polling gave up without a terminal status', 'warning')
     }, [])
 
+    // Success once the claim is confirmed (CLAIMED status or a projected hash),
+    // matching the point the backend notifies — not "we have observed a hash".
+    const isClaimed = claimConfirmed || !!transactionHash
+
     useClaimSuccessPolling(
         claimLinkData.link,
-        !transactionHash && !claimFailure,
+        !isClaimed && !claimFailure,
         handleClaimConfirmed,
         handleClaimFailed,
         handleClaimUnconfirmed
@@ -167,21 +176,24 @@ export const SuccessClaimLinkView = ({
     useEffect(() => {
         // success feedback belongs to a confirmed claim, not to arriving here —
         // the optimistic path mounts this view before the broadcast is known
-        if (!transactionHash) return
+        if (!isClaimed) return
         triggerHaptic()
-    }, [transactionHash, triggerHaptic])
+    }, [isClaimed, triggerHaptic])
 
-    // The optimistic 202 lands here with no hash and no outcome yet. Rendering
-    // the success card now would claim money that has not moved — and would
-    // keep claiming it for as long as the poll is slow or failing.
-    if (!transactionHash && !claimFailure) {
+    // same gate as the haptic: a confirmed claim, never the optimistic mount
+    useAppReviewNudge(authUser?.user.userId, 'money_received', isClaimed && !claimFailure)
+
+    // The optimistic 202 lands here with no outcome yet. Hold the processing
+    // state until the claim is confirmed — rendering success before that would
+    // claim money that has not moved.
+    if (!isClaimed && !claimFailure) {
         return (
-            <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+            <div className="flex min-h-inherit flex-col justify-between gap-8">
                 <div className="md:hidden">
                     <NavHeader icon="cancel" title={navHeaderTitle} onPrev={goBack} />
                 </div>
                 <div className="relative z-10 my-auto flex h-full flex-col justify-center">
-                    <PeanutLoading message={tCommon('status.processing')} />
+                    <Loading variant="mascot" message={tCommon('status.processing')} />
                 </div>
             </div>
         )
@@ -190,12 +202,14 @@ export const SuccessClaimLinkView = ({
     if (claimFailure) {
         const isRetryable = claimFailure.code === API_ERROR_CODES.CHAIN_INFRA_UNAVAILABLE
         return (
-            <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+            <div className="flex min-h-inherit flex-col justify-between gap-8">
                 <div className="md:hidden">
                     <NavHeader icon="cancel" title={navHeaderTitle} onPrev={goBack} />
                 </div>
-                <div className="relative z-10 my-auto flex h-full flex-col justify-center space-y-4">
-                    <ErrorAlert description={toFriendlyError({ code: claimFailure.code })} />
+                <div className="relative z-10 my-auto space-y-4 flex h-full flex-col justify-center">
+                    <Notification priority="error" data-testid="error-alert">
+                        {toFriendlyError({ code: claimFailure.code })}
+                    </Notification>
                     {isRetryable && (
                         <Button
                             shadowSize="4"
@@ -219,18 +233,16 @@ export const SuccessClaimLinkView = ({
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+        <div className="flex min-h-inherit flex-col justify-between gap-8">
             <SoundPlayer sound="success" />
-            <div className="md:hidden">
-                <NavHeader
-                    icon="cancel"
-                    title={navHeaderTitle}
-                    onPrev={() => {
-                        router.push('/home')
-                    }}
-                />
-            </div>
-            <div className="relative z-10 my-auto flex h-full flex-col justify-center space-y-4">
+            <NavHeader
+                icon="cancel"
+                title={navHeaderTitle}
+                onPrev={() => {
+                    router.push('/home')
+                }}
+            />
+            <div className="relative z-10 my-auto space-y-4 flex h-full flex-col justify-center">
                 <Image
                     src={PeanutCheering.src}
                     unoptimized
@@ -242,7 +254,9 @@ export const SuccessClaimLinkView = ({
                 <PeanutActionDetailsCard {...cardProps} />
                 {renderButtons()}
                 {campaignTag?.toLowerCase() === 'devconnect_ba_2025' && (
-                    <p className="text-center text-xs text-grey-1">{t('success.devconnectReturnHint')}</p>
+                    <p className="text-center text-body-xs text-foreground-secondary">
+                        {t('success.devconnectReturnHint')}
+                    </p>
                 )}
             </div>
         </div>

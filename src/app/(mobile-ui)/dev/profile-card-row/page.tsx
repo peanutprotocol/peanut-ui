@@ -64,7 +64,7 @@ export default function ProfileCardRowPreviewPage() {
                 {/* Non-holder — the new default for most users */}
                 <section className="flex flex-col gap-3">
                     <DevSectionLabel>Non-holder (no card yet) — also the loading state</DevSectionLabel>
-                    <p className="text-[11px] text-grey-1">
+                    <p className="text-[11px] text-foreground-secondary">
                         &ldquo;Peanut Card&rdquo; · <span className="font-semibold">New!</span> badge · → /shhhhh
                     </p>
                     <ProfileFirstGroup hasCardAccess={false} />
@@ -73,7 +73,9 @@ export default function ProfileCardRowPreviewPage() {
                 {/* Holder — unchanged from today */}
                 <section className="flex flex-col gap-3">
                     <DevSectionLabel>Card holder (hasCardAccess) — unchanged</DevSectionLabel>
-                    <p className="text-[11px] text-grey-1">&ldquo;Your Card&rdquo; · no badge · → /card</p>
+                    <p className="text-[11px] text-foreground-secondary">
+                        &ldquo;Your Card&rdquo; · no badge · → /card
+                    </p>
                     <ProfileFirstGroup hasCardAccess={true} />
                 </section>
 

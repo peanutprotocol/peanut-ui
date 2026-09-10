@@ -10,6 +10,7 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
+import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 // ---------- module-level mocks (must be before imports that depend on them) ----------
@@ -123,6 +124,15 @@ jest.mock('@/interfaces/peanut-sdk-types', () => ({
     EPeanutLinkType: { native: 0, erc20: 1 },
 }))
 
+const mockCopyTextToClipboard = jest.fn<Promise<boolean>, [string]>()
+const mockCancelClipboardCopy = jest.fn()
+jest.mock('@/utils/clipboard.utils', () => ({
+    beginClipboardCopy: () => ({
+        resolve: (text: string) => mockCopyTextToClipboard(text),
+        cancel: () => mockCancelClipboardCopy(),
+    }),
+}))
+
 // Mock Toast
 const mockToastSuccess = jest.fn()
 const mockToastError = jest.fn()
@@ -187,7 +197,7 @@ jest.mock('@/components/Global/QRCodeWrapper', () => ({
 jest.mock('@/components/Global/ShareButton', () => ({
     __esModule: true,
     default: (props: any) => (
-        <button data-testid="share-button" onClick={() => props.generateUrl?.()}>
+        <button data-testid="share-button" data-url={props.url} onClick={() => props.generateUrl?.()}>
             {props.children}
         </button>
     ),
@@ -214,7 +224,8 @@ jest.mock('@/components/Global/FileUploadInput', () => ({
 
 jest.mock('@/components/Global/Loading', () => ({
     __esModule: true,
-    default: () => <div data-testid="loading-spinner" />,
+    default: (props: any) =>
+        props.variant === 'mascot' ? <div data-testid="peanut-loading" /> : <div data-testid="loading-spinner" />,
 }))
 
 jest.mock('@/components/0_Bruddle/Button', () => ({
@@ -232,15 +243,6 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
 
 jest.mock('@/components/Global/Icons/Icon', () => ({
     Icon: (props: any) => <span data-testid={`icon-${props.name}`} />,
-}))
-
-jest.mock('@/components/Global/ErrorAlert', () => ({
-    __esModule: true,
-    default: (props: any) => (
-        <div data-testid="error-alert" role="alert">
-            {props.description}
-        </div>
-    ),
 }))
 
 // ---------- context mocks ----------
@@ -282,10 +284,6 @@ jest.mock('@/context/loadingStates.context', () => {
 // DirectRequestInitialView deps — only this view uses them (PayRequestLink does
 // not), so stubbing them globally is safe. Defaults resolve to a logged-in user
 // viewing a valid recipient, so the main form (incl. AmountInput) renders.
-const mockUseUserStore = jest.fn(() => ({ user: { user: { userId: 'user-1', username: 'me' } } }))
-jest.mock('@/redux/hooks', () => ({
-    useUserStore: () => mockUseUserStore(),
-}))
 
 const mockUseUserByUsername = jest.fn(() => ({
     user: { userId: 'recip-1', username: 'test-user', fullName: 'Test User', isVerified: false },
@@ -299,11 +297,6 @@ jest.mock('@/hooks/useUserByUsername', () => ({
 const mockUseUserInteractions = jest.fn(() => ({ interactions: {} }))
 jest.mock('@/hooks/useUserInteractions', () => ({
     useUserInteractions: () => mockUseUserInteractions(),
-}))
-
-jest.mock('@/components/Global/PeanutLoading', () => ({
-    __esModule: true,
-    default: () => <div data-testid="peanut-loading" />,
 }))
 
 jest.mock('@/components/User/UserCard', () => ({
@@ -336,11 +329,13 @@ function renderCreateRequest(params: Record<string, string> = {}) {
     const queryClient = createQueryClient()
 
     return render(
-        <IntlWrapper>
-            <QueryClientProvider client={queryClient}>
-                <CreateRequestLinkView />
-            </QueryClientProvider>
-        </IntlWrapper>
+        <NuqsTestingAdapter searchParams={params}>
+            <IntlWrapper>
+                <QueryClientProvider client={queryClient}>
+                    <CreateRequestLinkView />
+                </QueryClientProvider>
+            </IntlWrapper>
+        </NuqsTestingAdapter>
     )
 }
 
@@ -372,6 +367,8 @@ function renderDirectRequest() {
 // ---------- default mock values ----------
 
 function applyDefaults() {
+    mockCopyTextToClipboard.mockResolvedValue(true)
+
     mockUseAuth.mockReturnValue({
         user: { user: { username: 'test-user', userId: 'user-1' } },
         isFetchingUser: false,
@@ -673,7 +670,45 @@ describe('GROUP 2: Link Creation', () => {
         })
     })
 
-    test('success toast is shown after link creation', async () => {
+    test('the new link lands on the clipboard and the success toast says so', async () => {
+        renderCreateRequest()
+
+        const field = screen.getByTestId('amount-field')
+        fireEvent.change(field, { target: { value: '10' } })
+
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Create request' }))
+        })
+
+        await waitFor(() => {
+            expect(mockCopyTextToClipboard).toHaveBeenCalledWith('https://peanut.me/request/pay?id=req-uuid-1')
+            expect(mockToastSuccess).toHaveBeenCalledWith('Link created and copied to clipboard!')
+        })
+    })
+
+    test('sharing hands over the created link instead of creating a second request', async () => {
+        renderCreateRequest()
+
+        fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '10' } })
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Create request' }))
+        })
+
+        const shareButton = await screen.findByTestId('share-button')
+        expect(shareButton).toHaveAttribute('data-url', 'https://peanut.me/request/pay?id=req-uuid-1')
+
+        await act(async () => {
+            fireEvent.click(shareButton)
+        })
+
+        // ShareButton owns the copy from here — no second create, no second toast
+        expect(mockRequestsApi.create).toHaveBeenCalledTimes(1)
+        expect(mockCopyTextToClipboard).toHaveBeenCalledTimes(1)
+        expect(mockToastSuccess).toHaveBeenCalledTimes(1)
+    })
+
+    test('a refused clipboard falls back to the plain link-created toast', async () => {
+        mockCopyTextToClipboard.mockResolvedValue(false)
         renderCreateRequest()
 
         const field = screen.getByTestId('amount-field')
@@ -709,6 +744,10 @@ describe('GROUP 3: Error States', () => {
             expect(screen.getByText('Failed to create link')).toBeInTheDocument()
         })
         expect(mockToastError).toHaveBeenCalledWith('Failed to create link')
+        // a link that never existed must release the reserved clipboard write
+        expect(mockCancelClipboardCopy).toHaveBeenCalled()
+        expect(mockCopyTextToClipboard).not.toHaveBeenCalled()
+        expect(mockToastSuccess).not.toHaveBeenCalled()
     })
 
     test('not connected wallet shows error when creating request', async () => {

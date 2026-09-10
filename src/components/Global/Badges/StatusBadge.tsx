@@ -1,6 +1,6 @@
 import React from 'react'
 import { useTranslations } from 'next-intl'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 export type StatusType =
     | 'completed'
@@ -39,24 +39,26 @@ interface StatusBadgeProps {
 const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className, size = 'small', customText }) => {
     const t = useTranslations('common')
 
+    // board 17802:61533 colors: pending=attention, processing=info, fail=error,
+    // success=success, accent=soon/custom. borderless, dark text.
     const getStatusStyles = () => {
         switch (status) {
             case 'completed':
             case 'closed':
-                return 'bg-success-2 text-success-4 border border-success-5'
+            case 'refunded':
+                return 'bg-background-badge-success text-foreground-over-color-secondary'
             case 'pending':
+                return 'bg-background-badge-attention text-foreground-over-color-secondary'
             case 'processing':
-                return 'bg-secondary-4 text-yellow-6 border border-yellow-7'
+                return 'bg-background-badge-info text-foreground-over-color-secondary'
             case 'failed':
             case 'cancelled':
-                return 'bg-error-1 text-error border border-error-2'
-            case 'refunded':
-                return 'bg-success-2 text-success-4 border border-success-5'
+                return 'bg-background-badge-error text-foreground-over-color-secondary'
             case 'soon':
             case 'custom':
-                return 'bg-primary-3 text-primary-4'
+                return 'bg-background-badge-accent text-foreground-over-color-secondary'
             default:
-                return 'bg-grey-2 text-grey-1'
+                return 'bg-background-badge-helper text-foreground-over-color-secondary'
         }
     }
 
@@ -68,24 +70,30 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className, size = 'sm
     // (see SendLinkActionList's soon badge).
     const label = customText || t(STATUS_LABEL_KEYS[status] ?? 'status.unknown')
 
+    // board 17802:61533: small = px S/8 + py XXS/2 + Label/M, medium = px M/12
+    // + py XS/4 + Label/L. The paddings were already right; the type was raw
+    // stock tailwind (a 10px arbitrary and two stock steps), none of which is
+    // on the DS type scale. `large` has no board row, so it keeps its padding
+    // and takes the nearest label step.
     const getSizeClasses = () => {
         switch (size) {
-            case 'small':
-                return 'px-2 py-0.5 text-[10px]'
             case 'medium':
-                return 'px-3 py-1 text-xs'
+                return 'px-3 py-1 text-label-l'
             case 'large':
-                return 'px-4 py-1.5 text-sm'
+                return 'px-4 py-1.5 text-label-l'
+            case 'small':
             default:
-                return 'px-2 py-0.5 text-[10px]'
+                return 'px-2 py-0.5 text-label-m'
         }
     }
 
     return (
         <span
             className={twMerge(
-                'inline-block whitespace-nowrap rounded-full',
-                'font-roboto font-semibold',
+                // no font-weight class here: the label tokens carry the board
+                // weights (Label/M is 800, Label/L is 700) and a `font-semibold`
+                // alongside them silently overrode both with 600.
+                'inline-block rounded-full whitespace-nowrap',
                 getSizeClasses(),
                 getStatusStyles(),
                 className

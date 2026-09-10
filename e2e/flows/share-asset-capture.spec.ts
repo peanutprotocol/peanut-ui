@@ -23,7 +23,9 @@
  *      pink (#FF90E8) the hand never rendered → the blank-card bug. We assert
  *      it contains non-background pixels (the hand was captured).
  *
- * No harness auth needed — /dev/share-builder is a pure client-render dev page.
+ * No API and no login. /dev/share-builder renders on the client alone, but the
+ * app layout still needs a session, so `?__fixture=home` supplies a fake one —
+ * see src/dev/fixtures/active.ts.
  */
 
 import { test, expect } from '@playwright/test'
@@ -53,7 +55,7 @@ const SAMPLE_STEP = 6 // sample every 6th canvas-px → a dense grid
 
 test.describe('Share-asset capture (card face is not blank)', () => {
     test('captured PNG card region contains the hand, not just background', async ({ page }, testInfo) => {
-        await page.goto('/dev/share-builder', { waitUntil: 'domcontentloaded' })
+        await page.goto('/dev/share-builder?__fixture=home', { waitUntil: 'domcontentloaded' })
 
         const saveBtn = page.getByTestId('save-image')
 

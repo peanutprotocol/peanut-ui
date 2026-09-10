@@ -1,10 +1,11 @@
 'use client'
 import { type FC, type PointerEvent as ReactPointerEvent, useRef, useState } from 'react'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import Image, { type StaticImageData } from 'next/image'
 import { useTranslations } from 'next-intl'
-import { twMerge } from 'tailwind-merge'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
+import { CarouselDots } from '@/components/0_Bruddle/CarouselDots'
 import { APPLE_WALLET_STEPS, GOOGLE_WALLET_STEPS } from '@/assets/cards'
 import { useWalletPlatform, type WalletPlatform } from '@/hooks/useWalletPlatform'
 
@@ -80,7 +81,7 @@ const AddToWalletCarousel: FC<Props> = ({ onDone, onPrev }) => {
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col gap-6">
+        <PageStack gap="6">
             <NavHeader title={platformLabel} onPrev={onPrev} />
 
             <div className="my-auto flex flex-col items-center gap-6 text-center">
@@ -94,33 +95,24 @@ const AddToWalletCarousel: FC<Props> = ({ onDone, onPrev }) => {
                         pointerStartXRef.current = null
                     }}
                 >
-                    <div className="w-full max-w-xs overflow-hidden rounded-sm border border-n-1">
+                    <div className="w-full max-w-xs overflow-hidden rounded-sm border border-border-default">
                         <Image src={step.image} alt="" aria-hidden className="h-auto w-full" priority />
                     </div>
 
-                    <div className="text-xl font-extrabold">{t(step.titleKey)}</div>
+                    <div className="text-heading-xs">{t(step.titleKey)}</div>
 
-                    <div
-                        className="flex items-center gap-2"
+                    <CarouselDots
+                        count={steps.length}
+                        activeIndex={index}
                         aria-label={t('addToWallet.stepIndicator', { current: index + 1, total: steps.length })}
-                    >
-                        {steps.map((_, i) => (
-                            <span
-                                key={i}
-                                className={twMerge(
-                                    'h-2 w-2 rounded-full transition-colors',
-                                    i === index ? 'bg-primary-1' : 'bg-grey-4'
-                                )}
-                            />
-                        ))}
-                    </div>
+                    />
                 </div>
 
                 <Button variant="purple" shadowSize="4" className="w-full" onClick={onNext}>
                     {isLast ? tCommon('done') : tCommon('next')}
                 </Button>
             </div>
-        </div>
+        </PageStack>
     )
 }
 

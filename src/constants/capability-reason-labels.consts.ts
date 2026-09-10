@@ -46,9 +46,16 @@ export const REASON_CODE_KEYS = {
     region_block: 'reasons.region_block',
     compliance_block: 'reasons.compliance_block',
     card_rejected: 'reasons.card_rejected',
+    // identity (Sumsub) terminal causes — sibling of the rail codes above, but
+    // sourced from `user.identityVerification.reason` rather than a rail.
+    identity_region_restricted: 'reasons.identity_region_restricted',
     // restrictions
     manteca_us_nationality: 'reasons.manteca_us_nationality',
     country_not_supported: 'reasons.country_not_supported',
+    // A Manteca first-party rail whose submission found no CUIT/CPF. Reachable
+    // today only in Argentina, i.e. an es-419 audience — without this entry the
+    // one population that can see it gets the backend's English userMessage.
+    tax_id_unresolved: 'reasons.tax_id_unresolved',
     uk_resident_blocked: 'reasons.uk_resident_blocked',
 } as const
 

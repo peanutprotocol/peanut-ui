@@ -20,7 +20,6 @@ jest.mock('@/context/authContext', () => ({
 }))
 jest.mock('next/image', () => ({
     __esModule: true,
-    // eslint-disable-next-line @next/next/no-img-element -- test stub, not real markup
     default: (props: Record<string, unknown>) => <img alt={String(props.alt ?? '')} />,
 }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))

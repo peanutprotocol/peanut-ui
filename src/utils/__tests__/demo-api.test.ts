@@ -22,6 +22,19 @@ const body = async (path: string, options?: RequestInit) => {
 }
 
 describe('demoRespond — routing', () => {
+    it('answers wallet-portfolio synthetically instead of hitting the owner-only endpoint', async () => {
+        const originalFetch = global.fetch
+        global.fetch = jest.fn()
+        try {
+            const { res, data } = await body('/tokens/wallet-portfolio?address=0xdemo')
+            expect(res.status).toBe(200)
+            expect(data).toEqual({ balances: [], totalBalance: 0 })
+            expect(global.fetch).not.toHaveBeenCalled()
+        } finally {
+            global.fetch = originalFetch
+        }
+    })
+
     it('bounds and forwards the shared FX passthrough', async () => {
         const originalFetch = global.fetch
         global.fetch = jest.fn().mockResolvedValue(
@@ -107,6 +120,25 @@ describe('demoRespond — routing', () => {
         // subsequent loads report it stamped → the modal stays dismissed
         const after = await body('/users/me')
         expect(after.data.user.activationCelebratedAt).toBeTruthy()
+    })
+
+    it('keeps the picked avatar between update-user and users/me, null clears it', async () => {
+        // a pick made through the picker (TASK-22142) must survive the refetch
+        // that follows it, or the tile snaps back to the initial in demo mode
+        expect((await body('/users/me')).data.user.avatarKey).toBeNull()
+
+        await body('/update-user', {
+            method: 'POST',
+            body: JSON.stringify({ username: 'demo', avatarKey: 'basic.frog' }),
+        })
+        expect((await body('/users/me')).data.user.avatarKey).toBe('basic.frog')
+
+        // a body without the field leaves the pick alone, as the API does
+        await body('/update-user', { method: 'POST', body: JSON.stringify({ username: 'demo', showFullName: true }) })
+        expect((await body('/users/me')).data.user.avatarKey).toBe('basic.frog')
+
+        await body('/update-user', { method: 'POST', body: JSON.stringify({ username: 'demo', avatarKey: null }) })
+        expect((await body('/users/me')).data.user.avatarKey).toBeNull()
     })
 
     it('persists the celebration stamp across cold starts via localStorage', async () => {

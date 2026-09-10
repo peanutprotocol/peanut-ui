@@ -30,6 +30,7 @@ const ALL_ICONS: IconName[] = [
     'clock',
     'copy',
     'currency',
+    'dice',
     'docs',
     'dollar',
     'double-check',
@@ -52,6 +53,7 @@ const ALL_ICONS: IconName[] = [
     'link-slash',
     'lock',
     'logout',
+    'menu',
     'meter',
     'minus-circle',
     'mobile-install',
@@ -69,7 +71,6 @@ const ALL_ICONS: IconName[] = [
     'share',
     'shield',
     'smile',
-    'split',
     'star',
     'success',
     'switch',
@@ -79,6 +80,7 @@ const ALL_ICONS: IconName[] = [
     'user',
     'user-id',
     'user-plus',
+    'users',
     'wallet',
     'wallet-cancel',
     'wallet-outline',
@@ -110,7 +112,7 @@ export default function IconsPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search icons..."
-                className="w-full rounded-sm border border-n-1 px-3 py-2 text-sm"
+                className="w-full rounded-sm border border-border-default px-3 py-2 text-body-s"
             />
 
             {/* Grid */}
@@ -121,18 +123,20 @@ export default function IconsPage() {
                         onClick={() => copyIcon(name)}
                         className={`flex flex-col items-center gap-0.5 rounded-sm border p-1.5 transition-colors ${
                             copiedIcon === name
-                                ? 'border-success-3 bg-success-3/10'
-                                : 'border-n-1/10 hover:border-n-1/40'
+                                ? 'border-background-icon-bubble-green bg-background-badge-success/40'
+                                : 'border-border-disabled hover:border-border-subtle'
                         }`}
                     >
                         <Icon name={name} size={18} />
-                        <span className="text-[7px] leading-tight text-grey-1">{name}</span>
+                        <span className="text-body-xs leading-tight break-all text-foreground-secondary">{name}</span>
                     </button>
                 ))}
             </div>
 
             {filtered.length === 0 && (
-                <p className="py-8 text-center text-sm text-grey-1">No icons match &quot;{search}&quot;</p>
+                <p className="py-8 text-center text-body-s text-foreground-secondary">
+                    No icons match &quot;{search}&quot;
+                </p>
             )}
 
             <DocSection title="Usage">
@@ -140,6 +144,33 @@ export default function IconsPage() {
                     <CodeBlock
                         label="Usage"
                         code={`import { Icon, type IconName } from '@/components/Global/Icons/Icon'\n<Icon name="check" size={20} />`}
+                    />
+                    <CodeBlock
+                        label="Size Classes (tailwind)"
+                        code={`.icon-16 .icon-18 .icon-20 .icon-22 .icon-24 .icon-28`}
+                    />
+                </DocSection.Code>
+            </DocSection>
+
+            <DocSection title="Country Flags">
+                <DocSection.Content>
+                    <p className="text-body-xs text-foreground-secondary">
+                        Countries are shown with circle-flags SVGs (copied to public/flags/ by scripts/copy-flags.mjs)
+                        plus country data from AddMoney/consts.
+                    </p>
+                </DocSection.Content>
+                <DocSection.Code>
+                    <CodeBlock
+                        label="CountryList — searchable list with geolocation sorting"
+                        code={`import { CountryList } from '@/components/Common/CountryList'`}
+                    />
+                    <CodeBlock
+                        label="CountryFlagAndName — single country, multi-flag for bridge regions"
+                        code={`import { CountryFlagAndName } from '@/components/Kyc/CountryFlagAndName'`}
+                    />
+                    <CodeBlock
+                        label="Flag URL pattern"
+                        code={`import { getFlagUrl } from '@/constants/countryCurrencyMapping'\n<img src={getFlagUrl(countryCode)} alt="flag" className="h-6 w-6 rounded-full object-cover" />`}
                     />
                 </DocSection.Code>
             </DocSection>

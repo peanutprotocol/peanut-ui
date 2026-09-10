@@ -3,10 +3,11 @@
 import { PeanutWhistling } from '@/assets/mascot'
 import { GlobalCashLocalFeel, Star } from '@/assets/illustrations'
 import Link from 'next/link'
+import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import Image from 'next/image'
 import { useEffect, useCallback, useRef, type CSSProperties } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
-import { CloudsCss } from './CloudsCss'
+import { CloudsCss, type CloudConfig } from './CloudsCss'
 import { AnimateOnView } from '@/components/Global/AnimateOnView'
 import type { LandingStrings } from './landingStrings'
 import type { Locale } from '@/i18n/types'
@@ -81,13 +82,32 @@ function PeanutMascot() {
     )
 }
 
+/*
+ * The hero's own cloud bands, PHONE ONLY — three, against the default five.
+ * A phone is a third of the width, so five read as overcast rather than sky.
+ *
+ * The shared default spreads five clouds over the whole section (down to 80%),
+ * which on a phone drifts them straight through the CTA — a white cloud behind
+ * the white pill erases the button for the length of the loop. These stop at
+ * 56%, which puts the lowest one across the headline's second line and leaves
+ * the CTA in clear sky. The headline can take it: 38px black extrabold reads
+ * over white. The button cannot, being white itself.
+ *
+ * Desktop keeps the default. The hero is far wider than its centred copy, so
+ * the low bands ride the gutters either side of it instead of crossing it.
+ */
+const heroClouds: CloudConfig[] = [
+    { top: '18%', width: 180, speed: '38s', direction: 'ltr' },
+    { top: '35%', width: 220, speed: '44s', direction: 'rtl' },
+    { top: '52.8%', width: 190, speed: '36s', direction: 'ltr' },
+]
+
 type HeroProps = {
     strings: LandingStrings
     locale: Locale
     primaryCta?: CTAButton
     secondaryCta?: CTAButton
     buttonVisible?: boolean
-    buttonScale?: number
     /** replaces the primary button entirely (store-button pair on desktop during the migration window) */
     customCta?: React.ReactNode
 }
@@ -97,12 +117,11 @@ type HeroProps = {
  * framer-motion animate/whileHover pair. Same values, but the transform runs on
  * the compositor instead of a main-thread rAF loop.
  */
-const getCtaStyle = (variant: 'primary' | 'secondary', buttonVisible?: boolean, buttonScale?: number): CSSProperties =>
+const getCtaStyle = (variant: 'primary' | 'secondary', buttonVisible?: boolean): CSSProperties =>
     ({
         '--cta-x': buttonVisible ? '0px' : '20px',
         '--cta-y': buttonVisible ? '0px' : '20px',
         '--cta-r': buttonVisible ? '0deg' : '1deg',
-        '--cta-scale': buttonScale || 1,
         '--cta-hover-x': variant === 'primary' ? '0px' : '3px',
         opacity: buttonVisible ? 1 : 0,
         pointerEvents: buttonVisible ? 'auto' : 'none',
@@ -111,20 +130,13 @@ const getCtaStyle = (variant: 'primary' | 'secondary', buttonVisible?: boolean, 
 const getButtonContainerClasses = (variant: 'primary' | 'secondary') =>
     `relative z-20 mt-8 flex flex-col items-center justify-center ${variant === 'primary' ? 'mx-auto w-fit' : 'right-[calc(50%-120px)]'}`
 
-export function Hero({
-    primaryCta,
-    secondaryCta,
-    buttonVisible,
-    buttonScale = 1,
-    customCta,
-    strings,
-    locale,
-}: HeroProps) {
+export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strings, locale }: HeroProps) {
+    const migrationOn = useMigrationFlag()
     const renderCTAButton = (cta: CTAButton, variant: 'primary' | 'secondary') => {
         return (
             <div
                 className={`${getButtonContainerClasses(variant)} cta-motion`}
-                style={getCtaStyle(variant, buttonVisible, buttonScale)}
+                style={getCtaStyle(variant, buttonVisible)}
             >
                 <a
                     href={cta.href}
@@ -141,7 +153,7 @@ export function Hero({
                     </Button>
                 </a>
                 {cta.subtext && (
-                    <span className="mt-2 block text-center text-sm italic text-n-1 md:text-base">{cta.subtext}</span>
+                    <span className="mt-2 block text-center text-sm text-n-1 italic md:text-base">{cta.subtext}</span>
                 )}
             </div>
         )
@@ -150,7 +162,7 @@ export function Hero({
     const renderCustomCta = () => (
         <div
             className={`${getButtonContainerClasses('primary')} cta-motion`}
-            style={getCtaStyle('primary', buttonVisible, buttonScale)}
+            style={getCtaStyle('primary', buttonVisible)}
         >
             {customCta}
         </div>
@@ -159,9 +171,10 @@ export function Hero({
     return (
         <section
             id="hero"
-            className="relative flex min-h-[85vh] w-full flex-col items-center justify-between bg-primary-1 px-4 pb-12 pt-4 md:pb-16 xl:h-fit xl:justify-center xl:pb-4"
+            className="relative flex min-h-[85vh] w-full flex-col items-center justify-between bg-primary-1 px-4 pt-4 pb-12 md:pb-16 xl:h-fit xl:justify-center xl:pb-4"
         >
-            <CloudsCss />
+            <CloudsCss clouds={heroClouds} className="md:hidden" />
+            <CloudsCss className="hidden md:block" />
             <div className="relative mt-10 w-full md:mt-0">
                 {/* 23rem = the fixed stack below the artwork (h2 -> CTA) + 3rem slack, so the CTA stays inside the first fold on short laptop viewports */}
                 <Image
@@ -180,7 +193,7 @@ export function Hero({
                     <Image src={Star} alt="" />
                 </AnimateOnView>
                 <AnimateOnView
-                    className="absolute right-[1.5%] top-[-12%] w-8 sm:right-[6%] sm:top-[8%] md:right-[5%] md:top-[8%] md:w-12 lg:right-[10%]"
+                    className="absolute top-[-12%] right-[1.5%] w-8 sm:top-[8%] sm:right-[6%] md:top-[8%] md:right-[5%] md:w-12 lg:right-[10%]"
                     y="28px"
                     x="-5px"
                 >
@@ -219,6 +232,16 @@ export function Hero({
                 </span>
                 {primaryCta ? renderCTAButton(primaryCta, 'primary') : customCta ? renderCustomCta() : null}
                 {secondaryCta && renderCTAButton(secondaryCta, 'secondary')}
+                {/* Web login remains available until migration moves authentication into the app. */}
+                {!migrationOn && (
+                    <Link
+                        prefetch={false}
+                        href="/setup?step=login"
+                        className="mt-4 block text-center text-body-s text-n-1 underline"
+                    >
+                        {strings.logIn}
+                    </Link>
+                )}
                 <AnimateOnView
                     className="absolute bottom-[-4%] left-[1%] w-8 sm:bottom-[11%] sm:left-[12%] md:bottom-[18%] md:left-[5%] md:w-12"
                     y="20px"
@@ -227,7 +250,7 @@ export function Hero({
                     <Image src={Star} alt="" />
                 </AnimateOnView>
                 <AnimateOnView
-                    className="absolute right-[1.5%] top-[-12%] w-8 sm:right-[6%] sm:top-[8%] md:right-[5%] md:top-[8%] md:w-12 lg:right-[10%]"
+                    className="absolute top-[-12%] right-[1.5%] w-8 sm:top-[8%] sm:right-[6%] md:top-[8%] md:right-[5%] md:w-12 lg:right-[10%]"
                     y="28px"
                     x="-5px"
                 >

@@ -36,9 +36,9 @@ jest.mock('@/components/0_Bruddle/Divider', () => ({ __esModule: true, default: 
 jest.mock('@/components/Global/IconStack', () => ({ __esModule: true, default: () => <div /> }))
 jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () => <div /> }))
 jest.mock('@/components/Global/Badges/StatusBadge', () => ({ __esModule: true, default: () => <div /> }))
-jest.mock('@/components/ActionListCard', () => ({
-    ActionListCard: (props: { title: React.ReactNode; onClick: () => void; isDisabled?: boolean }) => (
-        <button onClick={props.onClick} disabled={props.isDisabled}>
+jest.mock('@/components/0_Bruddle/ListItem', () => ({
+    ListItem: (props: { title: React.ReactNode; onClick: () => void; disabled?: boolean }) => (
+        <button onClick={props.onClick} disabled={props.disabled}>
             {props.title}
         </button>
     ),

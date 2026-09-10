@@ -79,6 +79,9 @@ jest.mock('@/utils/general.utils', () => ({
 jest.mock('@/constants/actionlist.consts', () => ({
     ACTION_METHODS: [
         { id: 'bank', title: 'Bank', description: 'EUR, USD, MXN, ARS & more', icons: [], soon: false },
+        // present in the catalog but must NOT surface in the send list —
+        // withdraw-to-own-account rail (see the exclusion test below)
+        { id: 'mercadopago', title: 'Mercado Pago', description: 'Instant transfers', icons: [], soon: false },
         {
             id: 'exchange-or-wallet',
             title: 'Exchange or Wallet',
@@ -130,23 +133,13 @@ jest.mock('@/components/0_Bruddle/Divider', () => ({
     default: (_props: any) => <hr data-testid="divider" />,
 }))
 
-jest.mock('@/components/ActionListCard', () => ({
-    ActionListCard: (props: any) => (
+jest.mock('@/components/0_Bruddle/ListItem', () => ({
+    ListItem: (props: any) => (
         <div data-testid={`action-card-${props.title}`} onClick={props.onClick}>
             <span>{typeof props.title === 'string' ? props.title : 'complex-title'}</span>
-            <span>{props.description}</span>
+            <span>{props.body}</span>
         </div>
     ),
-}))
-
-jest.mock('@/components/Global/IconStack', () => ({
-    __esModule: true,
-    default: () => <div data-testid="icon-stack" />,
-}))
-
-jest.mock('@/components/Global/Badges/StatusBadge', () => ({
-    __esModule: true,
-    default: (props: any) => <span data-testid="status-badge">{props.customText}</span>,
 }))
 
 jest.mock('@/components/Profile/AvatarWithBadge', () => ({
@@ -180,10 +173,6 @@ jest.mock('../views/Contacts.view', () => ({
 }))
 
 // withdraw-flow context — SendRouterView resets it when a click enters the withdraw flow
-const mockResetWithdrawFlow = jest.fn()
-jest.mock('@/context/WithdrawFlowContext', () => ({
-    useWithdrawFlow: () => ({ resetWithdrawFlow: mockResetWithdrawFlow }),
-}))
 
 // ---------- import component under test AFTER all mocks ----------
 import { SendRouterView } from '../views/SendRouter.view'
@@ -279,6 +268,16 @@ describe('GROUP 1: Initial State', () => {
 
         expect(screen.getByTestId('action-card-Bank')).toBeInTheDocument()
         expect(screen.getByTestId('action-card-Exchange or Wallet')).toBeInTheDocument()
+    })
+
+    test('Excludes Mercado Pago from the send list (withdraw-to-own-account rail — PR #2813 review)', () => {
+        renderSend()
+
+        // the mocked catalog above contains mercadopago; SendRouterView must
+        // drop it before geo-filtering, so the hook never sees it
+        const methodsPassedToGeoFilter = mockUseGeoFilteredPaymentOptions.mock.calls[0][0].methods
+        expect(methodsPassedToGeoFilter.map((m: { id: string }) => m.id)).not.toContain('mercadopago')
+        expect(screen.queryByTestId('action-card-Mercado Pago')).not.toBeInTheDocument()
     })
 
     test('No contacts shows fallback avatar initials', () => {
@@ -384,63 +383,36 @@ describe('GROUP 3: Contacts View', () => {
 // ============================================================
 describe('GROUP 4: Method Selection', () => {
     test('Clicking bank resets the withdraw flow, then navigates to /withdraw?method=bank', () => {
-        // Regression: browser back from an abandoned /withdraw?method=crypto skips the
-        // in-app NavHeader reset, so a stale selectedMethod survives in the app-wide
-        // context. Without the reset, Bank skips method selection and lands on the
-        // crypto amount step (continuing into /withdraw/crypto?method=bank).
+        // The withdraw provider is scoped to /withdraw (TASK-21816): a fresh
+        // navigation mounts clean state, so no reset call is needed here.
         renderSend()
 
         fireEvent.click(screen.getByTestId('action-card-Bank'))
-        expect(mockResetWithdrawFlow).toHaveBeenCalledTimes(1)
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw?method=bank')
-        // reset must land before navigation hands off to /withdraw
-        expect(mockResetWithdrawFlow.mock.invocationCallOrder[0]).toBeLessThan(
-            mockRouterPush.mock.invocationCallOrder[0]
-        )
     })
 
-    test('Clicking exchange-or-wallet resets the withdraw flow, then navigates to /withdraw?method=crypto', () => {
+    test('Clicking exchange-or-wallet navigates to /withdraw?method=crypto', () => {
         renderSend()
 
         fireEvent.click(screen.getByTestId('action-card-Exchange or Wallet'))
-        expect(mockResetWithdrawFlow).toHaveBeenCalledTimes(1)
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw?method=crypto')
-        expect(mockResetWithdrawFlow.mock.invocationCallOrder[0]).toBeLessThan(
-            mockRouterPush.mock.invocationCallOrder[0]
-        )
     })
 
-    test('Mercado Pago and Pix also reset the withdraw flow before navigating', () => {
+    test('Pix navigates into the manteca PIX flow', () => {
         mockUseGeoFilteredPaymentOptions.mockReturnValue({
-            filteredMethods: [
-                { id: 'mercadopago', title: 'Mercado Pago', description: '', icons: [], soon: false },
-                { id: 'pix', title: 'Pix', description: '', icons: [], soon: false },
-            ],
+            filteredMethods: [{ id: 'pix', title: 'Pix', description: '', icons: [], soon: false }],
         })
         renderSend()
 
-        fireEvent.click(screen.getByTestId('action-card-Mercado Pago'))
-        expect(mockResetWithdrawFlow).toHaveBeenCalledTimes(1)
-        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/manteca?method=mercado-pago&country=argentina')
-        expect(mockResetWithdrawFlow.mock.invocationCallOrder[0]).toBeLessThan(
-            mockRouterPush.mock.invocationCallOrder[0]
-        )
-
         fireEvent.click(screen.getByTestId('action-card-Pix'))
-        expect(mockResetWithdrawFlow).toHaveBeenCalledTimes(2)
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
-        expect(mockResetWithdrawFlow.mock.invocationCallOrder[1]).toBeLessThan(
-            mockRouterPush.mock.invocationCallOrder[1]
-        )
     })
 
-    test('Clicking Peanut contacts navigates to /send?view=contacts without touching the withdraw flow', () => {
+    test('Clicking Peanut contacts navigates to /send?view=contacts', () => {
         renderSend()
 
         fireEvent.click(screen.getByTestId('action-card-Peanut contacts'))
         expect(mockRouterPush).toHaveBeenCalledWith('/send?view=contacts')
-        // contacts is not a withdraw entry — never clobber an unrelated flow's state
-        expect(mockResetWithdrawFlow).not.toHaveBeenCalled()
     })
 
     test('Back from main send falls back to /home on a cold deep-link', () => {

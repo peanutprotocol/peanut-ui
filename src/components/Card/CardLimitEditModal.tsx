@@ -1,17 +1,16 @@
 'use client'
 import { type FC, useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useTranslations } from 'next-intl'
+import { useFormatter, useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import Modal from '@/components/Global/Modal'
-import { Button } from '@/components/0_Bruddle/Button'
-import { Icon } from '@/components/Global/Icons/Icon'
+import ActionModal from '@/components/Global/ActionModal'
 import { rainApi, type RainCardLimit, type RainLimitFrequency } from '@/services/rain'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
 import { useReturnExcessCollateral } from '@/hooks/wallet/useReturnExcessCollateral'
 
 export const CARD_LIMITS_QUERY_KEY = 'rain-card-limits'
+const MAX_CARD_LIMIT_CENTS = 2_147_483_647
 
 interface Props {
     cardId: string
@@ -24,6 +23,7 @@ interface Props {
 
 const CardLimitEditModal: FC<Props> = ({ cardId, frequency, label, initialAmountCents, isOpen, onClose }) => {
     const t = useTranslations('card.limits')
+    const format = useFormatter()
     const queryClient = useQueryClient()
     const { returnExcess } = useReturnExcessCollateral()
     const [value, setValue] = useState<string>(initialAmountCents != null ? (initialAmountCents / 100).toFixed(2) : '')
@@ -43,11 +43,21 @@ const CardLimitEditModal: FC<Props> = ({ cardId, frequency, label, initialAmount
 
     const save = async () => {
         const dollars = Number(value)
-        if (!Number.isFinite(dollars) || dollars < 0) {
-            setError(t('invalidAmount'))
+        const amountCents = Math.round(dollars * 100)
+        if (
+            !Number.isFinite(dollars) ||
+            amountCents < 1 ||
+            amountCents > MAX_CARD_LIMIT_CENTS ||
+            Math.abs(dollars * 100 - amountCents) > 0.000001
+        ) {
+            setError(
+                t('invalidAmount', {
+                    minimum: format.number(0.01, { style: 'currency', currency: 'USD' }),
+                    maximum: format.number(MAX_CARD_LIMIT_CENTS / 100, { style: 'currency', currency: 'USD' }),
+                })
+            )
             return
         }
-        const amountCents = Math.round(dollars * 100)
         setSaving(true)
         setError(null)
         try {
@@ -91,6 +101,10 @@ const CardLimitEditModal: FC<Props> = ({ cardId, frequency, label, initialAmount
             })
             onClose()
         } catch (e) {
+            await Promise.allSettled([
+                queryClient.invalidateQueries({ queryKey: [CARD_LIMITS_QUERY_KEY, cardId] }),
+                queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] }),
+            ])
             const message = e instanceof Error ? e.message : t('saveFailed')
             setError(message)
             posthog.capture(ANALYTICS_EVENTS.CARD_LIMIT_CHANGE_FAILED, { frequency, error_message: message })
@@ -100,51 +114,47 @@ const CardLimitEditModal: FC<Props> = ({ cardId, frequency, label, initialAmount
     }
 
     return (
-        <Modal
+        <ActionModal
             visible={isOpen}
             onClose={onClose}
-            classWrap="sm:m-auto sm:self-center self-center m-4 rounded-2xl"
             preventClose={saving}
-        >
-            <div className="p-6">
-                <div className="flex flex-col items-center gap-4 text-center">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-1">
-                        <Icon name="credit-card" size={20} />
+            hideModalCloseButton={saving}
+            icon="credit-card"
+            title={t('editTitle')}
+            content={
+                <div className="flex w-full flex-col gap-2 text-left">
+                    <label htmlFor="card-limit-input" className="text-label-l">
+                        {label}
+                    </label>
+                    <div className="flex items-center gap-2 rounded-sm border border-border-default bg-background-default px-3 py-2">
+                        <span className="text-foreground-secondary">$</span>
+                        <input
+                            id="card-limit-input"
+                            type="number"
+                            inputMode="decimal"
+                            value={value}
+                            onChange={(e) => setValue(e.target.value)}
+                            className="w-full bg-transparent text-body-m focus:outline-none"
+                            min={0.01}
+                            max={MAX_CARD_LIMIT_CENTS / 100}
+                            step="0.01"
+                            disabled={saving}
+                        />
                     </div>
-                    <div className="text-xl font-extrabold">{t('editTitle')}</div>
-                    <div className="flex w-full flex-col gap-2 text-left">
-                        <label htmlFor="card-limit-input" className="text-sm font-bold">
-                            {label}
-                        </label>
-                        <div className="flex items-center gap-2 rounded-sm border border-n-1 bg-white px-3 py-2">
-                            <span className="text-grey-1">$</span>
-                            <input
-                                id="card-limit-input"
-                                type="number"
-                                inputMode="decimal"
-                                value={value}
-                                onChange={(e) => setValue(e.target.value)}
-                                className="w-full bg-transparent text-base focus:outline-none"
-                                min={0}
-                                step="0.01"
-                                disabled={saving}
-                            />
-                        </div>
-                        {error && <p className="text-sm text-red">{error}</p>}
-                    </div>
-                    <Button
-                        variant="purple"
-                        shadowSize="4"
-                        className="w-full"
-                        onClick={save}
-                        loading={saving}
-                        disabled={saving}
-                    >
-                        {t('saveChanges')}
-                    </Button>
+                    {error && <p className="text-body-s text-foreground-error">{error}</p>}
                 </div>
-            </div>
-        </Modal>
+            }
+            ctas={[
+                {
+                    text: t('saveChanges'),
+                    variant: 'purple',
+                    shadowSize: '4',
+                    onClick: save,
+                    loading: saving,
+                    disabled: saving,
+                },
+            ]}
+        />
     )
 }
 

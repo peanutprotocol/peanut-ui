@@ -3,6 +3,7 @@ import {
     clearRecentFailures,
     FAILURE_WINDOW_MS,
     getRecentFailures,
+    hasRecentFailure,
     reportNetworkError,
     subscribeConnectivity,
 } from '../connectivity'
@@ -97,5 +98,44 @@ describe('connectivity', () => {
         reportNetworkError('/b')
 
         expect(calls).toBe(1)
+    })
+})
+
+describe('hasRecentFailure — one Sentry report per endpoint per outage', () => {
+    it('is false the first time an endpoint fails and true afterwards', () => {
+        expect(hasRecentFailure('/users/me')).toBe(false)
+
+        reportNetworkError('/users/me')
+        expect(hasRecentFailure('/users/me')).toBe(true)
+    })
+
+    it('does not suppress a different endpoint failing in the same window', () => {
+        reportNetworkError('/users/me')
+        expect(hasRecentFailure('/tokens/price')).toBe(false)
+    })
+
+    it('lets the endpoint be reported again once the window has passed', () => {
+        reportNetworkError('/users/me')
+        jest.advanceTimersByTime(FAILURE_WINDOW_MS + 1)
+        expect(hasRecentFailure('/users/me')).toBe(false)
+    })
+
+    // A poll that keeps failing must not slide the window forward on every
+    // attempt, or a continuous outage never gets a second report at all.
+    it('expires from the FIRST failure, not the latest retry', () => {
+        reportNetworkError('/users/me')
+        jest.advanceTimersByTime(FAILURE_WINDOW_MS / 2)
+        reportNetworkError('/users/me')
+        expect(hasRecentFailure('/users/me')).toBe(true)
+
+        jest.advanceTimersByTime(FAILURE_WINDOW_MS / 2 + 1000)
+        expect(hasRecentFailure('/users/me')).toBe(false)
+        expect(getRecentFailures()).toBe(0)
+    })
+
+    it('reports again immediately after a recovery clears the window', () => {
+        reportNetworkError('/users/me')
+        clearRecentFailures()
+        expect(hasRecentFailure('/users/me')).toBe(false)
     })
 })

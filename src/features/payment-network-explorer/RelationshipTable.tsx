@@ -59,7 +59,7 @@ export default function RelationshipTable({
         <th
             scope="col"
             aria-sort={sortKey === key ? sortDirection : 'none'}
-            className={`sticky top-0 z-10 border-b border-n-1 bg-[#fcfaf7] px-3 py-2 ${align === 'right' ? 'text-right' : 'text-left'} text-[11px] font-bold uppercase tracking-wide text-grey-1`}
+            className={`sticky top-0 z-10 border-b border-n-1 bg-[#fcfaf7] px-3 py-2 ${align === 'right' ? 'text-right' : 'text-left'} text-[11px] font-bold tracking-wide text-grey-1 uppercase`}
         >
             <button
                 type="button"
@@ -84,7 +84,7 @@ export default function RelationshipTable({
                             {header('Type', 'type')}
                             <th
                                 scope="col"
-                                className="sticky top-0 z-10 border-b border-n-1 bg-[#fcfaf7] px-3 py-2 text-left text-[11px] font-bold uppercase tracking-wide text-grey-1"
+                                className="sticky top-0 z-10 border-b border-n-1 bg-[#fcfaf7] px-3 py-2 text-left text-[11px] font-bold tracking-wide text-grey-1 uppercase"
                             >
                                 Direction
                             </th>
@@ -107,7 +107,7 @@ export default function RelationshipTable({
                                             onSelect(relationship)
                                         }
                                     }}
-                                    className={`cursor-pointer border-b border-n-1/10 outline-none hover:bg-primary-3/15 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-purple-1 ${
+                                    className={`cursor-pointer border-b border-n-1/10 outline-none hover:bg-primary-3/15 focus-visible:ring-2 focus-visible:ring-purple-1 focus-visible:ring-inset ${
                                         selected ? 'bg-primary-3/35' : ''
                                     }`}
                                 >
@@ -117,11 +117,11 @@ export default function RelationshipTable({
                                     <td className="max-w-40 truncate px-3 py-2 font-semibold">
                                         {nodesById.get(relationship.target)?.username ?? relationship.target}
                                     </td>
-                                    <td className="whitespace-nowrap px-3 py-2">
+                                    <td className="px-3 py-2 whitespace-nowrap">
                                         {EDGE_TYPE_LABELS[relationship.type]}
                                     </td>
                                     <td
-                                        className="whitespace-nowrap px-3 py-2"
+                                        className="px-3 py-2 whitespace-nowrap"
                                         title={RECIPROCITY_LABELS[reciprocity.get(relationship.id) ?? 'oneWay']}
                                     >
                                         {reciprocity.get(relationship.id) === 'sameType' ? (

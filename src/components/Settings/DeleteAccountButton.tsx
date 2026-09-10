@@ -8,6 +8,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { PeanutSad, PeanutCrying, PeanutPointing } from '@/assets/mascot'
 import { useToast } from '@/components/0_Bruddle/Toast'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import ActionModal, { type ActionModalButtonProps } from '@/components/Global/ActionModal'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -144,13 +145,12 @@ const DeleteAccountButton: FC = () => {
 
     return (
         <>
-            <button
-                type="button"
-                onClick={open}
-                className="w-full text-center text-sm font-semibold text-error underline underline-offset-2"
-            >
+            {/* design.md scopes red to the confirm modal's icon bubble only — no
+                red Button/link variant exists, so this rides LinkButton's own
+                neutral tokens (foreground-secondary → foreground-primary on hover). */}
+            <LinkButton onClick={open} className="w-full justify-center">
                 {t('button')}
-            </button>
+            </LinkButton>
 
             <ActionModal
                 visible={modalState !== 'closed'}

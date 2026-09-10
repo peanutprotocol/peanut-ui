@@ -37,6 +37,8 @@
 
                 <data android:scheme="https" android:host="peanut.me" />
 
+                <data android:path="/app" />
+                <data android:pathPrefix="/app/" />
                 <data android:path="/home" />
                 <data android:pathPrefix="/home/" />
                 <data android:path="/card" />
@@ -135,6 +137,7 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" tools:node="remove" />
     <!-- Android 13+ runtime push permission; OneSignal's requestPermission() drives the prompt -->

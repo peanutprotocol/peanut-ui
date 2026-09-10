@@ -362,7 +362,7 @@ const HeroMessageEl: FC<{ hero: HeroMessage; geo: { w: number; h: number; fontSi
     if (variant === 'pill') {
         return (
             <span
-                className="inline-flex items-center justify-center rounded-full border-[6px] border-black bg-secondary-1"
+                className="inline-flex items-center justify-center rounded-full border-[6px] border-black bg-action-secondary"
                 style={{
                     height: h,
                     padding: `0 ${fontSize * 0.7}px`,
@@ -383,7 +383,7 @@ const HeroMessageEl: FC<{ hero: HeroMessage; geo: { w: number; h: number; fontSi
     if (variant === 'banner') {
         return (
             <span
-                className="inline-flex items-center justify-center border-[6px] border-black bg-primary-1"
+                className="inline-flex items-center justify-center border-[6px] border-black bg-action-primary"
                 style={{
                     height: h,
                     padding: `0 ${fontSize * 0.6}px`,

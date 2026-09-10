@@ -21,8 +21,10 @@ import {
 } from '../history.utils'
 import type { HistoryEntry } from '../history.utils'
 import type { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
+import { getCachedCurrencyPrice } from '@/app/actions/currency'
 
 jest.mock('@/app/actions/currency', () => ({ getCachedCurrencyPrice: jest.fn() }))
+const mockGetCachedCurrencyPrice = getCachedCurrencyPrice as jest.Mock
 jest.mock('@/utils/general.utils', () => ({
     getFromLocalStorage: jest.fn(() => null),
     getTokenDetails: jest.fn(() => ({ symbol: 'USDC', decimals: 6 })),
@@ -89,7 +91,158 @@ describe('completeHistoryEntry amount-contract guards', () => {
 })
 
 /**
- * getTransactionSign drives the +/- prefix on the activity-feed amount.
+ * ONRAMP's `currency.amount` (the fiat source Bridge was asked to transfer)
+ * is correct from intent creation, pending or not — so its live-rate lookup
+ * (which corrects the PRIMARY `usdAmount`, not `currency.amount`) always
+ * runs when the amount looks mirrored, regardless of status.
+ *
+ * OFFRAMP's `currency.amount` (the fiat destination) is genuinely unknown
+ * until the provider's receipt lands — Bridge/Manteca mirror the crypto-leg
+ * figure into it while pending. Fetching a live rate for a row that's about
+ * to get its real amount for free just hammers the FX endpoint on every
+ * pending render, so completeHistoryEntry skips the lookup until the row is
+ * final — but showing the mirrored figure as if it were converted local
+ * currency is actively wrong (off by ~1000x for ARS/BRL), so the pending
+ * path blanks `currency.amount` instead of leaving the wrong number in
+ * place.
+ */
+describe('completeHistoryEntry currency-price fallback (pending vs final)', () => {
+    beforeEach(() => {
+        mockGetCachedCurrencyPrice.mockReset()
+        mockGetCachedCurrencyPrice.mockResolvedValue({ buy: 1.1, sell: 0.9 })
+    })
+
+    it('always corrects the primary amount for a mirrored ONRAMP row, pending or final', async () => {
+        const pending: HistoryEntry = {
+            ...baseEntry,
+            status: 'PENDING' as HistoryEntry['status'],
+            amount: '2.00',
+            currency: { amount: '2.00', code: 'eur' },
+            extraData: { ...baseEntry.extraData, kind: 'ONRAMP' },
+        }
+        const pendingResult = await completeHistoryEntry(pending)
+        expect(mockGetCachedCurrencyPrice).toHaveBeenCalledWith('EUR')
+        expect(pendingResult.extraData?.usdAmount).toBe((2 / 1.1).toString())
+
+        mockGetCachedCurrencyPrice.mockClear()
+        const final: HistoryEntry = { ...pending, status: 'COMPLETED' as HistoryEntry['status'] }
+        const finalResult = await completeHistoryEntry(final)
+        expect(mockGetCachedCurrencyPrice).toHaveBeenCalledWith('EUR')
+        expect(finalResult.extraData?.usdAmount).toBe((2 / 1.1).toString())
+    })
+
+    it('leaves a non-mirrored ONRAMP currency.amount untouched and skips the fetch', async () => {
+        const entry: HistoryEntry = {
+            ...baseEntry,
+            status: 'COMPLETED' as HistoryEntry['status'],
+            amount: '2.00',
+            currency: { amount: '105.90', code: 'eur' },
+            extraData: { ...baseEntry.extraData, kind: 'ONRAMP' },
+        }
+        const result = await completeHistoryEntry(entry)
+        expect(mockGetCachedCurrencyPrice).not.toHaveBeenCalled()
+        expect(result.extraData?.usdAmount).toBe('2.00')
+    })
+
+    it('blanks a mirrored OFFRAMP currency.amount while PENDING instead of fetching', async () => {
+        const entry: HistoryEntry = {
+            ...baseEntry,
+            status: 'PENDING' as HistoryEntry['status'],
+            amount: '2.00',
+            currency: { amount: '2.00', code: 'eur' },
+            extraData: { ...baseEntry.extraData, kind: 'OFFRAMP' },
+        }
+        const result = await completeHistoryEntry(entry)
+        expect(mockGetCachedCurrencyPrice).not.toHaveBeenCalled()
+        expect(result.currency?.amount).toBe('')
+        expect(result.currency?.code).toBe('EUR') // kept — the bank-country-flag lookup reads it
+    })
+
+    it('blanks an OFFRAMP row PENDING with no currency.amount at all', async () => {
+        const entry: HistoryEntry = {
+            ...baseEntry,
+            status: 'PENDING' as HistoryEntry['status'],
+            amount: '2.00',
+            currency: { code: 'ars' } as any, // deliberately missing `amount`
+            extraData: { ...baseEntry.extraData, kind: 'OFFRAMP' },
+        }
+        const result = await completeHistoryEntry(entry)
+        expect(mockGetCachedCurrencyPrice).not.toHaveBeenCalled()
+        expect(result.currency?.amount).toBe('')
+    })
+
+    it('converts a mirrored OFFRAMP currency.amount once COMPLETED', async () => {
+        const entry: HistoryEntry = {
+            ...baseEntry,
+            status: 'COMPLETED' as HistoryEntry['status'],
+            amount: '2.00',
+            currency: { amount: '2.00', code: 'eur' },
+            extraData: { ...baseEntry.extraData, kind: 'OFFRAMP' },
+        }
+        const result = await completeHistoryEntry(entry)
+        expect(mockGetCachedCurrencyPrice).toHaveBeenCalledWith('EUR')
+        expect(result.currency?.amount).toBe((2 * 0.9).toString())
+    })
+
+    it('converts an OFFRAMP row with no currency.amount once COMPLETED', async () => {
+        const entry: HistoryEntry = {
+            ...baseEntry,
+            status: 'COMPLETED' as HistoryEntry['status'],
+            amount: '2.00',
+            currency: { code: 'ars' } as any, // deliberately missing `amount`
+            extraData: { ...baseEntry.extraData, kind: 'OFFRAMP' },
+        }
+        const result = await completeHistoryEntry(entry)
+        expect(mockGetCachedCurrencyPrice).toHaveBeenCalledWith('ARS')
+        expect(result.currency?.amount).toBe((2 * 0.9).toString())
+    })
+
+    // Bridge's HistoryEntry.status is always the UPPER_CASE Prisma
+    // BridgeTransferState (peanut-api-ts src/db/history.ts:844) — Bridge's
+    // own webhook strings are lowercase, but the API normalizes them via
+    // `bridgeStateFromString` before that value is ever stored or sent to
+    // the FE, so isFinalState only ever needs to match the upper-case form.
+    it.each(['COMPLETED', 'PAYMENT_PROCESSED', 'REFUNDED', 'CANCELED', 'ERROR'])(
+        'treats OFFRAMP status=%s as final',
+        async (status) => {
+            const entry: HistoryEntry = {
+                ...baseEntry,
+                status: status as HistoryEntry['status'],
+                amount: '2.00',
+                currency: { amount: '2.00', code: 'eur' },
+                extraData: { ...baseEntry.extraData, kind: 'OFFRAMP' },
+            }
+            const result = await completeHistoryEntry(entry)
+            expect(mockGetCachedCurrencyPrice).toHaveBeenCalledWith('EUR')
+            expect(result.currency?.amount).toBe((2 * 0.9).toString())
+        }
+    )
+
+    // RETURNED/UNDELIVERABLE were missing from FINAL_STATES before this fix —
+    // the one genuinely-reachable enum change here (peanut-api-ts emits both
+    // for a failed Bridge payout). Without it a returned/undeliverable OFFRAMP
+    // stayed on the pending path forever: blanked currency.amount, and (via
+    // the shared isFinalState consumers) an endless 15s receipt poll and a
+    // PENDING_TTL PDF cache that never promotes to the final one.
+    it.each(['RETURNED', 'UNDELIVERABLE'])('treats OFFRAMP status=%s as final', async (status) => {
+        const entry: HistoryEntry = {
+            ...baseEntry,
+            status: status as HistoryEntry['status'],
+            amount: '2.00',
+            currency: { amount: '2.00', code: 'eur' },
+            extraData: { ...baseEntry.extraData, kind: 'OFFRAMP' },
+        }
+        const result = await completeHistoryEntry(entry)
+        expect(mockGetCachedCurrencyPrice).toHaveBeenCalledWith('EUR')
+        expect(result.currency?.amount).toBe((2 * 0.9).toString())
+    })
+})
+
+/**
+ * getTransactionSign drives the "-" prefix on the activity-feed amount.
+ *
+ * Both directions are signed: "-" out, "+" in (ruled 2026-08-28 over the
+ * states board's unsigned inflow).
  *
  * Regression: a Rain card AUTH sits in `pending` for hours until the CLEAR
  * webhook settles it. The old guard suppressed the sign for anything that
@@ -110,13 +263,22 @@ describe('getTransactionSign', () => {
         expect(sign('qr_payment', 'completed')).toBe('-')
     })
 
-    it('shows the inflow sign for a pending receive', () => {
+    it('shows the inflow sign for a receive, pending or settled', () => {
         expect(sign('receive', 'pending')).toBe('+')
+        expect(sign('receive', 'completed')).toBe('+')
     })
 
     it('shows the inflow sign for a received request — the viewer created it, money comes IN', () => {
         expect(sign('request_received', 'pending')).toBe('+')
         expect(sign('request_received', 'completed')).toBe('+')
+    })
+
+    // The wording is inbound but the money is not: p2p-send emits this for the
+    // SENDER of a bridge-fulfilled request, who is paying. A "+" here told a
+    // payer their balance had gone up.
+    it('shows the outflow sign for a bank-request fulfillment (the payer)', () => {
+        expect(sign('bank_request_fulfillment', 'pending')).toBe('-')
+        expect(sign('bank_request_fulfillment', 'completed')).toBe('-')
     })
 
     it.each(['cancelled', 'failed', 'refunded'])('suppresses the sign for status=%s', (status) => {

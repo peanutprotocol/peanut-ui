@@ -3,40 +3,48 @@
  */
 
 // NOTE: using hex codes cuz tailwind classes works weird with dynamic colors and doesnt really apply all the time, even when using twMerge
+// values = the avatar board triplets (17802:61529): lightShade=bg, borderShade=border, darkShade=foreground
 const COLORS_MAPPING = {
     peanut_pink: {
         lightShade: '#FFD5F6',
-        darkShade: '#FF74E2',
+        borderShade: '#E06AC8',
+        darkShade: '#A42089',
     },
     yellow: {
-        lightShade: '#FFEA9A',
-        darkShade: '#FFC900',
+        lightShade: '#FAE184',
+        borderShade: '#DCAE01',
+        darkShade: '#885B00',
     },
     purple: {
-        lightShade: '#E2D9FF',
-        darkShade: '#795CD3',
+        lightShade: '#DCD6FF',
+        borderShade: '#BA8BFF',
+        darkShade: '#9333EA',
     },
-    cyan: {
-        lightShade: '#C3E8F2',
-        darkShade: '#00A5D1',
+    blue: {
+        lightShade: '#DBEAFE',
+        borderShade: '#90A8ED',
+        darkShade: '#2563EB',
     },
     red: {
-        lightShade: '#FFC2C2',
-        darkShade: '#FF0101',
+        lightShade: '#FFCCCC',
+        borderShade: '#EA8282',
+        darkShade: '#E40C0C',
     },
     orange: {
         lightShade: '#FFD3B4',
-        darkShade: '#FF6B00',
+        borderShade: '#F69855',
+        darkShade: '#B8450A',
     },
     green: {
-        lightShade: '#AAFFA7',
-        darkShade: '#00CC51',
+        lightShade: '#C7F9C6',
+        borderShade: '#29CC6A',
+        darkShade: '#3B730C',
     },
 }
 
 // specific colors for different avatar types/contexts
 export const AVATAR_LINK_BG = '#FF90E8' // peanut pink for links
-export const AVATAR_WALLET_BG = COLORS_MAPPING.yellow.darkShade // yellow for address/non-user/add/withdraw header
+export const AVATAR_WALLET_BG = '#FFC900' // yellow for address/non-user/add/withdraw header (action/secondary token)
 
 // text/icon colors
 export const AVATAR_TEXT_LIGHT = '#FFFFFF' // white
@@ -45,13 +53,17 @@ export const AVATAR_TEXT_DARK = '#000000' // black
 /**
  * Generates a deterministic background color from a predefined list based on a username.
  * @param username The username string.
- * @returns An object with { darkShade, lightShade }
+ * @returns An object with { darkShade, lightShade, borderShade }
  */
-export function getColorForUsername(username?: string): { darkShade: string; lightShade: string } {
+export function getColorForUsername(username?: string): {
+    darkShade: string
+    lightShade: string
+    borderShade: string
+} {
     const colors = Object.values(COLORS_MAPPING)
     if (!username) {
         // default colors if no username is provided
-        return { darkShade: colors[1].darkShade, lightShade: colors[1].lightShade } // Default to yellow bg, black text
+        return colors[1] // default to yellow
     }
 
     let hash = 0
@@ -60,9 +72,5 @@ export function getColorForUsername(username?: string): { darkShade: string; lig
         hash = hash & hash
     }
 
-    const index = Math.abs(hash) % colors.length
-    const darkShade = colors[index].darkShade
-    const lightShade = colors[index].lightShade
-
-    return { darkShade, lightShade }
+    return colors[Math.abs(hash) % colors.length]
 }

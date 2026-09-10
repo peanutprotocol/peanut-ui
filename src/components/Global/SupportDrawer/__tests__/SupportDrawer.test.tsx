@@ -19,6 +19,8 @@ import { IntlWrapper } from '@/test-utils/intl'
 import SupportDrawer from '../index'
 import { isCapacitor } from '@/utils/capacitor'
 import { SUPPORT_EMAIL } from '@/constants/crisp'
+import { dispatchBackPress, resetBackHandlersForTests } from '@/utils/back-handler'
+import { ensureNativeCameraPermission } from '@/utils/camera-permission'
 
 const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
@@ -40,10 +42,11 @@ const modalsState: { supportPrefilledMessage: string | undefined; isSupportModal
     supportPrefilledMessage: undefined,
     isSupportModalOpen: true,
 }
+const mockSetIsSupportModalOpen = jest.fn()
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({
         isSupportModalOpen: modalsState.isSupportModalOpen,
-        setIsSupportModalOpen: jest.fn(),
+        setIsSupportModalOpen: mockSetIsSupportModalOpen,
         supportPrefilledMessage: modalsState.supportPrefilledMessage,
     }),
 }))
@@ -62,11 +65,13 @@ jest.mock('@/hooks/useCrispUserData', () => ({
 jest.mock('@/hooks/useCrispTokenId', () => ({
     useCrispTokenId: () => mockUseCrispTokenId(),
 }))
-jest.mock('../../PeanutLoading', () => ({
+jest.mock('../../Loading', () => ({
     __esModule: true,
-    default: () => <div data-testid="peanut-loading" />,
+    default: (props: any) =>
+        props.variant === 'mascot' ? <div data-testid="peanut-loading" /> : <div data-testid="loading-spinner" />,
 }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: jest.fn() }))
+jest.mock('@/utils/camera-permission', () => ({ ensureNativeCameraPermission: jest.fn(async () => true) }))
 jest.mock('@capgo/capacitor-crisp', () => ({ CapacitorCrisp: nativeCrisp }))
 
 const supportIframe = () => screen.queryByTitle('Support Chat')
@@ -460,6 +465,7 @@ describe('SupportDrawer Crisp session gate — native (Capacitor)', () => {
         mockUseCrispTokenId.mockReset()
         mockIsCapacitor.mockReset().mockReturnValue(true)
         Object.values(nativeCrisp).forEach((fn) => fn.mockReset())
+        jest.mocked(ensureNativeCameraPermission).mockClear()
     })
 
     it('does NOT open the native messenger while a logged-in user’s token is still resolving', async () => {
@@ -496,13 +502,25 @@ describe('SupportDrawer Crisp session gate — native (Capacitor)', () => {
         await waitFor(() => expect(nativeCrisp.openMessenger).toHaveBeenCalled())
         expect(nativeCrisp.setTokenID).not.toHaveBeenCalled()
     })
+
+    it('opens support without probing an unrelated camera permission', async () => {
+        mockUseCrispUserData.mockReturnValue({ userId: 'user-abc', email: 'a@b.com' })
+        mockUseCrispTokenId.mockReturnValue('token-abc')
+
+        await act(async () => {
+            render(<SupportDrawer />)
+        })
+
+        await waitFor(() => expect(nativeCrisp.openMessenger).toHaveBeenCalled())
+        expect(ensureNativeCameraPermission).not.toHaveBeenCalled()
+    })
 })
 
 /*
  * The support snapshot is live state — a balance landing from the cache, or the
  * route latch firing on open, changes `userData`'s identity. `userData` is a
  * dependency of the native open effect, so a change while the effect's async
- * chain is still awaiting camera permission used to start a SECOND chain, and
+ * chain is still awaiting native Crisp configuration used to start a SECOND chain, and
  * the user's prefilled message reached the agent twice.
  */
 describe('SupportDrawer — native open runs once per open cycle', () => {
@@ -511,6 +529,7 @@ describe('SupportDrawer — native open runs once per open cycle', () => {
         mockUseCrispTokenId.mockReset()
         mockIsCapacitor.mockReset().mockReturnValue(true)
         Object.values(nativeCrisp).forEach((fn) => fn.mockReset())
+        jest.mocked(ensureNativeCameraPermission).mockClear()
         modalsState.supportPrefilledMessage = undefined
         modalsState.isSupportModalOpen = true
     })
@@ -622,7 +641,7 @@ describe('SupportDrawer — native open runs once per open cycle', () => {
 
     /*
      * A boolean latch is not enough: the chain outlives the cycle that started
-     * it. Close the drawer while it is parked on the camera-permission await
+     * it. Close the drawer while it is parked on the native configure await
      * and reopen — a boolean has already been cleared, a second chain starts,
      * both finish, and the prefill is sent twice. The generation counter makes
      * the chain check, after its awaits, whether the cycle it belongs to is
@@ -668,5 +687,44 @@ describe('SupportDrawer — native open runs once per open cycle', () => {
 
         expect(nativeCrisp.openMessenger).not.toHaveBeenCalled()
         expect(nativeCrisp.sendMessage).not.toHaveBeenCalled()
+    })
+})
+
+// The hand-rolled overlay was left off the LIFO back stack PR #2920 gave the DS
+// Drawer and Modal, so Android back with the sheet open navigated the page
+// underneath instead of closing the sheet.
+describe('SupportDrawer — Android hardware back', () => {
+    beforeEach(() => {
+        mockUseCrispUserData.mockReset().mockReturnValue({})
+        mockUseCrispTokenId.mockReset().mockReturnValue(undefined)
+        mockIsCapacitor.mockReset().mockReturnValue(false)
+        mockSetIsSupportModalOpen.mockReset()
+        resetBackHandlersForTests()
+    })
+
+    it('closes the sheet and consumes the press while open', () => {
+        modalsState.isSupportModalOpen = true
+        render(<SupportDrawer />)
+
+        let consumed = false
+        act(() => {
+            consumed = dispatchBackPress()
+        })
+
+        expect(consumed).toBe(true)
+        expect(mockSetIsSupportModalOpen).toHaveBeenCalledWith(false)
+    })
+
+    it('leaves the press to the page while closed', () => {
+        modalsState.isSupportModalOpen = false
+        render(<SupportDrawer />)
+
+        let consumed = true
+        act(() => {
+            consumed = dispatchBackPress()
+        })
+
+        expect(consumed).toBe(false)
+        expect(mockSetIsSupportModalOpen).not.toHaveBeenCalled()
     })
 })

@@ -1,5 +1,10 @@
 import CurrencySelect from '@/components/LandingPage/CurrencySelect'
 import countryCurrencyMappings, { getFlagUrl } from '@/constants/countryCurrencyMapping'
+import {
+    resolveExchangeCurrencyPair,
+    toDisplayCurrency,
+    toSupportedExchangeCurrency,
+} from '@/constants/exchange-currencies.consts'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { applyBridgeCrossCurrencyFee, reverseBridgeCrossCurrencyFee } from '@/utils/bridge.utils'
@@ -8,6 +13,7 @@ import { parseAsFloat, parseAsString, useQueryStates } from 'nuqs'
 import { type FC, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon, type IconName } from '../Icons/Icon'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Card } from '@/components/0_Bruddle/Card'
 
 export interface ExchangeRateWidgetLabels {
     youSend: string
@@ -39,10 +45,30 @@ interface IExchangeRateWidgetProps {
     ctaLabel: string
     ctaIcon: IconName
     ctaAction: (sourceCurrency: string, destinationCurrency: string) => void
+    ctaDisabled?: boolean
     labels?: Partial<ExchangeRateWidgetLabels>
+    // Marketing send-to pages seed the URL with currencies that only need a
+    // quote (see the comment on `sourceCurrency` below). Product callers whose
+    // CTA routes into a country flow — currently just /profile/exchange-rate —
+    // need the URL clamped to the six routable currencies instead, or a stale
+    // `?to=PLN` shows a rate the dropdown never offers and the CTA can only
+    // route by falling back to the default pair.
+    restrictToRoutable?: boolean
+    // Marketing/landing pages keep the hard drop shadow (matches the rest of
+    // that page's brutalist button styling); the in-app /profile/exchange-rate
+    // screen drops it — not used on any other in-app card (TASK-22121).
+    shadow?: boolean
 }
 
-const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, ctaAction, labels }) => {
+const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
+    ctaLabel,
+    ctaIcon,
+    ctaAction,
+    ctaDisabled = false,
+    labels,
+    restrictToRoutable = false,
+    shadow = true,
+}) => {
     const l = { ...DEFAULT_LABELS, ...labels }
     // shallow + history:'replace' uses window.history.replaceState — bypasses
     // Next.js navigation so URL updates don't (occasionally) scroll the page
@@ -56,8 +82,21 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
         { shallow: true, history: 'replace', scroll: false }
     )
 
-    const sourceCurrency = query.from
-    const destinationCurrency = query.to
+    // Normalised, and — for marketing callers — not filtered to the routable
+    // six. Those pages seed this URL from their MDX frontmatter
+    // (Marketing/mdx/ExchangeWidget.tsx) with ~20 currencies the FX feed
+    // quotes but no rail supports — THB, PLN, JPY and the rest. Rejecting those
+    // would render a euro rate on a "send money to Thailand" page. Displaying
+    // a quote and offering a payment rail are different permissions — but a
+    // caller whose CTA routes into a country flow needs both to agree, so it
+    // opts into the routable-only parse via `restrictToRoutable`.
+    const resolveCurrency = restrictToRoutable ? toSupportedExchangeCurrency : toDisplayCurrency
+    // Resolved as a pair, not two independently-defaulted sides — see
+    // resolveExchangeCurrencyPair. A page that derives its own label or
+    // redirect from this same URL before the widget mounts (currently just
+    // /profile/exchange-rate) must call this exact function too, or its
+    // fallback can disagree with what the widget ends up showing.
+    const [sourceCurrency, destinationCurrency] = resolveExchangeCurrencyPair(query.from, query.to, resolveCurrency)
     const urlSourceAmount = query.amount > 0 ? query.amount : 10
 
     // Exchange rate hook handles all the conversion logic
@@ -107,7 +146,12 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
     // Setter functions that update URL
     // USD must always be one of the two currencies in the pair
     const setSourceCurrency = useCallback(
-        (currency: string) => {
+        (raw: string) => {
+            // CurrencySelect only renders supported rows, so this is a type
+            // narrowing rather than a real filter — but it is the same door the
+            // URL comes through, and one of them had no guard at all.
+            const currency = toSupportedExchangeCurrency(raw)
+            if (!currency) return
             if (currency === 'USD') {
                 // If setting source to USD and destination is already USD, switch destination
                 if (destinationCurrency === 'USD') {
@@ -123,7 +167,9 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
     )
 
     const setDestinationCurrency = useCallback(
-        (currency: string) => {
+        (raw: string) => {
+            const currency = toSupportedExchangeCurrency(raw)
+            if (!currency) return
             if (currency === 'USD') {
                 if (sourceCurrency === 'USD') {
                     updateUrlParams({ from: 'EUR', to: currency }) // fallback to EUR
@@ -194,14 +240,37 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
     // Determine delivery time text based on destination currency
     const deliveryTimeText = destinationCurrency === 'USD' ? l.arrivesHours : l.arrivesMinutes
 
+    // Space is reserved whenever there is an amount, but a CLAIM about that
+    // corridor needs a landed quote. Marketing callers do not pass
+    // restrictToRoutable and seed ~20 currencies the FX feed quotes but no rail
+    // supports (see the prop comment), so "arrives in minutes" gated on the
+    // typed amount alone promised fulfilment on corridors with neither a rate
+    // nor a route — including while loading and alongside "rate unavailable".
+    const hasAmount = typeof sourceAmount === 'number' && sourceAmount > 0
+    // A quote is not a route. The FX feed prices ~20 currencies no rail serves,
+    // so a marketing page can land a positive destinationAmount for a corridor
+    // Peanut cannot fulfil — checked here rather than via `restrictToRoutable`,
+    // which only says whether the CALLER clamps its URL, not whether this
+    // particular pair is servable.
+    const isRoutablePair =
+        toSupportedExchangeCurrency(sourceCurrency) !== null &&
+        toSupportedExchangeCurrency(destinationCurrency) !== null
+    const hasQuote = typeof destinationAmount === 'number' && destinationAmount > 0 && !isError && isRoutablePair
+
+    // no exchange-rate board exists in figma (checked 2026-08-20) — container
+    // rebuilt on the DS Card primitive (board 17802:61536) as the conservative
+    // recipe; a dedicated board can restyle the internals later.
     return (
-        <div className="btn btn-shadow-primary-4 mx-auto mt-12 flex h-fit w-full flex-col items-center justify-center gap-4 bg-white p-7 md:w-[420px]">
+        <Card
+            shadowSize={shadow ? '4' : undefined}
+            className="mx-auto mt-12 h-fit w-full items-center justify-center gap-4 p-6 md:w-[420px]"
+        >
             <div className="w-full">
-                <h2 className="text-left text-sm">{l.youSend}</h2>
-                <div className="btn btn-shadow-primary-4 mt-2 flex w-full items-center justify-center gap-4 bg-white p-4">
+                <h2 className="text-left text-body-s">{l.youSend}</h2>
+                <div className="mt-2 flex w-full items-center justify-center gap-4 rounded-sm border border-border-default bg-background-default p-4">
                     {showLoading ? (
                         <div className="flex w-full items-center">
-                            <div className="h-8 w-40 animate-pulse rounded-full bg-grey-2" />
+                            <div className="h-5 w-40 animate-pulse rounded-full bg-background-disabled" />
                         </div>
                     ) : (
                         <input
@@ -219,7 +288,9 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                                 }
                             }}
                             type="number"
-                            className="w-full bg-transparent outline-none"
+                            // h-5 pins the field to its own line box so the skeleton
+                            // it swaps with is exactly as tall
+                            className="h-5 w-full bg-transparent text-body-m-semibold text-foreground-primary outline-none"
                         />
                     )}
                     <CurrencySelect
@@ -235,7 +306,8 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                                     height={160}
                                     className="size-4 rounded-full object-cover"
                                 />
-                                {sourceCurrency} <Icon name="chevron-down" className="text-gray-1" size={14} />
+                                {sourceCurrency}{' '}
+                                <Icon name="chevron-down" className="text-foreground-secondary" size={16} />
                             </button>
                         }
                     />
@@ -244,18 +316,18 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
 
             <button
                 onClick={swapCurrencies}
-                className="flex h-8 w-8 items-center justify-center self-center rounded-full hover:bg-grey-4"
+                className="flex h-8 w-8 items-center justify-center self-center rounded-full hover:bg-background-disabled"
                 aria-label={l.swapCurrencies}
             >
-                <Icon name="arrow-exchange" size={18} className="rotate-90 transition-transform duration-300" />
+                <Icon name="arrow-exchange" size={20} className="rotate-90 transition-transform duration-moderate" />
             </button>
 
             <div className="w-full">
-                <h2 className="text-left text-sm">{l.recipientGets}</h2>
-                <div className="btn btn-shadow-primary-4 mt-2 flex w-full items-center justify-center gap-4 bg-white p-4">
+                <h2 className="text-left text-body-s">{l.recipientGets}</h2>
+                <div className="mt-2 flex w-full items-center justify-center gap-4 rounded-sm border border-border-default bg-background-default p-4">
                     {showLoading ? (
                         <div className="flex w-full items-center">
-                            <div className="h-8 w-40 animate-pulse rounded-full bg-grey-2" />
+                            <div className="h-5 w-40 animate-pulse rounded-full bg-background-disabled" />
                         </div>
                     ) : (
                         <input
@@ -279,7 +351,9 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                                 }
                             }}
                             type="number"
-                            className="w-full bg-transparent outline-none"
+                            // h-5 pins the field to its own line box so the skeleton
+                            // it swaps with is exactly as tall
+                            className="h-5 w-full bg-transparent text-body-m-semibold text-foreground-primary outline-none"
                         />
                     )}
                     <CurrencySelect
@@ -294,16 +368,17 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                                     height={160}
                                     className="size-4 rounded-full object-cover"
                                 />
-                                {destinationCurrency} <Icon name="chevron-down" className="text-gray-1" size={14} />
+                                {destinationCurrency}{' '}
+                                <Icon name="chevron-down" className="text-foreground-secondary" size={16} />
                             </button>
                         }
                     />
                 </div>
             </div>
 
-            <div className="rounded-full bg-grey-4 px-2 py-[2px] text-xs font-bold text-gray-1">
+            <div className="rounded-full bg-background-disabled px-2 py-[2px] text-label-m text-foreground-secondary">
                 {showLoading ? (
-                    <div className="mx-auto h-3 w-28 animate-pulse rounded-full bg-grey-2" />
+                    <div className="mx-auto h-4 w-28 animate-pulse rounded-full bg-foreground-primary/10" />
                 ) : isError ? (
                     <span>{l.rateUnavailable}</span>
                 ) : (
@@ -313,37 +388,38 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({ ctaLabel, ctaIcon, c
                 )}
             </div>
 
-            {typeof destinationAmount === 'number' && destinationAmount > 0 && (
-                <div className="flex w-full flex-col gap-3 rounded-sm border-[1.15px] border-black px-4 py-2">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-left text-sm font-normal">{l.bankFee}</h2>
-                        <h2 className="text-left text-sm font-normal">{l.free}</h2>
-                    </div>
+            {hasAmount && (
+                <div className="flex min-h-17 w-full flex-col justify-center gap-3 rounded-sm border border-border-default px-4 py-2">
+                    {hasQuote && (
+                        <>
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-left text-body-s font-normal">{l.bankFee}</h2>
+                                <h2 className="text-left text-body-s font-normal">{l.free}</h2>
+                            </div>
 
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-left text-sm font-normal">{l.peanutFee}</h2>
-                        <h2 className="text-left text-sm font-normal">{l.free}</h2>
-                    </div>
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-left text-body-s font-normal">{l.peanutFee}</h2>
+                                <h2 className="text-left text-body-s font-normal">{l.free}</h2>
+                            </div>
+                        </>
+                    )}
                 </div>
             )}
 
             <Button
+                disabled={ctaDisabled}
                 onClick={() => ctaAction(sourceCurrency, destinationCurrency)}
                 icon={ctaIcon}
-                iconSize={13}
                 shadowSize="4"
-                className="w-full text-base font-bold"
+                className="w-full"
             >
                 {ctaLabel}
             </Button>
 
-            {typeof destinationAmount === 'number' && destinationAmount > 0 && (
-                <div className="flex items-center gap-1">
-                    <Icon name="info" className="text-gray-1" size={14} />
-                    <p className="text-xs text-gray-1">{deliveryTimeText}</p>
-                </div>
+            {hasAmount && (
+                <p className="min-h-4 text-body-xs text-foreground-secondary">{hasQuote ? deliveryTimeText : ''}</p>
             )}
-        </div>
+        </Card>
     )
 }
 

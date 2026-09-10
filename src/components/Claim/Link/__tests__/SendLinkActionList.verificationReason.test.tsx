@@ -73,8 +73,6 @@ jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ canDo: (
 // logged OUT — the state that makes the regional path raise the modal
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: null }) }))
 
-jest.mock('@/redux/hooks', () => ({ useAppDispatch: () => jest.fn() }))
-
 jest.mock('@/context/tokenSelector.context', () => ({
     tokenSelectorContext: React.createContext({
         setSelectedTokenAddress: jest.fn(),
@@ -87,6 +85,9 @@ jest.mock('@/context/tokenSelector.context', () => ({
 
 const bankMethod = { id: 'bank', title: 'Bank', description: 'EUR, USD & more', icons: [], soon: false }
 const mercadoPagoMethod = { id: 'mercadopago', title: 'Mercado Pago', description: 'ARS', icons: [], soon: false }
+// An unrecognised recipient — the only case where the rails render at all.
+jest.mock('@/hooks/useKnownPeanutDevice', () => ({ useKnownPeanutDevice: () => false }))
+
 jest.mock('@/hooks/useGeoFilteredPaymentOptions', () => ({
     useGeoFilteredPaymentOptions: () => ({ filteredMethods: [bankMethod, mercadoPagoMethod], isLoading: false }),
 }))

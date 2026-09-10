@@ -34,7 +34,7 @@ import {
 import { rainCoordinatorAbi } from '@/constants/rain.consts'
 
 /*
- * Per-transaction ephemeral session key (SESSION_KEY_SPEND flag).
+ * Per-transaction ephemeral session key for the one-tap mixed spend.
  *
  * One passkey tap signs a permission-enable for a throwaway ECDSA key whose
  * authority is enforced ON-CHAIN by the kernel's permission validator, scoped
@@ -194,8 +194,11 @@ export async function createEphemeralSpendSession(args: {
     scope: EphemeralSpendScope
     /** From useKernelClient().getPatchedSudoValidator — NEVER the plugin-manager internal. */
     patchedSudoValidator: KernelValidator
+    /** Permission lifetime. Sign-only flows hand the op to the backend to
+     *  broadcast and need more than the broadcasting default. */
+    ttlSeconds?: number
 }): Promise<EphemeralSpendSession> {
-    const { publicClient, chain, scope, patchedSudoValidator } = args
+    const { publicClient, chain, scope, patchedSudoValidator, ttlSeconds = TTL_SECONDS } = args
     assertZeroDevRpcUrls(BUNDLER_URL, PAYMASTER_URL)
 
     try {
@@ -225,7 +228,7 @@ export async function createEphemeralSpendSession(args: {
         })
         // FOR_ALL_VALIDATION on purpose: expiry must kill the 1271 path too,
         // or a leaked key could authorize withdrawals long after the flow.
-        const timestampPolicy = await toTimestampPolicy({ validAfter: 0, validUntil: now + TTL_SECONDS })
+        const timestampPolicy = await toTimestampPolicy({ validAfter: 0, validUntil: now + ttlSeconds })
         const rateLimitPolicy = await toRateLimitPolicy({
             policyFlag: PolicyFlags.NOT_FOR_VALIDATE_SIG,
             count: 1,

@@ -2,7 +2,7 @@ import { invitesApi } from '../invites'
 import { EInviteType } from '../services.types'
 import { serverFetch } from '@/utils/api-fetch'
 import { validateInviteCode } from '@/app/actions/invites'
-import { destinationForInviteAcquisition, settleAcceptedInviteAcquisition } from '../invite-acquisition'
+import { settleAcceptedInviteAcquisition } from '../invite-acquisition'
 import { clearPendingBadgeCampaigns, getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
@@ -95,15 +95,11 @@ describe('invite attribution contract', () => {
             success: true,
             attributionResolved: false,
             onboardingResolved: false,
-            legacyAcquisition: {
-                campaignTag: 'offramp',
-                fallback: 'normal_app',
-                destination: 'offramp_migration',
-            },
+            legacyAcquisition: { campaignTag: 'offramp' },
             claims: [{ badgeCampaign: 'offramp', outcome: 'already_owned' }],
         })
         expect(settleAcceptedInviteAcquisition(result.legacyAcquisition!, result.claims)).toEqual({
-            destination: '/add-money/crypto?network=EVM&source=offramp',
+            destination: '/home',
             pending: [],
         })
         expect(getPendingBadgeCampaigns()).toEqual([])
@@ -149,7 +145,6 @@ describe('invite attribution contract', () => {
         const result = await invitesApi.acceptInvite('offramp', EInviteType.PAYMENT_LINK)
 
         expect(result.claims).toEqual([{ badgeCampaign: 'offramp', outcome: 'retryable_error' }])
-        expect(destinationForInviteAcquisition(result.legacyAcquisition!, result.claims)).toBe('/home')
         expect(settleAcceptedInviteAcquisition(result.legacyAcquisition!, result.claims)).toEqual({
             destination: '/home',
             pending: ['offramp'],
@@ -157,18 +152,16 @@ describe('invite attribution contract', () => {
         expect(getPendingBadgeCampaigns()).toEqual(['offramp'])
     })
 
-    it('preserves the typed legacy campaign identity and destination from invite validation', async () => {
+    it('preserves the typed legacy campaign identity from invite validation', async () => {
+        // the server action is the parse boundary; it already reduced the wire
+        // descriptor to the campaign identity (destinations retired, TASK-21226)
         mockValidateInviteCode.mockResolvedValue({
             data: {
                 success: true,
                 attributionResolved: false,
                 onboardingResolved: false,
                 username: 'peanut',
-                legacyAcquisition: {
-                    campaignTag: 'offramp',
-                    fallback: 'normal_app',
-                    destination: 'offramp_migration',
-                },
+                legacyAcquisition: { campaignTag: 'offramp' },
             },
         })
 
@@ -177,11 +170,7 @@ describe('invite attribution contract', () => {
             attributionResolved: false,
             onboardingResolved: false,
             username: 'peanut',
-            legacyAcquisition: {
-                campaignTag: 'offramp',
-                fallback: 'normal_app',
-                destination: 'offramp_migration',
-            },
+            legacyAcquisition: { campaignTag: 'offramp' },
         })
     })
 

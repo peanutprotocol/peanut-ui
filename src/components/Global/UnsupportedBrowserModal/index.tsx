@@ -3,7 +3,7 @@
 import ActionModal, { type ActionModalButtonProps } from '@/components/Global/ActionModal'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { type IconName } from '@/components/Global/Icons/Icon'
-import { copyTextToClipboardWithFallback } from '@/utils/general.utils'
+import { copyTextToClipboard } from '@/utils/clipboard.utils'
 import { useEffect, useState, Suspense, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { useSearchParams } from 'next/navigation'
@@ -94,7 +94,10 @@ const UnsupportedBrowserModalContent = ({
                     const urlToCopy = redirectUri
                         ? `${window.location.origin}${decodeURIComponent(redirectUri)}`
                         : window.location.href
-                    await copyTextToClipboardWithFallback(urlToCopy)
+                    if (!(await copyTextToClipboard(urlToCopy))) {
+                        toast.error(t('unsupportedBrowserModal.copyErrorToast'))
+                        return
+                    }
                     setHasCopied(true)
                     toast.success(t('unsupportedBrowserModal.copySuccessToast'))
                     copyTimeoutRef.current = setTimeout(() => setHasCopied(false), 2000)
@@ -103,12 +106,13 @@ const UnsupportedBrowserModalContent = ({
                     toast.error(t('unsupportedBrowserModal.copyErrorToast'))
                 }
             },
-            className: 'bg-primary-1 hover:bg-primary-2 text-black sm:py-3',
+            className: 'bg-action-primary hover:bg-action-primary-hover text-black sm:py-3',
             shadowSize: '4',
         },
         {
             variant: 'transparent-dark',
-            className: 'text-grey-1 text-xs font-medium h-2 mt-1 hover:text-grey-1 active:text-grey-1',
+            className:
+                'text-foreground-secondary text-body-xs font-medium h-2 mt-1 hover:text-foreground-secondary active:text-foreground-secondary',
             text: t('unsupportedBrowserModal.pasteHint'),
         },
     ]
@@ -120,7 +124,7 @@ const UnsupportedBrowserModalContent = ({
             title={t('unsupportedBrowserModal.title')}
             description={t('unsupportedBrowserModal.description')}
             icon={'alert' as IconName}
-            iconContainerClassName="bg-primary-1"
+            iconContainerClassName="bg-action-primary"
             iconProps={{ className: 'text-black' }}
             ctas={copyLinkAction}
             hideModalCloseButton={!allowClose}
