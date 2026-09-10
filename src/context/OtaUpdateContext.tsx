@@ -60,9 +60,10 @@ export function OtaUpdateProvider({ children }: { children: React.ReactNode }) {
         let disposed = false
         let cleanup: (() => void) | undefined
 
-        // a bundle staged on an earlier launch is still queued in the plugin
-        importWithChunkRetry(() => import('@capgo/capacitor-updater'))
-            .then(({ CapacitorUpdater }) => CapacitorUpdater.getNextBundle())
+        // a bundle staged on an earlier launch is still queued in the plugin —
+        // read through the gate, which drops one built for a newer binary
+        importWithChunkRetry(() => import('@/utils/capgo-updater'))
+            .then((updater) => updater.readStagedBundle({ onStoreUpdateRequired: () => setStoreUpdateRequired(true) }))
             .then((bundle) => {
                 if (!disposed && bundle) setPendingBundle((current) => current ?? bundle)
             })

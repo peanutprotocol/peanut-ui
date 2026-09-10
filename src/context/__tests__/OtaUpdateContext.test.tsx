@@ -23,12 +23,13 @@ const mockUpdater = {
     getNextBundle: jest.fn(),
     getPluginVersion: jest.fn(),
     getFailedUpdate: jest.fn().mockResolvedValue(null),
+    delete: jest.fn().mockResolvedValue(undefined),
 }
 const mockExitApp = jest.fn().mockResolvedValue(undefined)
 // splashVisible false by default: these cases are about a bundle staged while
 // the user is already in the app, where the launch apply deliberately stands
 // down. The behind-the-splash window has its own describe block.
-const platform = { android: true, capacitor: true, splashVisible: false }
+const platform = { android: true, capacitor: true, splashVisible: false, binaryVersion: null as string | null }
 
 jest.mock('@capgo/capacitor-updater', () => ({ CapacitorUpdater: mockUpdater }))
 jest.mock('@capacitor/app', () => ({ App: { exitApp: () => mockExitApp() } }))
@@ -38,6 +39,12 @@ jest.mock('@/utils/capacitor', () => ({
     isAndroidNativeBridge: () => platform.android,
 }))
 jest.mock('@/hooks/useSplashGate', () => ({ isSplashVisible: () => platform.splashVisible }))
+// Null by default so the store-update gate fails open and the cases below are
+// about restart mechanics rather than binary compatibility; the one case that
+// is about compatibility names a version.
+jest.mock('@/utils/app-version', () => ({
+    getBinaryInfo: async () => (platform.binaryVersion ? { appVersion: platform.binaryVersion, appBuild: '1' } : null),
+}))
 
 import { OtaUpdateProvider, useOtaUpdate } from '../OtaUpdateContext'
 
@@ -55,6 +62,8 @@ beforeEach(() => {
     platform.android = true
     platform.capacitor = true
     platform.splashVisible = false
+    platform.binaryVersion = null
+    mockUpdater.delete.mockReset().mockResolvedValue(undefined)
     mockUpdater.getFailedUpdate.mockReset().mockResolvedValue(null)
     mockExitApp.mockClear()
     mockUpdater.set.mockReset().mockReturnValue(new Promise(() => {}))
@@ -100,6 +109,31 @@ it('flags a store update when the served bundle needs a newer binary', async () 
     })
     expect(result.current.storeUpdateRequired).toBe(true)
     expect(window.localStorage.getItem('capgoUpdateFailureStreak')).toBeNull()
+})
+
+// A native release publishes a bundle carrying its own version, and a device on
+// the older binary used to download it, stage it and offer a restart — which
+// installed JS built against native code that install does not have. The queue
+// outlives the JS that filled it, so a bundle staged before this gate existed
+// has to be unstaged rather than merely hidden: installNext() runs from
+// appMovedToBackground() with no JS involved.
+it('never offers a restart for a queued bundle that needs a newer binary', async () => {
+    platform.binaryVersion = '1.1.0'
+    mockUpdater.getNextBundle.mockResolvedValue({ ...STAGED, version: '1.2.0' })
+    const { result } = setup()
+
+    await waitFor(() => expect(result.current.storeUpdateRequired).toBe(true))
+    expect(result.current.pendingBundle).toBeNull()
+    expect(mockUpdater.delete).toHaveBeenCalledWith({ id: 'b-2' })
+    expect(mockUpdater.set).not.toHaveBeenCalled()
+})
+
+it('still offers a restart for a queued bundle the running binary can run', async () => {
+    platform.binaryVersion = '1.2.0'
+    const { result } = await withStagedBundle()
+
+    expect(result.current.storeUpdateRequired).toBe(false)
+    expect(mockUpdater.delete).not.toHaveBeenCalled()
 })
 
 it('applyNow records the marker and hands the bundle to set()', async () => {

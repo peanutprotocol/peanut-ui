@@ -548,6 +548,11 @@
             "manualRestart": "Cierra Peanut desde el selector de apps y vuelve a abrirla para terminar la actualización.",
             "applyFailed": "No se pudo aplicar la actualización. Revisa tu conexión e inténtalo de nuevo: Peanut sigue con la versión con la que iniciaste."
         },
+        "storeUpdate": {
+            "title": "Actualiza en {store}",
+            "description": "Esta versión incluye cambios que Peanut no puede instalar por su cuenta. Descárgala en {store} para terminar de actualizar.",
+            "openStore": "Abrir {store}"
+        },
         "about": {
             "title": "Acerca de Peanut",
             "intro": "Peanut hace fáciles los dólares: guarda tu saldo, envía a cualquier @usuario y mueve dinero por rieles locales después de una sola verificación de identidad. Creado por Squirrel Labs.",

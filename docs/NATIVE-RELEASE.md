@@ -412,10 +412,34 @@ own `out/` under the binary's versionName, then assert the channel serves it.
   tag (`scripts/release-version.mjs native-floor`) and fails if none is visible. It replaced
   `--auto-min-update-version`, which only copies the previous bundle's floor forward — with no
   native version stamped on the `dev` checkout (package.json says 1.0.53) the floor never
-  rose past the first upload, and the CLI refuses the two flags together. Capgo only enforces
-  the floor when the channel's "disable auto update" strategy is set to *version number*.
+  rose past the first upload, and the CLI refuses the two flags together.
   **Bump the native version whenever you change plugins/native code**, then ship that via
   Play — OTA can't.
+
+  Capgo enforces that floor only under the channel's `metadata` "disable auto update"
+  strategy. The production channel was not on it, and the default (`major`) reads a
+  `<major>.<build>` bump as a permitted minor: a v1.6.0 native release auto-published its
+  matching 1.6.0 bundle and every install on the 1.5.0 binary downloaded it, staged it and
+  offered a restart — a restart that installs JS built against the newer binary's native
+  surface. Set it once, per channel, with repo-admin Capgo credentials:
+
+  ```
+  npx @capgo/cli@8.42.4 channel set production --disable-auto-update metadata --apikey "$CAPGO_API_KEY"
+  npx @capgo/cli@8.42.4 channel set staging --disable-auto-update metadata --apikey "$CAPGO_API_KEY"
+  ```
+
+  Deliberately not written by CI: the strategy is one fleet-wide switch, and a wrong value
+  takes OTA out for everyone — the TASK-21793 shape. It is an operator decision, made once.
+- **Native-version gating, on the device:** `src/utils/ota-native-gate.ts` re-derives the
+  same rule client-side, because the dashboard strategy above is invisible to both CI and
+  the app and nothing on the device noticed when it was wrong. Under the
+  `<major>.<build>.<ota>` scheme a bundle's first two segments name the binary it was built
+  against, so a bundle whose `<major>.<build>` outranks `App.getInfo().version` is never
+  downloaded, never staged, and reported as store-update-required instead. A bundle already
+  sitting in the plugin's queue is unstaged rather than hidden — `installNext()` runs from
+  `appMovedToBackground()` with no JS involved, so hiding it would not stop it installing.
+  It fails **open** on a version either side cannot parse: refusing every update on an
+  off-scheme version is the worse of the two failures.
 - **Native fingerprint (the check behind that rule):** `scripts/native-fingerprint.mjs`
   hashes the JS↔native contract in three parts: the **config** (Capacitor's two generated
   plugin manifests, `capacitor.config.ts`, the gradle files, `AndroidManifest.xml`,

@@ -548,6 +548,11 @@
             "manualRestart": "Close Peanut from the app switcher and open it again to finish the update.",
             "applyFailed": "The update couldn't be applied. Check your connection and try again — Peanut is still running the version you started with."
         },
+        "storeUpdate": {
+            "title": "Update in {store}",
+            "description": "This version includes changes Peanut can't install by itself. Get it from {store} to finish updating.",
+            "openStore": "Open {store}"
+        },
         "about": {
             "title": "About Peanut",
             "intro": "Peanut makes dollars easy: hold your balance, send to any @username, and use local bank transfers after one ID check. Built by Squirrel Labs.",

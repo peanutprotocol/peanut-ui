@@ -4,6 +4,7 @@
 import type { BundleInfo, CapacitorUpdaterPlugin } from '@capgo/capacitor-updater'
 import { isAndroidNativeBridge } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
+import { needsStoreUpdate } from '@/utils/ota-native-gate'
 import { readStoredValue, removeStoredValue, writeStoredValue } from '@/utils/safe-storage'
 
 export interface OtaUpdateCallbacks {
@@ -102,6 +103,18 @@ async function checkAndStageUpdate(callbacks: OtaUpdateCallbacks = {}): Promise<
         const latest = await CapacitorUpdater.getLatest()
         // getLatest resolves with a url only when a genuinely newer bundle exists.
         if (latest.url && latest.version) {
+            // Refused before the download, not after: a bundle built for a newer
+            // binary must never reach the device's disk, because everything that
+            // stages one (next(), the plugin's background apply) works off what is
+            // downloaded. Capgo's own floor is the server-side half of this rule and
+            // only applies under one channel strategy, in a dashboard nothing here
+            // can read — so the client decides too.
+            if (await needsStoreUpdate(latest.version)) {
+                console.info(`[capgo] bundle ${latest.version} needs a newer binary — store update only`)
+                removeStoredValue(FAILURE_STREAK_KEY)
+                callbacks.onStoreUpdateRequired?.()
+                return 'store-update-required'
+            }
             const bundle = await CapacitorUpdater.download({
                 url: latest.url,
                 version: latest.version,
@@ -316,6 +329,52 @@ async function reportFailedUpdate(updater: Pick<CapacitorUpdaterPlugin, 'getFail
     )
 }
 
+/**
+ * The bundle the plugin has queued for the next restart, or null when there is
+ * none this binary may run.
+ *
+ * The queue outlives the JS that filled it: a bundle staged before the
+ * store-update gate existed is still sitting there, and the plugin's own
+ * background apply will install it from appMovedToBackground() with no JS
+ * involved. So an incompatible entry is not merely hidden — `next` is pointed
+ * back at the running bundle, which is what installNext() consumes, and the
+ * download is deleted. Best effort in both steps: a queue that refuses to be
+ * rewritten must still not be offered as a restart.
+ *
+ * Queued with the checks so the rewrite cannot land between a check's download
+ * and the next() that stages it.
+ */
+export async function readStagedBundle(
+    callbacks: Pick<OtaUpdateCallbacks, 'onStoreUpdateRequired'> = {}
+): Promise<BundleInfo | null> {
+    const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
+    const [next, current] = await Promise.all([
+        CapacitorUpdater.getNextBundle().catch(() => null),
+        CapacitorUpdater.current().catch(() => null),
+    ])
+    if (!next?.version || next.id === current?.bundle?.id) return next ?? null
+    if (!(await needsStoreUpdate(next.version))) return next
+
+    // Say so, rather than letting the update row vanish: the launch check would
+    // reach the same verdict, but only once it has reached the network.
+    callbacks.onStoreUpdateRequired?.()
+
+    console.info(`[capgo] dropping staged bundle ${next.version} — it needs a newer binary`)
+    return queueOtaWork(async () => {
+        const runningId = current?.bundle?.id
+        try {
+            // Pointing `next` at the running bundle is what neutralises the
+            // background apply; delete() refuses while the bundle is still
+            // queued, so the order matters.
+            if (runningId) await CapacitorUpdater.next({ id: runningId })
+            await CapacitorUpdater.delete({ id: next.id })
+        } catch (err) {
+            console.warn('[capgo] could not unstage the bundle:', err instanceof Error ? err.message : String(err))
+        }
+        return null
+    })
+}
+
 // One launch-time apply per staged bundle. A set() that never lands must not
 // turn every subsequent launch into a reload.
 const LAUNCH_APPLY_KEY = 'capgoLaunchApplyAttempt'
@@ -339,7 +398,9 @@ const LAUNCH_APPLY_KEY = 'capgoLaunchApplyAttempt'
 export async function applyStagedBundleOnLaunch(): Promise<BundleInfo | null> {
     const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
     const [next, current] = await Promise.all([
-        CapacitorUpdater.getNextBundle().catch(() => null),
+        // Reads through the store-update gate, so a bundle built for a newer
+        // binary is unstaged here rather than applied behind the splash.
+        readStagedBundle(),
         CapacitorUpdater.current().catch(() => null),
     ])
     if (!next || next.id === current?.bundle?.id) return null
