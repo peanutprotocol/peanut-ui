@@ -119,13 +119,30 @@ it('flags a store update when the served bundle needs a newer binary', async () 
 // appMovedToBackground() with no JS involved.
 it('never offers a restart for a queued bundle that needs a newer binary', async () => {
     platform.binaryVersion = '1.1.0'
-    mockUpdater.getNextBundle.mockResolvedValue({ ...STAGED, version: '1.2.0' })
+    // The disarm re-reads the queue to prove the entry is gone; the second read
+    // is the one that answers for the rewritten queue.
+    mockUpdater.getNextBundle.mockResolvedValueOnce({ ...STAGED, version: '1.2.0' }).mockResolvedValue(null)
     const { result } = setup()
 
     await waitFor(() => expect(result.current.storeUpdateRequired).toBe(true))
     expect(result.current.pendingBundle).toBeNull()
+    expect(mockUpdater.next).toHaveBeenCalledWith({ id: 'builtin' })
     expect(mockUpdater.delete).toHaveBeenCalledWith({ id: 'b-2' })
     expect(mockUpdater.set).not.toHaveBeenCalled()
+})
+
+// The sentinel that disarm leaves in the queue persists — installNext() clears
+// NEXT_VERSION only when it installs a different bundle — so a later launch
+// must not read it back as an update waiting to be applied.
+it('does not turn the disarm sentinel into a standing update offer', async () => {
+    mockUpdater.current.mockResolvedValue({ bundle: { id: 'b-2', version: '1.2.0' } })
+    mockUpdater.getNextBundle.mockResolvedValue(STAGED)
+    const { result } = setup()
+
+    await act(async () => {
+        await jest.advanceTimersByTimeAsync(5_000)
+    })
+    expect(result.current.pendingBundle).toBeNull()
 })
 
 it('still offers a restart for a queued bundle the running binary can run', async () => {

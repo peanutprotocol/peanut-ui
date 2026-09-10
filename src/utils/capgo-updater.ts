@@ -329,20 +329,26 @@ async function reportFailedUpdate(updater: Pick<CapacitorUpdaterPlugin, 'getFail
     )
 }
 
+// Capgo's id for the JS baked into the binary. Both native implementations
+// exempt it from setNextBundle's "does this bundle exist" check, so it is the
+// one queue entry that can always be armed.
+const BUILTIN_BUNDLE_ID = 'builtin'
+
 /**
  * The bundle the plugin has queued for the next restart, or null when there is
  * none this binary may run.
  *
  * The queue outlives the JS that filled it: a bundle staged before the
- * store-update gate existed is still sitting there, and the plugin's own
- * background apply will install it from appMovedToBackground() with no JS
- * involved. So an incompatible entry is not merely hidden — `next` is pointed
- * back at the running bundle, which is what installNext() consumes, and the
- * download is deleted. Best effort in both steps: a queue that refuses to be
- * rewritten must still not be offered as a restart.
+ * store-update gate existed is still sitting there, and the plugin installs it
+ * from appMovedToBackground() with no JS involved — so an incompatible entry
+ * has to be disarmed (see disarmStagedBundle), not merely withheld.
  *
- * Queued with the checks so the rewrite cannot land between a check's download
- * and the next() that stages it.
+ * A queue entry naming the RUNNING bundle is not an update, and reporting one
+ * would be self-inflicted: installNext() clears NEXT_VERSION only when it
+ * installs a different bundle, so the sentinel disarmStagedBundle leaves behind
+ * persists across launches. Returning it would put "Update available" in the
+ * profile permanently, behind a restart that reloads the version already
+ * running.
  */
 export async function readStagedBundle(
     callbacks: Pick<OtaUpdateCallbacks, 'onStoreUpdateRequired'> = {}
@@ -352,27 +358,74 @@ export async function readStagedBundle(
         CapacitorUpdater.getNextBundle().catch(() => null),
         CapacitorUpdater.current().catch(() => null),
     ])
-    if (!next?.version || next.id === current?.bundle?.id) return next ?? null
+    if (!next?.version || next.id === current?.bundle?.id) return null
     if (!(await needsStoreUpdate(next.version))) return next
 
     // Say so, rather than letting the update row vanish: the launch check would
     // reach the same verdict, but only once it has reached the network.
     callbacks.onStoreUpdateRequired?.()
+    // Queued with the checks so the rewrite cannot land between a check's
+    // download and the next() that stages it.
+    return queueOtaWork(() => disarmStagedBundle(CapacitorUpdater, next, current?.bundle?.id))
+}
 
-    console.info(`[capgo] dropping staged bundle ${next.version} — it needs a newer binary`)
-    return queueOtaWork(async () => {
-        const runningId = current?.bundle?.id
+/**
+ * Stop the plugin installing a queued bundle this binary must not run.
+ *
+ * installNext() skips a queue entry whose id equals the running bundle's
+ * (verified in both native implementations), so pointing `next` back at the
+ * running bundle is what actually disarms the background apply. There is no
+ * JS-reachable clear-next — `next()` rejects without an id — and setBundleError
+ * needs an `allowManualBundleError` config flag no shipped binary sets.
+ *
+ * `builtin` is the fallback for a running bundle whose id cannot be read, not
+ * the first choice: arming it while a good OTA is running would install the
+ * binary's older JS on the next background. As a fallback it is still the safe
+ * side of the trade — the binary's own JS is by definition JS the binary can
+ * run, and the queued bundle is not.
+ *
+ * The rewrite is verified rather than assumed. A next() that resolved against a
+ * queue it did not change, or one that rejected, leaves the unsafe bundle
+ * installing on the next background — the whole thing this exists to prevent —
+ * so an unconfirmed disarm is reported at error level under a prefix Sentry
+ * keeps (`[capgo]` is dropped as updater noise, see sentry.utils.ts).
+ */
+async function disarmStagedBundle(
+    updater: Pick<CapacitorUpdaterPlugin, 'next' | 'delete' | 'getNextBundle'>,
+    staged: BundleInfo,
+    runningId: string | undefined
+): Promise<null> {
+    console.info(`[capgo] dropping staged bundle ${staged.version} — it needs a newer binary`)
+    const sentinels =
+        runningId && runningId !== BUILTIN_BUNDLE_ID ? [runningId, BUILTIN_BUNDLE_ID] : [BUILTIN_BUNDLE_ID]
+
+    for (const id of sentinels) {
         try {
-            // Pointing `next` at the running bundle is what neutralises the
-            // background apply; delete() refuses while the bundle is still
-            // queued, so the order matters.
-            if (runningId) await CapacitorUpdater.next({ id: runningId })
-            await CapacitorUpdater.delete({ id: next.id })
+            await updater.next({ id })
         } catch (err) {
-            console.warn('[capgo] could not unstage the bundle:', err instanceof Error ? err.message : String(err))
+            console.warn(`[capgo] could not queue ${id}:`, err instanceof Error ? err.message : String(err))
+            continue
         }
+        // An unreadable queue counts as still armed: a disarm nothing can
+        // confirm is not one to act on.
+        const queued = await updater.getNextBundle().catch(() => staged)
+        if (queued?.id === staged.id) continue
+        // Only now — delete() refuses while the bundle is still queued.
+        await updater
+            .delete({ id: staged.id })
+            .catch((err) =>
+                console.warn(
+                    '[capgo] staged bundle disarmed but not deleted:',
+                    err instanceof Error ? err.message : String(err)
+                )
+            )
         return null
-    })
+    }
+
+    console.error(
+        `[capgo-apply] could not disarm staged bundle ${staged.version} (${staged.id}); the plugin may still install it`
+    )
+    return null
 }
 
 // One launch-time apply per staged bundle. A set() that never lands must not
@@ -397,13 +450,10 @@ const LAUNCH_APPLY_KEY = 'capgoLaunchApplyAttempt'
  */
 export async function applyStagedBundleOnLaunch(): Promise<BundleInfo | null> {
     const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
-    const [next, current] = await Promise.all([
-        // Reads through the store-update gate, so a bundle built for a newer
-        // binary is unstaged here rather than applied behind the splash.
-        readStagedBundle(),
-        CapacitorUpdater.current().catch(() => null),
-    ])
-    if (!next || next.id === current?.bundle?.id) return null
+    // Reads through the store-update gate, which disarms a bundle built for a
+    // newer binary and answers null for one that is already running.
+    const next = await readStagedBundle()
+    if (!next) return null
     // Deadlocking binaries can only quit to apply (see canRestartInPlace), and
     // quitting an app the user just opened is worse than the background apply.
     if (readStoredValue(LAUNCH_APPLY_KEY) === next.id || !(await canRestartInPlace())) return next

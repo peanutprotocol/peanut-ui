@@ -436,8 +436,16 @@ own `out/` under the binary's versionName, then assert the channel serves it.
   `<major>.<build>.<ota>` scheme a bundle's first two segments name the binary it was built
   against, so a bundle whose `<major>.<build>` outranks `App.getInfo().version` is never
   downloaded, never staged, and reported as store-update-required instead. A bundle already
-  sitting in the plugin's queue is unstaged rather than hidden — `installNext()` runs from
+  sitting in the plugin's queue is *disarmed* rather than hidden — `installNext()` runs from
   `appMovedToBackground()` with no JS involved, so hiding it would not stop it installing.
+  The disarm points `next` back at the running bundle, which is the entry `installNext()`
+  skips (there is no JS-reachable clear-next, and `setBundleError` needs a config flag no
+  shipped binary sets); `builtin` is the fallback when the running bundle's id cannot be
+  read. It is verified by re-reading the queue, and an unconfirmed disarm is reported at
+  error level under `[capgo-apply]`, because a rewrite that silently failed leaves the
+  unsafe bundle installing on the next background. The sentinel it leaves behind persists —
+  `NEXT_VERSION` is cleared only when a *different* bundle installs — so a queue entry
+  naming the running bundle is never read back as an update.
   It fails **open** on a version either side cannot parse: refusing every update on an
   off-scheme version is the worse of the two failures.
 - **Native fingerprint (the check behind that rule):** `scripts/native-fingerprint.mjs`

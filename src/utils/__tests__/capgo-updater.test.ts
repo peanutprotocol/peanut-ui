@@ -479,13 +479,16 @@ describe('store-update gate', () => {
 
     // The plugin's queue outlives the JS that filled it, and installNext() runs
     // from appMovedToBackground() with no JS involved — hiding the entry would
-    // not stop it being installed.
-    it('unstages a queued bundle that needs a newer binary', async () => {
-        mockUpdater.getNextBundle.mockResolvedValue({ id: 'b-6', version: '1.6.0' })
+    // not stop it being installed. installNext() skips an entry whose id equals
+    // the running bundle's, which is what pointing `next` there achieves.
+    it('disarms a queued bundle that needs a newer binary', async () => {
+        mockUpdater.current.mockResolvedValue({ bundle: { id: 'b-3', version: '1.5.2' } })
+        mockUpdater.getNextBundle.mockResolvedValueOnce({ id: 'b-6', version: '1.6.0' }).mockResolvedValue(null)
 
         await expect(readStagedBundle()).resolves.toBeNull()
-        expect(mockUpdater.next).toHaveBeenCalledWith({ id: 'builtin' })
+        expect(mockUpdater.next).toHaveBeenCalledWith({ id: 'b-3' })
         expect(mockUpdater.delete).toHaveBeenCalledWith({ id: 'b-6' })
+        expect(error).not.toHaveBeenCalled()
     })
 
     it('reports a queued bundle this binary can run', async () => {
@@ -496,9 +499,63 @@ describe('store-update gate', () => {
         expect(mockUpdater.delete).not.toHaveBeenCalled()
     })
 
+    // The sentinel the disarm leaves behind outlives it: installNext() clears
+    // NEXT_VERSION only when it installs a DIFFERENT bundle. Reported, it would
+    // put "Update available" in the profile for good, behind a restart onto the
+    // version already running.
+    it('does not report the running bundle as an update', async () => {
+        mockUpdater.current.mockResolvedValue({ bundle: { id: 'b-3', version: '1.5.2' } })
+        mockUpdater.getNextBundle.mockResolvedValue({ id: 'b-3', version: '1.5.2' })
+
+        await expect(readStagedBundle()).resolves.toBeNull()
+        expect(mockUpdater.next).not.toHaveBeenCalled()
+    })
+
+    // next() resolving says nothing about the queue: setNextBundle returns false
+    // for a bundle it will not arm, and the wrapper still resolves. Only a re-read
+    // proves the entry is gone.
+    it('falls back to builtin when the running bundle does not take the queue', async () => {
+        mockUpdater.current.mockResolvedValue({ bundle: { id: 'b-3', version: '1.5.2' } })
+        mockUpdater.getNextBundle
+            .mockResolvedValueOnce({ id: 'b-6', version: '1.6.0' })
+            .mockResolvedValueOnce({ id: 'b-6', version: '1.6.0' })
+            .mockResolvedValue(null)
+
+        await expect(readStagedBundle()).resolves.toBeNull()
+        expect(mockUpdater.next).toHaveBeenNthCalledWith(1, { id: 'b-3' })
+        expect(mockUpdater.next).toHaveBeenNthCalledWith(2, { id: 'builtin' })
+        expect(mockUpdater.delete).toHaveBeenCalledWith({ id: 'b-6' })
+        expect(error).not.toHaveBeenCalled()
+    })
+
+    // The binary's own JS always fits the binary; the queued bundle does not.
+    it('arms builtin when the running bundle id cannot be read', async () => {
+        mockUpdater.current.mockRejectedValue(new Error('no current bundle'))
+        mockUpdater.getNextBundle.mockResolvedValueOnce({ id: 'b-6', version: '1.6.0' }).mockResolvedValue(null)
+
+        await expect(readStagedBundle()).resolves.toBeNull()
+        expect(mockUpdater.next).toHaveBeenCalledWith({ id: 'builtin' })
+        expect(mockUpdater.next).toHaveBeenCalledTimes(1)
+    })
+
+    // An unconfirmed disarm leaves the unsafe bundle installing on the next
+    // background — the one thing this exists to prevent, so Sentry hears about
+    // it under a prefix it keeps.
+    it('reports at error level when the queue cannot be rewritten', async () => {
+        mockUpdater.current.mockResolvedValue({ bundle: { id: 'b-3', version: '1.5.2' } })
+        mockUpdater.getNextBundle.mockResolvedValue({ id: 'b-6', version: '1.6.0' })
+        mockUpdater.next.mockRejectedValue(new Error('bundle does not exist'))
+
+        await expect(readStagedBundle()).resolves.toBeNull()
+        expect(mockUpdater.delete).not.toHaveBeenCalled()
+        expect(error).toHaveBeenCalledWith(
+            '[capgo-apply] could not disarm staged bundle 1.6.0 (b-6); the plugin may still install it'
+        )
+    })
+
     // A queue that refuses to be rewritten still must not be offered as a
     // restart — the restart would reload JS this binary cannot run.
-    it('withholds an incompatible bundle even when the unstage fails', async () => {
+    it('withholds an incompatible bundle even when the disarm fails', async () => {
         mockUpdater.getNextBundle.mockResolvedValue({ id: 'b-6', version: '1.6.0' })
         mockUpdater.next.mockRejectedValue(new Error('bundle not found'))
 
