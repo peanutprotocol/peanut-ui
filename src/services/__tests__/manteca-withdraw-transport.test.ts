@@ -107,3 +107,13 @@ describe('withdraw transport to sign-only retry guard', () => {
         expect(mockServerFetch).toHaveBeenCalledTimes(1)
     })
 })
+
+it('allows accounting settlement time on an already-funded legacy withdrawal without retrying the POST', async () => {
+    mockServerFetch.mockReset().mockResolvedValue({ ok: true, json: async () => ({ id: 'withdrawal-1' }) } as Response)
+    await mantecaApi.withdraw({ amount: '10', txHash: '0xabc', destinationAddress: 'bank', currency: 'ARS' } as never)
+    expect(mockServerFetch).toHaveBeenCalledTimes(1)
+    expect(mockServerFetch).toHaveBeenCalledWith(
+        '/manteca/withdraw',
+        expect.objectContaining({ method: 'POST', timeoutMs: 120_000 })
+    )
+})
