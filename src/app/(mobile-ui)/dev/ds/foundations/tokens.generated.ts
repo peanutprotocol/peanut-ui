@@ -1028,6 +1028,16 @@ export const TOKEN_GROUPS: Record<string, ThemeToken[]> = {
             "name": "slow",
             "value": "500ms",
             "section": "semantic"
+        },
+        {
+            "name": "nav-spring",
+            "value": "350ms",
+            "section": "semantic"
+        },
+        {
+            "name": "nav-pop",
+            "value": "250ms",
+            "section": "semantic"
         }
     ],
     "ease": [
@@ -1039,6 +1049,16 @@ export const TOKEN_GROUPS: Record<string, ThemeToken[]> = {
         {
             "name": "sharp",
             "value": "cubic-bezier(0.87, 0, 0.13, 1)",
+            "section": "semantic"
+        },
+        {
+            "name": "nav-spring",
+            "value": "cubic-bezier(0.34, 1.56, 0.64, 1)",
+            "section": "semantic"
+        },
+        {
+            "name": "nav-pop",
+            "value": "cubic-bezier(0.34, 1.56, 0.64, 1)",
             "section": "semantic"
         }
     ],
