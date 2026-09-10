@@ -151,6 +151,8 @@ describe('friendly error copy catalog', () => {
         'cardRateLimited',
         'xchainWithdrawLimit',
         'xchainPaymentLimit',
+        'xchainWithdrawDisabled',
+        'xchainPaymentDisabled',
         'linkTransactionHashFetch',
     ]
 
@@ -454,5 +456,29 @@ describe('cross-chain withdraw cap (XCHAIN_WITHDRAW_LIMIT_REACHED)', () => {
         const msg: string = en.errors.xchainWithdrawLimitRetry
         for (const unit of ['minutes', 'hours', 'days']) expect(msg).toContain(`{${unit}, plural`)
         expect(msg).toContain('Arbitrum')
+    })
+})
+
+describe('cross-chain disabled by account policy (XCHAIN_WITHDRAW_DISABLED)', () => {
+    // The backend sends no retryAfterSec — a policy disable has no expiry.
+    const disabled = () =>
+        new ApiError('Cross-chain withdrawals are disabled for your account.', {
+            status: 429,
+            code: 'XCHAIN_WITHDRAW_DISABLED',
+        })
+
+    it('shows account-limited copy that points at Arbitrum, never a countdown or "raise your limit"', () => {
+        expect(friendlyError(disabled())).toEqual({ kind: 'code', code: 'xchainWithdrawDisabled' })
+        expect(en.errors.xchainWithdrawDisabled).toContain('Arbitrum')
+        expect(en.errors.xchainWithdrawDisabled).not.toContain('Try again')
+        expect(en.errors.xchainWithdrawDisabled).not.toContain('raise')
+    })
+
+    it('on the payment surface uses transfer copy without the Arbitrum advice', () => {
+        expect(friendlyError(disabled(), { crossChainSurface: 'payment' })).toEqual({
+            kind: 'code',
+            code: 'xchainPaymentDisabled',
+        })
+        expect(en.errors.xchainPaymentDisabled).not.toContain('Arbitrum')
     })
 })

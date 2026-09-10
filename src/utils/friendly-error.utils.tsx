@@ -91,6 +91,8 @@ export type FriendlyErrorCode =
     | 'cardRateLimited'
     | 'xchainWithdrawLimit'
     | 'xchainPaymentLimit'
+    | 'xchainWithdrawDisabled'
+    | 'xchainPaymentDisabled'
     | 'linkTransactionHashFetch'
 
 /**
@@ -237,6 +239,12 @@ const classifyError = (error: unknown, opts?: FriendlyErrorOptions): FriendlyErr
         return payment
             ? { kind: 'params', code: 'xchainPaymentLimitRetry', values }
             : { kind: 'params', code: 'xchainWithdrawLimitRetry', values }
+    }
+    if (wire === API_ERROR_CODES.XCHAIN_WITHDRAW_DISABLED) {
+        // A per-account policy turned cross-chain off (support did it, on
+        // purpose). No wait exists, so no countdown — the copy points at
+        // Arbitrum (always available) and support, never at "try again".
+        return code(opts?.crossChainSurface === 'payment' ? 'xchainPaymentDisabled' : 'xchainWithdrawDisabled')
     }
     if (wire) {
         const mapped = WIRE_CODE_MAP[wire as ApiErrorCode]

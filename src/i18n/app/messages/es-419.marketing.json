@@ -99,6 +99,8 @@
         "xchainWithdrawLimitRetry": "Alcanzaste el límite de retiros a otras redes. Vuelve a intentarlo en aproximadamente {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minuto} other {# minutos}}} one {# hora} other {# horas}}} one {# día} other {# días}}. Los retiros en Arbitrum no tienen límite, o contacta a soporte para ampliar el tuyo.",
         "xchainPaymentLimit": "Hiciste demasiadas transferencias a otras redes recientemente. Contacta a soporte para ampliar tu límite.",
         "xchainPaymentLimitRetry": "Hiciste demasiadas transferencias a otras redes recientemente. Vuelve a intentarlo en aproximadamente {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minuto} other {# minutos}}} one {# hora} other {# horas}}} one {# día} other {# días}}, o contacta a soporte para ampliar tu límite.",
+        "xchainWithdrawDisabled": "Los retiros a otras redes están limitados en tu cuenta. Siempre puedes retirar en Arbitrum, o contacta a soporte para recibir ayuda.",
+        "xchainPaymentDisabled": "Las transferencias a otras redes están limitadas en tu cuenta. Contacta a soporte para recibir ayuda.",
         "rainInsufficientCollateral": "Tu tarjeta no tiene suficiente colateral para este retiro.",
         "staleCardApproval": "Tu tarjeta debe reactivarse antes de que puedas retirar. Solo toma un toque con tu passkey.",
         "cardRateLimited": "Demasiadas solicitudes con la tarjeta. Espera un momento e inténtalo de nuevo.",
