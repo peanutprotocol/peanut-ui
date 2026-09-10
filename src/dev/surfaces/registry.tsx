@@ -62,6 +62,8 @@ import { BackupFaqModals } from '@/components/Profile/BackupFaqModals'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
 import { ContributorsDrawer } from '@/features/payments/flows/contribute-pot/components/ContributorsDrawer'
 import PerkClaimModal from '@/components/Home/PerkClaimModal'
+import { PerkClaimSuccessModal } from '@/components/Home/PerkClaimSuccessModal'
+import ActivationCTAs from '@/components/Home/ActivationCTAs'
 import IosPwaInstallModal from '@/components/Global/IosPwaInstallModal'
 import NoMoreJailModal from '@/components/Global/NoMoreJailModal'
 
@@ -579,6 +581,31 @@ export const SURFACES: Record<string, Surface> = {
                 />
             </div>
         ),
+    },
+    '69-d-perkclaimsuccess': {
+        name: 'PerkClaimSuccessModal',
+        path: 'Home/PerkClaimSuccessModal.tsx',
+        render: () => (
+            <PerkClaimSuccessModal
+                perk={{
+                    id: 'perk-1',
+                    name: 'Invite bonus',
+                    amountUsd: 5,
+                    createdAt: '2026-08-01T10:00:00.000Z',
+                    inviteeName: 'Ana',
+                }}
+                claimPhase="revealed"
+                onClose={noop}
+                onDismiss={noop}
+            />
+        ),
+    },
+    '70-d-activationctas-outbound': {
+        // the spend chooser opens on the card's CTA tap — the shot spec (or a
+        // human) clicks "Start Spending"; needs a fixture granting card access
+        name: 'ActivationCTAs (outbound)',
+        path: 'Home/ActivationCTAs.tsx',
+        render: () => <ActivationCTAs activationStep="outbound" />,
     },
     '66-d-backupfaqlosephone': {
         name: 'Backup FAQ — lose phone',

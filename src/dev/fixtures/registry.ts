@@ -430,6 +430,12 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
 
+    'card-access': {
+        route: '/home',
+        about: 'Demo user with card access granted — the activation spend chooser can open.',
+        responses: { 'GET /card': { hasCardAccess: true } },
+    },
+
     'early-user': {
         route: '/home',
         about: 'Early-user reward drawer over home, opened by the user flag.',
