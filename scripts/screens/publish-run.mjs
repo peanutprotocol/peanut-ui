@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync, mkdirSync, copyFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { validateCapture, verifyAsset } from './core.mjs'
 import { integrationBase } from './integration.mjs'
+import { reviewProvenance } from './review-provenance.mjs'
 const repo = process.env.REPOSITORY,
     runId = process.env.RUN_ID,
     attempt = process.env.RUN_ATTEMPT
@@ -17,20 +18,32 @@ const [before, after] = dirs.map((dir) => validateCapture(JSON.parse(readFileSyn
 if (after.commit !== run.head_sha) throw new Error('Capture does not match triggering run head')
 let expectedBase, pr
 if (run.event === 'pull_request') {
-    const snapshot = run.pull_requests.find((p) => p.head.sha === run.head_sha && p.base.ref === 'dev')
-    if (!snapshot) throw new Error('Run has no matching PR provenance')
-    pr = api(`pulls/${snapshot.number}`)
-    if (pr.merged_at || pr.head.sha !== run.head_sha) {
-        console.log('Superseded PR run; preserving newer report link.')
+    const candidates = JSON.parse(
+        execFileSync(
+            'gh',
+            ['api', `repos/${repo}/commits/${run.head_sha}/pulls?per_page=100`, '--paginate', '--slurp'],
+            { encoding: 'utf8' }
+        )
+    ).flat()
+    const binding = reviewProvenance(repo, run, candidates, (args) => execFileSync('git', args, { encoding: 'utf8' }))
+    if (!binding) {
+        console.log('Superseded or closed PR run; preserving the current report link.')
         process.exit(0)
     }
-    expectedBase = execFileSync('git', ['merge-base', snapshot.base.sha, run.head_sha], { encoding: 'utf8' }).trim()
+    pr = binding.pr
+    expectedBase = binding.before
 } else if (run.event === 'push') {
     if (run.head_branch !== 'dev') throw new Error('Only dev integration pushes may publish')
     expectedBase = integrationBase(repo, run.head_sha)
-    pr = api(`commits/${run.head_sha}/pulls`).find(
-        (p) => p.merged_at && p.base.ref === 'dev' && p.merge_commit_sha === run.head_sha
+    pr = JSON.parse(
+        execFileSync(
+            'gh',
+            ['api', `repos/${repo}/commits/${run.head_sha}/pulls?per_page=100`, '--paginate', '--slurp'],
+            { encoding: 'utf8' }
+        )
     )
+        .flat()
+        .find((p) => p.merged_at && p.base.ref === 'dev' && p.merge_commit_sha === run.head_sha)
 } else if (run.event === 'workflow_dispatch') {
     if (run.head_branch !== 'dev') throw new Error('Historical dispatch must target dev')
     // v1's historical request is fixed; arbitrary artifact-provided refs are not trusted.

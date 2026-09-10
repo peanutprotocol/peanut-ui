@@ -18,9 +18,13 @@ for the write token. Landing this bootstrap alone does not create a live gallery
 Validate the publisher with Node 20 and its pinned dependencies:
 
 ```sh
-node --test scripts/screens/core.test.mjs scripts/screens/integration.test.mjs
+node --test scripts/screens/core.test.mjs scripts/screens/integration.test.mjs scripts/screens/review-provenance.test.mjs
 ```
 
 The workflow installs pixelmatch 7.2.0, pngjs 7.0.0, @vercel/blob 2.3.1 and sharp
 0.34.5 in an isolated directory without package installation scripts. Capture
 failures remain visible in reports; only a complete dev library advances latest.
+
+The publisher queues up to 100 pending runs with `queue: max`, rather than
+replacing pending publications. Missing event PR lists use a unique live
+repository/branch/head binding; a changed fallback merge base requires a rerun.

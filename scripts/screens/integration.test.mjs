@@ -6,8 +6,13 @@ function executor({ parents, original = [], patches = {} }) {
     return (tool, args, options) => {
         if (tool === 'git') return `${patches[options.input] ?? options.input} 0000`
         const path = args[1].replace('repos/test/repo/', '')
-        if (path === `commits/${id('c')}/pulls`)
-            return JSON.stringify([{ number: 1, merged_at: 'date', merge_commit_sha: id('c'), base: { ref: 'dev' } }])
+        if (path === `commits/${id('c')}/pulls?per_page=100`) {
+            assert.ok(args.includes('--paginate') && args.includes('--slurp'))
+            return JSON.stringify([
+                [{ number: 99, merged_at: null }],
+                [{ number: 1, merged_at: 'date', merge_commit_sha: id('c'), base: { ref: 'dev' } }],
+            ])
+        }
         if (path.startsWith('pulls/')) return JSON.stringify([original.map((sha) => ({ sha }))])
         const sha = path.replace('commits/', '')
         if (args.includes('Accept: application/vnd.github.diff')) return sha
