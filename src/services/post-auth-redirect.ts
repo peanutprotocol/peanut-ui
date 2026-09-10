@@ -14,21 +14,22 @@ type PostAuthRedirectOptions = {
      */
     deferStoredRedirect?: (destination: string) => boolean
     /**
-     * Take a stored destination ONLY where it is classified as the intent of
-     * the person authenticating. Set by a brand-new account, which inherits no
-     * other session's page however that page came to be stored — this device's
-     * own logout, a revoked session in another tab, a token that expired while
-     * the app stood open.
+     * Refuse a destination that only records where an earlier session ended.
+     * Set by a brand-new account: it inherits no other session's page, however
+     * that page came to be stored (this device's own logout, a revoked session
+     * in another tab, a token that expired while the app stood open).
      *
-     * A whitelist rather than a session-end blacklist, because that is also
-     * the rollout policy for records written before the origin existed: the
-     * deployed version stored a bare path, and the reported bug IS such a
-     * record (a logout on /profile). Unclassified ones are discarded here, so
-     * an existing stale record cannot reproduce it on the first deploy; login
-     * keeps honouring them, and an explicit `redirect_uri` outranks this
-     * entirely, which is what campaign and claim entry points use.
+     * Rollout: a record written before the origin existed is a bare path, and
+     * it is honoured. Discarding those instead would have dropped the stored
+     * pay-link continuation for anyone mid-funnel across the deploy — a
+     * signup entered from /receipt or a request link landing on /home, which
+     * SendWithPeanutCta and the account-ready CTA exist to prevent. The
+     * transitional cost of honouring them is the reverse case, a new account
+     * on the previous session's page, which the Back fix in this PR already
+     * makes harmless; and the window closes at the first write after deploy,
+     * because every writer classifies from then on.
      */
-    onlyClassifiedIntent?: boolean
+    rejectSessionEndOrigin?: boolean
 }
 
 /**
@@ -62,7 +63,7 @@ export function consumePostAuthRedirect(
     if (typeof storedValue === 'string' && storedValue.length > 0) {
         // Consumed, not merely skipped: leaving it would hand the same page to
         // whoever authenticates next on this device.
-        if (options.onlyClassifiedIntent && getRedirectOrigin() !== 'deep-link') {
+        if (options.rejectSessionEndOrigin && getRedirectOrigin() === 'session-end') {
             clearRedirectUrl()
             return { destination: fallbackRoute, source: 'fallback', deferred: false }
         }
