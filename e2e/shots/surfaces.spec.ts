@@ -81,7 +81,7 @@ for (const [id, surface] of Object.entries(SURFACE_META)) {
             .poll(() => page.evaluate((key) => window.sessionStorage.getItem(key), FIXTURE_STORAGE_KEY), {
                 message: 'fixture mode never engaged — is this a NEXT_PUBLIC_VERCEL_ENV=preview build?',
             })
-            .toBe(FIXTURE)
+            .toBe(surface.shotFixture ?? FIXTURE)
 
         // A surface that redirects (InstallPWA pushes /home when signed in) would
         // otherwise be photographed as whatever it landed on, under this id's
