@@ -766,13 +766,34 @@ function defaultShape(pathname: string): unknown {
     return LIST_HINTS.test(last) ? [] : {}
 }
 
-export async function demoRespond(path: string, options?: RequestInit): Promise<Response> {
+export async function demoRespond(
+    path: string,
+    options?: RequestInit,
+    capture?: { offline: boolean; strict?: boolean }
+): Promise<Response> {
     const method = (options?.method ?? 'GET').toUpperCase()
     const pathname = path.split('?')[0].replace(/\/+$/, '') || '/'
 
+    // Capture mode never calls live rates or support sessions.
+    if (capture?.offline && method === 'GET') {
+        if (pathname === '/tokens/price') {
+            const query = new URL(path, 'http://capture.invalid').searchParams
+            return json({
+                chainId: query.get('chainId') ?? CHAIN_ID,
+                address: query.get('address') ?? PEANUT_WALLET_TOKEN,
+                name: 'Synthetic USD Coin',
+                symbol: 'USDC',
+                price: 1,
+            })
+        }
+        if (pathname === '/users/consent/status') return json({ documents: [], needsReConsent: false })
+        if (pathname === '/user/crisp-token')
+            return json({ userId: 'demo-user', crispTokenId: 'synthetic-screen-session' })
+    }
+
     // Live-rate passthrough to the real backend (best-effort).
     let passthroughFailed = false
-    if (method === 'GET' && PASSTHROUGH_GET.has(pathname)) {
+    if (!capture?.offline && method === 'GET' && PASSTHROUGH_GET.has(pathname)) {
         const controller = new AbortController()
         const timeout = setTimeout(() => controller.abort(), PASSTHROUGH_TIMEOUT_MS)
         try {
@@ -817,5 +838,6 @@ export async function demoRespond(path: string, options?: RequestInit): Promise<
     if (process.env.NODE_ENV !== 'production') {
         console.debug('[demo-api] unmocked', method, pathname)
     }
+    if (capture?.strict) throw new Error(`Unmapped capture API: ${method} ${pathname}`)
     return json(defaultShape(pathname))
 }

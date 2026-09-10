@@ -1,0 +1,131 @@
+# Versioned screen library
+
+The library captures synthetic app states at English / 393×852. It is visual
+coverage, not proof that payments or provider integrations work. Nutcracker
+continues to provide that evidence. Native system dialogs are outside v1.
+
+## Capture and compare
+
+Use Node 20, pnpm 10.30.1, an initialized content submodule, and the browser
+installed by this checkout's pinned Playwright. Each target is a separate
+checkout at an immutable SHA. Never reuse a running development server.
+
+```sh
+pnpm install --frozen-lockfile
+pnpm exec playwright install --no-shell chromium
+node scripts/screens/run-capture.mjs /absolute/path/to/before CHECKED_BEFORE_SHA /tmp/screens-before
+node scripts/screens/run-capture.mjs /absolute/path/to/after CHECKED_AFTER_SHA /tmp/screens-after
+node scripts/screens/report.mjs /tmp/screens-before /tmp/screens-after /tmp/screens-comparison
+```
+
+A failed capture command still writes `capture.json`, with failures attached to
+specific states. The comparison command creates `manifest.json`, images,
+`offline/index.html`, and `offline.tar.gz`. Open the offline HTML directly; it
+needs no backend, login, or network. Reports preserve failed/unavailable states.
+
+The shared registry is `src/dev/screens/catalogue.ts`. It imports named API
+fixtures, route checkpoints and surface metadata. Add stable IDs, concrete
+synthetic data, and explicit interactions for new states. An exclusion needs a
+reason. Never substitute a loading mascot, redirected page or harness placard
+for the requested screen. Animated GIF/WebP assets are frozen at their first frame. Original PNGs drive pixel comparison; WebP thumbnails
+are presentation only. Experimental design options are not product states.
+
+Run `node --import tsx scripts/screens/inventory.ts` to audit app routes against
+the catalogue, and `pnpm screens:test` for provenance/diff/adapter regressions.
+Route inventory gaps prevent a run from being marked complete. The published
+ledger identifies app routes with scenarios and explicit website/provider/tool
+exclusions. It cannot discover every hidden state inside a route; review the
+scenario ledger alongside route coverage when adding features.
+
+## Historical reconstruction
+
+The requested cutoff is August 27, 2026 at 23:59:59 Europe/Lisbon. The verified
+first-parent main commit is `a10ec5be6b5ca1ed9157b34befad2833fba37ab7`; the initial
+dev target is `85f95e42fc25e09f1df6724b8dfb4b8afbfb6a00`.
+
+`prepare.mjs` overlays API and synthetic wallet/websocket transport guards plus a build-only cache switch
+in the isolated target, analogous to modern fixture mode. It records original
+and patched file hashes in `.screen-capture-adapter.json`. It never copies
+components, CSS, translations or layouts from a newer revision. The runner requires a free port and waits for its own server to report ready;
+a build nonce also identifies the requested build. Both revisions compile links
+and QR codes against the same synthetic public base URL, independent of their
+local capture ports. Capture builds disable the disposable webpack cache.
+
+Historical component-only states are reported unavailable when the old revision
+has no isolated component harness. Unknown endpoint responses fail closed.
+These are reconstructions of source code with synthetic data, not screenshots
+of historical production sessions. Do not mark unavailable historical states as
+new screens. Build each revision with its own lockfile and content commit.
+
+## Public deployment
+
+The viewer is static under `public/screen-library`; `/screens/*` rewrites to it,
+so app auth/provider initialization cannot interfere. It reads data through
+`/screen-data/*`. Configure `SCREEN_LIBRARY_STORE_URL` on the staging Vercel
+project to the HTTPS base URL of a dedicated public Vercel Blob store, then
+redeploy staging to register the rewrite. Do not put any write token in a
+`NEXT_PUBLIC_` variable or in the capture environment.
+
+Set `SCREEN_LIBRARY_BLOB_TOKEN` as the GitHub Actions secret containing that
+store's write token. Only the separate trusted publisher receives it. The
+publisher accepts hashes and validated JSON/PNG/WebP; no downloaded code or
+HTML is executed. It reconstructs the comparison itself and generates offline
+HTML from its own trusted viewer. Artifacts expire after 14 days; published
+objects have no automatic expiry. Assets are deduplicated by SHA-256.
+
+```sh
+node scripts/screens/publish.mjs /tmp/screens-comparison 2026-09-10/compare-main-2026-08-27/85f95e42fc25e09f1df6724b8dfb4b8afbfb6a00
+```
+
+The token must be supplied through the environment, never the command line.
+Images and archive are uploaded before the manifest commit marker. An incomplete
+report can be browsed but cannot become `/screens/latest/`. Only full dev
+libraries advance that pointer; PR preview completion cannot move it.
+
+## CI activation and provenance
+
+`Screen library` builds both sides without write credentials. PR previews use
+the exact merge base and head; merge reports use the first parent, expanding to
+the complete integrated patch sequence for rebase merges. Captures are not
+reused from a best-effort cache. Full catalogues run even for shared-style changes.
+
+`Publish screen library` is a `workflow_run` publisher. GitHub loads it from the
+default branch, so its workflow, scripts and trusted static viewer must be
+available there before publication can activate. Landing only on dev does not
+activate this publisher. The existing ds-shots review aid remains available
+while the library rolls out. Neither visual differences nor capture failures
+are added to the required `ci-success` gate.
+
+The publisher verifies run repository, event, head and baseline using GitHub and
+Git history; superseded PR previews do not replace current links. It serializes
+public index writes and uses triggering run order for the latest dev library.
+Dispatch the historical workflow with dev selected; it uses the fixed cutoff above. Fork PRs do not
+receive capture secrets and are skipped.
+
+## Release acceptance
+
+Before calling v1 complete: resolve every unexpected capture failure, reconcile
+all app-owned routes and overlays, compare two independent captures of the same
+build, inspect representative old/new screens, exercise a known pixel change,
+and verify public links without login after a later staging deployment.
+Unvalidated or unavailable states remain visible; generating a manifest alone
+is not completion. Languages, device sizes, text scaling and native/provider
+capture tiers are v2.
+
+CI report paths include `/run-<id>-<attempt>` so reruns never overwrite an earlier version.
+
+The installation step uses a guest context inside the isolated harness. Account-ready
+and notification-permission prompts expose their existing presentation as shared
+views so capture does not require creating an account or contacting a push provider.
+Historical isolated-component harness gaps remain explicitly unavailable.
+
+Legacy routing aliases and native-only query-route stubs are excluded when their
+canonical product UI is already captured. Retired promotional quest pages are
+website content, outside this mobile-app catalogue. Historical notification and
+settings routes remain in the registry so removal is proved from source.
+
+The unused standalone `/add-money/us/bank` entry is excluded: no app navigation
+links to it, and it depends on in-memory instructions from the former flow.
+Current bank journeys use `/add-money/[country]/bank`. QR captures distinguish
+permission denial from an unobstructed scanner using a stationary synthetic
+camera frame; the capture runner never opens a real camera.

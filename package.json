@@ -47,7 +47,10 @@
         "capgo:upload:dev": "node scripts/native-build.js && pnpm dlx @capgo/cli@8.42.4 bundle upload --channel development --path ./out --version-exists-ok --bundle \"$(node scripts/release-version.mjs staging)\"",
         "capgo:upload:staging": "node scripts/native-build.js && pnpm dlx @capgo/cli@8.42.4 bundle upload --channel staging --path ./out --version-exists-ok --bundle \"$(node scripts/release-version.mjs staging)\"",
         "test:unit:ci": "jest --coverage --reporters=default --reporters=jest-junit",
-        "generate:marketing-messages": "node scripts/generate-marketing-messages.js"
+        "generate:marketing-messages": "node scripts/generate-marketing-messages.js",
+        "screens:capture": "node --import tsx scripts/screens/capture.ts",
+        "screens:compare": "node scripts/screens/report.mjs",
+        "screens:test": "node --test scripts/screens/*.test.mjs"
     },
     "dependencies": {
         "@capacitor/android": "8.2.0",
@@ -153,6 +156,7 @@
         "@types/validator": "^13.12.2",
         "@typescript-eslint/eslint-plugin": "^8.59.1",
         "@typescript-eslint/parser": "^8.59.1",
+        "@vercel/blob": "2.3.1",
         "dotenv": "^16.6.1",
         "eslint": "^9.39.4",
         "eslint-import-resolver-typescript": "^4.4.4",
@@ -172,6 +176,7 @@
         "prettier": "^3.3.3",
         "prettier-plugin-tailwindcss": "^0.6.14",
         "serwist": "^9.0.10",
+        "sharp": "0.34.5",
         "size-limit": "^11.2.0",
         "tailwind-scrollbar": "^4.0.2",
         "tailwindcss": "^4.3.3",

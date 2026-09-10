@@ -60,7 +60,7 @@ interface AuthContextType {
     isLoggingOut: boolean
     invitedUsernamesSet: Set<string>
 }
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 /**
  * Context provider to manage user authentication and profile interactions.
