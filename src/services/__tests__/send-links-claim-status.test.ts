@@ -28,4 +28,30 @@ describe('sendLinksApi.getClaimStatus', () => {
             }
         )
     })
+
+    test('falls back to the legacy endpoint when the status route is unavailable', async () => {
+        mockServerFetch.mockResolvedValueOnce({ ok: false, status: 404 } as Response).mockResolvedValueOnce({
+            ok: true,
+            status: 200,
+            text: async () => JSON.stringify({ status: 'SUCCESS' }),
+        } as Response)
+
+        await expect(sendLinksApi.getClaimStatus(LINK)).resolves.toMatchObject({ status: 'SUCCESS' })
+
+        expect(mockServerFetch).toHaveBeenNthCalledWith(
+            2,
+            expect.stringMatching(/^\/send-links\/0x[0-9a-f]+\?c=42161&v=v4\.3&i=7$/i),
+            {
+                method: 'GET',
+                cache: 'no-store',
+            }
+        )
+    })
+
+    test('does not hide non-rollout errors behind the legacy endpoint', async () => {
+        mockServerFetch.mockResolvedValue({ ok: false, status: 500 } as Response)
+
+        await expect(sendLinksApi.getClaimStatus(LINK)).rejects.toThrow('HTTP error! status: 500')
+        expect(mockServerFetch).toHaveBeenCalledTimes(1)
+    })
 })

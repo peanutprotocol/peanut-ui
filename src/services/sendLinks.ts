@@ -179,6 +179,12 @@ export const sendLinksApi = {
                 silentTimeout: true,
             }
         )
+        // Keep UI and API releases independently deployable while the status
+        // route rolls out. The legacy endpoint is slower, but it is preferable
+        // to leaving a settled claim stuck in the processing state.
+        if (response.status === 404) {
+            return sendLinksApi.get(link)
+        }
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`)
         }
