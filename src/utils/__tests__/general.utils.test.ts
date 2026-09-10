@@ -1,12 +1,17 @@
 import {
+    beginIntentionalLogout,
+    clearRedirectUrl,
+    endIntentionalLogout,
     formatAmount,
     formatExtendedNumber,
     generateInviteCodeLink,
     getContributorsFromCharge,
+    getRedirectUrl,
     getRequestLink,
     formatTokenAmount,
     isUuid,
     printableUserHandle,
+    saveRedirectUrl,
     toInviteCode,
 } from '../general.utils'
 import { AccountType } from '@/interfaces/interfaces'
@@ -567,6 +572,43 @@ describe('General Utilities', () => {
             const contributors = getContributorsFromCharge(charges)
             expect(contributors).toHaveLength(1)
             expect(contributors[0].username).toBe('alice')
+        })
+    })
+
+    /*
+     * An explicit logout ends in a hard nav to /setup, but emptying the user
+     * cache first re-runs the auth gate, which stores the CURRENT path as the
+     * post-auth destination — and the logout button lives on /profile, so the
+     * next account created on this device was redirected onto the previous
+     * session's page instead of /home.
+     */
+    describe('post-auth redirect through an intentional logout', () => {
+        beforeEach(() => {
+            endIntentionalLogout()
+            clearRedirectUrl()
+            window.history.replaceState({}, '', '/profile')
+        })
+        afterEach(() => {
+            endIntentionalLogout()
+            clearRedirectUrl()
+        })
+
+        it('stores the current path for a normal auth-gate bounce', () => {
+            saveRedirectUrl()
+            expect(getRedirectUrl()).toBe('/profile')
+        })
+
+        it('stores nothing once a logout is under way', () => {
+            beginIntentionalLogout()
+            saveRedirectUrl()
+            expect(getRedirectUrl()).toBeNull()
+        })
+
+        it('resumes storing when the logout failed and the app kept running', () => {
+            beginIntentionalLogout()
+            endIntentionalLogout()
+            saveRedirectUrl()
+            expect(getRedirectUrl()).toBe('/profile')
         })
     })
 })

@@ -61,6 +61,7 @@ jest.mock('@/components/Invites/JoinWaitlistPage', () => ({ __esModule: true, de
 jest.mock('@/components/Migration/SunsetScreen', () => ({ __esModule: true, default: () => <div /> }))
 
 import Layout from '../layout'
+import { beginIntentionalLogout, clearRedirectUrl, endIntentionalLogout, getRedirectUrl } from '@/utils/general.utils'
 
 const CACHED_USER = {
     user: { userId: 'u1', username: 'probe', hasAppAccess: true },
@@ -139,6 +140,46 @@ describe('(mobile-ui) layout — no user', () => {
 
         expect(screen.getByTestId('backend-error-screen')).toBeInTheDocument()
         expect(jest.getTimerCount()).toBe(0)
+    })
+
+    /*
+     * The gate stores where the person was so login can return them there.
+     * That is right for a deep link and wrong for an explicit logout: logout
+     * empties the user cache before its hard nav to /setup, so this gate runs
+     * with the profile URL still in the bar, and the stored path was then
+     * consumed by the NEXT account created on this device — a fresh signup
+     * landed on the previous session's profile instead of /home.
+     */
+    describe('what the bounce to /setup leaves behind', () => {
+        beforeEach(() => {
+            endIntentionalLogout()
+            clearRedirectUrl()
+        })
+        afterEach(() => {
+            endIntentionalLogout()
+            clearRedirectUrl()
+        })
+
+        it('logged out on a protected deep link: keeps the target for after login', () => {
+            window.history.replaceState({}, '', '/pay-request/abc')
+            mockUseAuth.mockReturnValue(authState())
+
+            renderLayout()
+
+            expect(mockRouterReplace).toHaveBeenCalledWith('/setup')
+            expect(getRedirectUrl()).toBe('/pay-request/abc')
+        })
+
+        it('logging out from /profile: reaches /setup with no destination stored', () => {
+            window.history.replaceState({}, '', '/profile')
+            beginIntentionalLogout()
+            mockUseAuth.mockReturnValue(authState())
+
+            renderLayout()
+
+            expect(mockRouterReplace).toHaveBeenCalledWith('/setup')
+            expect(getRedirectUrl()).toBeNull()
+        })
     })
 
     it('refetch blip over cached data: keeps the app, no error screen, no redirect', () => {

@@ -10,7 +10,9 @@ import { zeroDevFlowActions } from '@/hooks/useZeroDevFlow'
 import {
     removeFromCookie,
     syncLocalStorageToCookie,
+    beginIntentionalLogout,
     clearRedirectUrl,
+    endIntentionalLogout,
     updateUserPreferences,
 } from '@/utils/general.utils'
 import { apiFetch } from '@/utils/api-fetch'
@@ -355,6 +357,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (isLoggingOut) return
 
             setIsLoggingOut(true)
+            // Before anything empties the user cache: the auth gate reacts to
+            // that by storing the current path as the post-auth destination.
+            beginIntentionalLogout()
             try {
                 /*
                  * Revoke server-side FIRST (needs the still-valid JWT): POST
@@ -382,6 +387,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 // force full page refresh to /setup to clear all state
                 window.location.href = '/setup'
             } catch (error) {
+                // The hard nav never happened, so this document keeps serving
+                // the app — a later deep-link bounce must store its target again.
+                endIntentionalLogout()
                 captureException(error)
                 console.error('Error logging out user', error)
                 // TODO: remove debug info after native testing

@@ -34,13 +34,25 @@ export function useFlowStepper<Step extends string>(options: FlowStepperOptions<
             .withOptions({ history })
     )
 
+    /*
+     * A value that is not in the CURRENT list is not a step. `steps` is a
+     * runtime decision (setup filters screens by PWA and sunset state), and
+     * the URL outlives it: nuqs keeps serving a cursor it parsed against an
+     * earlier, wider list, so a flow could be left with no step at all — an
+     * undefined screen, and for /setup its recovery screen instead of the flow
+     * (PEANUT-UI-T3A). Resolve to the default and let the effect below rewrite
+     * the URL.
+     */
+    const isKnownStep = steps.includes(rawStep)
+
     // A guarded step never renders — resolve to its fallback synchronously so
     // there is no one-frame flash of the dead screen.
     const guard = guards?.[rawStep]
-    const step = guard && !guard.ok ? (guard.fallback ?? defaultStep) : rawStep
+    const step = !isKnownStep ? defaultStep : guard && !guard.ok ? (guard.fallback ?? defaultStep) : rawStep
 
-    // Keep the URL honest after a guard redirect (replace, no history entry —
-    // also under history:'push', or a bounced pop would mint an extra entry).
+    // Keep the URL honest after a guard redirect or an off-list cursor
+    // (replace, no history entry — also under history:'push', or a bounced pop
+    // would mint an extra entry).
     // Strict-mode safe: setting the same value again is a no-op for nuqs.
     useEffect(() => {
         if (step !== rawStep) void setStep(step === defaultStep ? null : step, { history: 'replace' })

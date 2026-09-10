@@ -730,7 +730,27 @@ export function isStableCoin(tokenSymbol: string): boolean {
     return STABLE_COINS.includes(tokenSymbol.toUpperCase())
 }
 
+/*
+ * An explicit logout must not leave a post-auth destination behind, and
+ * clearing the stored redirect is not enough on its own: emptying the user
+ * cache re-runs the (mobile-ui) auth gate, which saves the CURRENT path before
+ * bouncing to /setup — and the logout button lives on /profile, so the next
+ * account created on this device was redirected onto the previous session's
+ * page. The latch outlives the logout call (isLoggingOut flips back before the
+ * hard nav completes) and is dropped only if the logout itself failed.
+ */
+let intentionalLogout = false
+
+export const beginIntentionalLogout = () => {
+    intentionalLogout = true
+}
+
+export const endIntentionalLogout = () => {
+    intentionalLogout = false
+}
+
 export const saveRedirectUrl = () => {
+    if (intentionalLogout) return
     const currentUrl = new URL(window.location.href)
     const relativeUrl = currentUrl.href.replace(currentUrl.origin, '')
     saveToLocalStorage('redirect', relativeUrl)
