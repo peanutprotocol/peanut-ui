@@ -18,6 +18,7 @@ import {
 } from '@/constants/crisp'
 import type { AppLocale } from '@/i18n/app/config'
 import { notificationsApi } from '@/services/notifications'
+import { notifyNotificationsUpdated } from '@/utils/notifications-events'
 import { isCapacitor } from '@/utils/capacitor'
 import { ensureNativeCrispConfigured, nativeCrispFields } from '@/utils/crisp'
 
@@ -137,7 +138,7 @@ const SupportDrawer = () => {
         if (!isLoggedIn) return
         notificationsApi
             .markAllRead('support')
-            .then(() => window.dispatchEvent(new CustomEvent('notifications:updated')))
+            .then(notifyNotificationsUpdated)
             // A failed mark-read only means the badge stays on a bit longer.
             .catch(() => {})
     }, [isLoggedIn])

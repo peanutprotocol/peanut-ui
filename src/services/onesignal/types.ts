@@ -33,5 +33,7 @@ export interface OneSignalAdapter {
     isOptedIn(): Promise<boolean>
     onPermissionChange(listener: (state: NotificationPermissionState) => void): () => void
     onSubscriptionChange(listener: (change: PushSubscriptionChange) => void): () => void
+    /** Fires when a push reaches an already-foregrounded app/tab. */
+    onNotificationReceived(listener: () => void): () => void
     onNotificationClick(listener: (info: NotificationClickInfo) => void): () => void
 }
