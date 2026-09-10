@@ -167,6 +167,65 @@ describe('release version resolver', () => {
         })
     })
 
+    /*
+     * newest-native is the provenance input for both production release
+     * workflows: it answers "the release this commit must contain". Unlike
+     * native-floor it deliberately ignores package.json's major, because the
+     * first release of a new major has no floor and skipping the check there is
+     * what would let a lagging ref build 2.1.0 without containing v1.6.0.
+     */
+    describe('newest-native', () => {
+        it('picks the newest native release at or below the declared major', () => {
+            const result = run(repo('2.0.0', { tags: ['v1.4.0', 'v1.6.0', 'v1.5.0', 'v2.1.0'] }), ['newest-native'])
+
+            expect(result.status).toBe(0)
+            expect(result.stdout.trim()).toBe('2.1.0')
+        })
+
+        // The load-bearing case: package.json has moved to a major with no tag
+        // yet. native-floor has no answer here and the guard would skip; this
+        // must still name v1.6.0 as the release the commit has to contain.
+        it('answers for a major that has no release of its own yet', () => {
+            const result = run(repo('2.0.0', { tags: ['v1.5.0', 'v1.6.0'] }), ['newest-native'])
+
+            expect(result.status).toBe(0)
+            expect(result.stdout.trim()).toBe('1.6.0')
+        })
+
+        it('orders builds numerically, not lexically', () => {
+            const result = run(repo('1.0.53', { tags: ['v1.9.0', 'v1.10.0'] }), ['newest-native'])
+
+            expect(result.status).toBe(0)
+            expect(result.stdout.trim()).toBe('1.10.0')
+        })
+
+        // Same exclusions as native-floor: an OTA tag and the date-shaped
+        // v2026.02.26 that really is on main are not native releases.
+        it('ignores tags that are not native releases', () => {
+            const result = run(repo('1.0.53', { tags: ['v1.6.0', 'v1.6.3', 'v2026.02.26'] }), ['newest-native'])
+
+            expect(result.status).toBe(0)
+            expect(result.stdout.trim()).toBe('1.6.0')
+        })
+
+        // `v*` is loose enough that a date-shaped tag can match the release
+        // pattern exactly. Unbounded, v2026.02.0 would become the newest release
+        // and demand every ref contain a tag that never shipped a binary.
+        it('ignores a date-shaped tag that does match the release pattern', () => {
+            const result = run(repo('1.0.53', { tags: ['v1.6.0', 'v2026.02.0'] }), ['newest-native'])
+
+            expect(result.status).toBe(0)
+            expect(result.stdout.trim()).toBe('1.6.0')
+        })
+
+        it('fails when the repository has no native release at all', () => {
+            const result = run(repo('1.0.53', { tags: ['v1.0.1', 'v1.0.2'] }), ['newest-native'])
+
+            expect(result.status).toBe(1)
+            expect(result.stderr).toMatch(/no v<major>\.<build>\.0 tag at or below major 1/)
+        })
+    })
+
     describe('validate', () => {
         // `v*` is too loose a glob to reject this, and v2026.02.26 is a real tag on
         // main — it is X.Y.Z shaped, so only the major check catches it.

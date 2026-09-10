@@ -80,7 +80,7 @@ function main(argv) {
         case 'native-floor':
             return nativeFloor(major)
         case 'newest-native':
-            return newestNative()
+            return newestNative(major)
         case 'validate':
             return validate(major, rest[0], flag(rest, '--kind'))
         default:
@@ -145,10 +145,17 @@ function nativeFloor(major) {
 // no answer, and skipping the check there is what would let a lagging ref build
 // 2.1.0 without containing v1.6.0 — a higher store version carrying older code,
 // exactly what the guard exists to stop.
-function newestNative() {
-    const releases = allNativeReleases()
+function newestNative(currentMajor) {
+    // Majors ABOVE the one package.json declares are not releases this code can
+    // be behind — and `v*` is a loose enough glob to let a date-shaped tag in:
+    // `v2026.02.0` matches the release pattern exactly, and unbounded it would
+    // become "the newest native release" and demand every ref contain a tag that
+    // never shipped a binary. (main really does carry a v2026.02.26; only its
+    // third segment keeps it out.) Majors at or below the declared one are kept,
+    // which is what lets the first release of a new major still answer.
+    const releases = allNativeReleases().filter(({ major }) => major <= currentMajor)
     if (releases.length === 0) {
-        throw new Error('no v<major>.<build>.0 tag exists in this repository')
+        throw new Error(`no v<major>.<build>.0 tag at or below major ${currentMajor} exists in this repository`)
     }
     const [{ major, build }] = releases
     return `${major}.${build}.0`

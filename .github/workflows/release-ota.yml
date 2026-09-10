@@ -336,12 +336,18 @@ jobs:
               run: |
                   EXPECTED="[ota-floors: android=$FLOOR_ANDROID ios=$FLOOR_IOS]"
                   LISTING="$(npx @capgo/cli@8.42.4 bundle list --apikey "$CAPGO_API_KEY" 2>&1 || true)"
-                  # Scoped to THIS version's row. A bare search of the listing
-                  # passes on any older bundle that happens to share these floors,
-                  # which is exactly the re-run case: --version-exists-ok leaves the
-                  # earlier upload's comment in place, the assertion goes green, and
-                  # the served candidate silently falls back to version gating.
-                  if ! printf '%s\n' "$LISTING" | grep -F "$VERSION" | grep -Fq "$EXPECTED"; then
+                  # Scoped to THIS version's row, with boundaries. A bare search of
+                  # the listing passes on any older bundle that happens to share
+                  # these floors, and a substring search for the version passes on
+                  # 1.6.30 when 1.6.3 is what was uploaded — both are the re-run
+                  # case, where --version-exists-ok leaves the earlier comment in
+                  # place, the assertion goes green, and the served candidate
+                  # silently falls back to version gating. Dots are escaped so the
+                  # version cannot match across separators, the trailing class
+                  # excludes digits (1.6.30), dots (1.6.3.1) and `-` (1.6.3-rc1),
+                  # and the leading class excludes digits and dots (11.6.3).
+                  VERSION_RE="$(printf '%s' "$VERSION" | sed 's/\./\\./g')"
+                  if ! printf '%s\n' "$LISTING" | grep -E "(^|[^0-9.])${VERSION_RE}([^0-9.-]|$)" | grep -Fq "$EXPECTED"; then
                       echo "--- capgo bundle list ---" >&2
                       printf '%s\n' "$LISTING" >&2
                       echo "-------------------------" >&2

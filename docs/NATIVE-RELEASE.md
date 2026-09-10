@@ -213,9 +213,13 @@ and it is fine for it to lag behind what ships.
 > filter cannot ship over the air, so on their own they block OTA again for no user-visible
 > gain. `native-routes.ts` still maps `/app/*` → `/app`, so nothing else needs touching.
 
-All three manual workflows accept `dev`, `main`, and `release/android-kyc`.
-Select the source branch before dispatch. A supported branch name does not prove
-that its current commit is ready to ship.
+The two **native** workflows are manual and accept `dev`, `main`, and
+`release/android-kyc`. Select the source branch before dispatch — a supported branch name
+does not prove that its current commit is ready to ship.
+
+**App Release OTA is not one of them.** It runs itself on every push to `main` and refuses
+every other ref, so a production OTA is not dispatched at all: merging to `main` ships it
+(§9). Nothing below about selecting a branch applies to that lane.
 
 1. Inspect the selected branch's current commit and confirm its release QA is complete.
 2. Before dispatching from `main`, verify it contains the reviewed native changes and
@@ -231,13 +235,12 @@ Use the workflow that matches the release:
 |-|--------|--------------|
 | native | **App Release Android & iOS** | resolves `<major>.<build+1>.0` → builds iOS + Android from that one number → TestFlight + Play `internal` → tags `v<version>` |
 | Android replacement | **App Release Android** | leave `versionName` blank on the selected supported branch → rebuilds the current tagged Android version with a new Play `versionCode`; refuses iOS/shared native changes and does not move the shared OTA floor |
-| OTA | **App Release OTA** | resolves `<major>.<build>.<ota+1>` off the production channel → uploads the bundle → tags `ota-<version>` |
+| OTA | *(no button — merge to `main`)* | **App Release OTA** fires on the push: resolves `<major>.<build>.<ota+1>` off the production channel → uploads the bundle → tags `ota-<version>` |
 
-For production OTA, use **App Release OTA** so it resolves the version before calling Capgo.
-Do not dispatch the Capgo production workflow directly without a resolved version.
-
-None is automatic: no push, merge or commit reaches them. They are the same deliberate
-act as the `git tag … && git push` they replace, minus the hand-picked number.
+The two native lanes are not automatic: no push, merge or commit reaches them. They are the
+same deliberate act as the `git tag … && git push` they replace, minus the hand-picked
+number. The OTA lane is the opposite by design — see §9 for why, and for the `Production`
+environment reviewers that put a human back in front of it if you want one.
 
 Use the Android replacement lane only for an Android-only native correction to the
 currently shipped build. It verifies the existing native tag attests both platforms,

@@ -106,3 +106,62 @@ it('passes the shared floor to --min-update-version, and the per-platform ones t
     expect(workflowSource).toContain('NEXT_PUBLIC_OTA_FLOOR_IOS=${{ steps.ota_floors.outputs.ios }}')
     expect(workflowSource).toContain('node scripts/ota-platform-floor.mjs --lowest')
 })
+
+/*
+ * The verify step's row match, executed rather than eyeballed. It is the last
+ * thing standing between a re-run that left a stale comment and a fleet that
+ * silently falls back to version gating, and a substring search passes on
+ * 1.6.30 when 1.6.3 is what shipped.
+ */
+describe('the verify step matches only its own version row', () => {
+    // The two lines that do the work, lifted from the workflow verbatim: the
+    // VERSION_RE assignment and the pipeline inside `if ! … ; then`. Reassembling
+    // the whole if-block was how an earlier version of this test managed to fail
+    // its positive case while every negative "passed" vacuously.
+    const matcher = () => {
+        const assignment = workflowSource.split('\n').find((l) => l.trim().startsWith('VERSION_RE='))
+        const guard = workflowSource.split('\n').find((l) => l.trim().startsWith('if ! printf'))
+        expect(assignment).toBeDefined()
+        expect(guard).toBeDefined()
+        const pipeline = guard
+            .trim()
+            .replace(/^if ! /, '')
+            .replace(/; then$/, '')
+        return `${assignment.trim()}\nif ${pipeline}; then echo MATCHED; fi`
+    }
+
+    const matches = (version, listing) => {
+        const result = spawnSync(
+            'bash',
+            ['-c', `VERSION="${version}"\nEXPECTED="${MARKER}"\nLISTING="$(cat)"\n${matcher()}`],
+            { input: listing, encoding: 'utf8' }
+        )
+        expect(result.status).toBe(0)
+        return result.stdout.includes('MATCHED')
+    }
+
+    const MARKER = '[ota-floors: android=1.6.0 ios=1.5.0]'
+
+    it('accepts the exact version row', () => {
+        expect(matches('1.6.3', `| 1.6.3 | abc — subject ${MARKER} |`)).toBe(true)
+    })
+
+    it.each([
+        ['a longer patch', '1.6.30'],
+        ['a longer major', '11.6.3'],
+        ['a prerelease of it', '1.6.3-rc1'],
+        ['a fourth segment', '1.6.3.1'],
+    ])('rejects %s carrying the same marker', (_label, rowVersion) => {
+        expect(matches('1.6.3', `| ${rowVersion} | abc ${MARKER} |`)).toBe(false)
+    })
+
+    it('rejects its own row when the marker is missing', () => {
+        expect(matches('1.6.3', '| 1.6.3 | abc — subject with no floors |')).toBe(false)
+    })
+
+    // The shape of the actual failure: the uploaded version has no marker, an
+    // older one does. A bare search passed here.
+    it('rejects when only a different row carries the marker', () => {
+        expect(matches('1.6.3', `| 1.6.2 | old ${MARKER} |\n| 1.6.3 | new — no floors |`)).toBe(false)
+    })
+})
