@@ -136,6 +136,7 @@ jest.mock('@/constants/zerodev.consts', () => ({
 const mockSetSelectedChainID = jest.fn()
 const mockSetSelectedTokenAddress = jest.fn()
 const SOLANA_USDC = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
+const TRON_USDT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'
 const mockSupportedChainsAndTokens: Record<string, { chainId: string; tokens: unknown[] }> = {}
 jest.mock('@/context/tokenSelector.context', () => ({
     tokenSelectorContext: jest.requireActual('react').createContext({
@@ -289,6 +290,8 @@ function applyDefaults() {
         chainId: 'solana',
         tokens: [{ symbol: 'USDC', address: SOLANA_USDC }],
     }
+    // Tron delivers USDT and no USDC — the token rule's fallback branch.
+    mockSupportedChainsAndTokens.tron = { chainId: 'tron', tokens: [{ symbol: 'USDT', address: TRON_USDT }] }
     mockWithdrawFlow.error = { showError: false, errorMessage: '' }
     mockWithdrawFlow.selectedMethod = null
     mockWithdrawFlow.selectedBankAccount = null
@@ -541,6 +544,7 @@ describe('GROUP 3: Amount Validation', () => {
         // lowercasing pass would destroy — it must reach the recipient step intact.
         const SOLANA_ADDRESS = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM'
         const SECOND_SOLANA_ADDRESS = 'DRpbCBMxVnDK7maPM5tGv6MvB3v1sRMC86PZ8okm21hy'
+        const TRON_ADDRESS = 'TJRyWwFs9wTFGZg3JbrVriFbNfCug5tDeC'
         const scanEntry = (scan: string) => ({ method: 'crypto', step: 'amount', amount: '25', scan })
 
         const scanInto = (address: string) => {
@@ -563,6 +567,21 @@ describe('GROUP 3: Amount Validation', () => {
             expect(mockSetRecipient).toHaveBeenCalledWith({ name: undefined, address: SOLANA_ADDRESS })
             expect(mockSetIsValidRecipient).toHaveBeenCalledWith(true)
             expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto?method=crypto&amount=25')
+        })
+
+        // Tron has no USDC, so the token rule falls back to the chain's only
+        // token. Scanning one must not land the recipient step on a token Rhino
+        // cannot deliver there.
+        test('a scanned Tron address seeds Tron and its USDT', () => {
+            const id = stashScannedDestination(TRON_ADDRESS, 'tron')
+            if (!id) throw new Error('expected a payable destination')
+
+            renderWithdraw(scanEntry(id))
+            fireEvent.click(screen.getByText('Continue'))
+
+            expect(mockSetSelectedChainID).toHaveBeenCalledWith('tron')
+            expect(mockSetSelectedTokenAddress).toHaveBeenCalledWith(TRON_USDT)
+            expect(mockSetRecipient).toHaveBeenCalledWith({ name: undefined, address: TRON_ADDRESS })
         })
 
         test('carries the address onward in process, never in the next URL', () => {

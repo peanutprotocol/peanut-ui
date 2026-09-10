@@ -28,10 +28,6 @@ import posthog from 'posthog-js'
 import { useEffect, useState } from 'react'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 
-// Selector id for Solana in CHAIN_REGISTRY — non-EVM chains have a slug where
-// EVM chains have a numeric chain id.
-const SOLANA_WITHDRAW_CHAIN_ID = 'solana'
-
 enum EModalType {
     QR_NOT_SUPPORTED = 'QR_NOT_SUPPORTED',
     WILL_BE_NOTIFIED = 'WILL_BE_NOTIFIED',
@@ -253,7 +249,9 @@ export default function QRScannerOverlay() {
         // because it holds a character base58 excludes (`O`), and lowercasing
         // turns that into a legal one — a different account, which nobody
         // controls. Recognizing it as Solana was harmless while Solana was
-        // refused; it is a wrong payout address now that it is paid.
+        // refused; it is a wrong payout address now that it is paid. Tron needs
+        // no such guard: its pattern is anchored on an uppercase `T`, which a
+        // lowercased payload can never match.
         let scanned = data
         let recognized = recognizeQr(data)
         if (!recognized && data === data.toUpperCase()) {
@@ -383,16 +381,18 @@ export default function QRScannerOverlay() {
                 showModal(EModalType.PIX_RECURRING)
                 return { success: true }
             }
-            case EQrType.SOLANA_ADDRESS: {
-                // Solana is a supported withdrawal destination, so the scan goes
+            case EQrType.SOLANA_ADDRESS:
+            case EQrType.TRON_ADDRESS: {
+                // Both are supported withdrawal destinations, so the scan goes
                 // into the crypto withdrawal flow with the address verbatim —
                 // case is the address in base58. The address is handed over in
-                // process, never in the URL: see stashScannedDestination. It is
-                // still behind its rollout flag and behind the ops kill-switch;
-                // while either is off, the notify-me path is the truth.
-                const scanId = isChainRolledOut(SOLANA_WITHDRAW_CHAIN_ID)
-                    ? stashScannedDestination(scanned, SOLANA_WITHDRAW_CHAIN_ID)
-                    : null
+                // process, never in the URL: see stashScannedDestination. Each
+                // is still behind its own rollout flag and behind the ops
+                // kill-switch; while either is off, the notify-me path is the
+                // truth. The chain ids are CHAIN_REGISTRY selector ids — non-EVM
+                // chains have a slug where EVM chains have a numeric chain id.
+                const chainId = recognized === EQrType.SOLANA_ADDRESS ? 'solana' : 'tron'
+                const scanId = isChainRolledOut(chainId) ? stashScannedDestination(scanned, chainId) : null
                 if (!scanId) {
                     showModal(EModalType.QR_NOT_SUPPORTED)
                     return { success: true }
@@ -402,7 +402,6 @@ export default function QRScannerOverlay() {
             }
             case EQrType.BITCOIN_ONCHAIN:
             case EQrType.BITCOIN_INVOICE:
-            case EQrType.TRON_ADDRESS:
             case EQrType.XRP_ADDRESS: {
                 showModal(EModalType.QR_NOT_SUPPORTED)
                 return { success: true }

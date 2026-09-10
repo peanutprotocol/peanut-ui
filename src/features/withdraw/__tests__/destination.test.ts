@@ -29,6 +29,7 @@ import {
 const SOLANA_ADDRESS = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM'
 const EVM_ADDRESS = '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed'
 const OTHER_SOLANA_ADDRESS = 'DRpbCBMxVnDK7maPM5tGv6MvB3v1sRMC86PZ8okm21hy'
+const TRON_ADDRESS = 'TJRyWwFs9wTFGZg3JbrVriFbNfCug5tDeC'
 
 describe('withdrawScanEntryUrl', () => {
     it('lands on the amount step of the crypto rail, carrying the scan id', () => {
@@ -103,6 +104,10 @@ describe('readWithdrawDestination', () => {
         })
     })
 
+    it('accepts a base58 address on Tron, which delivers USDT and no USDC', () => {
+        expect(readWithdrawDestination(TRON_ADDRESS, 'tron')).toEqual({ address: TRON_ADDRESS, chainId: 'tron' })
+    })
+
     it('accepts an EVM address on an EVM chain Rhino delivers to', () => {
         expect(readWithdrawDestination(EVM_ADDRESS, '8453')).toEqual({ address: EVM_ADDRESS, chainId: '8453' })
     })
@@ -111,6 +116,7 @@ describe('readWithdrawDestination', () => {
         ['neither param', null, null],
         ['an address of the wrong family for the chain', EVM_ADDRESS, 'solana'],
         ['a base58 address on an EVM chain', SOLANA_ADDRESS, '8453'],
+        ['a Solana address on Tron — same alphabet, different family', SOLANA_ADDRESS, 'tron'],
         ['a chain that is not a withdraw destination', SOLANA_ADDRESS, 'bitcoin'],
     ])('rejects %s', (_case, address, chainId) => {
         expect(readWithdrawDestination(address, chainId)).toBeNull()

@@ -116,7 +116,7 @@ describe('QRScannerOverlay case handling', () => {
 
         it('recognizes a Tron address, which always starts with an uppercase T', async () => {
             await scan(TRON)
-            expect(screen.getByText('Tron not supported yet.')).toBeInTheDocument()
+            expect(screen.getByText('Payment Confirmation')).toBeInTheDocument()
         })
 
         // Both gates that can refuse the route. Each is the honest answer while
@@ -126,21 +126,32 @@ describe('QRScannerOverlay case handling', () => {
         // payout pattern in product/feedback/problems/withdraw-non-arbitrum-chain-broken.md.
         // The kill-switch case is the live iOS behaviour until TASK-22250 lands.
         it.each([
-            ['Solana is not rolled out', () => mockChainRolledOut.mockReturnValue(false)],
-            ['the ops kill-switch is on', () => (mockMaintenance.disableXchainWithdraw = true)],
-        ])('refuses a Solana scan when %s', async (_case, close) => {
-            close()
-            await scan(SOLANA_WITH_UPPERCASE_L)
+            ['Solana', SOLANA_WITH_UPPERCASE_L, 'Solana not supported yet.'],
+            ['Tron', TRON, 'Tron not supported yet.'],
+        ])('refuses a %s scan when the chain is not rolled out', async (_chain, address, refusal) => {
+            mockChainRolledOut.mockReturnValue(false)
+            await scan(address)
 
-            expect(screen.getByText('Solana not supported yet.')).toBeInTheDocument()
+            expect(screen.getByText(refusal)).toBeInTheDocument()
             expect(screen.queryByText('Payment Confirmation')).not.toBeInTheDocument()
             expect(mockPush).not.toHaveBeenCalled()
         })
 
-        // TASK-22251 opened Solana only. Tron, Bitcoin and XRP keep the
-        // notify-me path until each is opened on purpose.
-        it('routes a Solana scan into the crypto withdrawal, address case intact', async () => {
+        it('refuses a scan while the ops kill-switch locks withdrawals to Arbitrum', async () => {
+            mockMaintenance.disableXchainWithdraw = true
             await scan(SOLANA_WITH_UPPERCASE_L)
+
+            expect(screen.getByText('Solana not supported yet.')).toBeInTheDocument()
+            expect(mockPush).not.toHaveBeenCalled()
+        })
+
+        // Bitcoin, Lightning and XRP keep the notify-me path — they are not
+        // withdrawal destinations. Solana and Tron are.
+        it.each([
+            ['Solana', SOLANA_WITH_UPPERCASE_L, 'solana'],
+            ['Tron', TRON, 'tron'],
+        ])('routes a %s scan into the crypto withdrawal, address case intact', async (_chain, address, chainId) => {
+            await scan(address)
             fireEvent.click(screen.getByRole('checkbox'))
             fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
 
@@ -151,11 +162,8 @@ describe('QRScannerOverlay case handling', () => {
             expect(params.get('step')).toBe('amount')
             expect(params.get('method')).toBe('crypto')
             // the address goes in process, never in the URL PostHog records
-            expect(pushed).not.toContain(SOLANA_WITH_UPPERCASE_L)
-            expect(takeScannedDestination(params.get(SCAN_ID_PARAM))).toEqual({
-                address: SOLANA_WITH_UPPERCASE_L,
-                chainId: 'solana',
-            })
+            expect(pushed).not.toContain(address)
+            expect(takeScannedDestination(params.get(SCAN_ID_PARAM))).toEqual({ address, chainId })
         })
     })
 
