@@ -398,6 +398,76 @@ production channel and refuses other refs.
 Staging is published separately and manually through **App Staging OTA**; there is no
 automatic staging publish or `ota-*` break-glass workflow.
 
+### One release line: production OTA ships from `main`, automatically
+
+**App Release OTA** runs on every push to `main`, and `main` is the only ref it will ship
+from — the push trigger is branch-scoped and the ref guard refuses a dispatch selected on
+anything else. Merging to `main` *is* the decision to ship. Anything not ready for every
+install stops at `dev`, where **App Staging OTA** publishes it to a channel no production
+device sees.
+
+This replaces "a human picks a ref at dispatch time", which is what shipped bundle 1.6.1
+from a `main` two days behind the v1.6.0 release. Two refs that both looked shippable, and
+the older one was selected.
+
+Automatic means automatic: the `deploy` job declares the `Production` environment, which
+today has **no protection rules**, so a merge reaches every install with nobody approving
+it. Adding required reviewers under Settings → Environments → Production restores a human
+gate with no workflow change, and is the recommended pairing for this trigger.
+
+One path still publishes a production bundle from a non-`main` ref: a **native release**
+auto-publishes its matching bundle (below), and `release-native.yml` accepts `dev`,
+`main` and `release/android-kyc`. Deliberately unchanged here — releases are cut from
+`dev` today — but it means `dev` code can still reach production that way, and it should
+be a conscious decision rather than a leftover.
+
+### Per-platform delivery floors
+
+One release tag names two binaries, and the field does not keep them in step: TestFlight
+has no auto-update, so iOS sat on **1.5.0** while Android moved to **1.6.0** — and every
+native input that changed between those releases was under `android/`. A version number
+cannot express that. Read numerically, bundle 1.6.x "needs a 1.6 binary" and the entire
+iOS population is refused JS its binary runs perfectly, *silently*, because the store row
+is hidden while the App Store listing is not live.
+
+`scripts/ota-platform-floor.mjs` answers it from the surface instead. Per platform it
+walks the `v<major>.<build>.0` tags newest-first while that platform's half of the
+fingerprint is unchanged; the last release that still matches is the floor — the oldest
+binary of that platform whose native contract is the one this tree was built against. For
+the tree above that is `android 1.6.0, ios 1.5.0`.
+
+- **`shared` inputs count for both platforms.** `capacitor.config.ts`, `patches/` and the
+  resolved plugin versions sit outside `android/` and `ios/` while describing the native
+  half of both, so this is not a path-prefix filter. Every `NATIVE_INPUTS` entry carries an
+  explicit `platform` and a test pins it, so a newly added input cannot default to the
+  lenient side.
+- **Contiguous from the newest.** A native change made and then reverted does not make the
+  binaries in between able to run this JS — they are precisely the binaries the change was
+  made for.
+- **The floors only ever widen delivery.** The publish gate is unchanged: a tree whose
+  surface differs from the newest release still fails `check-native-ota-surface` and still
+  needs a coordinated native release.
+- **The server gets the lower of the two.** Capgo carries one `min_update_version` per
+  bundle and one bundle serves both platforms, so `--min-update-version` is the permissive
+  bound and the on-device gate (`src/utils/ota-native-gate.ts`) applies each platform's own
+  from `NEXT_PUBLIC_OTA_FLOOR_ANDROID` / `_IOS`, baked into the static export.
+
+Two gaps this leaves, both worth closing:
+
+1. **The floors describe the running bundle, not the candidate.** Nothing in Capgo's
+   `getLatest()` response carries a bundle's `min_update_version`, so a device cannot learn
+   a candidate's floor before downloading it. Across a native-release boundary the gate is
+   therefore permissive rather than restrictive, and the server is what has to refuse —
+   which needs the channel on the `metadata` strategy (above). **Two production channels,
+   one per platform** (`--ios` / `--android` targeting, each with its own
+   `min_update_version`) would make the server exact per platform and retire the
+   approximation entirely.
+2. **The native release lanes bake no floors.** At the point `android-release.yml` /
+   `ios-release.yml` publish their matching bundle, the release's own tag does not exist
+   yet, so the floors cannot be resolved against it. Those bundles fall back to the
+   candidate-version rule — today's behaviour, conservative, and it means iOS can stay
+   frozen from a native release until the next OTA from `main` carries floors.
+
 ### Provenance: the ref must contain the newest native release
 
 Both release workflows assert that the dispatched commit contains the newest

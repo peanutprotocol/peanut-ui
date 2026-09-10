@@ -130,34 +130,38 @@ const NATIVE_DEPENDENCY_PATTERN = /capacitor|cordova|^@onesignal\/|^@sumsub\//i
 export const NATIVE_INPUTS = [
     // Capacitor's generated plugin manifests — the plugin set and their exact
     // resolved versions, per platform.
-    { kind: 'file', id: 'android/capacitor.settings.gradle' },
-    { kind: 'file', id: 'ios/App/CapApp-SPM/Package.swift' },
+    { kind: 'file', id: 'android/capacitor.settings.gradle', platform: 'android' },
+    { kind: 'file', id: 'ios/App/CapApp-SPM/Package.swift', platform: 'ios' },
 
     // The resolved SPM graph xcodebuild actually archives against. Package.swift
     // declares ranges; this pins the revision each native SDK is built from, so
     // a pin can move with no other file changing.
-    { kind: 'file', id: 'ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved' },
+    {
+        kind: 'file',
+        id: 'ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved',
+        platform: 'ios',
+    },
 
     // Native runtime config the JS half reads through the bridge.
-    { kind: 'file', id: 'capacitor.config.ts' },
+    { kind: 'file', id: 'capacitor.config.ts', platform: 'shared' },
 
     // The release workflow runs this after `cap sync`, and it pins native SDK
     // versions the repo has no other record of — SUMSUB_VERSION and
     // MPP_VERSION are string constants inside it, so bumping the MeaWallet SDK
     // from 2.0.0 to 2.1.0 changes what the binary links and nothing else in
     // this manifest moves.
-    { kind: 'file', id: 'scripts/native-ios-postsync.js' },
+    { kind: 'file', id: 'scripts/native-ios-postsync.js', platform: 'ios' },
 
     // Android build surface: dependencies, SDK levels, permissions, and the
     // shrinker rules that determine which native runtime metadata survives.
-    { kind: 'file', id: 'android/build.gradle' },
-    { kind: 'file', id: 'android/app/build.gradle' },
-    { kind: 'file', id: 'android/app/proguard-rules.pro' },
-    { kind: 'file', id: 'android/variables.gradle' },
-    { kind: 'file', id: 'android/app/src/main/AndroidManifest.xml' },
+    { kind: 'file', id: 'android/build.gradle', platform: 'android' },
+    { kind: 'file', id: 'android/app/build.gradle', platform: 'android' },
+    { kind: 'file', id: 'android/app/proguard-rules.pro', platform: 'android' },
+    { kind: 'file', id: 'android/variables.gradle', platform: 'android' },
+    { kind: 'file', id: 'android/app/src/main/AndroidManifest.xml', platform: 'android' },
 
     // iOS build surface: targets, deployment floor, capabilities.
-    { kind: 'file', id: 'ios/App/App.xcodeproj/project.pbxproj' },
+    { kind: 'file', id: 'ios/App/App.xcodeproj/project.pbxproj', platform: 'ios' },
 
     // Native resource contracts the config files delegate to, which nothing
     // else here moves for. On Android that is res/values — capacitor-passkey.xml
@@ -167,10 +171,17 @@ export const NATIVE_INPUTS = [
     // Extensions rather than a `**` glob: the generated web assets under
     // ios/App/App/public and android/app/src/main/assets/public are gitignored,
     // so neither ls-files nor ls-tree ever reports them.
-    { kind: 'glob', id: 'android/app/src/main/res/**.xml', dirs: ['android/app/src/main/res'], extensions: ['.xml'] },
+    {
+        kind: 'glob',
+        id: 'android/app/src/main/res/**.xml',
+        platform: 'android',
+        dirs: ['android/app/src/main/res'],
+        extensions: ['.xml'],
+    },
     {
         kind: 'glob',
         id: 'ios/App/**.{plist,entitlements}',
+        platform: 'ios',
         dirs: ['ios/App'],
         extensions: ['.plist', '.entitlements'],
     },
@@ -192,17 +203,23 @@ export const NATIVE_INPUTS = [
     //
     // The real fix is for the variant to stop depending on a CI secret; until
     // then the guard errs toward refusing an OTA.
-    { kind: 'glob', id: 'android/app/src/**.{java,kt}', dirs: ['android/app/src'], extensions: ['.java', '.kt'] },
-    { kind: 'glob', id: 'ios/App/**.swift', dirs: ['ios/App'], extensions: ['.swift'] },
+    {
+        kind: 'glob',
+        id: 'android/app/src/**.{java,kt}',
+        platform: 'android',
+        dirs: ['android/app/src'],
+        extensions: ['.java', '.kt'],
+    },
+    { kind: 'glob', id: 'ios/App/**.swift', platform: 'ios', dirs: ['ios/App'], extensions: ['.swift'] },
 
     // pnpm patches rewrite a package's JS wrapper AND its native sources with
     // no version change, so neither the lockfile version nor the generated
     // manifests move. The patch files are the only record.
-    { kind: 'glob', id: 'patches/**', dirs: ['patches'], extensions: [''] },
+    { kind: 'glob', id: 'patches/**', platform: 'shared', dirs: ['patches'], extensions: [''] },
 
     // Resolved native plugin versions, from the lockfile rather than the
     // generated manifests, which the OTA workflow never regenerates.
-    { kind: 'deps', id: 'native-plugin-versions' },
+    { kind: 'deps', id: 'native-plugin-versions', platform: 'shared' },
 ]
 
 // A file the tree does not have is still a fact about the surface — adding or
@@ -400,9 +417,31 @@ export function diff(baseRef, headRef) {
     const head = manifest(headRef)
     return NATIVE_INPUTS.filter((input) => base[input.id] !== head[input.id]).map((input) => ({
         path: input.id,
+        platform: input.platform,
         base: base[input.id],
         head: head[input.id],
     }))
+}
+
+/**
+ * The same diff, narrowed to what one platform's binary actually carries.
+ *
+ * `shared` inputs count for BOTH platforms and are the reason this is not a
+ * path-prefix filter: `capacitor.config.ts`, `patches/` and the resolved plugin
+ * versions sit outside `android/` and `ios/` while describing the native half of
+ * both, so a prefix test would quietly wave a plugin bump through for every
+ * platform. Every entry in NATIVE_INPUTS carries an explicit `platform`, and a
+ * test asserts it, so a newly added input cannot default to the lenient side.
+ *
+ * Why per-platform at all: one release tag names two binaries, and the field
+ * does not keep them in step — TestFlight does not auto-update, so iOS sat on
+ * 1.5.0 while Android moved to 1.6.0, and every native input that changed
+ * between those two releases was under `android/`. A version-number comparison
+ * cannot see that, and refuses the whole iOS population an update it could run.
+ */
+export function platformDiff(platform, baseRef, headRef) {
+    if (!['android', 'ios'].includes(platform)) throw new Error(`platform must be android or ios, got "${platform}"`)
+    return diff(baseRef, headRef).filter((change) => change.platform === platform || change.platform === 'shared')
 }
 
 function flag(argv, name) {
@@ -420,6 +459,16 @@ function main(argv) {
 
     if (argv.includes('--manifest')) {
         return JSON.stringify(manifest(ref), null, 2)
+    }
+
+    // The input set and its platform classification, for the suite that pins
+    // it. Reads nothing from git, so it answers in any checkout.
+    if (argv.includes('--inputs')) {
+        return JSON.stringify(
+            NATIVE_INPUTS.map(({ id, platform }) => ({ id, platform })),
+            null,
+            2
+        )
     }
 
     // Presence of the flag decides the mode, never the value it picked up: a

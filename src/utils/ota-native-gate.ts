@@ -1,4 +1,32 @@
 import { getBinaryInfo } from '@/utils/app-version'
+import { isIOSNative } from '@/utils/capacitor'
+
+/**
+ * The oldest native build of each platform this bundle may run on, baked in at
+ * publish time by `scripts/ota-platform-floor.mjs`.
+ *
+ * A bundle's own version cannot answer the question. One release tag names two
+ * binaries, and the field does not keep them in step: TestFlight has no
+ * auto-update, so iOS sat on 1.5.0 while Android moved to 1.6.0 — and every
+ * native input that changed between those releases was under `android/`. Read
+ * as a number, bundle 1.6.x "needs a 1.6 binary" and the whole iOS population
+ * is refused JS its binary runs perfectly. Read as a surface, iOS's floor is
+ * 1.5.0 and Android's is 1.6.0, which is the truth.
+ *
+ * Absent on bundles published before the floors existed, and on web. Direct
+ * member access on purpose — Next inlines `process.env.NEXT_PUBLIC_*` at build
+ * time only when it is written literally.
+ */
+const OTA_FLOOR = {
+    android: process.env.NEXT_PUBLIC_OTA_FLOOR_ANDROID,
+    ios: process.env.NEXT_PUBLIC_OTA_FLOOR_IOS,
+}
+
+/** The baked floor for the platform this install is running on, if it has one. */
+function platformFloor(): string | null {
+    const floor = isIOSNative() ? OTA_FLOOR.ios : OTA_FLOOR.android
+    return floor && nativeLine(floor) ? floor : null
+}
 
 /**
  * Which binary a release version belongs to.
@@ -40,12 +68,31 @@ export function bundleNeedsNewerBinary(bundleVersion: string, binaryVersion: str
 }
 
 /**
- * Same question, against the binary this install is actually running. False on
- * web and whenever the binary's own version cannot be read — see the fail-open
- * reasoning above.
+ * Whether this install needs a store update before it can run the JS on offer.
+ *
+ * Answered against the running bundle's baked floor for THIS platform when it
+ * has one, and against the candidate's own version otherwise. The floor is the
+ * better question of the two — it is derived from the native surface rather
+ * than from a number that cannot distinguish the platforms — and the fallback
+ * keeps behaviour unchanged for bundles published before the floors existed.
+ *
+ * The floor describes the RUNNING bundle, not the candidate: nothing in Capgo's
+ * getLatest() response carries a candidate's `min_update_version`, so a device
+ * cannot learn it before downloading. Across a native-release boundary that
+ * makes this permissive rather than restrictive — a device whose binary clears
+ * the running bundle's floor may still be offered a bundle built against a newer
+ * release. The server is what closes that: `min_update_version` per bundle,
+ * enforced under the channel's `metadata` strategy, and exactly per-platform once
+ * the two production channels land (docs/NATIVE-RELEASE.md). Permissive is the
+ * right side to err on for the client half — the alternative refuses the whole
+ * iOS population an update its binary can run, silently, because the App Store
+ * listing is not live and there is no prompt to show it.
+ *
+ * False on web and whenever the binary's own version cannot be read — see the
+ * fail-open reasoning above.
  */
 export async function needsStoreUpdate(bundleVersion: string): Promise<boolean> {
     const binary = await getBinaryInfo()
     if (!binary?.appVersion) return false
-    return bundleNeedsNewerBinary(bundleVersion, binary.appVersion)
+    return bundleNeedsNewerBinary(platformFloor() ?? bundleVersion, binary.appVersion)
 }

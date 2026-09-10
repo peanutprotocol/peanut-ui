@@ -30,20 +30,40 @@
 // Needs full history and tags (actions/checkout with fetch-depth: 0).
 
 import { execFileSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { readFileSync, realpathSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const PLAIN_SEMVER = /^(\d+)\.(\d+)\.(\d+)$/
 const CHANNEL_SEMVER = /^(\d+)\.(\d+)\.(\d+)(?:-[0-9A-Za-z.-]+)?$/
 
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+let repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
-try {
-    process.stdout.write(`${main(process.argv.slice(2))}\n`)
-} catch (err) {
-    console.error(`✗ release-version: ${err.message}`)
-    process.exit(1)
+export function setRepoRoot(root) {
+    repoRoot = resolve(root)
+}
+
+// Guarded so this file can be imported for its tag reader (ota-platform-floor)
+// without running the CLI and calling process.exit on a missing mode.
+// realpath, not resolve: the suite copies this script under os.tmpdir(), which on
+// macOS hands back /var/... while import.meta.url resolves to /private/var/...,
+// and a plain string compare would leave the CLI silently printing nothing.
+function invokedDirectly() {
+    if (!process.argv[1]) return false
+    try {
+        return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))
+    } catch {
+        return false
+    }
+}
+
+if (invokedDirectly()) {
+    try {
+        process.stdout.write(`${main(process.argv.slice(2))}\n`)
+    } catch (err) {
+        console.error(`✗ release-version: ${err.message}`)
+        process.exit(1)
+    }
 }
 
 function main(argv) {
@@ -136,7 +156,7 @@ function newestNative() {
 
 // Newest first, ordered numerically on (major, build) — `sort -V` semantics
 // without the shell.
-function allNativeReleases() {
+export function allNativeReleases() {
     return readTags()
         .map((tag) => /^v(\d+)\.(\d+)\.0$/.exec(tag))
         .filter(Boolean)

@@ -37,6 +37,8 @@ jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
 jest.mock('@/utils/capacitor', () => ({
     isCapacitor: () => platform.capacitor,
     isAndroidNativeBridge: () => platform.android,
+    // the store-update gate reads it to pick which platform's floor applies
+    isIOSNative: () => !platform.android,
 }))
 jest.mock('@/hooks/useSplashGate', () => ({ isSplashVisible: () => platform.splashVisible }))
 // Null by default so the store-update gate fails open and the cases below are

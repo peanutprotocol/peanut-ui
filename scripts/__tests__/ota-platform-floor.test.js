@@ -1,0 +1,155 @@
+/**
+ * Per-platform OTA floors. One release tag names two binaries and the field does
+ * not keep them in step, so "which binaries may receive this bundle" is a
+ * question about each platform's native surface, not about a version number.
+ */
+const { execFileSync } = require('child_process')
+const fs = require('fs')
+const os = require('os')
+const path = require('path')
+
+const REPO_ROOT = path.join(__dirname, '..', '..')
+const SCRIPT = path.join(REPO_ROOT, 'scripts', 'ota-platform-floor.mjs')
+
+// Its own repo per case: the tag list and the native surface at each tag are the
+// whole input, so asserting against this checkout would pin the suite to
+// whatever release history happens to exist.
+function makeRepo() {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ota-floor-'))
+    for (const rel of ['scripts', 'android/app/src/main', 'ios/App/App.xcodeproj', 'patches']) {
+        fs.mkdirSync(path.join(dir, rel), { recursive: true })
+    }
+    for (const name of ['ota-platform-floor.mjs', 'native-fingerprint.mjs', 'release-version.mjs']) {
+        fs.copyFileSync(path.join(REPO_ROOT, 'scripts', name), path.join(dir, 'scripts', name))
+    }
+    fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ version: '1.0.0' }))
+    write(dir, 'capacitor.config.ts', 'shared v1\n')
+    write(dir, 'android/app/src/main/AndroidManifest.xml', 'android v1\n')
+    write(dir, 'ios/App/App.xcodeproj/project.pbxproj', 'ios v1\n')
+
+    const git = (...args) => execFileSync('git', args, { cwd: dir, stdio: 'ignore' })
+    git('init', '-q')
+    // Hermetic against a developer's global signing config.
+    git('config', 'commit.gpgsign', 'false')
+    git('config', 'tag.gpgsign', 'false')
+    git('config', 'user.email', 't@t.t')
+    git('config', 'user.name', 't')
+    return { dir, git }
+}
+
+function write(dir, rel, contents) {
+    fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true })
+    fs.writeFileSync(path.join(dir, rel), contents)
+}
+
+function release({ dir, git }, tag) {
+    git('add', '-A')
+    git('commit', '-q', '-m', tag, '--allow-empty')
+    git('tag', '-a', tag, '-m', tag)
+}
+
+function floors(dir, ref = 'HEAD') {
+    const out = execFileSync('node', [SCRIPT, '--root', dir, '--ref', ref], { cwd: dir, encoding: 'utf8' })
+    return Object.fromEntries(
+        out
+            .trim()
+            .split('\n')
+            .map((line) => line.split('='))
+    )
+}
+
+function floorsFail(dir, platform) {
+    const res = require('child_process').spawnSync('node', [SCRIPT, '--root', dir, '--platform', platform], {
+        cwd: dir,
+        encoding: 'utf8',
+    })
+    return { status: res.status, stderr: res.stderr }
+}
+
+it('lets an untouched platform keep its older binaries', () => {
+    const repo = makeRepo()
+    release(repo, 'v1.4.0')
+    release(repo, 'v1.5.0')
+    // The v1.6.0 shape from the real incident: Android-only native change.
+    write(repo.dir, 'android/app/src/main/AndroidManifest.xml', 'android v2\n')
+    release(repo, 'v1.6.0')
+
+    expect(floors(repo.dir)).toEqual({
+        NEXT_PUBLIC_OTA_FLOOR_ANDROID: '1.6.0',
+        NEXT_PUBLIC_OTA_FLOOR_IOS: '1.4.0',
+    })
+})
+
+it('raises both floors for a shared input, which describes both binaries', () => {
+    const repo = makeRepo()
+    release(repo, 'v1.4.0')
+    write(repo.dir, 'capacitor.config.ts', 'shared v2\n')
+    release(repo, 'v1.5.0')
+
+    expect(floors(repo.dir)).toEqual({
+        NEXT_PUBLIC_OTA_FLOOR_ANDROID: '1.5.0',
+        NEXT_PUBLIC_OTA_FLOOR_IOS: '1.5.0',
+    })
+})
+
+it('raises only the iOS floor for an iOS-only change', () => {
+    const repo = makeRepo()
+    release(repo, 'v1.4.0')
+    write(repo.dir, 'ios/App/App.xcodeproj/project.pbxproj', 'ios v2\n')
+    release(repo, 'v1.5.0')
+
+    expect(floors(repo.dir)).toEqual({
+        NEXT_PUBLIC_OTA_FLOOR_ANDROID: '1.4.0',
+        NEXT_PUBLIC_OTA_FLOOR_IOS: '1.5.0',
+    })
+})
+
+// A native change made and then reverted does not make the binaries in between
+// able to run this JS — they are exactly the binaries the change was made for.
+it('stops at the first mismatch instead of reaching past it', () => {
+    const repo = makeRepo()
+    release(repo, 'v1.3.0')
+    write(repo.dir, 'android/app/src/main/AndroidManifest.xml', 'android interim\n')
+    release(repo, 'v1.4.0')
+    write(repo.dir, 'android/app/src/main/AndroidManifest.xml', 'android v1\n')
+    release(repo, 'v1.5.0')
+
+    expect(floors(repo.dir).NEXT_PUBLIC_OTA_FLOOR_ANDROID).toBe('1.5.0')
+})
+
+it('refuses when no shipped binary of that platform carries this surface', () => {
+    const repo = makeRepo()
+    release(repo, 'v1.5.0')
+    write(repo.dir, 'android/app/src/main/AndroidManifest.xml', 'unreleased\n')
+    repo.git('add', '-A')
+    repo.git('commit', '-q', '-m', 'drift')
+
+    const { status, stderr } = floorsFail(repo.dir, 'android')
+    expect(status).toBe(1)
+    expect(stderr).toContain("no shipped android binary carries this tree's native contract")
+    // iOS is untouched, so it still resolves — the platforms are independent.
+    expect(
+        execFileSync('node', [SCRIPT, '--root', repo.dir, '--platform', 'ios'], {
+            cwd: repo.dir,
+            encoding: 'utf8',
+        }).trim()
+    ).toBe('1.5.0')
+})
+
+it('refuses a repository with no native release at all', () => {
+    const repo = makeRepo()
+    repo.git('add', '-A')
+    repo.git('commit', '-q', '-m', 'no releases')
+
+    const { status, stderr } = floorsFail(repo.dir, 'android')
+    expect(status).toBe(1)
+    expect(stderr).toMatch(/no v\*? ?tags?|no v<major>/)
+})
+
+it('rejects an unknown platform', () => {
+    const repo = makeRepo()
+    release(repo, 'v1.5.0')
+    const { status, stderr } = floorsFail(repo.dir, 'windows')
+    expect(status).toBe(1)
+    expect(stderr).toContain('platform must be android or ios')
+})

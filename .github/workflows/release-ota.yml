@@ -1,12 +1,25 @@
 name: App Release OTA
 
-# The single entry point for a production OTA. Click "Run workflow" on `dev`, `main`, or `release/android-kyc`; the
-# bundle version is resolved from the channel's current bundle, not typed.
+# The single entry point for a production OTA. It runs itself on every push to
+# `main`, and `main` is the only ref it will ever ship from. The bundle version is
+# resolved from the channel's current bundle, not typed.
 #
-# Nothing here is automatic — this is a deliberate second step after the code is
-# on an approved release ref, saying "ship this JS to everyone", exactly as the `git tag ota-… &&
-# git push` it replaces, minus the hand-picked number. This workflow does not
-# publish or verify a staging bundle; the release-ref guard is its provenance gate.
+# One release line, one trigger. The alternative — a human choosing a ref at
+# dispatch time — is what shipped bundle 1.6.1 from a `main` two days behind the
+# v1.6.0 release, handing every device on the new binary JS older than its own.
+# Merging to `main` IS the decision to ship; there is no second one to get wrong,
+# and no other ref to pick. Anything not ready for every install stops at `dev`,
+# where **App Staging OTA** publishes it to a channel no production device sees.
+#
+# workflow_dispatch stays for re-running a failed ship, and is guarded to `main`
+# exactly like the push trigger — selecting another branch is refused, not
+# silently honoured.
+#
+# NOTE: automatic means automatic. The `deploy` job declares the Production
+# environment, which today has no protection rules, so a merge reaches every
+# install with nobody approving it. Adding required reviewers under
+# Settings → Environments → Production restores a human gate without touching
+# this file, and is the recommended pairing for this trigger.
 #
 # The version always lands inside the current native build's range
 # (<major>.<build>.<ota+1>), so it cannot sort below the binary it targets — the
@@ -18,6 +31,8 @@ name: App Release OTA
 # leaves no tag, so a re-run resolves the same number instead of burning one.
 
 on:
+    push:
+        branches: [main]
     workflow_dispatch:
 
 permissions:
@@ -38,12 +53,14 @@ jobs:
         outputs:
             version: ${{ steps.resolve.outputs.version }}
         steps:
-            # An OTA reaches every shipped install. Restrict the selected branch;
-            # release QA must verify its commit before this manual dispatch.
+            # An OTA reaches every shipped install, so there is exactly one ref it
+            # may come from. The push trigger already restricts itself to `main`;
+            # this also covers workflow_dispatch, which GitHub offers on every
+            # branch. Refusing loudly beats shipping whatever ref was selected.
             - name: Guard release ref
               run: |
-                  if [ "$GITHUB_REF_NAME" != "dev" ] && [ "$GITHUB_REF_NAME" != "main" ] && [ "$GITHUB_REF_NAME" != "release/android-kyc" ]; then
-                      echo "::error::OTAs are shipped from dev, main, or release/android-kyc, not $GITHUB_REF_NAME" >&2
+                  if [ "$GITHUB_REF_NAME" != "main" ]; then
+                      echo "::error::production OTAs ship from main only, not $GITHUB_REF_NAME — merge to main, or use App Staging OTA for a channel no production device sees" >&2
                       exit 1
                   fi
 
@@ -169,6 +186,24 @@ jobs:
             # IS_NATIVE_BUILD / GIT_COMMIT_HASH are auto-baked by next.config.native.js.
             # Delimiter is quoted: a secret holding $ or a backtick must land in the
             # file verbatim, not be expanded — or executed — by the shell.
+            # Before the bake: these two land in the static export, so the bundle
+            # carries the oldest binary of each platform it may run on. Also an
+            # early surface check — the resolver refuses outright when no shipped
+            # binary of a platform carries this tree's contract, which is the same
+            # condition "Check the native surface" fails on, minus the build.
+            - name: Resolve per-platform OTA floors
+              id: ota_floors
+              run: |
+                  ANDROID="$(node scripts/ota-platform-floor.mjs --platform android)"
+                  IOS="$(node scripts/ota-platform-floor.mjs --platform ios)"
+                  LOWEST="$(node scripts/ota-platform-floor.mjs --lowest)"
+                  {
+                    echo "android=$ANDROID"
+                    echo "ios=$IOS"
+                    echo "lowest=$LOWEST"
+                  } >> "$GITHUB_OUTPUT"
+                  echo "Delivery floors — android $ANDROID, ios $IOS (channel floor $LOWEST)"
+
             - name: Bake production NEXT_PUBLIC_* into the static export
               run: |
                   cat > .env.production.local <<'EOF'
@@ -187,6 +222,8 @@ jobs:
                   NEXT_PUBLIC_ONESIGNAL_APP_ID=${{ secrets.NEXT_PUBLIC_ONESIGNAL_APP_ID }}
                   NEXT_PUBLIC_SAFARI_WEB_ID=${{ vars.NEXT_PUBLIC_SAFARI_WEB_ID }}
                   NEXT_PUBLIC_ONESIGNAL_WEBHOOK=${{ vars.NEXT_PUBLIC_ONESIGNAL_WEBHOOK }}
+                  NEXT_PUBLIC_OTA_FLOOR_ANDROID=${{ steps.ota_floors.outputs.android }}
+                  NEXT_PUBLIC_OTA_FLOOR_IOS=${{ steps.ota_floors.outputs.ios }}
                   EOF
 
             - name: Build native static export
@@ -239,7 +276,13 @@ jobs:
                   COMMIT_MSG: ${{ github.event.head_commit.message }}
                   CHANNEL: production
                   VERSION: ${{ steps.version.outputs.name }}
-                  NATIVE_FLOOR: ${{ steps.native_floor.outputs.name }}
+                  # The lower of the two platform floors. One bundle serves both
+                  # platforms and Capgo carries one min_update_version, so the
+                  # server takes the permissive bound and the on-device gate
+                  # applies each platform's own — the newest native release would
+                  # have the server refuse the population the floors exist to keep
+                  # served (iOS 1.5.0, while every input that moved was android/).
+                  NATIVE_FLOOR: ${{ steps.ota_floors.outputs.lowest }}
               run: |
                   echo "Uploading bundle $VERSION to channel $CHANNEL"
                   COMMENT="${GITHUB_SHA:0:7} — $(printf '%s' "${COMMIT_MSG:-Manual deploy}" | head -n1)"
