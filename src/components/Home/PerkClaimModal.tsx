@@ -1,7 +1,7 @@
 'use client'
 
 import { type PendingPerk } from '@/services/perks'
-import ActionModal from '@/components/Global/ActionModal'
+import { Drawer, DrawerContent } from '@/components/Global/Drawer'
 import { usePerkClaimFlow } from './usePerkClaimFlow'
 import { PerkClaimSuccessModal } from './PerkClaimSuccessModal'
 import { PerkClaimGiftBox } from './PerkClaimGiftBox'
@@ -14,9 +14,8 @@ interface PerkClaimModalProps {
 }
 
 /**
- * Modal for claiming perks with gift box animation.
+ * Drawer for claiming perks with gift box animation.
  * Contains the shake/hold interaction, confetti, and success state.
- * Uses ActionModal for consistent styling with other modals.
  */
 function PerkClaimModal({ perk, visible, onClose, onClaimed }: PerkClaimModalProps) {
     const { claimPhase, lastClaimedPerk, isSuccessPhase, handleHoldComplete, handleDismissSuccess, handleModalClose } =
@@ -24,7 +23,7 @@ function PerkClaimModal({ perk, visible, onClose, onClaimed }: PerkClaimModalPro
 
     if (!visible) return null
 
-    // Use ActionModal's native props for success phase, custom content for gift box phase
+    // The success phase renders its own sheet, the gift box phase this one
     if (isSuccessPhase) {
         return (
             <PerkClaimSuccessModal
@@ -37,13 +36,21 @@ function PerkClaimModal({ perk, visible, onClose, onClaimed }: PerkClaimModalPro
     }
 
     return (
-        <ActionModal
-            visible={visible}
-            onClose={handleModalClose}
-            title=""
-            preventClose={claimPhase === 'opening'}
-            content={<PerkClaimGiftBox perk={perk} onHoldComplete={handleHoldComplete} claimPhase={claimPhase} />}
-        />
+        <Drawer
+            open={visible}
+            // an opening gift must not be abandoned mid-animation
+            dismissible={claimPhase !== 'opening'}
+            onOpenChange={(open) => {
+                if (!open && claimPhase !== 'opening') handleModalClose()
+            }}
+        >
+            <DrawerContent accessibleTitle="claim your reward">
+                {/* data-vaul-no-drag: the shake/hold gift gesture must not start a drawer drag */}
+                <div className="flex flex-col items-center pt-1 pb-6 text-center" data-vaul-no-drag>
+                    <PerkClaimGiftBox perk={perk} onHoldComplete={handleHoldComplete} claimPhase={claimPhase} />
+                </div>
+            </DrawerContent>
+        </Drawer>
     )
 }
 

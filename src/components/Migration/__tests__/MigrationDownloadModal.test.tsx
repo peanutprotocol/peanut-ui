@@ -44,21 +44,6 @@ jest.mock('@/utils/general.utils', () => ({
 
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 
-jest.mock('@/components/Global/ActionModal', () => ({
-    __esModule: true,
-    default: (props: { visible: boolean; title?: string; ctas?: { text: string; onClick?: () => void }[] }) =>
-        props.visible ? (
-            <div data-testid="modal">
-                <h3>{props.title}</h3>
-                {props.ctas?.map((c) => (
-                    <button key={c.text} onClick={c.onClick}>
-                        {c.text}
-                    </button>
-                ))}
-            </div>
-        ) : null,
-}))
-
 import MigrationDownloadModal from '../MigrationDownloadModal'
 
 let nowSpy: jest.SpyInstance<number, []>
@@ -76,40 +61,40 @@ afterEach(() => {
 describe('MigrationDownloadModal', () => {
     it('renders nothing while the pwa-sunset flag is off', () => {
         render(<MigrationDownloadModal />)
-        expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 
     it('shows for a logged-in web user during the notice window', () => {
         mockFlagOn = true
         render(<MigrationDownloadModal />)
-        expect(screen.getByTestId('modal')).toBeInTheDocument()
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
     })
 
     it('stays hidden inside the native app', () => {
         mockFlagOn = true
         mockIsCapacitor = true
         render(<MigrationDownloadModal />)
-        expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 
     it('stays hidden while a recent snooze is active, reappears after it expires', () => {
         mockFlagOn = true
         mockGetPrefs.mockReturnValue({ migrationPromptSnoozedAt: new Date(FROZEN_NOW).toISOString() })
         const { unmount } = render(<MigrationDownloadModal />)
-        expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
         unmount()
 
         const justExpired = new Date(FROZEN_NOW - (DOWNLOAD_PROMPT_SNOOZE_DAYS + 1) * DAY_MS).toISOString()
         mockGetPrefs.mockReturnValue({ migrationPromptSnoozedAt: justExpired })
         render(<MigrationDownloadModal />)
-        expect(screen.getByTestId('modal')).toBeInTheDocument()
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
     })
 
     it('stays hidden past the cutover (the sunset block owns that state)', () => {
         mockFlagOn = true
         nowSpy.mockReturnValue(MIGRATION_CUTOVER_DATE.getTime() + 1000)
         render(<MigrationDownloadModal />)
-        expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 
     it('remind-me-later snoozes and reports visibility', () => {
@@ -118,8 +103,10 @@ describe('MigrationDownloadModal', () => {
         render(<MigrationDownloadModal onVisibilityChange={onVisibilityChange} />)
         expect(onVisibilityChange).toHaveBeenLastCalledWith(true)
 
-        fireEvent.click(screen.getByRole('button'))
-        expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: /later/i }))
+        // vaul keeps the closing sheet mounted for its exit animation; the
+        // state attribute is the honest closed signal in jsdom
+        expect(screen.getByRole('dialog')).toHaveAttribute('data-state', 'closed')
         expect(mockUpdatePrefs).toHaveBeenCalledWith('user-1', {
             migrationPromptSnoozedAt: expect.any(String),
         })

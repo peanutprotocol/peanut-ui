@@ -6,7 +6,8 @@ import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 import Image from 'next/image'
 import PEANUT_LOGO_BLACK from '@/assets/logos/peanut-logo-dark.svg'
 import { PEANUTMAN } from '@/assets/mascot'
-import ActionModal from '@/components/Global/ActionModal'
+import { Button } from '@/components/0_Bruddle/Button'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { PeanutWhistling } from '@/assets/mascot'
 
 const NoMoreJailModal = () => {
@@ -28,46 +29,36 @@ const NoMoreJailModal = () => {
     }, [])
 
     return (
-        <ActionModal
-            hideOverlay
-            modalPanelClassName="rounded-none border-0"
-            contentContainerClassName="isolate"
-            visible={isOpen}
-            onClose={onClose}
-            title={t('noMoreJailModal.title')}
-            description={
-                <p>
-                    {t('noMoreJailModal.line1')}
-                    <br />
-                    {t('noMoreJailModal.line2')}
-                </p>
-            }
-            ctas={[
-                {
-                    text: '',
-                    shadowSize: '4',
-                    variant: 'purple',
-                    onClick: onClose,
-                    children: (
-                        <>
-                            <div>{t('noMoreJailModal.startUsingCta')}</div>
-                            <div className="flex items-center gap-1">
-                                <Image src={PEANUTMAN} alt="Peanut Logo" className="size-5" />
-                                <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
-                            </div>
-                        </>
-                    ),
-                },
-            ]}
-            footerIsDecorative
-            footer={
-                <div className="absolute top-6 left-0 -z-10 flex w-full -translate-y-[80%] justify-center">
+        <Drawer
+            open={isOpen}
+            onOpenChange={(open) => {
+                if (!open) onClose()
+            }}
+        >
+            <DrawerContent>
+                <div className="flex flex-col items-center pt-1 pb-6 text-center">
+                    {/* the whistling mascot leads the sheet — the celebration IS the content */}
                     <div className="relative h-42 w-[90%] md:h-52">
                         <Image src={PeanutWhistling.src} unoptimized alt="Peanut Man" className="object-contain" fill />
                     </div>
+                    <DrawerHeader className="mb-3 w-full gap-2 p-0 text-center sm:text-center">
+                        <DrawerTitle>{t('noMoreJailModal.title')}</DrawerTitle>
+                        <DrawerDescription>
+                            {t('noMoreJailModal.line1')}
+                            <br />
+                            {t('noMoreJailModal.line2')}
+                        </DrawerDescription>
+                    </DrawerHeader>
+                    <Button variant="purple" shadowSize="4" className="w-full justify-center gap-2" onClick={onClose}>
+                        <div>{t('noMoreJailModal.startUsingCta')}</div>
+                        <div className="flex items-center gap-1">
+                            <Image src={PEANUTMAN} alt="Peanut Logo" className="size-5" />
+                            <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
+                        </div>
+                    </Button>
                 </div>
-            }
-        />
+            </DrawerContent>
+        </Drawer>
     )
 }
 

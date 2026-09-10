@@ -3,6 +3,9 @@ import { useEffect, useState } from 'react'
 import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
+import { Button } from '@/components/0_Bruddle/Button'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import DownloadQR from '@/components/Migration/DownloadQR'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 import {
@@ -78,37 +81,87 @@ export default function MigrationDownloadModal({
         onClick: snooze,
     }
 
-    return (
-        <ActionModal
-            visible={visible}
-            onClose={snooze}
-            icon="mobile-install"
-            title={t(isUrgent ? 'downloadPrompt.title' : 'downloadPrompt.earlyTitle')}
-            description={
-                isUrgent ? t('downloadPrompt.description', { days: daysLeft }) : t('downloadPrompt.earlyDescription')
-            }
-            content={isDesktop ? <DownloadQR surface={MIGRATION_SURFACES.DOWNLOAD_MODAL} /> : undefined}
-            ctaClassName="md:flex-col gap-4"
-            ctas={
-                isDesktop
-                    ? [remindLaterCta]
-                    : [
-                          {
-                              text: STORE_NAME[store],
-                              variant: 'purple',
-                              shadowSize: '4',
-                              icon: store === 'ios' ? ('apple-logo' as const) : ('google-play' as const),
-                              onClick: () => {
-                                  posthog.capture(ANALYTICS_EVENTS.MODAL_CTA_CLICKED, {
-                                      modal_type: MODAL_TYPES.MIGRATION_DOWNLOAD,
-                                      cta: 'store',
-                                  })
-                                  openStore(store, MIGRATION_SURFACES.DOWNLOAD_MODAL)
+    // the urgent-deadline stretch is a real interruption and stays a modal;
+    // the early promo nag is not urgent, so it rides in a drawer (rule: modal
+    // only for content that demands immediate attention)
+    if (isUrgent) {
+        return (
+            <ActionModal
+                visible={visible}
+                onClose={snooze}
+                icon="mobile-install"
+                title={t('downloadPrompt.title')}
+                description={t('downloadPrompt.description', { days: daysLeft })}
+                content={isDesktop ? <DownloadQR surface={MIGRATION_SURFACES.DOWNLOAD_MODAL} /> : undefined}
+                ctaClassName="md:flex-col gap-4"
+                ctas={
+                    isDesktop
+                        ? [remindLaterCta]
+                        : [
+                              {
+                                  text: STORE_NAME[store],
+                                  variant: 'purple',
+                                  shadowSize: '4',
+                                  icon: store === 'ios' ? ('apple-logo' as const) : ('google-play' as const),
+                                  onClick: () => {
+                                      posthog.capture(ANALYTICS_EVENTS.MODAL_CTA_CLICKED, {
+                                          modal_type: MODAL_TYPES.MIGRATION_DOWNLOAD,
+                                          cta: 'store',
+                                      })
+                                      openStore(store, MIGRATION_SURFACES.DOWNLOAD_MODAL)
+                                  },
                               },
-                          },
-                          remindLaterCta,
-                      ]
-            }
-        />
+                              remindLaterCta,
+                          ]
+                }
+            />
+        )
+    }
+
+    return (
+        <Drawer
+            open={visible}
+            onOpenChange={(open) => {
+                if (!open) snooze()
+            }}
+        >
+            <DrawerContent>
+                <div className="flex flex-col items-center pt-1 pb-6 text-center">
+                    {/* the head owns the M/12 beneath it; everything after it
+                        keeps the drawer's L/16 rhythm */}
+                    <div className="mb-3 flex w-full flex-col items-center gap-4">
+                        <IconBubble icon="mobile-install" className="bg-action-primary" />
+                        <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
+                            <DrawerTitle>{t('downloadPrompt.earlyTitle')}</DrawerTitle>
+                            <DrawerDescription>{t('downloadPrompt.earlyDescription')}</DrawerDescription>
+                        </DrawerHeader>
+                    </div>
+                    <div className="flex w-full flex-col items-center gap-4">
+                        {isDesktop ? (
+                            <DownloadQR surface={MIGRATION_SURFACES.DOWNLOAD_MODAL} />
+                        ) : (
+                            <Button
+                                variant="purple"
+                                shadowSize="4"
+                                icon={store === 'ios' ? 'apple-logo' : 'google-play'}
+                                className="w-full justify-center"
+                                onClick={() => {
+                                    posthog.capture(ANALYTICS_EVENTS.MODAL_CTA_CLICKED, {
+                                        modal_type: MODAL_TYPES.MIGRATION_DOWNLOAD,
+                                        cta: 'store',
+                                    })
+                                    openStore(store, MIGRATION_SURFACES.DOWNLOAD_MODAL)
+                                }}
+                            >
+                                {STORE_NAME[store]}
+                            </Button>
+                        )}
+                        <Button variant="stroke" className="w-full justify-center" onClick={snooze}>
+                            {t('downloadPrompt.maybeLater')}
+                        </Button>
+                    </div>
+                </div>
+            </DrawerContent>
+        </Drawer>
     )
 }
