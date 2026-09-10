@@ -1,6 +1,6 @@
 import { redactQrTelemetry, redactQrTelemetryString, maskQrReplayRequest } from '@/utils/qr-telemetry-privacy'
 import { APP_RELEASE } from '@/constants/app-release'
-import { ANALYTICS_INGESTION_OPT_OUT_FLAG } from '@/constants/analytics.consts'
+import { suppressDuplicateLogin } from '@/utils/login-once-per-session'
 import posthog from 'posthog-js'
 import { beforeSendHandler } from './sentry.utils'
 import { inferSentryEnvironment } from '@/utils/sentry-env'
@@ -49,20 +49,7 @@ if (
         // persisted — so a late register left the first open after an OTA
         // carrying the PREVIOUS bundle's release. `loaded` runs before that
         // first capture, which is the whole point of the denominator.
-        loaded: (ph) => {
-            ph.register({ app_release: APP_RELEASE })
-            // Excluded/farm accounts (the cohort behind this flag) are dropped at
-            // the source: dashboard filters hide their events but ingestion is
-            // still billed (TASK-22516). Symmetric so removal from the cohort
-            // resumes capture on the next flags load.
-            ph.onFeatureFlags(() => {
-                if (ph.isFeatureEnabled(ANALYTICS_INGESTION_OPT_OUT_FLAG)) {
-                    if (!ph.has_opted_out_capturing()) ph.opt_out_capturing()
-                } else if (ph.has_opted_out_capturing()) {
-                    ph.opt_in_capturing()
-                }
-            })
-        },
+        loaded: (ph) => ph.register({ app_release: APP_RELEASE }),
         capture_pageleave: true,
         // The payment explorer contains team-only identity and relationship data.
         // Drop every event on client navigation; direct loads skip init above.
@@ -75,6 +62,10 @@ if (
             // it here (TASK-22408).
             if (isNativeFetchRejectionExceptionEvent(event)) return null
             if (event?.event) noteAppReviewFriction(event.event)
+            // Once-per-session login: runs here, after capture assigned/rotated
+            // $session_id — a pre-capture get_session_id() guard misses idle-
+            // resumed sessions and double-counts reloads (TASK-22516).
+            if (suppressDuplicateLogin(event) === null) return null
             return redactQrTelemetry(event)
         },
         // Off everywhere since 2026-09-10 (server-side toggle, mirrored here):

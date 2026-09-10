@@ -16,12 +16,7 @@ jest.mock('@/utils/auth-token', () => ({
 }))
 jest.mock('@/hooks/usePWAStatus', () => ({ usePWAStatus: () => false, isStandaloneDisplayMode: () => false }))
 jest.mock('@/hooks/useGetDeviceType', () => ({ useDeviceType: () => ({ deviceType: 'desktop' }) }))
-jest.mock('posthog-js', () => {
-    // one shared instance so the hook resolves the same mocks whichever
-    // interop path (default vs namespace) jest picks
-    const instance = { capture: jest.fn(), get_session_id: jest.fn(() => '') }
-    return { ...instance, default: instance }
-})
+jest.mock('posthog-js', () => ({ default: { capture: jest.fn() }, capture: jest.fn() }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: jest.fn(() => false) }))
 // demo-api → demo → general.utils → app/actions/clients starts viem timers that keep the worker alive
 jest.mock('@/app/actions/clients', () => ({}))
@@ -235,41 +230,5 @@ describe('useUserQuery transient failures', () => {
         expect(refreshed.data).toEqual(profile)
         expect(refreshed.isError).toBe(true)
         expect(mockClearAuthToken).not.toHaveBeenCalled()
-    })
-})
-
-describe('useUserQuery — login capture dedupe (TASK-22516)', () => {
-    const posthogMock = jest.requireMock('posthog-js').default
-
-    beforeEach(() => {
-        jest.clearAllMocks()
-        mockApiFetch.mockReset()
-    })
-
-    const loginCalls = () => posthogMock.capture.mock.calls.filter(([event]: [string]) => event === 'login')
-
-    it('captures login once per PostHog session across refetches', async () => {
-        posthogMock.get_session_id.mockReturnValue('ph-session-A')
-        mockApiFetch.mockResolvedValue(mockResponse(200, { user: { userId: 'u1', username: 'alice' } }))
-
-        const { result } = renderHook(() => useUserQuery(), { wrapper: makeWrapper() })
-        await waitFor(() => expect(result.current.isSuccess).toBe(true), { timeout: 5000 })
-        await result.current.refetch()
-
-        expect(loginCalls()).toHaveLength(1)
-    })
-
-    it('captures again when the PostHog session changes', async () => {
-        posthogMock.get_session_id.mockReturnValue('ph-session-B')
-        mockApiFetch.mockResolvedValue(mockResponse(200, { user: { userId: 'u1', username: 'alice' } }))
-
-        const { result } = renderHook(() => useUserQuery(), { wrapper: makeWrapper() })
-        await waitFor(() => expect(result.current.isSuccess).toBe(true), { timeout: 5000 })
-        expect(loginCalls()).toHaveLength(1)
-
-        posthogMock.get_session_id.mockReturnValue('ph-session-C')
-        await result.current.refetch()
-
-        expect(loginCalls()).toHaveLength(2)
     })
 })
