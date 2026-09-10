@@ -58,6 +58,24 @@ describe('post-auth redirect consumption', () => {
         expect(getRedirectUrl()).toBe(FINANCIAL_REDIRECT)
     })
 
+    /*
+     * Order matters where the two rules overlap: a claim or request route that
+     * a PREVIOUS session was standing on is still that session's, so it is
+     * refused and consumed rather than held for the new account to continue.
+     * Deferral exists to carry a continuation forward for the same person.
+     */
+    it('refuses a session-end money route for a new account instead of deferring it', () => {
+        setRedirectUrl(FINANCIAL_REDIRECT, 'session-end')
+
+        expect(
+            consumePostAuthRedirect(null, {
+                rejectSessionEndOrigin: true,
+                deferStoredRedirect: (destination) => destination.includes('/claim'),
+            })
+        ).toEqual({ destination: '/home', source: 'fallback', deferred: false })
+        expect(getRedirectUrl()).toBeNull()
+    })
+
     it('never defers an unsafe stored URL merely because its text matches the predicate', () => {
         saveToLocalStorage('redirect', 'https://attacker.example/claim')
 
