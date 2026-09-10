@@ -171,6 +171,44 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Withdraw amount step (crypto): USD amount entry with balance and Continue.',
         responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] } },
     },
+    // Crypto address book beside the saved bank accounts. The three entries hit
+    // the three last-used pill tones against the shots' frozen clock
+    // (2026-08-15): <7d recent, 7-30d aging, 30+d stale.
+    'withdraw-address-book': {
+        route: '/withdraw',
+        about: 'Withdraw with saved bank accounts and a crypto address book (all three last-used tones).',
+        responses: {
+            'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] },
+            'GET /users/saved-addresses': {
+                savedAddresses: [
+                    {
+                        id: 'fixture-saved-1',
+                        address: '0x28c6c06298d514db089934071355e5743bf21d60',
+                        chainId: '42161',
+                        nickname: 'Binance',
+                        lastUsedAt: '2026-08-14T09:00:00.000Z',
+                        createdAt: '2026-05-01T00:00:00.000Z',
+                    },
+                    {
+                        id: 'fixture-saved-2',
+                        address: '0x8894e0a0c962cb723c1976a4421c95949be2d4e3',
+                        chainId: '8453',
+                        nickname: 'Ledger',
+                        lastUsedAt: '2026-08-03T09:00:00.000Z',
+                        createdAt: '2026-04-10T00:00:00.000Z',
+                    },
+                    {
+                        id: 'fixture-saved-3',
+                        address: 'TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE',
+                        chainId: 'tron',
+                        nickname: 'OKX',
+                        lastUsedAt: '2026-06-10T09:00:00.000Z',
+                        createdAt: '2026-03-01T00:00:00.000Z',
+                    },
+                ],
+            },
+        },
+    },
     // ?amount= arrives from the shared amount step and opens the bank-details
     // form directly — the first Field-composed form (TASK-21454).
     'withdraw-bank-form': {

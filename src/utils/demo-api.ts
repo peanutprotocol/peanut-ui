@@ -392,6 +392,8 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         handler: () => ({ contacts: DEMO_CONTACTS, total: DEMO_CONTACTS.length, hasMore: false }),
     },
     { method: 'GET', pattern: '/users/limits', handler: () => DEMO_LIMITS },
+    // empty by default — the address-book fixtures override this with entries
+    { method: 'GET', pattern: '/users/saved-addresses', handler: () => ({ savedAddresses: [] }) },
     { method: 'GET', pattern: '/users/history', handler: () => ({ entries: DEMO_HISTORY_ENTRIES, hasMore: false }) },
     { method: 'GET', pattern: '/users/bridge-tos-link', handler: () => ({ tosLink: '' }) },
     { method: 'POST', pattern: '/users/bridge-tos-confirm', handler: () => ({ accepted: true }) },
