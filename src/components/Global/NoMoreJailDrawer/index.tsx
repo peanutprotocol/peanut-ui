@@ -17,12 +17,12 @@ const NoMoreJailDrawer = () => {
     const onClose = () => {
         posthog.capture(ANALYTICS_EVENTS.MODAL_CTA_CLICKED, { modal_type: MODAL_TYPES.POST_SIGNUP, cta: 'start_using' })
         setisOpen(false)
-        sessionStorage.removeItem('showNoMoreJailDrawer')
+        sessionStorage.removeItem('showNoMoreJailModal')
     }
 
     useEffect(() => {
-        const showNoMoreJailDrawer = sessionStorage.getItem('showNoMoreJailDrawer')
-        if (showNoMoreJailDrawer === 'true') {
+        const showNoMoreJailModal = sessionStorage.getItem('showNoMoreJailModal')
+        if (showNoMoreJailModal === 'true') {
             setisOpen(true)
             posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.POST_SIGNUP })
         }

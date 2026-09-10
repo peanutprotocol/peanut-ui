@@ -221,7 +221,7 @@ const JoinWaitlistPage = () => {
             return 'campaign_only'
         }
         posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, { invite_code: code, source })
-        sessionStorage.setItem('showNoMoreJailDrawer', 'true')
+        sessionStorage.setItem('showNoMoreJailModal', 'true')
         clearInvite()
         await fetchUser()
         return 'onboarding_resolved'

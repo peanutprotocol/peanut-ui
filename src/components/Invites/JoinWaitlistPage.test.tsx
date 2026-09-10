@@ -136,7 +136,7 @@ describe('JoinWaitlistPage invite onboarding boundary', () => {
                 expect.objectContaining({ campaignTag: 'offramp' }),
                 [expect.objectContaining({ badgeCampaign: 'offramp', badgeCode: 'OFFRAMP_USER', outcome })]
             )
-            expect(sessionStorage.getItem('showNoMoreJailDrawer')).toBeNull()
+            expect(sessionStorage.getItem('showNoMoreJailModal')).toBeNull()
             expect(mockClearInvite).toHaveBeenCalled()
             if (shouldRefresh) expect(mockFetchUser).toHaveBeenCalledTimes(1)
             else expect(mockFetchUser).not.toHaveBeenCalled()

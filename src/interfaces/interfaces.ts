@@ -288,7 +288,7 @@ export interface IUserProfile {
     user: User
     rails: IUserRail[]
     invitesSent: userInvites[]
-    showEarlyUserDrawer: boolean
+    showEarlyUserModal: boolean
     invitedBy: string | null // Username of the person who invited this user
     // Backend-computed capability model — TOP-LEVEL sibling of `user` on the
     // /get-user response (NOT user.capabilities). Read via useCapabilities().

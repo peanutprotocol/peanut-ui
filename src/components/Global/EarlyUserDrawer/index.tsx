@@ -19,7 +19,7 @@ const EarlyUserDrawer = () => {
     const hasTrackedShow = useRef(false)
 
     useEffect(() => {
-        if (user && user.showEarlyUserDrawer) {
+        if (user && user.showEarlyUserModal) {
             setShowModal(true)
             if (!hasTrackedShow.current) {
                 hasTrackedShow.current = true
@@ -31,7 +31,7 @@ const EarlyUserDrawer = () => {
     const handleCloseModal = async () => {
         posthog.capture(ANALYTICS_EVENTS.MODAL_DISMISSED, { modal_type: MODAL_TYPES.EARLY_USER })
         setShowModal(false)
-        await updateUserById({ userId: user?.user.userId, hasSeenEarlyUserDrawer: true })
+        await updateUserById({ userId: user?.user.userId, hasSeenEarlyUserModal: true })
         fetchUser()
     }
 

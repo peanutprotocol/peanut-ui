@@ -224,7 +224,7 @@ export const SURFACES: Record<string, Surface> = {
     '17-a-nomorejailmodal': {
         name: 'NoMoreJailDrawer',
         path: 'Global/NoMoreJailDrawer/index.tsx',
-        // opens off sessionStorage showNoMoreJailDrawer, which the spec seeds
+        // opens off sessionStorage showNoMoreJailModal, which the spec seeds
         render: () => <NoMoreJailDrawer />,
     },
     '18-a-reconsentmodal': {

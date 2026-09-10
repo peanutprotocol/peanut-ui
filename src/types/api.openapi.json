@@ -16691,7 +16691,7 @@
                                     "fullName": {
                                         "type": "string"
                                     },
-                                    "hasSeenEarlyUserDrawer": {
+                                    "hasSeenEarlyUserModal": {
                                         "type": "boolean"
                                     },
                                     "locale": {

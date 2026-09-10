@@ -10412,7 +10412,7 @@ export interface paths {
                         dismissActivationCelebration?: boolean;
                         email?: string;
                         fullName?: string;
-                        hasSeenEarlyUserDrawer?: boolean;
+                        hasSeenEarlyUserModal?: boolean;
                         locale?: string;
                         offrampHandle?: string;
                         pushSubscriptionId?: string;

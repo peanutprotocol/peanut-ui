@@ -125,7 +125,7 @@ const CAPTURES: Capture[] = [
 ]
 
 function seenOnceModals(): void {
-    window.sessionStorage.setItem('showNoMoreJailDrawer', 'true')
+    window.sessionStorage.setItem('showNoMoreJailModal', 'true')
     window.localStorage.setItem('peanut_demo_activation_celebrated_at', '2026-01-01T00:00:00.000Z')
     window.localStorage.setItem(
         'demo-user:user-preferences',
