@@ -30,8 +30,14 @@ const SNOOZE_MS = DOWNLOAD_PROMPT_SNOOZE_DAYS * 24 * 60 * 60 * 1000
  */
 export default function MigrationDownloadModal({
     onVisibilityChange,
+    forceVariant,
 }: {
     onVisibilityChange?: (visible: boolean) => void
+    /** Dev-surface override: render this variant unconditionally so the shot
+     *  harness can photograph a sheet that otherwise gates itself on the
+     *  PostHog flag, the cutover clock and the stored snooze. Never set in
+     *  production code. */
+    forceVariant?: 'early' | 'urgent'
 }) {
     const t = useTranslations('migration')
     const migrationOn = useMigrationFlag()
@@ -42,6 +48,10 @@ export default function MigrationDownloadModal({
     const userId = user?.user.userId
 
     useEffect(() => {
+        if (forceVariant) {
+            setVisible(true)
+            return
+        }
         // sunset block owns post-cutover; every ineligible path clears state so
         // an already-shown modal disappears if the flag flips off mid-session
         if (!migrationOn || !userId || isCapacitor() || Date.now() >= getMigrationCutoverTime()) {
@@ -55,7 +65,7 @@ export default function MigrationDownloadModal({
         }
         setVisible(true)
         posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.MIGRATION_DOWNLOAD })
-    }, [migrationOn, userId])
+    }, [migrationOn, userId, forceVariant])
 
     useEffect(() => {
         onVisibilityChange?.(visible)
@@ -73,7 +83,7 @@ export default function MigrationDownloadModal({
 
     // two-phase copy: celebrate the app while the cutover is far, switch to
     // friendly urgency (deadline in the copy) for the final stretch
-    const isUrgent = daysLeft <= MIGRATION_URGENCY_THRESHOLD_DAYS
+    const isUrgent = forceVariant ? forceVariant === 'urgent' : daysLeft <= MIGRATION_URGENCY_THRESHOLD_DAYS
 
     const remindLaterCta = {
         text: t(isUrgent ? 'downloadPrompt.remindLater' : 'downloadPrompt.maybeLater'),

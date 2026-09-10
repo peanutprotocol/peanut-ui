@@ -61,6 +61,7 @@ import { FAQsPanel } from '@/components/Global/FAQs'
 import { BackupFaqModals } from '@/components/Profile/BackupFaqModals'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
 import { ContributorsDrawer } from '@/features/payments/flows/contribute-pot/components/ContributorsDrawer'
+import MigrationDownloadModal from '@/components/Migration/MigrationDownloadModal'
 import PerkClaimModal from '@/components/Home/PerkClaimModal'
 import { PerkClaimSuccessModal } from '@/components/Home/PerkClaimSuccessModal'
 import ActivationCTAs from '@/components/Home/ActivationCTAs'
@@ -391,7 +392,7 @@ export const SURFACES: Record<string, Surface> = {
     '41-c-migrationdownloadmodal': {
         name: 'MigrationDownloadModal (early)',
         path: 'Migration/MigrationDownloadModal.tsx',
-        blocked: 'Opens itself off the sunset countdown and a stored dismissal — no visible prop.',
+        render: () => <MigrationDownloadModal forceVariant="early" />,
     },
     '43-c-scantodownloadmodal': {
         name: 'ScanToDownloadModal',
