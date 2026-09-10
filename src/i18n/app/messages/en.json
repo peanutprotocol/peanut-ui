@@ -723,7 +723,7 @@
             },
             "signup": {
                 "title": "How should we call you?",
-                "description": "Your @username is how friends send you money. Think of it as an account number you can say out loud."
+                "description": "Choose your username. You will use it to send and receive money."
             },
             "residence": {
                 "title": "Where do you legally live?",
