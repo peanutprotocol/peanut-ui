@@ -174,7 +174,7 @@ jobs:
     # in this workflow touches it: native-build.js renames the dynamic routes
     # out of src/app and swaps in next.config.native.js, so that lane can break
     # while every other job stays green — which is exactly what a Next 16.3
-    # type-check scope change did. The release lanes (capgo-deploy,
+    # type-check scope change did. The release lanes (release-ota,
     # ios-release, android-release) only reach it after merge, on a push to
     # dev, so without this the first red build is a release.
     native-export:
