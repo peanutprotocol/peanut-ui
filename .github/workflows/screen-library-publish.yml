@@ -10,6 +10,7 @@ permissions:
 # Serialize the public index update. Never run downloaded scripts or HTML.
 concurrency:
     group: screen-library-publisher
+    queue: max
     cancel-in-progress: false
 jobs:
     publish:

@@ -9,6 +9,8 @@ export type Screen = {
     kind: 'route' | 'component'
     route: string
     camera?: 'synthetic' | 'denied'
+    videoFrame?: number
+    sessionStorage?: Record<string, string>
     requiresSource?: string
     entryRoute?: string
     actions?: PageCapture['actions']
@@ -102,6 +104,8 @@ const definitions: Screen[] = [
 ]
 export const SCREENS = definitions.map((screen) => ({
     ...screen,
+    sessionStorage: screen.id === '17-a-nomorejailmodal' ? { showNoMoreJailModal: 'true' } : undefined,
+    videoFrame: screen.id === '16-a-iospwainstallmodal' ? 0.5 : undefined,
     expectText: screen.id === 'qr-camera-permission' ? 'Camera access needed' : readiness[screen.id],
     camera: screen.id === '54-d-qrbottomdrawer' ? ('synthetic' as const) : screen.camera,
     requiresSource: ['fixture-avatar-picker', '66-e-avatarpicker'].includes(screen.id)

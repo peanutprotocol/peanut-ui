@@ -7,9 +7,9 @@ export function integrationBase(repository, head, execute = execFileSync) {
         execute('gh', ['api', `repos/${repository}/${path}`, ...args], { encoding: 'utf8' })
     const commit = JSON.parse(api(`commits/${head}`))
     if (commit.parents.length !== 1) return commit.parents[0].sha
-    const prs = JSON.parse(api(`commits/${head}/pulls`)).filter(
-        (p) => p.merged_at && p.merge_commit_sha === head && p.base.ref === 'dev'
-    )
+    const prs = JSON.parse(api(`commits/${head}/pulls?per_page=100`, ['--paginate', '--slurp']))
+        .flat()
+        .filter((p) => p.merged_at && p.merge_commit_sha === head && p.base.ref === 'dev')
     if (prs.length !== 1) return commit.parents[0].sha
     const original = JSON.parse(api(`pulls/${prs[0].number}/commits?per_page=100`, ['--paginate', '--slurp'])).flat()
     if (original.length <= 1) return commit.parents[0].sha

@@ -27,7 +27,7 @@ The shared registry is `src/dev/screens/catalogue.ts`. It imports named API
 fixtures, route checkpoints and surface metadata. Add stable IDs, concrete
 synthetic data, and explicit interactions for new states. An exclusion needs a
 reason. Never substitute a loading mascot, redirected page or harness placard
-for the requested screen. Animated GIF/WebP assets are frozen at their first frame. Original PNGs drive pixel comparison; WebP thumbnails
+for the requested screen. Animated GIF/WebP assets are frozen at their first frame; tutorial videos use a paused 0.5-second checkpoint. Original PNGs drive pixel comparison; WebP thumbnails
 are presentation only. Experimental design options are not product states.
 
 Run `node --import tsx scripts/screens/inventory.ts` to audit app routes against
@@ -49,7 +49,10 @@ and patched file hashes in `.screen-capture-adapter.json`. It never copies
 components, CSS, translations or layouts from a newer revision. The runner requires a free port and waits for its own server to report ready;
 a build nonce also identifies the requested build. Both revisions compile links
 and QR codes against the same synthetic public base URL, independent of their
-local capture ports. Capture builds disable the disposable webpack cache.
+local capture ports. The browser also sees the canonical staging origin, with
+all app requests fulfilled from the isolated local build; location.origin links
+and QR payloads therefore cannot introduce port-number differences. Random
+choices use a fixed draw independent of unrelated startup call order. Capture builds disable the disposable webpack cache.
 
 Historical component-only states are reported unavailable when the old revision
 has no isolated component harness. Unknown endpoint responses fail closed.
@@ -129,3 +132,9 @@ links to it, and it depends on in-memory instructions from the former flow.
 Current bank journeys use `/add-money/[country]/bank`. QR captures distinguish
 permission denial from an unobstructed scanner using a stationary synthetic
 camera frame; the capture runner never opens a real camera.
+
+The publisher uses GitHub's `queue: max` so pending publications do not replace
+one another (up to 100 queued runs; see [GitHub concurrency documentation](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#example-queueing-multiple-pending-runs)).
+When GitHub omits the event PR list, publication binds to the unique open
+same-repository PR matching the run's branch and head. If no original base
+snapshot is available, a changed merge base requires a rerun.
