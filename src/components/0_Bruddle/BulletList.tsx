@@ -26,9 +26,9 @@ export const BulletList = ({ items, size = 's', className }: BulletListProps) =>
             {items.map((item, index) => (
                 <li key={index} className="flex items-start gap-2">
                     <span aria-hidden className={twMerge('flex shrink-0 items-center', styles.marker)}>
-                        <span className="rounded-round bg-action-primary size-1" />
+                        <span className="size-1 rounded-round bg-action-primary" />
                     </span>
-                    <div className={twMerge('text-foreground-secondary min-w-0 flex-1', styles.text)}>{item}</div>
+                    <div className={twMerge('min-w-0 flex-1 text-foreground-secondary', styles.text)}>{item}</div>
                 </li>
             ))}
         </ul>
