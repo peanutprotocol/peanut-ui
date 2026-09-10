@@ -11,6 +11,10 @@ import { isDemoMode } from '@/utils/demo'
 import { DEMO_USER } from '@/constants/demo-data'
 import { isNativeBridge } from '@/utils/capacitor'
 
+// PostHog session id the login event was last captured for (module singleton;
+// a page load resets it, which is a session boundary worth re-counting).
+let loginCapturedForSession: string | undefined
+
 // custom error class for backend errors (5xx) that should trigger retry
 export class BackendError extends Error {
     status: number
@@ -70,10 +74,17 @@ export const useUserQuery = (dependsOn: boolean = true) => {
                 // flavored WEB build in a plain browser tab isn't either — use
                 // real display-mode detection, not usePWAStatus's Capacitor
                 // short-circuit (TASK-21782 telemetry fix).
-                posthog.capture(ANALYTICS_EVENTS.LOGIN, {
-                    isPwa: isNativeBridge() ? false : isStandaloneDisplayMode(),
-                    deviceType,
-                })
+                // Once per PostHog session: this query refetches on focus and
+                // after invalidations, so per-fetch capture billed login 8x
+                // per session (TASK-22516).
+                const sessionId = posthog.get_session_id()
+                if (sessionId !== loginCapturedForSession) {
+                    loginCapturedForSession = sessionId
+                    posthog.capture(ANALYTICS_EVENTS.LOGIN, {
+                        isPwa: isNativeBridge() ? false : isStandaloneDisplayMode(),
+                        deviceType,
+                    })
+                }
             }
             return payload
         }

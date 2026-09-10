@@ -1,5 +1,6 @@
 import { redactQrTelemetry, redactQrTelemetryString, maskQrReplayRequest } from '@/utils/qr-telemetry-privacy'
 import { APP_RELEASE } from '@/constants/app-release'
+import { ANALYTICS_INGESTION_OPT_OUT_FLAG } from '@/constants/analytics.consts'
 import posthog from 'posthog-js'
 import { beforeSendHandler } from './sentry.utils'
 import { inferSentryEnvironment } from '@/utils/sentry-env'
@@ -48,7 +49,20 @@ if (
         // persisted — so a late register left the first open after an OTA
         // carrying the PREVIOUS bundle's release. `loaded` runs before that
         // first capture, which is the whole point of the denominator.
-        loaded: (ph) => ph.register({ app_release: APP_RELEASE }),
+        loaded: (ph) => {
+            ph.register({ app_release: APP_RELEASE })
+            // Excluded/farm accounts (the cohort behind this flag) are dropped at
+            // the source: dashboard filters hide their events but ingestion is
+            // still billed (TASK-22516). Symmetric so removal from the cohort
+            // resumes capture on the next flags load.
+            ph.onFeatureFlags(() => {
+                if (ph.isFeatureEnabled(ANALYTICS_INGESTION_OPT_OUT_FLAG)) {
+                    if (!ph.has_opted_out_capturing()) ph.opt_out_capturing()
+                } else if (ph.has_opted_out_capturing()) {
+                    ph.opt_in_capturing()
+                }
+            })
+        },
         capture_pageleave: true,
         // The payment explorer contains team-only identity and relationship data.
         // Drop every event on client navigation; direct loads skip init above.
@@ -63,10 +77,11 @@ if (
             if (event?.event) noteAppReviewFriction(event.event)
             return redactQrTelemetry(event)
         },
-        // autocapture walks the DOM ancestor chain on every tap, which costs frames
-        // in the in-app WebView renderer for data that 220+ explicit
-        // posthog.capture calls already cover. Native keeps the explicit events only.
-        autocapture: !isNativeBuild,
+        // Off everywhere since 2026-09-10 (server-side toggle, mirrored here):
+        // $autocapture was 35% of billed event volume with zero saved insights
+        // reading it, and the DOM ancestor walk on every tap costs frames. The
+        // 220+ explicit posthog.capture calls are the taxonomy (TASK-22516).
+        autocapture: false,
         /*
          * Session recording is ON everywhere, native included, as a deliberate
          * trial from 1.0.48.

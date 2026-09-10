@@ -421,3 +421,9 @@ export const REFERRAL_SOURCES = {
 } as const
 
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS]
+
+// PostHog flag targeted at the excluded-accounts cohort (farm/internal, cohort
+// 174197). Enabled → the client opts out of capture entirely: dashboard-side
+// cohort filters hide these events but PostHog still bills their ingestion
+// (TASK-22516).
+export const ANALYTICS_INGESTION_OPT_OUT_FLAG = 'analytics-ingestion-opt-out'
