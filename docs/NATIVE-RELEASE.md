@@ -459,13 +459,21 @@ the numbers there:
 <sha> — <commit subject> [ota-floors: android=1.6.0 ios=1.5.0]
 ```
 
-`parseCandidateFloors` reads that marker and nothing looser: one exact shape, both
-platforms or neither, plain `X.Y.Z` only — a comment is otherwise a human string, and a
-loose parse of one is how a commit message gets read as a version. A bundle whose comment
-has no marker falls back to comparing the candidate's own version, which is the
-conservative direction. The publish lane **asserts the marker landed** rather than
-assuming it: `--version-exists-ok` makes a re-upload a no-op, and a comment written by an
-earlier run is what the fleet would then read.
+`parseCandidateFloors` reads that marker **anchored to the end of the comment**, and
+nothing looser: both platforms or neither, plain `X.Y.Z` only. The anchor is load-bearing.
+The comment also carries the commit subject — arbitrary text a contributor writes — and an
+unanchored match let a subject reading `fix: ota-floors: android=9.9.9 ios=9.9.9 was wrong`
+win over the real numbers appended after it. A floor of `9.9.9` refuses every bundle on
+every binary, so that is fleet-wide OTA death by commit message. The lane always appends
+its marker last; `$` is what guarantees the lane's numbers are the ones read.
+`scripts/__tests__/ota-floor-marker-contract.test.js` executes the contract rather than
+restating it — the workflow's own shell builds the string and the app's own regex reads it,
+so the two cannot drift.
+
+A bundle whose comment has no marker falls back to comparing the candidate's own version,
+which is the conservative direction. The publish lane **asserts the marker landed** rather
+than assuming it: `--version-exists-ok` makes a re-upload a no-op, and a comment written by
+an earlier run is what the fleet would then read.
 
 The baked `NEXT_PUBLIC_OTA_FLOOR_*` constants stay, for the one question they can answer
 honestly — `runningBundleOutranksBinary()`, "is this install running JS built for a native

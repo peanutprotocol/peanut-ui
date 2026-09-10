@@ -41,11 +41,20 @@ function platformFloor(): string | null {
  * server's value onto the result), and the publish step writes the floors into
  * it. So the candidate's own numbers arrive before the download does.
  *
- * Kept deliberately narrow: one exact marker, both platforms or neither, plain
- * X.Y.Z only. A comment is otherwise a human string, and a loose parse of one is
- * how a commit message ends up being read as a version.
+ * Anchored to the END of the comment, which is the part that makes it
+ * unforgeable. The comment also carries the commit subject — arbitrary text a
+ * contributor writes — and an unanchored match let a subject reading
+ * `fix: ota-floors: android=9.9.9 ios=9.9.9 was wrong` win over the real
+ * numbers appended after it. A floor of 9.9.9 refuses every bundle on every
+ * binary, so that is fleet-wide OTA death by commit message. The publish lane
+ * always appends its marker last, so the last one is the lane's, and `$` is
+ * what guarantees we read that one.
+ *
+ * Otherwise deliberately narrow: both platforms or neither, plain X.Y.Z only. A
+ * comment is a human string, and a loose parse of one is how a commit subject
+ * gets read as a version.
  */
-const FLOOR_MARKER = /\bota-floors:\s*android=(\d+\.\d+\.\d+)\s+ios=(\d+\.\d+\.\d+)\b/
+const FLOOR_MARKER = /\[ota-floors: android=(\d+\.\d+\.\d+) ios=(\d+\.\d+\.\d+)\]\s*$/
 
 export function parseCandidateFloors(comment: string | undefined): { android: string; ios: string } | null {
     const match = FLOOR_MARKER.exec(comment ?? '')
