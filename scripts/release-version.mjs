@@ -24,6 +24,7 @@
 //   node scripts/release-version.mjs ota --current <version>
 //   node scripts/release-version.mjs staging
 //   node scripts/release-version.mjs native-floor
+//   node scripts/release-version.mjs newest-native
 //   node scripts/release-version.mjs validate <version> --kind <native|ota>
 //
 // Needs full history and tags (actions/checkout with fetch-depth: 0).
@@ -58,10 +59,14 @@ function main(argv) {
             return `${major}.${latestBuild(major)}.${commitCount()}`
         case 'native-floor':
             return nativeFloor(major)
+        case 'newest-native':
+            return newestNative()
         case 'validate':
             return validate(major, rest[0], flag(rest, '--kind'))
         default:
-            throw new Error(`unknown mode "${mode ?? ''}" — expected native, ota, staging, native-floor or validate`)
+            throw new Error(
+                `unknown mode "${mode ?? ''}" — expected native, ota, staging, native-floor, newest-native or validate`
+            )
     }
 }
 
@@ -112,6 +117,33 @@ function nativeFloor(major) {
     return `${major}.${build}.0`
 }
 
+// The newest native release in the repository, ACROSS majors — which is the one
+// a release ref has to contain. `nativeFloor` deliberately scopes to the current
+// major, because a bundle's --min-update-version has to sit in the same major
+// band as the bundle. Provenance is the opposite question: the moment
+// package.json advances to a major with no tag yet, the major-scoped floor has
+// no answer, and skipping the check there is what would let a lagging ref build
+// 2.1.0 without containing v1.6.0 — a higher store version carrying older code,
+// exactly what the guard exists to stop.
+function newestNative() {
+    const releases = allNativeReleases()
+    if (releases.length === 0) {
+        throw new Error('no v<major>.<build>.0 tag exists in this repository')
+    }
+    const [{ major, build }] = releases
+    return `${major}.${build}.0`
+}
+
+// Newest first, ordered numerically on (major, build) — `sort -V` semantics
+// without the shell.
+function allNativeReleases() {
+    return readTags()
+        .map((tag) => /^v(\d+)\.(\d+)\.0$/.exec(tag))
+        .filter(Boolean)
+        .map(([, major, build]) => ({ major: Number(major), build: Number(build) }))
+        .sort((a, b) => b.major - a.major || b.build - a.build)
+}
+
 function validate(major, version, kind) {
     const match = PLAIN_SEMVER.exec(version ?? '')
     if (!match) throw new Error(`"${version}" is not a plain X.Y.Z version`)
@@ -140,15 +172,21 @@ function readMajor() {
 
 // Returns 0 when no native release exists for this major, so the first one is .1.
 function latestBuild(major) {
-    const tags = execFileSync('git', ['tag', '--list', 'v*'], { cwd: repoRoot, encoding: 'utf8' }).split('\n')
-    if (!tags.some((tag) => tag.trim())) {
-        throw new Error('no v* tags are visible — the resolver needs actions/checkout with fetch-depth: 0')
-    }
     const pattern = new RegExp(`^v${major}\\.(\\d+)\\.0$`)
-    return tags.reduce((highest, tag) => {
-        const match = pattern.exec(tag.trim())
+    return readTags().reduce((highest, tag) => {
+        const match = pattern.exec(tag)
         return match ? Math.max(highest, Number(match[1])) : highest
     }, 0)
+}
+
+function readTags() {
+    const tags = execFileSync('git', ['tag', '--list', 'v*'], { cwd: repoRoot, encoding: 'utf8' })
+        .split('\n')
+        .map((tag) => tag.trim())
+    if (!tags.some(Boolean)) {
+        throw new Error('no v* tags are visible — the resolver needs actions/checkout with fetch-depth: 0')
+    }
+    return tags.filter(Boolean)
 }
 
 function flag(argv, name) {

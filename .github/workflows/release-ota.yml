@@ -73,7 +73,7 @@ jobs:
             # what the consequence is.
             - name: Guard release provenance
               run: |
-                  FLOOR="$(node scripts/release-version.mjs native-floor)"
+                  FLOOR="$(node scripts/release-version.mjs newest-native)"
                   if ! git merge-base --is-ancestor "v$FLOOR" HEAD; then
                       echo "::error::$GITHUB_REF_NAME (${GITHUB_SHA:0:7}) does not contain the newest native release v$FLOOR — publishing it would hand every device on that binary JS older than the one it shipped with. Back-merge the release into this ref first." >&2
                       exit 1
