@@ -16,6 +16,7 @@ import { isMantecaCountry } from '@/constants/manteca.consts'
 import { getFromLocalStorage } from '@/utils/general.utils'
 import { withdrawCountryUrl } from '@/utils/native-routes'
 import { mantecaWithdrawUrl } from '@/features/withdraw/routes'
+import { withdrawTokenForChain } from '@/features/withdraw/destination'
 import { useWithdrawFlow } from '@/features/withdraw/WithdrawFlowContext'
 import { useSavedAddresses } from '@/hooks/useSavedAddresses'
 import SavedAddressEditDrawer from '@/features/withdraw/components/AddressBook/SavedAddressEditDrawer'
@@ -112,9 +113,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
     // pick the crypto method exactly like the "Crypto" tile (no navigation — the
     // withdraw page owns the amount step and pushes /withdraw/crypto after Continue)
     const handleSavedAddressClick = (saved: SavedAddress) => {
-        const tokens = supportedChainsAndTokens?.[saved.chainId]?.tokens ?? []
-        // USDC where the chain has it; otherwise the chain's only/first token (Tron → USDT)
-        const token = tokens.find((tok) => tok.symbol.toUpperCase() === 'USDC') ?? tokens[0]
+        const token = withdrawTokenForChain(supportedChainsAndTokens?.[saved.chainId]?.tokens)
         setSelectedChainID(saved.chainId)
         setSelectedTokenAddress(token?.address ?? '')
         setRecipient({ name: undefined, address: saved.address })

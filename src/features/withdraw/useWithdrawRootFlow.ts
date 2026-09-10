@@ -16,7 +16,7 @@ import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { withdrawBankUrl, withdrawCountryUrl } from '@/utils/native-routes'
-import { readWithdrawDestination } from './routes'
+import { readWithdrawDestination, withdrawTokenForChain } from './destination'
 import { useChainRollout } from '@/hooks/useChainRollout'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
@@ -310,14 +310,12 @@ export function useWithdrawRootFlow() {
             // address-book tap does — chain, token and a pre-validated address
             // in flow state, which InitialWithdrawView then preserves instead
             // of resetting to USDC on Arbitrum.
-            const tokens = scannedDestination
-                ? (supportedChainsAndTokens?.[scannedDestination.chainId]?.tokens ?? [])
-                : []
-            // USDC where the chain has it; otherwise its only/first token (Tron → USDT).
             // No token means the chain list has not arrived yet — seeding the chain and
             // recipient without one opens the step with a valid recipient and nothing to
             // send, so leave it to its own defaults instead.
-            const token = tokens.find((tok) => tok.symbol.toUpperCase() === 'USDC') ?? tokens[0]
+            const token = scannedDestination
+                ? withdrawTokenForChain(supportedChainsAndTokens?.[scannedDestination.chainId]?.tokens)
+                : undefined
             if (scannedDestination && token) {
                 setSelectedChainID(scannedDestination.chainId)
                 setSelectedTokenAddress(token.address)

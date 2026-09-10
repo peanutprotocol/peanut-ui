@@ -9,7 +9,7 @@
 const mockConfig = { disableXchainWithdraw: false }
 jest.mock('@/config/underMaintenance.config', () => ({ __esModule: true, default: mockConfig }))
 
-import { readWithdrawDestination, withdrawDestinationUrl } from '../routes'
+import { readWithdrawDestination, withdrawDestinationUrl, withdrawTokenForChain } from '../destination'
 
 const SOLANA_ADDRESS = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM'
 const EVM_ADDRESS = '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed'
@@ -54,5 +54,25 @@ describe('readWithdrawDestination', () => {
     it('refuses everything while the ops kill-switch locks withdrawals to Arbitrum', () => {
         mockConfig.disableXchainWithdraw = true
         expect(readWithdrawDestination(SOLANA_ADDRESS, 'solana')).toBeNull()
+    })
+})
+
+describe('withdrawTokenForChain', () => {
+    const usdc = { symbol: 'USDC', address: 'usdc' } as never
+    const usdt = { symbol: 'USDT', address: 'usdt' } as never
+
+    it('prefers USDC', () => {
+        expect(withdrawTokenForChain([usdt, usdc])).toBe(usdc)
+    })
+
+    it("falls back to the chain's only token (Tron delivers USDT and no USDC)", () => {
+        expect(withdrawTokenForChain([usdt])).toBe(usdt)
+    })
+
+    it.each([
+        ['an empty list', []],
+        ['a list that has not arrived', undefined],
+    ])('has no token for %s', (_case, tokens) => {
+        expect(withdrawTokenForChain(tokens)).toBeUndefined()
     })
 })
