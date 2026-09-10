@@ -1,28 +1,58 @@
 /**
- * The /withdraw destination query contract (TASK-22251).
+ * How a destination picked outside the flow — today a scanned QR code — reaches
+ * the withdraw flow (TASK-22251).
  *
- * `?destination=<address>&chain=<chainId>` is how a destination picked outside
- * the flow — today a scanned QR code — reaches the recipient step. It is a URL,
- * so the user can type anything into it; readWithdrawDestination is the one
- * place that decides whether a pair is payable.
+ * The address is handed over in process and never in the URL: a query parameter
+ * rides into PostHog's automatic pageviews, session replay and Sentry
+ * breadcrumbs, and redactQrTelemetry only scrubs the QR-specific parameter
+ * names — a payout address there would tie where a person sent their money to
+ * an identified user. The URL carries only the `from=scan` marker.
  */
 const mockConfig = { disableXchainWithdraw: false }
 jest.mock('@/config/underMaintenance.config', () => ({ __esModule: true, default: mockConfig }))
 
-import { readWithdrawDestination, withdrawDestinationUrl, withdrawTokenForChain } from '../destination'
+import {
+    readScannedDestination,
+    readWithdrawDestination,
+    stashScannedDestination,
+    WITHDRAW_SCAN_ENTRY_URL,
+    withdrawTokenForChain,
+} from '../destination'
 
 const SOLANA_ADDRESS = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM'
 const EVM_ADDRESS = '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed'
 
-describe('withdrawDestinationUrl', () => {
-    it('lands on the amount step of the crypto rail, carrying the destination', () => {
-        const params = new URLSearchParams(withdrawDestinationUrl(SOLANA_ADDRESS, 'solana').split('?')[1])
-        expect(Object.fromEntries(params)).toEqual({
-            step: 'amount',
-            method: 'crypto',
-            destination: SOLANA_ADDRESS,
-            chain: 'solana',
-        })
+describe('WITHDRAW_SCAN_ENTRY_URL', () => {
+    it('lands on the amount step of the crypto rail and says a scan sent you', () => {
+        const params = new URLSearchParams(WITHDRAW_SCAN_ENTRY_URL.split('?')[1])
+        expect(Object.fromEntries(params)).toEqual({ step: 'amount', method: 'crypto', from: 'scan' })
+    })
+
+    it('carries no address — the whole point of the in-process hand-off', () => {
+        stashScannedDestination(SOLANA_ADDRESS, 'solana')
+        expect(WITHDRAW_SCAN_ENTRY_URL).not.toContain(SOLANA_ADDRESS)
+    })
+})
+
+describe('the scanned-destination hand-off', () => {
+    beforeEach(() => {
+        mockConfig.disableXchainWithdraw = false
+    })
+
+    it('accepts a payable destination and hands it on', () => {
+        expect(stashScannedDestination(SOLANA_ADDRESS, 'solana')).toBe(true)
+        expect(readScannedDestination()).toEqual({ address: SOLANA_ADDRESS, chainId: 'solana' })
+    })
+
+    it('reads the same destination twice — a one-shot read would lose it to a re-invoked initializer', () => {
+        stashScannedDestination(SOLANA_ADDRESS, 'solana')
+        expect(readScannedDestination()).toEqual(readScannedDestination())
+    })
+
+    it('stores nothing it cannot pay out to, and keeps what it had', () => {
+        stashScannedDestination(SOLANA_ADDRESS, 'solana')
+        expect(stashScannedDestination(EVM_ADDRESS, 'solana')).toBe(false)
+        expect(readScannedDestination()?.address).toBe(SOLANA_ADDRESS)
     })
 })
 

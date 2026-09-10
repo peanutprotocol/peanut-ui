@@ -69,6 +69,7 @@ jest.mock('@/components/Global/QRScanner', () => ({
 }))
 
 import QRScannerOverlay from '../index'
+import { readScannedDestination } from '@/features/withdraw/destination'
 
 // Real, publicly known addresses. The Solana one holds an uppercase L, the
 // character that a `.toLowerCase()` turns into the one letter base58 excludes.
@@ -82,6 +83,9 @@ const EVM_UPPERCASE = '0X5AAEB6053F3E94C9B9A09F33669435E7EF1BEAED'
 const EVM_BAD_CHECKSUM = '0xAbCdEf1234567890123456789012345678901234'
 const BECH32_UPPERCASE = 'BC1QAR0SRRR7XFKVY5L643LYDNW9RE59GTZZWF5MDQ'
 const BOLT11_UPPERCASE = 'LNBC1230N1PJJ2LX9PP5ABC123'
+// Holds an `O`, which base58 excludes — so it is not an address, and the
+// lowercased retry must not turn it into one.
+const SOLANA_ONLY_AFTER_LOWERCASING = 'SO11111111111111111111111111111111111111112'
 
 const scan = async (data: string) => {
     renderWithIntl(<QRScannerOverlay />)
@@ -117,11 +121,13 @@ describe('QRScannerOverlay case handling', () => {
             const pushed = mockPush.mock.calls.at(-1)?.[0] as string
             const params = new URLSearchParams(pushed.split('?')[1])
             expect(pushed.split('?')[0]).toBe('/withdraw')
-            expect(params.get('destination')).toBe(SOLANA_WITH_UPPERCASE_L)
-            expect(params.get('chain')).toBe('solana')
             // the amount step, on the crypto rail — method selection is implied
             expect(params.get('step')).toBe('amount')
             expect(params.get('method')).toBe('crypto')
+            expect(params.get('from')).toBe('scan')
+            // the address goes in process, never in the URL PostHog records
+            expect(pushed).not.toContain(SOLANA_WITH_UPPERCASE_L)
+            expect(readScannedDestination()).toEqual({ address: SOLANA_WITH_UPPERCASE_L, chainId: 'solana' })
         })
     })
 
@@ -139,6 +145,18 @@ describe('QRScannerOverlay case handling', () => {
         it('accepts an uppercase Lightning invoice', async () => {
             await scan(BOLT11_UPPERCASE)
             expect(screen.getByText('Bitcoin not supported yet.')).toBeInTheDocument()
+        })
+
+        // ...but NOT for base58, where the retry invents an address. This payload
+        // fails raw recognition because it holds an `O`, which base58 excludes;
+        // lowercasing turns it into a legal `o` and a different account, which
+        // nobody controls. Harmless while Solana was refused, a wrong payout
+        // address now that it is paid.
+        it('refuses an uppercase payload that only looks like Solana once lowercased', async () => {
+            await scan(SOLANA_ONLY_AFTER_LOWERCASING)
+            expect(screen.getByText('Unrecognized QR code')).toBeInTheDocument()
+            expect(screen.queryByText('Payment Confirmation')).not.toBeInTheDocument()
+            expect(readScannedDestination()?.address).not.toBe(SOLANA_ONLY_AFTER_LOWERCASING.toLowerCase())
         })
     })
 

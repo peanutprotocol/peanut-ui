@@ -16,8 +16,7 @@ import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { withdrawBankUrl, withdrawCountryUrl } from '@/utils/native-routes'
-import { readWithdrawDestination, withdrawTokenForChain } from './destination'
-import { useChainRollout } from '@/hooks/useChainRollout'
+import { readScannedDestination, SCAN_ENTRY_PARAM, SCAN_ENTRY_VALUE, withdrawTokenForChain } from './destination'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
 import { parseAsString, parseAsBoolean, useQueryState } from 'nuqs'
@@ -40,8 +39,7 @@ export function useWithdrawRootFlow() {
 
     const [, setShowAll] = useQueryState('showAll', parseAsBoolean.withDefault(false))
     const [methodParam] = useQueryState('method', parseAsString)
-    const [destinationParam] = useQueryState('destination', parseAsString)
-    const [chainParam] = useQueryState('chain', parseAsString)
+    const [scanEntryParam] = useQueryState(SCAN_ENTRY_PARAM, parseAsString)
     const [returnToParam] = useQueryState(RETURN_TO_PARAM, parseAsString)
     const { isFromSendFlow, isCryptoFromSend, isBankFromSend } = useSendFlowOrigin()
 
@@ -58,16 +56,16 @@ export function useWithdrawRootFlow() {
     } = useWithdrawFlow()
 
     const { supportedChainsAndTokens, setSelectedChainID, setSelectedTokenAddress } = useContext(tokenSelectorContext)
-    const isChainRolledOut = useChainRollout()
 
     // A destination the user picked before entering the flow (a scanned QR
-    // code) rides in on the URL. Re-checked here rather than trusted from the
-    // producer: the params are user-editable, and a chain still behind its
-    // rollout flag must not become selectable by typing one.
-    const scannedDestination = useMemo(() => {
-        const destination = readWithdrawDestination(destinationParam, chainParam)
-        return destination && isChainRolledOut(destination.chainId) ? destination : null
-    }, [destinationParam, chainParam, isChainRolledOut])
+    // code). Only the "you got here from a scan" marker travels in the URL; the
+    // address itself is handed over in process, so it never reaches a pageview,
+    // a session replay or a Sentry breadcrumb. The marker is also what fences
+    // out a stale one — nothing but a scan produces this entry.
+    const scannedDestination = useMemo(
+        () => (scanEntryParam === SCAN_ENTRY_VALUE ? readScannedDestination() : null),
+        [scanEntryParam]
+    )
 
     const [urlAmount, setUrlAmount] = useWithdrawAmount()
     // raw amount currently typed in the input; the URL is the commit point

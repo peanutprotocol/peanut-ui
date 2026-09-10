@@ -54,8 +54,7 @@ jest.mock('@sentry/nextjs', () => ({
 // PostHog
 jest.mock('posthog-js', () => ({
     __esModule: true,
-    // onFeatureFlags: the chain-rollout gate subscribes to flag loads.
-    default: { capture: jest.fn(), init: jest.fn(), onFeatureFlags: jest.fn(() => jest.fn()) },
+    default: { capture: jest.fn(), init: jest.fn() },
 }))
 
 // ---------- hooks & services ----------
@@ -249,6 +248,7 @@ jest.mock('@/features/withdraw/views/WithdrawMethodView', () => ({
 
 // ---------- import component under test AFTER all mocks ----------
 import WithdrawPage from '../page'
+import { stashScannedDestination } from '@/features/withdraw/destination'
 import { __testing as safeBackTesting } from '@/hooks/useSafeBack'
 
 // ---------- helpers ----------
@@ -540,17 +540,15 @@ describe('GROUP 3: Amount Validation', () => {
         // Real, publicly known address. The uppercase L is the character a
         // lowercasing pass would destroy — it must reach the recipient step intact.
         const SOLANA_ADDRESS = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM'
+        const scanEntry = { method: 'crypto', step: 'amount', amount: '25', from: 'scan' }
+
+        beforeEach(() => {
+            stashScannedDestination(SOLANA_ADDRESS, 'solana')
+            mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+        })
 
         test('seeds the recipient step with the scanned address, its chain and token', () => {
-            mockWithdrawFlow.selectedMethod = { type: 'crypto' }
-
-            renderWithdraw({
-                method: 'crypto',
-                step: 'amount',
-                amount: '25',
-                destination: SOLANA_ADDRESS,
-                chain: 'solana',
-            })
+            renderWithdraw(scanEntry)
             fireEvent.click(screen.getByText('Continue'))
 
             expect(mockSetSelectedChainID).toHaveBeenCalledWith('solana')
@@ -560,17 +558,17 @@ describe('GROUP 3: Amount Validation', () => {
             expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto?method=crypto&amount=25')
         })
 
-        // The pair rides in on a URL the user can edit, so neither value is
-        // trusted: a mismatched or undeliverable destination is ignored and the
-        // recipient step opens empty rather than pre-filled with something the
-        // withdrawal cannot pay.
-        test.each([
-            ['an address that is not valid for the chain', '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed', 'solana'],
-            ['a chain Rhino does not deliver to', SOLANA_ADDRESS, 'bitcoin'],
-        ])('ignores %s', (_case, destination, chain) => {
-            mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+        test('carries the address onward in process, never in the next URL', () => {
+            renderWithdraw(scanEntry)
+            fireEvent.click(screen.getByText('Continue'))
 
-            renderWithdraw({ method: 'crypto', step: 'amount', amount: '25', destination, chain })
+            expect(mockRouterPush.mock.calls.at(-1)?.[0]).not.toContain(SOLANA_ADDRESS)
+        })
+
+        // Only a navigation a scan produced asks for the stashed destination. A
+        // withdrawal the user started themselves must not inherit it.
+        test('ignores a stashed destination when the entry is not a scan', () => {
+            renderWithdraw({ method: 'crypto', step: 'amount', amount: '25' })
             fireEvent.click(screen.getByText('Continue'))
 
             expect(mockSetRecipient).not.toHaveBeenCalled()
@@ -581,16 +579,9 @@ describe('GROUP 3: Amount Validation', () => {
         test('leaves the step to its defaults when the chain list has no token yet', () => {
             // A recipient marked valid with no token to send is a broken review
             // step, so an unresolved chain seeds nothing at all.
-            mockWithdrawFlow.selectedMethod = { type: 'crypto' }
             mockSupportedChainsAndTokens.solana = { chainId: 'solana', tokens: [] }
 
-            renderWithdraw({
-                method: 'crypto',
-                step: 'amount',
-                amount: '25',
-                destination: SOLANA_ADDRESS,
-                chain: 'solana',
-            })
+            renderWithdraw(scanEntry)
             fireEvent.click(screen.getByText('Continue'))
 
             expect(mockSetSelectedChainID).not.toHaveBeenCalled()
