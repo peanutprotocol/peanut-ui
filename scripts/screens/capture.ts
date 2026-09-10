@@ -328,6 +328,16 @@ async function main() {
                     await page.getByRole('dialog').first().waitFor({ state: 'visible', timeout: 10000 })
                 }
                 if (screen.toBottom) await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+                // Playwright visibility ignores opacity. Let Headless UI finish
+                // opening dialogs before disabling CSS transitions for capture.
+                await page.waitForFunction(() =>
+                    [...document.querySelectorAll('[role="dialog"]')].every((dialog) =>
+                        [dialog, ...dialog.querySelectorAll('[data-headlessui-state]')].every((element) => {
+                            if (!element.getBoundingClientRect().width) return true
+                            return Number(getComputedStyle(element).opacity) === 1
+                        })
+                    )
+                )
                 await page.addStyleTag({
                     content:
                         '*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important;scroll-behavior:auto!important} a[href*="__fixture=off"]{display:none!important}',
@@ -415,6 +425,11 @@ async function main() {
                     previous = next
                 }
                 if (!stable) throw new Error('Screen did not stabilize')
+                if (
+                    screen.expectText &&
+                    !(await page.getByText(screen.expectText, { exact: false }).first().isVisible())
+                )
+                    throw new Error('Expected screen content disappeared before capture')
                 if (transportFailures.size)
                     throw new Error(`Local build transport failed: ${[...transportFailures].join(', ')}`)
                 if (unknown.size) throw new Error(`Missing synthetic responses: ${[...unknown].join(', ')}`)
