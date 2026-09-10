@@ -99,6 +99,8 @@
         "xchainWithdrawLimitRetry": "You reached the limit for withdrawals to other networks. Try again in about {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minute} other {# minutes}}} one {# hour} other {# hours}}} one {# day} other {# days}}. Withdrawals on Arbitrum have no limit, or contact support to raise yours.",
         "xchainPaymentLimit": "You made too many transfers to other networks recently. Contact support to raise your limit.",
         "xchainPaymentLimitRetry": "You made too many transfers to other networks recently. Try again in about {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minute} other {# minutes}}} one {# hour} other {# hours}}} one {# day} other {# days}}, or contact support to raise your limit.",
+        "xchainWithdrawDisabled": "Withdrawals to other networks are limited on your account. You can always withdraw on Arbitrum, or contact support for help.",
+        "xchainPaymentDisabled": "Transfers to other networks are limited on your account. Contact support for help.",
         "rainInsufficientCollateral": "Your card doesn’t have enough collateral for this withdrawal.",
         "staleCardApproval": "Your card needs to be re-enabled before you can withdraw. It only takes one passkey tap.",
         "cardRateLimited": "Too many card requests. Please wait a moment and try again.",
