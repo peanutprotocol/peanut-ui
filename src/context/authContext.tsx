@@ -15,6 +15,7 @@ import {
     endIntentionalLogout,
     updateUserPreferences,
 } from '@/utils/general.utils'
+import { clearSessionHeld } from '@/utils/session-presence'
 import { apiFetch } from '@/utils/api-fetch'
 import { useAppLocked } from '@/hooks/useAppLocked'
 import { currentAppLocale, currentDeviceContext, currentDeviceIdentity } from '@/i18n/app/locale-store'
@@ -324,6 +325,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         try {
             sessionStorage.removeItem('hasSeenIOSPWAPromptThisSession')
         } catch {}
+
+        // This tab is a logged-out tab again, so a deep link opened in it later
+        // is that person's own intent rather than a dead session's residue.
+        clearSessionHeld()
 
         // clear demo mode flag
         disableDemoMode()

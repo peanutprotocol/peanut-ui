@@ -68,6 +68,7 @@ import {
     getRedirectOrigin,
     getRedirectUrl,
 } from '@/utils/general.utils'
+import { clearSessionHeld, markSessionHeld } from '@/utils/session-presence'
 
 const CACHED_USER = {
     user: { userId: 'u1', username: 'probe', hasAppAccess: true },
@@ -160,10 +161,12 @@ describe('(mobile-ui) layout — no user', () => {
         beforeEach(() => {
             endIntentionalLogout()
             clearRedirectUrl()
+            clearSessionHeld()
         })
         afterEach(() => {
             endIntentionalLogout()
             clearRedirectUrl()
+            clearSessionHeld()
         })
 
         it('logged out on a protected deep link: keeps the target for after login', () => {
@@ -196,6 +199,34 @@ describe('(mobile-ui) layout — no user', () => {
             expect(mockRouterReplace).toHaveBeenCalledWith('/setup')
             expect(getRedirectUrl()).toBe('/card')
             expect(getRedirectOrigin()).toBe('session-end')
+        })
+
+        /*
+         * The marker is per TAB, not per document: an authenticated tab that
+         * reloads /card after its token was revoked never observes a user in
+         * the new document, and reading that as a first-time visitor would
+         * hand the previous session's page to the next account.
+         */
+        it('a tab that reloads after its session was revoked still knows it held one', () => {
+            markSessionHeld() // the document this tab reloaded away from
+            window.history.replaceState({}, '', '/card')
+            mockUseAuth.mockReturnValue(authState())
+
+            renderLayout()
+
+            expect(getRedirectUrl()).toBe('/card')
+            expect(getRedirectOrigin()).toBe('session-end')
+        })
+
+        it('but a logged-out tab opening a deep link later is intent again', () => {
+            markSessionHeld()
+            clearSessionHeld() // what an explicit logout does at its boundary
+            window.history.replaceState({}, '', '/pay-request/abc')
+            mockUseAuth.mockReturnValue(authState())
+
+            renderLayout()
+
+            expect(getRedirectOrigin()).toBe('deep-link')
         })
 
         it('logging out from /profile: reaches /setup with no destination stored', () => {

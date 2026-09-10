@@ -23,6 +23,7 @@ import { ShellBannerFallback } from '@/components/Global/Banner/ShellBannerFallb
 import ForceIOSPWAInstall from '@/components/ForceIOSPWAInstall'
 import { isPublicRoute } from '@/constants/routes'
 import { saveRedirectUrl } from '@/utils/general.utils'
+import { hasHeldSession, markSessionHeld } from '@/utils/session-presence'
 import { IS_DEV } from '@/constants/general.consts'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import { FixtureBanner } from '@/dev/fixtures/FixtureBanner'
@@ -86,19 +87,16 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
     const isRedirecting = useRef(false)
     /*
-     * Did this document ever hold a session? It separates the two reasons the
-     * gate below fires: a logged-out arrival at a protected deep link (the
-     * person's own intent — keep it) from a session collapsing under a
-     * standing app (logout, revocation, expiry — where it happened to be
-     * standing is nobody's intent, and belongs to an account that is not
-     * necessarily the next one to authenticate here).
+     * Whether this TAB has held a session separates the two reasons the gate
+     * below fires — a logged-out arrival at a deep link, or a session
+     * collapsing where it stood — and it is recorded per tab rather than per
+     * document so a reload after the token was revoked still knows the
+     * difference (see session-presence). In an effect, not during render:
+     * React can discard or replay a render, and this outlives the one it was
+     * observed in. Declared above the gate so the gate reads it settled.
      */
-    const hadSession = useRef(false)
-    // Recorded in an effect, not during render: React can discard or replay a
-    // render, and this outlives the one it was observed in. Declared above the
-    // gate so the gate reads it already settled.
     useEffect(() => {
-        if (user) hadSession.current = true
+        if (user) markSessionHeld()
     }, [user])
 
     useEffect(() => {
@@ -133,7 +131,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             // consume this via consumePostAuthRedirect — which is why the
             // origin rides along: a fresh signup must not inherit the page a
             // previous session was standing on.
-            saveRedirectUrl(hadSession.current ? 'session-end' : 'deep-link')
+            saveRedirectUrl(hasHeldSession() ? 'session-end' : 'deep-link')
             router.replace('/setup')
             // Hard-nav fallback if the soft nav silently fails; re-check at fire time.
             const fallback = setTimeout(() => {
