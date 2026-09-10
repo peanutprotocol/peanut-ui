@@ -144,3 +144,9 @@ synthetic `CRISP_FAILED` message, then assert the app-owned failure copy. The
 third-party chat UI and its network readiness are not part of this visual tier.
 Modal readiness waits for full opacity before transitions are disabled, since
 browser visibility alone can accept a transparent entering panel.
+
+Capture jobs use the fixed macOS 26 Intel runner family because the existing
+tutorial assets contain HEVC with transparency. Linux Chromium cannot decode
+them, and H.264 conversion loses their transparency. Original media stays
+unchanged; the manifest records the actual OS and browser versions. Reference
+resolution and trusted publishing remain on Linux. See [GitHub runner labels](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).

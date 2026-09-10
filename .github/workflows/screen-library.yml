@@ -48,7 +48,8 @@ jobs:
                   echo "after=$after" >> "$GITHUB_OUTPUT"
     capture:
         needs: refs
-        runs-on: ubuntu-24.04
+        # Original tutorials use HEVC with alpha; preserve native decoding.
+        runs-on: macos-26-intel
         timeout-minutes: 60
         strategy:
             fail-fast: false
