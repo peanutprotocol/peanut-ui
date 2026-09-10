@@ -1605,7 +1605,8 @@
             "description": "En {days, plural, one {# día} other {# días}} Peanut se muda por completo a la app. Descargala ahora y continuá justo donde quedaste. Tu cuenta y tu dinero se mudan con vos automáticamente."
         },
         "sunset": {
-            "sub": "Descargá la app y continuá justo donde quedaste. Tu cuenta y tu dinero ya te están esperando ahí."
+            "sub": "Descargá la app y continuá justo donde quedaste. Tu cuenta y tu dinero ya te están esperando ahí.",
+            "supportLink": "¿Problemas para descargar la app? Hablá con nuestro soporte"
         },
         "qr": {
             "title": "Descargá la app de Peanut",

@@ -72,9 +72,12 @@ export default function MigrationDownloadModal({
     // friendly urgency (deadline in the copy) for the final stretch
     const isUrgent = daysLeft <= MIGRATION_URGENCY_THRESHOLD_DAYS
 
+    // desktop stacks it under the App Store + Google Play pair — a third CTA
+    // steps down to ghost (kush ruling 2026-09-10); on phone it is the second
+    // CTA and stays the stroke secondary
     const remindLaterCta = {
         text: t(isUrgent ? 'downloadPrompt.remindLater' : 'downloadPrompt.maybeLater'),
-        variant: 'stroke' as const,
+        variant: (isDesktop ? 'transparent' : 'stroke') as 'transparent' | 'stroke',
         onClick: snooze,
     }
 
