@@ -1,0 +1,47 @@
+name: Publish screen library
+on:
+    workflow_run:
+        workflows: [Screen library]
+        types: [completed]
+permissions:
+    contents: read
+    actions: read
+    pull-requests: write
+# Serialize the public index update. Never run downloaded scripts or HTML.
+concurrency:
+    group: screen-library-publisher
+    cancel-in-progress: false
+jobs:
+    publish:
+        if: github.event.workflow_run.conclusion != 'cancelled' && github.event.workflow_run.head_repository.full_name == github.repository
+        runs-on: ubuntu-24.04
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  persist-credentials: false
+                  fetch-depth: 0
+            - uses: pnpm/action-setup@v4
+              with:
+                  version: 10.30.1
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+            # Install only trusted publisher dependencies; do not execute app install scripts.
+            - run: npm install --ignore-scripts --no-save --package-lock=false --prefix /tmp/screen-publisher pixelmatch@7.2.0 pngjs@7.0.0 @vercel/blob@2.3.1 sharp@0.34.5
+            - name: Link isolated publisher dependencies
+              run: ln -s /tmp/screen-publisher/node_modules node_modules
+            - name: Download current attempt captures
+              uses: actions/download-artifact@v4
+              with:
+                  github-token: ${{ github.token }}
+                  run-id: ${{ github.event.workflow_run.id }}
+                  pattern: screen-library-*-${{ github.event.workflow_run.run_attempt }}
+                  path: incoming
+            - name: Verify provenance and publish
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  SCREEN_LIBRARY_BLOB_TOKEN: ${{ secrets.SCREEN_LIBRARY_BLOB_TOKEN }}
+                  RUN_ID: ${{ github.event.workflow_run.id }}
+                  RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+                  REPOSITORY: ${{ github.repository }}
+              run: node scripts/screens/publish-run.mjs
