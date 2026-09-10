@@ -29,6 +29,30 @@ function platformFloor(): string | null {
 }
 
 /**
+ * The floors of the bundle being OFFERED, read off the string Capgo returns with
+ * it.
+ *
+ * The baked constants above describe the bundle that is *running*, which is the
+ * wrong bundle to judge a candidate by: a candidate built after a native release
+ * has a higher floor than anything the running JS knows about, and trusting the
+ * running value would accept JS this binary cannot execute. Nothing in
+ * `LatestVersion` carries `min_update_version`, but `comment` is round-tripped
+ * from the upload (verified in the native implementations, which copy the
+ * server's value onto the result), and the publish step writes the floors into
+ * it. So the candidate's own numbers arrive before the download does.
+ *
+ * Kept deliberately narrow: one exact marker, both platforms or neither, plain
+ * X.Y.Z only. A comment is otherwise a human string, and a loose parse of one is
+ * how a commit message ends up being read as a version.
+ */
+const FLOOR_MARKER = /\bota-floors:\s*android=(\d+\.\d+\.\d+)\s+ios=(\d+\.\d+\.\d+)\b/
+
+export function parseCandidateFloors(comment: string | undefined): { android: string; ios: string } | null {
+    const match = FLOOR_MARKER.exec(comment ?? '')
+    return match ? { android: match[1], ios: match[2] } : null
+}
+
+/**
  * Which binary a release version belongs to.
  *
  * Peanut's scheme is `<major>.<build>.<ota>` (scripts/release-version.mjs):
@@ -91,8 +115,36 @@ export function bundleNeedsNewerBinary(bundleVersion: string, binaryVersion: str
  * False on web and whenever the binary's own version cannot be read — see the
  * fail-open reasoning above.
  */
-export async function needsStoreUpdate(bundleVersion: string): Promise<boolean> {
+export async function needsStoreUpdate(bundleVersion: string, candidateComment?: string): Promise<boolean> {
     const binary = await getBinaryInfo()
     if (!binary?.appVersion) return false
-    return bundleNeedsNewerBinary(platformFloor() ?? bundleVersion, binary.appVersion)
+
+    // Best answer first: the candidate's own floor for this platform.
+    const candidate = parseCandidateFloors(candidateComment)
+    if (candidate) {
+        const floor = isIOSNative() ? candidate.ios : candidate.android
+        return bundleNeedsNewerBinary(floor, binary.appVersion)
+    }
+
+    // No floors on the candidate — a bundle published before they existed, or a
+    // server that did not return the comment. Compare its version, exactly as
+    // before the floors: conservative, and the direction that cannot hand a
+    // binary JS built against a native surface it lacks.
+    return bundleNeedsNewerBinary(bundleVersion, binary.appVersion)
+}
+
+/**
+ * Whether the binary is behind the floor of the JS it is ALREADY running.
+ *
+ * A different question from `needsStoreUpdate`, and the only one the baked
+ * constants can answer honestly. It is what the profile's store row should
+ * reflect: this install is running JS built for a newer native contract than it
+ * has, so a store update is owed whether or not any new bundle exists.
+ */
+export async function runningBundleOutranksBinary(): Promise<boolean> {
+    const floor = platformFloor()
+    if (!floor) return false
+    const binary = await getBinaryInfo()
+    if (!binary?.appVersion) return false
+    return bundleNeedsNewerBinary(floor, binary.appVersion)
 }

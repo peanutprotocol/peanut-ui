@@ -109,7 +109,7 @@ async function checkAndStageUpdate(callbacks: OtaUpdateCallbacks = {}): Promise<
             // downloaded. Capgo's own floor is the server-side half of this rule and
             // only applies under one channel strategy, in a dashboard nothing here
             // can read — so the client decides too.
-            if (await needsStoreUpdate(latest.version)) {
+            if (await needsStoreUpdate(latest.version, latest.comment)) {
                 console.info(`[capgo] bundle ${latest.version} needs a newer binary — store update only`)
                 removeStoredValue(FAILURE_STREAK_KEY)
                 callbacks.onStoreUpdateRequired?.()

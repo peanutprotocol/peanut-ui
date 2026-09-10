@@ -50,36 +50,103 @@ describe('bundleNeedsNewerBinary', () => {
     })
 })
 
+const floors = (android: string, ios: string) => `abc1234 — some commit [ota-floors: android=${android} ios=${ios}]`
+
 /**
- * Per-platform floors. One release tag names two binaries and the field does not
- * keep them in step — TestFlight has no auto-update, so iOS sat on 1.5.0 while
- * Android moved to 1.6.0, and every native input that changed between those
- * releases was under `android/`. Read as a version number, bundle 1.6.x refuses
- * the whole iOS population JS its binary runs; read as a surface, iOS's floor is
- * 1.5.0. The floors are baked in at publish time by ota-platform-floor.mjs.
+ * The candidate's floors, read off the comment Capgo round-trips with it.
+ *
+ * One release tag names two binaries and the field does not keep them in step:
+ * TestFlight has no auto-update, so iOS sat on 1.5.0 while Android moved to
+ * 1.6.0, and every native input that changed between those releases was under
+ * `android/`. The floors baked into a bundle describe the bundle that is
+ * RUNNING, which is the wrong bundle to judge a candidate by — the two cases
+ * this exists for are a pre-floor install taking its first floor-bearing bundle,
+ * and a floor-bearing install refusing a candidate built after a native release
+ * it knows nothing about.
  */
-describe('needsStoreUpdate with baked platform floors', () => {
-    const load = async ({
-        android,
-        ios,
-        platform,
-    }: {
-        android?: string
-        ios?: string
-        platform: 'android' | 'ios'
-    }) => {
+describe('needsStoreUpdate with candidate floors', () => {
+    const load = async (platform: 'android' | 'ios', binary: string) => {
         jest.resetModules()
-        process.env.NEXT_PUBLIC_OTA_FLOOR_ANDROID = android
-        process.env.NEXT_PUBLIC_OTA_FLOOR_IOS = ios
-        if (android === undefined) delete process.env.NEXT_PUBLIC_OTA_FLOOR_ANDROID
-        if (ios === undefined) delete process.env.NEXT_PUBLIC_OTA_FLOOR_IOS
         jest.doMock('@/utils/capacitor', () => ({ isIOSNative: () => platform === 'ios' }))
         jest.doMock('@/utils/app-version', () => ({
-            getBinaryInfo: async () => ({ appVersion: binaryVersion, appBuild: '1' }),
+            getBinaryInfo: async () => ({ appVersion: binary, appBuild: '1' }),
         }))
         return import('../ota-native-gate')
     }
-    let binaryVersion = '1.5.0'
+
+    afterEach(() => {
+        jest.dontMock('@/utils/capacitor')
+        jest.dontMock('@/utils/app-version')
+        jest.resetModules()
+    })
+
+    // The population this exists to unfreeze.
+    it('lets an iOS 1.5.0 binary take a 1.6.x candidate whose iOS floor is 1.5.0', async () => {
+        const { needsStoreUpdate } = await load('ios', '1.5.0')
+        await expect(needsStoreUpdate('1.6.3', floors('1.6.0', '1.5.0'))).resolves.toBe(false)
+    })
+
+    it('still refuses that candidate on an Android 1.5.0 binary, whose floor is 1.6.0', async () => {
+        const { needsStoreUpdate } = await load('android', '1.5.0')
+        await expect(needsStoreUpdate('1.6.3', floors('1.6.0', '1.5.0'))).resolves.toBe(true)
+    })
+
+    // The inverse, and the reason the candidate has to be authoritative: judged
+    // against the RUNNING bundle's floor (android 1.6.0) this device would accept
+    // JS its binary cannot run.
+    it('refuses a native-changing 1.7 candidate on the 1.6.0 binary it was not built for', async () => {
+        const { needsStoreUpdate } = await load('android', '1.6.0')
+        await expect(needsStoreUpdate('1.7.1', floors('1.7.0', '1.5.0'))).resolves.toBe(true)
+    })
+
+    it('lets the same 1.7 candidate through on iOS, which that release did not touch', async () => {
+        const { needsStoreUpdate } = await load('ios', '1.5.0')
+        await expect(needsStoreUpdate('1.7.1', floors('1.7.0', '1.5.0'))).resolves.toBe(false)
+    })
+
+    it('falls back to the candidate version when the comment carries no floors', async () => {
+        const { needsStoreUpdate } = await load('ios', '1.5.0')
+        await expect(needsStoreUpdate('1.6.3', 'abc1234 — a plain commit message')).resolves.toBe(true)
+        await expect(needsStoreUpdate('1.6.3', undefined)).resolves.toBe(true)
+        await expect(needsStoreUpdate('1.5.4', undefined)).resolves.toBe(false)
+    })
+
+    // A comment is a human string, and a loose parse of one reads a commit
+    // message as a version. Both platforms or neither, plain X.Y.Z only.
+    it.each([
+        ['one platform only', 'abc1234 [ota-floors: android=1.6.0]'],
+        ['a prerelease', 'abc1234 [ota-floors: android=1.6.0-rc1 ios=1.5.0]'],
+        ['a bare mention', 'abc1234 bumped ota-floors for android'],
+    ])('ignores a malformed marker — %s', async (_label, comment) => {
+        const { parseCandidateFloors } = await load('ios', '1.5.0')
+        expect(parseCandidateFloors(comment)).toBeNull()
+    })
+
+    it('reads the marker out of a comment that also carries the commit line', async () => {
+        const { parseCandidateFloors } = await load('ios', '1.5.0')
+        expect(parseCandidateFloors(floors('1.6.0', '1.5.0'))).toEqual({ android: '1.6.0', ios: '1.5.0' })
+    })
+})
+
+/**
+ * A different question from needsStoreUpdate, and the only one the baked
+ * constants can answer honestly: this install is running JS built for a native
+ * contract it does not have, so a store update is owed whether or not any new
+ * bundle exists.
+ */
+describe('runningBundleOutranksBinary', () => {
+    const load = async (platform: 'android' | 'ios', binary: string, baked?: { android: string; ios: string }) => {
+        jest.resetModules()
+        if (baked) {
+            process.env.NEXT_PUBLIC_OTA_FLOOR_ANDROID = baked.android
+            process.env.NEXT_PUBLIC_OTA_FLOOR_IOS = baked.ios
+        }
+        jest.doMock('@/utils/capacitor', () => ({ isIOSNative: () => platform === 'ios' }))
+        jest.doMock('@/utils/app-version', () => ({
+            getBinaryInfo: async () => ({ appVersion: binary, appBuild: '1' }),
+        }))
+        return import('../ota-native-gate')
+    }
 
     afterEach(() => {
         delete process.env.NEXT_PUBLIC_OTA_FLOOR_ANDROID
@@ -89,39 +156,18 @@ describe('needsStoreUpdate with baked platform floors', () => {
         jest.resetModules()
     })
 
-    // The case that would otherwise freeze every iOS install, silently: the store
-    // row is hidden while the App Store listing is not live, so there is not even
-    // a prompt to explain why updates stopped.
-    it('serves a 1.6.x bundle to an iOS 1.5.0 binary when the iOS floor is 1.5.0', async () => {
-        binaryVersion = '1.5.0'
-        const { needsStoreUpdate } = await load({ android: '1.6.0', ios: '1.5.0', platform: 'ios' })
-        await expect(needsStoreUpdate('1.6.2')).resolves.toBe(false)
+    it('is true when the binary is behind the running bundle floor', async () => {
+        const m = await load('android', '1.5.0', { android: '1.6.0', ios: '1.5.0' })
+        await expect(m.runningBundleOutranksBinary()).resolves.toBe(true)
     })
 
-    it('still refuses the same bundle on an Android 1.5.0 binary, whose floor is 1.6.0', async () => {
-        binaryVersion = '1.5.0'
-        const { needsStoreUpdate } = await load({ android: '1.6.0', ios: '1.5.0', platform: 'android' })
-        await expect(needsStoreUpdate('1.6.2')).resolves.toBe(true)
+    it('is false when the binary clears it', async () => {
+        const m = await load('ios', '1.5.0', { android: '1.6.0', ios: '1.5.0' })
+        await expect(m.runningBundleOutranksBinary()).resolves.toBe(false)
     })
 
-    it('reads the floor for the running platform, not the other one', async () => {
-        binaryVersion = '1.6.0'
-        const onAndroid = await load({ android: '1.6.0', ios: '1.5.0', platform: 'android' })
-        await expect(onAndroid.needsStoreUpdate('1.6.2')).resolves.toBe(false)
-    })
-
-    // Bundles published before the floors existed carry neither value, and must
-    // behave exactly as they did.
-    it('falls back to the candidate version when no floor is baked in', async () => {
-        binaryVersion = '1.5.0'
-        const { needsStoreUpdate } = await load({ platform: 'ios' })
-        await expect(needsStoreUpdate('1.6.2')).resolves.toBe(true)
-        await expect(needsStoreUpdate('1.5.4')).resolves.toBe(false)
-    })
-
-    it('falls back when the baked value is not on the version scheme', async () => {
-        binaryVersion = '1.5.0'
-        const { needsStoreUpdate } = await load({ android: 'unknown', ios: 'unknown', platform: 'android' })
-        await expect(needsStoreUpdate('1.6.2')).resolves.toBe(true)
+    it('is false on a bundle with no baked floors', async () => {
+        const m = await load('android', '1.5.0')
+        await expect(m.runningBundleOutranksBinary()).resolves.toBe(false)
     })
 })
