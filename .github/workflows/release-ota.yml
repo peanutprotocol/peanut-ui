@@ -59,6 +59,27 @@ jobs:
                   node-version: '22'
                   cache: 'pnpm'
 
+            # The resolver below compares NUMBERS only: it lands the next OTA inside
+            # the newest native build's range, which by construction sorts above the
+            # binary — whether or not the commit being published actually contains
+            # that release. Nothing here asked, and on 2026-09-10 a production bundle
+            # shipped from a commit predating the v1.6.0 release, handing every
+            # device on the new binary JS older than the one baked into it.
+            #
+            # check-native-ota-surface asserts the same ancestry, but only as a
+            # precondition of its fingerprint diff, in the deploy job, after a full
+            # install and native build — and a stale ref whose native surface happens
+            # to match would still read as "matches". Say it here, in seconds, and say
+            # what the consequence is.
+            - name: Guard release provenance
+              run: |
+                  FLOOR="$(node scripts/release-version.mjs native-floor)"
+                  if ! git merge-base --is-ancestor "v$FLOOR" HEAD; then
+                      echo "::error::$GITHUB_REF_NAME (${GITHUB_SHA:0:7}) does not contain the newest native release v$FLOOR — publishing it would hand every device on that binary JS older than the one it shipped with. Back-merge the release into this ref first." >&2
+                      exit 1
+                  fi
+                  echo "${GITHUB_SHA:0:7} contains v$FLOOR"
+
             # The Capgo CLI reads `capacitor.config.ts` to resolve the appId on
             # every command, and parsing a .ts config needs the project's own
             # TypeScript. Without it the CLI aborts at config load and prints the
