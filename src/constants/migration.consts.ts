@@ -52,7 +52,9 @@ export const STORE_URL = {
     android: 'https://play.google.com/store/apps/details?id=me.peanut.wallet',
 } as const
 
-export const IOS_APP_STORE_LISTING_LIVE = true
+// The iOS listing is live (https://apps.apple.com/app/id6786373552), but the
+// store-update prompt stays off until the native-release owner turns it on.
+export const IOS_APP_STORE_LISTING_LIVE = false
 
 export const STORE_NAME = {
     ios: 'App Store',

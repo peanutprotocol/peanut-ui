@@ -74,7 +74,7 @@ const jsonLd = {
         {
             '@type': 'MobileApplication',
             '@id': `${baseUrl}/#app`,
-            name: 'Peanut: Send Money & Card',
+            name: 'Peanut',
             url: baseUrl,
             applicationCategory: 'FinanceApplication',
             operatingSystem: 'iOS, Android',
