@@ -23,7 +23,7 @@ const RainCooldownIntroModal = () => {
             visible={showIntroModal}
             onClose={dismissIntroModal}
             icon="clock"
-            iconContainerClassName="bg-yellow-1"
+            iconContainerClassName="bg-action-secondary"
             title={t('rainCooldownIntroModal.title')}
             description={t('rainCooldownIntroModal.description')}
             ctas={[
@@ -37,7 +37,7 @@ const RainCooldownIntroModal = () => {
             footer={
                 <DocsLink
                     href="/en/help/card-collateral"
-                    className="block pt-2 text-center text-sm text-black underline"
+                    className="block pt-2 text-center text-body-s text-black underline"
                 >
                     {t('rainCooldownIntroModal.readMore')}
                 </DocsLink>

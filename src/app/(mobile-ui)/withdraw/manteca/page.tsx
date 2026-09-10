@@ -1,22 +1,30 @@
 'use client'
 
+import { API_ERROR_CODES } from '@/services/api-error'
+
+import { submitSignedSpend } from '@/hooks/wallet/signSpendRetry'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
 import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
 import { SessionKeyGrantRequiredError } from '@/hooks/wallet/spendPreflight'
 import { friendlyError } from '@/utils/friendly-error.utils'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
-import { rainCentsToUsdcUnits, isAmountWithinBalance } from '@/utils/balance.utils'
+import { resolveOfframpSpendRecipient } from '@/utils/manteca.utils'
+import { rainCentsToUsdcUnits, isAmountWithinBalance, parseUsdAmountToUnits } from '@/utils/balance.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useState, useMemo, useContext, useEffect, useCallback, useId } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import NavHeader from '@/components/Global/NavHeader'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import { Icon } from '@/components/Global/Icons/Icon'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
+import RateGateScreen from '@/components/Global/RateUnavailable/RateGateScreen'
 import { mantecaApi, type WithdrawPriceLock } from '@/services/manteca'
 import { useCurrency } from '@/hooks/useCurrency'
 import { loadingStateContext } from '@/context/loadingStates.context'
@@ -30,10 +38,11 @@ import AmountInput from '@/components/Global/AmountInput'
 import { parseUnits } from 'viem'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { useModalsContext } from '@/context/ModalsContext'
-import Select from '@/components/Global/Select'
+import BaseSelect from '@/components/0_Bruddle/BaseSelect'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useQueryClient } from '@tanstack/react-query'
-import { captureException } from '@sentry/nextjs'
+import { captureNetworkTriagedFailure, isNetworkLayerFailure } from '@/utils/network-triage'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
@@ -47,7 +56,6 @@ import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import PointsCard from '@/components/Common/PointsCard'
 import {
     MANTECA_COUNTRIES_CONFIG,
-    MANTECA_DEPOSIT_ADDRESS,
     MantecaAccountType,
     isMantecaSupportedCountryCode,
     type MantecaBankCode,
@@ -66,14 +74,17 @@ import { initiateIncreaseLimits } from '@/app/actions/increase-limits'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { useLimits } from '@/hooks/useLimits'
 import { isVerifiedForCountry } from '@/utils/regions.utils'
-import PixKeySendView from '@/components/Withdraw/views/PixKeySend.view'
+import PixKeySendView from '@/features/withdraw/views/PixKeySendView'
+import { useFlowStepper } from '@/hooks/useFlowStepper'
+import { useWithdrawAmount } from '@/features/withdraw/useWithdrawAmount'
+import { useMantecaAmountSeed } from '@/features/withdraw/useMantecaAmountSeed'
+import { WITHDRAW_MANTECA_STEPS } from '@/features/withdraw/types'
+import { mantecaStepGuards, type MantecaOutcome } from '@/features/withdraw/step-guards'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { MantecaTransfersMaintenanceView } from '@/components/Global/Banner/MantecaTransfersMaintenanceView'
 import { useLocale, useTranslations } from 'next-intl'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 import { loadingStateKey } from '@/i18n/app/loading-states'
-
-type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success' | 'failure'
 
 export default function MantecaWithdrawFlow() {
     const searchParams = useSearchParams()
@@ -110,14 +121,19 @@ function MantecaBankWithdrawFlow() {
     const [usdAmount, setUsdAmount] = useState<string | undefined>(undefined)
     // store original currency amount before price lock to restore on back navigation
     const [originalCurrencyAmount, setOriginalCurrencyAmount] = useState<string | undefined>(undefined)
-    const [step, setStep] = useState<MantecaWithdrawStep>('amountInput')
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
+    // USD amount handed over by the shared /withdraw amount step (TASK-21664)
+    const [urlAmount] = useWithdrawAmount()
     const searchParams = useSearchParams()
     const paramAddress = searchParams.get('destination')
     const isSavedAccount = searchParams.get('isSavedAccount') === 'true'
     const [destinationAddress, setDestinationAddress] = useState<string>(paramAddress ?? '')
     const [selectedBank, setSelectedBank] = useState<MantecaBankCode | null>(null)
     const [accountType, setAccountType] = useState<MantecaAccountType | null>(null)
+    // client-side destination/bank-details validation renders as the field's
+    // own error under the inputs; errorMessage keeps flow failures (rate lock,
+    // provider, signing) in the Notification
+    const [fieldError, setFieldError] = useState<string | null>(null)
     const [errorMessage, setErrorMessageRaw] = useState<string | null>(null)
     // Companion code for `errorMessage` so the retry-vs-block gate compares a
     // stable identifier, never the localized string. Every set clears it unless
@@ -132,6 +148,22 @@ function MantecaBankWithdrawFlow() {
     // price lock state - holds the locked price from /withdraw/init
     const [priceLock, setPriceLock] = useState<WithdrawPriceLock | null>(null)
     const [isLockingPrice, setIsLockingPrice] = useState(false)
+    // Execution proof for the terminal steps: set only by the withdrawal
+    // submission. A hand-edited ?step=success (or =failure) with no completed
+    // operation falls back to a working step (Chip review, PR #2917).
+    const [outcome, setOutcome] = useState<MantecaOutcome>(null)
+    // amount → bank-details → review → success|failure as named screen ids in
+    // the URL. Guards bounce a refresh/deep-link into a step whose local state
+    // did not survive back to the amount step (which re-seeds from ?amount=).
+    const stepper = useFlowStepper({
+        steps: WITHDRAW_MANTECA_STEPS,
+        guards: mantecaStepGuards({
+            hasAmount: !!usdAmount,
+            priceLocked: !!priceLock,
+            outcome,
+        }),
+    })
+    const step = stepper.step
     const router = useRouter()
     const { spendableBalance: balance, formattedSpendableBalance } = useWallet()
     const { signSpend } = useSignSpendBundle()
@@ -142,9 +174,9 @@ function MantecaBankWithdrawFlow() {
     const queryClient = useQueryClient()
     // The pool→full upgrade gate reads identityVerification (Sumsub-cleared
     // the human), not rail-approval. Same fix-pattern as Profile/ProfileEdit.
-    const { rails } = useCapabilities()
+    const { rails, nextActions } = useCapabilities()
     const { isVerified: isUserIdentityVerified } = useIdentityVerification()
-    const mantecaRejection = useMemo(() => deriveProviderRejection(rails, 'MANTECA'), [rails])
+    const mantecaRejection = useMemo(() => deriveProviderRejection(rails, 'MANTECA', nextActions), [rails, nextActions])
     const { hasPendingTransactions } = usePendingTransactions()
 
     // inline sumsub kyc flow for manteca users who need LATAM verification
@@ -152,7 +184,6 @@ function MantecaBankWithdrawFlow() {
     // intent is passed at call time: handleInitiateKyc('LATAM')
     const sumsubFlow = useMultiPhaseKycFlow({})
     const [showKycModal, setShowKycModal] = useState(false)
-    const [isRedirectingToOnboarding, setIsRedirectingToOnboarding] = useState(false)
 
     // Get method and country from URL parameters
     const selectedMethodType = searchParams.get('method') // mercadopago, pix, bank-transfer, etc.
@@ -177,6 +208,7 @@ function MantecaBankWithdrawFlow() {
         code: currencyCode,
         price: currencyPrice,
         isLoading: isCurrencyLoading,
+        refetch: refetchCurrency,
     } = useCurrency(selectedCountry?.currency ?? null)
 
     // validates withdrawal against user's limits
@@ -185,6 +217,50 @@ function MantecaBankWithdrawFlow() {
         flowType: 'offramp',
         amount: usdAmount,
         currency: selectedCountry?.currency,
+    })
+
+    // Synchronous twin of the balanceErrorMessage effect below (same
+    // minimum/ceiling predicates, live balance). Effect-set state lags the
+    // render by a tick, so every decision that must not outrun the balance —
+    // the ?amount= seed advance, the price lock, and the submission itself —
+    // asks this instead of the message state (Chip rounds 3+6).
+    const isAmountWithinLiveBalance = useCallback(
+        (usd: string) => {
+            if (balance === undefined) return false
+            const paymentAmount = parseUnits(usd, PEANUT_WALLET_TOKEN_DECIMALS)
+            if (paymentAmount < parseUnits(MIN_MANTECA_WITHDRAW_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
+                return false
+            }
+            return isAmountWithinBalance(usd, balance)
+        },
+        [balance]
+    )
+
+    // Blanket mount reset — registered BEFORE the ?amount= seed below, so a
+    // fresh mount clears leftover flow state FIRST and the seed then arms on
+    // clean state. Registered after, the reset ran after the seed's mount
+    // effects and clobbered the seeded amounts (the hand-off silently died —
+    // caught by manteca-withdraw-gates.test.tsx). resetState is defined below;
+    // the callback runs post-render, when it exists.
+    useEffect(() => {
+        resetState()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
+    // ?amount= hand-off from the shared amount step: seed both denominations
+    // and advance past this flow's amount screen ONLY once its balance/limits
+    // gates pass for the seeded amount (Chip review round 3). A blocked amount
+    // stays on the amount screen, which renders the reason.
+    const { seededFromUrl, resetSeed } = useMantecaAmountSeed({
+        urlAmount,
+        currencyPriceSell: currencyPrice?.sell,
+        step,
+        isAmountAllowed: isAmountWithinLiveBalance,
+        limitsLoading: limitsValidation.isLoading,
+        limitsBlocking: limitsValidation.isBlocking,
+        setUsdAmount,
+        setCurrencyAmount,
+        goToBankDetails: () => void stepper.goTo('bank-details'),
     })
 
     // BR self-service limit increase flow
@@ -226,7 +302,7 @@ function MantecaBankWithdrawFlow() {
                 const argResult = validateCbuCvuAlias(value)
                 isValid = argResult.valid
                 if (!argResult.valid) {
-                    setErrorMessage(argResult.message!)
+                    setFieldError(argResult.message!)
                 }
                 break
             case 'brazil':
@@ -234,7 +310,7 @@ function MantecaBankWithdrawFlow() {
                 const pixResult = validatePixKey(value)
                 isValid = pixResult.valid
                 if (!pixResult.valid) {
-                    setErrorMessage(pixResult.message!)
+                    setFieldError(pixResult.message!)
                 }
                 break
             default:
@@ -246,39 +322,32 @@ function MantecaBankWithdrawFlow() {
     }
 
     /**
-     * Detect Manteca onboarding-incomplete errors and redirect user to complete their profile.
-     * Returns true if the error was handled (caller should return early).
+     * Detect Manteca onboarding-incomplete errors and surface an actionable
+     * message. Returns true if the error was handled (caller should return early).
      *
-     * INTENTIONAL FALLBACK — NOT a primary code path. The KYC 2.0 architecture
-     * (engineering/projects/kyc-2.0/final-plan.md) centralizes all data
-     * collection in Sumsub and submits to Manteca via the API (`submitToManteca`
-     * in peanut-api-ts). The Manteca hosted onboarding widget is dead-by-design
-     * — but we keep this last-resort redirect for the long tail of users who
-     * land in an incomplete Manteca state (partial provisioning, undelivered
-     * initial-onboarding API call). Without this escape hatch they'd be stuck
-     * at withdraw time with no actionable error.
-     *
-     * Right fix: root-cause why `submitToManteca` sometimes leaves users
-     * half-onboarded, fix that, delete this fallback + `/manteca/initiate-onboarding`
-     * route + `mantecaApi.initiateOnboarding` client. Tracked separately.
+     * This used to redirect into the Manteca hosted onboarding widget — a
+     * KYC-2.0-era dead end (Sumsub owns data collection; `submitToManteca` in
+     * peanut-api-ts owns submission) with 0 triggers in 90 days. The widget
+     * redirect and its `/manteca/initiate-onboarding` backend route are gone.
      */
     const handleOnboardingError = useCallback(
-        async (error: string): Promise<boolean> => {
-            const onboardingErrorPatterns = ['fund origin', 'profile incomplete', 'onboarding required']
+        (error: string): boolean => {
+            // 'manteca kyc' / 'manteca_kyc_required' cover the API's
+            // MANTECA_KYC_REQUIRED responses ("User needs to do manteca KYC
+            // first") — the service layer strips the `code` field, so the text
+            // is all this screen ever sees.
+            const onboardingErrorPatterns = [
+                'fund origin',
+                'profile incomplete',
+                'onboarding required',
+                'manteca kyc',
+                'manteca_kyc_required',
+            ]
             const normalizedError = error.toLowerCase()
             const isOnboardingError = onboardingErrorPatterns.some((pattern) => normalizedError.includes(pattern))
             if (!isOnboardingError) return false
 
-            setIsRedirectingToOnboarding(true)
-            try {
-                const result = await mantecaApi.initiateOnboarding({
-                    returnUrl: window.location.href,
-                })
-                window.location.href = result.url
-            } catch {
-                setErrorMessage(t('errors.completeAccountSetup'))
-                setIsRedirectingToOnboarding(false)
-            }
+            setErrorMessage(t('errors.completeAccountSetup'))
             return true
         },
         [t]
@@ -292,22 +361,62 @@ function MantecaBankWithdrawFlow() {
         )
     }, [selectedBank, accountType, countryConfig, destinationAddress, setErrorMessage])
 
+    const validateSubmissionAmount = useCallback(() => {
+        const units = parseUsdAmountToUnits(usdAmount ?? '')
+        if (
+            units === null ||
+            units < parseUnits(MIN_MANTECA_WITHDRAW_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)
+        ) {
+            setErrorMessage(t('errors.minWithdrawAmount', { amount: MIN_MANTECA_WITHDRAW_AMOUNT }))
+            return false
+        }
+        if (!isAmountWithinBalance(usdAmount!, balance)) {
+            setErrorMessage(
+                balance === undefined ? tErrors('balanceSettling') : tErrors('notEnoughBalanceAddFunds'),
+                balance === undefined ? 'balanceSettling' : null
+            )
+            return false
+        }
+        return true
+    }, [usdAmount, balance, t, tErrors, setErrorMessage])
+
     const handleBankDetailsSubmit = useCallback(async () => {
         // prevent duplicate requests from rapid clicks
         if (isLockingPrice) return
+        if (!validateSubmissionAmount()) {
+            void stepper.goTo('amount')
+            return
+        }
 
         if (!destinationAddress.trim()) {
-            setErrorMessage(t('errors.enterAccountAddress'))
+            setFieldError(t('errors.enterAccountAddress'))
             return
         }
         if ((countryConfig?.needsBankCode && !selectedBank) || (countryConfig?.needsAccountType && !accountType)) {
-            setErrorMessage(t('errors.completeBankDetails'))
+            setFieldError(t('errors.completeBankDetails'))
             return
         }
+        setFieldError(null)
         setErrorMessage(null)
 
         if (!isUserMantecaKycApprovedForCountry) {
             setShowKycModal(true)
+            return
+        }
+
+        // The amount may have arrived via the user-editable ?amount= and the
+        // async balance/limits gates live on the amount screen — re-check them
+        // before locking a price, against the LIVE balance (the message state
+        // is effect-set and lags a render). A failure returns to the amount
+        // screen, which renders the reason (Chip review rounds 3+6).
+        if (
+            balance === undefined ||
+            balanceErrorMessage ||
+            (usdAmount && !isAmountWithinLiveBalance(usdAmount)) ||
+            limitsValidation.isLoading ||
+            limitsValidation.isBlocking
+        ) {
+            void stepper.goTo('amount')
             return
         }
 
@@ -323,8 +432,12 @@ function MantecaBankWithdrawFlow() {
             })
 
             if (result.error) {
-                if (await handleOnboardingError(result.error)) return
-                setErrorMessage(result.error)
+                if (handleOnboardingError(result.error)) return
+                setErrorMessage(
+                    result.code === API_ERROR_CODES.MANTECA_TEMPORARILY_UNAVAILABLE
+                        ? tErrors('transferTemporarilyUnavailable')
+                        : result.error
+                )
                 return
             }
 
@@ -334,10 +447,12 @@ function MantecaBankWithdrawFlow() {
                 setPriceLock(result.data)
                 // update the displayed fiat amount to the locked amount
                 setCurrencyAmount(result.data.fiatAmount)
-                setStep('review')
+                void stepper.goTo('review')
             }
         } catch (error) {
-            captureException(error)
+            void captureNetworkTriagedFailure(error, {
+                tags: { ...criticalFlowTags('withdraw-manteca'), withdraw_step: 'lock-rate' },
+            })
             setErrorMessage(t('errors.lockRateFailed'))
         } finally {
             setIsLockingPrice(false)
@@ -351,15 +466,43 @@ function MantecaBankWithdrawFlow() {
         usdAmount,
         currencyCode,
         currencyAmount,
+        isAmountWithinLiveBalance,
         isUserMantecaKycApprovedForCountry,
         isLockingPrice,
+        validateSubmissionAmount,
         handleOnboardingError,
+        balance,
+        balanceErrorMessage,
+        limitsValidation.isLoading,
+        limitsValidation.isBlocking,
+        stepper,
         t,
+        tErrors,
         setErrorMessage,
     ])
 
     const handleWithdraw = async () => {
         if (!destinationAddress || !usdAmount || !currencyCode || !priceLock) return
+        if (!validateSubmissionAmount()) {
+            void stepper.goTo('amount')
+            return
+        }
+
+        // last line of defense before the money operation: the balance and the
+        // async LATAM limits must hold for this amount RIGHT NOW — checked
+        // against the live balance, not the effect-lagged message state — and
+        // a stale amount that outran the gates goes back to the amount screen,
+        // which renders the reason (Chip review rounds 3+6)
+        if (
+            balance === undefined ||
+            balanceErrorMessage ||
+            !isAmountWithinLiveBalance(usdAmount) ||
+            limitsValidation.isLoading ||
+            limitsValidation.isBlocking
+        ) {
+            void stepper.goTo('amount')
+            return
+        }
 
         posthog.capture(ANALYTICS_EVENTS.WITHDRAW_CONFIRMED, {
             amount_usd: usdAmount,
@@ -384,7 +527,10 @@ function MantecaBankWithdrawFlow() {
                 const requiredUsdcAmount = parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS)
                 signedArtifact = await signSpend({
                     requiredUsdcAmount,
-                    recipient: MANTECA_DEPOSIT_ADDRESS,
+                    // Entity-aware deposit address served by /withdraw/init
+                    // (per-entity balances from 2026-09-14); the constant is
+                    // only the fallback for an older API without the field.
+                    recipient: resolveOfframpSpendRecipient(priceLock),
                     rainSpendingPower: rainCentsToUsdcUnits(rainCardOverview?.balance?.spendingPower),
                     kind: 'FIAT_OFFRAMP',
                 })
@@ -401,9 +547,21 @@ function MantecaBankWithdrawFlow() {
                     setErrorMessage(t('errors.confirmTransaction'))
                 } else if (classified.kind === 'code' && classified.code === 'genericSupport') {
                     // Keep the flow-specific fallback and the Sentry report.
-                    captureException(error)
+                    void captureNetworkTriagedFailure(error, {
+                        tags: { ...criticalFlowTags('withdraw-manteca'), withdraw_step: 'sign' },
+                    })
                     setErrorMessage(t('errors.signFailed'))
                 } else {
+                    // A classified error is normally a deliberate non-report
+                    // (backend wire code, or a user action). Network-layer
+                    // failures are the exception: once `connectionLost` existed
+                    // they classified HERE instead of genericSupport above, which
+                    // silently ended their Sentry reporting (TASK-21956).
+                    if (isNetworkLayerFailure(error)) {
+                        void captureNetworkTriagedFailure(error, {
+                            tags: { ...criticalFlowTags('withdraw-manteca'), withdraw_step: 'sign' },
+                        })
+                    }
                     setErrorMessage(toFriendlyError(error), classified.kind === 'text' ? null : classified.code)
                 }
                 setLoadingState('Idle')
@@ -416,37 +574,39 @@ function MantecaBankWithdrawFlow() {
             // Manteca order FIRST, then either broadcasts the signed UserOp
             // (smart-only / mixed) or submits the Rain withdrawal via the
             // user's session-key UserOp (collateral-only). No stuck funds.
-            const result = await mantecaApi.withdrawWithSignedTx(
-                signedArtifact.strategy === 'collateral-only'
-                    ? {
-                          kind: 'rainWithdrawal' as const,
-                          priceLockCode: priceLock.priceLockCode,
-                          amount: usdAmount,
-                          destinationAddress: destinationAddress.toLowerCase(),
-                          bankCode: selectedBank?.code,
-                          accountType: accountType ?? undefined,
-                          currency: currencyCode,
-                          signedRainWithdrawal: signedArtifact.rainWithdrawal,
-                          chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                      }
-                    : {
-                          kind: 'userOp' as const,
-                          priceLockCode: priceLock.priceLockCode,
-                          amount: usdAmount,
-                          destinationAddress: destinationAddress.toLowerCase(),
-                          bankCode: selectedBank?.code,
-                          accountType: accountType ?? undefined,
-                          currency: currencyCode,
-                          signedUserOp: signedArtifact.signedUserOp.signedUserOp,
-                          chainId: signedArtifact.signedUserOp.chainId,
-                          entryPointAddress: signedArtifact.signedUserOp.entryPointAddress,
-                          // For mixed: tell backend about the Rain prepare intent
-                          // embedded in the UserOp's batched callData so it can
-                          // reconcile the collateral webhook to OFFRAMP in history.
-                          ...(signedArtifact.strategy === 'mixed'
-                              ? { rainPreparationId: signedArtifact.rainPreparationId }
-                              : {}),
-                      }
+            const result = await submitSignedSpend(signedArtifact, () =>
+                mantecaApi.withdrawWithSignedTx(
+                    signedArtifact.strategy === 'collateral-only'
+                        ? {
+                              kind: 'rainWithdrawal' as const,
+                              priceLockCode: priceLock.priceLockCode,
+                              amount: usdAmount,
+                              destinationAddress: destinationAddress.toLowerCase(),
+                              bankCode: selectedBank?.code,
+                              accountType: accountType ?? undefined,
+                              currency: currencyCode,
+                              signedRainWithdrawal: signedArtifact.rainWithdrawal,
+                              chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                          }
+                        : {
+                              kind: 'userOp' as const,
+                              priceLockCode: priceLock.priceLockCode,
+                              amount: usdAmount,
+                              destinationAddress: destinationAddress.toLowerCase(),
+                              bankCode: selectedBank?.code,
+                              accountType: accountType ?? undefined,
+                              currency: currencyCode,
+                              signedUserOp: signedArtifact.signedUserOp.signedUserOp,
+                              chainId: signedArtifact.signedUserOp.chainId,
+                              entryPointAddress: signedArtifact.signedUserOp.entryPointAddress,
+                              // For mixed: tell backend about the Rain prepare intent
+                              // embedded in the UserOp's batched callData so it can
+                              // reconcile the collateral webhook to OFFRAMP in history.
+                              ...(signedArtifact.strategy === 'mixed'
+                                  ? { rainPreparationId: signedArtifact.rainPreparationId }
+                                  : {}),
+                          }
+                )
             )
 
             if (result.error) {
@@ -455,26 +615,35 @@ function MantecaBankWithdrawFlow() {
                     error_message: result.error,
                 })
 
+                if (result.code === API_ERROR_CODES.MANTECA_TEMPORARILY_UNAVAILABLE) {
+                    setErrorMessage(tErrors('transferTemporarilyUnavailable'))
+                    return
+                }
+
                 // Wrong-passkey session: backend rejected the signed UserOp with
                 // AA24 / wapk. Unrecoverable without re-auth — force a clean logout.
                 if (handleStaleSession(result.message ?? result.error)) return
 
                 // handle onboarding-incomplete errors by redirecting to complete profile
-                if (await handleOnboardingError(result.message ?? result.error)) return
+                if (handleOnboardingError(result.message ?? result.error)) return
 
                 // handle third-party account error with user-friendly message
                 if (result.error === 'TAX_ID_MISMATCH' || result.error === 'CUIT_MISMATCH') {
                     setErrorMessage(t('errors.ownAccountOnly'))
                 } else if (result.error === 'Unexpected error') {
                     setErrorMessage(t('errors.unexpected'))
-                    setStep('failure')
+                    setOutcome('failure')
+                    void stepper.goTo('failure')
+                } else if (result.code === 'USER_OP_REVERTED') {
+                    setErrorMessage(toFriendlyError(result), 'userOpReverted')
                 } else {
                     setErrorMessage(result.message ?? result.error)
                 }
                 return
             }
 
-            setStep('success')
+            setOutcome('success')
+            void stepper.goTo('success')
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_COMPLETED, {
                 amount_usd: usdAmount,
                 method_type: 'manteca',
@@ -483,25 +652,42 @@ function MantecaBankWithdrawFlow() {
         } catch (error) {
             console.error('Manteca withdraw error:', error)
             if (handleStaleSession(error)) return
-            posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
-                method_type: 'manteca',
-                error_message: 'Withdraw failed unexpectedly',
+            // Reported here rather than left to the console-capture integration,
+            // which the noise filters then drop: the money leg of an offramp
+            // dying was leaving no queryable Sentry record at all (TASK-21956).
+            void captureNetworkTriagedFailure(error, {
+                tags: { ...criticalFlowTags('withdraw-manteca'), withdraw_step: 'submit' },
+                extra: { amountUsd: usdAmount, country: countryPath },
+                analytics: {
+                    event: ANALYTICS_EVENTS.WITHDRAW_FAILED,
+                    props: {
+                        method_type: 'manteca',
+                        error_message: 'Withdraw failed unexpectedly',
+                        error_name: error instanceof Error ? error.name : 'unknown',
+                        error_raw: error instanceof Error ? error.message : String(error),
+                    },
+                },
             })
             setErrorMessage(t('errors.unexpected'))
-            setStep('failure')
+            setOutcome('failure')
+            void stepper.goTo('failure')
         } finally {
             setLoadingState('Idle')
         }
     }
 
+    // clears the flow's local fields; the step itself lives in the URL —
+    // "Try again" pairs this with stepper.reset()
     const resetState = () => {
-        setStep('amountInput')
+        resetSeed()
+        setOutcome(null)
         setCurrencyAmount(undefined)
         setUsdAmount(undefined)
         setOriginalCurrencyAmount(undefined)
         setDestinationAddress(paramAddress ?? '')
         setSelectedBank(null)
         setAccountType(null)
+        setFieldError(null)
         setErrorMessage(null)
         setIsDestinationAddressValid(false)
         setIsDestinationAddressChanging(false)
@@ -511,10 +697,6 @@ function MantecaBankWithdrawFlow() {
     }
 
     useEffect(() => {
-        resetState()
-    }, [])
-
-    useEffect(() => {
         // Skip balance check if transaction is being processed
         // Use hasPendingTransactions to prevent race condition with optimistic updates
         // isLoading covers the gap between sendMoney completing and API withdraw completing
@@ -522,7 +704,12 @@ function MantecaBankWithdrawFlow() {
             return
         }
 
-        if (!usdAmount || usdAmount === '0.00' || isNaN(Number(usdAmount)) || balance === undefined) {
+        if (
+            (!Number(usdAmount) && !Number(currencyAmount)) ||
+            !usdAmount ||
+            isNaN(Number(usdAmount)) ||
+            balance === undefined
+        ) {
             setBalanceErrorMessage(null)
             return
         }
@@ -537,7 +724,7 @@ function MantecaBankWithdrawFlow() {
         } else {
             setBalanceErrorMessage(null)
         }
-    }, [usdAmount, balance, hasPendingTransactions, isLoading, t, tErrors])
+    }, [usdAmount, currencyAmount, balance, hasPendingTransactions, isLoading, t, tErrors])
 
     // Fetch points early to avoid latency penalty - fetch as soon as we have usdAmount
     // Use flowId as uniqueId to prevent cache collisions between different withdrawal flows
@@ -559,31 +746,43 @@ function MantecaBankWithdrawFlow() {
         }
     }, [countryFromUrl, selectedCountry, router])
 
-    if (isCurrencyLoading || !currencyPrice || !selectedCountry || !countryConfig) {
-        return <PeanutLoading />
+    // Rate gate keeps the header mounted so back always works (dev #2843/#1848)
+    if (selectedCountry && countryConfig && (isCurrencyLoading || !currencyPrice)) {
+        return (
+            <RateGateScreen
+                title={tNav('withdraw')}
+                onBack={onBack}
+                isLoading={isCurrencyLoading}
+                onRetry={refetchCurrency}
+            />
+        )
+    }
+
+    if (!selectedCountry || !countryConfig) {
+        return <Loading variant="mascot" />
     }
 
     if (step === 'success') {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-8">
+            <div className="flex min-h-inherit flex-col gap-8">
                 <SoundPlayer sound="success" />
                 <NavHeader title={tNav('withdraw')} />
-                <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     <Card className="flex flex-row items-center gap-3 p-4">
                         <div className="flex items-center gap-3">
-                            <div className="flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-success-3 font-bold">
-                                <Icon name="check" size={24} />
-                            </div>
+                            <IconBubble icon="check" color="green" />
                         </div>
                         <div className="space-y-1">
-                            <h1 className="text-sm font-normal text-grey-1">{t('manteca.youJustWithdrew')}</h1>
-                            <div className="text-2xl font-extrabold">
+                            <h1 className="text-body-s font-normal text-foreground-secondary">
+                                {t('manteca.youJustWithdrew')}
+                            </h1>
+                            <div className="text-heading-s text-foreground-primary">
                                 {currencyCode} {formatNumberForDisplay(currencyAmount, { maxDecimals: 2 })}
                             </div>
-                            <div className="text-lg font-bold">
+                            <div className="text-heading-card text-foreground-primary">
                                 ≈ ${formatNumberForDisplay(usdAmount, { maxDecimals: 2 })} USD
                             </div>
-                            <h1 className="text-sm font-normal text-grey-1">
+                            <h1 className="text-body-s font-normal text-foreground-secondary">
                                 {t('manteca.toDestination', { destination: destinationAddress })}
                             </h1>
                         </div>
@@ -594,7 +793,7 @@ function MantecaBankWithdrawFlow() {
                         <PointsCard points={pointsData.estimatedPoints} pointsDivRef={pointsDivRef} />
                     )}
 
-                    <div className="w-full space-y-5">
+                    <div className="space-y-4 w-full">
                         <Button
                             onClick={() => {
                                 router.push('/home')
@@ -612,25 +811,27 @@ function MantecaBankWithdrawFlow() {
 
     if (step === 'failure') {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-8">
+            <div className="flex min-h-inherit flex-col gap-8">
                 <NavHeader title={tNav('withdraw')} />
-                <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     <Card className="shadow-4">
                         <Card.Header>
                             <Card.Title>{t('somethingWentWrong')}</Card.Title>
                             <Card.Description>{errorMessage}</Card.Description>
                         </Card.Header>
                         <Card.Content className="flex flex-col gap-3">
-                            <Button onClick={resetState} variant="purple">
+                            <Button
+                                onClick={() => {
+                                    resetState()
+                                    void stepper.reset()
+                                }}
+                                variant="purple"
+                            >
                                 {tCommon('tryAgain')}
                             </Button>
-                            <Button
-                                onClick={() => setIsSupportModalOpen(true)}
-                                variant="transparent"
-                                className="text-sm underline"
-                            >
+                            <LinkButton onClick={() => setIsSupportModalOpen(true)} className="self-center">
                                 {tCommon('contactSupport')}
-                            </Button>
+                            </LinkButton>
                         </Card.Content>
                     </Card>
                 </div>
@@ -638,8 +839,10 @@ function MantecaBankWithdrawFlow() {
         )
     }
     return (
-        <div className="flex min-h-[inherit] flex-col gap-8">
+        <div className="flex min-h-inherit flex-col gap-8">
             <InitiateKycModal
+                cooldownActive={!!sumsubFlow.errorCooldown}
+                prepPath="extended"
                 visible={showKycModal}
                 onClose={() => setShowKycModal(false)}
                 onVerify={async () => {
@@ -658,7 +861,7 @@ function MantecaBankWithdrawFlow() {
                     if (mantecaRejection.state === 'restart-identity') {
                         await sumsubFlow.handleRestartIdentity()
                     } else if (mantecaRejection.state === 'fixable') {
-                        await sumsubFlow.handleSelfHealResubmit('MANTECA')
+                        await sumsubFlow.handleFixableRejection(mantecaRejection)
                     } else {
                         await sumsubFlow.handleInitiateKyc('LATAM', undefined, true, selectedCountry?.id)
                     }
@@ -680,7 +883,7 @@ function MantecaBankWithdrawFlow() {
                 reasonCode={mantecaRejection.reasonCode ?? undefined}
                 regionName={selectedCountry && localizedCountryTitle(locale, selectedCountry)}
             />
-            <SumsubKycModals flow={sumsubFlow} />
+            <SumsubKycModals flow={sumsubFlow} onCooldownClose={() => setShowKycModal(false)} />
             <SumsubKycWrapper
                 visible={limitIncreaseFlow.showWrapper}
                 accessToken={limitIncreaseFlow.accessToken}
@@ -699,34 +902,44 @@ function MantecaBankWithdrawFlow() {
                             setCurrencyAmount(originalCurrencyAmount)
                             setOriginalCurrencyAmount(undefined)
                         }
-                        setStep('bankDetails')
-                    } else if (step === 'bankDetails') {
-                        setStep('amountInput')
+                        void stepper.goTo('bank-details')
+                    } else if (step === 'bank-details') {
+                        // an amount seeded from ?amount= was entered on the root
+                        // amount step — back returns there, not to a second
+                        // amount entry (TASK-21664)
+                        if (seededFromUrl) {
+                            onBack()
+                            return
+                        }
+                        void stepper.goTo('amount')
                     } else {
                         onBack()
                     }
                 }}
             />
 
-            {step === 'amountInput' && (
-                <div className="my-auto flex h-full flex-col justify-center space-y-4">
-                    <div className="text-xl font-bold">{t('amountToWithdraw')}</div>
-                    <AmountInput
-                        initialAmount={currencyAmount}
-                        setPrimaryAmount={setCurrencyAmount}
-                        setSecondaryAmount={setUsdAmount}
-                        primaryDenomination={{
-                            symbol: currencyCode!,
-                            price: currencyPrice!.sell,
-                            decimals: 2,
-                        }}
-                        secondaryDenomination={{
-                            symbol: 'USD',
-                            price: 1,
-                            decimals: 2,
-                        }}
-                        walletBalance={balance !== undefined ? formattedSpendableBalance : undefined}
-                    />
+            {step === 'amount' && (
+                <div className="my-auto space-y-4 flex h-full flex-col justify-center">
+                    <div className="text-heading-xs text-foreground-primary">{t('amountToWithdraw')}</div>
+                    {/* only show the balance error if limits blocking card is not displayed (warnings can coexist) */}
+                    <FieldColumn error={!limitsValidation.isBlocking ? balanceErrorMessage : undefined}>
+                        <AmountInput
+                            initialAmount={currencyAmount}
+                            setPrimaryAmount={setCurrencyAmount}
+                            setSecondaryAmount={setUsdAmount}
+                            primaryDenomination={{
+                                symbol: currencyCode!,
+                                price: currencyPrice!.sell,
+                                decimals: 2,
+                            }}
+                            secondaryDenomination={{
+                                symbol: 'USD',
+                                price: 1,
+                                decimals: 2,
+                            }}
+                            walletBalance={balance !== undefined ? formattedSpendableBalance : undefined}
+                        />
+                    </FieldColumn>
 
                     {/* limits warning/error card - uses centralized helper for props */}
                     {(() => {
@@ -758,7 +971,7 @@ function MantecaBankWithdrawFlow() {
                                 if (isSavedAccount) {
                                     handleBankDetailsSubmit()
                                 } else {
-                                    setStep('bankDetails')
+                                    void stepper.goTo('bank-details')
                                 }
                             }
                         }}
@@ -767,18 +980,14 @@ function MantecaBankWithdrawFlow() {
                     >
                         {tCommon('continue')}
                     </Button>
-                    {/* only show balance error if limits blocking card is not displayed (warnings can coexist) */}
-                    {balanceErrorMessage && !limitsValidation.isBlocking && (
-                        <ErrorAlert description={balanceErrorMessage} />
-                    )}
                 </div>
             )}
 
-            {step === 'bankDetails' && (
-                <div className="my-auto flex h-full flex-col justify-center space-y-4">
+            {step === 'bank-details' && (
+                <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     {/* Amount Display Card */}
                     <Card className="p-4">
-                        <div className="flex items-center space-x-3">
+                        <div className="space-x-3 flex items-center">
                             <div className="relative h-12 w-12">
                                 <Image
                                     src={getFlagUrl(countryFlagCode)}
@@ -787,18 +996,21 @@ function MantecaBankWithdrawFlow() {
                                     height={48}
                                     className="h-12 w-12 rounded-full object-cover"
                                 />
-                                <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-yellow-1">
-                                    <Icon name="bank" size={12} />
-                                </div>
+                                <IconBubble
+                                    icon="bank"
+                                    size="xs"
+                                    color="blue"
+                                    className="absolute -right-1 -bottom-1"
+                                />
                             </div>
                             <div>
-                                <p className="flex items-center gap-1 text-center text-sm text-gray-600">
+                                <p className="flex items-center gap-1 text-center text-body-s text-foreground-secondary">
                                     <Icon name="arrow-up" size={10} /> {t('manteca.youreWithdrawing')}
                                 </p>
-                                <p className="text-2xl font-bold">
+                                <p className="text-heading-s text-foreground-primary">
                                     {currencyCode} {formatNumberForDisplay(currencyAmount, { maxDecimals: 2 })}
                                 </p>
-                                <div className="text-lg font-bold">
+                                <div className="text-heading-card text-foreground-primary">
                                     ≈ {formatNumberForDisplay(usdAmount, { maxDecimals: 2 })} USD
                                 </div>
                             </div>
@@ -807,54 +1019,58 @@ function MantecaBankWithdrawFlow() {
 
                     {/* Bank Details Form */}
                     <div className="space-y-4">
-                        <h2 className="text-lg font-bold">
+                        <h2 className="text-heading-card text-foreground-primary">
                             {t('manteca.enterMethodDetails', { method: methodDisplayInfo.name })}
                         </h2>
                         <div className="space-y-2">
-                            <ValidatedInput
-                                value={destinationAddress}
-                                placeholder={countryConfig!.accountNumberLabel}
-                                onUpdate={(update) => {
-                                    // Auto-normalize PIX keys for Brazil: strip whitespace and normalize phone numbers
-                                    const normalizedValue =
-                                        countryPath === 'brazil' ? normalizePixInput(update.value) : update.value
-                                    setDestinationAddress(normalizedValue)
-                                    setIsDestinationAddressValid(update.isValid)
-                                    setIsDestinationAddressChanging(update.isChanging)
-                                    if (update.isValid || update.value === '') {
-                                        setErrorMessage(null)
-                                    }
-                                }}
-                                validate={validateDestinationAddress}
-                            />
-                            {countryConfig?.needsAccountType && (
-                                <Select
-                                    value={accountType ? { id: accountType, title: accountType } : null}
-                                    onChange={(item) => {
-                                        setAccountType(MantecaAccountType[item.id as keyof typeof MantecaAccountType])
+                            <FieldColumn error={fieldError}>
+                                <ValidatedInput
+                                    value={destinationAddress}
+                                    placeholder={countryConfig!.accountNumberLabel}
+                                    onUpdate={(update) => {
+                                        // Auto-normalize PIX keys for Brazil: strip whitespace and normalize phone numbers
+                                        const normalizedValue =
+                                            countryPath === 'brazil' ? normalizePixInput(update.value) : update.value
+                                        setDestinationAddress(normalizedValue)
+                                        setIsDestinationAddressValid(update.isValid)
+                                        setIsDestinationAddressChanging(update.isChanging)
+                                        if (update.isValid || update.value === '') {
+                                            setFieldError(null)
+                                            setErrorMessage(null)
+                                        }
                                     }}
-                                    items={countryConfig.validAccountTypes.map((type) => ({ id: type, title: type }))}
+                                    validate={validateDestinationAddress}
+                                />
+                            </FieldColumn>
+                            {countryConfig?.needsAccountType && (
+                                <BaseSelect
+                                    value={accountType ?? undefined}
+                                    onValueChange={(value) => {
+                                        setAccountType(MantecaAccountType[value as keyof typeof MantecaAccountType])
+                                    }}
+                                    options={countryConfig.validAccountTypes.map((type) => ({
+                                        label: type,
+                                        value: type,
+                                    }))}
                                     placeholder={t('manteca.selectAccountType')}
-                                    className="w-full"
                                 />
                             )}
                             {countryConfig?.needsBankCode && (
-                                <Select
-                                    value={selectedBank ? { id: selectedBank.code, title: selectedBank.name } : null}
-                                    onChange={(item) => {
-                                        setSelectedBank({ code: item.id, name: item.title })
+                                <BaseSelect
+                                    value={selectedBank?.code}
+                                    onValueChange={(value) => {
+                                        const bank = countryConfig.validBankCodes.find((b) => b.code === value)
+                                        if (bank) setSelectedBank({ code: bank.code, name: bank.name })
                                     }}
-                                    items={countryConfig.validBankCodes.map((bank) => ({
-                                        id: bank.code,
-                                        title: bank.name,
+                                    options={countryConfig.validBankCodes.map((bank) => ({
+                                        label: bank.name,
+                                        value: bank.code,
                                     }))}
                                     placeholder={t('manteca.selectBank')}
-                                    className="w-full"
                                 />
                             )}
 
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                                <Icon name="info" size={16} />
+                            <div className="flex items-center gap-2 text-body-s text-foreground-secondary">
                                 <span>{t('manteca.ownAccountOnly')}</span>
                             </div>
                         </div>
@@ -865,31 +1081,26 @@ function MantecaBankWithdrawFlow() {
                                 !isCompleteBankDetails ||
                                 isDestinationAddressChanging ||
                                 !isDestinationAddressValid ||
-                                isLockingPrice ||
-                                isRedirectingToOnboarding
+                                isLockingPrice
                             }
-                            loading={isDestinationAddressChanging || isLockingPrice || isRedirectingToOnboarding}
+                            loading={isDestinationAddressChanging || isLockingPrice}
                             className="w-full"
                             shadowSize="4"
                         >
-                            {isRedirectingToOnboarding
-                                ? t('manteca.redirecting')
-                                : isLockingPrice
-                                  ? t('manteca.lockingRate')
-                                  : t('review')}
+                            {isLockingPrice ? t('manteca.lockingRate') : t('review')}
                         </Button>
 
                         {(errorMessage || sumsubFlow.error) && (
-                            <ErrorAlert description={(errorMessage || sumsubFlow.error)!} />
+                            <Notification priority="error">{(errorMessage || sumsubFlow.error)!}</Notification>
                         )}
                     </div>
                 </div>
             )}
 
             {step === 'review' && (
-                <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     <Card className="p-4">
-                        <div className="flex items-center space-x-3">
+                        <div className="space-x-3 flex items-center">
                             <div className="relative h-12 w-12">
                                 <Image
                                     src={getFlagUrl(countryFlagCode)}
@@ -898,21 +1109,24 @@ function MantecaBankWithdrawFlow() {
                                     height={48}
                                     className="h-12 w-12 rounded-full object-cover"
                                 />
-                                <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-yellow-1">
-                                    <Icon name="bank" size={12} />
-                                </div>
+                                <IconBubble
+                                    icon="bank"
+                                    size="xs"
+                                    color="blue"
+                                    className="absolute -right-1 -bottom-1"
+                                />
                             </div>
                             <div>
-                                <p className="flex items-center gap-1 text-center text-sm text-gray-600">
+                                <p className="flex items-center gap-1 text-center text-body-s text-foreground-secondary">
                                     <Icon name="arrow-up" size={10} /> {t('manteca.youreWithdrawing')}
                                 </p>
-                                <p className="text-2xl font-bold">
+                                <p className="text-heading-s text-foreground-primary">
                                     {currencyCode}{' '}
                                     {formatNumberForDisplay(priceLock?.fiatAmount ?? currencyAmount, {
                                         maxDecimals: 2,
                                     })}
                                 </p>
-                                <div className="text-lg font-bold">
+                                <div className="text-heading-card text-foreground-primary">
                                     ≈ {formatNumberForDisplay(usdAmount, { maxDecimals: 2 })} USD
                                 </div>
                             </div>
@@ -924,7 +1138,7 @@ function MantecaBankWithdrawFlow() {
                         <PaymentInfoRow
                             label={t('manteca.exchangeRate')}
                             value={`1 USD = ${priceLock?.price ?? currencyPrice!.sell} ${currencyCode!.toUpperCase()}`}
-                            moreInfoText={t('manteca.exchangeRateInfo')}
+                            moreInfoText={t('manteca.exchangeRateInfo', { currency: currencyCode ?? '' })}
                         />
                         <PaymentInfoRow
                             label={tCommon('peanutFee')}
@@ -944,7 +1158,7 @@ function MantecaBankWithdrawFlow() {
                         {isLoading ? tLoading(loadingStateKey(loadingState)) : tNav('withdraw')}
                     </Button>
                     {(errorMessage || sumsubFlow.error) && (
-                        <ErrorAlert description={(errorMessage || sumsubFlow.error)!} />
+                        <Notification priority="error">{(errorMessage || sumsubFlow.error)!}</Notification>
                     )}
                 </div>
             )}

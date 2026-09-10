@@ -5,12 +5,14 @@
  *
  * 1. enableFullMaintenance: redirects ALL pages to /maintenance page
  *    - landing page (/) and support page (/support) remain accessible
- *    - maintenance banner shows on all pages (including landing and support)
+ *    - maintenance banner shows on all pages EXCEPT /home (see note below)
  *    - use this when the entire app needs to be blocked
  *
- * 2. enableMaintenanceBanner: shows a banner on ALL pages (including landing and support)
+ * 2. enableMaintenanceBanner: shows a banner on ALL pages EXCEPT /home
  *    - pages remain functional, just shows a warning banner
  *    - use this when you want to warn users about ongoing maintenance
+ *    - scope it with maintenanceBannerPaths: [] = every page; ['/withdraw', '/add-money']
+ *      = only those pages (prefix match, so '/add-money' covers '/add-money/brazil')
  *
  * 3. disabledPaymentProviders: array of payment providers to disable
  *    - blocks QR payments for specific providers (e.g., 'MANTECA')
@@ -58,7 +60,9 @@
  *    - /shhhhh and the rest of the card flow stay reachable — this only mutes the homepage pitch
  *    - use if the closed beta fills up or the card goes down
  *
- * note: if either mode is enabled, the maintenance banner will show everywhere
+ * note: if either mode is enabled, the maintenance banner shows everywhere EXCEPT
+ * /home — home never shows it, whatever these switches say (designer ruling
+ * 2026-09-03; see Global/Banner). It renders below each page's nav header.
  *
  * I HOPE WE NEVER NEED TO USE THIS...
  *
@@ -71,6 +75,8 @@ export type PaymentProvider = 'MANTECA'
 interface MaintenanceConfig {
     enableFullMaintenance: boolean
     enableMaintenanceBanner: boolean
+    /** Path prefixes the maintenance banner shows on. Empty = every page. Only scopes enableMaintenanceBanner; enableFullMaintenance always shows it everywhere. */
+    maintenanceBannerPaths: string[]
     disabledPaymentProviders: PaymentProvider[]
     disableXchainWithdraw: boolean
     disableXchainSend: boolean
@@ -92,8 +98,9 @@ const DISABLE_XCHAIN_WITHDRAW_GLOBALLY = false
 
 const underMaintenanceConfig: MaintenanceConfig = {
     enableFullMaintenance: false, // set to true to redirect all pages to /maintenance
-    enableMaintenanceBanner: false, // set to true to show maintenance banner on all pages
-    disabledPaymentProviders: [], // set to ['MANTECA'] to disable Manteca QR payments
+    enableMaintenanceBanner: false, // set to true to show maintenance banner (scope with maintenanceBannerPaths)
+    maintenanceBannerPaths: [], // [] = every page; e.g. ['/withdraw', '/add-money'] targets those pages only
+    disabledPaymentProviders: [], // set to ['MANTECA'] to disable Manteca QR payments (last used: 2026-08-24 outage)
     /**
      * Cross-chain withdraw is force-disabled in the iOS app, on top of the global
      * kill-switch. Getter, not a constant: the platform is only knowable once the
@@ -109,7 +116,7 @@ const underMaintenanceConfig: MaintenanceConfig = {
     disableCardLaunchCTA: false, // kill-switch for the in-app "shhh" card CTA (funnel card step + activated home splash). Set true to mute it (dial down in-app load); /card flow + /shhhhh + waitlist stay reachable regardless.
     disableLandingCardFold: false, // set to true to hide the landing-page card fold (black door fold + the closed-beta strip under it)
     pixBrazilOnrampMaintenance: false, // BRL deposits restored via dynamic PIX QR (2026-07-02). Set true if the onramp degrades again.
-    disabledMantecaCurrencies: [], // Manteca restored (ARS + BRL live). Add a currency here to block it during a future outage.
+    disabledMantecaCurrencies: [], // Manteca restored after the 2026-08-24 outage (ARS + BRL live). Add a currency here to block it during a future outage.
 }
 
 // shared user-facing copy for cross-chain disabled paths — keep wording aligned with TokenSelector banner

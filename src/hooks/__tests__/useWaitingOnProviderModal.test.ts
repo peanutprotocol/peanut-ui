@@ -10,6 +10,8 @@ jest.mock('@/hooks/useSubmissionWindow', () => ({
 
 const waiting: GateState = { kind: 'waiting-on-provider', userMessage: 'Reviewing your proof of address' }
 const ready: GateState = { kind: 'ready' }
+// a rail still provisioning: no user action either, and it carries no copy
+const pending: GateState = { kind: 'pending' }
 
 beforeEach(() => {
     jest.useFakeTimers()
@@ -76,5 +78,20 @@ describe('useWaitingOnProviderModal', () => {
         act(() => result.current.open())
         act(() => result.current.close())
         expect(result.current.isOpen).toBe(false)
+    })
+
+    // `pending` reaches this modal too. It used to fall through to the identity
+    // screen, which offered a verification run for a gate only time can clear —
+    // and widening the caller alone left a dead button, because isOpen is gated
+    // on the live kind here.
+    test('opens for a pending rail, with the generic copy', () => {
+        const { result } = renderHook(({ gate }) => useWaitingOnProviderModal(gate), {
+            initialProps: { gate: pending },
+        })
+
+        act(() => result.current.open())
+
+        expect(result.current.isOpen).toBe(true)
+        expect(result.current.message).toBeUndefined()
     })
 })

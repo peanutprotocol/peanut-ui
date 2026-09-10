@@ -3,7 +3,7 @@ import { supportedPeanutChains, peanutTokenDetails } from '@/constants/token-reg
 import { toInviteCode } from '@/utils/invite-code.utils'
 import { jsonStringify, jsonParse, saveToCookie, getFromCookie, sanitizeRedirectURL } from '@/utils/cookie-url.utils'
 import { STABLE_COINS, ENS_NAME_REGEX } from '@/constants/general.consts'
-import { shareableUrl } from '@/utils/url.utils'
+import { payLinkUrl, shareableUrl } from '@/utils/url.utils'
 import { isCapacitor } from '@/utils/capacitor'
 import * as Sentry from '@/utils/sentry-lazy'
 import type { Address, TransactionReceipt } from 'viem'
@@ -41,6 +41,14 @@ export const shortenStringLong = (s?: string, chars?: number, firstChars?: numbe
     const endingBit = s.substring(s.length - lastBitLength, s.length)
 
     return firstBit + '...' + endingBit
+}
+
+// one-line account identifiers: head + ellipsis + the last 4 characters
+// (whitespace ignored) people recognize an account by. no-op when it fits.
+export const middleEllipsisAccount = (value: string, max: number): string => {
+    if (value.length <= max) return value
+    const tail = value.replace(/\s/g, '').slice(-4)
+    return `${value.slice(0, max - 7).trimEnd()} … ${tail}`
 }
 
 // Address detection patterns (permissive to handle lowercase-stored addresses)
@@ -351,33 +359,6 @@ export function formatTokenAmount(amount?: number | string, maxFractionDigits?: 
     return formattedAmount
 }
 
-export async function copyTextToClipboardWithFallback(text: string) {
-    if (navigator.clipboard && window.isSecureContext) {
-        try {
-            await navigator.clipboard.writeText(text)
-            return
-        } catch (err) {
-            Sentry.captureException(err)
-            console.error('Clipboard API failed, trying fallback method. Error:', err)
-        }
-    }
-
-    try {
-        const textarea = document.createElement('textarea')
-        textarea.value = text
-        textarea.setAttribute('readonly', '')
-        textarea.style.position = 'absolute'
-        textarea.style.left = '-9999px'
-        document.body.appendChild(textarea)
-        textarea.select()
-        document.execCommand('copy')
-        document.body.removeChild(textarea)
-    } catch (err) {
-        Sentry.captureException(err)
-        console.error('Fallback method failed. Error:', err)
-    }
-}
-
 export const isTestnetChain = (chainId: string) => {
     // viem's chains carry a `testnet: true` flag; fall through to default
     // false for unknown chains so prod paths fail closed (treat as mainnet).
@@ -438,14 +419,24 @@ export type UserPreferences = {
      *  legacy permanent `notifModalClosed` so we can re-ask after a cooldown
      *  during the migration window. */
     notifModalClosedAt?: string
-    /** ISO timestamp the app-review prompt was shown (asked once, ever). */
-    reviewPromptShownAt?: string
+    /** App-review nudge budget (see utils/app-review.ts). `moments` counts
+     *  qualifying happy moments seen; `requestedAt` holds the ISO timestamps of
+     *  past OS review requests, oldest first. */
+    reviewNudge?: { moments: number; requestedAt: string[] }
     /** Dismissal fingerprints (`bridgeTaskDismissalKey`: key|requirement|due)
      *  of the pending Bridge verification tasks the user individually
      *  dismissed on /home. A task that turns blocking or changes substance
      *  gets a new fingerprint and re-surfaces; the tasks always stay
      *  reachable under Profile → Unlocked regions. */
     pendingVerificationTasksDismissed?: string[]
+    /** ISO timestamp of a Manteca cap-nudge source-of-funds submission this
+     *  device made. Optimistic only: the backend stamps `submittedAt` on the
+     *  marker a webhook later, and until it does this is the only thing that
+     *  knows the document is already in. Deliberately SHORT-LIVED — see
+     *  CAP_NUDGE_SUBMITTED_TTL_MS — so a lost webhook re-offers the upload
+     *  rather than hiding it forever, and a genuinely new cap block is never
+     *  suppressed by a stale local flag. */
+    capNudgeSubmittedAt?: string
 }
 
 export const updateUserPreferences = (
@@ -699,7 +690,7 @@ export function getRequestLink(
     const recipient = username || recipientAddress
     const chain = !username && chainId ? `@${chainId}` : ''
 
-    let link = shareableUrl(`/${recipient}${chain}/`)
+    let link = payLinkUrl(`/${recipient}${chain}/`)
     if (tokenAmount) {
         link += `${formatAmount(tokenAmount)}`
     }
@@ -805,13 +796,13 @@ export { jsonStringify, jsonParse, saveToCookie, getFromCookie, sanitizeRedirect
 /**
  * invite-flow url for a guest CTA. web routes to the /invite landing page; in
  * the native export that page is pruned (scripts/native-build.js), so write
- * the SESSION invite cookie — the same hand-off openDeepLink and the deferred
- * restore use — and go straight to signup. click handlers only: this writes a
- * cookie on native, never call it during render.
+ * signup directly. Pure URL builder: the caller stashes the invite first via
+ * stashInvite (every caller knows the TRUE invite type; this function used to
+ * write a code-only cookie, which could leave a stale type behind — Chip
+ * review, PR #2949).
  */
 export const inviteFlowUrl = (inviteCode: string, redirectUri: string): string => {
     if (!isCapacitor()) return `/invite?code=${inviteCode}&redirect_uri=${redirectUri}`
-    saveToCookie('inviteCode', inviteCode)
     return `/setup?step=signup&redirect_uri=${redirectUri}`
 }
 

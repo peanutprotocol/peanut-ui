@@ -60,7 +60,6 @@ describe('CardPaymentRows — settlement adjustment breakdown', () => {
         render(
             <CardPaymentRows
                 transaction={makeTransaction({ settlementAdjusted: true, authAmount: '4591', settledAmount: '5509' })}
-                isLastRow={false}
             />
         )
         expect(screen.getByText('Initial hold')).toBeInTheDocument()
@@ -73,7 +72,6 @@ describe('CardPaymentRows — settlement adjustment breakdown', () => {
         render(
             <CardPaymentRows
                 transaction={makeTransaction({ settlementAdjusted: true, authAmount: '11323', settledAmount: '7653' })}
-                isLastRow={false}
             />
         )
         expect(screen.getByText('Initial hold')).toBeInTheDocument()
@@ -85,7 +83,6 @@ describe('CardPaymentRows — settlement adjustment breakdown', () => {
         render(
             <CardPaymentRows
                 transaction={makeTransaction({ settlementAdjusted: true, authAmount: '4591', settledAmount: null })}
-                isLastRow={false}
             />
         )
         expect(screen.getByText('Initial hold')).toBeInTheDocument()
@@ -96,7 +93,6 @@ describe('CardPaymentRows — settlement adjustment breakdown', () => {
         render(
             <CardPaymentRows
                 transaction={makeTransaction({ settlementAdjusted: true, authAmount: '4591', settledAmount: '4591' })}
-                isLastRow={false}
             />
         )
         expect(screen.getByText('Initial hold')).toBeInTheDocument()
@@ -107,7 +103,6 @@ describe('CardPaymentRows — settlement adjustment breakdown', () => {
         render(
             <CardPaymentRows
                 transaction={makeTransaction({ settlementAdjusted: false, authAmount: '6831', settledAmount: '6831' })}
-                isLastRow={false}
             />
         )
         expect(screen.queryByText('Initial hold')).not.toBeInTheDocument()

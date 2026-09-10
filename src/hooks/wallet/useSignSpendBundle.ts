@@ -1,12 +1,16 @@
 'use client'
 
 import { useCallback } from 'react'
+import { withCeremonyFlow, withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
 import { useQueryClient } from '@tanstack/react-query'
 import type { Address, Hex } from 'viem'
 import { encodeFunctionData, erc20Abi } from 'viem'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useKernelClient } from '@/context/kernelClient.context'
+import { peanutPublicClient } from '@/app/actions/clients'
+import { sessionKeySignEnabled } from '@/constants/session-key-sign.consts'
+import { signMixedEphemeralSpend, type MixedEphemeralSignResult } from './mixedEphemeralSign'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { rainCoordinatorAbi } from '@/constants/rain.consts'
 import { buildRainWithdrawTypedData } from '@/utils/rainWithdraw.utils'
@@ -22,6 +26,7 @@ import {
     runCollateralSpendPreflight,
     type SpendStrategy,
 } from './spendPreflight'
+import { registerEphemeralArtifact, requiresPasskeyRetry } from './signSpendRetry'
 import { usdcUnitsToRainCents } from '@/utils/balance.utils'
 
 /**
@@ -102,7 +107,7 @@ export interface SignSpendBundleInput {
  */
 
 export const useSignSpendBundle = () => {
-    const { getClientForChain, rebuildClientForChain } = useKernelClient()
+    const { getClientForChain, rebuildClientForChain, getPatchedSudoValidator } = useKernelClient()
     const { handleSendUserOpEncoded } = useZeroDev()
     const modals = useModalsContextOptional()
     const { signCallsUserOp } = useSignUserOp()
@@ -110,7 +115,7 @@ export const useSignSpendBundle = () => {
     const { grant } = useGrantSessionKey()
     const queryClient = useQueryClient()
 
-    const signSpend = useCallback(
+    const signSpendInner = useCallback(
         async (input: SignSpendBundleInput): Promise<SignedSpendArtifact> => {
             const {
                 requiredUsdcAmount,
@@ -175,6 +180,9 @@ export const useSignSpendBundle = () => {
             // Failure-capture parity with useSpendBundle's catch: without this,
             // a failed migration/grant/signing in the sign-then-broadcast flow
             // emits `attempted` with no terminal event and the funnel lies.
+            // Hoisted so the catch can back the draft out — `prep` itself is
+            // block-scoped inside the try.
+            let livePreparationId: string | undefined
             try {
                 // Shared collateral pre-flights (root-validator migration gate +
                 // session-key grant) — ONE ordered sequence for both spend engines;
@@ -219,15 +227,17 @@ export const useSignSpendBundle = () => {
                 // Only sign the admin EIP-712 — backend submits the withdrawal via
                 // the user's session-key UserOp (1 tap total).
                 if (strategy === 'collateral-only') {
+                    // The backend chooses the intent kind from the destination
+                    // (TASK-21815) — nothing user-declared goes on the wire.
                     const prep = await rainApi.prepareWithdrawal({
                         amount: usdcUnitsToRainCents(requiredUsdcAmount).toString(),
                         recipientAddress: recipient,
                         directTransfer: true,
-                        kind,
                     })
+                    livePreparationId = prep.preparationId
 
-                    const adminSignature = (await activeAccount.signTypedData(
-                        buildRainWithdrawTypedData(prep, chainIdNum)
+                    const adminSignature = (await withCeremonyPurpose('admin_eip712', () =>
+                        activeAccount.signTypedData(buildRainWithdrawTypedData(prep, chainIdNum))
                     )) as Hex
 
                     return {
@@ -262,12 +272,52 @@ export const useSignSpendBundle = () => {
                     // semantics as broadcasting useSpendBundle.spend's mixed path.
                     recipientAddress: adminAddress,
                     directTransfer: false,
-                    kind,
                     totalAmountCents: usdcUnitsToRainCents(requiredUsdcAmount).toString(),
                 })
+                livePreparationId = prep.preparationId
 
-                const adminSignature = (await activeAccount.signTypedData(
-                    buildRainWithdrawTypedData(prep, chainIdNum)
+                /*
+                 * SESSION_KEY_SIGN: one tap instead of two — see mixedEphemeralSign.ts.
+                 * Falls through to the two-tap path on any failure; nothing has
+                 * been broadcast, so the same prep is reused with nothing at stake.
+                 */
+                if (sessionKeySignEnabled(prep.mixedSpendContract) && !requiresPasskeyRetry(adminAddress)) {
+                    posthog.capture(ANALYTICS_EVENTS.SESSION_KEY_SPEND_ATTEMPTED, { kind, flow: 'sign-only' })
+                    modals?.setIsSecurityVerificationOpen?.(true)
+                    let attempt: MixedEphemeralSignResult
+                    try {
+                        // Resolving the sudo validator is outside the helper's own
+                        // catch: a rejection here must still take the passkey path.
+                        const patchedSudoValidator = await getPatchedSudoValidator(peanutPublicClient)
+                        attempt = await signMixedEphemeralSpend({
+                            publicClient: peanutPublicClient,
+                            chain: PEANUT_WALLET_CHAIN,
+                            patchedSudoValidator,
+                            accountAddress: activeAccount.address as Hex,
+                            prep,
+                            recipient: recipient as Hex,
+                            requiredUsdcAmount,
+                        })
+                    } catch (e) {
+                        attempt = { ok: false, reason: e instanceof Error ? e.message : String(e) }
+                    } finally {
+                        modals?.setIsSecurityVerificationOpen?.(false)
+                    }
+                    if (attempt.ok) {
+                        return registerEphemeralArtifact(
+                            { strategy, signedUserOp: attempt.signedUserOp, rainPreparationId: prep.preparationId },
+                            adminAddress
+                        )
+                    }
+                    posthog.capture(ANALYTICS_EVENTS.SESSION_KEY_SPEND_FALLBACK, {
+                        kind,
+                        flow: 'sign-only',
+                        reason: attempt.reason.slice(0, 200),
+                    })
+                }
+
+                const adminSignature = (await withCeremonyPurpose('admin_eip712', () =>
+                    activeAccount.signTypedData(buildRainWithdrawTypedData(prep, chainIdNum))
                 )) as Hex
 
                 const withdrawCall = {
@@ -301,9 +351,22 @@ export const useSignSpendBundle = () => {
                     }),
                 }
 
-                const signedUserOp = await signCallsUserOp([withdrawCall, transferCall], chainIdStr)
+                // Tap #2 follows the admin signature; tell the user so the second
+                // sheet is not dismissed as a duplicate (same beat as useSpendBundle).
+                modals?.setIsSecurityVerificationOpen?.(true, 'next-passkey')
+                let signedUserOp: SignedUserOpData
+                try {
+                    signedUserOp = await signCallsUserOp([withdrawCall, transferCall], chainIdStr)
+                } finally {
+                    modals?.setIsSecurityVerificationOpen?.(false)
+                }
                 return { strategy, signedUserOp, rainPreparationId: prep.preparationId }
             } catch (e) {
+                // Back the abandoned draft out (cancelled passkey prompt, grant
+                // failure, …). Fire-and-forget: the backend refuses while the
+                // Rain signature could still execute, and the TTL sweep is the
+                // guaranteed cleanup either way (TASK-21815).
+                if (livePreparationId) void rainApi.cancelPreparation(livePreparationId)
                 posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_FAILED, {
                     strategy,
                     kind,
@@ -317,6 +380,7 @@ export const useSignSpendBundle = () => {
         [
             getClientForChain,
             rebuildClientForChain,
+            getPatchedSudoValidator,
             handleSendUserOpEncoded,
             modals,
             signCallsUserOp,
@@ -324,6 +388,27 @@ export const useSignSpendBundle = () => {
             grant,
             queryClient,
         ]
+    )
+
+    // Brackets every ceremony one spend triggers as a flow (sign_spend:<kind>) so
+    // the prompt count per kind is measurable; link_create nests inside it.
+    const signSpend = useCallback(
+        (input: SignSpendBundleInput) => {
+            let strategy: string | undefined
+            return withCeremonyFlow(
+                `sign_spend:${input.kind}`,
+                () =>
+                    signSpendInner({
+                        ...input,
+                        onStrategyDecided: (decided) => {
+                            strategy = decided
+                            input.onStrategyDecided?.(decided)
+                        },
+                    }),
+                () => ({ strategy })
+            )
+        },
+        [signSpendInner]
     )
 
     return { signSpend }

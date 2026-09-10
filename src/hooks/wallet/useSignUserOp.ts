@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback } from 'react'
+import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
 import { useKernelClient } from '@/context/kernelClient.context'
 import { signUserOperation } from '@zerodev/sdk/actions'
 import {
@@ -44,10 +45,12 @@ export const useSignUserOp = () => {
                 if (!client.account) {
                     throw new Error('Smart account not initialized')
                 }
-                const signedUserOp = await signUserOperation(client, {
-                    account: client.account,
-                    callData: await client.account.encodeCalls(calls),
-                })
+                const signedUserOp = await withCeremonyPurpose('user_op', async () =>
+                    signUserOperation(client, {
+                        account: client.account!,
+                        callData: await client.account!.encodeCalls(calls),
+                    })
+                )
                 return {
                     signedUserOp,
                     chainId,

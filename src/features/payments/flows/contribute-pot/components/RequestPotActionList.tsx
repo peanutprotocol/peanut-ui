@@ -20,7 +20,7 @@ import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import IconStack from '@/components/Global/IconStack'
 import Loading from '@/components/Global/Loading'
 import ActionModal from '@/components/Global/ActionModal'
-import { ActionListCard } from '@/components/ActionListCard'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
@@ -28,12 +28,11 @@ import { useCapabilities } from '@/hooks/useCapabilities'
 import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
 import { ACTION_METHODS, type PaymentMethod } from '@/constants/actionlist.consts'
 import { MIN_BANK_TRANSFER_AMOUNT, validateMinimumAmount } from '@/constants/payment.consts'
-import { useAppDispatch } from '@/redux/hooks'
-import { setupActions } from '@/redux/slices/setup-slice'
 import { EInviteType } from '@/services/services.types'
 import { saveRedirectUrl, saveToLocalStorage, toInviteCode, inviteFlowUrl } from '@/utils/general.utils'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
 import { useTranslations } from 'next-intl'
+import { stashInvite } from '@/utils/invite-stash'
 
 interface RequestPotActionListProps {
     isAmountEntered: boolean
@@ -59,7 +58,6 @@ export function RequestPotActionList({
     const router = useRouter()
     const t = useTranslations('payment')
     const tCommon = useTranslations('common')
-    const dispatch = useAppDispatch()
     const { user } = useAuth()
     const { hasSufficientSpendableBalance: hasSufficientBalance, isFetchingSpendableBalance } = useWallet()
     // MIGRATION-REVIEW: mercadopago/pix are QR `pay` methods over Manteca. Old gate was
@@ -140,8 +138,7 @@ export function RequestPotActionList({
                     const redirectUri = encodeURIComponent('/add-money')
                     if (recipientUsername) {
                         const inviteCode = toInviteCode(recipientUsername)
-                        dispatch(setupActions.setInviteCode(inviteCode))
-                        dispatch(setupActions.setInviteType(EInviteType.PAYMENT_LINK))
+                        stashInvite(inviteCode, EInviteType.PAYMENT_LINK)
                         router.push(inviteFlowUrl(inviteCode, redirectUri))
                     } else {
                         router.push(`/setup?redirect_uri=${redirectUri}`)
@@ -181,11 +178,10 @@ export function RequestPotActionList({
                     }
 
                     return (
-                        <ActionListCard
+                        <ListItem
                             key={method.id}
                             position="single"
-                            description={method.description}
-                            descriptionClassName="text-[12px]"
+                            body={<div className="text-[12px]">{method.description}</div>}
                             title={
                                 <div className="flex items-center gap-2">
                                     {method.title}
@@ -198,8 +194,8 @@ export function RequestPotActionList({
                                 </div>
                             }
                             onClick={() => handleMethodClick(method)}
-                            isDisabled={method.soon || !isAmountEntered}
-                            rightContent={<IconStack icons={method.icons} iconSize={method.id === 'bank' ? 80 : 24} />}
+                            disabled={method.soon || !isAmountEntered}
+                            trailing={<IconStack icons={method.icons} iconSize={method.id === 'bank' ? 80 : 24} />}
                         />
                     )
                 })}
@@ -213,7 +209,7 @@ export function RequestPotActionList({
                 description={t('minAmount.description', { minAmount: MIN_BANK_TRANSFER_AMOUNT })}
                 icon="alert"
                 ctas={[{ text: tCommon('close'), shadowSize: '4', onClick: () => setShowMinAmountError(false) }]}
-                iconContainerClassName="bg-yellow-400"
+                iconContainerClassName="bg-action-secondary"
                 preventClose={false}
                 modalPanelClassName="max-w-md mx-8"
             />
@@ -254,7 +250,7 @@ export function RequestPotActionList({
                         },
                     },
                 ]}
-                iconContainerClassName="bg-primary-1"
+                iconContainerClassName="bg-action-primary"
                 preventClose={false}
                 modalPanelClassName="max-w-md mx-8"
             />

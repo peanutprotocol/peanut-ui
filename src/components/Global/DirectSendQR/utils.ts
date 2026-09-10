@@ -1,4 +1,4 @@
-import { ENS_NAME_REGEX } from '@/constants/general.consts'
+import { BASE_URL, ENS_NAME_REGEX } from '@/constants/general.consts'
 import { getTokenSymbol, getTokenDecimals } from '@/utils/general.utils'
 import { validatePixKey, isPixEmvcoQr, isPixRecurringCode } from '@/utils/withdraw.utils'
 import { isAddress, formatUnits } from 'viem'
@@ -85,8 +85,6 @@ const REGEXES_BY_TYPE: { [key in QrType]?: RegExp } = {
     [EQrType.URL]:
         /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/,
 }
-
-export const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL!
 
 export function recognizeQr(data: string): QrType | null {
     // Normalize the data for comparison (remove protocol and www)

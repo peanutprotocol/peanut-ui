@@ -23,9 +23,9 @@ import { useAuth } from '@/context/authContext'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { useTranslations } from 'next-intl'
-import { captureException } from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { captureNetworkTriagedFailure } from '@/utils/network-triage'
 import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { resolveSettledTxHash } from '@/utils/settled-tx-hash.utils'
 import { isDemoMode } from '@/utils/demo'
@@ -214,12 +214,9 @@ export function useDirectSendFlow() {
             // only WebAuthn-named failures to PostHog, so a send that ended in
             // "contact support" left no queryable record anywhere.
             const errorName = err instanceof Error ? err.name : 'unknown'
-            posthog.capture(ANALYTICS_EVENTS.SEND_FAILED, {
-                step: failedStep,
-                charge_id: chargeId,
-                error_name: errorName,
-            })
-            captureException(err, {
+            // Fire-and-forget: the triage probes may take up to 2.5s and must
+            // not hold up `finally` resetting the loading state.
+            void captureNetworkTriagedFailure(err, {
                 tags: { ...criticalFlowTags('direct-send'), send_step: failedStep },
                 extra: {
                     chargeId,
@@ -227,6 +224,14 @@ export function useDirectSendFlow() {
                     amount,
                     usdAmount,
                     userId: user?.user?.userId,
+                },
+                analytics: {
+                    event: ANALYTICS_EVENTS.SEND_FAILED,
+                    props: {
+                        step: failedStep,
+                        charge_id: chargeId,
+                        error_name: errorName,
+                    },
                 },
             })
         } finally {

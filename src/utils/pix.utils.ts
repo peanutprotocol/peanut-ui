@@ -52,5 +52,10 @@ export const pixKeyToQrPayUrl = (pixKey: string): string | null => {
     if (!brCode) return null
     const timestamp = Date.now()
     // type=PIX mirrors EQrType.PIX; qr-pay routes it to the Manteca PIX rail.
-    return `/qr-pay?qrCode=${encodeURIComponent(brCode)}&t=${timestamp}&type=PIX`
+    const keyParam = isPixEmvcoQr(pixKey.trim()) ? '' : `&pixKey=${encodeURIComponent(pixKey.trim())}`
+    return `/qr-pay?qrCode=${encodeURIComponent(brCode)}&t=${timestamp}&type=PIX${keyParam}`
+}
+
+export function verifiedPixKeyLabel(qrCode: string, pixKey: string | null): string | null {
+    return pixKey && pixKeyToBRCode(pixKey) === qrCode ? pixKey : null
 }

@@ -4,18 +4,24 @@ import posthog from 'posthog-js'
 import PublicProfile from '../PublicProfile'
 import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { renderWithIntl } from '@/test-utils/intl'
+import { __testing as safeBackTesting } from '@/hooks/useSafeBack'
 import en from '@/i18n/app/messages/en.json'
 
 const mockPush = jest.fn()
-const mockSaveToCookie = jest.fn()
+const mockBack = jest.fn()
+const mockStashInvite = jest.fn()
 const mockGetByUsername = jest.fn()
 const mockValidateInviteCode = jest.fn()
 const mockInterceptGuestCta = jest.fn(() => false)
+const mockUseUserInteractions = jest.fn()
 let mockAuth: { user: null | { user: { username: string; hasAppAccess: boolean } }; isFetchingUser: boolean }
 
-jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush, back: jest.fn() }) }))
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush, back: mockBack }) }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => mockAuth }))
 jest.mock('@/services/users', () => ({ usersApi: { getByUsername: (u: string) => mockGetByUsername(u) } }))
+jest.mock('@/hooks/useUserInteractions', () => ({
+    useUserInteractions: (ids: string[]) => mockUseUserInteractions(ids),
+}))
 jest.mock('@/services/invites', () => ({
     invitesApi: { validateInviteCode: (c: string) => mockValidateInviteCode(c) },
 }))
@@ -25,29 +31,41 @@ jest.mock('@/hooks/useGuestStoreHandoff', () => ({
         storeHandoffModal: <div data-testid="store-handoff" />,
     }),
 }))
+jest.mock('@/utils/invite-stash', () => ({
+    stashInvite: (...args: unknown[]) => mockStashInvite(...args),
+}))
 jest.mock('@/utils/general.utils', () => {
     const actual = jest.requireActual('@/utils/general.utils')
-    return { ...actual, saveToCookie: (...args: unknown[]) => mockSaveToCookie(...args) }
+    return { ...actual }
 })
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
-// Stubbed neighbours — this suite is about the guest door, not the page furniture.
-jest.mock('../ProfileHeader', () => ({ __esModule: true, default: () => null }))
+// Stubbed neighbours — this suite is about the guest door, back navigation and
+// the prior-transfer indicator, not the page furniture.
+jest.mock('../ProfileHeader', () => ({
+    __esModule: true,
+    default: ({ haveSentMoneyToUser }: { haveSentMoneyToUser?: boolean }) => (
+        <div data-testid="profile-header" data-sent-money={String(!!haveSentMoneyToUser)} />
+    ),
+}))
 jest.mock('@/components/Badges/BadgesRow', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Home/HomeHistory', () => ({ __esModule: true, default: () => null }))
-jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
-jest.mock('@/components/Global/ActionModal', () => ({
+jest.mock('@/components/Global/NavHeader', () => ({
     __esModule: true,
-    // Renders description + content when visible so the guest Request-gate
-    // modal (the second crediting door) is assertable.
-    default: ({ visible, description, content }: { visible?: boolean; description?: string; content?: ReactNode }) =>
-        visible ? (
-            <div data-testid="action-modal">
-                <p>{description}</p>
-                {content}
-            </div>
-        ) : null,
+    default: ({ onPrev }: { onPrev?: () => void }) =>
+        onPrev ? <button data-testid="nav-back" onClick={onPrev} /> : null,
 }))
+// Renders children when open so the guest Request-gate drawer (the second
+// crediting door) is assertable.
+jest.mock('@/components/Global/Drawer', () => ({
+    Drawer: ({ open, children }: { open?: boolean; children?: ReactNode }) =>
+        open ? <div data-testid="invite-drawer">{children}</div> : null,
+    DrawerContent: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+    DrawerHeader: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+    DrawerTitle: ({ children }: { children?: ReactNode }) => <h2>{children}</h2>,
+    DrawerDescription: ({ children }: { children?: ReactNode }) => <p>{children}</p>,
+}))
+jest.mock('@/components/0_Bruddle/IconBubble', () => ({ IconBubble: () => null }))
 jest.mock('@/components/Global/ShareButton', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
 jest.mock('next/image', () => ({ __esModule: true, default: () => null }))
@@ -90,9 +108,11 @@ const deferValidation = () => {
 
 beforeEach(() => {
     jest.clearAllMocks()
+    safeBackTesting.reset()
     mockAuth = { user: null, isFetchingUser: false }
     mockInterceptGuestCta.mockReturnValue(false)
     mockGetByUsername.mockResolvedValue(null)
+    mockUseUserInteractions.mockReturnValue({ interactions: {}, isLoading: false, isError: false })
     // the door validates before persisting; default = resolvable inviter
     mockValidateInviteCode.mockResolvedValue({
         success: true,
@@ -114,7 +134,7 @@ describe('PublicProfile guest door', () => {
 
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/invite?code=satoshi'))
         expect(mockValidateInviteCode).toHaveBeenCalledWith('satoshi')
-        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'satoshi')
+        expect(mockStashInvite).toHaveBeenCalledWith('satoshi', 'DIRECT')
         expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
             source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,
             link_type: 'invite_code',
@@ -132,7 +152,7 @@ describe('PublicProfile guest door', () => {
         // runs in a promise continuation — so it must fire before the validation
         // response lands, not after it
         expect(mockInterceptGuestCta).toHaveBeenCalled()
-        expect(mockSaveToCookie).not.toHaveBeenCalled()
+        expect(mockStashInvite).not.toHaveBeenCalled()
 
         settleValidation({
             success: true,
@@ -142,7 +162,7 @@ describe('PublicProfile guest door', () => {
         })
 
         // the handoff opens `_blank`, so this tab lives on and the cookie lands
-        await waitFor(() => expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'satoshi'))
+        await waitFor(() => expect(mockStashInvite).toHaveBeenCalledWith('satoshi', 'DIRECT'))
         expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
             source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,
             link_type: 'invite_code',
@@ -177,21 +197,21 @@ describe('PublicProfile guest door', () => {
         })
     })
 
-    it('routes a guest through the crediting door from the Request-gate modal too', async () => {
+    it('routes a guest through the crediting door from the Request-gate drawer too', async () => {
         renderWithIntl(<PublicProfile username="Satoshi" />)
 
-        // Request opens the invite-gate modal for guests — it must offer the
+        // Request opens the invite-gate drawer for guests — it must offer the
         // same crediting door as the join card, not the old beg-for-an-invite
         // dead end.
         fireEvent.click(await screen.findByRole('button', { name: en.navigation.request }))
-        const modal = await screen.findByTestId('action-modal')
-        expect(modal).toHaveTextContent(en.profile.publicProfile.invitedLine.replace('{username}', 'Satoshi'))
+        const drawer = await screen.findByTestId('invite-drawer')
+        expect(drawer).toHaveTextContent(en.profile.publicProfile.invitedLine.replace('{username}', 'Satoshi'))
 
         const joinButtons = screen.getAllByRole('button', { name: JOIN_CTA })
         fireEvent.click(joinButtons[joinButtons.length - 1])
 
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/invite?code=satoshi'))
-        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'satoshi')
+        expect(mockStashInvite).toHaveBeenCalledWith('satoshi', 'DIRECT')
     })
 
     // Three ways a code fails to credit. All three still navigate — /invite owns
@@ -212,11 +232,72 @@ describe('PublicProfile guest door', () => {
             fireEvent.click(await screen.findByRole('button', { name: JOIN_CTA }))
 
             await waitFor(() => expect(mockPush).toHaveBeenCalledWith(`/invite?code=${expectedCode}`))
-            expect(mockSaveToCookie).not.toHaveBeenCalled()
+            expect(mockStashInvite).not.toHaveBeenCalled()
             expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
                 source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,
                 link_type: 'none',
             })
         }
     )
+})
+
+// The "sent money before" badge comes from the interaction-status endpoint (the
+// complete source — send-link claims included), never from the profile payload's
+// narrow received-from-you sum (TASK-21929).
+describe('PublicProfile prior-transfer indicator', () => {
+    beforeEach(() => {
+        mockAuth = { user: { user: { username: 'hal', hasAppAccess: true } }, isFetchingUser: false }
+        mockGetByUsername.mockResolvedValue({ userId: 'user-1' })
+    })
+
+    it('shows the indicator when interaction status reports a prior transfer', async () => {
+        mockUseUserInteractions.mockReturnValue({
+            interactions: { 'user-1': true },
+            isLoading: false,
+            isError: false,
+        })
+        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+
+        await waitFor(() => expect(screen.getByTestId('profile-header')).toHaveAttribute('data-sent-money', 'true'))
+        expect(mockUseUserInteractions).toHaveBeenLastCalledWith(['user-1'])
+    })
+
+    it('stays neutral while the interaction query is loading', async () => {
+        mockUseUserInteractions.mockReturnValue({ interactions: {}, isLoading: true, isError: false })
+        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+
+        await waitFor(() => expect(mockUseUserInteractions).toHaveBeenLastCalledWith(['user-1']))
+        expect(screen.getByTestId('profile-header')).toHaveAttribute('data-sent-money', 'false')
+    })
+
+    it('never queries interaction status for guests', async () => {
+        mockAuth = { user: null, isFetchingUser: false }
+        renderWithIntl(<PublicProfile username="satoshi" />)
+
+        await screen.findByRole('button', { name: JOIN_CTA })
+        expect(mockUseUserInteractions).toHaveBeenLastCalledWith([])
+    })
+})
+
+describe('PublicProfile back navigation', () => {
+    beforeEach(() => {
+        mockAuth = { user: { user: { username: 'hal', hasAppAccess: true } }, isFetchingUser: false }
+    })
+
+    it('falls back to /home on a cold deep-link (no in-app history)', async () => {
+        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+
+        fireEvent.click(await screen.findByTestId('nav-back'))
+        expect(mockPush).toHaveBeenCalledWith('/home')
+        expect(mockBack).not.toHaveBeenCalled()
+    })
+
+    it('returns through in-app history when it exists (Rewards → profile → back)', async () => {
+        window.history.pushState({}, '', '/satoshi')
+        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+
+        fireEvent.click(await screen.findByTestId('nav-back'))
+        expect(mockBack).toHaveBeenCalledTimes(1)
+        expect(mockPush).not.toHaveBeenCalled()
+    })
 })

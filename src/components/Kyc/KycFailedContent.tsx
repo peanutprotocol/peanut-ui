@@ -1,6 +1,6 @@
 import { useTranslations } from 'next-intl'
 import { RejectLabelsList } from './RejectLabelsList'
-import InfoCard from '@/components/Global/InfoCard'
+import { Notification } from '@/components/0_Bruddle/Notification'
 
 interface KycFailedContentProps {
     rejectLabels?: string[] | null
@@ -13,9 +13,7 @@ export const KycFailedContent = ({ rejectLabels, isTerminal }: KycFailedContentP
     const t = useTranslations('kyc')
 
     if (isTerminal) {
-        return (
-            <InfoCard variant="error" icon="error" iconClassName="text-error" description={t('terminalDescription')} />
-        )
+        return <Notification priority="error">{t('terminalDescription')}</Notification>
     }
 
     return <RejectLabelsList rejectLabels={rejectLabels} />

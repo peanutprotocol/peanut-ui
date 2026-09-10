@@ -7,6 +7,17 @@ export const ANALYTICS_EVENTS = {
     LOGIN: 'login',
 
     // ── Signup funnel ──
+    SIGNUP_STEP_VIEWED: 'signup_step_viewed',
+    SIGNUP_RESIDENCE_SELECTED: 'signup_residence_selected',
+    SIGNUP_RESIDENCE_RESTRICTED_SHOWN: 'signup_residence_restricted_shown',
+    SIGNUP_RESIDENCE_PARTIAL_SHOWN: 'signup_residence_partial_shown',
+    SIGNUP_RESIDENCE_CONGRATS_SHOWN: 'signup_residence_congrats_shown',
+    SIGNUP_RESIDENCE_RESTRICTED_CONTINUED: 'signup_residence_restricted_continued',
+    SIGNUP_RESIDENCE_NOTIFY_SUBMITTED: 'signup_residence_notify_submitted',
+    RESIDENCE_CHANGED: 'residence_changed',
+    HOME_CHECKLIST_VIEWED: 'home_checklist_viewed',
+    HOME_CHECKLIST_ITEM_CLICKED: 'home_checklist_item_clicked',
+    KYC_DEGRADED_NOTIFY_REQUESTED: 'kyc_degraded_notify_requested',
     SIGNUP_CLICKED: 'signup_signup_clicked',
     SIGNUP_LOGIN_ERROR: 'signup_login_error',
     SIGNUP_CREATE_WALLET_CLICKED: 'signup_create_wallet_clicked',
@@ -91,9 +102,6 @@ export const ANALYTICS_EVENTS = {
     DEPOSIT_CONFIRMED: 'deposit_confirmed',
     DEPOSIT_COMPLETED: 'deposit_completed',
     DEPOSIT_FAILED: 'deposit_failed',
-    // offramp.xyz migrants must self-report their Offramp username/email
-    // before the migration deposit address is revealed (payout reconciliation)
-    OFFRAMP_HANDLE_SUBMITTED: 'offramp_handle_submitted',
 
     // ── Withdraw ──
     WITHDRAW_AMOUNT_ENTERED: 'withdraw_amount_entered',
@@ -132,6 +140,10 @@ export const ANALYTICS_EVENTS = {
     // ── Referral Funnel ──
     REFERRAL_CTA_SHOWN: 'referral_cta_shown',
     REFERRAL_CTA_CLICKED: 'referral_cta_clicked',
+    // the profile pill's handle segment copied peanut.me/<handle>; the share
+    // segment beside it still reports REFERRAL_CTA_CLICKED. Same props, so the
+    // two hit areas of one pill compare directly.
+    PROFILE_LINK_COPIED: 'profile_link_copied',
 
     // ── Notifications ──
     NOTIFICATION_PERMISSION_REQUESTED: 'notification_permission_requested',
@@ -140,6 +152,13 @@ export const ANALYTICS_EVENTS = {
     NOTIFICATION_SUBSCRIBED: 'notification_subscribed',
     NOTIFICATION_CLICKED: 'notification_clicked',
     NOTIFICATION_SUBSCRIPTION_SNAPSHOT: 'notification_subscription_snapshot',
+
+    // ── App store review ──
+    // The OS sheet was requested. There is deliberately no "shown" or "rated"
+    // counterpart: neither SKStoreReviewController nor Play In-App Review tells
+    // us whether the sheet appeared or what the user did. Measure the outcome
+    // against App Store Connect / Play Console rating counts, not against this.
+    REVIEW_REQUESTED: 'review_requested',
 
     // ── Modal Fatigue ──
     MODAL_SHOWN: 'modal_shown',
@@ -150,6 +169,7 @@ export const ANALYTICS_EVENTS = {
     QR_SCANNED: 'qr_scanned',
     QR_NOTIFY_ME_CLICKED: 'qr_notify_me_clicked',
     QR_DECODING_ERROR_SHOWN: 'qr_decoding_error_shown',
+    QR_MERCHANT_CHARGE_EXPIRED_SHOWN: 'qr_merchant_charge_expired_shown',
 
     // ── Home ──
     BALANCE_VISIBILITY_TOGGLED: 'balance_visibility_toggled',
@@ -207,7 +227,7 @@ export const ANALYTICS_EVENTS = {
     // approval is bound to a deprecated validator; user must re-enable the card.
     CARD_STALE_APPROVAL_HIT: 'card_stale_approval_hit',
     // One-tap mixed spend via per-transaction ephemeral session key
-    // (SESSION_KEY_SPEND flag). A fallback means the passkey path took over —
+    // (one-tap mixed spend). A fallback means the passkey path took over —
     // `reason` says why; watch this before widening the flag.
     SESSION_KEY_SPEND_ATTEMPTED: 'session_key_spend_attempted',
     SESSION_KEY_SPEND_FALLBACK: 'session_key_spend_fallback',
@@ -281,6 +301,12 @@ export const ANALYTICS_EVENTS = {
     CARD_PHYSICAL_WAITLIST_VIEWED: 'card_physical_waitlist_viewed',
     CARD_PHYSICAL_WAITLIST_JOINED: 'card_physical_waitlist_joined',
     CARD_ADD_TO_WALLET_VIEWED: 'card_add_to_wallet_viewed',
+    // Native push provisioning (MeaWallet MPP). Server-side card_tokenized /
+    // card_tokenization_declined (Rain webhooks) close this funnel.
+    CARD_ADD_TO_WALLET_TAPPED: 'card_add_to_wallet_tapped',
+    CARD_ADD_TO_WALLET_SUCCEEDED: 'card_add_to_wallet_succeeded',
+    CARD_ADD_TO_WALLET_CANCELED: 'card_add_to_wallet_canceled',
+    CARD_ADD_TO_WALLET_FAILED: 'card_add_to_wallet_failed',
     // Spend routing across collateral / smart / mixed buckets. `strategy` is SpendStrategy.
     // Root-validator migration userOp fired ahead of a mixed spend (pre-2025-09-18
     // accounts still on the unpatched validator) — see kernelMigration.utils.ts.
@@ -295,6 +321,14 @@ export const ANALYTICS_EVENTS = {
     // refused/wedged, e.g. 1Password on iOS), `context` is the signing call site.
     PASSKEY_SIGN_FAILED: 'passkey_sign_failed',
 
+    // One event per WebAuthn ceremony our code requests, tagged with the purpose
+    // stack (`kernel_migration>user_op`, `admin_eip712`, …) and the flow it ran
+    // in. `webauthn_ceremony_flow` closes a flow with the total count — that
+    // count is what says whether a 2–3 prompt report is our call sites, a retry,
+    // or the native shim presenting extra sheets on its own.
+    WEBAUTHN_CEREMONY: 'webauthn_ceremony',
+    WEBAUTHN_CEREMONY_FLOW: 'webauthn_ceremony_flow',
+
     // Rain withdrawal-signature cooldown tripped during a spend. Handled
     // gracefully in-flow (no captureException), so this is the only telemetry.
     RAIN_COOLDOWN_HIT: 'rain_cooldown_hit',
@@ -303,6 +337,9 @@ export const ANALYTICS_EVENTS = {
     DELETE_ACCOUNT_INITIATED: 'delete_account_initiated',
     DELETE_ACCOUNT_CONFIRMED: 'delete_account_confirmed',
     DELETE_ACCOUNT_FAILED: 'delete_account_failed',
+    // Deletion refused because the account still holds funds — the user was sent
+    // to move the money out first.
+    DELETE_ACCOUNT_BLOCKED_BALANCE: 'delete_account_blocked_balance',
 
     // ── PWA sunset / app migration ──
     // Funnel: modal_shown(migration_download) → store_cta_clicked / qr_shown
@@ -317,7 +354,32 @@ export const ANALYTICS_EVENTS = {
     MIGRATION_STORE_CTA_CLICKED: 'migration_store_cta_clicked',
     MIGRATION_QR_SHOWN: 'migration_qr_shown',
     MIGRATION_KEEP_WEB_USED: 'migration_keep_web_used',
+    // ── Deferred deep linking (TASK-20772) ──
+    // Fired once per fresh install, on the one-shot restore. `outcome` is a
+    // DEFERRED_LINK_OUTCOMES value and is the whole point of the event: it's the
+    // only way to tell a working store→install hand-off from one that silently
+    // matches nothing, since a declined iOS paste prompt and an organic install
+    // both simply produce no payload.
+    DEFERRED_LINK_RESTORED: 'deferred_link_restored',
+    // Fired on the web side when a store bounce writes the hand-off.
+    DEFERRED_LINK_HANDOFF_CREATED: 'deferred_link_handoff_created',
 } as const
+
+/**
+ * Outcomes for DEFERRED_LINK_RESTORED — why a first-launch restore did or did
+ * not recover context. Distinguishing the empty cases is the reason this event
+ * exists: `clipboard_unavailable` (user declined the paste prompt, or the
+ * plugin is missing) and `no_handoff` (organic install) are indistinguishable
+ * without it, and only the first indicates a broken hand-off.
+ */
+export const DEFERRED_LINK_OUTCOMES = {
+    RESTORED: 'restored',
+    NO_HANDOFF: 'no_handoff',
+    MARKER_MISSING: 'marker_missing',
+    CLIPBOARD_UNAVAILABLE: 'clipboard_unavailable',
+} as const
+
+export type DeferredLinkOutcome = (typeof DEFERRED_LINK_OUTCOMES)[keyof typeof DEFERRED_LINK_OUTCOMES]
 
 /**
  * Valid modal_type values for MODAL_SHOWN / MODAL_DISMISSED / MODAL_CTA_CLICKED events.
@@ -331,13 +393,12 @@ export const MODAL_TYPES = {
     KYC_COMPLETED: 'kyc_completed',
     INVITE: 'invite',
     MIGRATION_DOWNLOAD: 'migration_download',
-    APP_REVIEW: 'app_review',
     RE_CONSENT: 're_consent',
 } as const
 
 /**
  * Valid source values for REFERRAL_CTA_SHOWN / REFERRAL_CTA_CLICKED /
- * INVITE_LINK_SHARED events.
+ * PROFILE_LINK_COPIED / INVITE_LINK_SHARED events.
  *
  * Referral events also carry a `link_type` property so PostHog can compare
  * which link shape converts: 'invite_code' (/invite?code=<u>, credits the

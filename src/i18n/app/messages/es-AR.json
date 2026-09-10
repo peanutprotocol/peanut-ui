@@ -1,7 +1,9 @@
 {
     "common": {
+        "fundsOnTheWay": "Fondos en camino",
         "genericError": "Algo salió mal. Intentá de nuevo o contactá soporte.",
-        "tryDifferentCountry": "Probá con otro país."
+        "tryDifferentCountry": "Probá con otro país.",
+        "slideToProceed": "Deslizá para continuar"
     },
     "home": {
         "activation": {
@@ -42,6 +44,16 @@
                 "scanQr": "Escaneá un código QR"
             }
         },
+        "gettingStarted": {
+            "title": "Empezar",
+            "createAccount": "Creá tu cuenta",
+            "createAccountDone": "Listo. Tu plata ya tiene un usuario",
+            "getCard": "Conseguí tu tarjeta Peanut",
+            "addMoney": "Agregar dinero",
+            "firstPayment": "Hacé tu primer pago",
+            "firstPaymentNote": "Mandá unos dólares a un usuario de Peanut, un nombre ENS o una dirección de wallet. Llegan en segundos.",
+            "addMoneyRoutesKyc": "Transferencia bancaria o cripto · el banco pide una verificación de identidad por única vez"
+        },
         "autoBalance": {
             "title": "Terminá de configurar tu tarjeta",
             "descriptionError": "No pudimos terminar de configurar tu tarjeta. Intentá de nuevo u omitilo por ahora: te lo volveremos a pedir en tu primer pago con tarjeta."
@@ -56,7 +68,7 @@
             "emptyDescription": "Empezá enviando o solicitando dinero"
         },
         "welcomeUnlock": {
-            "title": "🎉 Ya tenés acceso",
+            "title": "Ya tenés acceso",
             "cta": "Empezá a enviar dinero",
             "youCanNow": "Ahora podés:"
         },
@@ -76,7 +88,8 @@
             "usedPeanutTapToClaim": "<name>{inviteeName}</name> usó Peanut. Tocá para reclamar.",
             "tapToClaim": "Tocá para reclamar tu recompensa.",
             "card": {
-                "title": "Conseguí tu <b>Peanut Card</b>"
+                "title": "Conseguí tu <b>Peanut Card</b>",
+                "description": "Gastá tu saldo <b>donde acepten Visa</b>."
             },
             "invite": {
                 "title": "Invitá amigos. Ganá recompensas",
@@ -101,7 +114,7 @@
             },
             "bugBounty": {
                 "title": "Ayudanos a mejorar y <b>¡ganá $5!</b>",
-                "description": "Reportá un error. ¡Recibí una recompensa! Sin preguntas."
+                "description": "Sé el primero en reportar un error. ¡Recibí una recompensa!"
             },
             "userInterview": {
                 "title": "Ayudanos a construir Peanut",
@@ -130,17 +143,13 @@
     },
     "profile": {
         "menu": {
-            "inviteFriends": "Invitá amigos a Peanut"
+            "inviteFriends": "Invitá amigos a Peanut",
+            "unlockedRegions": "Canales de pago",
+            "help": "Centro de Ayuda",
+            "about": "Acerca de Peanut",
+            "updateAvailable": "Actualización disponible"
         },
         "edit": {
-            "placeholders": {
-                "name": "Agregá tu nombre",
-                "surname": "Agregá tu apellido",
-                "bio": "Agregá una bio",
-                "email": "Agregá tu email",
-                "phone": "Agregá tu número",
-                "website": "Agregá tu sitio web"
-            },
             "errors": {
                 "nameRequired": "Por favor ingresá tu nombre."
             }
@@ -159,9 +168,92 @@
                 "unavailableDescription": "Esta región no está disponible para tu cuenta. Contactá soporte para recibir ayuda."
             }
         },
+        "unlockPayments": {
+            "title": "Canales de pago",
+            "description": "Todo lo que podés usar hoy, y lo que se abre después de verificar tu identidad.",
+            "residence": {
+                "label": "Residencia: {country}",
+                "unknown": "Residencia sin definir",
+                "verified": "Verificada",
+                "unverified": "Sin confirmar",
+                "change": "Cambiar",
+                "set": "Definir",
+                "pendingReverify": "Cambio a {country} pendiente de nueva verificación"
+            },
+            "yourRegion": "Tu región",
+            "groups": {
+                "everywhere": "En todas partes",
+                "southAmerica": "América del Sur",
+                "northAmerica": "América del Norte",
+                "europe": "Europa"
+            },
+            "rows": {
+                "p2p": "Pagos de Peanut a Peanut",
+                "card": "Tarjeta Peanut",
+                "saBank": "PIX (Brasil), QR y transferencias bancarias (Argentina)",
+                "pixBank": "Pagos y transferencias PIX (Brasil)",
+                "pixQr": "Pagos QR con PIX (Brasil)",
+                "brBank": "Transferencias PIX (Brasil)",
+                "arQrBank": "Pagos QR y transferencias (Argentina)",
+                "arQr": "Pagos QR (Argentina)",
+                "arBank": "Transferencias bancarias (Argentina)",
+                "naBank": "Transferencias bancarias en dólares y pesos mexicanos",
+                "sepa": "Transferencias bancarias en euros"
+            },
+            "chips": {
+                "active": "Activo",
+                "alwaysOn": "Siempre activo",
+                "unlock": "Desbloquear",
+                "processing": "Procesando",
+                "attention": "Atención",
+                "notAvailable": "No disponible"
+            },
+            "bankNotAvailableNote": "Las transferencias bancarias y la emisión de tarjetas no están disponibles para residentes de tu país.",
+            "unlockModal": {
+                "title": "Desbloquear {method}",
+                "titleGeneric": "Desbloqueá este método de pago",
+                "notNow": "Ahora no"
+            },
+            "changeModal": {
+                "title": "Cambiar tu residencia",
+                "description": "Elegí el país donde vivís legalmente: el que muestran tus documentos.",
+                "countryPlaceholder": "Seleccioná tu país",
+                "verifiedMismatchNote": "Tus métodos de pago actuales siguen funcionando. Para que este sea tu país de residencia verificado, vas a tener que verificarte de nuevo con documentos de ese país.",
+                "fullRestrictionNote": "Atención: las transferencias bancarias y la emisión de tarjetas no están disponibles para residentes de este país.",
+                "cardRestrictionNote": "Atención: la tarjeta no está disponible para residentes de este país.",
+                "bankingRestrictionNote": "Atención: las transferencias bancarias no están disponibles para residentes de este país.",
+                "save": "Guardar",
+                "saveAndReverify": "Enviar documentos",
+                "cooldownNote": "Cambiaste tu residencia hace poco. Podés cambiarla de nuevo después del {until}."
+            },
+            "degraded": {
+                "title": "La verificación está temporalmente caída",
+                "body": "No podés iniciar ni continuar una verificación de identidad ahora.",
+                "notifyMe": "Avisame cuando vuelva a funcionar"
+            },
+            "review": {
+                "sinceDate": "Verificación en revisión desde el {submittedDate}",
+                "since": "Verificación en revisión",
+                "body": "No necesitás hacer nada. Te vamos a avisar en cuanto haya una decisión.",
+                "escalation": "Está tardando más de lo normal.",
+                "messageUs": "Escribinos y lo perseguimos"
+            },
+            "limits": {
+                "monthlyLeft": "Te quedan {remaining} de {limit} este mes",
+                "perTransfer": "Hasta {amount} por transferencia",
+                "p2pNoLimit": "Los pagos de Peanut a Peanut no tienen límite"
+            },
+            "cooldown": {
+                "title": "Esperá un poco",
+                "until": "Los intentos de verificación están limitados temporalmente. Podés volver a intentarlo después de {until}.",
+                "short": "Los intentos de verificación están limitados temporalmente. Volvé a intentarlo en un rato.",
+                "dismiss": "Lo intentaré más tarde"
+            }
+        },
         "backup": {
             "nonCustodial": {
-                "description": "Solo vos controlás esta billetera. No podemos recuperarla si perdés el acceso. El respaldo es tu responsabilidad."
+                "description": "Tu cuenta vive en tu dispositivo, no en nuestros servidores. Si perdés el dispositivo sin respaldo, el dinero no se puede recuperar. Activá el respaldo abajo y te acompañará en cualquier teléfono nuevo.",
+                "title": "Cuenta sin custodia"
             },
             "enableNow": "Activá el respaldo ahora",
             "steps": {
@@ -171,7 +263,7 @@
                     },
                     "step2": {
                         "title": "Buscá el Administrador de contraseñas",
-                        "description": "Autocompletar → Administrador de contraseñas de Google → Activá la sincronización"
+                        "description": "Autocompletar → Administrador de contraseñas de Google. Asegurate de que guarda tus passkeys"
                     },
                     "step3": {
                         "title": "Verificá en Chrome",
@@ -188,7 +280,7 @@
                     },
                     "step3": {
                         "title": "Verificá que funcionó",
-                        "description": "Configuración → Contraseñas → Buscá \"Peanut\""
+                        "description": "Abrí la app Contraseñas (iOS 18+) o Configuración → Contraseñas. Buscá \"Peanut\""
                     }
                 }
             },
@@ -207,7 +299,8 @@
             },
             "exportKeysModal": {
                 "tradeoffDescription": "Obtenés mejor seguridad, pero las passkeys quedan ligadas al ecosistema de tu dispositivo (Apple o Google). Por eso el respaldo en la nube es clave."
-            }
+            },
+            "thirdPartyNote": "¿Usás 1Password, Samsung Pass u otro gestor de contraseñas? Tu passkey puede estar guardada ahí. Revisá el respaldo de ese gestor."
         },
         "publicProfile": {
             "joinPeanutAlt": "Unite a Peanut",
@@ -218,15 +311,70 @@
             "joinCta": "Reclamá tu invitación",
             "begShareText": "Bro… estoy de rodillas. Peanut es solo por invitación y me quedé afuera. Salvame la vida y mandame tu invitación",
             "activityPrivateNote": "La actividad solo es visible para vos, no es pública."
+        },
+        "update": {
+            "title": "Actualización lista",
+            "description": "Reiniciá Peanut para terminar de instalar la versión {version}.",
+            "restartNow": "Reiniciar ahora",
+            "notNow": "Ahora no",
+            "manualRestart": "Cerrá Peanut desde el selector de apps y volvé a abrirla para terminar la actualización.",
+            "applyFailed": "No se pudo aplicar la actualización. Revisá tu conexión y probá de nuevo: Peanut sigue con la versión con la que iniciaste."
+        },
+        "about": {
+            "title": "Acerca de Peanut",
+            "intro": "Peanut hace fáciles los dólares: guardá tu saldo, enviá a cualquier @usuario y mové dinero por rieles locales después de una sola verificación de identidad. Creado por Squirrel Labs.",
+            "policiesHeading": "La parte oficial",
+            "policies": {
+                "terms": "Términos de servicio",
+                "privacy": "Política de privacidad",
+                "cardTermsUs": "Términos de la tarjeta (EE. UU.)",
+                "cardTermsInternational": "Términos de la tarjeta (internacional)",
+                "cardEsign": "Consentimiento de firma electrónica",
+                "cardPrivacy": "Aviso de privacidad de apertura de cuenta",
+                "cardProhibitedActivities": "Política de actividades prohibidas",
+                "securityDisclosure": "Divulgación de seguridad"
+            },
+            "version": "Versión {version}",
+            "beta": {
+                "heading": "Actualizaciones beta",
+                "description": "Recibí compilaciones del canal {channel} antes de que lleguen a todos. Solo para pruebas internas.",
+                "channelLabel": "Canal de actualizaciones",
+                "defaultChannel": "Predeterminado",
+                "bundleLabel": "Paquete en uso",
+                "deviceLabel": "ID del dispositivo",
+                "deviceCopied": "ID del dispositivo copiado",
+                "staged": "Ya estás en actualizaciones beta. Reiniciá la app para cargar la compilación beta más reciente.",
+                "joined": "Ya estás en actualizaciones beta. Por ahora no hay una compilación beta más reciente.",
+                "joinedWithoutBundle": "Ya estás en actualizaciones beta, pero no se pudo descargar ninguna compilación beta. La app lo intentará de nuevo en el próximo inicio.",
+                "deviceCopyFailed": "No se pudo copiar el ID del dispositivo.",
+                "leftStillBeta": "Saliste de las actualizaciones beta, pero la app sigue ejecutando la compilación beta. Reinstalala desde la tienda para volver a la versión publicada.",
+                "left": "Actualizaciones beta desactivadas. Este dispositivo volvió a la versión publicada.",
+                "leftOverride": "Este dispositivo fue puesto en beta desde el panel de Capgo, así que la app no puede sacarlo. Pedile a un administrador que quite la asignación de canal del dispositivo.",
+                "leftUnconfirmed": "No se pudo contactar a Capgo para confirmar el cambio, así que este dispositivo sigue en la compilación beta. Probá de nuevo cuando tengas conexión.",
+                "closed": "El canal {channel} todavía no acepta testers. Pedile a un administrador que habilite la autoasignación en Capgo.",
+                "notEligible": "Las actualizaciones beta todavía no están habilitadas para esta cuenta. Tocá cinco veces el número de versión para reintentar.",
+                "failed": "No se pudo cambiar el canal de actualizaciones.",
+                "revealed": "El interruptor de actualizaciones beta ya está visible abajo.",
+                "appOnly": "Las actualizaciones beta solo están disponibles en la app de Peanut."
+            }
+        },
+        "showFullNameConfirm": {
+            "description": "Tu nombre completo se vuelve público en tu perfil, junto a tu nombre de usuario. Cualquier persona con tu enlace de Peanut puede verlo. Podés desactivarlo cuando quieras."
         }
     },
     "settings": {
         "deleteAccount": {
+            "blockedTitle": "Primero mové tu plata",
+            "blockedDescription": "Todavía tenés ${amount} en tu cuenta. Eliminarla es permanente: después no vas a poder volver a entrar y esa plata quedaría fuera de tu alcance. Mandásela a alguien o retirala primero.",
+            "blockedCta": "Mover mi plata",
             "doneDescription": "Tu cuenta está desactivada y tus datos desaparecerán en un plazo de 30 días. Gracias por abrir Peanut con nosotros — ¡cuidate mucho!",
             "error": "No pudimos eliminar tu cuenta. Intentá de nuevo."
         }
     },
     "limits": {
+        "capNudge": {
+            "description": "Alcanzaste tu límite mensual. Verificá tus ingresos para solicitar uno más alto."
+        },
         "pageDescription": "Los límites de pago controlan cuánto podés enviar y recibir. Varían según la región y se reinician cada mes o cada año.",
         "fiatLocked": {
             "title": "Desbloqueá pagos fiat",
@@ -246,10 +394,13 @@
         }
     },
     "exchangeRate": {
-        "tryIt": "¡Probalo!",
+        "tryIt": "Retirar ahora",
+        "addMoneyCta": "Agregar dinero",
         "widget": {
-            "youSend": "Vos enviás"
-        }
+            "youSend": "Vos enviás",
+            "recipientGets": "Recibís"
+        },
+        "balanceNote": "Tu saldo de Peanut se muestra en USD. Donde se admitan transferencias bancarias en moneda local, podés retirar en esa moneda."
     },
     "setup": {
         "steps": {
@@ -264,13 +415,17 @@
                 "description": "¡Instalá Peanut en tu teléfono para una mejor experiencia!"
             },
             "landing": {
-                "description": "Creá tu billetera en segundos para ahorrar, enviar o retirar dólares rápido."
+                "description": "Creá tu cuenta en segundos para guardar, enviar o retirar dólares rápido, estés donde estés en el mundo."
             },
             "welcome": {
                 "description": "¿Quién te invitó? Ingresá su nombre de usuario para continuar, o unite a la lista de espera y te avisaremos cuando puedas entrar."
             },
             "signup": {
-                "description": "Elegí tu nombre de usuario. Será tu ID para enviar y recibir dinero."
+                "description": "Elegí tu nombre de usuario. Lo vas a usar para enviar y recibir dinero."
+            },
+            "residence": {
+                "title": "¿Dónde vivís legalmente?",
+                "description": "El país donde vivís legalmente y tenés tu domicilio, no donde estás de viaje. Esto define qué métodos de pago podés desbloquear."
             },
             "passkey-permission": {
                 "description": "Usá tu cara o tu huella para iniciar sesión. Sin contraseñas ni complicaciones. Solo vos."
@@ -294,7 +449,7 @@
         "loginFailed": "No pudimos iniciar tu sesión. Intentalo de nuevo.",
         "landing": {
             "signUp": "Registrate",
-            "recoverWallet": "¿Necesitás recuperar tu billetera de Peanut?"
+            "recoverWallet": "¿Necesitás recuperar tu cuenta de Peanut?"
         },
         "waitlist": {
             "inviterNotFound": "No hay ningún miembro de Peanut con ese nombre de usuario. Verificá el usuario exacto de quien te invitó.",
@@ -302,7 +457,7 @@
             "noPasskey": "No se encontró ninguna passkey. Primero creá una billetera."
         },
         "signupStep": {
-            "usernamePlaceholder": "Escribí un nombre de usuario",
+            "usernamePlaceholder": "Tu usuario",
             "errors": {
                 "invalid": "El nombre de usuario no es válido, usá uno diferente",
                 "checkFailed": "No pudimos verificar la disponibilidad del usuario. Intentalo de nuevo.",
@@ -310,20 +465,76 @@
             },
             "termsAgreement": "Al crear una cuenta aceptás los <terms>Términos y Condiciones</terms> y la <privacy>Política de Privacidad</privacy>"
         },
+        "residenceStep": {
+            "countryPlaceholder": "Seleccioná tu país",
+            "secondCountryPlaceholder": "Segundo país",
+            "multiDocLink": "¿Tenés documentos de más de un país?",
+            "errors": {
+                "invalidEmail": "Ingresá un correo electrónico válido"
+            },
+            "partial": {
+                "title": "Atención",
+                "cardDescription": "La tarjeta Peanut no está disponible en tu país. Los dólares digitales y los envíos a cualquier @usuario funcionan de inmediato.",
+                "bankingDescription": "Las transferencias bancarias no están disponibles en tu país. Los dólares digitales y los envíos a cualquier @usuario funcionan de inmediato.",
+                "continue": "Continuar"
+            },
+            "congrats": {
+                "description": "No hay restricciones donde vivís. Los dólares digitales y los envíos a cualquier @usuario funcionan de inmediato, y una verificación rápida de identidad desbloquea {rail}.",
+                "descriptionNoRail": "No hay restricciones donde vivís. Los dólares digitales y los envíos a cualquier @usuario funcionan de inmediato.",
+                "cardClause": "La tarjeta Peanut también está disponible: necesita una verificación de identidad, y te sumás a una lista de espera."
+            },
+            "restricted": {
+                "title": "Atención",
+                "description": "Debido a regulaciones, las transferencias bancarias y la emisión de tarjetas no están disponibles para vos. Igual podés tener dólares digitales, enviar a cualquier @usuario y retirar tu saldo cuando quieras.",
+                "continueAnyway": "Continuar de todos modos",
+                "notifyMe": "Avisame cuando esté disponible",
+                "emailPlaceholder": "tu@ejemplo.com",
+                "notifySubmit": "Avisarme",
+                "notifyDone": "Listo. Te enviaremos un correo cuando esté disponible.",
+                "changeCountry": "Elegir otro país"
+            },
+            "compare": {
+                "cardTitle": "Disponible con {country}",
+                "items": {
+                    "p2p": "Pagos de Peanut a Peanut",
+                    "pix": "Pagos y transferencias PIX",
+                    "arQr": "Pagos QR y transferencias",
+                    "spei": "Transferencias bancarias en pesos mexicanos",
+                    "usdAch": "Transferencias bancarias en dólares estadounidenses",
+                    "eurSepa": "Transferencias bancarias en euros",
+                    "gbpFps": "Transferencias bancarias en libras esterlinas",
+                    "bank": "Transferencias bancarias donde haya soporte",
+                    "card": "Tarjeta Peanut"
+                },
+                "missing": {
+                    "banking": "Transferencias bancarias",
+                    "card": "Tarjeta Peanut"
+                },
+                "guideTitle": "¿Qué país va primero?",
+                "guideDeclaration": "Ambos deben ser países donde realmente tenés residencia legal. Es una declaración, y los proveedores la verifican durante la verificación de identidad, incluido el comprobante de domicilio.",
+                "guideOrder": "Si ambos países son realmente tu hogar, elegí cuál quedará registrado como tu residencia principal. La elegibilidad depende de la residencia que verifiques: el domicilio que comprobás en la verificación de identidad.",
+                "selectCountry": "Elegir {country}"
+            }
+        },
         "passkey": {
             "notAvailable": "Las passkeys aún no están disponibles en este dispositivo. Intentalo de nuevo.",
             "cancelled": "La configuración de la passkey fue cancelada. Intentalo de nuevo cuando quieras.",
+            "tookTooLong": "Esto está tardando más de lo esperado. Intentalo de nuevo.",
+            "notReady": "La app todavía se está preparando para las passkeys. Esperá un momento e intentalo de nuevo.",
+            "deviceState": "Hubo un problema con la passkey en este dispositivo. Reiniciá la app e intentalo de nuevo.",
+            "interrupted": "Algo interrumpió la solicitud de la passkey. Intentalo de nuevo.",
+            "serverUnreachable": "No pudimos conectar con los servidores de Peanut. Revisá tu conexión e intentalo de nuevo.",
             "usernameTaken": "Este nombre de usuario ya está registrado, posiblemente por un intento anterior en este dispositivo. Si fuiste vos, tu passkey está lista: solo iniciá sesión.",
             "learnMore": "Aprendé más sobre qué son las passkeys",
             "help": {
                 "descriptions": {
                     "notReadable": "Hay un problema con la configuración de passkeys de tu dispositivo. Intentalo de nuevo.",
-                    "notAllowedAndroid": "No pudimos crear una passkey. Esto suele pasar cuando no iniciaste sesión en una cuenta de Google, Google Play Services está desactualizado o no tenés bloqueo de pantalla configurado. Corregí uno de estos puntos y reintentá, o puede que se haya cancelado.",
+                    "notAllowedAndroid": "No pudimos crear una passkey. Iniciá sesión en una cuenta de Google, actualizá Google Play Services o configurá el bloqueo de pantalla, y reintentá.",
                     "notAllowed": "Las passkeys no están habilitadas en tu dispositivo. Revisá la configuración de tu dispositivo para habilitarlas"
                 },
                 "tryTheseFixes": "Probá estas soluciones:",
-                "stillHavingIssues": "¿Seguís con problemas?",
-                "contactSupport": "Contactá a nuestro equipo de soporte en <link>peanut.me/support</link>",
+                "stillHavingIssues": "¿Seguís atascado?",
+                "contactSupport": "Escribí a soporte en <link>peanut.me/support</link>",
                 "steps": {
                     "signInGoogle": "Iniciá sesión en una cuenta de Google en este dispositivo",
                     "ensureSignedInGoogle": "Asegurate de haber iniciado sesión en una cuenta de Google en este dispositivo",
@@ -341,7 +552,17 @@
                     "checkSecuritySettings": "Revisá los ajustes de seguridad de tu dispositivo",
                     "updateBrowserOs": "Actualizá tu navegador y tu sistema operativo"
                 }
-            }
+            },
+            "info": {
+                "title": "¿Qué es una passkey?",
+                "what": "Una passkey es una llave digital que tu dispositivo crea para esta app. La aprobás con huella, rostro o el bloqueo de pantalla: sin contraseñas ni nada que escribir.",
+                "backup": "Tu gestor de contraseñas (iCloud Keychain, Administrador de contraseñas de Google u otro) la respalda y la sincroniza con tu próximo teléfono.",
+                "privacy": "Peanut nunca ve tu huella ni tu rostro: tu dispositivo solo nos dice que aprobaste.",
+                "fullGuide": "Leer la guía completa"
+            },
+            "unsupported": "Las passkeys todavía no están disponibles en este dispositivo. Iniciá sesión con una cuenta de Google, actualizá Google Play Services e intentalo de nuevo.",
+            "origin": "Esta app no está autorizada para usar passkeys en peanut.me. Actualizá a la última versión.",
+            "loginError": "No pudimos verificar tu passkey. Intentalo de nuevo o contactá a soporte si sigue pasando."
         },
         "testTransaction": {
             "errors": {
@@ -354,6 +575,13 @@
         },
         "finish": {
             "title": "Firmá una transacción de prueba"
+        },
+        "accountReady": {
+            "worksNowTitle": "Funciona desde ya",
+            "worksNowBody": "Recibí dólares, enviá a cualquier @usuario y guardá tu saldo: sin verificar tu identidad.",
+            "laterTitle": "Cuando quieras pagos bancarios o una tarjeta",
+            "laterBody": "Vas a necesitar una verificación de identidad: unos minutos, o de 1 a 3 días hábiles si alguien la revisa a fondo.",
+            "cta": "Ir a mi cuenta"
         }
     },
     "loadingStates": {
@@ -380,7 +608,7 @@
     },
     "request": {
         "leaveEmptyHint": "Dejalo vacío para que quien paga elija el monto.",
-        "recipientPlaceholder": "Ingresá un nombre de usuario, una dirección o ENS",
+        "recipientPlaceholder": "Usuario, dirección o ENS",
         "errors": {
             "enterRecipient": "Ingresá una dirección de destinatario"
         },
@@ -412,20 +640,25 @@
             "insufficientPayment": "No tenés saldo suficiente para completar este pago con Peanut",
             "insufficientRequest": "No tenés saldo suficiente para completar esta solicitud con Peanut",
             "pleaseLoginToContinue": "Iniciá sesión para continuar",
-            "logInToContinue": "iniciá sesión para continuar"
+            "logInToContinue": "iniciá sesión para continuar",
+            "userNotFoundDescription": "No encontramos a @{username} en Peanut. Revisá el nombre de usuario e intentá de nuevo.",
+            "invalidPaymentUrlDescription": "El enlace está incompleto o mal escrito. Pedile a quien lo envió que lo comparta de nuevo.",
+            "requestNotFoundDescription": "Esta solicitud de pago no existe o fue eliminada. Pedile un nuevo enlace a quien la envió."
         }
     },
     "claim": {
         "errors": {
             "brokenLinkMessage": "¿Seguro que hiciste clic en el enlace correcto? ¿El enlace se acaba de crear? Intentalo de nuevo en unos segundos.",
             "missingInviter": "No se pudo aceptar la invitación: falta quien te invitó. Contactá a soporte.",
-            "bankClaimUnavailable": "No podés reclamar este enlace a tu cuenta bancaria."
+            "bankClaimUnavailable": "No podés reclamar este enlace a tu cuenta bancaria.",
+            "belowNetworkMinimum": "Reclamar a {network} requiere al menos {amount}. Probá con otra red.",
+            "belowMinimumCrossChain": "Este enlace está por debajo del mínimo de {amount} para moverse entre redes. Pedile a quien lo envió que lo reclame."
         },
         "claimed": {
             "createWalletHint": "Creá una billetera para recibir enlaces en el futuro."
         },
         "initial": {
-            "recipientPlaceholder": "Ingresá un nombre de usuario, una dirección o ENS",
+            "recipientPlaceholder": "Usuario, dirección o ENS",
             "usdcArbitrumOnly": "Solo podés reclamar USDC en Arbitrum para usuarios de Peanut Wallet."
         },
         "addressCompatible": {
@@ -433,7 +666,7 @@
             "claimToPeanut": "¿No estás seguro? Reclamá en Peanut"
         },
         "guestVerification": {
-            "senderUnverifiedDescription": "Quien envió todavía no puede enviar a un banco. Podés reclamar con otro método, o crear una cuenta y verificar tu identidad para recibirlo en tu banco.",
+            "senderUnverifiedDescription": "Quien te envía todavía no puede enviar a un banco. Reclamá de otra forma, o creá y verificá una cuenta para recibirlo en tu banco.",
             "accountRequiredDescription": "Necesitás una cuenta de Peanut para reclamar con este método. Creá una y verificá tu identidad, y tus fondos se depositarán en tu banco."
         },
         "actions": {
@@ -482,12 +715,21 @@
             "pixRecurring": "Este código QR es de un pago recurrente (PIX Automático). Peanut no admite pagos PIX recurrentes — pedí un código QR de PIX normal.",
             "pixDecode": "No pudimos decodificar este código QR de Pix. Pedile al comercio que genere uno nuevo.",
             "genericDecode": "No pudimos decodificar este código QR. Preguntale al comercio si puede generar un QR de Mercado Pago",
+            "connectionLost": "Parece que tu dispositivo está sin conexión. Revisá tu conexión y escaneá de nuevo — no se cobró nada.",
+            "monthlyCapReached": "Este pago supera tu límite mensual disponible, que se comparte entre depósitos, retiros y pagos con QR. Probá con un monto menor o escribinos para aumentar tu límite.",
+            "monthlyCapReachedFixedAmount": "Este cobro supera tu límite mensual disponible, que se comparte entre depósitos, retiros y pagos con QR. Pedí un cobro menor o escribinos para aumentar tu límite.",
+            "merchantNotAvailable": "No podemos completar pagos con QR a este comercio en este momento. Probá con otro método de pago o con otro comercio.",
+            "merchantNotAvailableTrySmaller": "No podemos completar pagos con QR de este monto a este comercio en este momento. Probá con un monto menor, otro método de pago u otro comercio.",
+            "kycRequired": "Terminá de verificar tu identidad para pagar con QR.",
             "initiateUnexpected": "No se pudo iniciar el pago por un error inesperado. Contactá a soporte",
             "confirmTransaction": "Confirmá la transacción.",
             "accountStateChanged": "La transacción falló por un cambio de estado de la cuenta. Intentalo de nuevo. Si el problema persiste, contactá a soporte.",
             "sessionExpired": "La sesión de pago expiró. Escaneá el código QR de nuevo.",
+            "restartScan": "No pudimos iniciar este pago. Escaneá el código QR de nuevo.",
             "merchantNotSupported": "Este código QR o comercio no es compatible. Intentalo de nuevo con otro código QR.",
-            "completeFailed": "No se pudo completar el pago. Escaneá el código QR de nuevo. Si el problema persiste, contactá a soporte"
+            "completeFailed": "No se pudo completar el pago. Escaneá el código QR de nuevo. Si el problema persiste, contactá a soporte",
+            "paymentStatusUnknown": "No pudimos confirmar el estado del pago. Revisá tu actividad antes de volver a intentarlo. Si el estado no está claro, contactá a soporte.",
+            "paymentCancelled": "El proveedor canceló este pago antes de enviar la plata. Escaneá un nuevo código QR para volver a intentarlo."
         },
         "claim": {
             "inviteQrDescription": "Compartilo donde sea. Los puntos siguen llegando por la actividad de tus amigos y sus amigos.",
@@ -511,6 +753,25 @@
             },
             "claimSuccess": {
                 "stickerDescription": "Pegalo en tu laptop, botella de agua o donde quieras que la gente te encuentre. Cualquiera que lo escanee podrá unirse a Peanut con tu invitación."
+            }
+        },
+        "result": {
+            "viewActivity": "Ver actividad",
+            "cancelled": {
+                "title": "Pago cancelado",
+                "description": "Este pago se canceló. Antes de volver a intentarlo, revisá en Actividad si se devolvió la plata."
+            },
+            "refunded": {
+                "title": "Pago reembolsado",
+                "description": "Tu plata ya fue devuelta. Podés ver el reembolso en Actividad."
+            },
+            "failed": {
+                "title": "El pago no se completó",
+                "description": "Antes de volver a intentarlo, revisá el pago y cualquier reembolso en Actividad."
+            },
+            "processing": {
+                "title": "Pago en proceso",
+                "description": "El pago todavía no se confirmó. Revisá Actividad antes de volver a intentarlo."
             }
         }
     },
@@ -542,9 +803,9 @@
             "sublineBadge": "Tenés una insignia que se salta la fila de la beta cerrada. La tarjeta es tuya."
         },
         "cancel": {
-            "body": "Esto cancelará tu tarjeta de forma permanente. No servirá para ninguna transacción. Tendrás que pedir una nueva si cambiás de opinión.",
+            "body": "No vas a poder volver a usarla.",
             "slideToCancel": "Deslizá para cancelar",
-            "canceledBody": "Si cambiás de opinión más adelante, podés pedir otra tarjeta.",
+            "canceledBody": "Ya no se puede usar para pagos. Podés pedir una tarjeta nueva, según tu elegibilidad.",
             "feedbackLabel": "Ayudanos a mejorar nuestro producto para vos"
         },
         "lockModal": {
@@ -569,7 +830,7 @@
         },
         "limits": {
             "subtitle": "Definí tu límite de gasto por transacción.",
-            "invalidAmount": "Ingresá un monto válido",
+            "invalidAmount": "Ingresá un monto entre {minimum} y {maximum}, con un máximo de dos decimales.",
             "noActiveCard": "No tenés una tarjeta activa para gestionar límites."
         },
         "pin": {
@@ -610,11 +871,14 @@
         "recovery": {
             "failed": "Falló la recuperación — intentalo de nuevo",
             "title": "Recuperá el colateral de tu tarjeta"
+        },
+        "reveal": {
+            "loadFailed": "No se pudieron cargar los datos de la tarjeta. Intentá de nuevo o contactá a soporte.",
+            "rateLimited": "Por ahora no se pueden mostrar los datos de la tarjeta. Intentá más tarde."
         }
     },
     "addMoney": {
         "selectYourCountry": "Seleccioná tu país",
-        "howWouldYouLikeToAdd": "¿Cómo querés agregar dinero?",
         "howMuchToAdd": "¿Cuánto querés agregar?",
         "mustMatchBankTransfer": "Esto debe coincidir exactamente con lo que enviás desde tu banco",
         "amountMustMatchBank": "¡El monto debe coincidir con lo que enviás desde tu banco!",
@@ -628,45 +892,31 @@
             "description": "Una sola dirección para todas las redes EVM listadas abajo: enviá desde cualquiera de ellas y tus fondos se enrutarán correctamente."
         },
         "howToDeposit": {
-            "warningOfframp": "Enviá solo USDC en Arbitrum: otros tokens o redes se pueden perder.",
             "default": {
-                "step1": "Copiá tu dirección de depósito de arriba",
-                "step2": "Abrí tu billetera o exchange e iniciá un retiro",
-                "step3": "Pegá la dirección y elegí una de las redes compatibles",
-                "step4": "Confirmá y enviá: los fondos llegan en pocos minutos"
-            },
-            "offramp": {
-                "step1": "Copiá tu dirección de depósito de migración de arriba",
-                "step2": "Abrí tu cuenta de Offramp e iniciá un retiro o envío",
-                "step3": "Elegí USDC en la red Arbitrum y pegá la dirección",
-                "step4": "Confirmá y enviá: tu saldo llega en pocos minutos"
+                "step1": "Copiá la dirección de depósito de arriba",
+                "step2": "Iniciá un retiro desde tu billetera o exchange",
+                "step3": "Pegá la dirección y elegí una red compatible",
+                "step4": "Confirmá: los fondos llegan en minutos"
             }
         },
         "crypto": {
-            "sendUsdcOnArbitrum": "Enviá <b>USDC en Arbitrum</b> para migrar tu saldo",
             "sendTokensToAddress": "Enviá tokens a esta dirección de <b>{network}</b>",
             "tooltipEvm": "{count} redes EVM compatibles. Para montos exactos, depositá USDC en Arbitrum. Otras redes/tokens se puentean (±0.1%).",
-            "migrationAddressTooltip": "Usá esta dirección para tu migración desde Offramp. Solo acepta USDC en Arbitrum: no la guardes como dirección general de tu billetera.",
             "selectNetworkType": "Seleccioná el tipo de red",
             "warningTitle": "Enviá solo a redes compatibles",
-            "warningTitleOfframp": "Enviá solo USDC en Arbitrum",
-            "bridgingFeeNote": "Se aplica una pequeña comisión de puenteo (~0.1%): recibirás un poco menos de lo que enviás.",
-            "multipleTransfersNote": "¿Vas a mover más del máximo? Envialo en varias transferencias.",
-            "addressErrorDescription": "No se envió nada. Intentalo de nuevo: si el problema sigue, contactá a soporte.",
-            "transferSentBackNote": "Tu dinero volvió a tu cuenta de Offramp: iniciá el retiro de nuevo desde ahí."
-        },
-        "offrampGate": {
-            "description": "Ingresá el usuario o el email de la cuenta de Offramp desde la que estás migrando, para poder vincular tu saldo con tu nueva billetera de Peanut.",
-            "error": "No pudimos guardar tu cuenta de Offramp. Intentalo de nuevo."
+            "bridgingVarianceNote": "Los depósitos se puentean a Arbitrum y pueden variar un poco (±0.1%).",
+            "bridgingVarianceNoteEvm": "USDC en Arbitrum llega exacto. Los depósitos desde otras redes o tokens se puentean y pueden variar un poco (±0.1%).",
+            "addressErrorDescription": "No se envió nada. Intentalo de nuevo: si el problema sigue, contactá a soporte."
         },
         "manteca": {
-            "sendOnlyOwnAccountTitle": "Enviá solo desde tu propia cuenta"
+            "sendOnlyOwnAccountTitle": "Enviá solo desde tu propia cuenta",
+            "etaInstant": "Los depósitos suelen llegar en minutos."
         },
         "pix": {
             "scanWithBankApp": "Escaneá con la app de tu banco o copiá el código PIX."
         },
         "confirmationModal": {
-            "youMust": "DEBÉS:"
+            "youMust": "Debés:"
         },
         "bankDetails": {
             "sendExactAmount": "¡Enviá exactamente este monto!",
@@ -674,16 +924,20 @@
             "doubleCheckTitle": "Revisá bien en tu banco antes de enviar:",
             "shareOutro": "Usá estos datos para completar tu transferencia bancaria.",
             "doubleCheckSenderName": "Remitente: usá una cuenta bancaria a tu propio nombre (si el nombre no coincide, la transferencia rebota)",
-            "doubleCheckRecipientName": "Destinatario: escribí el nombre exactamente como se muestra arriba"
+            "doubleCheckRecipientName": "Destinatario: escribí el nombre exactamente como se muestra arriba",
+            "etaAch": "Suele llegar en 1 día hábil, a veces hasta 3.",
+            "etaSepa": "Suele llegar en 1 día hábil.",
+            "etaSpei": "Suele llegar en minutos.",
+            "etaFps": "Suele llegar en minutos."
         },
         "errors": {
             "invalidNumber": "Ingresá un número válido.",
             "selectCountryFirst": "Primero seleccioná un país.",
             "onrampDetails": "No pudimos obtener los datos para agregar dinero. Intentalo de nuevo.",
-            "rateUnavailable": "Los tipos de cambio no están disponibles por el momento. Intentalo de nuevo en un momento.",
             "bankAccountFailed": "No se pudo procesar la cuenta bancaria. Intentalo de nuevo o contactá a soporte.",
             "bankAccountSettingUp": "Tu cuenta bancaria aún se está configurando. Intentalo de nuevo en un momento."
-        }
+        },
+        "bankNotAvailableNote": "Las transferencias bancarias no están disponibles en tu país. Todavía podés ingresar y retirar cripto."
     },
     "withdraw": {
         "howWouldYouLikeToWithdraw": "¿Cómo querés retirar?",
@@ -691,12 +945,15 @@
         "chooseWithdrawingMethod": "Elegí el método de retiro",
         "noAccountsTitle": "Aún no tenés cuentas",
         "noAccountsDescription": "Agregá los datos de tus cuentas una vez<br></br>y retirá con un solo toque.",
+        "methods": {
+            "euroBankTransfers": "Transferencias bancarias en euros",
+            "euroBankTransfersDescription": "Normalmente llega en 20 minutos; puede tardar hasta 1 día hábil."
+        },
         "initial": {
-            "placeholderEns": "Ingresá una dirección o ENS",
-            "placeholderAddress": "Ingresá una dirección"
+            "placeholderEns": "Dirección o ENS",
+            "placeholderAddress": "Dirección"
         },
         "confirm": {
-            "recipientReceivesInfo": "El monto completo llega a la red de destino. La comisión de red entre cadenas se paga aparte: mirá abajo.",
             "youPay": "Pagás"
         },
         "compatibilityModal": {
@@ -704,7 +961,7 @@
         },
         "pixKey": {
             "heading": "Ingresá la clave Pix",
-            "info": "Enviá a cualquier clave Pix: email, teléfono, CPF/CNPJ o clave aleatoria."
+            "info": "Enviá a cualquier clave Pix: email, teléfono (incluí +55), CPF/CNPJ o clave aleatoria."
         },
         "bank": {
             "confirmPending": "Tu transferencia se está procesando. Los fondos se enviaron on-chain correctamente: la confirmación puede tardar unos minutos. Si no ves el retiro en tu actividad dentro de 30 minutos, contactá a soporte."
@@ -822,12 +1079,9 @@
     "badges": {
         "emptyDescription": "Ganá insignias a medida que usás Peanut. Hacé pagos, invitá amigos y participá en eventos para desbloquearlas y mostrarlas en tu perfil.",
         "shareText": "¡Gané la insignia {badge} en Peanut!\n\nUnite a Peanut y empezá a ganar puntos, desbloquear logros y mover dinero por todo el mundo\n\n{link}",
-        "toastTapToView": "— tocá para ver"
+        "toastTapToView": "Tocá para ver"
     },
     "notifications": {
-        "loadFailed": "No pudimos cargar las notificaciones. Intentalo de nuevo.",
-        "loadMoreFailed": "No pudimos cargar más notificaciones. Tocá para reintentar.",
-        "emptyTitle": "¡Aún no tenés notificaciones!",
         "setupDescription": "Activá las notificaciones y recibí alertas de toda la actividad de tu billetera."
     },
     "kyc": {
@@ -851,17 +1105,31 @@
             "descriptionRestartIdentity": "Este método necesita un documento de un país compatible. Podés verificarte con otro documento.",
             "descriptionProviderRejection": "Subí una foto más nítida de tu documento para continuar.",
             "descriptionRegionUnavailable": "Por regulaciones del Reino Unido, las transferencias bancarias no están disponibles para residentes del Reino Unido. Tus fondos están seguros: podés retirarlos como cripto en cualquier momento.",
-            "descriptionDefault": "Confirmá tu identidad para desbloquear los pagos. Toma alrededor de un minuto."
+            "descriptionBankUnavailable": "Las transferencias bancarias no están disponibles en tu país, así que verificar tu identidad no las desbloquearía. Tus fondos están seguros y podés seguir enviando y recibiendo dinero con otras personas.",
+            "descriptionDefault": "Confirmá tu identidad para desbloquear los pagos."
+        },
+        "regionRestricted": {
+            "title": "No podemos verificar identificaciones de tu país",
+            "description": "Nuestro proveedor de verificación no acepta documentos emitidos en tu país. Volver a subirlos no va a cambiar el resultado.",
+            "stillAvailable": "Tus fondos están seguros y podés seguir usando Peanut para enviar y recibir dinero con otras personas.",
+            "homeDescription": "Tus fondos están seguros: podés seguir enviando y recibiendo dinero con otras personas.",
+            "cta": "Enviar o pedir dinero"
         },
         "advisory": {
-            "descriptionByDate": "Para seguir usando las transferencias bancarias, completá una breve verificación (obligatoria antes del {deadline}). Solo toma un par de minutos.",
-            "description": "Para seguir usando las transferencias bancarias, completá una breve verificación. Solo toma un par de minutos."
+            "descriptionByDate": "Tu cuenta necesita un documento más antes del {deadline} para que las transferencias bancarias sigan funcionando. Solo toma un par de minutos.",
+            "description": "Tu cuenta necesita un documento más para que las transferencias bancarias sigan funcionando. Solo toma un par de minutos.",
+            "title": "Esto toma un poco más",
+            "completeNow": "Completar ahora",
+            "doLater": "Hacerlo después"
         },
         "progress": {
-            "verifyingDescription": "Estamos confirmando tu identidad — normalmente toma menos de un minuto. Podés esperar aquí o volver al inicio y te avisamos cuando esté listo.",
+            "verifyingDescription": "Las verificaciones suelen resolverse rápido. Si un revisor debe verla, de 1 a 3 días hábiles. Podés esperar acá o cerrar esto y te enviaremos una notificación.",
             "preparingTimedOutDescription": "Podés continuar y te avisaremos cuando esté listo.",
             "preparingSlowDescription": "Esto está tardando un poco más de lo habitual. Esperá un momento.",
-            "bridgeTosDescription": "Último paso: aceptá los términos de servicio para desbloquear las transferencias bancarias en Estados Unidos, Europa y México."
+            "bridgeTosDescription": "Último paso: aceptá los términos de servicio para desbloquear las transferencias bancarias en Estados Unidos, Europa y México.",
+            "verifyingTitle": "Revisando tu identificación",
+            "verifyingStillGoing": "Sigue en proceso. La mayoría termina rápido, así que esta probablemente está recibiendo una revisión más detallada. Podés cerrar esto y te avisaremos cuando haya una decisión.",
+            "closeAndNotify": "Cerrar y avisarme"
         },
         "wrapper": {
             "troubleTitle": "¿Necesitás ayuda?",
@@ -877,7 +1145,7 @@
         },
         "bridgeTos": {
             "baseDescription": "Para habilitar las transferencias bancarias, debés aceptar los términos de servicio de nuestro socio de pagos.",
-            "sepaDescription": "Para habilitar las transferencias bancarias en EUR (SEPA) y GBP (Faster Payments), debés aceptar los términos de servicio actualizados de nuestro socio de pagos.",
+            "sepaDescription": "Para habilitar las transferencias bancarias en euros y libras esterlinas, aceptá los Términos de Servicio actualizados de nuestro proveedor de transferencias bancarias.",
             "loadFailed": "No se pudieron cargar los términos. Podés aceptarlos más tarde desde tu historial de actividad.",
             "genericError": "Algo salió mal. Podés aceptar los términos más tarde desde tu historial de actividad.",
             "confirmError": "Algo salió mal al confirmar tus términos. Intentalo de nuevo.",
@@ -1036,9 +1304,59 @@
             }
         },
         "errorStartActionFailed": "No pudimos iniciar la verificación. Intentalo de nuevo.",
-        "actionMessageActionRequired": "Necesitamos un poco más para verificar tu identidad. Volvé a enviar tus documentos.",
+        "actionMessageActionRequired": "Necesitamos un poco más para verificar tu identidad. Tocá abajo para continuar.",
         "actionMessageFailed": "No pudimos verificar tu identidad. Contactá a soporte.",
-        "successCloseWindow": "Ya podés cerrar esta ventana."
+        "successCloseWindow": "Ya podés cerrar esta ventana.",
+        "degraded": {
+            "title": "La verificación está temporalmente caída",
+            "description": "Nuestro socio de verificación tiene problemas en este momento. Tu cuenta está bien. Te vamos a avisar en cuanto vuelva a funcionar.",
+            "notifyMe": "Avisame cuando funcione"
+        },
+        "prep": {
+            "intro": {
+                "standard": "Tené esto a mano desde ahora, así no lo buscás a mitad del proceso.",
+                "extended": "Esta verificación tiene más pasos que la mayoría. Reservate unos minutos extra."
+            },
+            "items": {
+                "id": {
+                    "title": "Un documento de identidad vigente",
+                    "body": "Pasaporte, documento nacional, permiso de residencia o la mayoría de las licencias de conducir. Tomá fotos en vivo con tu cámara; no se aceptan capturas de pantalla ni escaneos."
+                },
+                "selfie": {
+                    "title": "Tu rostro",
+                    "body": "Una selfie corta en la app. Con buena luz es más fácil."
+                },
+                "taxId": {
+                    "title": "Tu identificación fiscal",
+                    "body": "CPF en Brasil, CUIT o CUIL en Argentina. Se necesita para enviar y recibir por los rieles bancarios locales."
+                },
+                "questions": {
+                    "title": "Unas preguntas breves",
+                    "body": "Declaraciones regulatorias que estamos obligados a pedir."
+                },
+                "proofOfAddress": {
+                    "title": "Un comprobante de domicilio, si tenés uno",
+                    "body": "Una factura de servicios, un resumen bancario o una carta oficial de los últimos 3 meses con tu nombre y tu domicilio. No se lo piden a todo el mundo, y después no hay forma de agregarlo."
+                }
+            },
+            "howLongLabel": "Cuánto tarda",
+            "howLong": {
+                "standard": "Menos de 2 minutos para la mayoría. Si un revisor debe verlo, de 1 a 3 días hábiles.",
+                "extended": "Más que la verificación habitual. Si un revisor debe verlo, de 1 a 3 días hábiles.",
+                "hosted": "Unos 5 minutos si tenés tus documentos a mano. Si un revisor debe verlo, de 1 a 3 días hábiles."
+            },
+            "extraDocNote": "A algunas personas se les pide un documento más, como un comprobante de domicilio. Si es tu caso, te lo diremos antes de abrir la cámara.",
+            "startCta": "Los tengo, empezar",
+            "singleSession": {
+                "title": "Terminala de una sola vez",
+                "body": "Nuestro socio no guarda tu progreso. Si cerrás la página o te levantás a buscar un documento, volvés a empezar desde el primer paso."
+            }
+        },
+        "hostedPrep": {
+            "done": {
+                "title": "Acá ya no queda nada por hacer"
+            }
+        }
     },
     "identity": {
         "unlockTitle": "Desbloqueá {region}",
@@ -1048,20 +1366,22 @@
             "eea_tin_reupload": "Volvé a subir tu número de identificación fiscal.",
             "email_required": "Necesitamos un correo electrónico para terminar de configurar esta cuenta. Agregá uno a tu perfil y lo reintentaremos automáticamente.",
             "submission_failed": "Tuvimos un problema al finalizar tu verificación de nuestro lado. Lo vamos a resolver: tocá abajo para escribirle a soporte.",
-            "bridge_tos_required": "Aceptá los términos de servicio de Bridge para continuar.",
-            "bridge_tos_v2_required": "Aceptá los términos de servicio de SEPA para habilitar transferencias en EUR / GBP.",
+            "bridge_tos_required": "Aceptá los términos de nuestro socio de pagos para continuar.",
+            "bridge_tos_v2_required": "Aceptá los Términos de Servicio actualizados del proveedor de transferencias bancarias para habilitar transferencias en euros y libras esterlinas.",
             "verification_blocked": "Problema de verificación: contactá a soporte para recibir ayuda.",
             "terminal_rejection": "Problema de verificación: contactá a soporte para recibir ayuda.",
             "bridge_terminal_rejection": "No pudimos verificar tu cuenta para transferencias bancarias. Escribile a soporte si creés que es un error.",
             "duplicate_customer_detected": "Bridge marcó tu cuenta como posible duplicado. Escribile a soporte para verificarla y desbloquearla.",
             "card_rejected": "No se pudo aprobar tu solicitud de tarjeta. Escribile a soporte si creés que es un error.",
             "country_not_supported": "Este método necesita un documento de un país compatible. Podés verificarte con otro documento.",
-            "uk_resident_blocked": "Por regulaciones del Reino Unido, las transferencias bancarias no están disponibles para residentes del Reino Unido. Tus fondos están seguros: podés retirarlos como cripto en cualquier momento."
+            "tax_id_unresolved": "No pudimos leer el número de identificación fiscal que necesitan los depósitos y retiros locales. Podés verificarte de nuevo para proporcionarlo. Los pagos con QR no se ven afectados.",
+            "uk_resident_blocked": "Por regulaciones del Reino Unido, las transferencias bancarias no están disponibles para residentes del Reino Unido. Tus fondos están seguros: podés retirarlos como cripto en cualquier momento.",
+            "identity_region_restricted": "Nuestro proveedor de verificación no acepta documentos emitidos en tu país. Volver a subirlos no va a cambiar el resultado."
         }
     },
     "recoverFunds": {
         "selectToken": "Seleccioná un token para recuperar",
-        "recipientPlaceholder": "Ingresá la dirección donde querés recibir los fondos",
+        "recipientPlaceholder": "Dirección de destino",
         "recoveryUnavailable": "La recuperación aún no está disponible para {chain}. Contactá a soporte o intentalo de nuevo más tarde.",
         "sessionExpired": "Tu sesión expiró. Actualizá la página e intentalo de nuevo.",
         "sendFailed": "Error al enviar la transacción, intentalo de nuevo",
@@ -1073,9 +1393,9 @@
             "drawerTitle": "Elegí token y red",
             "crossChainUnavailable": "Las transacciones entre cadenas no están disponibles temporalmente. Podés usar USDC en Arbitrum.",
             "selectANetwork": "Elegí una red",
-            "searchTokenPlaceholder": "Buscá un token o pegá una dirección",
+            "searchTokenPlaceholder": "Token o dirección",
             "noMatchingTokensDescription": "Intentá buscar otro token",
-            "searchNetworkPlaceholder": "Buscá una red",
+            "searchNetworkPlaceholder": "Buscar red",
             "noNetworksFoundDescription": "Intentá buscar otra red"
         },
         "qrScanner": {
@@ -1095,7 +1415,15 @@
                 "iosChrome1": "Paso 1: abrí Ajustes → Chrome",
                 "iosChrome2": "Paso 2: activá la cámara",
                 "iosSafari1": "Paso 1: tocá “aA” en la barra de direcciones",
-                "iosSafari2": "Paso 2: tocá “Ajustes del sitio web”"
+                "iosSafari2": "Paso 2: tocá “Ajustes del sitio web”",
+                "native": {
+                    "hint": "Peanut necesita la cámara para escanear un código QR. Activá la cámara para Peanut en la configuración de tu dispositivo.",
+                    "openSettings": "Abrí Configuración",
+                    "step1": "Abrí Configuración y buscá Peanut",
+                    "iosStep2": "Activá la cámara",
+                    "androidStep2": "Tocá Permisos",
+                    "androidStep3": "Elegí Permitir en Cámara"
+                }
             }
         },
         "qrScannerOverlay": {
@@ -1105,8 +1433,8 @@
             "externalUrlIntro": "Peanut no admite este QR, pero podés abrirlo con tu navegador.",
             "externalUrlTrust": "¡Asegurate de confiar en este sitio web!",
             "pixRecurringBody": "Peanut no admite pagos PIX recurrentes: pedí un código QR de PIX normal.",
-            "myQrExpandedTitle": "Mostrá tu QR para cobrar",
-            "myQrButtonText": "Compartí tu perfil"
+            "myQrButtonText": "Compartí tu perfil",
+            "myQrTitle": "Mi QR"
         },
         "qrBottomDrawer": {
             "shareTitle": "Compartí tu perfil"
@@ -1205,17 +1533,22 @@
         "forceIosPwaInstall": {
             "title": "Viví la experiencia completa",
             "description": "Agregá Peanut a tu pantalla de inicio para desbloquear tu billetera y empezar a usarla.",
-            "tapShare": "Tocá el <share>ícono Compartir</share> en tu navegador"
+            "tapShare": "Tocá el <share>ícono Compartir</share> en tu navegador",
+            "continueInBrowser": "Seguí en el navegador"
         },
         "userCard": {
             "payWhatYouWant": "Pagá lo que quieras",
             "sendExactAmount": "¡Enviá el monto exacto!"
         },
-        "betaBanner": "¡Peanut está en beta! Gracias por ser un usuario temprano, compartí tu opinión aquí",
         "iosCopy": {
             "inviteFriendsModal": {
                 "description": "Compartí tu enlace. Cada vez que un amigo que trajiste haga un pago, ganás cashback."
             }
+        },
+        "countryCombobox": {
+            "noResults": "Ningún país coincide",
+            "clear": "Borrar búsqueda",
+            "removeCountry": "Quitar {country}"
         }
     },
     "errors": {
@@ -1226,6 +1559,7 @@
         "notDeployedOnChain": "Bulk no está disponible en esta red, probá con otra red.",
         "userRejectedRequest": "Confirmá la solicitud en tu billetera.",
         "networkError": "Ocurrió un error de red. Actualizá la página e intentalo de nuevo.",
+        "connectionLost": "Se perdió la conexión. Revisá tu conexión a internet e intentá de nuevo.",
         "nonceExpired": "El nonce expiró, intentalo de nuevo.",
         "walletNotConnected": "Asegurate de que tu billetera esté conectada.",
         "gasExceedsAllowance": "El gas requerido supera tu saldo. Confirmá que tenés fondos suficientes.",
@@ -1246,13 +1580,20 @@
         "genericSupport": "Hubo un problema con tu solicitud. Contactá con soporte.",
         "rainCooldownRetry": "Un retiro anterior con la tarjeta sigue activo. Volvé a intentarlo en unos {minutes, plural, one {# minuto} other {# minutos}}.",
         "rainCooldownRetryShortly": "Un retiro anterior con la tarjeta sigue activo. Volvé a intentarlo en breve.",
+        "xchainWithdrawLimit": "Alcanzaste el límite de retiros a otras redes. Los retiros en Arbitrum no tienen límite, o contactá a soporte para ampliar el tuyo.",
+        "xchainWithdrawLimitRetry": "Alcanzaste el límite de retiros a otras redes. Volvé a intentarlo en aproximadamente {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minuto} other {# minutos}}} one {# hora} other {# horas}}} one {# día} other {# días}}. Los retiros en Arbitrum no tienen límite, o contactá a soporte para ampliar el tuyo.",
+        "xchainPaymentLimit": "Hiciste demasiadas transferencias a otras redes recientemente. Contactá a soporte para ampliar tu límite.",
+        "xchainPaymentLimitRetry": "Hiciste demasiadas transferencias a otras redes recientemente. Volvé a intentarlo en aproximadamente {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minuto} other {# minutos}}} one {# hora} other {# horas}}} one {# día} other {# días}}, o contactá a soporte para ampliar tu límite.",
         "staleCardApproval": "Necesitás volver a habilitar tu tarjeta antes de retirar. Solo toma un toque con tu passkey.",
         "cardRateLimited": "Demasiadas solicitudes con la tarjeta. Esperá un momento e intentalo de nuevo.",
         "linkTransactionHashFetch": "No pudimos cargar la transacción de este enlace. Actualizá la página e intentalo de nuevo.",
         "cardApprovalCancelled": "Aprobación cancelada: podés volver a intentarlo cuando quieras.",
         "cardApprovalFailed": "No se pudo aprobar la tarjeta. Intentalo de nuevo.",
         "logoutFailed": "No pudimos cerrar tu sesión. Intentalo de nuevo.",
-        "loginIncomplete": "No se completó el inicio de sesión. Intentalo de nuevo."
+        "loginIncomplete": "No se completó el inicio de sesión. Intentalo de nuevo.",
+        "rateUnavailable": "Los tipos de cambio no están disponibles por el momento. Intentalo de nuevo en un momento.",
+        "transferTemporarilyUnavailable": "Las transferencias no están disponibles por el momento. Revisá tu actividad antes de volver a intentarlo.",
+        "userOpReverted": "No se pudo completar el pago. Intentá de nuevo."
     },
     "appLock": {
         "prompt": "Desbloqueá para abrir la app.",
@@ -1314,6 +1655,19 @@
         },
         "ready": {
             "subtitle": "Probá la puerta."
+        }
+    },
+    "avatar": {
+        "cast": {
+            "cactus": {
+                "name": "Ají valiente"
+            },
+            "flower": {
+                "name": "Vaquita de la suerte"
+            },
+            "heart": {
+                "name": "Carpincho sereno"
+            }
         }
     }
 }

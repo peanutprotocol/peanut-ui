@@ -1,6 +1,14 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useTransactionHistory } from '@/hooks/useTransactionHistory'
+import {
+    collectLatestEntries,
+    latestPageSize,
+    useTransactionHistory,
+    type HistoryResponse,
+} from '@/hooks/useTransactionHistory'
+import type { HistoryEntry } from '@/hooks/useTransactionHistory'
+import { EHistoryUserRole } from '@/utils/history.utils'
+import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import type { ReactNode } from 'react'
 
 // Mock the network — these tests assert hook-order behaviour, not fetching.
@@ -92,5 +100,404 @@ describe('useTransactionHistory', () => {
         // pagination stops instead of looping.
         await waitFor(() => expect(result.current.hasNextPage).toBe(false))
         expect(result.current.data?.pages).toHaveLength(2)
+    })
+})
+
+/**
+ * The API applies its limit to raw intents BEFORE collapsing a request pot's
+ * contributions into one rollup row, so a page can hold far fewer unique rows
+ * than asked for — in the extreme, one. Latest mode must follow the cursor
+ * until it has `limit` unique rows, the feed is exhausted, or the pages stop
+ * yielding anything new (a pathological feed must not fetch unboundedly).
+ */
+describe('collectLatestEntries', () => {
+    const row = (uuid: string): HistoryEntry => ({ uuid, timestamp: new Date('2026-08-01') }) as HistoryEntry
+
+    const pageSequence = (pages: HistoryResponse[]) => {
+        let call = 0
+        return jest.fn((cursor?: string): Promise<HistoryResponse> => {
+            void cursor
+            const page = pages[Math.min(call, pages.length - 1)]
+            call += 1
+            return Promise.resolve(page)
+        })
+    }
+
+    it('keeps fetching past a page that collapsed into one rollup row until `limit` unique rows', async () => {
+        const fetchPage = pageSequence([
+            // 20 newest intents were all contributions to pot-1 → one row
+            { entries: [row('pot-1')], cursor: 'c1', hasMore: true },
+            // rollup repeats at the page boundary; dedupe keeps the first copy
+            { entries: [row('pot-1'), row('a'), row('b'), row('c'), row('d')], cursor: 'c2', hasMore: true },
+        ])
+
+        const result = await collectLatestEntries(fetchPage, 5)
+
+        expect(fetchPage).toHaveBeenCalledTimes(2)
+        expect(fetchPage).toHaveBeenNthCalledWith(1, undefined)
+        expect(fetchPage).toHaveBeenNthCalledWith(2, 'c1')
+        expect(result.entries.map((e) => e.uuid)).toEqual(['pot-1', 'a', 'b', 'c', 'd'])
+        // 5 unique rows reached — the c2 cursor is NOT followed
+    })
+
+    it('stops early when the feed is exhausted before `limit` rows', async () => {
+        const fetchPage = pageSequence([{ entries: [row('a'), row('b')], hasMore: false }])
+
+        const result = await collectLatestEntries(fetchPage, 5)
+
+        expect(fetchPage).toHaveBeenCalledTimes(1)
+        expect(result.entries.map((e) => e.uuid)).toEqual(['a', 'b'])
+        expect(result.hasMore).toBe(false)
+    })
+
+    // A cursor-advancing page is progress even when it yields no new unique
+    // row: a pot owning dozens of the newest intents collapses many
+    // consecutive pages into its own uuid while the window still marches
+    // toward the older activity behind it. Stopping on "no new rows" hid it.
+    it('pages past a pot that swallows several consecutive pages, then reaches the older rows', async () => {
+        const fetchPage = pageSequence([
+            { entries: [row('pot-1')], cursor: 'c1', hasMore: true },
+            { entries: [row('pot-1')], cursor: 'c2', hasMore: true },
+            { entries: [row('pot-1')], cursor: 'c3', hasMore: true },
+            { entries: [row('pot-1')], cursor: 'c4', hasMore: true },
+            // window finally clears the pot: the older transactions appear
+            { entries: [row('pot-1'), row('a'), row('b'), row('c'), row('d')], cursor: 'c5', hasMore: true },
+        ])
+
+        const result = await collectLatestEntries(fetchPage, 5)
+
+        expect(fetchPage).toHaveBeenCalledTimes(5)
+        expect(result.entries.map((e) => e.uuid)).toEqual(['pot-1', 'a', 'b', 'c', 'd'])
+    })
+
+    it('the absolute page ceiling bounds a pathological feed and reports hasMore honestly', async () => {
+        let n = 0
+        const fetchPage = jest.fn((): Promise<HistoryResponse> => {
+            n += 1
+            // never exhausts, never repeats a cursor, never fills `limit`
+            return Promise.resolve({ entries: [row('pot-1')], cursor: `c${n}`, hasMore: true })
+        })
+
+        const result = await collectLatestEntries(fetchPage, 5, 10)
+
+        expect(fetchPage).toHaveBeenCalledTimes(10)
+        expect(result.entries.map((e) => e.uuid)).toEqual(['pot-1'])
+        // the feed was NOT exhausted — the ceiling stopped us
+        expect(result.hasMore).toBe(true)
+    })
+
+    it('the ceiling also bounds a feed that trickles one new row per page', async () => {
+        let n = 0
+        const fetchPage = jest.fn(() => {
+            n += 1
+            return Promise.resolve({ entries: [row(`pot-${n}`)], cursor: `c${n}`, hasMore: true })
+        })
+
+        const result = await collectLatestEntries(fetchPage, 100, 10)
+
+        expect(fetchPage).toHaveBeenCalledTimes(10)
+        expect(result.entries).toHaveLength(10)
+        expect(result.hasMore).toBe(true)
+    })
+
+    it('stops when the cursor does not advance (identical re-served page)', async () => {
+        const fetchPage = jest.fn(() => Promise.resolve({ entries: [row('a')], cursor: 'STUCK::same', hasMore: true }))
+
+        await collectLatestEntries(fetchPage, 5)
+
+        // first page: undefined → STUCK advances; second page returns the same
+        // cursor it was asked for → stop
+        expect(fetchPage).toHaveBeenCalledTimes(2)
+    })
+
+    it('caps the collected list at `limit` when the last page overshoots', async () => {
+        const fetchPage = pageSequence([
+            { entries: [row('pot-1')], cursor: 'c1', hasMore: true },
+            { entries: ['a', 'b', 'c', 'd', 'e', 'f'].map(row), cursor: 'c2', hasMore: true },
+        ])
+
+        const result = await collectLatestEntries(fetchPage, 5)
+
+        expect(result.entries).toHaveLength(5)
+    })
+})
+
+/**
+ * Each page's rollup aggregates only its own charge window, so the repeated
+ * copies carry PARTIAL totals — and the windows can be DISJOINT ($10 on one
+ * page, a different $2 on the next, of the same $12 goal). Picking any single
+ * page's precomputed figure leaves a fully-paid request reading "collected <
+ * goal", which the transformer renders with the pending hourglass. The total
+ * is re-derived from the deduplicated charge union instead, mirroring the BE
+ * rule in peanut-api-ts src/charge/collected.ts.
+ */
+describe('collectLatestEntries — request-pot rollup merge across pages', () => {
+    // Arbitrum USDC (6 decimals) — the rollup's charge projection omits
+    // tokenDecimals, so the sum resolves them from the entry's token.
+    const USDC_ARBITRUM = '0xaf88d065e77c8cC2239327C5EDb3A432268e5831'
+    const baseUnits = (dollars: string) => BigInt(Math.round(Number(dollars) * 1e6)).toString()
+
+    const charge = (uuid: string, dollars: string, status = 'SUCCESSFUL') => ({
+        uuid,
+        tokenAmount: dollars,
+        payments: [{ uuid: `${uuid}-p`, status, paidAmountInRequestedToken: baseUnits(dollars) }],
+        fulfillmentPayment: null,
+    })
+
+    const potRow = (
+        collected: number,
+        opts: { timestamp?: string; charges?: ReturnType<typeof charge>[]; status?: string } = {}
+    ): HistoryEntry =>
+        ({
+            uuid: 'pot-1',
+            amount: '12',
+            status: opts.status ?? 'OPEN',
+            isRequestLink: true,
+            chainId: '42161',
+            tokenAddress: USDC_ARBITRUM,
+            tokenSymbol: 'USDC',
+            timestamp: new Date(opts.timestamp ?? '2026-08-01T00:00:00Z'),
+            totalAmountCollected: collected,
+            ...(opts.charges ? { charges: opts.charges } : {}),
+        }) as unknown as HistoryEntry
+
+    const twoPages = (first: HistoryEntry, second: HistoryEntry) =>
+        jest.fn(
+            (cursor?: string): Promise<HistoryResponse> =>
+                Promise.resolve(
+                    cursor ? { entries: [second], hasMore: false } : { entries: [first], cursor: 'c1', hasMore: true }
+                )
+        )
+
+    it('takes a mid-pagination status change even when the copies share a timestamp', async () => {
+        // a rollup's timestamp does not move when the link status flips
+        const ts = '2026-08-01T00:00:00Z'
+        const fetchPage = twoPages(
+            potRow(10, { charges: [charge('ch-1', '10')], timestamp: ts }),
+            potRow(12, { charges: [charge('ch-2', '2')], timestamp: ts, status: 'CLOSED' })
+        )
+        const res = await collectLatestEntries(fetchPage, 5)
+        expect(res.entries[0].status).toBe('CLOSED')
+    })
+
+    it('falls back for a charge whose successful payments are only PARTLY settled', async () => {
+        const mixed = {
+            uuid: 'ch-mixed',
+            tokenAmount: '12',
+            payments: [
+                { uuid: 'p1', status: 'SUCCESSFUL', paidAmountInRequestedToken: baseUnits('7') },
+                { uuid: 'p2', status: 'SUCCESSFUL' },
+            ],
+            fulfillmentPayment: null,
+        }
+        const fetchPage = twoPages(
+            potRow(0, { charges: [mixed as never] }),
+            potRow(0, { charges: [charge('ch-other', '0')] })
+        )
+        const res = await collectLatestEntries(fetchPage, 5)
+        // summing would have counted the unsettled leg as 0 and undercounted at 7
+        expect(res.entries[0].totalAmountCollected).toBe(12)
+    })
+
+    it('takes the link status from the fresher copy, not page 0', async () => {
+        // the request was closed between the two page fetches
+        const fetchPage = twoPages(
+            potRow(10, { charges: [charge('ch-1', '10')], timestamp: '2026-08-01T00:00:00Z' }),
+            potRow(12, { charges: [charge('ch-2', '2')], timestamp: '2026-08-02T00:00:00Z', status: 'CLOSED' })
+        )
+        const res = await collectLatestEntries(fetchPage, 5)
+        expect(res.entries[0].status).toBe('CLOSED')
+    })
+
+    it('an explicit zero settlement contributes zero, not the requested amount', async () => {
+        const zeroSettled = {
+            uuid: 'ch-z',
+            tokenAmount: '12',
+            payments: [{ uuid: 'ch-z-p', status: 'SUCCESSFUL', paidAmountInRequestedToken: '0' }],
+            fulfillmentPayment: null,
+        }
+        const fetchPage = jest.fn(
+            (): Promise<HistoryResponse> =>
+                Promise.resolve({ entries: [potRow(0, { charges: [zeroSettled as never] })], hasMore: false })
+        )
+        const res = await collectLatestEntries(fetchPage, 5)
+        // a zero settlement must not read as the full $12 goal
+        expect(res.entries[0].totalAmountCollected).toBe(0)
+    })
+
+    it('DISJOINT windows sum to the full total ($10 + $2 of a $12 goal)', async () => {
+        const fetchPage = twoPages(
+            potRow(10, { charges: [charge('ch-1', '10')] }),
+            potRow(2, { charges: [charge('ch-2', '2')] })
+        )
+
+        const result = await collectLatestEntries(fetchPage, 5)
+
+        // max-of-precomputed would have kept $10 and left the pot pending
+        expect(result.entries[0].totalAmountCollected).toBe(12)
+    })
+
+    it('OVERLAPPING windows do not double-count the repeated charge', async () => {
+        const fetchPage = twoPages(
+            potRow(10, { charges: [charge('ch-1', '10')] }),
+            potRow(12, { charges: [charge('ch-1', '10'), charge('ch-2', '2')] })
+        )
+
+        const result = await collectLatestEntries(fetchPage, 5)
+
+        expect(result.entries[0].totalAmountCollected).toBe(12)
+        expect(result.entries[0].charges?.map((c) => c.uuid)).toEqual(['ch-1', 'ch-2'])
+    })
+
+    it('excludes charges whose payments are not SUCCESSFUL, like the BE does', async () => {
+        const fetchPage = twoPages(
+            potRow(10, { charges: [charge('ch-1', '10')] }),
+            potRow(0, { charges: [charge('ch-failed', '5', 'FAILED')] })
+        )
+
+        const result = await collectLatestEntries(fetchPage, 5)
+
+        expect(result.entries[0].totalAmountCollected).toBe(10)
+    })
+
+    it('falls back to the greater precomputed total when no page ships charges', async () => {
+        const fetchPage = twoPages(potRow(10), potRow(12))
+
+        const result = await collectLatestEntries(fetchPage, 5)
+
+        expect(result.entries[0].totalAmountCollected).toBe(12)
+    })
+
+    it('never regresses a fuller first-page total to a later partial one', async () => {
+        const fetchPage = twoPages(potRow(12), potRow(3))
+
+        const result = await collectLatestEntries(fetchPage, 5)
+
+        expect(result.entries[0].totalAmountCollected).toBe(12)
+    })
+
+    it('keeps the later timestamp across merged copies', async () => {
+        const fetchPage = twoPages(
+            potRow(10, { timestamp: '2026-08-03T00:00:00Z', charges: [charge('ch-1', '10')] }),
+            potRow(2, { timestamp: '2026-08-05T00:00:00Z', charges: [charge('ch-2', '2')] })
+        )
+
+        const result = await collectLatestEntries(fetchPage, 5)
+
+        expect(new Date(result.entries[0].timestamp).toISOString()).toBe('2026-08-05T00:00:00.000Z')
+    })
+
+    it('the merged disjoint row maps to completed — a fully-paid pot loses the hourglass', async () => {
+        const fetchPage = twoPages(
+            potRow(10, { charges: [charge('ch-1', '10')] }),
+            potRow(2, { charges: [charge('ch-2', '2')] })
+        )
+
+        const { entries } = await collectLatestEntries(fetchPage, 5)
+        const merged = {
+            ...entries[0],
+            userRole: EHistoryUserRole.RECIPIENT,
+            extraData: { kind: 'P2P_REQUEST_FULFILL' },
+        } as HistoryEntry
+
+        // pre-merge, the stale $10-of-$12 copy rendered 'pending'
+        expect(mapTransactionDataForDrawer(merged).transactionDetails.status).toBe('completed')
+    })
+})
+
+// The API limit counts raw intents, pre-rollup, so latest mode asks for
+// several intents per wanted row — a bigger page collapses to more unique rows.
+describe('latestPageSize', () => {
+    it('falls back to the default row target for a missing or unusable limit', () => {
+        // guards the queryFn against ever issuing `limit=NaN` on the wire
+        expect(latestPageSize(undefined as unknown as number)).toBe(50)
+        expect(latestPageSize(NaN)).toBe(50)
+        expect(latestPageSize(0)).toBe(50)
+        expect(latestPageSize(-5)).toBe(50)
+    })
+
+    it('over-requests intents per wanted row, capped at the API page size', () => {
+        expect(latestPageSize(5)).toBe(25)
+        expect(latestPageSize(10)).toBe(50)
+        expect(latestPageSize(50)).toBe(50)
+        // never asks for fewer rows than the caller wants
+        expect(latestPageSize(80)).toBe(80)
+        expect(latestPageSize(120)).toBe(120)
+    })
+})
+
+describe('useTransactionHistory latest mode with no explicit limit', () => {
+    // `limit` is optional on the latest-mode overload. Without a latest-specific
+    // default it inherited the infinite list's page size as its unique-ROW
+    // target, so the loop chased 50 distinct rows and bottomed out on the page
+    // ceiling instead of stopping once the widget had enough.
+    it('uses the default page size and stops on the default unique-row count', async () => {
+        const historyRow = (uuid: string) => ({
+            uuid,
+            amount: '1',
+            timestamp: '2026-08-01T00:00:00Z',
+            tokenSymbol: 'USDC',
+        })
+        const requestedUrls: string[] = []
+        const { serverFetch } = jest.requireMock('@/utils/api-fetch')
+        serverFetch.mockClear()
+        serverFetch.mockImplementation((url: string) => {
+            requestedUrls.push(url)
+            return Promise.resolve({
+                ok: true,
+                statusText: 'OK',
+                // 12 distinct rows — more than the default row target of 10
+                json: () =>
+                    Promise.resolve({
+                        entries: Array.from({ length: 12 }, (_, i) => historyRow(`tx-${i}`)),
+                        cursor: 'c1',
+                        hasMore: true,
+                    }),
+            })
+        })
+
+        const wrapper = makeWrapper()
+        const { result } = renderHook(() => useTransactionHistory({ mode: 'latest' }), { wrapper })
+
+        await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+        // a finite, defaulted page size on the wire — never `limit=NaN`
+        expect(requestedUrls[0]).toContain('limit=50')
+        expect(requestedUrls[0]).not.toContain('NaN')
+        // the unique-row target engaged: one page sufficed, capped at 10 rows
+        expect(serverFetch).toHaveBeenCalledTimes(1)
+        expect(result.current.data?.entries).toHaveLength(10)
+    })
+})
+
+describe('useTransactionHistory latest mode follows the cursor for short pages', () => {
+    it('loads `limit` unique rows across pages in one query result', async () => {
+        const historyRow = (uuid: string) => ({
+            uuid,
+            amount: '1',
+            timestamp: '2026-08-01T00:00:00Z',
+            tokenSymbol: 'USDC',
+        })
+        const { serverFetch } = jest.requireMock('@/utils/api-fetch')
+        serverFetch.mockClear()
+        serverFetch.mockImplementation((url: string) =>
+            Promise.resolve({
+                ok: true,
+                statusText: 'OK',
+                json: () =>
+                    Promise.resolve(
+                        url.includes('cursor=')
+                            ? { entries: ['pot-1', 'a', 'b', 'c', 'd'].map(historyRow), hasMore: false }
+                            : { entries: [historyRow('pot-1')], cursor: 'c1', hasMore: true }
+                    ),
+            })
+        )
+
+        const wrapper = makeWrapper()
+        const { result } = renderHook(() => useTransactionHistory({ mode: 'latest', limit: 5 }), { wrapper })
+
+        await waitFor(() => expect(result.current.isSuccess).toBe(true))
+        expect(serverFetch).toHaveBeenCalledTimes(2)
+        expect(result.current.data?.entries.map((e) => e.uuid)).toEqual(['pot-1', 'a', 'b', 'c', 'd'])
     })
 })

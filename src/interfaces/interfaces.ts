@@ -166,6 +166,9 @@ export interface User {
     userId: string
     email: string
     profile_picture: string | null
+    /** Picked profile avatar, `basic.<slug>` or `badge.<CODE>.<slug>`;
+     *  null means the username-initial fallback (TASK-22142). */
+    avatarKey?: string | null
     username: string | null
     bridgeCustomerId: string | null
     fullName: string
@@ -177,6 +180,9 @@ export interface User {
     isActivated?: boolean
     activatedAt?: string | null
     activationMilestone?: 'registered' | 'verified' | 'funded' | 'activated'
+    // First outgoing peer payment (send, link, request fulfil); separate from
+    // activation, which stays card/QR spend only.
+    firstPaymentAt?: string | null
     showFullName: boolean
     // Null until the user dismisses the "You're unlocked" celebration. The modal
     // shows once, when KYC-approved (a rail is enabled) AND this is still null.
@@ -293,6 +299,24 @@ export interface IUserProfile {
     // `capabilities` on /get-user. Read via useIdentityVerification(). The status
     // surfaces render this; no provider names. Optional during the migration.
     identityVerification?: IdentityVerification
+    // Residence-based availability derived server-side from the residence the
+    // user declared at signup. Read via useResidenceRestrictions(). Advisory
+    // offer-shaping only: hides bank/card surfaces the user could never use.
+    residenceRestrictions?: { banking: boolean; card: boolean }
+    // Residence, both flavors: declared at signup (advisory) and verified by
+    // KYC (Sumsub address — the compliance source of truth). ISO-2 or null.
+    // nextChangeAllowedAt: when the escalating change cooldown lifts (ISO);
+    // null or absent = a change is allowed right now.
+    // declaredSecond: the optional second jurisdiction from the signup step,
+    // served by /users/me since 2026-08-26. Optional here only for the window
+    // before that BE lands in production; callers fall back to the device
+    // mirror in declared-residence.storage.
+    residence?: {
+        declared: string | null
+        declaredSecond?: string | null
+        verified: string | null
+        nextChangeAllowedAt?: string | null
+    }
 }
 
 export type JSONValue = string | number | boolean | null | JSONValue[] | { [key: string]: JSONValue }
@@ -352,4 +376,12 @@ export interface MantecaLimit {
 export interface UserLimitsResponse {
     manteca: MantecaLimit[] | null
     bridge: BridgeLimits | null
+}
+
+/** Flow-level error banner state (`showError` + copy) — the one shared shape
+ * for flow contexts (withdraw, onramp; TASK-21462 dedup). Field-level
+ * validation errors are `FieldError` under their input instead. */
+export interface FlowErrorState {
+    showError: boolean
+    errorMessage: string
 }

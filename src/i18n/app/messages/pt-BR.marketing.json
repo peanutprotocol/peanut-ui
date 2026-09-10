@@ -1,5 +1,6 @@
 {
     "common": {
+        "fundsOnTheWay": "Fundos a caminho",
         "cancel": "Cancelar",
         "continue": "Continuar",
         "back": "Voltar",
@@ -54,7 +55,9 @@
             "custom": "Personalizado",
             "unknown": "Desconhecido"
         },
-        "exchangeRate": "Taxa de câmbio"
+        "exchangeRate": "Taxa de câmbio",
+        "slideToProceed": "Deslize para continuar",
+        "userAvatarAlt": "Avatar de {username}"
     },
     "errors": {
         "balanceSettling": "Seu saldo ainda não está totalmente disponível. Tente novamente em alguns segundos.",
@@ -64,6 +67,7 @@
         "notDeployedOnChain": "O Bulk não está disponível nesta rede, tente outra rede.",
         "userRejectedRequest": "Confirme a solicitação na sua carteira.",
         "networkError": "Ocorreu um erro de rede. Atualize a página e tente novamente.",
+        "connectionLost": "Conexão perdida. Verifique sua conexão com a internet e tente novamente.",
         "nonceExpired": "O nonce expirou, tente novamente.",
         "walletNotConnected": "Verifique se a sua carteira está conectada.",
         "gasExceedsAllowance": "O gas necessário excede o seu saldo. Confirme se você tem fundos suficientes.",
@@ -94,6 +98,10 @@
         "genericSupport": "Ocorreu um problema com sua solicitação. Entre em contato com o suporte.",
         "rainCooldownRetry": "Um saque anterior com o cartão ainda está ativo. Tente novamente em cerca de {minutes, plural, one {# minuto} other {# minutos}}.",
         "rainCooldownRetryShortly": "Um saque anterior com o cartão ainda está ativo. Tente novamente em instantes.",
+        "xchainWithdrawLimit": "Você atingiu o limite de saques para outras redes. Saques na Arbitrum não têm limite, ou fale com o suporte para ampliar o seu.",
+        "xchainWithdrawLimitRetry": "Você atingiu o limite de saques para outras redes. Tente novamente em cerca de {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minuto} other {# minutos}}} one {# hora} other {# horas}}} one {# dia} other {# dias}}. Saques na Arbitrum não têm limite, ou fale com o suporte para ampliar o seu.",
+        "xchainPaymentLimit": "Você fez muitas transferências para outras redes recentemente. Fale com o suporte para ampliar o seu limite.",
+        "xchainPaymentLimitRetry": "Você fez muitas transferências para outras redes recentemente. Tente novamente em cerca de {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minuto} other {# minutos}}} one {# hora} other {# horas}}} one {# dia} other {# dias}}, ou fale com o suporte para ampliar o seu limite.",
         "rainInsufficientCollateral": "Seu cartão não tem colateral suficiente para este saque.",
         "staleCardApproval": "Seu cartão precisa ser reativado antes de você sacar. Leva só um toque com a passkey.",
         "cardRateLimited": "Muitas solicitações com o cartão. Aguarde um momento e tente novamente.",
@@ -101,12 +109,15 @@
         "cardApprovalCancelled": "Aprovação cancelada — você pode tentar novamente quando quiser.",
         "cardApprovalFailed": "Não foi possível aprovar o cartão. Tente novamente.",
         "logoutFailed": "Não foi possível sair da sua conta. Tente novamente.",
-        "loginIncomplete": "O login não foi concluído. Tente novamente."
+        "loginIncomplete": "O login não foi concluído. Tente novamente.",
+        "rateUnavailable": "As taxas de câmbio estão indisponíveis no momento. Tente de novo em instantes.",
+        "transferTemporarilyUnavailable": "As transferências estão temporariamente indisponíveis. Confira sua atividade antes de tentar novamente.",
+        "userOpReverted": "Não foi possível concluir o pagamento. Tente novamente."
     },
     "migration": {
         "downloadPrompt": {
             "earlyTitle": "O app do Peanut chegou!",
-            "earlyDescription": "O Peanut agora vive na App Store e no Google Play. Mais rápido, mais fluido e te avisa na hora que o dinheiro chega. Sua conta vai com você, sem configurar nada.",
+            "earlyDescription": "A Peanut agora é um app, na App Store e no Google Play. Mesma conta, experiência mais rápida e avisos na hora em que o dinheiro cai.",
             "maybeLater": "Baixo depois",
             "title": "O Peanut vai ser só app",
             "description": "Em {days, plural, one {# dia} other {# dias}} o Peanut se muda por completo para o app. Baixe agora e continue de onde parou. Sua conta e seu dinheiro se mudam com você automaticamente.",
@@ -125,18 +136,33 @@
             "title": "O app do Peanut chegou!",
             "description": "Mais rápido, mais fluido e te avisa quando o dinheiro chega."
         },
-        "review": {
-            "title": "Está gostando do Peanut?",
-            "description": "Uma avaliação rápida ajuda outras pessoas a nos encontrar.",
-            "loveIt": "Adorei",
-            "meh": "Pode melhorar",
-            "supportPrefill": "Tenho um feedback sobre o app, isso poderia melhorar: "
-        },
         "downloadNow": "Baixar agora",
         "smartLink": {
             "redirecting": "Levando você para a loja…",
             "pickStore": "Escolha sua loja e baixe o app."
         }
+    },
+    "navigation": {
+        "home": "Início",
+        "send": "Enviar",
+        "request": "Cobrar",
+        "add": "Adicionar",
+        "withdraw": "Sacar",
+        "history": "Histórico",
+        "docs": "Docs",
+        "support": "Suporte",
+        "logout": "Sair",
+        "loggingOut": "Saindo...",
+        "dashboard": "Painel",
+        "pay": "Pagar",
+        "cashout": "Saque",
+        "claim": "Resgatar",
+        "peanutLogoAlt": "Logo da Peanut",
+        "receipt": "Recibo",
+        "supportUnread": "Nova resposta do suporte",
+        "card": "Cartão",
+        "exchangeRates": "Câmbio",
+        "scanQr": "Escanear QR"
     },
     "shhhhh": {
         "hero": {

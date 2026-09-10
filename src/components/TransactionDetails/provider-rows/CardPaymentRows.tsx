@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { type ReactNode } from 'react'
-import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
+import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { type DisputeStatus, type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { declineReasonCode, type DeclineReasonCode } from '@/utils/cardDeclineReason'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
@@ -101,16 +101,7 @@ export function hasCardPaymentRowsContent(transaction: TransactionDetails): bool
  * in transactionTransformer for any Rain CARD_SPEND or card-refund
  * entry. Backend mirror: src/transaction-intent/history.ts.
  */
-export function CardPaymentRows({
-    transaction,
-    isLastRow,
-}: {
-    transaction: TransactionDetails
-    /** When true, suppresses bottom border on the LAST visible sub-row so it
-     *  meets the Card's edge cleanly. The parent receipt computes this via
-     *  `shouldHideBorder('cardPayment')`. */
-    isLastRow: boolean
-}) {
+export function CardPaymentRows({ transaction }: { transaction: TransactionDetails }) {
     const t = useTranslations('transaction')
     const card = transaction.extraDataForDrawer?.cardPayment
     if (!card) return null
@@ -270,13 +261,8 @@ export function CardPaymentRows({
 
     return (
         <>
-            {subRows.map((row, idx) => (
-                <PaymentInfoRow
-                    key={row.key}
-                    label={row.label}
-                    value={row.value}
-                    hideBottomBorder={isLastRow && idx === subRows.length - 1}
-                />
+            {subRows.map((row) => (
+                <DataRow key={row.key} label={row.label} value={row.value} />
             ))}
         </>
     )

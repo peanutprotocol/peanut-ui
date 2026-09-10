@@ -12,20 +12,20 @@ export default function BordersPage() {
 
             {/* Border radius */}
             <DocSection title="Border Radius">
-                <p className="text-sm text-grey-1">
-                    Always use <code className="font-mono font-bold text-n-1">rounded-sm</code>. This is the standard
-                    across all components.
+                <p className="text-body-s text-foreground-secondary">
+                    Always use <code className="font-mono font-bold text-foreground-primary">rounded-sm</code>. This is
+                    the standard across all components.
                 </p>
                 <div className="mt-4 flex gap-4">
                     <div className="flex flex-col items-center gap-1">
-                        <div className="size-16 rounded-sm border border-n-1 bg-primary-3/30" />
-                        <span className="text-xs font-bold">rounded-sm</span>
-                        <span className="text-xs text-grey-1">standard</span>
+                        <div className="size-16 rounded-sm border border-border-default bg-background-badge-accent/30" />
+                        <span className="text-label-m">rounded-sm</span>
+                        <span className="text-body-xs text-foreground-secondary">standard</span>
                     </div>
                     <div className="flex flex-col items-center gap-1">
-                        <div className="size-16 rounded-full border border-n-1 bg-primary-3/30" />
-                        <span className="text-xs font-bold">rounded-full</span>
-                        <span className="text-xs text-grey-1">badges, avatars</span>
+                        <div className="size-16 rounded-round border border-border-default bg-background-badge-accent/30" />
+                        <span className="text-label-m">rounded-round</span>
+                        <span className="text-body-xs text-foreground-secondary">badges, avatars</span>
                     </div>
                 </div>
             </DocSection>
@@ -35,31 +35,42 @@ export default function BordersPage() {
                 <DocSection.Content>
                     <div className="space-y-6">
                         <div>
-                            <div className="rounded-sm border border-n-1 p-4 text-xs font-bold">border border-n-1</div>
-                            <p className="mt-1 text-xs text-grey-1">Standard 1px black border. Most common.</p>
-                        </div>
-                        <div>
-                            <div className="brutal-border rounded-sm p-4 text-xs font-bold">brutal-border</div>
-                            <p className="mt-1 text-xs text-grey-1">2px solid black. For emphasis.</p>
-                        </div>
-                        <div>
-                            <div className="rounded-sm border border-n-1/20 p-4 text-xs font-bold">
-                                border border-n-1/20
+                            <div className="rounded-sm border border-border-default p-4 text-label-m">
+                                border border-border-default
                             </div>
-                            <p className="mt-1 text-xs text-grey-1">
+                            <p className="mt-1 text-body-xs text-foreground-secondary">
+                                Standard 1px black border. Most common.
+                            </p>
+                        </div>
+                        <div>
+                            <div className="brutal-border rounded-sm p-4 text-label-m">brutal-border</div>
+                            <p className="mt-1 text-body-xs text-foreground-secondary">
+                                2px solid black. For emphasis.
+                            </p>
+                        </div>
+                        <div>
+                            <div className="rounded-sm border border-border-disabled p-4 text-label-m">
+                                border border-border-disabled
+                            </div>
+                            <p className="mt-1 text-body-xs text-foreground-secondary">
                                 Subtle border. For code snippets, secondary containers.
                             </p>
                         </div>
                         <div>
-                            <div className="rounded-sm border border-dashed border-n-1/30 p-4 text-xs font-bold">
-                                border-dashed border-n-1/30
+                            <div className="rounded-sm border border-dashed border-border-subtle p-4 text-label-m">
+                                border-dashed border-border-subtle
                             </div>
-                            <p className="mt-1 text-xs text-grey-1">Dashed border. For drop zones, placeholders.</p>
+                            <p className="mt-1 text-body-xs text-foreground-secondary">
+                                Dashed border. For drop zones, placeholders.
+                            </p>
                         </div>
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>
-                    <CodeBlock label="border-n-1" code='className="rounded-sm border border-n-1"' />
+                    <CodeBlock
+                        label="border-border-default"
+                        code='className="rounded-sm border border-border-default"'
+                    />
                     <CodeBlock label="brutal-border" code='className="brutal-border rounded-sm"' />
                 </DocSection.Code>
             </DocSection>
@@ -69,7 +80,7 @@ export default function BordersPage() {
                 <DocSection.Content>
                     <div className="flex flex-wrap gap-2">
                         {['label-stroke', 'label-purple', 'label-yellow', 'label-black', 'label-teal'].map((cls) => (
-                            <span key={cls} className={`${cls} inline-block rounded-full px-3 py-1 text-xs font-bold`}>
+                            <span key={cls} className={`${cls} inline-block rounded-round px-3 py-1 text-label-m`}>
                                 {cls.replace('label-', '')}
                             </span>
                         ))}
@@ -78,7 +89,7 @@ export default function BordersPage() {
                 <DocSection.Code>
                     <CodeBlock
                         label="Label Classes"
-                        code='className="label-purple rounded-full px-3 py-1 text-xs font-bold"'
+                        code='className="label-purple rounded-round px-3 py-1 text-label-m"'
                     />
                 </DocSection.Code>
             </DocSection>

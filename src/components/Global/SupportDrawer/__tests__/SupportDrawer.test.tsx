@@ -19,6 +19,8 @@ import { IntlWrapper } from '@/test-utils/intl'
 import SupportDrawer from '../index'
 import { isCapacitor } from '@/utils/capacitor'
 import { SUPPORT_EMAIL } from '@/constants/crisp'
+import { dispatchBackPress, resetBackHandlersForTests } from '@/utils/back-handler'
+import { ensureNativeCameraPermission } from '@/utils/camera-permission'
 
 const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
@@ -31,15 +33,21 @@ const nativeCrisp = {
     setUser: jest.fn(),
     setTokenID: jest.fn(),
     setString: jest.fn(),
+    setSegment: jest.fn(),
     sendMessage: jest.fn(),
     openMessenger: jest.fn(),
 }
 
+const modalsState: { supportPrefilledMessage: string | undefined; isSupportModalOpen: boolean } = {
+    supportPrefilledMessage: undefined,
+    isSupportModalOpen: true,
+}
+const mockSetIsSupportModalOpen = jest.fn()
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({
-        isSupportModalOpen: true,
-        setIsSupportModalOpen: jest.fn(),
-        supportPrefilledMessage: undefined,
+        isSupportModalOpen: modalsState.isSupportModalOpen,
+        setIsSupportModalOpen: mockSetIsSupportModalOpen,
+        supportPrefilledMessage: modalsState.supportPrefilledMessage,
     }),
 }))
 // Opening the drawer clears the support unread badge. That call is not what
@@ -57,11 +65,13 @@ jest.mock('@/hooks/useCrispUserData', () => ({
 jest.mock('@/hooks/useCrispTokenId', () => ({
     useCrispTokenId: () => mockUseCrispTokenId(),
 }))
-jest.mock('../../PeanutLoading', () => ({
+jest.mock('../../Loading', () => ({
     __esModule: true,
-    default: () => <div data-testid="peanut-loading" />,
+    default: (props: any) =>
+        props.variant === 'mascot' ? <div data-testid="peanut-loading" /> : <div data-testid="loading-spinner" />,
 }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: jest.fn() }))
+jest.mock('@/utils/camera-permission', () => ({ ensureNativeCameraPermission: jest.fn(async () => true) }))
 jest.mock('@capgo/capacitor-crisp', () => ({ CapacitorCrisp: nativeCrisp }))
 
 const supportIframe = () => screen.queryByTitle('Support Chat')
@@ -77,6 +87,73 @@ describe('SupportDrawer Crisp session gate — web iframe', () => {
         mockUseCrispUserData.mockReset()
         mockUseCrispTokenId.mockReset()
         mockIsCapacitor.mockReset().mockReturnValue(false)
+        modalsState.isSupportModalOpen = true
+    })
+
+    /*
+     * The privacy policy says the account snapshot is shared only when the user
+     * opens support chat. The proxy iframe stays mounted after the first open,
+     * so an ungated update effect would post a fresh balance, card and
+     * verification snapshot to Crisp with the chat closed — making that sentence
+     * untrue. The gate is the promise, not an optimisation.
+     */
+    /*
+     * The token gate and the mount latch interact. Open support while a logged-in
+     * user's token is still resolving and the iframe is blocked from mounting —
+     * but latching "has been opened" on the drawer alone leaves it true, so when
+     * the token lands after the user has closed, the hidden iframe mounts, boots
+     * and handshakes with the chat shut. The snapshot would then reach Crisp
+     * outside an open cycle.
+     */
+    it('does not mount the proxy when the token resolves after support closed', async () => {
+        mockUseCrispUserData.mockReturnValue({ userId: 'user-abc', email: 'a@b.com' })
+        mockUseCrispTokenId.mockReturnValue(undefined)
+
+        const view = render(<SupportDrawer />)
+        expect(supportIframe()).not.toBeInTheDocument()
+
+        modalsState.isSupportModalOpen = false
+        await act(async () => {
+            view.rerender(<SupportDrawer />)
+        })
+
+        // the token lands with the drawer already closed
+        mockUseCrispTokenId.mockReturnValue('token-abc')
+        await act(async () => {
+            view.rerender(<SupportDrawer />)
+        })
+
+        expect(supportIframe()).not.toBeInTheDocument()
+    })
+
+    /*
+     * A token or locale change remounts an already-mounted iframe, and that can
+     * happen with the drawer closed. The fresh proxy handshakes; the reply is
+     * registered once and so needs a ref to see the current open state.
+     */
+    it('does not push the snapshot to Crisp after support closes', async () => {
+        mockUseCrispTokenId.mockReturnValue('token-abc')
+        mockUseCrispUserData.mockReturnValue({ userId: 'user-abc', email: 'a@b.com', balance: 'wallet $1.00' })
+
+        // open once, so the proxy iframe mounts and then STAYS mounted
+        const view = render(<SupportDrawer />)
+        const iframe = supportIframe() as HTMLIFrameElement
+        expect(iframe).toBeInTheDocument()
+        const postMessage = jest.spyOn(iframe.contentWindow!, 'postMessage')
+
+        modalsState.isSupportModalOpen = false
+        await act(async () => {
+            view.rerender(<SupportDrawer />)
+        })
+        postMessage.mockClear()
+
+        // a balance lands while the chat is closed
+        mockUseCrispUserData.mockReturnValue({ userId: 'user-abc', email: 'a@b.com', balance: 'wallet $500.00' })
+        await act(async () => {
+            view.rerender(<SupportDrawer />)
+        })
+
+        expect(postMessage).not.toHaveBeenCalled()
     })
 
     it('does NOT mount the proxy iframe while a logged-in user’s token is still resolving', () => {
@@ -124,6 +201,7 @@ describe('SupportDrawer — crisp-proxy init handshake (postmortem F5: no PII in
         })
         mockUseCrispTokenId.mockReset().mockReturnValue('token-abc')
         mockIsCapacitor.mockReset().mockReturnValue(false)
+        modalsState.isSupportModalOpen = true
     })
 
     // sends a request "from" the given window; the real proxy iframe's
@@ -144,6 +222,26 @@ describe('SupportDrawer — crisp-proxy init handshake (postmortem F5: no PII in
         const proxyWindow = (supportIframe() as HTMLIFrameElement).contentWindow as Window
         return { proxyWindow, postSpy: jest.spyOn(proxyWindow, 'postMessage') }
     }
+
+    it('does not answer the proxy handshake while support is closed', async () => {
+        mockUseCrispUserData.mockReturnValue({ userId: 'user-abc', email: 'a@b.com' })
+        mockUseCrispTokenId.mockReturnValue('token-abc')
+
+        const view = render(<SupportDrawer />)
+
+        modalsState.isSupportModalOpen = false
+        await act(async () => {
+            view.rerender(<SupportDrawer />)
+        })
+
+        // spy on the iframe as it stands NOW — the drawer keeps it mounted while
+        // closed (opacity/transform, not unmount), so this is the same proxy that
+        // a token or locale change would remount behind a shut chat
+        const { proxyWindow, postSpy } = mountedProxyWindow()
+        requestInit(window.location.origin, proxyWindow)
+
+        expect(postSpy).not.toHaveBeenCalled()
+    })
 
     it('replies to CRISP_PROXY_REQUEST_INIT with the payload, addressed to the asking iframe', () => {
         render(<SupportDrawer />)
@@ -367,6 +465,7 @@ describe('SupportDrawer Crisp session gate — native (Capacitor)', () => {
         mockUseCrispTokenId.mockReset()
         mockIsCapacitor.mockReset().mockReturnValue(true)
         Object.values(nativeCrisp).forEach((fn) => fn.mockReset())
+        jest.mocked(ensureNativeCameraPermission).mockClear()
     })
 
     it('does NOT open the native messenger while a logged-in user’s token is still resolving', async () => {
@@ -402,5 +501,230 @@ describe('SupportDrawer Crisp session gate — native (Capacitor)', () => {
 
         await waitFor(() => expect(nativeCrisp.openMessenger).toHaveBeenCalled())
         expect(nativeCrisp.setTokenID).not.toHaveBeenCalled()
+    })
+
+    it('opens support without probing an unrelated camera permission', async () => {
+        mockUseCrispUserData.mockReturnValue({ userId: 'user-abc', email: 'a@b.com' })
+        mockUseCrispTokenId.mockReturnValue('token-abc')
+
+        await act(async () => {
+            render(<SupportDrawer />)
+        })
+
+        await waitFor(() => expect(nativeCrisp.openMessenger).toHaveBeenCalled())
+        expect(ensureNativeCameraPermission).not.toHaveBeenCalled()
+    })
+})
+
+/*
+ * The support snapshot is live state — a balance landing from the cache, or the
+ * route latch firing on open, changes `userData`'s identity. `userData` is a
+ * dependency of the native open effect, so a change while the effect's async
+ * chain is still awaiting native Crisp configuration used to start a SECOND chain, and
+ * the user's prefilled message reached the agent twice.
+ */
+describe('SupportDrawer — native open runs once per open cycle', () => {
+    beforeEach(() => {
+        mockUseCrispUserData.mockReset()
+        mockUseCrispTokenId.mockReset()
+        mockIsCapacitor.mockReset().mockReturnValue(true)
+        Object.values(nativeCrisp).forEach((fn) => fn.mockReset())
+        jest.mocked(ensureNativeCameraPermission).mockClear()
+        modalsState.supportPrefilledMessage = undefined
+        modalsState.isSupportModalOpen = true
+    })
+
+    it('sends a prefilled message once even when the snapshot changes mid-open', async () => {
+        modalsState.supportPrefilledMessage = 'my withdrawal is stuck'
+        mockUseCrispTokenId.mockReturnValue('token-abc')
+        mockUseCrispUserData.mockReturnValue({ userId: 'user-abc', email: 'a@b.com', balance: 'wallet unavailable' })
+
+        const view = render(<SupportDrawer />)
+
+        // A fresh snapshot object lands while the open chain is still awaiting.
+        mockUseCrispUserData.mockReturnValue({ userId: 'user-abc', email: 'a@b.com', balance: '$100.00 spendable' })
+        await act(async () => {
+            view.rerender(<SupportDrawer />)
+        })
+
+        await waitFor(() => expect(nativeCrisp.openMessenger).toHaveBeenCalled())
+        expect(nativeCrisp.openMessenger).toHaveBeenCalledTimes(1)
+        expect(
+            nativeCrisp.setString.mock.calls.filter(([{ key }]: [{ key: string }]) => key === 'support_topic')
+        ).toHaveLength(1)
+    })
+
+    /*
+     * `sendMessage` is `unimplemented` in this plugin on BOTH iOS and Android.
+     * Calling it prefilled nothing and left an unhandled rejection behind every
+     * support open that carried a topic. The topic now rides as a data row.
+     */
+    it('delivers the support topic without calling the unimplemented sendMessage', async () => {
+        modalsState.supportPrefilledMessage = 'my withdrawal is stuck'
+        mockUseCrispTokenId.mockReturnValue('token-abc')
+        mockUseCrispUserData.mockReturnValue({ userId: 'user-abc', email: 'a@b.com' })
+
+        await act(async () => {
+            render(<SupportDrawer />)
+        })
+
+        await waitFor(() => expect(nativeCrisp.openMessenger).toHaveBeenCalled())
+        expect(nativeCrisp.sendMessage).not.toHaveBeenCalled()
+
+        const written = Object.fromEntries(
+            nativeCrisp.setString.mock.calls.map(([{ key, value }]: [{ key: string; value: string }]) => [key, value])
+        )
+        expect(written.support_topic).toBe('my withdrawal is stuck')
+    })
+
+    /*
+     * The other half of the same window. Gating the chain to one run means the
+     * snapshot that lands during setup gets no second chance to publish, so the
+     * chain must read the payload after its awaits rather than from the effect
+     * closure. Otherwise an agent opens the sidebar on a balance the user no
+     * longer has — and routes on a `balance-unavailable` segment they left.
+     */
+    it('publishes the snapshot as of open, not the one captured before setup', async () => {
+        mockUseCrispTokenId.mockReturnValue('token-abc')
+        mockUseCrispUserData.mockReturnValue({
+            userId: 'user-abc',
+            email: 'a@b.com',
+            balance: 'wallet unavailable',
+            segments: ['ios-native', 'balance-unavailable'],
+        })
+
+        const view = render(<SupportDrawer />)
+
+        mockUseCrispUserData.mockReturnValue({
+            userId: 'user-abc',
+            email: 'a@b.com',
+            balance: '$100.00 spendable',
+            segments: ['ios-native', 'kyc-verified'],
+        })
+        await act(async () => {
+            view.rerender(<SupportDrawer />)
+        })
+
+        await waitFor(() => expect(nativeCrisp.openMessenger).toHaveBeenCalled())
+
+        const written = Object.fromEntries(
+            nativeCrisp.setString.mock.calls.map(([{ key, value }]: [{ key: string; value: string }]) => [key, value])
+        )
+        expect(written.balance).toBe('$100.00 spendable')
+        expect(written.segments).toBe('ios-native kyc-verified')
+
+        /*
+         * No native segment at all: the plugin's one-argument setSegment maps to
+         * Crisp.setSessionSegment on Android, which appends — a stale `offline`
+         * or `balance-unavailable` would keep routing the conversation after the
+         * user left that state. The data row above carries the whole list, and
+         * setString assigns, so nothing is lost.
+         */
+        expect(nativeCrisp.setSegment).not.toHaveBeenCalled()
+    })
+
+    it('still opens once the token resolves, rather than latching the waiting cycle shut', async () => {
+        mockUseCrispTokenId.mockReturnValue(undefined)
+        mockUseCrispUserData.mockReturnValue({ userId: 'user-abc', email: 'a@b.com' })
+
+        const view = render(<SupportDrawer />)
+        expect(nativeCrisp.openMessenger).not.toHaveBeenCalled()
+
+        mockUseCrispTokenId.mockReturnValue('token-abc')
+        await act(async () => {
+            view.rerender(<SupportDrawer />)
+        })
+
+        await waitFor(() => expect(nativeCrisp.openMessenger).toHaveBeenCalledTimes(1))
+        expect(nativeCrisp.setTokenID).toHaveBeenCalledWith({ tokenID: 'token-abc' })
+    })
+
+    /*
+     * A boolean latch is not enough: the chain outlives the cycle that started
+     * it. Close the drawer while it is parked on the native configure await
+     * and reopen — a boolean has already been cleared, a second chain starts,
+     * both finish, and the prefill is sent twice. The generation counter makes
+     * the chain check, after its awaits, whether the cycle it belongs to is
+     * still the current one.
+     */
+    it('does not double-send when the user closes and reopens mid-chain', async () => {
+        modalsState.supportPrefilledMessage = 'my withdrawal is stuck'
+        mockUseCrispTokenId.mockReturnValue('token-abc')
+        mockUseCrispUserData.mockReturnValue({ userId: 'user-abc', email: 'a@b.com' })
+
+        const view = render(<SupportDrawer />)
+
+        modalsState.isSupportModalOpen = false
+        view.rerender(<SupportDrawer />)
+        modalsState.isSupportModalOpen = true
+        await act(async () => {
+            view.rerender(<SupportDrawer />)
+        })
+
+        await waitFor(() => expect(nativeCrisp.openMessenger).toHaveBeenCalled())
+        expect(nativeCrisp.openMessenger).toHaveBeenCalledTimes(1)
+        expect(
+            nativeCrisp.setString.mock.calls.filter(([{ key }]: [{ key: string }]) => key === 'support_topic')
+        ).toHaveLength(1)
+    })
+
+    /*
+     * The same gap in its other direction: a chain started before a close must
+     * not open the messenger, or post the prefill, into a conversation the user
+     * has already walked away from.
+     */
+    it('abandons a chain whose cycle the user dismissed', async () => {
+        modalsState.supportPrefilledMessage = 'my withdrawal is stuck'
+        mockUseCrispTokenId.mockReturnValue('token-abc')
+        mockUseCrispUserData.mockReturnValue({ userId: 'user-abc', email: 'a@b.com' })
+
+        const view = render(<SupportDrawer />)
+
+        modalsState.isSupportModalOpen = false
+        await act(async () => {
+            view.rerender(<SupportDrawer />)
+        })
+
+        expect(nativeCrisp.openMessenger).not.toHaveBeenCalled()
+        expect(nativeCrisp.sendMessage).not.toHaveBeenCalled()
+    })
+})
+
+// The hand-rolled overlay was left off the LIFO back stack PR #2920 gave the DS
+// Drawer and Modal, so Android back with the sheet open navigated the page
+// underneath instead of closing the sheet.
+describe('SupportDrawer — Android hardware back', () => {
+    beforeEach(() => {
+        mockUseCrispUserData.mockReset().mockReturnValue({})
+        mockUseCrispTokenId.mockReset().mockReturnValue(undefined)
+        mockIsCapacitor.mockReset().mockReturnValue(false)
+        mockSetIsSupportModalOpen.mockReset()
+        resetBackHandlersForTests()
+    })
+
+    it('closes the sheet and consumes the press while open', () => {
+        modalsState.isSupportModalOpen = true
+        render(<SupportDrawer />)
+
+        let consumed = false
+        act(() => {
+            consumed = dispatchBackPress()
+        })
+
+        expect(consumed).toBe(true)
+        expect(mockSetIsSupportModalOpen).toHaveBeenCalledWith(false)
+    })
+
+    it('leaves the press to the page while closed', () => {
+        modalsState.isSupportModalOpen = false
+        render(<SupportDrawer />)
+
+        let consumed = true
+        act(() => {
+            consumed = dispatchBackPress()
+        })
+
+        expect(consumed).toBe(false)
+        expect(mockSetIsSupportModalOpen).not.toHaveBeenCalled()
     })
 })

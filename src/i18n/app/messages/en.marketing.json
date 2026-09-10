@@ -1,5 +1,6 @@
 {
     "common": {
+        "fundsOnTheWay": "Funds on the way",
         "cancel": "Cancel",
         "continue": "Continue",
         "back": "Back",
@@ -54,7 +55,9 @@
             "custom": "Custom",
             "unknown": "Unknown"
         },
-        "exchangeRate": "Exchange rate"
+        "exchangeRate": "Exchange rate",
+        "slideToProceed": "Slide to Proceed",
+        "userAvatarAlt": "Avatar for {username}"
     },
     "errors": {
         "balanceSettling": "Your balance isn't fully available yet. Please try again in a few seconds.",
@@ -64,6 +67,7 @@
         "notDeployedOnChain": "Bulk is not able on this chain, please try another chain.",
         "userRejectedRequest": "Please confirm the request in your wallet.",
         "networkError": "A network error occured. Please refresh and try again.",
+        "connectionLost": "Connection lost. Check your internet connection and try again.",
         "nonceExpired": "Nonce expired, please try again.",
         "walletNotConnected": "Please make sure your wallet is connected.",
         "gasExceedsAllowance": "Gas required exceeds balance. Please confirm you have enough funds.",
@@ -94,6 +98,10 @@
         "genericSupport": "There was an issue with your request. Please contact support.",
         "rainCooldownRetry": "A previous card withdrawal is still active. Try again in about {minutes, plural, one {# minute} other {# minutes}}.",
         "rainCooldownRetryShortly": "A previous card withdrawal is still active. Please try again shortly.",
+        "xchainWithdrawLimit": "You reached the limit for withdrawals to other networks. Withdrawals on Arbitrum have no limit, or contact support to raise yours.",
+        "xchainWithdrawLimitRetry": "You reached the limit for withdrawals to other networks. Try again in about {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minute} other {# minutes}}} one {# hour} other {# hours}}} one {# day} other {# days}}. Withdrawals on Arbitrum have no limit, or contact support to raise yours.",
+        "xchainPaymentLimit": "You made too many transfers to other networks recently. Contact support to raise your limit.",
+        "xchainPaymentLimitRetry": "You made too many transfers to other networks recently. Try again in about {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minute} other {# minutes}}} one {# hour} other {# hours}}} one {# day} other {# days}}, or contact support to raise your limit.",
         "rainInsufficientCollateral": "Your card doesn’t have enough collateral for this withdrawal.",
         "staleCardApproval": "Your card needs to be re-enabled before you can withdraw. It only takes one passkey tap.",
         "cardRateLimited": "Too many card requests. Please wait a moment and try again.",
@@ -101,12 +109,15 @@
         "cardApprovalCancelled": "Approval cancelled — you can retry anytime.",
         "cardApprovalFailed": "Card approval failed — please try again.",
         "logoutFailed": "Couldn’t log out. Please try again.",
-        "loginIncomplete": "Login didn’t complete. Please try again."
+        "loginIncomplete": "Login didn’t complete. Please try again.",
+        "rateUnavailable": "Exchange rates are temporarily unavailable. Please try again in a moment.",
+        "transferTemporarilyUnavailable": "Transfers are temporarily unavailable. Please check Activity before trying again.",
+        "userOpReverted": "This payment could not be completed. Please try again."
     },
     "migration": {
         "downloadPrompt": {
             "earlyTitle": "The Peanut app is here!",
-            "earlyDescription": "Peanut now lives on the App Store and Google Play. Faster, smoother, and it pings you the moment money lands. Your account comes with you, nothing to set up.",
+            "earlyDescription": "Peanut is now an app, on the App Store and Google Play. Same account, faster experience, instant alerts when money lands.",
             "maybeLater": "I'll download it later",
             "title": "Peanut is going app-only",
             "description": "In {days, plural, one {# day} other {# days}} Peanut moves fully to the app. Download it now and pick up right where you left off. Your account and money move with you automatically.",
@@ -125,18 +136,33 @@
             "title": "The Peanut app is here!",
             "description": "Faster, smoother, and it pings you when money lands."
         },
-        "review": {
-            "title": "Loving Peanut so far?",
-            "description": "A quick rating helps other people find us.",
-            "loveIt": "Love it",
-            "meh": "Could be better",
-            "supportPrefill": "I have some feedback about the app, here's what could be better: "
-        },
         "downloadNow": "Download now",
         "smartLink": {
             "redirecting": "Taking you to the store…",
             "pickStore": "Global cash, local feel. Pick your store to download."
         }
+    },
+    "navigation": {
+        "home": "Home",
+        "send": "Send",
+        "request": "Request",
+        "add": "Add",
+        "withdraw": "Withdraw",
+        "history": "History",
+        "docs": "Docs",
+        "support": "Support",
+        "logout": "Logout",
+        "loggingOut": "Logging out...",
+        "dashboard": "Dashboard",
+        "pay": "Pay",
+        "cashout": "Cashout",
+        "claim": "Claim",
+        "peanutLogoAlt": "Peanut Logo",
+        "receipt": "Receipt",
+        "supportUnread": "New support reply",
+        "card": "Card",
+        "exchangeRates": "Exchange rates",
+        "scanQr": "Scan QR"
     },
     "shhhhh": {
         "hero": {

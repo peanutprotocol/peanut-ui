@@ -1,6 +1,7 @@
 import { defaultCache } from '@serwist/next/worker'
 import type { PrecacheEntry, SerwistGlobalConfig } from 'serwist'
 import { NetworkOnly, Serwist } from 'serwist'
+import { isSensitivePaymentNetworkUrl, purgeSensitivePaymentNetworkCacheEntries } from './payment-network-sw-privacy'
 
 // This declares the value of `injectionPoint` to TypeScript.
 // `injectionPoint` is the string that will be replaced by the
@@ -20,9 +21,8 @@ const serwist = new Serwist({
     skipWaiting: true,
     clientsClaim: true,
     navigationPreload: true,
-    // Auth API responses are now fetched cross-origin (api.peanut.me) so the SW
-    // doesn't intercept them — same-origin /api/peanut/user/* proxy routes were
-    // deleted with the proxy removal.
+    // A controlled service worker sees cross-origin fetches initiated by its
+    // clients. Keep privacy-sensitive API routes ahead of every default rule.
     //
     // /relay/* is the PostHog reverse-proxy path (see next.config.js rewrites).
     // Workbox's defaultCache strategies threw "no-response" on the recorder +
@@ -30,6 +30,12 @@ const serwist = new Serwist({
     // own versioning + cache headers; let the network handle them. NetworkOnly
     // first so it wins ahead of any defaultCache JS-asset rule.
     runtimeCaching: [
+        {
+            // Covers the protected document/RSC path on peanut.me and the
+            // /invites/graph API path on every origin, regardless of query.
+            matcher: ({ url }) => isSensitivePaymentNetworkUrl(url),
+            handler: new NetworkOnly(),
+        },
         {
             matcher: ({ url }) => url.pathname.startsWith('/relay/'),
             handler: new NetworkOnly(),
@@ -68,6 +74,13 @@ self.addEventListener('notificationclick', (event) => {
             return self.clients.openWindow('/')
         })
     )
+})
+
+self.addEventListener('activate', (event) => {
+    // Earlier default routes could persist graph bodies and credential-bearing
+    // legacy URLs. Purge matching entries individually without touching any
+    // unrelated cache or logging request keys.
+    event.waitUntil(purgeSensitivePaymentNetworkCacheEntries(self.caches))
 })
 
 serwist.addEventListeners()

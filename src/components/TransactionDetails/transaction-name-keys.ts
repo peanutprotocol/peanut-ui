@@ -59,6 +59,24 @@ type ReaperFailKey = (typeof REAPER_FAIL_KEYS)[keyof typeof REAPER_FAIL_KEYS] | 
 
 export type TransactionNameKey = (typeof TRANSACTION_NAME_KEYS)[keyof typeof TRANSACTION_NAME_KEYS] | ReaperFailKey
 
+/**
+ * Labels that are complete on their own — the receipt title renders them
+ * bare instead of interpolating them into direction wording. Without this
+ * escape getTitle produced compounds like "Sending to Send didn't complete"
+ * (reaper fail copy) and "Received from Refund from Starbucks" (refunds).
+ * `name.request` is here so an unresolved open request reads "Request", not
+ * "Request is requesting".
+ */
+export const SELF_DESCRIBING_NAME_KEYS: ReadonlySet<TransactionNameKey> = new Set<TransactionNameKey>([
+    ...Object.values(REAPER_FAIL_KEYS),
+    REAPER_FAIL_FALLBACK_KEY,
+    TRANSACTION_NAME_KEYS.failedQrPayment,
+    TRANSACTION_NAME_KEYS.refundFrom,
+    TRANSACTION_NAME_KEYS.cardRefund,
+    TRANSACTION_NAME_KEYS.refund,
+    TRANSACTION_NAME_KEYS.request,
+])
+
 type TransactionTranslator = ReturnType<typeof import('next-intl').useTranslations<'transaction'>>
 
 /** Localize an FE-generated transaction label; ICU params carry the data bits. */

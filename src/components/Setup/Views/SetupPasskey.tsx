@@ -1,19 +1,23 @@
 import DocsLink from '@/components/Global/DocsLink'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { Button } from '@/components/0_Bruddle/Button'
-import { PEANUT_API_URL } from '@/constants/general.consts'
 import { isCapacitor } from '@/utils/capacitor'
-import { fetchWithSentry } from '@/utils/sentry.utils'
-import { useSetupStore } from '@/redux/hooks'
+import { apiFetch } from '@/utils/api-fetch'
+import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useLogin } from '@/hooks/useLogin'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { useEffect, useRef, useState } from 'react'
-import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
 import { checkPasskeySupport } from '@/utils/passkeyPreflight'
-import { WebAuthnErrorName, withWebAuthnRetry } from '@/utils/webauthn.utils'
+import {
+    WebAuthnErrorName,
+    classifyPasskeyError,
+    getPasskeyErrorSetupKey,
+    withWebAuthnRetry,
+} from '@/utils/webauthn.utils'
+import { isCeremonyGuardError } from '@/utils/passkeyCeremony.utils'
 import { PasskeySetupHelpModal } from './PasskeySetupHelpModal'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -24,9 +28,11 @@ import { useTranslations } from 'next-intl'
 // Fail-open on network errors — the server's 409 is the backstop.
 const isUsernameTaken = async (username: string): Promise<boolean> => {
     try {
-        // capacitorHttp doesn't support HEAD — use GET in native
-        const res = await fetchWithSentry(`${PEANUT_API_URL}/users/username/${username}`, {
+        // capacitorHttp doesn't support HEAD — use GET in native.
+        // includeAuth: false — public pre-auth check, no session token involved.
+        const res = await apiFetch(`/users/username/${username}`, {
             method: isCapacitor() ? 'GET' : 'HEAD',
+            includeAuth: false,
         })
         return res.status === 200
     } catch {
@@ -36,7 +42,7 @@ const isUsernameTaken = async (username: string): Promise<boolean> => {
 
 const SetupPasskey = () => {
     const t = useTranslations('setup')
-    const { username } = useSetupStore()
+    const { username } = useSetupFlowContext()
     const { isLoading, handleNext } = useSetupFlow()
     const { handleRegister, address, isRegistering } = useZeroDev()
     const { handleLoginClick, isLoggingIn } = useLogin()
@@ -51,6 +57,21 @@ const SetupPasskey = () => {
     // hydrates asynchronously from a stale web-authn-key cookie (native cookie
     // jar) can never be mistaken for a fresh registration and skip the step.
     const registrationInitiatedRef = useRef(false)
+    /*
+     * Synchronous latch around the WHOLE handler. `isRegistering` only flips
+     * once handleRegister runs, and two awaits precede it — the live support
+     * re-check and the username-availability request — so on a phone the button
+     * stayed enabled for a second or more after the first tap. Every extra tap
+     * in that window started its own registration, and the losers surfaced
+     * CeremonyConflictError ("Something interrupted the passkey prompt") while
+     * the real ceremony was still coming up (PEANUT-UI-T09). A ref, not state:
+     * the latch also has to hold for callers that aren't the button — the help
+     * modal's retry action re-enters the handler directly.
+     */
+    const setupInFlightRef = useRef(false)
+    // Covers those same two awaits in the UI, so the button reads as busy
+    // instead of dead while the username check is in flight.
+    const [isPreparing, setIsPreparing] = useState(false)
 
     // preflight check for common passkey issues
     useEffect(() => {
@@ -66,6 +87,18 @@ const SetupPasskey = () => {
 
     // handle passkey registration with retry logic
     const handlePasskeySetup = async () => {
+        if (setupInFlightRef.current) return
+        setupInFlightRef.current = true
+        setIsPreparing(true)
+        try {
+            await runPasskeySetup()
+        } finally {
+            setupInFlightRef.current = false
+            setIsPreparing(false)
+        }
+    }
+
+    const runPasskeySetup = async () => {
         // clear any previous inline errors
         setInlineError(null)
         setErrorName(null)
@@ -97,6 +130,7 @@ const SetupPasskey = () => {
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED, {
                 device_type: deviceType,
                 error_name: 'UsernameTaken',
+                error_code: 'USERNAME_TAKEN',
             })
             return
         }
@@ -108,16 +142,39 @@ const SetupPasskey = () => {
             await withWebAuthnRetry(() => handleRegister(username), 'passkey-registration')
             // success - useEffect below will handle navigation
         } catch (error) {
+            registrationInitiatedRef.current = false
             const err = error as Error
-            // the Error itself, not its name/message — captureConsole only attaches a stack when an arg is an Error
-            console.error('[SetupPasskey] registration failed:', err)
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED, {
                 device_type: deviceType,
                 error_name: err.name,
+                error_code: err.name === 'UsernameTaken' ? 'USERNAME_TAKEN' : classifyPasskeyError(err).code,
             })
 
-            // capture debug info for all failures
-            await capturePasskeyDebugInfo('passkey-registration-failed')
+            if (err.name === 'UsernameTaken') {
+                setUsernameTaken(true)
+                return
+            }
+
+            // Ceremony-guard errors (shim race / timeout, TASK-21782) are already
+            // reported with a discriminating tag inside handleRegister — surface
+            // the curated retry copy instead of the generic help modal. A timed-out
+            // register may have completed server-side (its verify can land after
+            // the cutoff), so the username check routes the user to login instead
+            // of a colliding re-register.
+            if (isCeremonyGuardError(error)) {
+                if (error.name === 'CeremonyTimeoutError' && (await isUsernameTaken(username))) {
+                    setUsernameTaken(true)
+                } else if (error.name === 'CeremonyTimeoutError') {
+                    setInlineError(t('passkey.tookTooLong'))
+                } else if (error.name === 'PasskeyShimNotReadyError') {
+                    setInlineError(t('passkey.notReady'))
+                } else if (error.name === 'CeremonyConflictError') {
+                    setInlineError(t('passkey.interrupted'))
+                } else {
+                    setInlineError(t('passkey.deviceState'))
+                }
+                return
+            }
 
             // notallowederror can mean two things:
             // 1. user actually cancelled (most common)
@@ -176,8 +233,10 @@ const SetupPasskey = () => {
             await handleLoginClick()
             // success — useLogin's effect redirects once the user is loaded
         } catch (error) {
-            // handleLogin throws PasskeyError with a curated user-facing message
-            setInlineError((error as Error)?.message || t('loginFailed'))
+            // handleLogin throws PasskeyError with a curated code + English
+            // message — prefer the translated catalog copy for known codes.
+            const i18nKey = getPasskeyErrorSetupKey(error)
+            setInlineError(i18nKey ? t(i18nKey) : (error as Error)?.message || t('loginFailed'))
         }
     }
 
@@ -196,24 +255,24 @@ const SetupPasskey = () => {
 
     return (
         <div>
-            <div className="flex h-full flex-col justify-between gap-11 p-0 md:min-h-32">
+            <div className="flex h-full flex-col justify-between gap-10 p-0 md:min-h-32">
                 <div className="flex h-full flex-col justify-end gap-2 text-center">
                     {/* Stays enabled even with a preflight warning: handlePasskeySetup
                         re-checks support and surfaces an actionable message, so a tap is
                         never a silent no-op. Only disabled while actually working. */}
                     <Button
-                        loading={isRegistering || isLoading}
-                        disabled={isRegistering || isLoading}
+                        loading={isPreparing || isRegistering || isLoading}
+                        disabled={isPreparing || isRegistering || isLoading}
                         onClick={handlePasskeySetup}
                         className="text-nowrap"
                         shadowSize="4"
                     >
                         {t('passkey.setItUp')}
                     </Button>
-                    {preflightWarning && <p className="text-sm font-bold text-orange-1">{preflightWarning}</p>}
+                    {preflightWarning && <p className="text-label-l text-orange-400">{preflightWarning}</p>}
                     {usernameTaken && (
                         <>
-                            <ErrorAlert description={t('passkey.usernameTaken')} />
+                            <Notification priority="error">{t('passkey.usernameTaken')}</Notification>
                             <Button
                                 loading={isLoggingIn}
                                 disabled={isLoggingIn}
@@ -226,10 +285,10 @@ const SetupPasskey = () => {
                             </Button>
                         </>
                     )}
-                    {inlineError && <ErrorAlert description={inlineError} />}
+                    {inlineError && <Notification priority="error">{inlineError}</Notification>}
                 </div>
                 <div>
-                    <p className="border-t border-grey-1 pt-2 text-center text-xs text-grey-1">
+                    <p className="border-t border-border-subtle pt-2 text-center text-body-xs text-foreground-secondary">
                         <DocsLink href="/en/help/passkeys" className="underline underline-offset-2">
                             {t('passkey.learnMore')}
                         </DocsLink>{' '}

@@ -7,10 +7,10 @@ import { getTokenDetails } from '@/utils/general.utils'
 import { getCachedCurrencyPrice } from '@/app/actions/currency'
 import { type ChargeEntry } from '@/services/services.types'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
-import { shareableUrl } from '@/utils/url.utils'
+import { payLinkUrl, shareableUrl } from '@/utils/url.utils'
 import { type StatusPillType } from '@/components/Global/StatusPill'
 import { type TransactionDirection } from '@/components/TransactionDetails/transaction-types'
-import { FIAT_RAIL_KINDS } from '@/components/TransactionDetails/transaction-predicates'
+import { hasReceiptPage } from '@/components/TransactionDetails/transaction-predicates'
 
 export enum EHistoryUserRole {
     SENDER = 'SENDER',
@@ -52,9 +52,16 @@ export enum EHistoryStatus {
     refunded = 'refunded',
     canceled = 'canceled', // historical DEPRECATED_SIMPLEFI rows, canceled with only one l
     expired = 'expired',
+    OPEN = 'OPEN',
     CLOSED = 'CLOSED',
 }
 
+// Bridge's HistoryEntry.status is always the UPPER_CASE Prisma
+// BridgeTransferState (peanut-api-ts src/db/history.ts:844, `status:
+// bridgeState`) — Bridge's own webhook/API strings are lowercase, but
+// `bridgeStateFromString` normalizes them before that value is ever stored
+// or projected to the FE (peanut-api-ts src/bridge/ledger.ts). RETURNED and
+// UNDELIVERABLE are terminal Bridge states that were simply missing here.
 export const FINAL_STATES: HistoryStatus[] = [
     EHistoryStatus.COMPLETED,
     EHistoryStatus.EXPIRED,
@@ -63,6 +70,8 @@ export const FINAL_STATES: HistoryStatus[] = [
     EHistoryStatus.REFUNDED,
     EHistoryStatus.CANCELED,
     EHistoryStatus.ERROR,
+    EHistoryStatus.RETURNED,
+    EHistoryStatus.UNDELIVERABLE,
     EHistoryStatus.CLOSED,
 ]
 
@@ -247,11 +256,11 @@ export function isFinalState(transaction: Pick<HistoryEntry, 'status'>): boolean
 export function getReceiptUrl(transaction: TransactionDetails): string | undefined {
     const kind = transaction.extraDataForDrawer?.kind
     // Kinds whose receipt URL is the dedicated /receipt page (shareable,
-    // OG-augmented): the fiat rails + SEND_LINK. SEND_LINK is the deliberate
-    // extra over FIAT_RAIL_KINDS — sendlinks get a receipt page too, but their
-    // share *button* is gated by the txHash branch in useReceiptViewModel, not
-    // hasShareableReceipt. All other kinds fall back to the stamped link.
-    if (kind && (kind === 'SEND_LINK' || FIAT_RAIL_KINDS.has(kind))) {
+    // OG-augmented). SEND_LINK is the deliberate extra over FIAT_RAIL_KINDS —
+    // sendlinks get a receipt page too, but their share *button* is gated by
+    // the txHash branch in useReceiptViewModel, not hasShareableReceipt. All
+    // other kinds fall back to the stamped link.
+    if (kind && hasReceiptPage(transaction)) {
         return shareableUrl(`/receipt/${transaction.id}?kind=${kind}`)
     }
     if (transaction.extraDataForDrawer?.link) {
@@ -302,22 +311,49 @@ const STATUS_SHOWS_SIGN: Record<StatusPillType, boolean> = {
     refunded: false,
 }
 
+// Status families for the states-board amount treatment (board 17966:12128).
+// One source next to STATUS_SHOWS_SIGN so sign, strikethrough, and grey-out
+// stay in lockstep — TransactionCard consumes these instead of re-listing.
+export const PENDING_AMOUNT_STATUSES: ReadonlySet<StatusPillType> = new Set(['pending', 'processing', 'soon'])
+export const STRUCK_AMOUNT_STATUSES: ReadonlySet<StatusPillType> = new Set(['cancelled', 'failed', 'refunded'])
+
+/**
+ * Open requests — unfulfilled request links (direction `request_sent` /
+ * `request_received`) and request-pot rollups — are exempt from the pending
+ * treatment (no pending pill, no greyed amount) in both the history row and
+ * the receipt head. Per the states board (17966:12128) the greyed amount +
+ * pending badge mean "money is moving"; an open request has no money in
+ * flight. A request FULFILMENT that is settling arrives as direction
+ * `receive` / `send` and keeps the pending treatment.
+ */
+export function isOpenRequestDisplay(tx: Pick<TransactionDetails, 'direction' | 'isRequestPotLink'>): boolean {
+    return tx.direction === 'request_sent' || tx.direction === 'request_received' || !!tx.isRequestPotLink
+}
+
 // Direction → balance-change sign. A `Record` (not a switch) so the compiler
 // enforces exhaustiveness: adding a `TransactionDirection` without a sign is a
 // build error, not a silent `''` at runtime.
+// Both directions carry a sign: "-$38" out, "+$38" in. The states board
+// (17966:12128) draws incoming unsigned, but a signed inflow reads faster in
+// a mixed feed and matches what people expect from a money app — ruled by
+// Slava 2026-08-28 over the board. Vlad updates the board to match.
 const DIRECTION_TO_SIGN: Record<TransactionDirection, '-' | '+'> = {
     send: '-',
-    request_received: '-',
     withdraw: '-',
     bank_withdraw: '-',
     bank_claim: '-',
     claim_external: '-',
     qr_payment: '-',
     receive: '+',
+    // a received request is money coming TO the viewer (they created it)
+    request_received: '+',
     request_sent: '+',
     add: '+',
     bank_deposit: '+',
-    bank_request_fulfillment: '+',
+    // NOT an inflow: p2p-send emits this for the SENDER of a bridge-fulfilled
+    // request — the viewer is paying via bank rails, so their balance drops.
+    // It sits with the inbound names purely because of its wording.
+    bank_request_fulfillment: '-',
 }
 
 /** Returns the sign of the transaction, based on the direction and status of the transaction. */
@@ -364,11 +400,11 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
             if (entry.isRequestLink) {
                 const tokenCurrency = entry.tokenSymbol
                 const tokenAmount = entry.amount
-                link = shareableUrl(
+                link = payLinkUrl(
                     `/${entry.recipientAccount.username || entry.recipientAccount.identifier}/${tokenAmount}${tokenCurrency}?id=${entry.uuid}`
                 )
             } else {
-                link = shareableUrl(
+                link = payLinkUrl(
                     `/${entry.recipientAccount.username || entry.recipientAccount.identifier}?chargeId=${entry.uuid}`
                 )
             }
@@ -377,7 +413,7 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
             break
         }
         case 'DIRECT_TRANSFER': {
-            link = shareableUrl(
+            link = payLinkUrl(
                 `/${entry.recipientAccount.username || entry.recipientAccount.identifier}?chargeId=${entry.uuid}`
             )
             tokenSymbol = entry.tokenSymbol
@@ -404,6 +440,16 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
             if (entry.currency?.code) {
                 entry.currency.code = entry.currency.code.toUpperCase()
             }
+            // ONRAMP's `currency.amount` is the fiat SOURCE amount Bridge was
+            // asked to transfer — known synchronously at intent creation, so
+            // (unlike OFFRAMP below) it's already correct even while pending.
+            // What's unreliable pre-receipt is `usdAmount` here (the PRIMARY
+            // displayed figure): a receipt-less Bridge intent books the fiat
+            // magnitude as crypto 1:1 (see bridge/legs.ts on the API side),
+            // which is off by the exchange rate for non-1:1 pairs (MXN ~18x).
+            // That's the top-line amount, not an annotation — always correct
+            // it, pending or not; unlike OFFRAMP's secondary "≈ CODE" line,
+            // there's no safe "blank it" fallback for the primary amount.
             if (usdAmount === entry.currency?.amount && entry.currency?.code && entry.currency?.code !== 'USD') {
                 try {
                     const price = await getCachedCurrencyPrice(entry.currency.code)
@@ -432,15 +478,29 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
                 const approximatelyEqual = hasCurrencyAmount && isFinite(currNum) && Math.abs(currNum - usdNum) < 0.01
 
                 if (!hasCurrencyAmount || !isFinite(currNum) || approximatelyEqual) {
-                    try {
-                        const price = await getCachedCurrencyPrice(entry.currency.code)
-                        const converted = Number.isFinite(usdNum) && price?.sell ? usdNum * price.sell : usdNum
-                        entry.currency.amount = converted.toString()
-                    } catch (error) {
-                        console.error(
-                            `[completeHistoryEntry] Failed to fetch currency price for ${entry.currency.code}:`,
-                            error
-                        )
+                    if (isFinalState(entry)) {
+                        try {
+                            const price = await getCachedCurrencyPrice(entry.currency.code)
+                            const converted = Number.isFinite(usdNum) && price?.sell ? usdNum * price.sell : usdNum
+                            entry.currency.amount = converted.toString()
+                        } catch (error) {
+                            console.error(
+                                `[completeHistoryEntry] Failed to fetch currency price for ${entry.currency.code}:`,
+                                error
+                            )
+                        }
+                    } else {
+                        // Unlike ONRAMP, OFFRAMP's `currency.amount` genuinely
+                        // has no correct value until the receipt lands — the
+                        // mirrored figure isn't an approximation, it's the
+                        // crypto leg mislabeled as fiat (off by ~1000x for
+                        // ARS/BRL). Blank it rather than pay for a live-rate
+                        // lookup on every pending render just to show a
+                        // number that reads as converted but isn't;
+                        // TransactionCard hides the "≈ CODE" line when the
+                        // amount doesn't parse, and `currency.code` is kept
+                        // for the bank-account country-flag lookup.
+                        entry.currency.amount = ''
                     }
                 }
             }

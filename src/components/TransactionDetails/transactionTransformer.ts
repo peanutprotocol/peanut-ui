@@ -201,8 +201,10 @@ function mapEntryStatusToUiStatus(entry: HistoryEntry, direction: TransactionDir
             // Send links stay 'pending' for the sender side until the link is
             // claimed — the BE's intent.status hits COMPLETED on escrow, but
             // from the sender's UI perspective the link isn't "done" until
-            // claimed.
-            const isUnclaimedSendLinkSender = direction !== 'claim_external' && intentKindOf(entry) === 'SEND_LINK'
+            // claimed. `claimedAt` is the claim-state signal: once set, the
+            // link resolved and the row is genuinely completed.
+            const isUnclaimedSendLinkSender =
+                direction !== 'claim_external' && intentKindOf(entry) === 'SEND_LINK' && !entry.claimedAt
             return isUnclaimedSendLinkSender ? 'pending' : 'completed'
         }
         case 'SUCCESSFUL':
@@ -219,6 +221,17 @@ function mapEntryStatusToUiStatus(entry: HistoryEntry, direction: TransactionDir
             return 'cancelled'
         case 'REFUNDED':
             return 'refunded'
+        case 'OPEN': {
+            // Request links forward the raw link status (OPEN|CLOSED). An open
+            // request is completed only once the collected total reaches its
+            // positive goal (`entry.amount`, decimal USD string — same units as
+            // `totalAmountCollected`); partially-collected and goal-less open
+            // pots are still awaiting payment. Compared in whole cents so a
+            // fully-paid request can't stay pending on float noise.
+            const goalCents = Math.round(Number(entry.amount) * 100)
+            const collectedCents = Math.round((entry.totalAmountCollected ?? 0) * 100)
+            return goalCents > 0 && collectedCents >= goalCents ? 'completed' : 'pending'
+        }
         case 'CLOSED':
             // 0 collected → treated as cancelled, not closed
             return entry.totalAmountCollected === 0 ? 'cancelled' : 'closed'

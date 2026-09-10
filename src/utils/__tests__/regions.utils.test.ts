@@ -1,4 +1,10 @@
-import { getRegionIntent, pendingBankRailRegionPaths, providerForRegionIntent } from '../regions.utils'
+import {
+    getBankRegionIntent,
+    getRegionIntent,
+    pendingBankRailRegionPaths,
+    providerForRegionIntent,
+    regionIntentForResidence,
+} from '../regions.utils'
 import { type RailCapability } from '@/types/capabilities'
 
 describe('getRegionIntent', () => {
@@ -12,6 +18,24 @@ describe('getRegionIntent', () => {
     it('falls back to ROW for unknown paths', () => {
         expect(getRegionIntent('mars')).toBe('ROW')
         expect(getRegionIntent('')).toBe('ROW')
+    })
+})
+
+describe('getBankRegionIntent', () => {
+    it('routes Mexico bank flows through the North America intent', () => {
+        expect(getBankRegionIntent({ id: 'MX', region: 'latam' })).toBe('NA')
+    })
+
+    it('uses the rail jurisdiction for other bank destinations', () => {
+        expect(getBankRegionIntent({ id: 'AR', region: 'latam' })).toBe('LATAM')
+        expect(getBankRegionIntent({ id: 'BR', region: 'latam' })).toBe('LATAM')
+        expect(getBankRegionIntent({ id: 'CO', region: 'latam' })).toBe('LATAM')
+        expect(getBankRegionIntent({ id: 'GBR', iso2: 'GB', region: 'europe' })).toBe('EU')
+        expect(getBankRegionIntent({ id: 'US', region: 'north-america' })).toBe('NA')
+        expect(getBankRegionIntent({ id: 'DE', region: 'europe' })).toBe('EU')
+        expect(getBankRegionIntent({ id: 'NG', region: 'rest-of-the-world' })).toBe('ROW')
+        expect(getBankRegionIntent({ id: 'XX' })).toBe('ROW')
+        expect(getBankRegionIntent(undefined)).toBe('ROW')
     })
 })
 
@@ -89,5 +113,27 @@ describe('pendingBankRailRegionPaths', () => {
             rail({ id: 'bridge.ach_us', country: 'US', status: 'blocked' }),
         ])
         expect(paths.size).toBe(0)
+    })
+})
+
+describe('regionIntentForResidence', () => {
+    it('routes LATAM residences to Manteca and everything Bridge-served to the Bridge levels', () => {
+        expect(regionIntentForResidence('BR')).toBe('LATAM')
+        expect(regionIntentForResidence('ar')).toBe('LATAM')
+        expect(regionIntentForResidence('US')).toBe('NA')
+        expect(regionIntentForResidence('MX')).toBe('NA')
+        expect(regionIntentForResidence('PT')).toBe('EU')
+        // GB is in Bridge's document map but every bank rail refuses UK residents
+        expect(regionIntentForResidence('GB')).toBe('ROW')
+        expect(regionIntentForResidence('NG')).toBe('ROW')
+        // Colombia's Manteca rail is deactivated: not LATAM until it comes back
+        expect(regionIntentForResidence('CO')).toBe('ROW')
+    })
+
+    // Same class as the GB block: Bridge lists the country but does not onboard
+    // its residents, so a Bridge level could only end on a terminal rejection.
+    it('routes a Bridge banking exclusion to the provider-less level', () => {
+        expect(regionIntentForResidence('JP')).toBe('ROW')
+        expect(regionIntentForResidence('dz')).toBe('ROW')
     })
 })

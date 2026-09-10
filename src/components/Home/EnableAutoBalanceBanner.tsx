@@ -108,6 +108,7 @@ export default function EnableAutoBalanceBanner() {
             shadowSize: '4',
             disabled: isGranting,
             onClick: () => {
+                if (isGranting) return
                 const grantedCardId = card?.id ?? null
                 void grant().then((result) => {
                     setLastAttemptFor(grantedCardId)
@@ -140,7 +141,7 @@ export default function EnableAutoBalanceBanner() {
             preventClose
             hideModalCloseButton
             icon="credit-card"
-            iconContainerClassName="bg-yellow-1"
+            iconContainerClassName="bg-action-secondary"
             title={t('title')}
             description={hardError || stuckAfterSuccess ? t('descriptionError') : t('description')}
             ctas={ctas}

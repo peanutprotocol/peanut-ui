@@ -10,7 +10,12 @@ import {
 } from '@/constants/migration.consts'
 import { isFeatureFlagEnabled } from '@/utils/featureFlag.utils'
 import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
-import { buildDeferredPayload, copyIOSHandoff, playStoreUrlWithReferrer } from '@/utils/deferred-link'
+import {
+    buildDeferredPayload,
+    copyIOSHandoff,
+    playStoreUrlWithReferrer,
+    trackDeferredHandoffCreated,
+} from '@/utils/deferred-link'
 
 /**
  * Flag read with a dev-only localStorage override. Local dev never inits
@@ -95,11 +100,16 @@ export function openStore(store: StoreKind, surface: MigrationSurface, handoff?:
     trackStoreClick(store, surface, !!payload)
 
     if (store === 'android') {
+        // the referrer url IS the written hand-off — count it here, at the tap
+        if (payload) trackDeferredHandoffCreated('android')
         void openExternalUrl(payload ? playStoreUrlWithReferrer(payload) : STORE_URL[store])
         return
     }
     // clipboard write is prompt-free on the web side; the app asks on first launch
-    if (payload) void copyIOSHandoff(payload).catch(() => {})
+    if (payload)
+        void copyIOSHandoff(payload)
+            .then(() => trackDeferredHandoffCreated('ios'))
+            .catch(() => {})
     void openExternalUrl(STORE_URL[store])
 }
 
@@ -132,5 +142,11 @@ export function onStoreAnchorClick(store: StoreKind, surface: MigrationSurface) 
         payload = buildDeferredPayload()
     } catch {}
     trackStoreClick(store, surface, !!payload)
-    if (store === 'ios' && payload) void copyIOSHandoff(payload).catch(() => {})
+    if (store === 'ios' && payload)
+        void copyIOSHandoff(payload)
+            .then(() => trackDeferredHandoffCreated('ios'))
+            .catch(() => {})
+    // the anchor's href (built at render) carries the android hand-off; a
+    // successful rebuild here is the same approximation trackStoreClick uses
+    if (store === 'android' && payload) trackDeferredHandoffCreated('android')
 }

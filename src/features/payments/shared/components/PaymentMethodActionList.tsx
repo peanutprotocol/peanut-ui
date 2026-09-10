@@ -13,7 +13,7 @@
 
 import { useRouter } from 'next/navigation'
 import Divider from '@/components/0_Bruddle/Divider'
-import { ActionListCard } from '@/components/ActionListCard'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import IconStack from '@/components/Global/IconStack'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { ACTION_METHODS, type PaymentMethod } from '@/constants/actionlist.consts'
@@ -105,11 +105,10 @@ export function PaymentMethodActionList({
                     const bankMethodNeedsUnlock = method.id === 'bank' && !isBankEnabled
                     const methodRequiresVerification = qrMethodNeedsUnlock || bankMethodNeedsUnlock
                     return (
-                        <ActionListCard
+                        <ListItem
                             key={method.id}
                             position="single"
-                            description={method.description}
-                            descriptionClassName="text-[12px]"
+                            body={<div className="text-[12px]">{method.description}</div>}
                             title={
                                 <div className="flex items-center gap-2">
                                     {method.title}
@@ -122,8 +121,8 @@ export function PaymentMethodActionList({
                                 </div>
                             }
                             onClick={() => handleMethodClick(method)}
-                            isDisabled={method.soon || !isAmountEntered}
-                            rightContent={<IconStack icons={method.icons} iconSize={method.id === 'bank' ? 80 : 24} />}
+                            disabled={method.soon || !isAmountEntered}
+                            trailing={<IconStack icons={method.icons} iconSize={method.id === 'bank' ? 80 : 24} />}
                         />
                     )
                 })}

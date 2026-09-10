@@ -24,6 +24,7 @@ jest.mock('@/utils/sentry-lazy', () => require('@sentry/nextjs'))
 
 jest.mock('../connectivity', () => ({
     reportNetworkError: jest.fn(),
+    hasRecentFailure: jest.fn(() => false),
 }))
 
 describe('fetchWithSentry — expected-response suppression', () => {
@@ -107,6 +108,54 @@ describe('fetchWithSentry — expected-response suppression', () => {
         expect(Sentry.captureMessage).not.toHaveBeenCalled()
     })
 
+    // qr-payment/init 409 is expected for exactly one outcome: the cashier's
+    // charge on the till timed out (BE peanut-api-ts #1484). The suppression is
+    // scoped to that code so a different conflict on the same route still pages
+    // us — the pair below pins both halves.
+    it('does NOT report qr-payment/init 409 when the body is PAYMENT_DESTINATION_EXPIRED', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(409, { error: 'PAYMENT_DESTINATION_EXPIRED' }))
+
+        const res = await fetchWithSentry('https://api.peanut.me/manteca/qr-payment/init', {
+            method: 'POST',
+            body: '{}',
+        })
+
+        expect(res.status).toBe(409)
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+    })
+
+    it('does NOT report qr-payment/init 409 when the retry guard held the key', async () => {
+        // QR_INIT_IN_PROGRESS is the idempotency guard doing its job: a retry met
+        // the in-flight attempt instead of minting a second Manteca price lock.
+        // Paging on it would page us for every rescued scan.
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(409, { error: 'QR_INIT_IN_PROGRESS' }))
+
+        await fetchWithSentry('https://api.peanut.me/manteca/qr-payment/init', { method: 'POST', body: '{}' })
+
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+    })
+
+    it('DOES report a refused idempotency key — that one means our derivation broke', async () => {
+        /*
+         * QR_INIT_KEY_MISMATCH is deliberately NOT suppressed. The client derives
+         * a key per (scan, amount), so the backend refusing it can only mean our
+         * own key derivation is wrong — exactly the thing Sentry should show us.
+         */
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(409, { error: 'QR_INIT_KEY_MISMATCH' }))
+
+        await fetchWithSentry('https://api.peanut.me/manteca/qr-payment/init', { method: 'POST', body: '{}' })
+
+        expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
+    })
+
+    it('DOES report a different qr-payment/init 409 — the status alone must not suppress', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(409, { error: 'DUPLICATE_PAYMENT_IN_FLIGHT' }))
+
+        await fetchWithSentry('https://api.peanut.me/manteca/qr-payment/init', { method: 'POST', body: '{}' })
+
+        expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
+    })
+
     it('reports a non-2xx exactly once, via captureMessage and never via console.warn', async () => {
         // captureConsoleIntegration listens on ['error','warn'], so a console.warn
         // here produced a SECOND event for every non-2xx in the app, grouped by
@@ -118,6 +167,23 @@ describe('fetchWithSentry — expected-response suppression', () => {
 
         expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
         expect(warnSpy).not.toHaveBeenCalled()
+    })
+
+    // Same integration, other path: the per-attempt retry notice on a GET
+    // timeout must not become its own Sentry event either.
+    it('retries a GET timeout without a console.warn', async () => {
+        const infoSpy = jest.spyOn(console, 'info').mockImplementation(() => {})
+        const abort = () => Object.assign(new Error('aborted'), { name: 'AbortError' })
+        global.fetch = jest.fn().mockRejectedValue(abort())
+
+        await expect(fetchWithSentry('https://api.peanut.me/users/me', { method: 'GET' })).rejects.toThrow(
+            'Peanut is taking too long to respond — check your connection and try again.'
+        )
+
+        expect(global.fetch).toHaveBeenCalledTimes(2)
+        expect(warnSpy).not.toHaveBeenCalled()
+        expect(infoSpy).toHaveBeenCalledWith(expect.stringContaining('timed out — retrying'))
+        infoSpy.mockRestore()
     })
 
     it('still reports 400s from endpoints without a skip rule', async () => {
@@ -442,5 +508,137 @@ describe('fetch timeout budgets', () => {
             )
             expect(reportedTimeoutMs()).toBe(1234)
         })
+    })
+})
+
+describe('fetchWithSentry — one report per endpoint per outage window', () => {
+    const { hasRecentFailure, reportNetworkError } = require('../connectivity') as {
+        hasRecentFailure: jest.Mock
+        reportNetworkError: jest.Mock
+    }
+    let infoSpy: jest.SpyInstance
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        infoSpy = jest.spyOn(console, 'info').mockImplementation(() => {})
+        global.fetch = jest.fn().mockRejectedValue(new TypeError('Failed to fetch'))
+    })
+
+    afterEach(() => infoSpy.mockRestore())
+
+    it('captures the first failure for an endpoint', async () => {
+        hasRecentFailure.mockReturnValue(false)
+        await expect(fetchWithSentry('https://api.peanut.me/users/me')).rejects.toThrow(
+            'Something went wrong. Please try again.'
+        )
+        expect(Sentry.captureException).toHaveBeenCalledTimes(1)
+    })
+
+    /*
+     * The amplifier this exists to kill: React Query retries the route, several
+     * mounted hooks fetch it, and a poll keeps firing while the device is
+     * offline. The user still gets the same thrown error — only the duplicate
+     * report is dropped.
+     */
+    it('skips the capture when the endpoint already failed inside the window', async () => {
+        hasRecentFailure.mockReturnValue(true)
+        await expect(fetchWithSentry('https://api.peanut.me/users/me')).rejects.toThrow(
+            'Something went wrong. Please try again.'
+        )
+        expect(Sentry.captureException).not.toHaveBeenCalled()
+    })
+
+    /*
+     * The dedupe window is keyed by url alone, and REST puts both verbs on one
+     * path: /home polls `GET /charges` while the pay flow issues `POST /charges`.
+     * Suppressing the POST because the poll failed first would hide exactly the
+     * failure this change exists to surface — its capture never happens, so the
+     * shouldIgnoreError rescue never runs and `alreadyReported` eats the rethrow.
+     */
+    it.each(['POST', 'PUT', 'PATCH', 'DELETE'])(
+        'still captures a failed %s after a GET to the same url failed in the window',
+        async (method) => {
+            hasRecentFailure.mockReturnValue(true)
+            await expect(fetchWithSentry('https://api.peanut.me/charges', { method })).rejects.toThrow(
+                'Something went wrong. Please try again.'
+            )
+            expect(Sentry.captureException).toHaveBeenCalledTimes(1)
+        }
+    )
+
+    it('still dedupes a repeated GET to the same url', async () => {
+        hasRecentFailure.mockReturnValue(true)
+        await expect(fetchWithSentry('https://api.peanut.me/charges', { method: 'GET' })).rejects.toThrow()
+        expect(Sentry.captureException).not.toHaveBeenCalled()
+    })
+
+    it('still records the failure for the connectivity banner either way', async () => {
+        hasRecentFailure.mockReturnValue(true)
+        await expect(fetchWithSentry('https://api.peanut.me/users/me')).rejects.toThrow()
+        expect(reportNetworkError).toHaveBeenCalledWith('https://api.peanut.me/users/me')
+    })
+})
+
+describe('sensitive QR lookup telemetry', () => {
+    const secret = 'private-qr-id#p=private-link-secret'
+    const url = `https://api.peanut.me/qr/${secret}`
+    let info: jest.SpyInstance
+    beforeEach(() => {
+        jest.clearAllMocks()
+        jest.mocked(require('../connectivity').hasRecentFailure).mockReturnValue(false)
+        info = jest.spyOn(console, 'info').mockImplementation(() => {})
+    })
+    afterEach(() => {
+        info.mockRestore()
+        jest.useRealTimers()
+    })
+    const assertPrivate = () => {
+        const calls = [
+            jest.mocked(Sentry.captureMessage).mock.calls,
+            jest.mocked(Sentry.captureException).mock.calls,
+            info.mock.calls,
+        ]
+        const serialized = JSON.stringify(calls, (_key, value) =>
+            value instanceof Error ? { message: value.message, stack: value.stack, cause: value.cause } : value
+        )
+        expect(serialized).not.toContain(secret)
+        expect(serialized).not.toContain('private-response')
+    }
+    it('reports a failed status without the request URL or echoed response, preserving the response', async () => {
+        const response = {
+            ok: false,
+            status: 500,
+            clone: jest.fn(() => ({ json: async () => ({ error: 'private-response' }) })),
+        } as unknown as Response
+        global.fetch = jest.fn().mockResolvedValue(response)
+        expect(await fetchWithSentry(url, { redactTelemetry: true })).toBe(response)
+        expect(response.clone).not.toHaveBeenCalled()
+        expect(Sentry.captureMessage).toHaveBeenCalledWith('Request failed with status 500', {
+            level: 'error',
+            extra: { method: 'GET', status: 500 },
+        })
+        expect(global.fetch).toHaveBeenCalledWith(url, expect.not.objectContaining({ redactTelemetry: true }))
+        assertPrivate()
+    })
+    it('replaces network errors that echo the scanned URL', async () => {
+        global.fetch = jest.fn().mockRejectedValue(new Error(secret))
+        await expect(fetchWithSentry(url, { redactTelemetry: true })).rejects.toThrow('Something went wrong')
+        expect(Sentry.captureException).toHaveBeenCalledWith(
+            new Error('Request failed'),
+            expect.objectContaining({ extra: expect.objectContaining({ url: '[redacted]' }) })
+        )
+        assertPrivate()
+    })
+    it('redacts both timeout retry logs and the final report', async () => {
+        jest.useFakeTimers()
+        global.fetch = jest.fn().mockRejectedValue(Object.assign(new Error(secret), { name: 'AbortError' }))
+        const failed = expect(fetchWithSentry(url, { redactTelemetry: true }, 1000)).rejects.toThrow(
+            'Peanut is taking too long'
+        )
+        await jest.runAllTimersAsync()
+        await failed
+        expect(global.fetch).toHaveBeenCalledTimes(2)
+        expect(Sentry.captureException).toHaveBeenCalled()
+        assertPrivate()
     })
 })

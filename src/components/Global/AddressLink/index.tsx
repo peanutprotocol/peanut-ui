@@ -1,9 +1,11 @@
 import { printableAddress, isCryptoAddress } from '@/utils/general.utils'
 import { normalizeEnsName } from '@/utils/ens-name.utils'
 import { usePrimaryNameServer } from '@/hooks/usePrimaryNameServer'
+import { isCapacitor } from '@/utils/capacitor'
+import { recipientPayUrl } from '@/utils/native-routes'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { isAddress } from 'viem'
 
 interface AddressLinkProps {
@@ -35,11 +37,17 @@ const AddressLink = ({ address, className = '', isLink = true }: AddressLinkProp
         }
     }, [address, ensName])
 
-    // Create a simple URL - all identifiers go to /{identifier}
-    const url = `/${urlAddress}`
+    // All identifiers go to the recipient route — /{identifier} on web,
+    // /send?recipient= on native (the catch-all is pruned there, and _blank
+    // is a dead tap in the WebView).
+    const url = recipientPayUrl(urlAddress)
 
     return isLink ? (
-        <Link className={twMerge('cursor-pointer text-xs text-grey-1 underline', className)} href={url} target="_blank">
+        <Link
+            className={twMerge('cursor-pointer text-body-xs text-foreground-secondary underline', className)}
+            href={url}
+            target={isCapacitor() ? undefined : '_blank'}
+        >
             {displayAddress}
         </Link>
     ) : (

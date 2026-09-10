@@ -4,7 +4,7 @@ import BaseInput from '@/components/0_Bruddle/BaseInput'
 //import * as Sentry from '@sentry/nextjs'
 //import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 //import { Icon } from '../Icons/Icon'
 
 export interface IFileUploadInputProps {

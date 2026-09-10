@@ -1,15 +1,18 @@
+import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
 import ActionModal from '@/components/Global/ActionModal'
+import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { useTranslations } from 'next-intl'
-import { Slider } from '@/components/Slider'
 import ChainChip from '@/components/AddMoney/components/ChainChip'
-import {
-    RHINO_SUPPORTED_EVM_CHAINS,
-    RHINO_SUPPORTED_OTHER_CHAINS,
-    RHINO_SUPPORTED_TOKENS,
-} from '@/constants/rhino.consts'
+import EvmChainChips from '@/components/AddMoney/components/EvmChainChips'
+import { getSupportedTokens, RHINO_SUPPORTED_OTHER_CHAINS, RHINO_SUPPORTED_TOKENS } from '@/constants/rhino.consts'
+import type { RhinoChainType } from '@/services/services.types'
 
-const VISIBLE_EVM_CHAINS = 6
-const overflowEvmCount = RHINO_SUPPORTED_EVM_CHAINS.length - VISIBLE_EVM_CHAINS
+// SOLANA and TRON are the non-EVM deposit chains. Rhino takes fewer tokens on
+// them than the flat list below advertises — TRON is USDT-only — so each is
+// labelled with what it actually accepts, the way EvmChainChips labels its own
+// exceptions. A token sent to an address the chain does not accept is lost:
+// no config, so no webhook and no intent.
+const NON_EVM_NETWORK: Record<string, RhinoChainType> = { SOLANA: 'SOL', TRON: 'TRON' }
 
 export default function TokenAndNetworkConfirmationModal({
     onClose,
@@ -21,46 +24,44 @@ export default function TokenAndNetworkConfirmationModal({
     isVisible?: boolean
 }) {
     const t = useTranslations('global')
+    const tAddMoney = useTranslations('addMoney')
     return (
         <ActionModal
             visible={isVisible}
             onClose={onClose}
             icon={'alert'}
-            iconContainerClassName="bg-yellow-1"
+            iconContainerClassName="bg-background-icon-bubble-yellow"
             modalClassName="z-[9999]"
             title={t('tokenAndNetworkConfirmationModal.title')}
             description={
                 <div className="flex flex-col items-center gap-2">
-                    <span className="text-sm">{t('tokenAndNetworkConfirmationModal.warning')}</span>
+                    <span className="text-body-s">{t('tokenAndNetworkConfirmationModal.warning')}</span>
 
-                    <div className="mt-2 flex w-full flex-col items-start gap-2">
-                        <h2 className="font-bold text-black">
-                            {t('tokenAndNetworkConfirmationModal.supportedNetworks')}
-                        </h2>
+                    {/* EvmChainChips, not a raw map of the chain list: it is
+                        rollout-gated and annotates the USDT-only chains. Naming
+                        PLASMA or KAIA beside a flat USDT/USDC/ETH list on the
+                        screen that warns about permanent loss would promise a
+                        USDC deposit those chains cannot take. */}
+                    <div className="mt-2 flex w-full flex-col items-center gap-2">
+                        <MiniHeader>{t('tokenAndNetworkConfirmationModal.supportedNetworks')}</MiniHeader>
 
-                        <div className="flex flex-wrap gap-2">
-                            {RHINO_SUPPORTED_OTHER_CHAINS.map((chain) => (
-                                <ChainChip key={chain.name} chainName={chain.name} chainSymbol={chain.logoUrl} />
-                            ))}
-                            {RHINO_SUPPORTED_EVM_CHAINS.slice(0, VISIBLE_EVM_CHAINS).map((chain) => (
-                                <ChainChip key={chain.name} chainName={chain.name} chainSymbol={chain.logoUrl} />
-                            ))}
-                            {overflowEvmCount > 0 && (
-                                <ChainChip
-                                    chainName={`+${overflowEvmCount} EVM`}
-                                    logo="plus"
-                                    logoClassName="bg-black rounded-full text-white"
-                                />
-                            )}
+                        <div className="flex flex-wrap justify-center gap-2">
+                            {RHINO_SUPPORTED_OTHER_CHAINS.map((chain) => {
+                                const network = NON_EVM_NETWORK[chain.name]
+                                const tokens = network ? getSupportedTokens(network).map((token) => token.name) : []
+                                const label = tokens.length
+                                    ? tAddMoney('chainTokenOnly', { chain: chain.name, tokens: tokens.join('/') })
+                                    : chain.name
+                                return <ChainChip key={chain.name} chainName={label} chainSymbol={chain.logoUrl} />
+                            })}
+                            <EvmChainChips />
                         </div>
                     </div>
 
-                    <div className="mt-2 flex w-full flex-col items-start gap-2">
-                        <h2 className="font-bold text-black">
-                            {t('tokenAndNetworkConfirmationModal.supportedTokens')}
-                        </h2>
+                    <div className="mt-2 flex w-full flex-col items-center gap-2">
+                        <MiniHeader>{t('tokenAndNetworkConfirmationModal.supportedTokens')}</MiniHeader>
 
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap justify-center gap-2">
                             {RHINO_SUPPORTED_TOKENS.map((token) => (
                                 <ChainChip key={token.name} chainName={token.name} chainSymbol={token.logoUrl} />
                             ))}
@@ -70,10 +71,7 @@ export default function TokenAndNetworkConfirmationModal({
             }
             footer={
                 <div className="w-full">
-                    <Slider
-                        onValueChange={(v) => v && onAccept()}
-                        title={t('tokenAndNetworkConfirmationModal.slideToProceed')}
-                    />
+                    <SlideToConfirm onConfirm={onAccept} label={t('tokenAndNetworkConfirmationModal.slideToProceed')} />
                 </div>
             }
             ctas={[]}

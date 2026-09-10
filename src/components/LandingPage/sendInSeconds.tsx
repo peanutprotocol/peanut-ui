@@ -63,7 +63,7 @@ export function SendInSeconds({ locale = DEFAULT_LOCALE }: { locale?: Locale }) 
                 alt="Exclamations"
                 width={200}
                 height={300}
-                className="absolute right-72 top-1/3 hidden -translate-y-1/2 transform md:block"
+                className="absolute top-1/3 right-72 hidden -translate-y-1/2 transform md:block"
             />
 
             {/* Main content */}
@@ -88,7 +88,7 @@ export function SendInSeconds({ locale = DEFAULT_LOCALE }: { locale?: Locale }) 
                 </div>
 
                 <p
-                    className="mb-6 hidden font-roboto text-base font-medium leading-tight md:mb-8 md:block md:text-4xl"
+                    className="mb-6 hidden font-roboto text-base leading-tight font-medium md:mb-8 md:block md:text-4xl"
                     style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
                 >
                     {i18n.landingSendTagline1}

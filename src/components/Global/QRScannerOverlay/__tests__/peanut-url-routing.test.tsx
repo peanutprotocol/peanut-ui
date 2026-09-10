@@ -20,7 +20,11 @@ const mockServerFetch = jest.fn()
 
 let capturedOnScan: QRScanHandler | undefined
 
-jest.mock('@/utils/capacitor', () => ({ isCapacitor: jest.fn(), openExternalUrl: jest.fn() }))
+jest.mock('@/utils/capacitor', () => ({
+    isCapacitor: jest.fn(),
+    isAndroidNative: () => false,
+    openExternalUrl: jest.fn(),
+}))
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: (...args: unknown[]) => mockServerFetch(...args) }))
 jest.mock('@/app/actions/ens', () => ({ resolveEns: jest.fn().mockResolvedValue(null) }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
@@ -108,4 +112,15 @@ describe('scanned peanut.me links on web', () => {
         await scan('https://peanut.me/alice/10USDC?id=req-123')
         expect(mockPush).toHaveBeenCalledWith('/alice/10USDC?id=req-123')
     })
+})
+
+it.each([true, false])('opts QR lookups into private telemetry on native=%s', async (native) => {
+    mockIsCapacitor.mockReturnValue(native)
+    mockServerFetch.mockResolvedValue({ json: async () => ({ claimed: false }) })
+    await scan('https://peanut.me/qr/private-id#p=secret')
+    expect(mockServerFetch).toHaveBeenCalledWith('/qr/private-id#p=secret', {
+        method: 'GET',
+        redactTelemetry: true,
+    })
+    expect(mockPush).toHaveBeenCalled()
 })

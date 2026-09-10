@@ -3,10 +3,6 @@ import { generateKeysFromString, getParamsFromLink } from '@/utils/peanut-link.u
 import type { SendLink } from '@/services/services.types'
 import { apiFetch, serverFetch } from '@/utils/api-fetch'
 import { apiErrorFromResponse } from '@/services/api-error'
-import { getAuthHeaders, authReady } from '@/utils/auth-token'
-import { fetchWithSentry } from '@/utils/sentry.utils'
-import { PEANUT_API_URL } from '@/constants/general.consts'
-import { isDemoMode } from '@/utils/demo'
 
 export { ESendLinkStatus } from '@/services/services.types'
 export type { SendLinkStatus, SendLink } from '@/services/services.types'
@@ -82,19 +78,11 @@ type UpdateLinkBody = {
 
 export const sendLinksApi = {
     create: async (sendLink: CreateLinkBody): Promise<SendLink> => {
-        // This call bypasses callApi (multipart upload), so the demo interceptor
-        // is invoked explicitly here. Lazy import keeps the demo module out of
-        // this service's module graph on web/tests.
-        if (isDemoMode()) {
-            const { demoRespond } = await import('@/utils/demo-api')
-            return jsonParse(await (await demoRespond('/send-links', { method: 'POST' })).text())
-        }
-
-        let response: Response
+        let requestBody: FormData | string
 
         // check if attachment is a File or Blob object
         if (sendLink.attachment && (sendLink.attachment instanceof File || sendLink.attachment instanceof Blob)) {
-            const requestBody = new FormData()
+            requestBody = new FormData()
 
             requestBody.append(
                 'attachment',
@@ -117,25 +105,24 @@ export const sendLinksApi = {
                     }
                 }
             }
-
-            await authReady()
-            response = await fetchWithSentry(`${PEANUT_API_URL}/send-links`, {
-                method: 'POST',
-                body: requestBody,
-                headers: getAuthHeaders(),
-            })
         } else {
-            /*
-             * No file → JSON through apiFetch, which carries the native-transport
-             * cookie fallback for tokenless native sessions. The multipart branch
-             * above can't use it: FormData doesn't survive the native bridge, and
-             * apiFetch would stamp a JSON content-type on it.
-             */
-            response = await apiFetch('/send-links', {
-                method: 'POST',
-                body: jsonStringify(sendLink),
-            })
+            // no file, or attachment is not a File/Blob, send as JSON —
+            // apiFetch sets Content-Type: application/json for string bodies
+            // and carries the native-transport cookie fallback for tokenless
+            // native sessions. Known limit (same as before this refactor):
+            // the multipart branch cannot ride that fallback — FormData does
+            // not survive the native bridge (native-http.ts), so a tokenless
+            // native session uploading an attachment still goes out on the
+            // webview fetch without credentials.
+            requestBody = jsonStringify(sendLink)
         }
+
+        // demo mode is handled inside apiFetch (the POST /send-links demo
+        // handler serves a canned link and never reads the body)
+        const response = await apiFetch('/send-links', {
+            method: 'POST',
+            body: requestBody,
+        })
 
         if (!response.ok) {
             throw await apiErrorFromResponse(response, 'Failed to create send link')
@@ -160,12 +147,13 @@ export const sendLinksApi = {
     get: async (link: string): Promise<SendLink> => {
         const params = getParamsFromLink(link)
         const pubKey = generateKeysFromString(params.password).address
-        // Add timestamp to prevent caching of 404s during DB replication lag
-        const cacheBuster = Date.now()
+        // no-store instead of a Date.now() cache-buster: prevents cached 404s
+        // during DB replication lag without defeating react-query dedupe
         const response = await serverFetch(
-            `/send-links/${pubKey}?c=${params.chainId}&v=${params.contractVersion}&i=${params.depositIdx}&_=${cacheBuster}`,
+            `/send-links/${pubKey}?c=${params.chainId}&v=${params.contractVersion}&i=${params.depositIdx}`,
             {
                 method: 'GET',
+                cache: 'no-store',
             }
         )
         if (!response.ok) {

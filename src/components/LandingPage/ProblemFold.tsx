@@ -53,7 +53,7 @@ export function ProblemFold({ strings }: { strings: LandingStrings }) {
             style={{ backgroundColor: bgColor }}
         >
             <div className="mx-auto max-w-6xl">
-                <h2 className="font-roboto-flex-extrabold text-4xl font-extraBlack uppercase leading-none md:text-6xl lg:text-heading">
+                <h2 className="font-roboto-flex-extrabold text-4xl leading-none font-extraBlack uppercase md:text-6xl lg:text-heading">
                     {problem.heading}
                 </h2>
 
@@ -61,10 +61,10 @@ export function ProblemFold({ strings }: { strings: LandingStrings }) {
                     {cards.map((card, i) => (
                         <div
                             key={card.id}
-                            className={`shadow-4 rounded-sm border-2 border-n-1 bg-white px-5 py-6 md:px-7 md:py-7 ${tilts[i]}`}
+                            className={`rounded-sm border-2 border-n-1 bg-white px-5 py-6 shadow-4 md:px-7 md:py-7 ${tilts[i]}`}
                         >
                             <div className="flex h-11 items-center">{card.icon}</div>
-                            <h3 className="font-roboto-flex-extrabold mt-4 text-xl font-extraBlack uppercase leading-tight md:text-2xl">
+                            <h3 className="font-roboto-flex-extrabold mt-4 text-xl leading-tight font-extraBlack uppercase md:text-2xl">
                                 {card.title}
                             </h3>
                             <p className="font-roboto-flex mt-2.5 text-lg leading-relaxed">{card.body}</p>

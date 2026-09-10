@@ -1,5 +1,5 @@
 'use client'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import { useTranslations } from 'next-intl'
 import { useModalsContext } from '@/context/ModalsContext'
 
@@ -18,16 +18,23 @@ import { useModalsContext } from '@/context/ModalsContext'
  */
 export default function SecurityVerificationOverlay() {
     const t = useTranslations('global')
-    const { isSecurityVerificationOpen } = useModalsContext()
+    const { isSecurityVerificationOpen, securityVerificationVariant } = useModalsContext()
     if (!isSecurityVerificationOpen) return null
     return (
         <div
-            // stop under the black status-bar strip instead of painting beige over it
-            className="fixed inset-x-0 bottom-0 top-safe-top z-50 flex items-center justify-center bg-background"
-            role="status"
-            aria-live="polite"
+            // stop under the black status-bar strip instead of painting beige over it.
+            // no role/aria here: the Loading mascot inside already renders its own
+            // role="status" live region — nesting two would announce twice.
+            className="fixed inset-x-0 top-safe-top bottom-0 z-50 flex items-center justify-center bg-background"
         >
-            <PeanutLoading message={t('securityVerificationOverlay.message')} />
+            <Loading
+                variant="mascot"
+                message={t(
+                    securityVerificationVariant === 'next-passkey'
+                        ? 'securityVerificationOverlay.nextPasskeyMessage'
+                        : 'securityVerificationOverlay.message'
+                )}
+            />
         </div>
     )
 }

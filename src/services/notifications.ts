@@ -1,41 +1,8 @@
 import { serverFetch } from '@/utils/api-fetch'
 
-export type InAppItem = {
-    id: string
-    category: string
-    title: string
-    body?: string | null
-    iconUrl?: string | null
-    imageUrl?: string | null
-    ctaLabel?: string | null
-    ctaDeeplink?: string | null
-    metadata?: Record<string, unknown> | null
-    createdAt: string
-    state: { readAt: string | null; dismissedAt: string | null; pinned: boolean }
-}
-
-export type ListResponse = { items: InAppItem[]; nextCursor: string | null }
-
+// the in-app notifications PAGE is gone; what stays is the unread badge and
+// mark-read plumbing the support drawer and bottom nav rely on
 export const notificationsApi = {
-    async list(params: { limit?: number; cursor?: string | null; filter?: 'all' | 'unread'; category?: string } = {}) {
-        const { limit = 20, cursor, filter = 'all', category } = params
-        const search = new URLSearchParams()
-        search.set('limit', String(limit))
-        search.set('filter', filter)
-        if (cursor) search.set('cursor', cursor)
-        if (category) search.set('category', category)
-
-        try {
-            const response = await serverFetch(`/notifications?${search.toString()}`, {
-                method: 'GET',
-            })
-            if (!response.ok) throw new Error('failed to fetch notifications')
-            return (await response.json()) as ListResponse
-        } catch (e) {
-            throw e
-        }
-    },
-
     /** Pass a category (e.g. 'support') to count only that category's unread rows. */
     async unreadCount(category?: string): Promise<{ count: number }> {
         const query = category ? `?category=${encodeURIComponent(category)}` : ''

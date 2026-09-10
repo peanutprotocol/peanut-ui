@@ -65,18 +65,20 @@ export default function DeferredLinkDevPage() {
     if (BASE_URL === 'https://peanut.me' && !isCapacitor()) notFound()
 
     return (
-        <div className="mx-auto flex max-w-2xl flex-col gap-6 p-6 font-mono text-sm">
-            <h1 className="text-lg font-bold">deferred deep link — dev</h1>
+        <div className="mx-auto flex max-w-2xl flex-col gap-6 p-6 font-mono text-body-s">
+            <h1 className="text-heading-card">deferred deep link — dev</h1>
 
             <section>
                 <h2 className="font-bold">state</h2>
-                <pre className="whitespace-pre-wrap border border-n-1 p-2">{JSON.stringify(state, null, 2)}</pre>
+                <pre className="border border-border-default p-2 whitespace-pre-wrap">
+                    {JSON.stringify(state, null, 2)}
+                </pre>
                 <div className="flex gap-2">
-                    <button className="border border-n-1 px-2 py-1" onClick={refresh}>
+                    <button className="border border-border-default px-2 py-1" onClick={refresh}>
                         refresh
                     </button>
                     <button
-                        className="border border-n-1 px-2 py-1"
+                        className="border border-border-default px-2 py-1"
                         onClick={() => {
                             localStorage.removeItem(CONSUMED_KEY)
                             refresh()
@@ -90,7 +92,7 @@ export default function DeferredLinkDevPage() {
             <section>
                 <h2 className="font-bold">web → store hand-off</h2>
                 <button
-                    className="border border-n-1 px-2 py-1"
+                    className="border border-border-default px-2 py-1"
                     onClick={() => {
                         setPayload(buildDeferredPayload('/home'))
                         setCopied(false)
@@ -99,7 +101,7 @@ export default function DeferredLinkDevPage() {
                     build payload from current context (dest=/home)
                 </button>
                 {payload && (
-                    <pre className="whitespace-pre-wrap break-all border border-n-1 p-2">
+                    <pre className="border border-border-default p-2 break-all whitespace-pre-wrap">
                         payload: {payload}
                         {'\n\n'}play url: {playStoreUrlWithReferrer(payload)}
                         {'\n\n'}ios hand-off: {iosHandoffString(payload)}
@@ -107,7 +109,7 @@ export default function DeferredLinkDevPage() {
                 )}
                 {payload && (
                     <button
-                        className="border border-n-1 px-2 py-1"
+                        className="border border-border-default px-2 py-1"
                         onClick={async () => {
                             await copyIOSHandoff(payload)
                             setCopied(true)
@@ -120,26 +122,28 @@ export default function DeferredLinkDevPage() {
 
             <section>
                 <h2 className="font-bold">native: raw install referrer</h2>
-                <button className="border border-n-1 px-2 py-1" onClick={readReferrer}>
+                <button className="border border-border-default px-2 py-1" onClick={readReferrer}>
                     read raw referrer (android native only)
                 </button>
-                <pre className="whitespace-pre-wrap break-all border border-n-1 p-2">{rawReferrer}</pre>
+                <pre className="border border-border-default p-2 break-all whitespace-pre-wrap">{rawReferrer}</pre>
             </section>
 
             <section>
                 <h2 className="font-bold">simulate restore</h2>
                 <textarea
-                    className="w-full border border-n-1 p-2"
+                    className="w-full border border-border-default p-2"
                     rows={3}
                     placeholder="pnutdl=1&lang=es-419&invite=test&dest=%2Fhome — or a full hand-off url"
                     value={simulateInput}
                     onChange={(e) => setSimulateInput(e.target.value)}
                 />
-                <button className="border border-n-1 px-2 py-1" onClick={simulate}>
+                <button className="border border-border-default px-2 py-1" onClick={simulate}>
                     parse + apply
                 </button>
                 {simulateResult && (
-                    <pre className="whitespace-pre-wrap break-all border border-n-1 p-2">{simulateResult}</pre>
+                    <pre className="border border-border-default p-2 break-all whitespace-pre-wrap">
+                        {simulateResult}
+                    </pre>
                 )}
             </section>
         </div>

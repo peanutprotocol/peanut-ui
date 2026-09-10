@@ -7,8 +7,7 @@ export const metadata = generateMetadata({
     description:
         'Open roles at Peanut, the money app for people who cross borders — send and receive money globally, spend with the Peanut Card, and cash in and out through local rails.',
     keywords: 'careers, jobs, remote jobs, Peanut careers, fintech jobs, stablecoin jobs, growth jobs',
-    // Without this the page inherits the root layout's `canonical: '/'` and
-    // declares the homepage as its canonical while sitting in the sitemap.
+    // Leaf pages own canonicals; this public page is also listed in the sitemap.
     canonical: '/careers',
 })
 

@@ -2,14 +2,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { SAVED_ADDRESSES } from '@/constants/query.consts'
 import { savedAddressesApi, type SaveAddressInput } from '@/services/saved-addresses'
-import { useUserStore } from '@/redux/hooks'
+import { useAuth } from '@/context/authContext'
 import type { SavedAddress } from '@/interfaces/interfaces'
 import { savedAddressKey } from '@/utils/saved-address.utils'
 
 /** The user's crypto address book, plus save / rename / remove. Every mutation refetches the list.
  *  `enabled: false` skips the fetch on surfaces that never read it (the add-money flow). */
 export function useSavedAddresses({ enabled = true }: { enabled?: boolean } = {}) {
-    const { user } = useUserStore()
+    const { user, userId } = useAuth()
     const queryClient = useQueryClient()
     const invalidate = () => queryClient.invalidateQueries({ queryKey: [SAVED_ADDRESSES] })
 
@@ -17,7 +17,7 @@ export function useSavedAddresses({ enabled = true }: { enabled?: boolean } = {}
     // could hand the next login the previous user's book; [SAVED_ADDRESSES] stays
     // the invalidation prefix
     const query = useQuery({
-        queryKey: [SAVED_ADDRESSES, user?.user.userId],
+        queryKey: [SAVED_ADDRESSES, userId],
         queryFn: savedAddressesApi.list,
         enabled: enabled && !!user,
         staleTime: 5 * 60 * 1000,

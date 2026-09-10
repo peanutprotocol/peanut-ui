@@ -52,8 +52,8 @@ export function AppGlobals({ children }: { children: React.ReactNode }) {
                 Global so it surfaces wherever the user lands after earning. */}
             <BadgeEarnToast />
             {/* Mounted inside the providers (not called in ClientProviders'
-                component body like useOtaUpdates) because it reads the query
-                client, redux and loading-state context to know when a reload
+                component body like OtaUpdateProvider) because it reads the query
+                client and loading-state context to know when a reload
                 is safe. */}
             <StaleDeploymentReload />
             {/* Wraps rather than sits beside the page: while the native app is

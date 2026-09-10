@@ -1,4 +1,5 @@
 import type { Address, Hex, TransactionReceipt } from 'viem'
+import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
 import { encodeFunctionData, erc20Abi } from 'viem'
 import { PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 
@@ -99,7 +100,9 @@ export async function ensureRootValidatorMigrated<TClient extends { account?: un
     const migrated = await account.getRootValidatorMigrationStatus()
     if (!migrated) {
         deps.onEvent?.('attempted')
-        const { receipt } = await deps.sendNoopUserOp(buildMigrationNoopCall(account.address))
+        const { receipt } = await withCeremonyPurpose('kernel_migration', () =>
+            deps.sendNoopUserOp(buildMigrationNoopCall(account.address))
+        )
         if (receipt?.status === 'reverted') {
             // The bundle itself reverted — deterministic; retrying cannot help.
             throw new KernelMigrationFailedError()

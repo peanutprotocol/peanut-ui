@@ -12,6 +12,18 @@ export type KycStatusCategory = 'completed' | 'processing' | 'failed' | 'action_
 export const MAX_SELF_HEAL_ATTEMPTS = 3
 
 /**
+ * `identityVerification.reason.code` the backend stamps on a terminal rejection
+ * caused by the document's jurisdiction (peanut-api-ts
+ * `src/kyc/restricted-regions.ts`).
+ *
+ * The country list is NOT mirrored here — it lives in the Sumsub dashboard,
+ * which is where it is enforced. The FE only learns that a regional rule fired,
+ * and the copy says "your country" without naming it, so adding a country is a
+ * Sumsub dashboard change with no deploy on either side.
+ */
+export const IDENTITY_REGION_RESTRICTED_CODE = 'identity_region_restricted'
+
+/**
  * QR-pay KYC gate states. Relocated here from the (now capability-derived)
  * useQrKycGate hook so the qr-pay page keeps a stable import after that hook is
  * deleted. The gate is now computed inline on the page from useCapabilities().
@@ -29,6 +41,11 @@ export enum QrKycState {
      * a different ID.
      */
     PROVIDER_RESTART_IDENTITY = 'provider_restart_identity',
+    /**
+     * Sumsub rejected the document's jurisdiction. Terminal for every rail,
+     * pool included, so the surface must stop offering verification.
+     */
+    REGION_RESTRICTED = 'region_restricted',
 }
 
 // sets of status values by category — single source of truth

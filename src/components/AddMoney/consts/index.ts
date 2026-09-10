@@ -402,7 +402,7 @@ export const countryData: CountryData[] = [
         type: 'country',
         title: 'Saint Barthélemy',
         currency: 'EUR',
-        path: 'saint-barthélemy',
+        path: 'saint-barthelemy',
         iso2: 'BL',
         iso3: 'BLM',
         region: 'europe',
@@ -2408,7 +2408,7 @@ export const countryData: CountryData[] = [
         type: 'country',
         title: 'U.S. Minor Outlying Islands',
         currency: 'USD',
-        path: 'u.s.-minor-outlying-islands',
+        path: 'us-minor-outlying-islands',
         iso2: 'UM',
         iso3: 'UMI',
         region: 'north-america',
@@ -2709,13 +2709,13 @@ countryData.forEach((country) => {
         // 2. add SEPA for EUR countries if not already present from specifics
         if (country.currency === 'EUR' && countrySpecificWithdrawMethods['Germany']) {
             // Germany as proxy for SEPA availability
-            const sepaExists = withdrawList.some((m) => m.title === 'SEPA Instant')
+            const sepaExists = withdrawList.some((m) => m.id.endsWith('-sepa-instant-withdraw'))
             if (!sepaExists) {
                 withdrawList.push({
                     id: `${countryCode.toLowerCase()}-sepa-instant-withdraw`,
                     icon: 'bank' as IconName,
-                    title: 'SEPA Instant',
-                    description: 'EU-wide real-time bank transfers.',
+                    title: 'Euro bank transfers',
+                    description: 'Usually arrives within 20 minutes, up to 1 business day.',
                     isSoon: false,
                 })
             }

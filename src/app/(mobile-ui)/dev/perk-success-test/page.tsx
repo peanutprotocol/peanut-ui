@@ -105,12 +105,12 @@ export default function PerkSuccessTestPage() {
 
                 {/* Current Perk Info */}
                 <Card className="p-4">
-                    <p className="text-sm font-bold">
+                    <p className="text-label-l">
                         Current Mock Perk ({currentPerkIndex + 1}/{MOCK_PERKS.length})
                     </p>
-                    <p className="mt-1 text-xs text-grey-1">ID: {currentPerk.id}</p>
-                    <p className="text-xs text-grey-1">Amount: ${currentPerk.amountUsd}</p>
-                    <p className="text-xs text-grey-1">Reason: {currentPerk.reason}</p>
+                    <p className="mt-1 text-body-xs text-foreground-secondary">ID: {currentPerk.id}</p>
+                    <p className="text-body-xs text-foreground-secondary">Amount: ${currentPerk.amountUsd}</p>
+                    <p className="text-body-xs text-foreground-secondary">Reason: {currentPerk.reason}</p>
                 </Card>
 
                 {/* Trigger Button */}
@@ -122,8 +122,8 @@ export default function PerkSuccessTestPage() {
 
                 {/* Success Screen Preview */}
                 {showSuccess && (
-                    <div className="rounded-lg border-2 border-dashed border-grey-1/30 p-4">
-                        <p className="mb-4 text-center text-xs font-bold text-grey-1">
+                    <div className="rounded-lg border-2 border-dashed border-gray-600/30 p-4">
+                        <p className="mb-4 text-center text-label-m text-foreground-secondary">
                             SUCCESS SCREEN PREVIEW (tap to dismiss when ready)
                         </p>
 
@@ -144,9 +144,9 @@ export default function PerkSuccessTestPage() {
 
                                 {/* Text content */}
                                 <div>
-                                    <p className="text-sm text-grey-1">You received</p>
-                                    <p className="text-3xl font-extrabold">+${currentPerk.amountUsd}</p>
-                                    <p className="mt-1 flex items-center gap-1 text-sm text-grey-1">
+                                    <p className="text-body-s text-foreground-secondary">You received</p>
+                                    <p className="text-heading-m">+${currentPerk.amountUsd}</p>
+                                    <p className="mt-1 flex items-center gap-1 text-body-s text-foreground-secondary">
                                         <Icon name="invite-heart" size={14} />
                                         <span className="font-medium">{inviteeName}</span>
                                         <span>joined Pioneers</span>
@@ -156,7 +156,7 @@ export default function PerkSuccessTestPage() {
 
                             {/* Tap to continue - fades in when ready */}
                             <p
-                                className={`mt-4 text-sm text-grey-1 transition-opacity duration-300 ${canDismiss ? 'opacity-100' : 'opacity-0'}`}
+                                className={`mt-4 text-body-s text-foreground-secondary transition-opacity duration-300 ${canDismiss ? 'opacity-100' : 'opacity-0'}`}
                             >
                                 Tap to continue
                             </p>

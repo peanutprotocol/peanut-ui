@@ -90,7 +90,7 @@ export function ContentLinkList({ items, strings, grouped }: ContentLinkListProp
                         if (inType.length === 0) return null
                         return (
                             <section key={t}>
-                                <h2 className="mb-4 text-xs font-bold uppercase tracking-widest text-grey-1">
+                                <h2 className="mb-4 text-xs font-bold tracking-widest text-grey-1 uppercase">
                                     {typeLabels[t]}
                                 </h2>
                                 {renderLinkRows(inType)}
@@ -142,9 +142,9 @@ export default function ContentLanding({ items, strings }: Props) {
 
     return (
         <>
-            <div className={`mx-auto mb-6 mt-10 ${PROSE_WIDTH} px-6 md:mt-12 md:px-4`}>
+            <div className={`mx-auto mt-10 mb-6 ${PROSE_WIDTH} px-6 md:mt-12 md:px-4`}>
                 <div className="relative">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-grey-1">
+                    <div className="absolute top-1/2 left-3 -translate-y-1/2 text-grey-1">
                         <Icon name="search" size={18} />
                     </div>
                     <input
@@ -153,7 +153,7 @@ export default function ContentLanding({ items, strings }: Props) {
                         placeholder={strings.searchPlaceholder}
                         value={q ?? ''}
                         onChange={(e) => setFilters({ q: e.target.value || null })}
-                        className="h-12 w-full rounded-sm border border-n-1 bg-white pl-10 pr-4 text-base caret-primary-1 focus:outline-none focus:ring-1 focus:ring-n-1"
+                        className="h-12 w-full rounded-sm border border-n-1 bg-white pr-4 pl-10 text-base caret-primary-1 focus:ring-1 focus:ring-n-1 focus:outline-none"
                     />
                 </div>
             </div>

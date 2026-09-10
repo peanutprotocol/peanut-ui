@@ -6,8 +6,8 @@ import { LocaleSuggestion } from '@/components/Marketing/LocaleSuggestion'
 import { DEFAULT_LOCALE } from '@/i18n/types'
 import { landingMetadata } from '@/lib/seo/landing'
 
-// Without this the page inherits the root layout's bare `canonical: '/'` and
-// emits no hreflang, leaving the localized landings' alternates non-reciprocal.
+// The root layout is deliberately route-neutral. The page owns its canonical
+// and hreflang so localized landing alternates stay reciprocal.
 export const metadata = landingMetadata(DEFAULT_LOCALE)
 
 export default function RootPage() {

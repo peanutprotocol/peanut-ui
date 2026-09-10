@@ -23,7 +23,7 @@ const reset = jest.fn().mockResolvedValue(undefined)
 const pluginProxy = createPluginProxy({ configure, openMessenger, reset }, 'CapacitorCrisp')
 
 jest.mock('@capgo/capacitor-crisp', () => ({ CapacitorCrisp: pluginProxy }))
-jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => true }))
+jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => true, isAndroidNative: () => false }))
 
 describe('ensureNativeCrispConfigured', () => {
     beforeEach(() => {

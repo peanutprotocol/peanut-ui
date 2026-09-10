@@ -9,7 +9,7 @@ import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import React, { useState } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Icon } from '../../Icons/Icon'
 
 interface NetworkButtonProps {
@@ -34,8 +34,8 @@ const NetworkButton: React.FC<NetworkButtonProps> = ({
         <Button
             variant="stroke"
             className={twMerge(
-                'shadow-2 flex h-fit min-w-14 flex-1 flex-col items-center justify-center gap-1 p-3 text-center text-black hover:text-black',
-                isSelected ? 'bg-primary-3 hover:bg-primary-3' : 'bg-white hover:bg-white'
+                'shadow-2 flex h-fit min-w-14 flex-1 flex-col items-center justify-center gap-1 rounded-sm p-3 text-center text-foreground-primary hover:text-foreground-primary',
+                isSelected ? 'bg-purple-200 hover:bg-purple-200' : 'bg-background-default hover:bg-background-default'
             )}
             onClick={onClick}
         >
@@ -46,7 +46,7 @@ const NetworkButton: React.FC<NetworkButtonProps> = ({
                 )}
             >
                 {isSearch ? (
-                    <Icon name="cancel" size={12} className="size-4 rotate-45" />
+                    <Icon name="cancel" size={16} className="size-4 rotate-45" />
                 ) : chainIconURI && !chainImageError ? (
                     <Image
                         src={chainIconURI}
@@ -60,7 +60,7 @@ const NetworkButton: React.FC<NetworkButtonProps> = ({
                     <AvatarWithBadge size="extra-small" name={chainName} />
                 )}
             </div>
-            <span className="text-sm font-medium">{isSearch ? t('tokenSelector.moreNetworksButton') : chainName}</span>
+            <span className="text-body-s">{isSearch ? t('tokenSelector.moreNetworksButton') : chainName}</span>
         </Button>
     )
 }

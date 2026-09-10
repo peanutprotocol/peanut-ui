@@ -161,3 +161,92 @@ describe('deriveProviderRejection — verdict-first classification', () => {
         expect(info.userMessage).toBe('fix me')
     })
 })
+
+describe('deriveProviderRejection — actionKey (per-requirement Sumsub level)', () => {
+    const sofAction: NextAction = {
+        key: 'sumsub:source_of_funds',
+        kind: 'sumsub',
+        purpose: 'unlock-manteca',
+        levelKey: 'source_of_funds',
+    }
+
+    test('fixable verdict with a sumsub nextAction exposes its key', () => {
+        const info = deriveProviderRejection(
+            [
+                mantecaRail({
+                    status: 'requires-info',
+                    reason: { code: 'source_of_funds', userMessage: 'We need information about your source of funds.' },
+                    resolved: {
+                        status: 'fixable',
+                        blocking: {
+                            code: 'source_of_funds',
+                            userMessage: 'We need information about your source of funds.',
+                            selfHealable: true,
+                            selfHealKind: 'document-resubmit',
+                        },
+                        nextAction: sofAction,
+                    },
+                }),
+            ],
+            'MANTECA'
+        )
+        expect(info.state).toBe('fixable')
+        expect(info.reasonCode).toBe('source_of_funds')
+        expect(info.actionKey).toBe('sumsub:source_of_funds')
+    })
+
+    test('action-less fixable verdict (generic document re-upload) has no actionKey', () => {
+        const info = deriveProviderRejection(
+            [
+                mantecaRail({
+                    status: 'requires-info',
+                    resolved: {
+                        status: 'fixable',
+                        blocking: {
+                            code: 'document_rejected',
+                            userMessage: 'blurry',
+                            selfHealable: true,
+                            selfHealKind: 'document-resubmit',
+                        },
+                    },
+                }),
+            ],
+            'MANTECA'
+        )
+        expect(info.state).toBe('fixable')
+        expect(info.actionKey).toBeNull()
+    })
+
+    test('non-sumsub nextAction kinds never surface as an actionKey', () => {
+        const info = deriveProviderRejection(
+            [
+                mantecaRail({
+                    status: 'blocked',
+                    resolved: {
+                        status: 'blocked',
+                        blocking: {
+                            code: 'country_not_supported',
+                            userMessage: 'try another document',
+                            selfHealable: true,
+                            selfHealKind: 'restart-identity',
+                        },
+                        nextAction: { key: 'restart-identity', kind: 'restart-identity', purpose: 'restart' },
+                    },
+                }),
+            ],
+            'MANTECA'
+        )
+        expect(info.state).toBe('restart-identity')
+        expect(info.actionKey).toBeNull()
+    })
+
+    test('legacy (no resolved) fixable rail resolves the key from the passed nextActions', () => {
+        const info = deriveProviderRejection(
+            [mantecaRail({ status: 'requires-info', blockingActions: [sofAction.key] })],
+            'MANTECA',
+            [sofAction]
+        )
+        expect(info.state).toBe('fixable')
+        expect(info.actionKey).toBe('sumsub:source_of_funds')
+    })
+})

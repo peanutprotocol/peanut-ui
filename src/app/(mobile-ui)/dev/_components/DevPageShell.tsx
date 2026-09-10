@@ -2,7 +2,7 @@
 
 import NavHeader from '@/components/Global/NavHeader'
 import Link from 'next/link'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 /**
  * The shell every /dev page sits in.
@@ -46,14 +46,16 @@ export default function DevPageShell({
                 </div>
                 <Link
                     href={backHref}
-                    className="hidden w-max text-xs font-bold uppercase tracking-wide text-grey-1 underline-offset-2 hover:text-n-1 hover:underline md:block"
+                    className="hidden w-max text-label-m tracking-wide text-foreground-secondary uppercase underline-offset-2 hover:text-foreground-primary hover:underline md:block"
                 >
                     ← {backHref === '/dev' ? 'dev tools' : 'back'}
                 </Link>
                 <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
                     <div className="flex min-w-0 flex-col gap-1">
-                        <h1 className="text-2xl font-extrabold leading-tight md:text-3xl">{title}</h1>
-                        {description && <p className="max-w-3xl text-sm text-grey-1">{description}</p>}
+                        <h1 className="text-heading-s md:text-heading-m">{title}</h1>
+                        {description && (
+                            <p className="max-w-3xl text-body-s text-foreground-secondary">{description}</p>
+                        )}
                     </div>
                     {actions}
                 </div>

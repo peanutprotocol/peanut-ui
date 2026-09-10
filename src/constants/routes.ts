@@ -30,7 +30,6 @@ export const DEDICATED_ROUTES = [
     'profile',
     'kyc',
     'maintenance',
-    'quests',
     'receipt',
     'crisp-proxy',
     'card',
@@ -41,7 +40,6 @@ export const DEDICATED_ROUTES = [
     'qr-pay',
     'badges',
     'limits',
-    'notifications',
     'recover-funds',
     'card-recovery',
     'recover-wallet',
@@ -111,6 +109,10 @@ export const STATIC_REDIRECT_ROUTES = [
     'pints',
     'events',
     'foodie',
+    // Retired route: /quests and /quests/* redirect to / in redirects.json.
+    // Kept reserved so the catch-all and native deep-link mapper never read
+    // 'quests' as a recipient username.
+    'quests',
 ] as const
 
 /**
@@ -124,16 +126,18 @@ export const RESERVED_ROUTES: readonly string[] = [...DEDICATED_ROUTES, ...STATI
  * Matches paths that don't require authentication
  *
  * Note: Most dev tools routes are NOT public - they require both authentication and specific user authorization
- * Exception: /dev/payment-graph is public (uses API key instead of user auth)
+ * Production dev tools require a signed-in Peanut user. Each tool applies its
+ * own server-enforced role check after the normal app session gate.
  */
-export const PUBLIC_ROUTES_REGEX = /^\/(request\/pay|claim|pay\/.+|support|invite|qr|profile\/view|dev\/payment-graph)/
+export const PUBLIC_ROUTES_REGEX = /^\/(request\/pay|claim|pay\/.+|support|invite|qr|profile\/view)/
 
 /**
  * Regex for dev-only public routes: ALL /dev pages (index + every tool/preview).
  * Only matched when IS_DEV is true (build-time NODE_ENV==='development'), so this
- * never applies on prod/preview builds. /dev is also independently notFound()'d on
- * peanut.me by dev/layout.tsx (except full-graph/payment-graph), so dev tooling is
- * doubly walled off from prod — this just removes the login-redirect friction locally.
+ * never applies on prod/preview builds. On peanut.me the /dev pages are blocked
+ * by shouldBlockDevRoute — proxy.ts answers a real 404 on the web, and the two
+ * dev layouts notFound() on the native static export — except the allowlist in
+ * dev-tools.consts.ts. This regex just removes login-redirect friction locally.
  */
 export const DEV_ONLY_PUBLIC_ROUTES_REGEX = /^\/dev(\/|$)/
 

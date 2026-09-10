@@ -8,19 +8,26 @@ interface AdvisoryPreemptModalProps {
     isLoading?: boolean
     /** Launch the verification flow. */
     onCompleteNow: () => void
+    /** Continue with the transfer without completing the requirement now. */
+    onDoLater: () => void
+    /** Plain dismiss (X / backdrop): close without proceeding anywhere. */
+    onClose: () => void
 }
 
 /**
- * Mandatory pre-empt for a pending Bridge verification requirement on the bank
- * rails. Non-closable and non-skippable: the user must complete the verification
- * before they can continue with a bank transfer. There is no "Not now" / X /
- * backdrop dismiss — the only way forward is "Complete now".
+ * Pre-empt for a pending Bridge verification requirement on the bank rails.
+ * The rail is still ENABLED until the effective date, so the honest shape is
+ * an informed choice, not a trap: "Complete now" launches the verification,
+ * "Do this later" is a real button that continues the transfer, and the
+ * deadline (when known) says exactly when later stops being an option.
  */
 export default function AdvisoryPreemptModal({
     visible,
     effectiveDate,
     isLoading = false,
     onCompleteNow,
+    onDoLater,
+    onClose,
 }: AdvisoryPreemptModalProps) {
     const t = useTranslations('kyc')
     const format = useFormatter()
@@ -37,12 +44,7 @@ export default function AdvisoryPreemptModal({
     return (
         <ActionModal
             visible={visible}
-            // Hard gate: no dismiss. onClose is required by ActionModal but
-            // `preventClose` blocks backdrop/escape and `hideModalCloseButton`
-            // removes the X, so it is never reachable.
-            onClose={() => {}}
-            preventClose
-            hideModalCloseButton
+            onClose={onClose}
             icon="badge"
             title={t('advisory.title')}
             description={
@@ -54,6 +56,12 @@ export default function AdvisoryPreemptModal({
                     onClick: onCompleteNow,
                     variant: 'purple',
                     shadowSize: '4',
+                    disabled: isLoading,
+                },
+                {
+                    text: t('advisory.doLater'),
+                    onClick: onDoLater,
+                    variant: 'stroke',
                     disabled: isLoading,
                 },
             ]}

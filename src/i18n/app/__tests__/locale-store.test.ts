@@ -5,6 +5,8 @@
  * jest.isolateModules per test.
  */
 
+import { APP_RELEASE } from '@/constants/app-release'
+
 const mockRegister = jest.fn()
 const mockSetPersonProperties = jest.fn()
 const mockIsIdentified = jest.fn()
@@ -20,20 +22,23 @@ jest.mock('posthog-js', () => ({
 
 // module-level so it applies to every isolateModules registry freshStore builds
 const mockCookiesGet = jest.fn()
+const mockCookiesSet = jest.fn()
 
 jest.mock('js-cookie', () => ({
     __esModule: true,
     default: {
         get: (...args: unknown[]) => mockCookiesGet(...args),
-        set: jest.fn(),
+        set: (...args: unknown[]) => mockCookiesSet(...args),
     },
 }))
 
 const mockIsCapacitor = jest.fn()
+const mockIsNativeBridge = jest.fn()
 const mockGetPlatform = jest.fn()
 
 jest.mock('@/utils/capacitor', () => ({
     isCapacitor: () => mockIsCapacitor(),
+    isNativeBridge: () => mockIsNativeBridge(),
     getPlatform: () => mockGetPlatform(),
 }))
 
@@ -41,6 +46,15 @@ const mockGetLanguageTag = jest.fn()
 
 jest.mock('@capacitor/device', () => ({
     Device: { getLanguageTag: (...args: unknown[]) => mockGetLanguageTag(...args) },
+}))
+
+const mockGetBinaryInfo = jest.fn()
+
+// Mocked at the consumer boundary, not as @capacitor/app: a module mock of the
+// plugin here collided with another suite's virtual mock of it in the same
+// worker and made that suite read the real plugin.
+jest.mock('@/utils/app-version', () => ({
+    getBinaryInfo: (...args: unknown[]) => mockGetBinaryInfo(...args),
 }))
 
 function setNavigatorLanguage(value: string): void {
@@ -74,8 +88,16 @@ beforeEach(() => {
     jest.resetAllMocks()
     mockIsIdentified.mockReturnValue(true)
     mockIsCapacitor.mockReturnValue(false)
+    mockIsNativeBridge.mockReturnValue(false)
     mockGetPlatform.mockReturnValue('web')
 })
+
+function arrangeNativeBridge(): void {
+    mockIsCapacitor.mockReturnValue(true)
+    mockIsNativeBridge.mockReturnValue(true)
+    mockGetPlatform.mockReturnValue('ios-native')
+    mockGetLanguageTag.mockResolvedValue({ value: 'en-US' })
+}
 
 describe('emitLocaleToAnalytics', () => {
     it('first emit registers the super property but never $sets (identify covers startup)', () => {
@@ -126,8 +148,12 @@ describe('emitDeviceContextToAnalytics', () => {
         setNavigatorLanguage('es-AR')
         const store = freshStore()
         await store.emitDeviceContextToAnalytics()
-        expect(mockRegister).toHaveBeenCalledWith({ device_language: 'es-ar', platform: 'web' })
-        expect(store.currentDeviceContext()).toEqual({ device_language: 'es-ar', platform: 'web' })
+        expect(mockRegister).toHaveBeenCalledWith(
+            expect.objectContaining({ device_language: 'es-ar', platform: 'web' })
+        )
+        expect(store.currentDeviceContext()).toEqual(
+            expect.objectContaining({ device_language: 'es-ar', platform: 'web' })
+        )
     })
 
     it('reads the raw tag from the native device bridge on Capacitor', async () => {
@@ -137,22 +163,104 @@ describe('emitDeviceContextToAnalytics', () => {
         const store = freshStore()
         await store.emitDeviceContextToAnalytics()
         expect(mockGetLanguageTag).toHaveBeenCalled()
-        expect(mockRegister).toHaveBeenCalledWith({ device_language: 'pt-br', platform: 'ios-native' })
+        expect(mockRegister).toHaveBeenCalledWith(
+            expect.objectContaining({ device_language: 'pt-br', platform: 'ios-native' })
+        )
     })
 
     it('keeps an unsupported language as-is (never collapses to en — protects the OKR denominator)', async () => {
         setNavigatorLanguage('fr-FR')
         const store = freshStore()
         await store.emitDeviceContextToAnalytics()
-        expect(mockRegister).toHaveBeenCalledWith({ device_language: 'fr-fr', platform: 'web' })
+        expect(mockRegister).toHaveBeenCalledWith(
+            expect.objectContaining({ device_language: 'fr-fr', platform: 'web' })
+        )
     })
 
+    /*
+     * Also registered in posthog.init's `loaded` callback — that is what covers
+     * the initial $pageview, which init captures before this effect ever runs.
+     * Kept in this context too so a logout's posthog.reset(), which wipes super
+     * properties, brings it back with the rest.
+     */
+    it('re-registers the bundle release with the context, for the post-reset path', async () => {
+        setNavigatorLanguage('en-US')
+        const store = freshStore()
+        await store.emitDeviceContextToAnalytics()
+        expect(mockRegister).toHaveBeenCalledWith(expect.objectContaining({ app_release: APP_RELEASE }))
+        expect(store.currentDeviceContext()).toEqual(expect.objectContaining({ app_release: APP_RELEASE }))
+    })
+
+    // app_release is the JS bundle's version; per-shell failure rates need the
+    // binary's own, which only the native bridge can answer.
+    it('registers the binary version and build on the native bridge', async () => {
+        arrangeNativeBridge()
+        mockGetBinaryInfo.mockResolvedValue({ appVersion: '1.1.0', appBuild: '42' })
+        const store = freshStore()
+        await store.emitDeviceContextToAnalytics()
+        expect(mockRegister).toHaveBeenCalledWith(
+            expect.objectContaining({ binary_version: '1.1.0', binary_build: '42' })
+        )
+        expect(store.currentDeviceContext()).toEqual(
+            expect.objectContaining({ binary_version: '1.1.0', binary_build: '42' })
+        )
+    })
+
+    it('omits the binary fields on web, where there is no binary', async () => {
+        setNavigatorLanguage('en-US')
+        const store = freshStore()
+        await store.emitDeviceContextToAnalytics()
+        const [registered] = mockRegister.mock.calls[0]
+        expect(registered).not.toHaveProperty('binary_version')
+        expect(registered).not.toHaveProperty('binary_build')
+        expect(mockGetBinaryInfo).not.toHaveBeenCalled()
+    })
+
+    it('still registers the rest of the context when the binary read fails', async () => {
+        arrangeNativeBridge()
+        // app-version swallows a missing plugin and answers null
+        mockGetBinaryInfo.mockResolvedValue(null)
+        const store = freshStore()
+        await store.emitDeviceContextToAnalytics()
+        const [registered] = mockRegister.mock.calls[0]
+        expect(registered).toEqual(expect.objectContaining({ device_language: 'en-us', platform: 'ios-native' }))
+        expect(registered).not.toHaveProperty('binary_version')
+    })
+
+    // Two registers on the first emit — the context, then the device identity as
+    // its own step so a bridge that never answers cannot take `platform` and
+    // `app_release` down with it. What must not repeat is the emit itself.
     it('emits once per session', async () => {
         setNavigatorLanguage('pt-BR')
         const store = freshStore()
         await store.emitDeviceContextToAnalytics()
+        const afterFirst = mockRegister.mock.calls.length
         await store.emitDeviceContextToAnalytics()
-        expect(mockRegister).toHaveBeenCalledTimes(1)
+        expect(mockRegister).toHaveBeenCalledTimes(afterFirst)
+    })
+
+    // The cached context is what authContext re-registers after posthog.reset()
+    // wipes super properties, so the identity has to be folded into it — not
+    // just registered — or a logout would silently drop device segmentation.
+    it('folds the device identity into the context it exposes for logout re-register', async () => {
+        setNavigatorLanguage('en-US')
+        const store = freshStore()
+        await store.emitDeviceContextToAnalytics()
+        expect(store.currentDeviceContext()).toEqual(
+            expect.objectContaining({ platform: 'web', device_class: expect.any(String) })
+        )
+    })
+
+    // Super properties reach events, not the person profile. A visitor still
+    // anonymous when the identity resolved gets no $set, so authContext folds
+    // this into its identify payload — without it the cohort omits everyone who
+    // logs in after startup.
+    it('exposes the resolved identity for the identify payload', async () => {
+        setNavigatorLanguage('en-US')
+        const store = freshStore()
+        expect(store.currentDeviceIdentity()).toBeNull()
+        await store.emitDeviceContextToAnalytics()
+        expect(store.currentDeviceIdentity()).toEqual(expect.objectContaining({ device_class: expect.any(String) }))
     })
 
     it('a posthog throw never propagates and leaves the context unset so a retry can register', async () => {
@@ -165,7 +273,9 @@ describe('emitDeviceContextToAnalytics', () => {
         expect(store.currentDeviceContext()).toBeNull()
         // guard is set only on success, so the next call retries instead of no-op
         await store.emitDeviceContextToAnalytics()
-        expect(store.currentDeviceContext()).toEqual({ device_language: 'en-us', platform: 'web' })
+        expect(store.currentDeviceContext()).toEqual(
+            expect.objectContaining({ device_language: 'en-us', platform: 'web' })
+        )
     })
 })
 
@@ -208,5 +318,26 @@ describe('localeReady', () => {
         const first = store.localeReady()
         expect(store.localeReady()).toBe(first)
         await expect(first).resolves.toBe('es-419')
+    })
+
+    // A locale derived from the browser language used to live only in memory:
+    // a full document load (a PWA relaunching at start_url after a new-tab
+    // detour) re-derived it and the proxy never saw an app-locale cookie.
+    it('persists the startup locale so a full document load finds the cookie', async () => {
+        setNavigatorLanguage('pt-BR')
+        const store = freshStore()
+        await store.localeReady()
+        expect(mockCookiesSet).toHaveBeenCalledWith('app-locale', 'pt-BR', expect.objectContaining({ path: '/' }))
+        expect(window.localStorage.getItem('app-locale')).toBe('pt-BR')
+    })
+
+    it('never overwrites a manual switch that landed before resolution finished', async () => {
+        setNavigatorLanguage('pt-BR')
+        const store = freshStore()
+        const pending = store.localeReady()
+        store.persistLocale('es-419')
+        await pending
+        expect(mockCookiesSet).not.toHaveBeenCalledWith('app-locale', 'pt-BR', expect.anything())
+        expect(window.localStorage.getItem('app-locale')).toBe('es-419')
     })
 })

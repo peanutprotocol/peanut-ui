@@ -1,4 +1,10 @@
-import { contentGeneratedAt, listAllContent, readPageContent, type ContentFrontmatter } from '@/lib/content'
+import {
+    contentGeneratedAt,
+    listAllContent,
+    readPageContent,
+    resolveContentHref,
+    type ContentFrontmatter,
+} from '@/lib/content'
 
 describe('listAllContent', () => {
     it('returns items across all 4 hub types for en', () => {
@@ -32,6 +38,17 @@ describe('listAllContent', () => {
         }
     })
 
+    it('links fallback items to the locale that owns their prose', () => {
+        const item = listAllContent('es-ar').find(
+            ({ type, slug }) => type === 'blog' && slug === 'stablecoin-balance-visa-merchants'
+        )
+
+        expect(item).toMatchObject({
+            lang: 'en',
+            href: '/en/blog/stablecoin-balance-visa-merchants',
+        })
+    })
+
     it('excludes the legacy stories/index slug', () => {
         const items = listAllContent('en')
         expect(items.some((i) => i.type === 'stories' && i.slug === 'index')).toBe(false)
@@ -49,6 +66,89 @@ describe('listAllContent', () => {
             const curr = new Date(blogItems[i].date ?? 0).getTime()
             expect(prev).toBeGreaterThanOrEqual(curr)
         }
+    })
+})
+
+describe('resolveContentHref', () => {
+    it.each([
+        ['/en/countries-do-not-exist', '/es-ar/countries-do-not-exist'],
+        ['/en/poland', '/es-419/poland'],
+        ['/en/send-money-to/australia', '/es-419/send-money-to/australia'],
+        ['/en/send-money-from/colombia/to/argentina', '/es-419/send-money-from/colombia/to/argentina'],
+        ['/en/receive-money-from/portugal', '/es-419/receive-money-from/portugal'],
+        ['/en/compare/peanut-vs-wise', '/es-ar/compare/peanut-vs-wise'],
+        ['/en/deposit/via-spei', '/es-419/deposit/via-spei'],
+        ['/en/pay-with/mercadopago', '/es-ar/pay-with/mercadopago'],
+        ['/en/help/passkeys', '/es-419/help/passkeys'],
+        ['/en/use-cases/families', '/es-419/use-cases/families'],
+        ['/en/stories/purple', '/es-419/stories/purple'],
+        ['/en/withdraw/spei', '/es-419/withdraw/spei'],
+        ['/en/blog/stablecoin-balance-visa-merchants', '/en/blog/stablecoin-balance-visa-merchants'],
+        ['/en/card-terms-us', '/en/card-terms-us'],
+        ['/en/pricing', '/es-419/pricing'],
+        ['/en/press', '/en/press'],
+    ])('points %s at its content owner', (href, expected) => {
+        expect(resolveContentHref(href, 'es-ar')).toBe(expected)
+    })
+
+    it('preserves locale-native hubs and URL suffixes', () => {
+        expect(resolveContentHref('/en/help?from=footer#payments', 'es-ar')).toBe('/es-ar/help?from=footer#payments')
+        expect(resolveContentHref('/en/content#guides', 'es-ar')).toBe('/es-ar/content#guides')
+        expect(resolveContentHref('/en/deposit/via-spei?from=footer#limits', 'es-ar')).toBe(
+            '/es-419/deposit/via-spei?from=footer#limits'
+        )
+    })
+
+    it('localizes en-authored absolute URLs without a content owner, like their relative form', () => {
+        expect(resolveContentHref('https://peanut.me/en/help', 'es-ar')).toBe('https://peanut.me/es-ar/help')
+        expect(resolveContentHref('https://peanut.me/en/content#guides', 'es-419')).toBe(
+            'https://peanut.me/es-419/content#guides'
+        )
+    })
+
+    it('resolves owners for percent-encoded content segments', () => {
+        expect(resolveContentHref('/en/help/pass%6beys', 'es-ar')).toBe('/es-419/help/pass%6beys')
+    })
+
+    it('resolves exact production-origin content URLs while preserving their absolute form and suffix', () => {
+        const fallbackUrl = 'https://peanut.me/es-419/card-terms-international?from=fees#terms'
+        const ownerUrl = 'https://peanut.me/en/card-terms-international?from=fees#terms'
+
+        expect(resolveContentHref(fallbackUrl, 'es-419')).toBe(ownerUrl)
+        expect(resolveContentHref(ownerUrl, 'es-419')).toBe(ownerUrl)
+        expect(resolveContentHref('https://peanut.me/en/help/passkeys', 'es-ar')).toBe(
+            'https://peanut.me/es-419/help/passkeys'
+        )
+    })
+
+    it.each([
+        'https://peanut.me/shhhhh?from=content#card',
+        'https://peanut.me/es-ar/help',
+        'https://peanut.me.evil.com/es-419/terms',
+        'https://peanut.me@evil.com/es-419/terms',
+        'http://peanut.me/es-419/terms',
+    ])('leaves non-content or non-exact production origins unchanged: %s', (href) => {
+        expect(resolveContentHref(href, 'es-419')).toBe(href)
+    })
+
+    it.each(['//cdn.example.com/asset', 'mailto:hi@peanut.me', '#payments', 'https://example.com/en/help/passkeys'])(
+        'leaves external links and anchors unchanged: %s',
+        (href) => {
+            expect(resolveContentHref(href, 'es-ar')).toBe(href)
+        }
+    )
+
+    it.each([
+        ['es-419', ['https://peanut.me/es-419/card-terms-international', 'https://peanut.me/es-419/terms']],
+        ['pt-br', ['https://peanut.me/pt-br/card-terms-international', 'https://peanut.me/pt-br/terms']],
+    ] as const)('repairs the fallback-only absolute legal links authored in fees-pricing/%s.md', (locale, urls) => {
+        const content = readPageContent('help', 'fees-pricing', locale)
+        expect(content).not.toBeNull()
+        for (const url of urls) expect(content?.body).toContain(url)
+        expect(urls.map((url) => resolveContentHref(url, locale))).toEqual([
+            'https://peanut.me/en/card-terms-international',
+            'https://peanut.me/en/terms',
+        ])
     })
 })
 

@@ -4,17 +4,20 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import maintenanceConfig from '@/config/underMaintenance.config'
+import { shouldBlockDevRoute } from '@/constants/dev-tools.consts'
 import { LOCALE_COOKIE, toAppLocale, toMarketingLocale, withCountry } from '@/i18n/localeBridge'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 
 export function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl
 
-    // /dev/ routes are now accessible in production for testing
-    // Uncomment below to block /dev/ routes in production if needed
-    // if (process.env.NODE_ENV === 'production' && pathname.startsWith('/dev/')) {
-    //     return new NextResponse(null, { status: 404 })
-    // }
+    // Internal dev tooling must not answer on peanut.me. The client gate in
+    // (mobile-ui)/dev/layout.tsx renders the not-found UI but still returns 200,
+    // so the real 404 has to come from here. This also covers the pages under
+    // `src/app/dev/*`, which have no layout gate at all.
+    if (shouldBlockDevRoute(pathname)) {
+        return new NextResponse(null, { status: 404 })
+    }
 
     // check if full maintenance mode is enabled
     if (maintenanceConfig.enableFullMaintenance) {

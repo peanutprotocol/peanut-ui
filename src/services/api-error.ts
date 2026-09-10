@@ -12,6 +12,7 @@
  * translation, never a crash.
  */
 export const API_ERROR_CODES = {
+    USER_OP_REVERTED: 'USER_OP_REVERTED',
     INSUFFICIENT_COLLATERAL: 'INSUFFICIENT_COLLATERAL',
     WITHDRAWAL_COOLDOWN_ACTIVE: 'WITHDRAWAL_COOLDOWN_ACTIVE',
     WITHDRAWAL_SIGNATURE_COOLDOWN: 'WITHDRAWAL_SIGNATURE_COOLDOWN',
@@ -23,8 +24,13 @@ export const API_ERROR_CODES = {
     NO_COLLATERAL_CONTRACT: 'NO_COLLATERAL_CONTRACT',
     CARD_SECRETS_RATE_LIMITED: 'CARD_SECRETS_RATE_LIMITED',
     MANTECA_KYC_REQUIRED: 'MANTECA_KYC_REQUIRED',
+    MANTECA_TEMPORARILY_UNAVAILABLE: 'MANTECA_TEMPORARILY_UNAVAILABLE',
+    QR_PAYMENT_CANCELLED: 'QR_PAYMENT_CANCELLED',
     TRANSFER_ALREADY_CONFIRMED: 'TRANSFER_ALREADY_CONFIRMED',
     CHAIN_INFRA_UNAVAILABLE: 'CHAIN_INFRA_UNAVAILABLE',
+    LINK_ALREADY_CLAIMED: 'LINK_ALREADY_CLAIMED',
+    BELOW_MIN_BRIDGE_AMOUNT: 'BELOW_MIN_BRIDGE_AMOUNT',
+    XCHAIN_WITHDRAW_LIMIT_REACHED: 'XCHAIN_WITHDRAW_LIMIT_REACHED',
 } as const
 
 export type ApiErrorCode = (typeof API_ERROR_CODES)[keyof typeof API_ERROR_CODES]
@@ -42,12 +48,15 @@ export type ApiErrorCode = (typeof API_ERROR_CODES)[keyof typeof API_ERROR_CODES
 export class ApiError extends Error {
     readonly status: number
     readonly code: string | undefined
+    /** Seconds until a rate-limited or cooled-down action can be retried, when the backend sent one. */
+    readonly retryAfterSec: number | undefined
 
-    constructor(message: string, opts: { status: number; code?: string; cause?: unknown }) {
+    constructor(message: string, opts: { status: number; code?: string; retryAfterSec?: number; cause?: unknown }) {
         super(message, { cause: opts.cause })
         this.name = 'ApiError'
         this.status = opts.status
         this.code = opts.code
+        this.retryAfterSec = opts.retryAfterSec
     }
 }
 
@@ -90,14 +99,29 @@ export function apiErrorStatus(error: unknown): number | undefined {
 export async function apiErrorFromResponse(response: Response, fallbackMessage: string): Promise<ApiError> {
     let message = fallbackMessage
     let code: string | undefined
+    let retryAfterSec: number | undefined
     try {
         const body = await response.text()
-        const parsed = JSON.parse(body) as { message?: unknown; error?: unknown; code?: unknown }
+        const parsed = JSON.parse(body) as {
+            message?: unknown
+            error?: unknown
+            code?: unknown
+            retryAfterSec?: unknown
+        }
         if (typeof parsed.message === 'string' && parsed.message) message = parsed.message
         else if (typeof parsed.error === 'string' && parsed.error) message = parsed.error
         if (typeof parsed.code === 'string' && parsed.code) code = parsed.code
+        // Older submit routes put the wire discriminant in `error`.
+        else if (Object.values(API_ERROR_CODES).some((value) => value === parsed.error)) code = parsed.error as string
+        if (
+            typeof parsed.retryAfterSec === 'number' &&
+            Number.isFinite(parsed.retryAfterSec) &&
+            parsed.retryAfterSec > 0
+        ) {
+            retryAfterSec = parsed.retryAfterSec
+        }
     } catch {
         // unreadable or non-JSON body — keep the fallback message
     }
-    return new ApiError(message, { status: response.status, code })
+    return new ApiError(message, { status: response.status, code, retryAfterSec })
 }

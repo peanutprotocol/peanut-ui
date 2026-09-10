@@ -10,6 +10,7 @@ export const LOADING_STATES = [
     'Switching network',
     'Fetching route',
     'Fetching details',
+    'Still fetching details',
     'Awaiting route fulfillment',
     'Asserting values',
     'Generating details',

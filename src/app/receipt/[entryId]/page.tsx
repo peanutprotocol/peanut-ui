@@ -1,6 +1,7 @@
 import { connection } from 'next/server'
 import { notFound } from 'next/navigation'
-import { isFinalState } from '@/utils/history.utils'
+import { captureException } from '@sentry/nextjs'
+import { isFinalState, type HistoryEntry } from '@/utils/history.utils'
 import { getHistoryEntry } from '@/app/actions/history'
 import {
     mapTransactionDataForDrawer,
@@ -8,14 +9,16 @@ import {
 } from '@/components/TransactionDetails/transactionTransformer'
 import { resolveReceiptKind } from '@/components/TransactionDetails/strategies/registry'
 import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsReceipt'
+import { ReceiptUnavailable } from '@/components/TransactionDetails/ReceiptUnavailable'
 import NavHeader from '@/components/Global/NavHeader'
 import { generateMetadata as generateBaseMetadata } from '@/app/metadata'
 import { type Metadata } from 'next'
 import { BASE_URL } from '@/constants/general.consts'
-import { formatAmount, formatCurrency, isStableCoin } from '@/utils/general.utils'
+import { formatCurrency } from '@/utils/general.utils'
 import { buildOgImageUrl } from '@/utils/og.utils'
 import getOrigin from '@/lib/hosting/get-origin'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
+import { generateReceiptTitle, generateReceiptDescription } from './receipt-metadata.utils'
 
 // Helper function to map transaction card type to OG image type
 function mapTransactionTypeToOGType(transactionType: string): 'send' | 'request' {
@@ -33,76 +36,6 @@ function mapTransactionTypeToOGType(transactionType: string): 'send' | 'request'
         case 'pay':
         default:
             return 'send'
-    }
-}
-
-// Helper function to generate receipt title based on transaction details
-function generateReceiptTitle(transaction: TransactionDetails): string {
-    const { direction, amount, userName, status, currency, tokenSymbol } = transaction
-
-    // Format amount - use currency if available, otherwise tokenSymbol.
-    // Treat USDC/USDT as USD (1:1 peg) — `USDC 0.10` reads identically to
-    // `$0.10` and just clutters the title.
-    let formattedAmount: string
-    if (currency && currency.code !== 'USD' && !isStableCoin(currency.code)) {
-        formattedAmount = `${currency.code} ${formatAmount(currency.amount)}`
-    } else if (tokenSymbol && !isStableCoin(tokenSymbol)) {
-        formattedAmount = `${formatAmount(Number(amount))} ${tokenSymbol}`
-    } else {
-        formattedAmount = `$${formatCurrency(Number(amount).toString())}`
-    }
-
-    // Handle different transaction directions and statuses
-    if (status === 'failed') {
-        return 'Receipt - Failed transaction'
-    }
-
-    if (status === 'cancelled') {
-        return 'Receipt - Cancelled transaction'
-    }
-
-    switch (direction) {
-        case 'send':
-            return `Receipt - You sent ${formattedAmount}${userName ? ` to ${userName}` : ''}`
-        case 'receive':
-            return `Receipt - You received ${formattedAmount}${userName ? ` from ${userName}` : ''}`
-        case 'withdraw':
-        case 'bank_withdraw':
-            return `Receipt - Withdrawal of ${formattedAmount}`
-        case 'bank_deposit':
-        case 'add':
-            return `Receipt - Deposit of ${formattedAmount}`
-        case 'request_sent':
-            return `Receipt - Request for ${formattedAmount}${userName ? ` to ${userName}` : ''}`
-        case 'request_received':
-            return `Receipt - Request for ${formattedAmount}${userName ? ` from ${userName}` : ''}`
-        case 'bank_request_fulfillment':
-            return `Receipt - Bank payment of ${formattedAmount}${userName ? ` to ${userName}` : ''}`
-        case 'bank_claim':
-        case 'claim_external':
-            return `Receipt - Claim of ${formattedAmount}`
-        case 'qr_payment':
-            return `Receipt - Payment of ${formattedAmount}${userName ? ` to ${userName}` : ''}`
-        default:
-            return `Receipt - Transaction of ${formattedAmount}`
-    }
-}
-
-// Helper function to generate receipt description based on status
-function generateReceiptDescription(status: string): string {
-    switch (status) {
-        case 'completed':
-            return 'Transaction completed via Peanut'
-        case 'pending':
-            return 'Transaction pending'
-        case 'processing':
-            return 'Transaction processing'
-        case 'failed':
-            return 'Transaction failed'
-        case 'cancelled':
-            return 'Transaction cancelled'
-        default:
-            return 'View transaction receipt'
     }
 }
 
@@ -125,13 +58,18 @@ export async function generateMetadata({
         return basicMetadata
     }
 
-    const entry = await getHistoryEntry(entryId, kind)
-    if (!entry) {
+    let transactionDetails: TransactionDetails
+    try {
+        const entry = await getHistoryEntry(entryId, kind)
+        if (!entry) {
+            return basicMetadata
+        }
+        // Transform the entry data to get readable transaction details
+        transactionDetails = mapTransactionDataForDrawer(entry).transactionDetails
+    } catch {
+        // the page body reports the failure; metadata just degrades
         return basicMetadata
     }
-
-    // Transform the entry data to get readable transaction details
-    const { transactionDetails } = mapTransactionDataForDrawer(entry)
 
     // Generate dynamic title and description
     const title = generateReceiptTitle(transactionDetails)
@@ -178,24 +116,51 @@ export default async function ReceiptPage({
     const { entryId } = await params
     const resolvedParams = await searchParams
     const kind = resolveReceiptKind(resolvedParams.kind, resolvedParams.t)
+    // No resolvable kind — most often a pre-May-2026 `?t=` link whose id no
+    // longer resolves. A hard 404 reads as breakage on a link users hold, so
+    // show a branded explanation instead.
     if (!entryId || !kind) {
-        notFound()
+        return <ReceiptShell state="gone" />
     }
-    const entry = await getHistoryEntry(entryId, kind)
+    let entry: HistoryEntry | null
+    try {
+        entry = await getHistoryEntry(entryId, kind)
+    } catch (error) {
+        // A BE hiccup was crashing the whole Server Components render
+        // (PEANUT-UI-4S9); keep the Sentry signal but render a retryable state.
+        captureException(error)
+        return <ReceiptShell state="loadFailed" />
+    }
     if (!entry) {
         notFound()
     }
     if (!isFinalState(entry)) {
         await connection()
     }
-    const { transactionDetails } = mapTransactionDataForDrawer(entry)
+    let transactionDetails: TransactionDetails | undefined
+    try {
+        transactionDetails = mapTransactionDataForDrawer(entry).transactionDetails
+    } catch (error) {
+        captureException(error)
+    }
+    if (!transactionDetails) {
+        return <ReceiptShell state="loadFailed" />
+    }
     return (
-        <PageContainer className="flex min-h-[100dvh] flex-col items-center justify-center p-6">
-            <div className="md:hidden">
+        <ReceiptShell>
+            <TransactionDetailsReceipt className="w-full" transaction={transactionDetails} isPublic />
+        </ReceiptShell>
+    )
+}
+
+function ReceiptShell({ state, children }: { state?: 'gone' | 'loadFailed'; children?: React.ReactNode }) {
+    return (
+        <PageContainer className="receipt-page flex min-h-dvh flex-col items-center justify-center p-4">
+            <div className="md:hidden print:hidden">
                 <NavHeader titleKey="receipt" />
             </div>
             <div className="flex flex-1 flex-col items-center justify-center">
-                <TransactionDetailsReceipt className="w-full" transaction={transactionDetails!} isPublic />
+                {state ? <ReceiptUnavailable variant={state} /> : children}
             </div>
         </PageContainer>
     )

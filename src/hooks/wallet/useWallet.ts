@@ -1,8 +1,6 @@
 'use client'
 
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
-import { useAppDispatch, useWalletStore } from '@/redux/hooks'
-import { walletActions } from '@/redux/slices/wallet-slice'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useIsFetching } from '@tanstack/react-query'
@@ -25,6 +23,7 @@ import { useSpendBundle } from './useSpendBundle'
 import type { SpendStrategy } from './spendPreflight'
 import type { RainCollateralKind } from '@/services/rain'
 import { isDemoMode } from '@/utils/demo'
+import { peekActiveFixture } from '@/dev/fixtures/active'
 import { useDemoBalanceUnits } from '@/utils/demo-balance'
 import { readLastKnownSpendable, writeLastKnownSpendable } from './lastKnownSpendable'
 
@@ -55,9 +54,7 @@ type SendTransactionsOptions = {
 }
 
 export const useWallet = () => {
-    const dispatch = useAppDispatch()
     const { address, isKernelClientReady, handleSendUserOpEncoded } = useZeroDev()
-    const { balance: reduxBalance } = useWalletStore()
     const { user } = useAuth()
 
     // check if address matches user's wallet address
@@ -98,13 +95,6 @@ export const useWallet = () => {
         isLoading: isFetchingBalance,
         refetch: refetchBalance,
     } = useBalance(shouldFetchBalance ? (address as Address) : undefined)
-
-    // Sync TanStack Query balance with Redux (for backward compatibility)
-    useEffect(() => {
-        if (balanceFromQuery !== undefined) {
-            dispatch(walletActions.setBalance(balanceFromQuery))
-        }
-    }, [balanceFromQuery, dispatch])
 
     // Rain collateral overview — loaded here so `sendTransactions` can consult
     // the current `spendingPower` when callers opt into collateral top-up.
@@ -207,17 +197,20 @@ export const useWallet = () => {
     // demo mode: mutable, persisted balance overlay (utils/demo-balance.ts) —
     // debited on each simulated send so the displayed balance updates and
     // survives relaunch.
-    const demoMode = isDemoMode()
+    // Dev fixtures ride the same overlay: there is no kernel client to read a
+    // real balance with, so the alternative is a balance skeleton that never
+    // resolves.
+    // peek, not ensure: this runs in the render body, and ensureActiveFixture
+    // writes (sessionStorage + cookie). api-fetch does the promotion write.
+    const demoMode = isDemoMode() || !!peekActiveFixture()
     const demoBalanceUnits = useDemoBalanceUnits()
 
-    // Use balance from query if available, otherwise fall back to Redux
-    const balance = demoMode
-        ? demoBalanceUnits
-        : balanceFromQuery !== undefined
-          ? balanceFromQuery
-          : reduxBalance !== undefined
-            ? BigInt(reduxBalance)
-            : undefined
+    // The TanStack ['balance', address] query is the single owner (the redux
+    // mirror it used to fall back on only ever echoed this same query —
+    // TASK-21462). While the address gate is unresolved the balance is
+    // undefined, which every downstream gate already treats as "loading",
+    // never as headroom.
+    const balance = demoMode ? demoBalanceUnits : balanceFromQuery
 
     // consider balance as fetching until: address is validated and query has resolved
     const isBalanceLoading = demoMode ? false : !isAddressReady || isFetchingBalance

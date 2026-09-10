@@ -12,6 +12,7 @@ import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { withNuqsTestingAdapter } from 'nuqs/adapters/testing'
 
 // ---------- module-level mocks (must be before imports that depend on them) ----------
 
@@ -72,11 +73,6 @@ jest.mock('@/context/authContext', () => ({
 const mockUseWallet = jest.fn()
 jest.mock('@/hooks/wallet/useWallet', () => ({
     useWallet: () => mockUseWallet(),
-}))
-
-const mockUseTransactionDetailsDrawer = jest.fn()
-jest.mock('@/hooks/useTransactionDetailsDrawer', () => ({
-    useTransactionDetailsDrawer: () => mockUseTransactionDetailsDrawer(),
 }))
 
 jest.mock('@/hooks/useTransactionHistory', () => ({
@@ -170,8 +166,9 @@ jest.mock('@/components/TransactionDetails/transactionTransformer', () => ({
     REWARD_TOKENS: {},
 }))
 
+const mockReceipt = jest.fn((_props: any) => <div data-testid="transaction-details-receipt">Receipt</div>)
 jest.mock('@/components/TransactionDetails/TransactionDetailsReceipt', () => ({
-    TransactionDetailsReceipt: (_props: any) => <div data-testid="transaction-details-receipt">Receipt</div>,
+    TransactionDetailsReceipt: (props: any) => mockReceipt(props),
 }))
 
 jest.mock('@/context/ModalsContext', () => ({
@@ -214,9 +211,14 @@ jest.mock('@/components/0_Bruddle/PageContainer', () => ({
     ),
 }))
 
-jest.mock('@/components/Global/PeanutLoading', () => ({
+jest.mock('@/components/Global/Loading', () => ({
     __esModule: true,
-    default: (_props: any) => <div data-testid="peanut-loading">Loading...</div>,
+    default: (props: any) =>
+        props.variant === 'mascot' ? (
+            <div data-testid="peanut-loading">{props.message && <span>{props.message}</span>}</div>
+        ) : (
+            <div data-testid="loading-spinner" />
+        ),
 }))
 
 jest.mock('@/assets/mascot', () => ({
@@ -244,7 +246,9 @@ function renderClaim() {
             <QueryClientProvider client={queryClient}>
                 <Claim />
             </QueryClientProvider>
-        </IntlWrapper>
+        </IntlWrapper>,
+        // useClaimFlow reads query params through nuqs
+        { wrapper: withNuqsTestingAdapter() }
     )
 }
 
@@ -294,13 +298,6 @@ function applyDefaults() {
     mockUseWallet.mockReturnValue({
         address: '0xWALLET',
         balance: BigInt(100000000),
-    })
-
-    mockUseTransactionDetailsDrawer.mockReturnValue({
-        openTransactionDetails: jest.fn(),
-        selectedTransaction: null,
-        isDrawerOpen: false,
-        closeTransactionDetails: jest.fn(),
     })
 
     // Default: API returns nothing (not called yet)
@@ -374,14 +371,6 @@ describe('GROUP 3: Already Claimed / Cancelled', () => {
         const link = makeSendLink({ status: 'CLAIMED', claim: { txHash: '0xCLAIM' } })
         mockSendLinksApi.get.mockResolvedValue(link)
 
-        // Mock transaction drawer to provide selectedTransaction
-        mockUseTransactionDetailsDrawer.mockReturnValue({
-            openTransactionDetails: jest.fn(),
-            selectedTransaction: { amount: 10, tokenSymbol: 'USDC' },
-            isDrawerOpen: false,
-            closeTransactionDetails: jest.fn(),
-        })
-
         renderClaim()
 
         await waitFor(() => {
@@ -393,13 +382,6 @@ describe('GROUP 3: Already Claimed / Cancelled', () => {
         const link = makeSendLink({ status: 'CANCELLED' })
         mockSendLinksApi.get.mockResolvedValue(link)
 
-        mockUseTransactionDetailsDrawer.mockReturnValue({
-            openTransactionDetails: jest.fn(),
-            selectedTransaction: { amount: 10, tokenSymbol: 'USDC' },
-            isDrawerOpen: false,
-            closeTransactionDetails: jest.fn(),
-        })
-
         renderClaim()
 
         await waitFor(() => {
@@ -407,16 +389,66 @@ describe('GROUP 3: Already Claimed / Cancelled', () => {
         })
     })
 
+    // GET /send-links/:pubKey answers a cache hit with the raw Prisma row, which
+    // carries `intents` instead of the projected `claim` + `events`. Claim.tsx read
+    // `events[0]` unguarded and took the whole page down (PEANUT-UI-SJ0).
+    test('CANCELLED link renders when the API omits claim/events (cache-hit shape)', async () => {
+        mockUseAuth.mockReturnValue({
+            user: { user: { userId: 'sender-123' } },
+            isFetchingUser: false,
+            fetchUser: jest.fn(),
+        })
+
+        const {
+            events: _events,
+            claim: _claim,
+            ...unprojected
+        } = makeSendLink({
+            status: 'CANCELLED',
+            sender: { userId: 'sender-123', username: 'alice' },
+        })
+        mockSendLinksApi.get.mockResolvedValue(unprojected)
+
+        renderClaim()
+
+        // Gates on the receipt, which only renders once the transaction memo has
+        // produced a value — asserting on ClaimedView settles too early to catch
+        // a throw inside the memo.
+        await waitFor(() => {
+            expect(screen.getByTestId('transaction-details-receipt')).toBeInTheDocument()
+        })
+    })
+
+    // A sender's cancel/reclaim leaves no SEND_LINK_CLAIM intent behind, so the
+    // `events` fallback is empty and the receipt used to show no cancellation
+    // date at all. GET /send-links carries the row's own cancelledAt as of
+    // peanut-api-ts#1525; until that ships the fallback keeps today's behaviour.
+    test('CANCELLED receipt shows the cancellation date from cancelledAt', async () => {
+        mockUseAuth.mockReturnValue({
+            user: { user: { userId: 'sender-123' } },
+            isFetchingUser: false,
+            fetchUser: jest.fn(),
+        })
+        mockSendLinksApi.get.mockResolvedValue(
+            makeSendLink({
+                status: 'CANCELLED',
+                cancelledAt: '2026-04-20T12:00:00.000Z',
+                sender: { userId: 'sender-123', username: 'alice' },
+            })
+        )
+
+        renderClaim()
+
+        await waitFor(() => {
+            expect(screen.getByTestId('transaction-details-receipt')).toBeInTheDocument()
+        })
+        const { transaction } = mockReceipt.mock.calls.at(-1)![0]
+        expect(transaction.cancelledDate).toEqual(new Date('2026-04-20T12:00:00.000Z'))
+    })
+
     test('CLAIMING link (in progress) shows as already claimed', async () => {
         const link = makeSendLink({ status: 'CLAIMING' })
         mockSendLinksApi.get.mockResolvedValue(link)
-
-        mockUseTransactionDetailsDrawer.mockReturnValue({
-            openTransactionDetails: jest.fn(),
-            selectedTransaction: { amount: 10, tokenSymbol: 'USDC' },
-            isDrawerOpen: false,
-            closeTransactionDetails: jest.fn(),
-        })
 
         renderClaim()
 
@@ -428,13 +460,6 @@ describe('GROUP 3: Already Claimed / Cancelled', () => {
     test('FAILED link with txHash shows as already claimed (funds left)', async () => {
         const link = makeSendLink({ status: 'FAILED', claim: { txHash: '0xFAILED' } })
         mockSendLinksApi.get.mockResolvedValue(link)
-
-        mockUseTransactionDetailsDrawer.mockReturnValue({
-            openTransactionDetails: jest.fn(),
-            selectedTransaction: { amount: 10, tokenSymbol: 'USDC' },
-            isDrawerOpen: false,
-            closeTransactionDetails: jest.fn(),
-        })
 
         renderClaim()
 
@@ -524,14 +549,6 @@ describe('GROUP 5: User-Dependent States', () => {
             sender: { userId: 'sender-123', username: 'alice' },
         })
         mockSendLinksApi.get.mockResolvedValue(link)
-
-        const mockOpenDetails = jest.fn()
-        mockUseTransactionDetailsDrawer.mockReturnValue({
-            openTransactionDetails: mockOpenDetails,
-            selectedTransaction: { amount: 10, tokenSymbol: 'USDC' },
-            isDrawerOpen: true,
-            closeTransactionDetails: jest.fn(),
-        })
 
         renderClaim()
 

@@ -5,7 +5,9 @@
 
 import Cookies from 'js-cookie'
 import posthog from 'posthog-js'
-import { getPlatform, isCapacitor } from '@/utils/capacitor'
+import { APP_RELEASE } from '@/constants/app-release'
+import { getPlatform, isCapacitor, isNativeBridge } from '@/utils/capacitor'
+import { resolveDeviceIdentity, type DeviceIdentity } from '@/utils/device-identity'
 import { readStoredValue, writeStoredValue } from '@/utils/safe-storage'
 import { resolveLocale, type AppLocale } from './config'
 
@@ -77,10 +79,21 @@ async function readDeviceTag(): Promise<string | null> {
 // KYC/nationality join. The resolved context is cached (not just a bool) so the
 // logout handler can re-register it after posthog.reset() wipes super
 // properties, mirroring app_locale. Fenced so analytics can never break the app.
-let deviceContext: { device_language: string; platform: string } | null = null
+// binary_version / binary_build are the native shell's own version (app_release
+// is the JS bundle's), present only on the native bridge; they are what splits
+// a per-build failure rate across shells.
+type DeviceContext = {
+    device_language: string
+    platform: string
+    app_release: string
+    binary_version?: string
+    binary_build?: string
+} & Partial<DeviceIdentity>
+
+let deviceContext: DeviceContext | null = null
 
 /** Last device context registered — for re-register after posthog.reset() on logout. */
-export function currentDeviceContext(): { device_language: string; platform: string } | null {
+export function currentDeviceContext(): DeviceContext | null {
     return deviceContext
 }
 
@@ -88,9 +101,22 @@ export async function emitDeviceContextToAnalytics(): Promise<void> {
     if (deviceContext) return
     try {
         const tag = await rawDeviceTag()
-        const context = {
+        const context: DeviceContext = {
             device_language: tag ? tag.trim().toLowerCase() : 'unknown',
             platform: getPlatform(),
+            // Also registered in posthog.init's `loaded` callback, which is what
+            // covers the initial $pageview. Repeated here so a logout's
+            // posthog.reset() — which wipes super properties — re-registers it
+            // along with the rest of this context.
+            app_release: APP_RELEASE,
+        }
+        if (isNativeBridge()) {
+            const { getBinaryInfo } = await import('@/utils/app-version')
+            const binary = await getBinaryInfo()
+            if (binary) {
+                context.binary_version = binary.appVersion
+                context.binary_build = binary.appBuild
+            }
         }
         posthog.register(context)
         // set only after a successful register — a throw leaves this null so a
@@ -99,6 +125,39 @@ export async function emitDeviceContextToAnalytics(): Promise<void> {
     } catch {
         // analytics failure degrades to missing data, never a broken app
     }
+
+    await registerDeviceIdentity()
+}
+
+/**
+ * Registered as its own step rather than folded into the context above: the
+ * native branch is a second bridge round-trip, and a binary whose plugin never
+ * answers would otherwise take `platform` and `app_release` down with it.
+ * Person properties as well as super properties — a cohort of slow devices is a
+ * person-level question, and `identified_only` means only identified users get
+ * a profile to write to.
+ */
+async function registerDeviceIdentity(): Promise<void> {
+    try {
+        const identity = await resolveDeviceIdentity()
+        posthog.register(identity)
+        // Covers the identity resolving after login. The other order — a login
+        // that lands after this — is covered by authContext folding
+        // currentDeviceIdentity() into its identify payload, because a visitor
+        // who was still anonymous here gets no $set at all.
+        if (posthog._isIdentified()) posthog.setPersonProperties(identity)
+        deviceIdentity = identity
+        if (deviceContext) deviceContext = { ...deviceContext, ...identity }
+    } catch {
+        // analytics failure degrades to missing data, never a broken app
+    }
+}
+
+let deviceIdentity: DeviceIdentity | null = null
+
+/** Resolved device identity, for the identify payload; null until it resolves. */
+export function currentDeviceIdentity(): DeviceIdentity | null {
+    return deviceIdentity
 }
 
 async function resolveStartupLocale(): Promise<AppLocale> {
@@ -126,17 +185,33 @@ async function resolveStartupLocale(): Promise<AppLocale> {
  */
 export function localeReady(): Promise<AppLocale> {
     if (!resolution)
-        resolution = resolveStartupLocale().catch((err) => {
-            // the unhandled rejection was the only signal that startup locale
-            // resolution had failed (PEANUT-UI-STC); neither caller handles it,
-            // so warn to keep captureConsoleIntegration reporting the next one
-            console.warn('Startup locale resolution failed; falling back to the browser language', err)
-            return navigatorLocale()
-        })
+        resolution = resolveStartupLocale()
+            .then((resolved) => {
+                // A locale derived from the browser language was never stored, so a
+                // full document load (a PWA relaunch at start_url) re-derived it and
+                // the proxy saw no cookie. An explicit choice made meanwhile wins.
+                if (!explicitlyChosen) writeLocale(resolved)
+                return resolved
+            })
+            .catch((err) => {
+                // the unhandled rejection was the only signal that startup locale
+                // resolution had failed (PEANUT-UI-STC); neither caller handles it,
+                // so warn to keep captureConsoleIntegration reporting the next one
+                console.warn('Startup locale resolution failed; falling back to the browser language', err)
+                return navigatorLocale()
+            })
     return resolution
 }
 
+let explicitlyChosen = false
+
+/** An explicit choice (switcher, suggestion banner): outranks the startup write. */
 export function persistLocale(locale: AppLocale): void {
+    explicitlyChosen = true
+    writeLocale(locale)
+}
+
+function writeLocale(locale: AppLocale): void {
     if (isCapacitor()) {
         import('@capacitor/preferences')
             .then(({ Preferences }) => Preferences.set({ key: LOCALE_KEY, value: locale }))

@@ -1,11 +1,19 @@
-import posthog from 'posthog-js'
-
+import { redactQrTelemetry } from './qr-telemetry-privacy'
 import { beforeSendHandler } from '../../sentry.utils'
+import { posthogErrorMirror, withoutNoise } from '@/utils/sentry-posthog-mirror'
 import { inferSentryEnvironment } from '@/utils/sentry-env'
 import { loadSentry } from '@/utils/sentry-lazy'
+import { isPaymentNetworkExplorerPath } from '@/utils/private-routes'
+
+export { withoutNoise }
 
 // NEXT_PUBLIC_PERF_BARE builds strip all instrumentation to A/B jank against production.
-const ENABLED = process.env.NODE_ENV !== 'development' && process.env.NEXT_PUBLIC_PERF_BARE !== 'true'
+// The Capacitor build initialises its own client in instrumentation-client.ts
+// (offline transport, no BrowserTracing); a second init here would replace it.
+const ENABLED =
+    process.env.NODE_ENV !== 'development' &&
+    process.env.NEXT_PUBLIC_PERF_BARE !== 'true' &&
+    process.env.NEXT_PUBLIC_CAPACITOR_BUILD !== 'true'
 
 /*
  * The SDK is fetched and initialised on demand rather than on every page load.
@@ -32,11 +40,18 @@ function bufferEvent(event: ErrorEvent | PromiseRejectionEvent): void {
 
 export function initSentry(): void {
     if (!ENABLED || started || typeof window === 'undefined') return
+    if (isPaymentNetworkExplorerPath(window.location.pathname)) return
     started = true
 
     void loadSentry().then((Sentry) => {
         window.removeEventListener('error', bufferEvent)
         window.removeEventListener('unhandledrejection', bufferEvent)
+
+        // Another bootstrap already owns the client; a second init would replace it.
+        if (Sentry.getClient()) {
+            flushBuffered(Sentry)
+            return
+        }
 
         Sentry.init({
             dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
@@ -52,7 +67,7 @@ export function initSentry(): void {
              * volume arrived unattributable — a message, no frames, no way to tell
              * which of several call sites produced it. This synthesizes a stack at
              * the capture point for every message event, including the deliberate
-             * captureMessage calls in fetchWithSentry and native-auth-capture.
+             * captureMessage calls in fetchWithSentry.
              *
              * Note it lands on `threads`, not `exception.values`, so PostHog's
              * mirror still reports these as an empty exception list; only passing a
@@ -60,31 +75,31 @@ export function initSentry(): void {
              */
             attachStacktrace: true,
 
-            beforeSend: beforeSendHandler,
+            // A client-side navigation can enter a private route after init.
+            beforeSend: (event) =>
+                isPaymentNetworkExplorerPath(window.location.pathname) ? null : beforeSendHandler(event),
+            beforeSendTransaction: (event) =>
+                isPaymentNetworkExplorerPath(window.location.pathname) ? null : redactQrTelemetry(event),
 
             integrations: [
                 Sentry.captureConsoleIntegration({
                     levels: ['error', 'warn'],
                 }),
-                // Cross-link Sentry ↔ PostHog: every Sentry error becomes a `$exception`
-                // event in PostHog with a Sentry deeplink, and the Sentry event gets a
-                // PostHog tag pointing back at the user's profile + session replay.
-                // posthog.init() runs in instrumentation-client.ts; the integration uses
-                // the singleton lazily, so init order doesn't matter.
-                posthog.sentryIntegration({
-                    organization: 'peanut-c34d84c05',
-                    projectId: 4505827431415808,
-                }),
+                posthogErrorMirror(),
             ],
         })
 
-        for (const event of buffered) {
-            Sentry.captureException(
-                'reason' in event ? event.reason : (event.error ?? new Error(event.message || 'Unknown error'))
-            )
-        }
-        buffered.length = 0
+        flushBuffered(Sentry)
     })
+}
+
+function flushBuffered(Sentry: Awaited<ReturnType<typeof loadSentry>>): void {
+    for (const event of buffered) {
+        Sentry.captureException(
+            'reason' in event ? event.reason : (event.error ?? new Error(event.message || 'Unknown error'))
+        )
+    }
+    buffered.length = 0
 }
 
 if (ENABLED && typeof window !== 'undefined') {

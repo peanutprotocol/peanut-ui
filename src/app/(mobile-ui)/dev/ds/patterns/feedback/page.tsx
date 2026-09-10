@@ -2,10 +2,10 @@
 
 import StatusBadge, { type StatusType } from '@/components/Global/Badges/StatusBadge'
 import StatusPill, { type StatusPillType } from '@/components/Global/StatusPill'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { PropsTable } from '../../_components/PropsTable'
 import { DesignNote } from '../../_components/DesignNote'
 import { DocHeader } from '../../_components/DocHeader'
@@ -30,20 +30,20 @@ export default function FeedbackPage() {
         <DocPage>
             <DocHeader
                 title="Feedback"
-                description="Status indicators (StatusBadge, StatusPill), error messaging (ErrorAlert), and empty states (EmptyState, NoDataEmptyState)."
+                description="Status indicators (StatusBadge, StatusPill), inline errors (Notification priority=error), and empty states (EmptyState, NoDataEmptyState)."
                 status="production"
             />
 
             {/* StatusBadge */}
             <DocSection title="StatusBadge">
                 <DocSection.Content>
-                    <p className="text-sm text-grey-1">
+                    <p className="text-body-s text-foreground-secondary">
                         Rounded pill badge with text label. Three size variants. Shared StatusType across the codebase.
                     </p>
 
                     {/* All statuses */}
                     <div className="space-y-4">
-                        <p className="text-xs font-bold uppercase tracking-wider text-grey-1">All Status Types</p>
+                        <p className="text-label-m text-foreground-secondary uppercase">All Status Types</p>
                         <div className="flex flex-wrap gap-2">
                             {allStatuses.map((status) => (
                                 <StatusBadge key={status} status={status} />
@@ -53,12 +53,12 @@ export default function FeedbackPage() {
 
                     {/* Sizes */}
                     <div className="space-y-4">
-                        <p className="text-xs font-bold uppercase tracking-wider text-grey-1">Sizes</p>
+                        <p className="text-label-m text-foreground-secondary uppercase">Sizes</p>
                         <div className="flex items-center gap-3">
                             {(['small', 'medium', 'large'] as const).map((size) => (
                                 <div key={size} className="text-center">
                                     <StatusBadge status="completed" size={size} />
-                                    <p className="mt-1 text-xs text-grey-1">{size}</p>
+                                    <p className="mt-1 text-body-xs text-foreground-secondary">{size}</p>
                                 </div>
                             ))}
                         </div>
@@ -103,20 +103,21 @@ export default function FeedbackPage() {
             {/* StatusPill */}
             <DocSection title="StatusPill">
                 <DocSection.Content>
-                    <p className="text-sm text-grey-1">
-                        Tiny 14px circular icon indicator. Uses the same StatusType as StatusBadge (minus
-                        &quot;custom&quot;). Pairs well with list items.
+                    <p className="text-body-s text-foreground-secondary">
+                        20px round icon chip (3px padding, 14px icon) on the badge background tokens — states board
+                        17966:12128. Uses the same StatusType as StatusBadge (minus &quot;custom&quot;). Pairs well with
+                        list items.
                     </p>
 
                     <div className="space-y-4">
-                        <p className="text-xs font-bold uppercase tracking-wider text-grey-1">All Status Types</p>
+                        <p className="text-label-m text-foreground-secondary uppercase">All Status Types</p>
                         <div className="flex flex-wrap items-center gap-4">
                             {allStatuses
                                 .filter((s): s is StatusPillType => s !== 'custom')
                                 .map((status) => (
                                     <div key={status} className="flex items-center gap-1.5">
                                         <StatusPill status={status} />
-                                        <span className="text-xs">{status}</span>
+                                        <span className="text-body-xs">{status}</span>
                                     </div>
                                 ))}
                         </div>
@@ -141,48 +142,27 @@ export default function FeedbackPage() {
                 </DocSection.Code>
             </DocSection>
 
-            {/* ErrorAlert */}
-            <DocSection title="ErrorAlert">
+            {/* Inline errors */}
+            <DocSection title="Inline errors">
                 <DocSection.Content>
-                    <p className="text-sm text-grey-1">
-                        Inline error message with icon. Red text, left-aligned icon + description.
+                    <p className="text-body-s text-foreground-secondary">
+                        Inline errors render the Notification primitive with priority=&quot;error&quot; (ErrorAlert was
+                        deleted). See the Notification page under primitives for all variants.
                     </p>
 
-                    <div className="space-y-2 rounded-sm border border-n-1 p-3">
-                        <ErrorAlert description="Insufficient balance to complete this transaction." />
+                    <div className="space-y-2 rounded-sm border border-border-default p-3">
+                        <Notification priority="error">Insufficient balance to complete this transaction.</Notification>
                     </div>
-
-                    <PropsTable
-                        rows={[
-                            {
-                                name: 'description',
-                                type: 'string',
-                                default: '-',
-                                required: true,
-                                description: 'Error message text',
-                            },
-                            {
-                                name: 'className',
-                                type: 'string',
-                                default: "''",
-                                description: 'Override container styles',
-                            },
-                            { name: 'iconSize', type: 'number', default: '16' },
-                            {
-                                name: 'iconClassName',
-                                type: 'string',
-                                default: "''",
-                                description: 'Override icon styles',
-                            },
-                        ]}
-                    />
                 </DocSection.Content>
                 <DocSection.Code>
-                    <CodeBlock label="Import" code={`import ErrorAlert from '@/components/Global/ErrorAlert'`} />
+                    <CodeBlock
+                        label="Import"
+                        code={`import { Notification } from '@/components/0_Bruddle/Notification'`}
+                    />
 
                     <CodeBlock
                         label="Usage"
-                        code={`<ErrorAlert description="Something went wrong. Please try again." />`}
+                        code={`<Notification priority="error">Something went wrong. Please try again.</Notification>`}
                     />
                 </DocSection.Code>
             </DocSection>
@@ -190,7 +170,7 @@ export default function FeedbackPage() {
             {/* EmptyState */}
             <DocSection title="EmptyState">
                 <DocSection.Content>
-                    <p className="text-sm text-grey-1">
+                    <p className="text-body-s text-foreground-secondary">
                         Card-based empty state with icon, title, description, and optional CTA. Uses Global Card
                         internally.
                     </p>
@@ -257,11 +237,11 @@ export default function FeedbackPage() {
             {/* NoDataEmptyState */}
             <DocSection title="NoDataEmptyState">
                 <DocSection.Content>
-                    <p className="text-sm text-grey-1">
+                    <p className="text-body-s text-foreground-secondary">
                         Branded empty state with crying Peanutman GIF animation. For &quot;no data&quot; scenarios.
                     </p>
 
-                    <div className="rounded-sm border border-n-1 p-4">
+                    <div className="rounded-sm border border-border-default p-4">
                         <NoDataEmptyState message="Nothing to show here" />
                     </div>
 

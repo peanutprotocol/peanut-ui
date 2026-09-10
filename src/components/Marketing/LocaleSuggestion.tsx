@@ -93,7 +93,7 @@ export function LocaleSuggestion({ locale }: { locale: Locale }) {
                 type="button"
                 onClick={dismiss}
                 aria-label={i18n.dismiss}
-                className="absolute right-3 top-1/2 -translate-y-1/2 px-1 leading-none opacity-60 hover:opacity-100"
+                className="absolute top-1/2 right-3 -translate-y-1/2 px-1 leading-none opacity-60 hover:opacity-100"
             >
                 <span aria-hidden>×</span>
             </button>

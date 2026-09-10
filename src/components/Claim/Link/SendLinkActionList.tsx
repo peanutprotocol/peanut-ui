@@ -9,6 +9,10 @@
  * - mercadopago/pix (regional, requires verification)
  * - external wallet (claim to any address)
  *
+ * the alternate rails are for recipients we cannot identify as Peanut users.
+ * once a session or a passkey from an earlier registration says otherwise, the
+ * screen collapses to the Peanut option alone
+ *
  * handles invite link logic - shows invite modal before allowing
  * non-peanut claim methods
  *
@@ -34,26 +38,21 @@ import useSavedAccounts from '@/hooks/useSavedAccounts'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { DEVCONNECT_CLAIM_METHODS, type PaymentMethod } from '@/constants/actionlist.consts'
 import useClaimLink from '../useClaimLink'
-import { setupActions } from '@/redux/slices/setup-slice'
 import starStraightImage from '@/assets/icons/starStraight.svg'
 import { useAuth } from '@/context/authContext'
 import { EInviteType } from '@/services/services.types'
 import ConfirmInviteModal from '../../Global/ConfirmInviteModal'
 import Loading from '../../Global/Loading'
-import { ActionListCard } from '../../ActionListCard'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
 import SupportCTA from '../../Global/SupportCTA'
 import DEVCONNECT_LOGO from '@/assets/logos/devconnect.svg'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import {
-    MIN_BANK_TRANSFER_AMOUNT,
-    MIN_MERCADOPAGO_AMOUNT,
-    MIN_PIX_AMOUNT,
-    validateMinimumAmount,
-} from '@/constants/payment.consts'
-import { useAppDispatch } from '@/redux/hooks'
+import { CLAIM_RAIL_MINIMUMS, validateMinimumAmount } from '@/constants/payment.consts'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { useTranslations } from 'next-intl'
+import { useKnownPeanutDevice } from '@/hooks/useKnownPeanutDevice'
+import { stashInvite } from '@/utils/invite-stash'
 
 const SHOW_INVITE_MODAL_FOR_DEVCONNECT = false
 
@@ -97,6 +96,7 @@ export default function SendLinkActionList({
     const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null)
     const [showInviteModal, setShowInviteModal] = useState(false)
     const { user } = useAuth()
+    const knownDevice = useKnownPeanutDevice()
     const { interceptGuestCta, storeHandoffModal } = useGuestStoreHandoff({ trackImpressionWhenGuest: !isLoggedIn })
     const {
         setSelectedTokenAddress,
@@ -109,7 +109,6 @@ export default function SendLinkActionList({
     // `isUserMantecaKycApproved`; mapped to canDo('pay', { provider: 'manteca' }) so a Sumsub-
     // approved user with only the pool-tier pay rail correctly sees these methods as available.
     const isMantecaPayEnabled = useCapabilities().canDo('pay', { provider: 'manteca' })
-    const dispatch = useAppDispatch()
 
     const requiresVerification = useMemo(() => {
         return claimType === BankClaimType.GuestKycNeeded || claimType === BankClaimType.ReceiverKycNeeded
@@ -135,13 +134,8 @@ export default function SendLinkActionList({
 
     const handleMethodClick = async (method: PaymentMethod) => {
         const amountInUsd = parseFloat(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals))
-        if (['bank', 'mercadopago', 'pix'].includes(method.id) && !validateMinimumAmount(amountInUsd, method.id)) {
-            const minAmount =
-                method.id === 'bank'
-                    ? MIN_BANK_TRANSFER_AMOUNT
-                    : method.id === 'mercadopago'
-                      ? MIN_MERCADOPAGO_AMOUNT
-                      : MIN_PIX_AMOUNT
+        if (method.id in CLAIM_RAIL_MINIMUMS && !validateMinimumAmount(amountInUsd, method.id)) {
+            const minAmount = CLAIM_RAIL_MINIMUMS[method.id as keyof typeof CLAIM_RAIL_MINIMUMS]
             setMinAmountErrorInfo({ title: method.title, amount: minAmount })
             setShowMinAmountError(true)
             return
@@ -211,8 +205,7 @@ export default function SendLinkActionList({
         const redirectUri = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash)
         if (isInviteLink && !userHasAppAccess && rawUsername) {
             const inviteCode = toInviteCode(rawUsername)
-            dispatch(setupActions.setInviteCode(inviteCode))
-            dispatch(setupActions.setInviteType(EInviteType.PAYMENT_LINK))
+            stashInvite(inviteCode, EInviteType.PAYMENT_LINK)
             router.push(inviteFlowUrl(inviteCode, redirectUri))
         } else {
             router.push(`/setup?redirect_uri=${redirectUri}`)
@@ -223,13 +216,18 @@ export default function SendLinkActionList({
     const userHasAppAccess = user?.user?.hasAppAccess ?? false
     const devconnectMethod = DEVCONNECT_CLAIM_METHODS.find((m) => m.id === 'devconnect')!
 
-    if (isGeoLoading) {
-        return (
-            <div className="flex w-full items-center justify-center py-8">
-                <Loading />
-            </div>
-        )
-    }
+    /*
+     * The alternate rails (bank, mercadopago, pix, exchange/wallet) are what a
+     * recipient without a Peanut account claims to — the published Send Links
+     * flow, so they stay. They only make sense for a recipient we cannot place:
+     * a live session, or passkey credentials from an earlier registration on
+     * this device, means the account already exists and Peanut is the answer.
+     *
+     * `knownDevice` is null until the storage read lands after mount. Treat that
+     * tick as identified: appending the rails a frame late is invisible, while
+     * showing them to a returning user and then pulling them away is not.
+     */
+    const showAltRails = !isLoggedIn && knownDevice === false
 
     return (
         <div className="space-y-2">
@@ -277,38 +275,48 @@ export default function SendLinkActionList({
             {SHOW_INVITE_MODAL_FOR_DEVCONNECT && isInviteLink && !userHasAppAccess && username && (
                 <div className="!mt-6 flex w-full items-center justify-center gap-1 md:gap-2">
                     <Image src={starStraightImage.src} alt={t('actions.starAlt')} width={20} height={20} />
-                    <p className="text-center text-sm">{t('actions.invitedBy', { username })}</p>
+                    <p className="text-center text-body-s">{t('actions.invitedBy', { username })}</p>
                     <Image src={starStraightImage.src} alt={t('actions.starAlt')} width={20} height={20} />
                 </div>
             )}
 
-            <Divider text={tCommon('or')} />
+            {showAltRails && (
+                <>
+                    <Divider text={tCommon('or')} />
 
-            <div className="space-y-2">
-                {sortedActionMethods.map((method) => {
-                    let methodRequiresVerification = method.id === 'bank' && requiresVerification
-                    if (!isMantecaPayEnabled && ['mercadopago', 'pix'].includes(method.id)) {
-                        methodRequiresVerification = true
-                    }
-
-                    return (
-                        <MethodCard
-                            onClick={() => {
-                                if (isInviteLink && !userHasAppAccess && method.id !== 'devconnect') {
-                                    setSelectedMethod(method)
-                                    setShowInviteModal(true)
-                                } else {
-                                    handleMethodClick(method)
+                    {isGeoLoading ? (
+                        <div className="flex w-full items-center justify-center py-8">
+                            <Loading />
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            {sortedActionMethods.map((method) => {
+                                let methodRequiresVerification = method.id === 'bank' && requiresVerification
+                                if (!isMantecaPayEnabled && ['mercadopago', 'pix'].includes(method.id)) {
+                                    methodRequiresVerification = true
                                 }
-                            }}
-                            key={method.id}
-                            method={method}
-                            requiresVerification={methodRequiresVerification}
-                            soon={method.id === 'bank' && isGuestBankClaim}
-                        />
-                    )
-                })}
-            </div>
+
+                                return (
+                                    <MethodCard
+                                        onClick={() => {
+                                            if (isInviteLink && !userHasAppAccess && method.id !== 'devconnect') {
+                                                setSelectedMethod(method)
+                                                setShowInviteModal(true)
+                                            } else {
+                                                handleMethodClick(method)
+                                            }
+                                        }}
+                                        key={method.id}
+                                        method={method}
+                                        requiresVerification={methodRequiresVerification}
+                                        soon={method.id === 'bank' && isGuestBankClaim}
+                                    />
+                                )
+                            })}
+                        </div>
+                    )}
+                </>
+            )}
 
             {!isLoggedIn && <SupportCTA />}
 
@@ -328,7 +336,7 @@ export default function SendLinkActionList({
                         onClick: () => setShowMinAmountError(false),
                     },
                 ]}
-                iconContainerClassName="bg-yellow-400"
+                iconContainerClassName="bg-action-secondary"
                 preventClose={false}
                 modalPanelClassName="max-w-md mx-8"
             />
@@ -371,10 +379,9 @@ const MethodCard = ({
     const t = useTranslations('claim')
     const showSoon = method.soon || soon
     return (
-        <ActionListCard
+        <ListItem
             position="single"
-            description={method.description}
-            descriptionClassName="text-[12px]"
+            body={<div className="text-[12px]">{method.description}</div>}
             title={
                 <div className="flex items-center gap-2">
                     {method.title}
@@ -387,8 +394,8 @@ const MethodCard = ({
                 </div>
             }
             onClick={onClick}
-            isDisabled={showSoon || isDisabled}
-            rightContent={<IconStack icons={method.icons} iconSize={method.id === 'bank' ? 80 : 24} />}
+            disabled={showSoon || isDisabled}
+            trailing={<IconStack icons={method.icons} iconSize={method.id === 'bank' ? 80 : 24} />}
         />
     )
 }

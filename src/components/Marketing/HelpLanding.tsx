@@ -7,6 +7,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 
 interface HelpArticle {
     slug: string
+    href: string
     title: string
     description: string
     category: string
@@ -21,13 +22,12 @@ interface HelpLandingStrings {
 interface HelpLandingProps {
     articles: HelpArticle[]
     categories: string[]
-    locale: string
     strings?: HelpLandingStrings
 }
 
 const PROSE_WIDTH = 'max-w-[640px]'
 
-export default function HelpLanding({ articles, categories, locale, strings }: HelpLandingProps) {
+export default function HelpLanding({ articles, categories, strings }: HelpLandingProps) {
     const [searchTerm, setSearchTerm] = useState('')
     const searchParams = useSearchParams()
 
@@ -63,9 +63,9 @@ export default function HelpLanding({ articles, categories, locale, strings }: H
     return (
         <>
             {/* Search */}
-            <div className={`mx-auto mb-8 mt-10 ${PROSE_WIDTH} px-6 md:mt-12 md:px-4`}>
+            <div className={`mx-auto mt-10 mb-8 ${PROSE_WIDTH} px-6 md:mt-12 md:px-4`}>
                 <div className="relative">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-grey-1">
+                    <div className="absolute top-1/2 left-3 -translate-y-1/2 text-grey-1">
                         <Icon name="search" size={18} />
                     </div>
                     <input
@@ -74,7 +74,7 @@ export default function HelpLanding({ articles, categories, locale, strings }: H
                         placeholder={strings?.searchPlaceholder ?? 'Search help articles...'}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="h-12 w-full rounded-sm border border-n-1 bg-white pl-10 pr-4 text-base caret-primary-1 focus:outline-none focus:ring-1 focus:ring-n-1"
+                        className="h-12 w-full rounded-sm border border-n-1 bg-white pr-4 pl-10 text-base caret-primary-1 focus:ring-1 focus:ring-n-1 focus:outline-none"
                     />
                 </div>
             </div>
@@ -85,7 +85,7 @@ export default function HelpLanding({ articles, categories, locale, strings }: H
                     <div className="flex flex-col gap-10">
                         {filteredCategories.map((category) => (
                             <section key={category}>
-                                <h2 className="mb-4 text-xs font-bold uppercase tracking-widest text-grey-1">
+                                <h2 className="mb-4 text-xs font-bold tracking-widest text-grey-1 uppercase">
                                     {category}
                                 </h2>
                                 <div className="flex flex-col gap-px overflow-hidden rounded-sm border border-n-1">
@@ -94,7 +94,7 @@ export default function HelpLanding({ articles, categories, locale, strings }: H
                                         .map((article) => (
                                             <Link
                                                 key={article.slug}
-                                                href={`/${locale}/help/${article.slug}`}
+                                                href={article.href}
                                                 className="group flex items-center justify-between border-b border-n-1/10 bg-white px-5 py-4 transition-colors last:border-b-0 hover:bg-primary-3/20"
                                             >
                                                 <div className="flex flex-col gap-0.5">

@@ -1,13 +1,36 @@
+import { redactQrTelemetry, redactQrTelemetryString, maskQrReplayRequest } from '@/utils/qr-telemetry-privacy'
+import { APP_RELEASE } from '@/constants/app-release'
 import posthog from 'posthog-js'
 import { beforeSendHandler } from './sentry.utils'
 import { inferSentryEnvironment } from '@/utils/sentry-env'
 import { withoutBrowserTracing } from '@/utils/sentry-integrations'
+import { posthogErrorMirror } from '@/utils/sentry-posthog-mirror'
 import { whenIdle } from '@/utils/defer-analytics'
+import { startWebVitalsShim } from '@/utils/web-vitals-shim'
+import { noteAppReviewFriction } from '@/utils/app-review-friction'
+import { isNativeFetchRejectionExceptionEvent } from '@/utils/native-fetch-rejection'
+import { installPaymentNetworkGoogleAnalyticsGuard, isPaymentNetworkExplorerPath } from '@/utils/private-routes'
+
+// Same conditions as the GA bootstrap in app/layout.tsx: with no GA to disable
+// there is nothing to guard, and PERF_BARE builds exist to carry no instrumentation.
+if (
+    process.env.NODE_ENV !== 'development' &&
+    process.env.NEXT_PUBLIC_GA_KEY &&
+    process.env.NEXT_PUBLIC_CAPACITOR_BUILD !== 'true' &&
+    process.env.NEXT_PUBLIC_PERF_BARE !== 'true'
+) {
+    installPaymentNetworkGoogleAnalyticsGuard()
+}
 
 // NEXT_PUBLIC_PERF_BARE builds strip all instrumentation to A/B jank against production.
 const PERF_BARE = process.env.NEXT_PUBLIC_PERF_BARE === 'true'
 
-if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'development' && !PERF_BARE) {
+if (
+    typeof window !== 'undefined' &&
+    process.env.NODE_ENV !== 'development' &&
+    !PERF_BARE &&
+    !isPaymentNetworkExplorerPath(window.location.pathname)
+) {
     const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://eu.i.posthog.com'
     const isNativeBuild = process.env.NEXT_PUBLIC_CAPACITOR_BUILD === 'true'
 
@@ -20,7 +43,26 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'development' && !
         ui_host: posthogHost,
         person_profiles: 'identified_only',
         capture_pageview: true,
+        // Registered here, not from the async device-context effect: PostHog
+        // captures the initial $pageview during init, and super properties are
+        // persisted — so a late register left the first open after an OTA
+        // carrying the PREVIOUS bundle's release. `loaded` runs before that
+        // first capture, which is the whole point of the denominator.
+        loaded: (ph) => ph.register({ app_release: APP_RELEASE }),
         capture_pageleave: true,
+        // The payment explorer contains team-only identity and relationship data.
+        // Drop every event on client navigation; direct loads skip init above.
+        // Doubles as the review nudge's friction tap: every money-flow failure
+        // already funnels through here, so the suppressor needs no call sites.
+        before_send: (event) => {
+            if (isPaymentNetworkExplorerPath(window.location.pathname)) return null
+            // Handled WebKit/Chromium connectivity blips: Sentry already filters
+            // this class server-side; exception autocapture must not double-report
+            // it here (TASK-22408).
+            if (isNativeFetchRejectionExceptionEvent(event)) return null
+            if (event?.event) noteAppReviewFriction(event.event)
+            return redactQrTelemetry(event)
+        },
         // autocapture walks the DOM ancestor chain on every tap, which costs frames
         // in the in-app WebView renderer for data that 220+ explicit
         // posthog.capture calls already cover. Native keeps the explicit events only.
@@ -52,9 +94,21 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'development' && !
          * reach for, before switching recording off again.
          */
         disable_session_recording: true,
+        session_recording: {
+            recordBody: false,
+            recordHeaders: false,
+            maskCapturedNetworkRequestFn: maskQrReplayRequest,
+            maskAttributeFn: (_name, value) => redactQrTelemetryString(value),
+        },
     })
 
     whenIdle(() => posthog.startSessionRecording())
+
+    // No-ops unless the document is one PostHog refuses to measure (iOS native,
+    // served from capacitor://). Not deferred to idle like the recorder above:
+    // the INP observer has to exist before the taps it measures. `web-vitals`
+    // itself loads dynamically inside, so http(s) documents never fetch it.
+    startWebVitalsShim()
 
     // expose the instance like the official snippet does — console access for
     // QA (feature-flag overrides, e.g. pwa-sunset preview testing) and support
@@ -83,7 +137,14 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'development' && !
                 // and that instrumentation overhead is visible jank in the WebView.
                 sampleRate: 1.0,
                 tracesSampleRate: 0,
-                beforeSend: beforeSendHandler,
+                // Synthesizes a stack for message events (captureConsole on a
+                // non-Error, the explicit captureMessage calls) so they attribute
+                // to a call site — see the web init in sentry-init.ts.
+                attachStacktrace: true,
+                beforeSend: (event) =>
+                    isPaymentNetworkExplorerPath(window.location.pathname) ? null : beforeSendHandler(event),
+                beforeSendTransaction: (event) =>
+                    isPaymentNetworkExplorerPath(window.location.pathname) ? null : redactQrTelemetry(event),
                 // A WebView that can't reach the bundler can't reach ingest either,
                 // so the report of the failure died with the session. The offline
                 // transport parks undeliverable envelopes in IndexedDB and flushes
@@ -93,6 +154,9 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'development' && !
                 integrations: (defaults) => [
                     ...withoutBrowserTracing(defaults),
                     Sentry.captureConsoleIntegration({ levels: ['error'] }),
+                    // Same PostHog $exception mirror as the web init, so native
+                    // errors keep their session-replay correlation.
+                    posthogErrorMirror(),
                 ],
             })
 

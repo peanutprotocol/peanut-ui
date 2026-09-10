@@ -1,6 +1,7 @@
 import { type HistoryEntry } from '@/hooks/useTransactionHistory'
 import { type PendingPerk } from '@/services/perks'
 import { isDemoMode } from '@/utils/demo'
+import { ensureActiveFixture } from '@/dev/fixtures/active'
 import { isCapacitor } from '@/utils/capacitor'
 import { getSessionTokenForSocket } from '@/utils/auth-token'
 export type { PendingPerk }
@@ -376,9 +377,10 @@ let websocketInstanceUsername: string | null = null
 
 export const getWebSocketInstance = (username?: string): PeanutWebSocket | null => {
     if (typeof window === 'undefined') return null
-    // Demo mode has no backend/charges socket — returning null is the no-op
-    // (callers already handle it) and avoids the mixed-content wss:// failure.
-    if (isDemoMode()) return null
+    // Demo mode and dev fixtures have no backend/charges socket — returning null
+    // is the no-op (callers already handle it) and avoids the mixed-content
+    // wss:// failure, plus an endless reconnect loop against a dead port.
+    if (isDemoMode() || ensureActiveFixture()) return null
     // Can't connect without a username — the server route is /ws/charges/:username.
     // Returning null lets callers bail out and re-try once auth is ready.
     if (!username) return null

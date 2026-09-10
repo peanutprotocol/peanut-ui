@@ -7,9 +7,11 @@ import NavHeader from '@/components/Global/NavHeader'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ShareButton from '@/components/Global/ShareButton'
 import { SuccessViewDetailsCard } from '@/components/Global/SuccessViewComponents/SuccessViewDetailsCard'
+import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import { useLinkSendFlow } from '@/context/LinkSendFlowContext'
-import { useUserStore } from '@/redux/hooks'
+import { useAuth } from '@/context/authContext'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
@@ -28,9 +30,10 @@ const LinkSendSuccessView = () => {
     const { link, attachmentOptions, tokenValue, resetLinkSendFlow } = useLinkSendFlow()
     const queryClient = useQueryClient()
     const { fetchBalance } = useWallet()
-    const { user } = useUserStore()
+    const { user } = useAuth()
     const { cancelLinkAndClaim, pollForClaimConfirmation } = useClaimLink()
     const toast = useToast()
+    const friendly = useFriendlyError()
     const [isLoading, setIsLoading] = useState<boolean>(false)
     const [showCancelLinkDrawer, setShowCancelLinkDrawer] = useState(false)
 
@@ -50,7 +53,7 @@ const LinkSendSuccessView = () => {
     }, [resetLinkSendFlow])
 
     return (
-        <div className="flex  w-full flex-col justify-start space-y-8">
+        <div className="space-y-8 flex w-full flex-col justify-start">
             <NavHeader
                 icon="cancel"
                 title={tNav('send')}
@@ -94,7 +97,7 @@ const LinkSendSuccessView = () => {
                         >
                             {!isLoading && (
                                 <div className="flex items-center">
-                                    <Icon name="ban" size={18} />
+                                    <Icon name="ban" size={20} />
                                 </div>
                             )}
                             <span>{cancelLinkText}</span>
@@ -124,7 +127,7 @@ const LinkSendSuccessView = () => {
                             }
 
                             // Cancel the link by claiming it back
-                            await cancelLinkAndClaim({
+                            const txHash = await cancelLinkAndClaim({
                                 link,
                                 walletAddress,
                                 userId: user?.user?.userId,
@@ -132,7 +135,7 @@ const LinkSendSuccessView = () => {
 
                             try {
                                 // Wait for transaction confirmation
-                                const isConfirmed = await pollForClaimConfirmation(link)
+                                const isConfirmed = txHash || (await pollForClaimConfirmation(link))
 
                                 if (!isConfirmed) {
                                     console.warn('Transaction confirmation timeout - proceeding with refresh')
@@ -140,7 +143,7 @@ const LinkSendSuccessView = () => {
 
                                 // Update UI and queries
                                 fetchBalance()
-                                await queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+                                void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] }).catch(captureException)
 
                                 setIsLoading(false)
                                 setShowCancelLinkDrawer(false)
@@ -166,6 +169,17 @@ const LinkSendSuccessView = () => {
                                 router.push('/home')
                             }
                         } catch (error) {
+                            if (wireErrorCode(error) === API_ERROR_CODES.LINK_ALREADY_CLAIMED) {
+                                // the recipient got there first — the link is CLAIMED, not
+                                // failed; home renders it as claimed once refetched
+                                setIsLoading(false)
+                                setCancelStatus('idle')
+                                setShowCancelLinkDrawer(false)
+                                toast.info(friendly(error))
+                                void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] }).catch(() => undefined)
+                                router.push('/home')
+                                return
+                            }
                             captureException(error)
                             console.error('Error claiming link:', error)
                             setIsLoading(false)

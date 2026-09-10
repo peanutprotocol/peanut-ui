@@ -1,15 +1,16 @@
 'use client'
 
 import { type CardPosition } from '@/components/Global/Card/card.utils'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import NavHeader from '@/components/Global/NavHeader'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import { KycStatusItem } from '@/components/Kyc/KycStatusItem'
 import TransactionCard from '@/components/TransactionDetails/TransactionCard'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import { useTransactionHistory } from '@/hooks/useTransactionHistory'
-import { useUserStore } from '@/redux/hooks'
+import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { getUserPreferences } from '@/utils/general.utils'
 import { DateGroup, getDateGroup, getDateGroupKey } from '@/utils/dateGrouping.utils'
 import * as Sentry from '@sentry/nextjs'
@@ -35,8 +36,10 @@ import { TRANSACTIONS } from '@/constants/query.consts'
 import type { HistoryEntry, HistoryResponse } from '@/hooks/useTransactionHistory'
 import { AccountType } from '@/interfaces/interfaces'
 import { completeHistoryEntry, dedupeHistoryEntriesByUuid } from '@/utils/history.utils'
+import { twMerge } from '@/utils/tw'
 import { formatUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
+import { displayableBadges } from '@/constants/badges.consts'
 
 /**
  * displays the user's transaction history with infinite scrolling and date grouping.
@@ -44,8 +47,11 @@ import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 const HistoryPage = () => {
     const t = useTranslations('history')
     const format = useFormatter()
-    const { user } = useUserStore()
+    const { user } = useAuth()
     const queryClient = useQueryClient()
+    // one `?tx=` subscription for the whole list — rows are memo'd and get
+    // isSelected/open/close as props (see useTransactionDetailsDrawer)
+    const { isTransactionSelected, openTransactionDetails, closeTransactionDetails } = useTransactionDetailsDrawer()
     const { fetchUser } = useAuth()
     // Synthetic card-unlock row inputs — same cached queries HomeHistory uses.
     const { cardInfo } = useCardInfo()
@@ -180,7 +186,7 @@ const HistoryPage = () => {
         ]
 
         // inject badge items from user profile, placed by earnedAt
-        const badges = user?.user?.badges ?? []
+        const badges = displayableBadges(user?.user?.badges ?? [])
         badges.forEach((b) => {
             if (!b.earnedAt) return
             entries.push({
@@ -235,15 +241,15 @@ const HistoryPage = () => {
     }, [combinedAndSortedEntries])
 
     if (isLoading && combinedAndSortedEntries.length === 0) {
-        return <PeanutLoading />
+        return <Loading variant="mascot" />
     }
 
     if (isError) {
         console.error(error)
         Sentry.captureException(error)
         return (
-            <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
-                <h2 className="text-base font-bold">{t('transactions')}</h2>{' '}
+            <div className="mx-auto space-y-3 mt-6 w-full md:max-w-2xl">
+                <h2 className="text-heading-card text-foreground-primary">{t('transactions')}</h2>{' '}
                 <EmptyState icon="alert" title={t('errorTitle')} description={t('errorDescription')} />
             </div>
         )
@@ -270,7 +276,7 @@ const HistoryPage = () => {
     const today = new Date()
 
     return (
-        <div className="mx-auto w-full space-y-6 md:max-w-2xl md:space-y-3">
+        <PageStack>
             <NavHeader title={t('title')} />
             <div className="h-full w-full">
                 {combinedAndSortedEntries.map((item, index) => {
@@ -299,8 +305,14 @@ const HistoryPage = () => {
 
                     return (
                         <React.Fragment key={item.uuid}>
+                            {/* date group header — board 17966:12128: Label/M, 8px above the group's rows */}
                             {showHeader && (
-                                <div className="mb-2 mt-4 px-1 text-sm font-semibold">
+                                <div
+                                    className={twMerge(
+                                        'mb-2 text-label-m text-foreground-primary',
+                                        index > 0 && 'mt-2'
+                                    )}
+                                >
                                     {groupHeader(itemDate, group)}
                                 </div>
                             )}
@@ -313,7 +325,7 @@ const HistoryPage = () => {
                                     entry={item}
                                     position={position}
                                     username={user?.user?.username ?? undefined}
-                                    badges={user?.user?.badges}
+                                    badges={displayableBadges(user?.user?.badges ?? [])}
                                 />
                             ) : (
                                 (() => {
@@ -330,6 +342,9 @@ const HistoryPage = () => {
                                             position={position}
                                             haveSentMoneyToUser={transactionDetails.haveSentMoneyToUser}
                                             hideTxnAmount={hideTxnAmount}
+                                            isSelected={isTransactionSelected(transactionDetails.id)}
+                                            onOpen={openTransactionDetails}
+                                            onClose={closeTransactionDetails}
                                         />
                                     )
                                 })()
@@ -342,7 +357,7 @@ const HistoryPage = () => {
                     {isFetchingNextPage && <div className="w-full text-center">{t('loadingMore')}</div>}
                 </div>
             </div>
-        </div>
+        </PageStack>
     )
 }
 

@@ -119,18 +119,6 @@ export function getLandingAlternates(): Record<string, string> {
     return alternates
 }
 
-/**
- * Re-point an internal content href at `locale`. Content authors write hrefs
- * both with and without a locale prefix (`/en/help/x` and `/help/x`), so strip
- * any leading locale before prefixing. External links and anchors pass through.
- */
-export function localizeContentHref(href: string, locale: Locale): string {
-    if (!href.startsWith('/')) return href
-    const segments = href.split('/').filter(Boolean)
-    if (segments.length > 0 && isValidLocale(segments[0])) segments.shift()
-    return segments.length > 0 ? `/${locale}/${segments.join('/')}` : `/${locale}`
-}
-
 export function isValidLocale(locale: string): locale is Locale {
     return SUPPORTED_LOCALES.includes(locale as Locale)
 }

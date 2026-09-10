@@ -29,14 +29,14 @@ const sizeConfig = {
 
 /**
  * Reusable Perk Icon component
- * Yellow circle background with star icon at consistent proportions
+ * Green circle background with star icon at consistent proportions
  */
 export const PerkIcon: React.FC<PerkIconProps> = ({ size = 'medium', className = '' }) => {
     const config = sizeConfig[size]
 
     return (
         <div
-            className={`flex ${config.container} flex-shrink-0 items-center justify-center rounded-full bg-yellow-400 ${className}`}
+            className={`flex ${config.container} flex-shrink-0 items-center justify-center rounded-full bg-background-icon-bubble-green ${className}`}
         >
             <Image src={STAR_STRAIGHT_ICON} alt="Perk" width={config.icon.width} height={config.icon.height} />
         </div>

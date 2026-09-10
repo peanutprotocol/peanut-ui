@@ -5,6 +5,8 @@ import {
     type CreateMantecaOnrampParams,
 } from '@/types/manteca.types'
 import { serverFetch } from '@/utils/api-fetch'
+import { ApiError, apiErrorFromResponse } from '@/services/api-error'
+import { isNetworkLayerFailure } from '@/utils/network-triage'
 import { jsonStringify } from '@/utils/general.utils'
 import type { Address } from 'viem'
 import type { SignUserOperationReturnType } from '@zerodev/sdk/actions'
@@ -13,6 +15,13 @@ export interface QrPaymentRequest {
     qrCode: string
     amount?: string
     qrType?: string
+    /**
+     * Stable per-scan key. The backend replays the price lock it already
+     * created for this key instead of minting a second one at Manteca, which is
+     * what makes retrying this POST after a timeout safe. Optional so an API
+     * build without the guard still accepts the request.
+     */
+    idempotencyKey?: string
 }
 
 export type QrPayment = {
@@ -72,6 +81,11 @@ export type QrPaymentLock = {
     paymentAgainst: string
     expireAt: string
     creationTime: string
+    /** Entity-aware Manteca deposit address served by the API (per-entity
+     *  balances from 2026-09-14). Optional only while an older API without
+     *  the field may still be deployed — prefer it over local constants. */
+    depositAddress?: Address
+    legalEntity?: string
 }
 
 export type QrPaymentResponse =
@@ -112,18 +126,34 @@ export type WithdrawPriceLock = {
     usdAmount: string
     fiatAmount: string
     currency: string
+    /** Entity-aware Manteca deposit address served by the API (per-entity
+     *  balances from 2026-09-14). Optional only while an older API without
+     *  the field may still be deployed — prefer it over local constants. */
+    depositAddress?: Address
+    legalEntity?: string
 }
 
 export const mantecaApi = {
-    initiateQrPayment: async (data: QrPaymentRequest): Promise<QrPaymentLock> => {
+    initiateQrPayment: async (data: QrPaymentRequest, options?: { timeoutMs?: number }): Promise<QrPaymentLock> => {
         const response = await serverFetch('/manteca/qr-payment/init', {
             method: 'POST',
             body: jsonStringify(data),
+            ...(options?.timeoutMs !== undefined && { timeoutMs: options.timeoutMs }),
         })
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}))
-            throw new Error(errorData.error || errorData.message || `QR payment failed: ${response.statusText}`)
+            /*
+             * ApiError, not Error: the KYC rejection's discriminant is its
+             * `code` (MANTECA_KYC_REQUIRED) while its `error` is a plain English
+             * sentence, so a caller matching the prose breaks the moment the
+             * backend rewords it. Message order is unchanged, so every existing
+             * `error.message.includes(...)` matcher still sees what it did.
+             */
+            throw new ApiError(errorData.error || errorData.message || `QR payment failed: ${response.statusText}`, {
+                status: response.status,
+                code: errorData.code,
+            })
         }
 
         return response.json()
@@ -201,8 +231,7 @@ export const mantecaApi = {
         })
 
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}))
-            throw new Error(errorData?.message || errorData?.error || `QR payment failed: ${response.statusText}`)
+            throw await apiErrorFromResponse(response, `QR payment failed: ${response.statusText}`)
         }
 
         return response.json()
@@ -219,24 +248,6 @@ export const mantecaApi = {
 
         return response.json()
     },
-    initiateOnboarding: async (params: {
-        returnUrl: string
-        failureUrl?: string
-        exchange?: string
-    }): Promise<{ url: string }> => {
-        const response = await serverFetch('/manteca/initiate-onboarding', {
-            method: 'POST',
-            body: jsonStringify(params),
-        })
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}))
-            throw new Error(errorData.message || `Failed to get onboarding URL`)
-        }
-
-        return response.json()
-    },
-
     deposit: async (
         params: CreateMantecaOnrampParams
     ): Promise<{ data?: MantecaDepositResponseData; error?: string }> => {
@@ -321,6 +332,7 @@ export const mantecaApi = {
                 return {
                     error: result.error || 'Failed to create manteca withdraw.',
                     message: result.message,
+                    ...(typeof result.code === 'string' ? { code: result.code } : {}),
                 }
             }
 
@@ -343,7 +355,7 @@ export const mantecaApi = {
     initiateWithdraw: async (params: {
         amount: string
         currency: string
-    }): Promise<{ data?: WithdrawPriceLock; error?: string }> => {
+    }): Promise<{ data?: WithdrawPriceLock; error?: string; code?: string }> => {
         try {
             const response = await serverFetch('/manteca/withdraw/init', {
                 method: 'POST',
@@ -352,12 +364,18 @@ export const mantecaApi = {
 
             const result = await response.json()
             if (!response.ok) {
-                return { error: result.error || result.message || 'Failed to lock withdraw price.' }
+                return {
+                    error: result.error || result.message || 'Failed to lock withdraw price.',
+                    ...(typeof result.code === 'string' ? { code: result.code } : {}),
+                }
             }
 
             return { data: result }
         } catch (error) {
             console.error('Error calling manteca withdraw init API:', error)
+            // See withdrawWithSignedTx: a flattened transport error skips the
+            // page's withdraw_step:lock-rate triage capture entirely.
+            if (isNetworkLayerFailure(error)) throw error
             if (error instanceof Error) {
                 return { error: error.message }
             }
@@ -452,12 +470,17 @@ export const mantecaApi = {
                 return {
                     error: result.error || 'Failed to complete withdraw.',
                     message: result.message,
+                    ...(typeof result.code === 'string' ? { code: result.code } : {}),
                 }
             }
 
             return { data: result }
         } catch (error) {
             console.error('Error calling manteca withdraw complete-with-signed-tx API:', error)
+            // Transport failures must reach the caller's catch: flattening them
+            // into { error } sends the page down its result.error branch, which
+            // returns before the network-triage capture ever runs (TASK-21956).
+            if (isNetworkLayerFailure(error)) throw error
             if (error instanceof Error) {
                 return { error: error.message }
             }

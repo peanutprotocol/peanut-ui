@@ -28,11 +28,11 @@ export function Hero({ title, subtitle, cta, ctaHref }: HeroProps) {
             <section className="relative overflow-hidden bg-primary-1 px-4 py-16 text-center md:px-8 md:py-24">
                 <CloudsCss clouds={marketingClouds} />
                 <div className="relative z-10 mx-auto max-w-4xl">
-                    <h1 className="font-roboto-flex-extrabold text-[2.5rem] font-extraBlack uppercase leading-[0.95] text-black md:text-[4.5rem]">
+                    <h1 className="font-roboto-flex-extrabold text-[2.5rem] leading-[0.95] font-extraBlack text-black uppercase md:text-[4.5rem]">
                         {title}
                     </h1>
                     {subtitle && (
-                        <p className="font-roboto-flex-extrabold mt-6 text-[1.25rem] uppercase text-black md:mt-8 md:text-[2rem]">
+                        <p className="font-roboto-flex-extrabold mt-6 text-[1.25rem] text-black uppercase md:mt-8 md:text-[2rem]">
                             {subtitle}
                         </p>
                     )}
