@@ -94,3 +94,16 @@ jobs:
                   path: capture/
                   if-no-files-found: error
                   retention-days: 14
+
+    publish:
+        needs: [refs, capture]
+        if: always() && !cancelled() && needs.refs.result == 'success' && needs.capture.result != 'skipped'
+        permissions:
+            contents: read
+            actions: read
+            pull-requests: write
+        # Resolve trusted publishing code from dev, never from the PR checkout.
+        # Land the reusable publisher (#3107) on dev before this caller (#3108).
+        uses: peanutprotocol/peanut-ui/.github/workflows/screen-library-publish.yml@dev
+        secrets:
+            SCREEN_LIBRARY_BLOB_TOKEN: ${{ secrets.SCREEN_LIBRARY_BLOB_TOKEN }}

@@ -92,12 +92,23 @@ the exact merge base and head; merge reports use the first parent, expanding to
 the complete integrated patch sequence for rebase merges. Captures are not
 reused from a best-effort cache. Full catalogues run even for shared-style changes.
 
-`Publish screen library` is a `workflow_run` publisher. GitHub loads it from the
-default branch, so its workflow, scripts and trusted static viewer must be
-available there before publication can activate. Landing only on dev does not
-activate this publisher. The existing ds-shots review aid remains available
-while the library rolls out. Neither visual differences nor capture failures
-are added to the required `ci-success` gate.
+`Publish screen library` is a reusable `workflow_call` job invoked after the
+capture matrix finishes. The caller resolves the reusable workflow from `dev`,
+and the publisher checks out `dev`; PR checkout code never runs in that job.
+It consumes only the caller's exact run and attempt. It also runs after capture
+failures so available evidence can be published with explicit gaps. Cancelled
+runs do not publish. There is no default-branch activation requirement.
+
+Merge publisher PR #3107 into dev first, then caller/catalogue PR #3108. Both
+PRs target dev. Once storage is configured, that dev push captures and publishes
+the merged library automatically, and subsequent same-repository PR reviews
+publish their own comparisons through the same trusted reusable job. No change
+to the repository default branch is needed. Historical manual dispatch retains
+GitHub's normal workflow registration rules; automatic review and merge
+publication does not depend on manual dispatch registration.
+
+The existing ds-shots review aid remains available while the library rolls out.
+Neither visual differences nor capture failures are part of required ci-success.
 
 The publisher verifies run repository, event, head and baseline using GitHub and
 Git history; superseded PR previews do not replace current links. It serializes

@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { validateCapture, verifyAsset } from './core.mjs'
 import { integrationBase } from './integration.mjs'
 import { reviewProvenance } from './review-provenance.mjs'
+import { verifyRunIdentity } from './run-identity.mjs'
 const repo = process.env.REPOSITORY,
     runId = process.env.RUN_ID,
     attempt = process.env.RUN_ATTEMPT
@@ -11,8 +12,7 @@ if (!/^[\w.-]+\/[\w.-]+$/.test(repo ?? '') || !/^\d+$/.test(runId ?? '') || !/^\
     throw new Error('Invalid run identity')
 const api = (path) => JSON.parse(execFileSync('gh', ['api', `repos/${repo}/${path}`], { encoding: 'utf8' }))
 const run = api(`actions/runs/${runId}`)
-if (run.head_repository.full_name !== repo || run.run_attempt !== Number(attempt))
-    throw new Error('Run provenance mismatch')
+verifyRunIdentity(run, repo, Number(runId), Number(attempt))
 const dirs = ['before', 'after'].map((side) => `incoming/screen-library-${side}-${attempt}`)
 const [before, after] = dirs.map((dir) => validateCapture(JSON.parse(readFileSync(join(dir, 'capture.json'), 'utf8'))))
 if (after.commit !== run.head_sha) throw new Error('Capture does not match triggering run head')
