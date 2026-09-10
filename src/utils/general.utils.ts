@@ -772,9 +772,15 @@ const LEGACY_REDIRECT_ORIGIN_KEY = 'redirect-origin'
  * as unclassified rather than as intent: see consumePostAuthRedirect for what
  * a brand-new account does with one.
  */
-type StoredRedirect = { destination: string; origin: RedirectOrigin | null }
+export type StoredRedirect = { destination: string; origin: RedirectOrigin | null }
 
-const readStoredRedirect = (): StoredRedirect | null => {
+/**
+ * One parsed snapshot, for a caller that has to decide on the pair. Reading
+ * the destination and the origin through separate calls means two getItems,
+ * and another tab can replace the record between them — pairing an old
+ * destination with the newer record's origin.
+ */
+export const getStoredRedirect = (): StoredRedirect | null => {
     const stored = getFromLocalStorage(REDIRECT_KEY)
     if (typeof stored === 'string') {
         return stored.length > 0 ? { destination: stored, origin: null } : null
@@ -799,12 +805,12 @@ export const saveRedirectUrl = (origin: RedirectOrigin = 'deep-link') => {
 }
 
 export const getRedirectUrl = (): string | null => {
-    return readStoredRedirect()?.destination ?? null
+    return getStoredRedirect()?.destination ?? null
 }
 
 /** `null` for a record written before the origin existed — unclassified, not intent. */
 export const getRedirectOrigin = (): RedirectOrigin | null => {
-    return readStoredRedirect()?.origin ?? null
+    return getStoredRedirect()?.origin ?? null
 }
 
 export const clearRedirectUrl = () => {

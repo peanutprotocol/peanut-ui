@@ -138,6 +138,42 @@ describe('post-auth redirect for a record from before the origin existed', () =>
     })
 })
 
+/*
+ * The pair has to come from one snapshot. Reading the destination and the
+ * origin separately is two getItems, and another tab can replace the record
+ * in between — which would pair an old destination with the newer record's
+ * origin, and then consume the newer intent along with it.
+ */
+describe('post-auth redirect reads one snapshot', () => {
+    const originalGetItem = Storage.prototype.getItem
+
+    afterEach(() => {
+        Storage.prototype.getItem = originalGetItem
+        localStorage.clear()
+    })
+
+    it('decides from the record it first observed, not a pair from two reads', () => {
+        localStorage.clear()
+        const stale = JSON.stringify({ destination: '/profile', origin: 'session-end' })
+        const fresher = JSON.stringify({ destination: '/receipt?id=abc', origin: 'deep-link' })
+        let reads = 0
+        Storage.prototype.getItem = function patched(key: string) {
+            if (key !== 'redirect') return originalGetItem.call(this, key)
+            reads += 1
+            // another tab replaces the record after the first read
+            return reads === 1 ? stale : fresher
+        }
+
+        // the stale record is session-end, so a new account must refuse it —
+        // never accept /profile while reading the newer record's deep-link
+        expect(consumePostAuthRedirect(null, { rejectSessionEndOrigin: true })).toEqual({
+            destination: '/home',
+            source: 'fallback',
+            deferred: false,
+        })
+    })
+})
+
 describe('post-auth redirect across two tabs', () => {
     type UtilsModule = typeof import('@/utils/general.utils')
 

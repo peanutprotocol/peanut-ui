@@ -1,4 +1,4 @@
-import { clearRedirectUrl, getRedirectOrigin, getRedirectUrl, getValidRedirectUrl } from '@/utils/general.utils'
+import { clearRedirectUrl, getStoredRedirect, getValidRedirectUrl } from '@/utils/general.utils'
 
 export type PostAuthRedirectDecision = {
     destination: string
@@ -59,16 +59,22 @@ export function consumePostAuthRedirect(
         }
     }
 
-    const storedValue = getRedirectUrl()
-    if (typeof storedValue === 'string' && storedValue.length > 0) {
+    /*
+     * One snapshot, one decision. Reading the destination and the origin
+     * separately is two getItems, and another tab can replace the record
+     * between them — pairing an old destination with the newer record's
+     * origin, then consuming the newer intent along with it.
+     */
+    const stored = getStoredRedirect()
+    if (stored) {
         // Consumed, not merely skipped: leaving it would hand the same page to
         // whoever authenticates next on this device.
-        if (options.rejectSessionEndOrigin && getRedirectOrigin() === 'session-end') {
+        if (options.rejectSessionEndOrigin && stored.origin === 'session-end') {
             clearRedirectUrl()
             return { destination: fallbackRoute, source: 'fallback', deferred: false }
         }
 
-        const destination = getValidRedirectUrl(storedValue, fallbackRoute)
+        const destination = getValidRedirectUrl(stored.destination, fallbackRoute)
         if (destination !== fallbackRoute && options.deferStoredRedirect?.(destination)) {
             return { destination: fallbackRoute, source: 'stored', deferred: true }
         }
