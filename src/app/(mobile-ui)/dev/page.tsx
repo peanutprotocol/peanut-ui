@@ -79,6 +79,13 @@ export default function DevToolsPage() {
             icon: 'credit-card',
         },
         {
+            name: 'Next steps proposals',
+            description:
+                'TASK-22513: DS-pure variants for the home getting-started checklist — status in trailing slot, progress header, leading-bubble flip, text badge.',
+            path: '/dev/next-steps',
+            icon: 'check-circle',
+        },
+        {
             name: 'Rejection screen builder',
             description:
                 'Iterate the full mobile CardRejectionScreen — bouncer mascot, door tally, waitlist state — inside a phone frame.',
