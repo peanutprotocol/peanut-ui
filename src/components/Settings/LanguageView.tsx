@@ -45,34 +45,34 @@ export const LanguageView = () => {
     return (
         <PageStack gap="6" className="h-full bg-background">
             <NavHeader title={t('title')} onPrev={onBack} />
-            <PageStack.Center>
-                {/* one child, not one per row: Center's gap-6 would otherwise land
-                    between the rows and break the joined list geometry */}
-                <div>
-                    {APP_LOCALES.map((appLocale, index) => (
-                        <ListItem
-                            key={appLocale}
-                            position={getCardPosition(index, APP_LOCALES.length)}
-                            onClick={() => select(appLocale)}
-                            leading={
-                                <Image
-                                    src={getFlagUrl(LOCALE_FLAG_CODES[appLocale])}
-                                    alt=""
-                                    width={80}
-                                    height={80}
-                                    className="size-6 rounded-full object-cover"
-                                />
-                            }
-                            title={
-                                <span className="text-body-m text-foreground-primary" lang={appLocale}>
-                                    {LOCALE_LABELS[appLocale]}
-                                </span>
-                            }
-                            trailing={appLocale === locale ? <Icon name="check" size={20} /> : undefined}
-                        />
-                    ))}
-                </div>
-            </PageStack.Center>
+            {/* top-aligned list page (design.md list recipe), not PageStack.Center:
+                a short settings list floating mid-screen read as misplaced.
+                one wrapper div, not one child per row: PageStack's gap-6 would
+                otherwise land between the rows and break the joined list geometry */}
+            <div>
+                {APP_LOCALES.map((appLocale, index) => (
+                    <ListItem
+                        key={appLocale}
+                        position={getCardPosition(index, APP_LOCALES.length)}
+                        onClick={() => select(appLocale)}
+                        leading={
+                            <Image
+                                src={getFlagUrl(LOCALE_FLAG_CODES[appLocale])}
+                                alt=""
+                                width={80}
+                                height={80}
+                                className="size-6 rounded-full object-cover"
+                            />
+                        }
+                        title={
+                            <span className="text-body-m text-foreground-primary" lang={appLocale}>
+                                {LOCALE_LABELS[appLocale]}
+                            </span>
+                        }
+                        trailing={appLocale === locale ? <Icon name="check" size={20} /> : undefined}
+                    />
+                ))}
+            </div>
         </PageStack>
     )
 }

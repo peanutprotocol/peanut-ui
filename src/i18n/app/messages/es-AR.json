@@ -421,7 +421,7 @@
                 "description": "¿Quién te invitó? Ingresá su nombre de usuario para continuar, o unite a la lista de espera y te avisaremos cuando puedas entrar."
             },
             "signup": {
-                "description": "Tu @usuario es la forma en que tus amigos te envían dinero. Pensalo como un número de cuenta que podés decir en voz alta."
+                "description": "Elegí tu nombre de usuario. Lo vas a usar para enviar y recibir dinero."
             },
             "residence": {
                 "title": "¿Dónde vivís legalmente?",

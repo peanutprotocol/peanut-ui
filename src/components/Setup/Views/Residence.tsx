@@ -39,17 +39,32 @@ const ResidenceStep = () => {
     const locale = useLocale()
     const { residenceCountry, setResidenceCountry, secondResidenceCountry, setSecondResidenceCountry } =
         useSetupFlowContext()
-    const { handleNext, isLoading } = useSetupFlow()
+    const { handleNext, isLoading, direction } = useSetupFlow()
     const { countryCode: geoCountryCode } = useGeoLocation()
     // server-authoritative tier lists with the bundled mirror as fallback
     const { sets: restrictionSets, settled: restrictionSetsSettled } = useResidenceRestrictionSetsWithStatus()
 
-    const [view, setView] = useState<ResidenceView>('select')
+    // Stepping BACK into this step (from the passkey step) must land on the
+    // screen the user actually left: a restricted pick left from its heads-up,
+    // so re-derive that view from the stored country. The congrats view is not
+    // restored — it needs settled server data to be an honest claim, and the
+    // selector is the natural place to change the answer. Forward entry and
+    // deep links (direction 1 / 0) always start on the selector.
+    const [view, setView] = useState<ResidenceView>(() => {
+        if (direction >= 0 || !residenceCountry) return 'select'
+        if (restrictionSets.full.has(residenceCountry)) return 'restricted'
+        if (restrictionSets.cardOnly.has(residenceCountry) || restrictionSets.bankingOnly.has(residenceCountry)) {
+            return 'partial'
+        }
+        return 'select'
+    })
     useBackHandler(() => {
         if (!isLoading) setView('select')
         return true
     }, view !== 'select')
-    const [partialRestriction, setPartialRestriction] = useState<PartialRestriction>('card')
+    const [partialRestriction, setPartialRestriction] = useState<PartialRestriction>(() =>
+        restrictionSets.bankingOnly.has(residenceCountry) ? 'banking' : 'card'
+    )
     const [showSecondCountry, setShowSecondCountry] = useState(!!secondResidenceCountry)
     const [email, setEmail] = useState('')
     const [emailError, setEmailError] = useState('')

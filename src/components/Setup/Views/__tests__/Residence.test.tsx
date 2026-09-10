@@ -31,8 +31,9 @@ jest.mock('@/features/setup/SetupFlowContext', () => ({
 
 const mockHandleNext = jest.fn()
 let mockIsLoading = false
+let mockDirection = 1
 jest.mock('@/hooks/useSetupFlow', () => ({
-    useSetupFlow: () => ({ handleNext: mockHandleNext, isLoading: mockIsLoading }),
+    useSetupFlow: () => ({ handleNext: mockHandleNext, isLoading: mockIsLoading, direction: mockDirection }),
 }))
 
 let mockGeoCountry: string | null = null
@@ -67,6 +68,7 @@ describe('ResidenceStep', () => {
         jest.clearAllMocks()
         resetBackHandlersForTests()
         mockIsLoading = false
+        mockDirection = 1
         mockSetupState = { residenceCountry: '', secondResidenceCountry: '' }
         mockGeoCountry = null
         mockRestrictionSets = undefined
@@ -412,6 +414,41 @@ describe('ResidenceStep', () => {
         fireEvent.click(screen.getByText('Choose a different country'))
         expect(screen.queryByText('Heads up')).not.toBeInTheDocument()
         expect(screen.getByText('Have documents from more than one country?')).toBeInTheDocument()
+    })
+
+    describe('stepping back into the step', () => {
+        // One step back from the passkey step must land on the screen the
+        // user actually left: the heads-up for a restricted pick, never the
+        // username screen two steps away (TASK-22232).
+        it('restores the generic heads-up for a fully restricted pick', () => {
+            mockDirection = -1
+            mockSetupState.residenceCountry = 'CN'
+            render(<ResidenceStep />)
+            expect(screen.getByRole('heading', { level: 1, name: 'Heads up' })).toBeInTheDocument()
+            expect(screen.getByRole('button', { name: 'Continue anyway' })).toBeInTheDocument()
+        })
+
+        it('restores the partial heads-up with the matching restriction copy', () => {
+            mockDirection = -1
+            mockSetupState.residenceCountry = 'JP'
+            render(<ResidenceStep />)
+            expect(screen.getByRole('heading', { level: 1, name: 'Heads up' })).toBeInTheDocument()
+            expect(screen.getByText(/Bank transfers aren't available in your country/)).toBeInTheDocument()
+        })
+
+        it('lands on the selector for an unrestricted pick', () => {
+            mockDirection = -1
+            mockSetupState.residenceCountry = 'BR'
+            render(<ResidenceStep />)
+            expect(screen.getByRole('heading', { level: 1, name: 'Where do you legally live?' })).toBeInTheDocument()
+        })
+
+        it('starts on the selector when entering forward with a stored pick', () => {
+            mockDirection = 1
+            mockSetupState.residenceCountry = 'CN'
+            render(<ResidenceStep />)
+            expect(screen.getByRole('heading', { level: 1, name: 'Where do you legally live?' })).toBeInTheDocument()
+        })
     })
 
     describe('hardware back', () => {

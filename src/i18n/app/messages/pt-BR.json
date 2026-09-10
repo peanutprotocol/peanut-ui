@@ -548,6 +548,11 @@
             "manualRestart": "Feche o Peanut pelo seletor de apps e abra de novo para concluir a atualização.",
             "applyFailed": "Não foi possível aplicar a atualização. Verifique sua conexão e tente novamente — o Peanut continua na versão com que você abriu."
         },
+        "storeUpdate": {
+            "title": "Atualize na {store}",
+            "description": "Esta versão inclui mudanças que o Peanut não consegue instalar sozinho. Baixe na {store} para concluir a atualização.",
+            "openStore": "Abrir {store}"
+        },
         "about": {
             "title": "Sobre o Peanut",
             "intro": "O Peanut torna os dólares fáceis: guarde seu saldo, envie para qualquer @usuário e mova dinheiro pelos trilhos locais após uma única verificação de identidade. Criado pela Squirrel Labs.",
@@ -723,7 +728,7 @@
             },
             "signup": {
                 "title": "Como devemos te chamar?",
-                "description": "Seu @usuário é como os amigos enviam dinheiro para você. Pense nele como um número de conta que dá para falar em voz alta."
+                "description": "Escolha seu nome de usuário. Você vai usá-lo para enviar e receber dinheiro."
             },
             "residence": {
                 "title": "Onde você mora legalmente?",

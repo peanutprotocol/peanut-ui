@@ -89,7 +89,6 @@ function SetupScreen({ screenId }: { screenId: ScreenId }) {
             showBackButton={step.showBackButton}
             showSkipButton={step.showSkipButton}
             showLogoutButton={step.screenId === 'sign-test-transaction'}
-            showLoginButton={step.showLoginButton}
             imageClassName={step.imageClassName}
             contentClassName={step.contentClassName}
             step={setupSteps.indexOf(step)}

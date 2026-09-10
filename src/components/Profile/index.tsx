@@ -23,8 +23,8 @@ import { AvatarPicker } from '@/components/Avatar/AvatarPicker'
 import { AVATAR_PICKER_PARAM, avatarPickerParser } from '@/components/Avatar/avatar.consts'
 import { useOtaUpdate } from '@/context/OtaUpdateContext'
 import OtaUpdateModal from './components/OtaUpdateModal'
-import { openStore } from '@/utils/migration.utils'
-import { IOS_APP_STORE_LISTING_LIVE, MIGRATION_SURFACES } from '@/constants/migration.consts'
+import StoreUpdateModal from './components/StoreUpdateModal'
+import { IOS_APP_STORE_LISTING_LIVE } from '@/constants/migration.consts'
 import { isIOSNative } from '@/utils/capacitor'
 
 export const Profile = () => {
@@ -44,11 +44,14 @@ export const Profile = () => {
     const { locale } = useAppLocale()
     const { pendingBundle, storeUpdateRequired } = useOtaUpdate()
     const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
+    const [isStoreUpdateModalOpen, setIsStoreUpdateModalOpen] = useState(false)
     const storeUpdateOffered = storeUpdateRequired && (!isIOSNative() || IOS_APP_STORE_LISTING_LIVE)
-    // a staged OTA bundle wins over the store hint: it is already on the device
+    // A staged OTA bundle wins over the store hint: it is already on the device,
+    // and the gate only ever stages one this binary can run. Store updates get
+    // their own modal — offering a restart for one would reload the same JS.
     const onUpdateTap = () => {
         if (pendingBundle) setIsUpdateModalOpen(true)
-        else openStore(isIOSNative() ? 'ios' : 'android', MIGRATION_SURFACES.PROFILE_UPDATE)
+        else setIsStoreUpdateModalOpen(true)
     }
 
     const logout = async () => {
@@ -190,6 +193,7 @@ export const Profile = () => {
                 source="profile"
             />
             <OtaUpdateModal visible={isUpdateModalOpen} onClose={() => setIsUpdateModalOpen(false)} />
+            <StoreUpdateModal visible={isStoreUpdateModalOpen} onClose={() => setIsStoreUpdateModalOpen(false)} />
         </div>
     )
 }
