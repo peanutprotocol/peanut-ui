@@ -449,12 +449,6 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [user?.user.userId, logoutUser, clearClients])
 
-    useEffect(() => {
-        if (user?.user.userId && !!webAuthnKey) {
-            updateUserPreferences(user.user.userId, { webAuthnKey })
-        }
-    }, [user?.user.userId, webAuthnKey])
-
     // Harness-only: when __harness_ecdsa_pk is set in localStorage, bypass the
     // passkey-webAuthnKey path and use an ECDSA validator instead. This is how
     // Playwright drives real userops. Gated on HARNESS_ENABLED (build-time)
@@ -585,6 +579,13 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             // registering→not→registering UI flicker between retries.
             if (isMounted) {
                 storeClient(primaryChainId, kernelClient)
+                // Persist after the current build passes the wallet ownership check.
+                // A user-id effect can pair the new user with the old key.
+                // Legacy builds inject the profile address; equality proves no key ownership.
+                // Their fresh ceremony keys are already saved against the authenticated user.
+                if (user?.user.userId && isAfterZeroDevMigration && expectedAddress && derivedAddress) {
+                    updateUserPreferences(user.user.userId, { webAuthnKey })
+                }
                 fetchUser()
                 zeroDevFlowActions.setIsKernelClientReady(true)
                 zeroDevFlowActions.setIsRegistering(false)
@@ -630,7 +631,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
         // is stable for an authenticated user, and isAfterZeroDevMigration
         // captures any user.createdAt change.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [webAuthnKey, isAfterZeroDevMigration, initAttempt])
+    }, [webAuthnKey, user?.user.userId, isAfterZeroDevMigration, initAttempt])
 
     useEffect(() => {
         const peanutClient = clientsByChain[PEANUT_WALLET_CHAIN.id]
