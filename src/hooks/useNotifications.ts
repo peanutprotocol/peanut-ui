@@ -217,10 +217,9 @@ async function ensureInitialized() {
         const adapter = await getOneSignalAdapter()
         await adapter.init()
 
-        // Web half of the foreground-push badge refresh. On native the bridge
-        // lives in useNativeAppLinks, which runs on every cold-start
-        // destination; on web nothing can fire before this init anyway, so
-        // registering here costs marketing pages no extra chunk.
+        // Web half of the foreground-push badge refresh (the Set dedupes the
+        // shared reference with useForegroundPushRefresh's registration; on
+        // native the bridge lives in useNativeAppLinks).
         if (!isCapacitor()) adapter.onNotificationReceived(onForegroundPushDelivered)
 
         adapter.onPermissionChange((permissionState) => {
