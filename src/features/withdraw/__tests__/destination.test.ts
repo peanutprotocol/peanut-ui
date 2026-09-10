@@ -6,7 +6,12 @@
  * rides into PostHog's automatic pageviews, session replay and Sentry
  * breadcrumbs, and redactQrTelemetry only scrubs the QR-specific parameter
  * names — a payout address there would tie where a person sent their money to
- * an identified user. The URL carries only the `from=scan` marker.
+ * an identified user. The URL carries only `scan=<id>`.
+ *
+ * That id is per scan, not a constant marker: /withdraw keeps its layout
+ * mounted, so a second scan from that page navigates without remounting, and a
+ * value that never changed left the flow holding the first destination. The
+ * hand-off is keyed to its scan and consumed at its one use.
  */
 const mockConfig = { disableXchainWithdraw: false }
 jest.mock('@/config/underMaintenance.config', () => ({ __esModule: true, default: mockConfig }))
