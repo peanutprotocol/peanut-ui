@@ -474,6 +474,11 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     { method: 'GET', pattern: '/send-links', handler: () => demoSendLink('demo-pubkey') },
     { method: 'POST', pattern: '/send-links', handler: () => demoSendLink('demo-pubkey') },
     { method: 'PATCH', pattern: '/send-links/claim/:txHash/associate-user', handler: () => ({}) },
+    {
+        method: 'GET',
+        pattern: '/send-links/:pubKey/status',
+        handler: ({ params }) => ({ ...demoSendLink(params.pubKey), status: 'CLAIMED' }),
+    },
     { method: 'GET', pattern: '/send-links/:pubKey', handler: ({ params }) => demoSendLink(params.pubKey) },
     { method: 'PATCH', pattern: '/send-links/:pubKey', handler: ({ params }) => demoSendLink(params.pubKey) },
 
