@@ -10,12 +10,15 @@ import useGetExchangeRate from '@/hooks/useGetExchangeRate'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { AccountType } from '@/interfaces/interfaces'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { formatUnits } from 'viem'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { withdrawBankUrl, withdrawCountryUrl } from '@/utils/native-routes'
+import { readWithdrawDestination } from './routes'
+import { useChainRollout } from '@/hooks/useChainRollout'
+import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
 import { parseAsString, parseAsBoolean, useQueryState } from 'nuqs'
 import { useTranslations } from 'next-intl'
@@ -37,6 +40,8 @@ export function useWithdrawRootFlow() {
 
     const [, setShowAll] = useQueryState('showAll', parseAsBoolean.withDefault(false))
     const [methodParam] = useQueryState('method', parseAsString)
+    const [destinationParam] = useQueryState('destination', parseAsString)
+    const [chainParam] = useQueryState('chain', parseAsString)
     const [returnToParam] = useQueryState(RETURN_TO_PARAM, parseAsString)
     const { isFromSendFlow, isCryptoFromSend, isBankFromSend } = useSendFlowOrigin()
 
@@ -48,7 +53,21 @@ export function useWithdrawRootFlow() {
         setSelectedBankAccount,
         setSelectedMethod,
         setIsMaxWithdrawal,
+        setRecipient,
+        setIsValidRecipient,
     } = useWithdrawFlow()
+
+    const { supportedChainsAndTokens, setSelectedChainID, setSelectedTokenAddress } = useContext(tokenSelectorContext)
+    const isChainRolledOut = useChainRollout()
+
+    // A destination the user picked before entering the flow (a scanned QR
+    // code) rides in on the URL. Re-checked here rather than trusted from the
+    // producer: the params are user-editable, and a chain still behind its
+    // rollout flag must not become selectable by typing one.
+    const scannedDestination = useMemo(() => {
+        const destination = readWithdrawDestination(destinationParam, chainParam)
+        return destination && isChainRolledOut(destination.chainId) ? destination : null
+    }, [destinationParam, chainParam, isChainRolledOut])
 
     const [urlAmount, setUrlAmount] = useWithdrawAmount()
     // raw amount currently typed in the input; the URL is the commit point
@@ -287,6 +306,19 @@ export function useWithdrawRootFlow() {
         // Route based on selected method type (check method type first to avoid
         // a stale bank account taking priority)
         if (selectedMethod.type === 'crypto') {
+            // Hand the scanned destination to the recipient step the way an
+            // address-book tap does — chain, token and a pre-validated address
+            // in flow state, which InitialWithdrawView then preserves instead
+            // of resetting to USDC on Arbitrum.
+            if (scannedDestination) {
+                const tokens = supportedChainsAndTokens?.[scannedDestination.chainId]?.tokens ?? []
+                // USDC where the chain has it; otherwise its only/first token (Tron → USDT)
+                const token = tokens.find((tok) => tok.symbol.toUpperCase() === 'USDC') ?? tokens[0]
+                setSelectedChainID(scannedDestination.chainId)
+                setSelectedTokenAddress(token?.address ?? '')
+                setRecipient({ name: undefined, address: scannedDestination.address })
+                setIsValidRecipient(true)
+            }
             router.push(`/withdraw/crypto${downstreamQuery()}`)
         } else if (selectedMethod.type === 'manteca') {
             // Manteca (AR/BR) accounts route to the Manteca flow. Checked BEFORE
@@ -339,6 +371,12 @@ export function useWithdrawRootFlow() {
         downstreamQuery,
         setError,
         t,
+        scannedDestination,
+        supportedChainsAndTokens,
+        setSelectedChainID,
+        setSelectedTokenAddress,
+        setRecipient,
+        setIsValidRecipient,
     ])
 
     const handleAmountBack = useCallback(() => {

@@ -24,7 +24,11 @@ jest.mock('next/navigation', () => ({
     usePathname: () => '/home',
     useSearchParams: () => new URLSearchParams(),
 }))
-jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+jest.mock('posthog-js', () => ({
+    __esModule: true,
+    // onFeatureFlags: the chain-rollout gate subscribes to flag loads.
+    default: { capture: jest.fn(), onFeatureFlags: jest.fn(() => jest.fn()) },
+}))
 jest.mock('use-haptic', () => ({ useHaptic: () => ({ triggerHaptic: jest.fn() }) }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 jest.mock('@/app/actions/ens', () => ({ resolveEns: jest.fn() }))
@@ -32,6 +36,9 @@ jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
 jest.mock('@/utils/capacitor', () => ({
     isCapacitor: () => false,
     isAndroidNative: () => false,
+    // read by underMaintenance.config's iOS cross-chain gate, which the
+    // withdraw-destination check consults (removed by TASK-22250)
+    isIOSNative: () => false,
     openExternalUrl: jest.fn(),
 }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
@@ -91,13 +98,30 @@ describe('QRScannerOverlay case handling', () => {
     describe('base58 addresses — case is data, so recognize the raw scan', () => {
         it('recognizes a Solana address whose case a lowercase pass would destroy', async () => {
             await scan(SOLANA_WITH_UPPERCASE_L)
-            expect(screen.getByText('Solana not supported yet.')).toBeInTheDocument()
+            expect(screen.getByText('Payment Confirmation')).toBeInTheDocument()
             expect(screen.queryByText('Unrecognized QR code')).not.toBeInTheDocument()
         })
 
         it('recognizes a Tron address, which always starts with an uppercase T', async () => {
             await scan(TRON)
             expect(screen.getByText('Tron not supported yet.')).toBeInTheDocument()
+        })
+
+        // TASK-22251 opened Solana only. Tron, Bitcoin and XRP keep the
+        // notify-me path until each is opened on purpose.
+        it('routes a Solana scan into the crypto withdrawal, address case intact', async () => {
+            await scan(SOLANA_WITH_UPPERCASE_L)
+            fireEvent.click(screen.getByRole('checkbox'))
+            fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+
+            const pushed = mockPush.mock.calls.at(-1)?.[0] as string
+            const params = new URLSearchParams(pushed.split('?')[1])
+            expect(pushed.split('?')[0]).toBe('/withdraw')
+            expect(params.get('destination')).toBe(SOLANA_WITH_UPPERCASE_L)
+            expect(params.get('chain')).toBe('solana')
+            // the amount step, on the crypto rail — method selection is implied
+            expect(params.get('step')).toBe('amount')
+            expect(params.get('method')).toBe('crypto')
         })
     })
 

@@ -20,11 +20,17 @@ import { pixKeyToQrPayUrl } from '@/utils/pix.utils'
 import { extractPaymentValue } from '@/utils/clipboard-extract.utils'
 import { recipientPayUrl, qrClaimUrl, deepLinkToNativePath } from '@/utils/native-routes'
 import { qrTelemetry, reportQrScanError } from '@/components/Global/QRScanner/utils'
+import { readWithdrawDestination, withdrawDestinationUrl } from '@/features/withdraw/routes'
+import { useChainRollout } from '@/hooks/useChainRollout'
 import { useTranslations } from 'next-intl'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import posthog from 'posthog-js'
 import { useEffect, useState } from 'react'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
+
+// Selector id for Solana in CHAIN_REGISTRY — non-EVM chains have a slug where
+// EVM chains have a numeric chain id.
+const SOLANA_WITHDRAW_CHAIN_ID = 'solana'
 
 enum EModalType {
     QR_NOT_SUPPORTED = 'QR_NOT_SUPPORTED',
@@ -213,6 +219,7 @@ export default function QRScannerOverlay() {
     const payUserUrl = user?.user.username ? `${BASE_URL}/pay/${user.user.username}` : ''
     const { triggerHaptic } = useAppHaptic()
     const { isQRScannerOpen, setIsQRScannerOpen } = useModalsContext()
+    const isChainRolledOut = useChainRollout()
 
     // Remounts the result modal per scan so its acknowledgement starts unticked
     // on the first paint, not after an effect.
@@ -237,7 +244,15 @@ export default function QRScannerOverlay() {
         // mode encodes uppercase only, so that case came from the encoder. Any
         // lowercase letter means the case is the user's, and a mixed-case EIP-55
         // checksum must stay rejectable instead of laundered into a payable address.
-        const recognized = recognizeQr(data) ?? (data === data.toUpperCase() ? recognizeQr(normalized) : null)
+        // `scanned` is the value `recognized` describes — the raw payload, or that
+        // lowercased retry. A Solana address is paid out verbatim from it, so the
+        // two must never drift apart.
+        let scanned = data
+        let recognized = recognizeQr(data)
+        if (!recognized && data === data.toUpperCase()) {
+            recognized = recognizeQr(normalized)
+            if (recognized) scanned = normalized
+        }
 
         posthog.capture(ANALYTICS_EVENTS.QR_SCANNED, { qr_type: recognized, ...qrTelemetry(data) })
         if (!recognized) {
@@ -358,10 +373,25 @@ export default function QRScannerOverlay() {
                 showModal(EModalType.PIX_RECURRING)
                 return { success: true }
             }
+            case EQrType.SOLANA_ADDRESS: {
+                // Solana is a supported withdrawal destination, so the scan goes
+                // into the crypto withdrawal flow with the address verbatim —
+                // case is the address in base58. It is still behind its rollout
+                // flag, and behind the ops kill-switch that readWithdrawDestination
+                // reads; while either is off, the notify-me path is the truth.
+                const destination = isChainRolledOut(SOLANA_WITHDRAW_CHAIN_ID)
+                    ? readWithdrawDestination(scanned, SOLANA_WITHDRAW_CHAIN_ID)
+                    : null
+                if (!destination) {
+                    showModal(EModalType.QR_NOT_SUPPORTED)
+                    return { success: true }
+                }
+                toConfirmUrl = withdrawDestinationUrl(destination.address, destination.chainId)
+                break
+            }
             case EQrType.BITCOIN_ONCHAIN:
             case EQrType.BITCOIN_INVOICE:
             case EQrType.TRON_ADDRESS:
-            case EQrType.SOLANA_ADDRESS:
             case EQrType.XRP_ADDRESS: {
                 showModal(EModalType.QR_NOT_SUPPORTED)
                 return { success: true }

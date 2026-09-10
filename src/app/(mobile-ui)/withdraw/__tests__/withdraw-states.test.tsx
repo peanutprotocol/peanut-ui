@@ -54,7 +54,8 @@ jest.mock('@sentry/nextjs', () => ({
 // PostHog
 jest.mock('posthog-js', () => ({
     __esModule: true,
-    default: { capture: jest.fn(), init: jest.fn() },
+    // onFeatureFlags: the chain-rollout gate subscribes to flag loads.
+    default: { capture: jest.fn(), init: jest.fn(), onFeatureFlags: jest.fn(() => jest.fn()) },
 }))
 
 // ---------- hooks & services ----------
@@ -63,6 +64,8 @@ const mockSetError = jest.fn()
 const mockSetSelectedBankAccount = jest.fn()
 const mockSetSelectedMethod = jest.fn()
 const mockSetIsMaxWithdrawal = jest.fn()
+const mockSetRecipient = jest.fn()
+const mockSetIsValidRecipient = jest.fn()
 
 const mockWithdrawFlow = {
     error: { showError: false, errorMessage: '' },
@@ -72,6 +75,8 @@ const mockWithdrawFlow = {
     selectedBankAccount: null as any,
     setSelectedBankAccount: mockSetSelectedBankAccount,
     setSelectedMethod: mockSetSelectedMethod,
+    setRecipient: mockSetRecipient,
+    setIsValidRecipient: mockSetIsValidRecipient,
 }
 
 jest.mock('@/features/withdraw/WithdrawFlowContext', () => ({
@@ -124,6 +129,22 @@ jest.mock('@/features/limits/utils', () => ({
 
 jest.mock('@/constants/zerodev.consts', () => ({
     PEANUT_WALLET_TOKEN_DECIMALS: 6,
+    PEANUT_WALLET_CHAIN: { id: 42161 },
+}))
+
+// The token selector's context is app-level; the flow writes the scanned
+// destination into it, so the test reads the writes off these mocks.
+const mockSetSelectedChainID = jest.fn()
+const mockSetSelectedTokenAddress = jest.fn()
+const SOLANA_USDC = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
+jest.mock('@/context/tokenSelector.context', () => ({
+    tokenSelectorContext: jest.requireActual('react').createContext({
+        supportedChainsAndTokens: {
+            solana: { chainId: 'solana', tokens: [{ symbol: 'USDC', address: SOLANA_USDC }] },
+        },
+        setSelectedChainID: (...args: unknown[]) => mockSetSelectedChainID(...args),
+        setSelectedTokenAddress: (...args: unknown[]) => mockSetSelectedTokenAddress(...args),
+    }),
 }))
 
 jest.mock('@/constants/analytics.consts', () => ({
@@ -510,6 +531,49 @@ describe('GROUP 3: Amount Validation', () => {
 
         fireEvent.click(continueBtn)
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto?amount=0.4')
+    })
+
+    describe('a destination scanned into the flow (TASK-22251)', () => {
+        // Real, publicly known address. The uppercase L is the character a
+        // lowercasing pass would destroy — it must reach the recipient step intact.
+        const SOLANA_ADDRESS = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM'
+
+        test('seeds the recipient step with the scanned address, its chain and token', () => {
+            mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+
+            renderWithdraw({
+                method: 'crypto',
+                step: 'amount',
+                amount: '25',
+                destination: SOLANA_ADDRESS,
+                chain: 'solana',
+            })
+            fireEvent.click(screen.getByText('Continue'))
+
+            expect(mockSetSelectedChainID).toHaveBeenCalledWith('solana')
+            expect(mockSetSelectedTokenAddress).toHaveBeenCalledWith(SOLANA_USDC)
+            expect(mockSetRecipient).toHaveBeenCalledWith({ name: undefined, address: SOLANA_ADDRESS })
+            expect(mockSetIsValidRecipient).toHaveBeenCalledWith(true)
+            expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto?method=crypto&amount=25')
+        })
+
+        // The pair rides in on a URL the user can edit, so neither value is
+        // trusted: a mismatched or undeliverable destination is ignored and the
+        // recipient step opens empty rather than pre-filled with something the
+        // withdrawal cannot pay.
+        test.each([
+            ['an address that is not valid for the chain', '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed', 'solana'],
+            ['a chain Rhino does not deliver to', SOLANA_ADDRESS, 'bitcoin'],
+        ])('ignores %s', (_case, destination, chain) => {
+            mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+
+            renderWithdraw({ method: 'crypto', step: 'amount', amount: '25', destination, chain })
+            fireEvent.click(screen.getByText('Continue'))
+
+            expect(mockSetRecipient).not.toHaveBeenCalled()
+            expect(mockSetIsValidRecipient).not.toHaveBeenCalled()
+            expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto?method=crypto&amount=25')
+        })
     })
 
     test('Crypto send forwards the send marker AND the amount to the next step', () => {
