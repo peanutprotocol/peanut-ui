@@ -14,12 +14,21 @@ type PostAuthRedirectOptions = {
      */
     deferStoredRedirect?: (destination: string) => boolean
     /**
-     * Refuse a destination that only records where an earlier session ended.
-     * Set by a brand-new account: it inherits no other session's page, however
-     * that page came to be stored (this device's own logout, a revoked session
-     * in another tab, a token that expired while the app stood open).
+     * Take a stored destination ONLY where it is classified as the intent of
+     * the person authenticating. Set by a brand-new account, which inherits no
+     * other session's page however that page came to be stored — this device's
+     * own logout, a revoked session in another tab, a token that expired while
+     * the app stood open.
+     *
+     * A whitelist rather than a session-end blacklist, because that is also
+     * the rollout policy for records written before the origin existed: the
+     * deployed version stored a bare path, and the reported bug IS such a
+     * record (a logout on /profile). Unclassified ones are discarded here, so
+     * an existing stale record cannot reproduce it on the first deploy; login
+     * keeps honouring them, and an explicit `redirect_uri` outranks this
+     * entirely, which is what campaign and claim entry points use.
      */
-    rejectSessionEndOrigin?: boolean
+    onlyClassifiedIntent?: boolean
 }
 
 /**
@@ -53,7 +62,7 @@ export function consumePostAuthRedirect(
     if (typeof storedValue === 'string' && storedValue.length > 0) {
         // Consumed, not merely skipped: leaving it would hand the same page to
         // whoever authenticates next on this device.
-        if (options.rejectSessionEndOrigin && getRedirectOrigin() === 'session-end') {
+        if (options.onlyClassifiedIntent && getRedirectOrigin() !== 'deep-link') {
             clearRedirectUrl()
             return { destination: fallbackRoute, source: 'fallback', deferred: false }
         }
@@ -67,7 +76,12 @@ export function consumePostAuthRedirect(
         return { destination, source: 'stored', deferred: false }
     }
 
-    // Corrupt or blank generic state is no more reusable than an unsafe URL.
-    if (storedValue !== null && storedValue !== undefined) clearRedirectUrl()
+    /*
+     * Corrupt or blank generic state is no more reusable than an unsafe URL.
+     * Unconditional now that a reader reports an unusable record as no record
+     * at all: the raw value can still be sitting there, and clearing a key
+     * that does not exist costs nothing.
+     */
+    clearRedirectUrl()
     return { destination: fallbackRoute, source: 'fallback', deferred: false }
 }

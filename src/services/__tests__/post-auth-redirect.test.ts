@@ -79,6 +79,49 @@ describe('post-auth redirect consumption', () => {
  * not have to reach anywhere, which is why the new account is safe either way.
  * The same holds when tab B's session simply expires and no logout ever runs.
  */
+/*
+ * Records written before the origin existed are a bare path, and the reported
+ * bug IS one of them: a logout on /profile. A missing origin therefore cannot
+ * read as intent on the new-account path, or the first deploy would reproduce
+ * the very thing this fixes for everyone already carrying one.
+ */
+describe('post-auth redirect for a record from before the origin existed', () => {
+    beforeEach(() => localStorage.clear())
+
+    const storeLegacyRecord = (destination: string) => saveToLocalStorage('redirect', destination)
+
+    it('a brand-new account discards it', () => {
+        storeLegacyRecord('/profile')
+
+        expect(consumePostAuthRedirect(null, { onlyClassifiedIntent: true })).toEqual({
+            destination: '/home',
+            source: 'fallback',
+            deferred: false,
+        })
+        expect(getRedirectUrl()).toBeNull()
+    })
+
+    it('an existing account logging in still resumes it', () => {
+        storeLegacyRecord(CAMPAIGN_REDIRECT)
+
+        expect(consumePostAuthRedirect(null)).toEqual({
+            destination: CAMPAIGN_REDIRECT,
+            source: 'stored',
+            deferred: false,
+        })
+    })
+
+    it('and an explicit redirect_uri outranks it for a new account too', () => {
+        storeLegacyRecord('/profile')
+
+        expect(consumePostAuthRedirect(FINANCIAL_REDIRECT, { onlyClassifiedIntent: true })).toEqual({
+            destination: FINANCIAL_REDIRECT,
+            source: 'explicit',
+            deferred: false,
+        })
+    })
+})
+
 describe('post-auth redirect across two tabs', () => {
     type UtilsModule = typeof import('@/utils/general.utils')
 
@@ -112,7 +155,7 @@ describe('post-auth redirect across two tabs', () => {
         expect(tabB.getRedirectUrl()).toBe('/card')
 
         // the account created back in tab A inherits none of it
-        expect(consumePostAuthRedirect(null, { rejectSessionEndOrigin: true })).toEqual({
+        expect(consumePostAuthRedirect(null, { onlyClassifiedIntent: true })).toEqual({
             destination: '/home',
             source: 'fallback',
             deferred: false,
@@ -129,7 +172,7 @@ describe('post-auth redirect across two tabs', () => {
         window.history.replaceState({}, '', '/pay-request/abc')
         tabB.saveRedirectUrl()
 
-        expect(consumePostAuthRedirect(null, { rejectSessionEndOrigin: true })).toEqual({
+        expect(consumePostAuthRedirect(null, { onlyClassifiedIntent: true })).toEqual({
             destination: '/pay-request/abc',
             source: 'stored',
             deferred: false,

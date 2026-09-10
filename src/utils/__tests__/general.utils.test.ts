@@ -13,6 +13,7 @@ import {
     isUuid,
     printableUserHandle,
     saveRedirectUrl,
+    saveToLocalStorage,
     toInviteCode,
 } from '../general.utils'
 import { AccountType } from '@/interfaces/interfaces'
@@ -601,11 +602,26 @@ describe('General Utilities', () => {
             expect(getRedirectOrigin()).toBe('deep-link')
         })
 
-        it('keeps the origin with the path, and clears the two together', () => {
+        it('keeps the origin with the path in one record, cleared together', () => {
             saveRedirectUrl('session-end')
             expect(getRedirectOrigin()).toBe('session-end')
 
             clearRedirectUrl()
+            expect(getRedirectUrl()).toBeNull()
+            expect(getRedirectOrigin()).toBeNull()
+        })
+
+        it('reads a record from before the origin existed as unclassified, not intent', () => {
+            // the shape the deployed version wrote: a bare path
+            saveToLocalStorage('redirect', '/profile')
+
+            expect(getRedirectUrl()).toBe('/profile')
+            expect(getRedirectOrigin()).toBeNull()
+        })
+
+        it('reports an unusable record as no record at all', () => {
+            saveToLocalStorage('redirect', { origin: 'deep-link' })
+
             expect(getRedirectUrl()).toBeNull()
             expect(getRedirectOrigin()).toBeNull()
         })

@@ -758,18 +758,38 @@ export const endIntentionalLogout = () => {
  */
 export type RedirectOrigin = 'deep-link' | 'session-end'
 
-const REDIRECT_ORIGIN_KEY = 'redirect-origin'
+const REDIRECT_KEY = 'redirect'
+/** Never shipped: only this branch's first draft wrote a separate origin key. */
+const LEGACY_REDIRECT_ORIGIN_KEY = 'redirect-origin'
 
 /**
- * The ONLY way to store a post-auth destination: the origin is part of the
- * record, so writing the destination alone cannot leave a previous writer's
- * origin standing over it (which would make a fresh signup discard a
- * confirmed invite or campaign continuation as if it were someone's
- * abandoned session).
+ * Destination and origin are ONE record under ONE key, written in a single
+ * setItem. Two writes could half-fail — localStorage errors are swallowed —
+ * and leave an old destination wearing a new origin, or a fresh continuation
+ * wearing a dead session's. Readers therefore never see a mixed pair.
+ *
+ * A record stored by a version that had no origin (a plain string) reads back
+ * as unclassified rather than as intent: see consumePostAuthRedirect for what
+ * a brand-new account does with one.
  */
+type StoredRedirect = { destination: string; origin: RedirectOrigin | null }
+
+const readStoredRedirect = (): StoredRedirect | null => {
+    const stored = getFromLocalStorage(REDIRECT_KEY)
+    if (typeof stored === 'string') {
+        return stored.length > 0 ? { destination: stored, origin: null } : null
+    }
+    if (stored && typeof stored === 'object') {
+        const { destination, origin } = stored as Partial<StoredRedirect>
+        if (typeof destination !== 'string' || destination.length === 0) return null
+        return { destination, origin: origin === 'session-end' || origin === 'deep-link' ? origin : null }
+    }
+    return null
+}
+
+/** The ONLY way to store a post-auth destination. */
 export const setRedirectUrl = (destination: string, origin: RedirectOrigin = 'deep-link') => {
-    saveToLocalStorage('redirect', destination)
-    saveToLocalStorage(REDIRECT_ORIGIN_KEY, origin)
+    saveToLocalStorage(REDIRECT_KEY, { destination, origin })
 }
 
 export const saveRedirectUrl = (origin: RedirectOrigin = 'deep-link') => {
@@ -778,19 +798,19 @@ export const saveRedirectUrl = (origin: RedirectOrigin = 'deep-link') => {
     setRedirectUrl(currentUrl.href.replace(currentUrl.origin, ''), origin)
 }
 
-export const getRedirectUrl = () => {
-    return getFromLocalStorage('redirect')
+export const getRedirectUrl = (): string | null => {
+    return readStoredRedirect()?.destination ?? null
 }
 
+/** `null` for a record written before the origin existed — unclassified, not intent. */
 export const getRedirectOrigin = (): RedirectOrigin | null => {
-    const stored = getFromLocalStorage(REDIRECT_ORIGIN_KEY)
-    return stored === 'session-end' || stored === 'deep-link' ? stored : null
+    return readStoredRedirect()?.origin ?? null
 }
 
 export const clearRedirectUrl = () => {
     if (typeof localStorage !== 'undefined') {
-        localStorage.removeItem('redirect')
-        localStorage.removeItem(REDIRECT_ORIGIN_KEY)
+        localStorage.removeItem(REDIRECT_KEY)
+        localStorage.removeItem(LEGACY_REDIRECT_ORIGIN_KEY)
     }
 }
 
