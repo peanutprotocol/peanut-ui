@@ -108,6 +108,19 @@ it('raises only the iOS floor for an iOS-only change', () => {
     })
 })
 
+it('keeps the iOS floor when only the Android runtime dependency changes', () => {
+    const repo = makeRepo()
+    write(repo.dir, 'pnpm-lock.yaml', "  '@capacitor/android@8.1.0':\n  '@capacitor/ios@8.1.0':\n")
+    release(repo, 'v1.4.0')
+    write(repo.dir, 'pnpm-lock.yaml', "  '@capacitor/android@8.2.0':\n  '@capacitor/ios@8.1.0':\n")
+    release(repo, 'v1.5.0')
+
+    expect(floors(repo.dir)).toEqual({
+        NEXT_PUBLIC_OTA_FLOOR_ANDROID: '1.5.0',
+        NEXT_PUBLIC_OTA_FLOOR_IOS: '1.4.0',
+    })
+})
+
 // A native change made and then reverted does not make the binaries in between
 // able to run this JS — they are exactly the binaries the change was made for.
 it('stops at the first mismatch instead of reaching past it', () => {

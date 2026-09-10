@@ -138,11 +138,25 @@ it('rejects preparation when the server did not persist the audience restriction
     expect(invoke('prepare-candidate', [{ body: {} }, { body: { ...candidate, allow_prod: true } }]).status).toBe(1)
 })
 it('reads the production version field without matching versions in arbitrary text', () => {
-    const production = { app_id: env.CAPGO_APP_ID, name: 'production', version: { name: '1.6.2' } }
+    const production = {
+        app_id: env.CAPGO_APP_ID,
+        name: 'production',
+        version: { name: '1.6.2' },
+        rolloutEnabled: false,
+    }
     expect(invoke('current-version', [{ body: production }]).result).toBe('1.6.2')
     expect(
         invoke('current-version', [{ body: { ...production, version: null, comment: 'version 1.6.2' } }]).status
     ).toBe(1)
+})
+it('rejects an active or unverifiable production rollout during preflight', () => {
+    const production = { app_id: env.CAPGO_APP_ID, name: 'production', version: { name: '1.6.2' } }
+    for (const rolloutEnabled of [true, undefined]) {
+        const result = invoke('current-version', [{ body: { ...production, rolloutEnabled } }])
+        expect(result.status).toBe(1)
+        expect(result.error).toContain('rollout')
+        expect(result.requests).toHaveLength(1)
+    }
 })
 it('verifies production and the promoted artifact, and rejects an active alternate rollout', () => {
     const production = {
@@ -170,8 +184,10 @@ it('keeps production promotion after successful verification and upload isolated
     expect(upload).not.toMatch(/^\s+--version-exists-ok\b/m)
     expect(upload).toContain('--link "https://github.com/peanutprotocol/peanut-ui/commit/$GITHUB_SHA"')
     const prepare = source.indexOf('node scripts/capgo-release-guard.mjs prepare-candidate')
+    const preflight = source.indexOf('node scripts/capgo-release-guard.mjs current-version')
     const verify = source.indexOf('node scripts/capgo-release-guard.mjs verify-bundle')
     const promote = source.indexOf('channel set production')
+    expect(preflight).toBeLessThan(source.indexOf('- name: Upload bundle'))
     expect(prepare).toBeLessThan(source.indexOf('- name: Upload bundle'))
     expect(verify).toBeLessThan(promote)
     expect(source.slice(verify, promote)).not.toMatch(/continue-on-error|always\(\)/)

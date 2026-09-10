@@ -126,7 +126,11 @@ export async function run(mode, { env = process.env, fetchImpl = fetch } = {}) {
             await verifyCandidate()
             return `Verified bundle ${await bundle()}`
         case 'current-version': {
-            const current = (await channel('production')).version?.name
+            const production = await channel('production')
+            if (production.rolloutEnabled !== false) {
+                throw new Error('production has an active or unverifiable rollout; stop it before publishing')
+            }
+            const current = production.version?.name
             if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?$/.test(current ?? '')) {
                 throw new Error('production has no valid current bundle version')
             }

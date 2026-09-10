@@ -123,7 +123,9 @@ describe('native-fingerprint', () => {
         expect(keys).toContain('capacitor.config.ts')
         expect(keys).toContain('android/app/src/**.{java,kt}')
         expect(keys).toContain('ios/App/**.swift')
-        expect(keys).toContain('native-plugin-versions')
+        expect(keys).toContain('android/native-plugin-versions')
+        expect(keys).toContain('ios/native-plugin-versions')
+        expect(keys).toContain('shared/native-plugin-versions')
         expect(keys).toContain('android/app/src/main/res/**.xml')
         expect(keys).toContain('ios/App/**.{plist,entitlements}')
         expect(keys).toContain('patches/**')
@@ -387,8 +389,8 @@ describe('native-fingerprint', () => {
  * with no `platform` would be skipped by platformDiff for both platforms — the
  * lenient direction, which is how an unnoticed native change reaches an older
  * binary. `shared` is a deliberate answer, not a default: capacitor.config.ts,
- * patches/ and the resolved plugin versions sit outside android/ and ios/ while
- * describing the native half of both.
+ * patches/ and cross-platform plugin versions sit outside android/ and ios/
+ * while describing the native half of both.
  */
 describe('platform classification', () => {
     const inputs = () => {
@@ -416,7 +418,15 @@ describe('platform classification', () => {
         const shared = inputs()
             .filter((input) => input.platform === 'shared')
             .map((input) => input.id)
-        expect(shared).toEqual(expect.arrayContaining(['capacitor.config.ts', 'patches/**', 'native-plugin-versions']))
+        expect(shared).toEqual(
+            expect.arrayContaining(['capacitor.config.ts', 'patches/**', 'shared/native-plugin-versions'])
+        )
+    })
+
+    it('keeps platform runtime dependency versions on their own platform', () => {
+        const classified = Object.fromEntries(inputs().map(({ id, platform }) => [id, platform]))
+        expect(classified['android/native-plugin-versions']).toBe('android')
+        expect(classified['ios/native-plugin-versions']).toBe('ios')
     })
 
     // Named for iOS but not under ios/ — it pins iOS native SDK versions after

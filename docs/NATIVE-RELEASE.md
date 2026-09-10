@@ -433,11 +433,12 @@ fingerprint is unchanged; the last release that still matches is the floor — t
 binary of that platform whose native contract is the one this tree was built against. For
 the tree above that is `android 1.6.0, ios 1.5.0`.
 
-- **`shared` inputs count for both platforms.** `capacitor.config.ts`, `patches/` and the
-  resolved plugin versions sit outside `android/` and `ios/` while describing the native
-  half of both, so this is not a path-prefix filter. Every `NATIVE_INPUTS` entry carries an
-  explicit `platform` and a test pins it, so a newly added input cannot default to the
-  lenient side.
+- **`shared` inputs count for both platforms.** `capacitor.config.ts`, `patches/` and
+  cross-platform plugin versions describe the native half of both. Platform runtime
+  packages are separate inputs (`@capacitor/android` for Android and `@capacitor/ios` for
+  iOS), so bumping one cannot raise the unaffected platform's floor. Every fingerprint
+  input declares `android`, `ios` or `shared`, and the suite fails if a new input omits the
+  classification.
 - **Contiguous from the newest.** A native change made and then reverted does not make the
   binaries in between able to run this JS — they are precisely the binaries the change was
   made for.
@@ -482,7 +483,9 @@ fails the run before production changes.
 
 `scripts/capgo-release-guard.mjs` reads structured Capgo API records and selects the exact
 `name` field. The pinned CLI's human bundle table does not expose comments and cannot be
-used for this check. Before promotion, the guard requires the expected candidate marker at
+used for this check. Its first production read also requires `rolloutEnabled: false`, so an
+active or unverifiable alternate rollout stops the resolve job before any upload or channel
+mutation. Before promotion, the guard requires the expected candidate marker at
 the end of that record's comment, the shared minimum native version, a link to the full
 source commit, and artifact metadata. HTTP errors, malformed responses and missing
 metadata stop the run. Uploads must finish successfully in that run: the production OTA
@@ -639,7 +642,8 @@ own `out/` under the binary's versionName, then assert the channel serves it.
   moves when that changes), the **resource contracts** those config files delegate to
   (`android/app/src/main/res/**.xml`, including the `capacitor-passkey.xml` asset
   statement, and every `Info.plist`/`.entitlements` under `ios/App` — the extensions'
-  as well as the app's), and the **resolved plugin versions from `pnpm-lock.yaml`**
+  as well as the app's), and the **resolved plugin versions from `pnpm-lock.yaml`**,
+  separated into Android runtime, iOS runtime and cross-platform inputs
   (the OTA workflow runs `pnpm install` but never regenerates the committed manifests, so
   a plugin bumped without a `cap sync` would ship the new JS wrapper against unchanged
   manifest bytes; the plugin set is the union of the declared dependencies and the names
