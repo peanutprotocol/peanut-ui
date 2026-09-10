@@ -9,7 +9,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { CloudsCss, type CloudConfig } from './CloudsCss'
 import { AnimateOnView } from '@/components/Global/AnimateOnView'
 import type { LandingStrings } from './landingStrings'
-import type { Locale } from '@/i18n/types'
+import type { LandingContentHrefs } from './landingContentHrefs'
 import { type CTAButton } from '@/components/LandingPage/landing.types'
 
 /**
@@ -103,7 +103,7 @@ const heroClouds: CloudConfig[] = [
 
 type HeroProps = {
     strings: LandingStrings
-    locale: Locale
+    contentHrefs: LandingContentHrefs
     primaryCta?: CTAButton
     secondaryCta?: CTAButton
     buttonVisible?: boolean
@@ -138,7 +138,7 @@ export function Hero({
     buttonScale = 1,
     customCta,
     strings,
-    locale,
+    contentHrefs,
 }: HeroProps) {
     const renderCTAButton = (cta: CTAButton, variant: 'primary' | 'secondary') => {
         return (
@@ -222,16 +222,16 @@ export function Hero({
                     className="mt-2 block text-center text-xl leading-tight text-n-1 md:mt-4 md:text-5xl"
                     style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
                 >
-                    <Link prefetch={false} href={`/${locale}/argentina`} className="hover:underline">
-                        Buenos Aires
+                    <Link prefetch={false} href={contentHrefs.unitedStates} className="hover:underline">
+                        New York
                     </Link>
                     .{' '}
-                    <Link prefetch={false} href={`/${locale}/brazil`} className="hover:underline">
-                        São Paulo
+                    <Link prefetch={false} href={contentHrefs.spain} className="hover:underline">
+                        Madrid
                     </Link>
                     .{' '}
-                    <Link prefetch={false} href={`/${locale}/brazil`} className="hover:underline">
-                        Floripa
+                    <Link prefetch={false} href={contentHrefs.mexico} className="hover:underline">
+                        Mexico City
                     </Link>
                     .
                 </span>
