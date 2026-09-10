@@ -197,6 +197,18 @@ and it is fine for it to lag behind what ships.
 
 ### Cutting a release
 
+> **Owed to the next native release: the `/app` App Links paths.**
+> `d91ea7cee` ("keep one download action across app entry points") added
+> `<data android:path="/app" />` and `<data android:pathPrefix="/app/" />` to
+> `android/app/src/main/AndroidManifest.xml`. They were reverted on `dev` so the
+> stuck production OTA could ship — an intent filter cannot reach a device over the
+> air, so those lines were inert on every shipped binary while blocking every
+> bundle behind the native-surface check. `public/.well-known/apple-app-site-association`
+> still claims `/app` and `native-routes.ts` still maps `/app/*` → `/app`, so iOS is
+> unaffected and only Android `/app` deep links are missing. **Restore the two lines
+> in the same PR that cuts the next native release.** Do not restore them on their
+> own: on `dev` alone they block OTA again for no user-visible gain.
+
 All three manual workflows accept `dev`, `main`, and `release/android-kyc`.
 Select the source branch before dispatch. A supported branch name does not prove
 that its current commit is ready to ship.
