@@ -16,6 +16,7 @@ import type { ChainWithTokens } from '@/interfaces/chain-meta'
 import { useMemo } from 'react'
 import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
 import { useTranslations } from 'next-intl'
+import { savedAddressLabel } from '@/utils/saved-address.utils'
 
 interface WithdrawConfirmViewProps {
     amount: string
@@ -68,6 +69,12 @@ interface WithdrawConfirmViewProps {
     belowMinimumMessage?: string | null
     /** Reached via Send → Exchange or Wallet, so the copy says send, not withdraw. */
     isFromSendFlow?: boolean
+    /** Address-book nickname when the destination is already saved — "To" renders "Nickname · …abcd". */
+    toNickname?: string | null
+    /** "Save to address book" prompt, rendered under the details card (only when not yet saved). */
+    saveAddressPrompt?: React.ReactNode
+    /** Extra gate for the CTA — e.g. "Save to address book" ticked with no nickname yet. */
+    confirmDisabled?: boolean
 }
 
 export default function ConfirmWithdrawView({
@@ -90,6 +97,9 @@ export default function ConfirmWithdrawView({
     insufficientBalance = false,
     belowMinimumMessage = null,
     isFromSendFlow = false,
+    toNickname = null,
+    saveAddressPrompt = null,
+    confirmDisabled = false,
 }: WithdrawConfirmViewProps) {
     const t = useTranslations('withdraw')
     const tNav = useTranslations('navigation')
@@ -181,11 +191,17 @@ export default function ConfirmWithdrawView({
                     <PaymentInfoRow
                         label={t('confirm.to')}
                         value={
-                            <AddressLink
-                                isLink={false}
-                                address={toAddress}
-                                className="text-foreground-primary no-underline"
-                            />
+                            toNickname ? (
+                                <span className="text-foreground-primary">
+                                    {savedAddressLabel(toNickname, toAddress)}
+                                </span>
+                            ) : (
+                                <AddressLink
+                                    isLink={false}
+                                    address={toAddress}
+                                    className="text-foreground-primary no-underline"
+                                />
+                            )
                         }
                     />
                     <NetworkFeeRow
@@ -210,6 +226,8 @@ export default function ConfirmWithdrawView({
                     <PaymentInfoRow hideBottomBorder label={tCommon('peanutFee')} value={`$${peanutFee}`} />
                 </Card>
 
+                {saveAddressPrompt}
+
                 {showHighFeeWarning && <Notification priority="info">{t('confirm.highFeeWarning')}</Notification>}
 
                 {error ? (
@@ -223,7 +241,7 @@ export default function ConfirmWithdrawView({
                                 onConfirm()
                             }
                         }}
-                        disabled={false}
+                        disabled={confirmDisabled}
                         loading={false}
                         className="w-full"
                         icon="retry"
@@ -235,7 +253,13 @@ export default function ConfirmWithdrawView({
                         variant="purple"
                         shadowSize="4"
                         onClick={onConfirm}
-                        disabled={isProcessing || isCalculating || insufficientBalance || !!belowMinimumMessage}
+                        disabled={
+                            isProcessing ||
+                            isCalculating ||
+                            insufficientBalance ||
+                            !!belowMinimumMessage ||
+                            confirmDisabled
+                        }
                         loading={isProcessing}
                         className="w-full"
                     >
