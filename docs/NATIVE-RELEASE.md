@@ -197,6 +197,22 @@ and it is fine for it to lag behind what ships.
 
 ### Cutting a release
 
+> **Owed to the next native release: the `/app` App Links claim.**
+> `d91ea7cee` added `/app` + `/app/*` to `public/.well-known/apple-app-site-association`
+> and `/app` + `/app/` to `android/app/src/main/AndroidManifest.xml`. `v1.6.0` predates
+> that commit, so no shipped binary or AASA ever carried the claim — but the manifest half
+> moved the native fingerprint, and `check-native-ota-surface` compares that fingerprint
+> against the binary an OTA targets. The two lines therefore blocked every production
+> bundle while delivering nothing, with the fleet stuck on JS older than its own binary.
+> Both platforms were reverted together so the iOS↔Android parity case in
+> `src/utils/__tests__/app-links.test.ts` stays enforced; only the two `/app`-presence
+> cases are `it.skip`.
+>
+> **Restore all three in the PR that cuts the next native release** — the AASA entries, the
+> manifest entries, and the two skipped cases. Never restore them on `dev` alone: an intent
+> filter cannot ship over the air, so on their own they block OTA again for no user-visible
+> gain. `native-routes.ts` still maps `/app/*` → `/app`, so nothing else needs touching.
+
 All three manual workflows accept `dev`, `main`, and `release/android-kyc`.
 Select the source branch before dispatch. A supported branch name does not prove
 that its current commit is ready to ship.
