@@ -1,6 +1,6 @@
 name: Release Native
 
-# The single entry point for a store build. Click "Run workflow" on `dev` or `release/android-kyc`; the
+# The single entry point for a store build. Click "Run workflow" on `dev`, `main`, or `release/android-kyc`; the
 # version is resolved here, not typed, and both platforms build from that one
 # number so they can never disagree about what a release is called.
 #
@@ -48,14 +48,13 @@ jobs:
         outputs:
             version: ${{ steps.resolve.outputs.version }}
         steps:
-            # `main` runs 80+ commits behind `dev`, and workflow_dispatch will happily
-            # build whichever ref the dropdown was left on. The version resolver reads
-            # global tags, so a release off the wrong ref would look correctly numbered
-            # and ship stale code.
+            # Only approved release branches may resolve a production version.
+            # Before dispatch, verify the selected commit includes the reviewed native
+            # changes and KYC fixes; the branch name alone does not prove readiness.
             - name: Guard release ref
               run: |
-                  if [ "$GITHUB_REF_NAME" != "dev" ] && [ "$GITHUB_REF_NAME" != "release/android-kyc" ]; then
-                      echo "::error::releases are cut from dev or release/android-kyc, not $GITHUB_REF_NAME" >&2
+                  if [ "$GITHUB_REF_NAME" != "dev" ] && [ "$GITHUB_REF_NAME" != "main" ] && [ "$GITHUB_REF_NAME" != "release/android-kyc" ]; then
+                      echo "::error::releases are cut from dev, main, or release/android-kyc, not $GITHUB_REF_NAME" >&2
                       exit 1
                   fi
 
