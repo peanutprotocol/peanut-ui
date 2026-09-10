@@ -14,7 +14,7 @@ import {
 import { getMigrationCutoverTime, openStore } from '@/utils/migration.utils'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
-import { useUserStore } from '@/redux/hooks'
+import { useAuth } from '@/context/authContext'
 import { isCapacitor } from '@/utils/capacitor'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 
@@ -33,7 +33,7 @@ export default function MigrationDownloadModal({
     const t = useTranslations('migration')
     const migrationOn = useMigrationFlag()
     const { deviceType } = useDeviceType()
-    const { user } = useUserStore()
+    const { user } = useAuth()
     const [visible, setVisible] = useState(false)
 
     const userId = user?.user.userId
@@ -72,9 +72,12 @@ export default function MigrationDownloadModal({
     // friendly urgency (deadline in the copy) for the final stretch
     const isUrgent = daysLeft <= MIGRATION_URGENCY_THRESHOLD_DAYS
 
+    // desktop stacks it under the App Store + Google Play pair — a third CTA
+    // steps down to ghost (kush ruling 2026-09-10); on phone it is the second
+    // CTA and stays the stroke secondary
     const remindLaterCta = {
         text: t(isUrgent ? 'downloadPrompt.remindLater' : 'downloadPrompt.maybeLater'),
-        variant: 'stroke' as const,
+        variant: (isDesktop ? 'transparent' : 'stroke') as 'transparent' | 'stroke',
         onClick: snooze,
     }
 

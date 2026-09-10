@@ -311,47 +311,6 @@ const useClaimLink = () => {
                         queryKey: ['balance'],
                         type: 'active',
                     })
-
-                    // Aggressive polling: Backend might take 2-4 seconds to process
-                    // Poll every 1 second, stop early if data updates or after 10 attempts
-                    let pollCount = 0
-                    let lastTransactionCount = 0
-
-                    // Get initial transaction count
-                    const initialData = queryClient.getQueryData<unknown[]>([TRANSACTIONS])
-                    lastTransactionCount = initialData?.length || 0
-
-                    const pollInterval = setInterval(() => {
-                        pollCount++
-
-                        // Check if backend has finished processing (new transaction appeared)
-                        const currentData = queryClient.getQueryData<unknown[]>([TRANSACTIONS])
-                        const currentCount = currentData?.length || 0
-
-                        if (currentCount > lastTransactionCount) {
-                            console.log(
-                                `✅ Backend processing complete (new transaction detected), stopping poll at ${pollCount}/10`
-                            )
-                            clearInterval(pollInterval)
-                            return
-                        }
-
-                        console.log(`🔄 Polling for backend updates ${pollCount}/10`)
-
-                        queryClient.refetchQueries({
-                            queryKey: [TRANSACTIONS],
-                            type: 'active',
-                        })
-                        queryClient.refetchQueries({
-                            queryKey: ['balance'],
-                            type: 'active',
-                        })
-
-                        if (pollCount >= 10) {
-                            console.log('⏱️ Polling timeout reached (WebSocket should handle future updates)')
-                            clearInterval(pollInterval)
-                        }
-                    }, 1000)
                 }
             },
             onSettled: () => {

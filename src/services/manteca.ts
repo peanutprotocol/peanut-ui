@@ -324,6 +324,7 @@ export const mantecaApi = {
         try {
             const response = await serverFetch('/manteca/withdraw', {
                 method: 'POST',
+                timeoutMs: 120_000, // Funding can precede Manteca accounting; match the signed withdrawal budget.
                 body: jsonStringify(data),
             })
 

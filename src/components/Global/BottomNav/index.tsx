@@ -6,6 +6,7 @@ import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { isSameRoute } from '@/constants/routes'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useCardSurfaceAccess } from '@/hooks/useCardSurfaceAccess'
+import { useForegroundPushRefresh } from '@/hooks/useForegroundPushRefresh'
 import { useSupportUnread } from '@/hooks/useSupportUnread'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -39,7 +40,12 @@ import { TAB_ORDER, type TabId } from './tab-order'
  *   the commit.
  * - native tab bars respond on touch, not after navigation settles — the
  *   pill now moves in the same tick as the tap, like the drag path used to.
- * The bezier overshoots a few percent: the ruled "little bounce", no jitter.
+ * The curve is a real underdamped spring sampled into linear() easing —
+ * picked on /dev/nav-bounce as variant D (TASK-22208). Values live in
+ * globals.css (--nav-spring-*, --nav-pop-*) with a bezier fallback where
+ * linear() is unsupported. Two more native-feel layers ride along: the
+ * tapped icon squashes on finger-down and springs back on release, and the
+ * haptic fires on pointerdown (touch timing), not after the click resolves.
  *
  * Drag-the-pill survives the framer removal as manual pointer events: while
  * a finger holds the pill the transition is suspended and the transform
@@ -55,6 +61,16 @@ const tabClass =
 // icons sit above the pill (z) and let pointer events fall through
 const iconClass = 'pointer-events-none relative z-10'
 
+// the tapped icon squashes under the finger and springs back on release.
+// inline-flex because transforms do not apply to inline boxes; scale is a
+// compositor property, so this never touches layout.
+const iconPopClass = (pressed: boolean) =>
+    `${iconClass} inline-flex motion-safe:transition-transform ${
+        pressed
+            ? 'scale-[0.82] motion-safe:duration-instant motion-safe:ease-out'
+            : 'scale-100 motion-safe:duration-nav-pop motion-safe:ease-nav-pop'
+    }`
+
 /** A tab's box inside the bar, in the bar's own coordinates. */
 type TabBox = { left: number; width: number }
 
@@ -69,6 +85,10 @@ export const BottomNav = () => {
     const { isSupportModalOpen, setIsSupportModalOpen, setIsQRScannerOpen } = useModalsContext()
     const { triggerHaptic } = useAppHaptic()
     const hasUnreadSupport = useSupportUnread()
+    // the badge above is event-driven; this makes sure a web session that
+    // never mounts useNotifications (direct /card or /history load) still
+    // gets the foreground-push event the badge listens for
+    useForegroundPushRefresh()
     // The middle slot is the card tab only while the card is attainable. A
     // resident of a Rain-prohibited country who was released from the waitlist
     // still has `hasCardAccess`, so gating on that shipped them a tab whose
@@ -134,6 +154,22 @@ export const BottomNav = () => {
     // below), and this effect only reconciles EXTERNAL navigation — deep
     // links, hardware back, programmatic pushes.
     const [activeTab, setActiveTab] = useState<TabId | null>(routeTab)
+    // which tab a finger is currently down on, for the icon squash. The pill
+    // overlays the ACTIVE tab and captures its pointer events (drag path), so
+    // this only ever fires for the tabs you can switch to — no squash-under-
+    // drag conflict by construction.
+    const [pressedTab, setPressedTab] = useState<TabId | null>(null)
+    const releasePress = (id: TabId) => () => setPressedTab((prev) => (prev === id ? null : prev))
+    // native timing: feedback lands on finger-down, not after the click resolves
+    const tabPressHandlers = (id: TabId) => ({
+        onPointerDown: () => {
+            triggerHaptic()
+            setPressedTab(id)
+        },
+        onPointerUp: releasePress(id),
+        onPointerLeave: releasePress(id),
+        onPointerCancel: releasePress(id),
+    })
     useEffect(() => {
         // null included: leaving the tab routes (/profile, /history) must
         // clear the pill (chip P15-minor). Optimistic taps survive because
@@ -226,47 +262,41 @@ export const BottomNav = () => {
                     href="/home"
                     draggable={false}
                     aria-label={t('home')}
-                    onClick={() => {
-                        triggerHaptic()
-                        setActiveTab('home')
-                    }}
+                    {...tabPressHandlers('home')}
+                    onClick={() => setActiveTab('home')}
                     className={tabClass}
                     ref={(el) => {
                         tabRefs.current.home = el
                     }}
                 >
-                    <Icon name="home" size={20} className={iconClass} />
+                    <Icon name="home" size={20} className={iconPopClass(pressedTab === 'home')} />
                 </Link>
                 <Link
                     href={middleTab.href}
                     draggable={false}
                     aria-label={middleTab.label}
-                    onClick={() => {
-                        triggerHaptic()
-                        setActiveTab('middle')
-                    }}
+                    {...tabPressHandlers('middle')}
+                    onClick={() => setActiveTab('middle')}
                     className={tabClass}
                     ref={(el) => {
                         tabRefs.current.middle = el
                     }}
                 >
-                    <Icon name={middleTab.icon} size={20} className={iconClass} />
+                    <Icon name={middleTab.icon} size={20} className={iconPopClass(pressedTab === 'middle')} />
                 </Link>
                 {/* while the drawer is open the tab shows a static pressed
                     state (white fill) instead of borrowing the route pill */}
                 <button
                     type="button"
                     aria-label={t('support')}
-                    onClick={() => {
-                        triggerHaptic()
-                        setIsSupportModalOpen(true)
-                    }}
+                    {...tabPressHandlers('support')}
+                    onClick={() => setIsSupportModalOpen(true)}
                     className={`${tabClass} ${isSupportModalOpen ? 'bg-background-default' : ''}`}
                     ref={(el) => {
                         tabRefs.current.support = el
                     }}
                 >
-                    <span className={iconClass}>
+                    <span className={iconPopClass(pressedTab === 'support')}>
                         <Icon name="peanut-support" size={20} />
                         {/* role="status" so the dot is announced — aria-label alone on
                             a bare span is ignored by assistive tech (generic role). */}
@@ -294,7 +324,7 @@ export const BottomNav = () => {
                         onPointerCancel={(e) => endPillDrag(e, true)}
                         // -1px, not -2px: the bar's own border is 1px, so a 1px inset puts the
                         // pill's outer edge exactly on the bar's — at 2px it stood proud of it.
-                        className="absolute -top-px -bottom-px left-0 z-0 touch-none rounded-round border border-border-default bg-background-default motion-safe:transition-transform motion-safe:duration-[250ms] motion-safe:ease-[cubic-bezier(0.3,1.06,0.4,1)]"
+                        className="absolute -top-px -bottom-px left-0 z-0 touch-none rounded-round border border-border-default bg-background-default motion-safe:transition-transform motion-safe:duration-nav-spring motion-safe:ease-nav-spring"
                         style={{
                             transform: `translateX(${restingX(activeBox)}px)`,
                             width: activeBox.width + 2,

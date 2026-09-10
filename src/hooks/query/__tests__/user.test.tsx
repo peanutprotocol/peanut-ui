@@ -16,10 +16,6 @@ jest.mock('@/utils/auth-token', () => ({
 }))
 jest.mock('@/hooks/usePWAStatus', () => ({ usePWAStatus: () => false, isStandaloneDisplayMode: () => false }))
 jest.mock('@/hooks/useGetDeviceType', () => ({ useDeviceType: () => ({ deviceType: 'desktop' }) }))
-jest.mock('@/redux/hooks', () => ({
-    useAppDispatch: () => jest.fn(),
-    useUserStore: () => ({ user: null }),
-}))
 jest.mock('posthog-js', () => ({ default: { capture: jest.fn() }, capture: jest.fn() }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: jest.fn(() => false) }))
 // demo-api → demo → general.utils → app/actions/clients starts viem timers that keep the worker alive
@@ -210,7 +206,29 @@ describe('useUserQuery — demo mode', () => {
         const { result } = renderHook(() => useUserQuery(), { wrapper: makeWrapper() })
         await waitFor(() => expect(result.current.isSuccess).toBe(true), { timeout: 5000 })
 
-        // the real fetchUser path, through the mutable demo profile, not the static constant
-        expect(result.current.data?.user.avatarKey).toBe('basic.frog')
+        // Force a settled round-trip: with demo placeholderData the mount-time
+        // fetch's completion never notifies this 5.8.4 harness (placeholder
+        // stays on screen); the app path is invalidate→refetch, mirrored here.
+        const { data } = await result.current.refetch()
+
+        // the real fetchUser path, through the mutable demo profile, not the
+        // static constant (which also serves as placeholderData pre-fetch)
+        expect(data?.user.avatarKey).toBe('basic.frog')
+    })
+})
+
+describe('useUserQuery transient failures', () => {
+    it.each([429, 408, 503])('keeps the cached session after HTTP %s', async (status) => {
+        const profile = { user: { userId: 'u1', username: 'alice' } }
+        mockApiFetch.mockReset()
+        mockClearAuthToken.mockClear()
+        mockApiFetch.mockResolvedValueOnce(mockResponse(200, profile))
+        const { result } = renderHook(() => useUserQuery(), { wrapper: makeWrapper() })
+        await waitFor(() => expect(result.current.isSuccess).toBe(true))
+        mockApiFetch.mockResolvedValue(mockResponse(status, {}))
+        const refreshed = await result.current.refetch()
+        expect(refreshed.data).toEqual(profile)
+        expect(refreshed.isError).toBe(true)
+        expect(mockClearAuthToken).not.toHaveBeenCalled()
     })
 })

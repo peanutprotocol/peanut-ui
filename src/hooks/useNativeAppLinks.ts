@@ -9,10 +9,14 @@ import { isCapacitor, openExternalUrl, closeInAppBrowser, markInAppBrowserClosed
 import { deepLinkToNativePath, isNativeExportPath, redactNativePath } from '@/utils/native-routes'
 import { BASE_URL } from '@/constants/general.consts'
 import { hasDeepLinkNavigated, markDeepLinkNavigated } from '@/utils/deep-link-state'
-import { sanitizeRedirectURL, saveToCookie } from '@/utils/cookie-url.utils'
+import { sanitizeRedirectURL } from '@/utils/cookie-url.utils'
 import { toInviteCode } from '@/utils/invite-code.utils'
 import { getOneSignalAdapter } from '@/services/onesignal'
+import { isDemoMode } from '@/utils/demo'
+import { notifyNotificationsUpdated, onForegroundPushDelivered } from '@/utils/notifications-events'
 import { dispatchBackPress } from '@/utils/back-handler'
+import { stashInvite } from '@/utils/invite-stash'
+import { EInviteType } from '@/services/services.types'
 
 /*
  * App-lifecycle + deep-link listeners (back button, appStateChange focus,
@@ -132,7 +136,7 @@ export function useNativeAppLinks() {
                 const parsed = new URL(url, 'https://peanut.me')
                 if (parsed.pathname.split('/').filter(Boolean)[0] === 'invite') {
                     const code = toInviteCode(parsed.searchParams.get('code') ?? '')
-                    if (code) saveToCookie('inviteCode', code)
+                    if (code) stashInvite(code, EInviteType.DIRECT)
                 }
             } catch {}
             lastDispatchedUrl = url
@@ -164,9 +168,13 @@ export function useNativeAppLinks() {
                 // which Android WebViews don't reliably fire on app resume — a
                 // resumed app kept rendering its pre-background query data (stale
                 // home Activity). Drive the focusManager from the native lifecycle.
-                const stateListener = await App.addListener('appStateChange', ({ isActive }: { isActive: boolean }) =>
+                const stateListener = await App.addListener('appStateChange', ({ isActive }: { isActive: boolean }) => {
                     focusManager.setFocused(isActive)
-                )
+                    // Android WebViews do not reliably emit visibilitychange on
+                    // resume. Refresh lightweight notification consumers (the
+                    // support unread badge) from the native lifecycle too.
+                    if (isActive) notifyNotificationsUpdated()
+                })
                 track(() => {
                     stateListener.remove()
                     focusManager.setFocused(undefined)
@@ -267,6 +275,12 @@ export function useNativeAppLinks() {
                 // relative path the API sends; the launch URL is the fallback for
                 // notifications sent before that field existed.
                 const adapter = await getOneSignalAdapter()
+                // A push can arrive while the app stays foregrounded, so there
+                // may be no lifecycle or document-visibility edge to refresh the
+                // support badge. The unread endpoint remains the source of truth;
+                // the events only tell its consumers to recheck it (with a
+                // bounded delayed recheck — see onForegroundPushDelivered).
+                track(adapter.onNotificationReceived(onForegroundPushDelivered))
                 track(
                     adapter.onNotificationClick(({ deepLink, additionalData }) => {
                         const target = additionalData.deepLink
@@ -288,6 +302,17 @@ export function useNativeAppLinks() {
                         openDeepLink(link, 'push')
                     })
                 )
+                /*
+                 * foregroundWillDisplay only fires once init() attached the
+                 * underlying SDK listeners, and useNotifications drives init on
+                 * home surfaces only — a session deep-linked elsewhere would
+                 * never get the event. Drive init here too (idempotent, no
+                 * permission prompt); registrations above come first so the
+                 * cold-start click replay lands in a non-empty listener set.
+                 */
+                if (!isDemoMode()) {
+                    adapter.init().catch((e) => console.warn('onesignal init from app links failed:', e))
+                }
             } catch (e) {
                 console.warn('failed to init notification click listener:', e)
                 // launch URLs are suppressed in the SDKs, so without this listener a push tap does nothing

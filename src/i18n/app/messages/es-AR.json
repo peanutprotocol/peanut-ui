@@ -114,7 +114,7 @@
             },
             "bugBounty": {
                 "title": "Ayudanos a mejorar y <b>¡ganá $5!</b>",
-                "description": "Reportá un error. ¡Recibí una recompensa! Sin preguntas."
+                "description": "Sé el primero en reportar un error. ¡Recibí una recompensa!"
             },
             "userInterview": {
                 "title": "Ayudanos a construir Peanut",
@@ -421,7 +421,7 @@
                 "description": "¿Quién te invitó? Ingresá su nombre de usuario para continuar, o unite a la lista de espera y te avisaremos cuando puedas entrar."
             },
             "signup": {
-                "description": "Tu @usuario es la forma en que tus amigos te envían dinero. Pensalo como un número de cuenta que podés decir en voz alta."
+                "description": "Elegí tu nombre de usuario. Lo vas a usar para enviar y recibir dinero."
             },
             "residence": {
                 "title": "¿Dónde vivís legalmente?",
@@ -1605,7 +1605,8 @@
             "description": "En {days, plural, one {# día} other {# días}} Peanut se muda por completo a la app. Descargala ahora y continuá justo donde quedaste. Tu cuenta y tu dinero se mudan con vos automáticamente."
         },
         "sunset": {
-            "sub": "Descargá la app y continuá justo donde quedaste. Tu cuenta y tu dinero ya te están esperando ahí."
+            "sub": "Descargá la app y continuá justo donde quedaste. Tu cuenta y tu dinero ya te están esperando ahí.",
+            "supportLink": "¿Problemas para descargar la app? Hablá con nuestro soporte"
         },
         "qr": {
             "title": "Descargá la app de Peanut",

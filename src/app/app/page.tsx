@@ -1,34 +1,25 @@
 'use client'
 
-// smart store link: peanut.me/app — every download QR points here so a single
-// code serves both stores; the scanning device decides. phones bounce straight
-// to their store (their store button carries the loading state while the
-// redirect happens; if it doesn't take, the buttons settle clickable),
-// desktop just gets both buttons. client redirect (not a route handler) so
-// the capacitor static export builds unchanged. same visual language as the
-// sunset screen (MigrationHero + 50/50 split).
-//
-// flag-gated like every migration surface: until the pwa-sunset flag resolves
-// ON this page 404s — otherwise merging would put a live public page with
-// dead store links on peanut.me. posthog flags arrive async for first-time
-// visitors, so we wait for the flag callback (or a short timeout when posthog
-// is blocked) before deciding page-vs-404.
-//
-// hydration: SSR and the first client render show the same neutral loading
-// state (mounted guard) — deriving the redirect state from useDeviceType at
-// first render tripped React error 418 on phones (device is WEB on the server).
+// QR destination shared by both stores. Client-side routing also works in the native static export.
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { notFound, useRouter } from 'next/navigation'
 import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import Loading from '@/components/Global/Loading'
 import MigrationHero from '@/components/Migration/MigrationHero'
-import { STORE_NAME, STORE_URL, type StoreKind } from '@/constants/migration.consts'
+import { MIGRATION_SURFACES, STORE_NAME, STORE_URL, type StoreKind } from '@/constants/migration.consts'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { isNativeBridge } from '@/utils/capacitor'
-import { isPwaSunsetOn } from '@/utils/migration.utils'
+import {
+    applyDeferredPayload,
+    copyIOSHandoff,
+    parseDeferredPayload,
+    playStoreUrlWithReferrer,
+    trackDeferredHandoffCreated,
+} from '@/utils/deferred-link'
+import { isPwaSunsetOn, trackStoreClick } from '@/utils/migration.utils'
 
 const FLAG_WAIT_MS = 4000
 
@@ -37,23 +28,26 @@ export default function SmartStoreRedirect() {
     const { deviceType } = useDeviceType()
     const router = useRouter()
 
-    // universal links (paths: ["*"]) open this page inside the native app when
-    // an installed user scans a download qr — there's no store to bounce to,
-    // so send them home instead of redirecting them out to the store.
-    // isNativeBridge, not isCapacitor: capacitor-flavored web builds bake
-    // NEXT_PUBLIC_CAPACITOR_BUILD=true with no bridge, and those visitors
-    // still need the store page.
+    // Keep SSR and the first client render identical; device and URL context are browser-only.
     const [mounted, setMounted] = useState(false)
+    const [payload, setPayload] = useState<string | null>(null)
     useEffect(() => {
         setMounted(true)
-        if (isNativeBridge()) router.replace('/home')
+        const search = window.location.search
+        const parsed = parseDeferredPayload(search)
+        if (parsed) setPayload(new URLSearchParams(search).toString())
+        // A native-flavored web build can lack the bridge and still need the store page.
+        if (!isNativeBridge()) return
+        // Installed apps apply the QR's context immediately, then open its destination.
+        const dest = parsed ? applyDeferredPayload(parsed).dest : null
+        router.replace(dest ?? '/home')
     }, [router])
     const inNativeApp = mounted && isNativeBridge()
 
-    // wait for posthog to deliver flags (or time out) before judging the flag
+    // Wait for PostHog before returning 404. The timeout also handles blocked analytics.
     const [flagsSettled, setFlagsSettled] = useState(false)
     useEffect(() => {
-        if (isNativeBridge()) return // redirecting home — flag irrelevant
+        if (isNativeBridge()) return
         if (isPwaSunsetOn()) {
             setFlagsSettled(true)
             return
@@ -77,15 +71,44 @@ export default function SmartStoreRedirect() {
             ? 'android'
             : null
 
+    const storeHref = useCallback(
+        (store: StoreKind) => (payload && store === 'android' ? playStoreUrlWithReferrer(payload) : STORE_URL[store]),
+        [payload]
+    )
+
+    // Count the automatic redirect and any fallback taps as one handoff per visit.
+    const handoffCounted = useRef(false)
+    const countHandoff = useCallback((platform: StoreKind) => {
+        if (handoffCounted.current) return
+        handoffCounted.current = true
+        trackDeferredHandoffCreated(platform)
+    }, [])
+
+    // Start the clipboard write inside the tap handler to preserve the browser's user gesture.
+    const onStoreTap = (store: StoreKind) => {
+        trackStoreClick(store, MIGRATION_SURFACES.SMART_LINK, !!payload)
+        if (!payload) return
+        if (store === 'android') {
+            countHandoff('android')
+            return
+        }
+        void copyIOSHandoff(payload)
+            .then(() => countHandoff('ios'))
+            .catch(() => {})
+    }
+
     const [redirecting, setRedirecting] = useState(false)
     useEffect(() => {
         if (inNativeApp || !settled || !migrationOn || !targetStore) return
+        // iOS payloads need a clipboard write on tap. Android carries its payload in the URL.
+        if (payload && targetStore === 'ios') return
+        if (payload && targetStore === 'android') countHandoff('android')
         setRedirecting(true)
-        window.location.replace(STORE_URL[targetStore])
-        // if the store didn't take over (blocked, offline), settle to buttons
+        window.location.replace(storeHref(targetStore))
+        // Restore clickable buttons if the store does not open.
         const fallback = setTimeout(() => setRedirecting(false), 4000)
         return () => clearTimeout(fallback)
-    }, [inNativeApp, settled, migrationOn, targetStore])
+    }, [inNativeApp, settled, migrationOn, targetStore, payload, storeHref, countHandoff])
 
     if (inNativeApp) return <Loading variant="mascot" coverFullScreen />
 
@@ -107,10 +130,15 @@ export default function SmartStoreRedirect() {
                         </p>
                     )}
                 </div>
-                <div className="mx-auto flex w-full max-w-md flex-col gap-4">
+                <div className="mx-auto flex w-full max-w-md flex-col gap-4 md:max-w-xs">
                     {settled && migrationOn ? (
                         stores.map((s, i) => (
-                            <a key={s} href={STORE_URL[s]} className={redirecting && i > 0 ? 'hidden' : 'block'}>
+                            <a
+                                key={s}
+                                href={storeHref(s)}
+                                onClick={() => onStoreTap(s)}
+                                className={redirecting && i > 0 ? 'hidden' : 'block'}
+                            >
                                 <Button
                                     variant={i === 0 ? 'purple' : 'stroke'}
                                     shadowSize="4"

@@ -148,8 +148,6 @@ jest.mock('@/components/AddWithdraw/DynamicBankAccountForm', () => ({ DynamicBan
 jest.mock('@/components/Common/CountryListRouter', () => ({ CountryListRouter: () => null }))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Invites/badge-campaign-context', () => ({ badgeCampaignForLegacyWire: () => undefined }))
-jest.mock('@/redux/hooks', () => ({ useAppDispatch: () => jest.fn() }))
-jest.mock('@/redux/slices/bank-form-slice', () => ({ bankFormActions: {} }))
 jest.mock('@/services/sendLinks', () => ({ sendLinksApi: {} }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 jest.mock('next/navigation', () => ({ useSearchParams: () => new URLSearchParams() }))

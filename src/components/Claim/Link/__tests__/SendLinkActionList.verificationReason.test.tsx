@@ -73,8 +73,6 @@ jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ canDo: (
 // logged OUT — the state that makes the regional path raise the modal
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: null }) }))
 
-jest.mock('@/redux/hooks', () => ({ useAppDispatch: () => jest.fn() }))
-
 jest.mock('@/context/tokenSelector.context', () => ({
     tokenSelectorContext: React.createContext({
         setSelectedTokenAddress: jest.fn(),

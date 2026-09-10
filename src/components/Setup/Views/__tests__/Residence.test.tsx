@@ -13,23 +13,27 @@ import { render as rtlRender, screen, fireEvent, act } from '@testing-library/re
 import posthog from 'posthog-js'
 import { IntlWrapper } from '@/test-utils/intl'
 import ResidenceStep from '@/components/Setup/Views/Residence'
-import { setupActions } from '@/redux/slices/setup-slice'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { dispatchBackPress, resetBackHandlersForTests } from '@/utils/back-handler'
 
 const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
-const mockDispatch = jest.fn()
+const mockSetResidenceCountry = jest.fn()
+const mockSetSecondResidenceCountry = jest.fn()
 let mockSetupState: { residenceCountry: string; secondResidenceCountry: string }
-jest.mock('@/redux/hooks', () => ({
-    useAppDispatch: () => mockDispatch,
-    useSetupStore: () => mockSetupState,
+jest.mock('@/features/setup/SetupFlowContext', () => ({
+    useSetupFlowContext: () => ({
+        ...mockSetupState,
+        setResidenceCountry: mockSetResidenceCountry,
+        setSecondResidenceCountry: mockSetSecondResidenceCountry,
+    }),
 }))
 
 const mockHandleNext = jest.fn()
 let mockIsLoading = false
+let mockDirection = 1
 jest.mock('@/hooks/useSetupFlow', () => ({
-    useSetupFlow: () => ({ handleNext: mockHandleNext, isLoading: mockIsLoading }),
+    useSetupFlow: () => ({ handleNext: mockHandleNext, isLoading: mockIsLoading, direction: mockDirection }),
 }))
 
 let mockGeoCountry: string | null = null
@@ -64,6 +68,7 @@ describe('ResidenceStep', () => {
         jest.clearAllMocks()
         resetBackHandlersForTests()
         mockIsLoading = false
+        mockDirection = 1
         mockSetupState = { residenceCountry: '', secondResidenceCountry: '' }
         mockGeoCountry = null
         mockRestrictionSets = undefined
@@ -86,7 +91,7 @@ describe('ResidenceStep', () => {
     it('prefills from geo as a suggestion without advancing', () => {
         mockGeoCountry = 'br'
         render(<ResidenceStep />)
-        expect(mockDispatch).toHaveBeenCalledWith(setupActions.setResidenceCountry('BR'))
+        expect(mockSetResidenceCountry).toHaveBeenCalledWith('BR')
         expect(mockHandleNext).not.toHaveBeenCalled()
     })
 
@@ -94,7 +99,7 @@ describe('ResidenceStep', () => {
         mockGeoCountry = 'br'
         mockSetupState.residenceCountry = 'AR'
         render(<ResidenceStep />)
-        expect(mockDispatch).not.toHaveBeenCalled()
+        expect(mockSetResidenceCountry).not.toHaveBeenCalled()
     })
 
     it('reveals the second selector via the multi-doc link', () => {
@@ -110,7 +115,7 @@ describe('ResidenceStep', () => {
         mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
         render(<ResidenceStep />)
         fireEvent.click(screen.getByText('Have documents from more than one country?'))
-        expect(mockDispatch).toHaveBeenCalledWith(setupActions.setSecondResidenceCountry(''))
+        expect(mockSetSecondResidenceCountry).toHaveBeenCalledWith('')
     })
 
     it('shows the per-country availability comparison with the truth-first guidance', () => {
@@ -144,8 +149,8 @@ describe('ResidenceStep', () => {
         mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: 'Select Germany' }))
-        expect(mockDispatch).toHaveBeenCalledWith(setupActions.setResidenceCountry('DE'))
-        expect(mockDispatch).toHaveBeenCalledWith(setupActions.setSecondResidenceCountry('BR'))
+        expect(mockSetResidenceCountry).toHaveBeenCalledWith('DE')
+        expect(mockSetSecondResidenceCountry).toHaveBeenCalledWith('BR')
         expect(mockedCapture).toHaveBeenCalledWith(
             ANALYTICS_EVENTS.SIGNUP_RESIDENCE_SELECTED,
             expect.objectContaining({ residence_country: 'DE', second_residence_country: 'BR' })
@@ -156,8 +161,8 @@ describe('ResidenceStep', () => {
         mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: 'Remove Brazil' }))
-        expect(mockDispatch).toHaveBeenCalledWith(setupActions.setResidenceCountry('DE'))
-        expect(mockDispatch).toHaveBeenCalledWith(setupActions.setSecondResidenceCountry(''))
+        expect(mockSetResidenceCountry).toHaveBeenCalledWith('DE')
+        expect(mockSetSecondResidenceCountry).toHaveBeenCalledWith('')
         expect(screen.queryByText('Available with Brazil')).not.toBeInTheDocument()
     })
 
@@ -167,7 +172,7 @@ describe('ResidenceStep', () => {
         mockGeoCountry = 'br'
         const view = render(<ResidenceStep />)
         // the geo effect prefilled BR and latched the flag
-        expect(mockDispatch).toHaveBeenCalledWith(setupActions.setResidenceCountry('BR'))
+        expect(mockSetResidenceCountry).toHaveBeenCalledWith('BR')
         mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
         view.rerender(<ResidenceStep />)
         fireEvent.click(screen.getByText('Have documents from more than one country?'))
@@ -185,8 +190,8 @@ describe('ResidenceStep', () => {
         mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: 'Remove Germany' }))
-        expect(mockDispatch).not.toHaveBeenCalledWith(setupActions.setResidenceCountry('DE'))
-        expect(mockDispatch).toHaveBeenCalledWith(setupActions.setSecondResidenceCountry(''))
+        expect(mockSetResidenceCountry).not.toHaveBeenCalledWith('DE')
+        expect(mockSetSecondResidenceCountry).toHaveBeenCalledWith('')
         expect(screen.queryByText('Available with Germany')).not.toBeInTheDocument()
     })
 
@@ -409,6 +414,41 @@ describe('ResidenceStep', () => {
         fireEvent.click(screen.getByText('Choose a different country'))
         expect(screen.queryByText('Heads up')).not.toBeInTheDocument()
         expect(screen.getByText('Have documents from more than one country?')).toBeInTheDocument()
+    })
+
+    describe('stepping back into the step', () => {
+        // One step back from the passkey step must land on the screen the
+        // user actually left: the heads-up for a restricted pick, never the
+        // username screen two steps away (TASK-22232).
+        it('restores the generic heads-up for a fully restricted pick', () => {
+            mockDirection = -1
+            mockSetupState.residenceCountry = 'CN'
+            render(<ResidenceStep />)
+            expect(screen.getByRole('heading', { level: 1, name: 'Heads up' })).toBeInTheDocument()
+            expect(screen.getByRole('button', { name: 'Continue anyway' })).toBeInTheDocument()
+        })
+
+        it('restores the partial heads-up with the matching restriction copy', () => {
+            mockDirection = -1
+            mockSetupState.residenceCountry = 'JP'
+            render(<ResidenceStep />)
+            expect(screen.getByRole('heading', { level: 1, name: 'Heads up' })).toBeInTheDocument()
+            expect(screen.getByText(/Bank transfers aren't available in your country/)).toBeInTheDocument()
+        })
+
+        it('lands on the selector for an unrestricted pick', () => {
+            mockDirection = -1
+            mockSetupState.residenceCountry = 'BR'
+            render(<ResidenceStep />)
+            expect(screen.getByRole('heading', { level: 1, name: 'Where do you legally live?' })).toBeInTheDocument()
+        })
+
+        it('starts on the selector when entering forward with a stored pick', () => {
+            mockDirection = 1
+            mockSetupState.residenceCountry = 'CN'
+            render(<ResidenceStep />)
+            expect(screen.getByRole('heading', { level: 1, name: 'Where do you legally live?' })).toBeInTheDocument()
+        })
     })
 
     describe('hardware back', () => {

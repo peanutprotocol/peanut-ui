@@ -16,7 +16,7 @@ export const ContextProvider = ({ children }: { children: React.ReactNode }) => 
     // gets the full tree.
     const marketing = isMarketingRoute(usePathname())
 
-    // Auth, toast, redux and react-query all live in AppFlowProviders now: the
+    // Auth, toast and react-query all live in AppFlowProviders now: the
     // marketing site has no signed-in state to read, and AuthProvider was the
     // only thing pulling that stack onto it.
     return marketing ? <>{children}</> : <AppFlowProviders>{children}</AppFlowProviders>

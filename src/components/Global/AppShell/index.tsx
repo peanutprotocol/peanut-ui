@@ -83,9 +83,11 @@ export const AppShell = ({
             {/* Scrollable content — one centered mobile column on every viewport */}
             <div
                 id="scrollable-content"
-                // spacing board 17291:2772: screen edge inset is L/16 (px-4); vertical keeps the XL/24 section rhythm
+                // Top navigation controls share the home screen's L/16 origin:
+                // the shell already starts below --safe-top, so pt-4 means 16px
+                // below the safe-area boundary. Keep the XL/24 bottom rhythm.
                 className={twMerge(
-                    'relative w-full flex-1 overflow-y-auto bg-background-page px-4 py-6',
+                    'relative w-full flex-1 overflow-y-auto bg-background-page px-4 pt-4 pb-6',
                     contentClassName
                 )}
             >

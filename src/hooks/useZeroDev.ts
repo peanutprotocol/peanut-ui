@@ -5,10 +5,14 @@ import { WEB_AUTHN_COOKIE_KEY } from '@/constants/auth.consts'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { useAuth } from '@/context/authContext'
 import { useKernelClient } from '@/context/kernelClient.context'
-import { useAppDispatch, useSetupStore, useZerodevStore } from '@/redux/hooks'
-import { setupActions } from '@/redux/slices/setup-slice'
-import { zerodevActions } from '@/redux/slices/zerodev-slice'
-import { getFromCookie, removeFromCookie, saveToCookie, saveToLocalStorage } from '@/utils/general.utils'
+import { useZeroDevFlow, zeroDevFlowActions } from '@/hooks/useZeroDevFlow'
+import {
+    getFromCookie,
+    removeFromCookie,
+    saveToCookie,
+    saveToLocalStorage,
+    updateUserPreferences,
+} from '@/utils/general.utils'
 import { clearAuthState } from '@/utils/auth.utils'
 import { isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
 import {
@@ -44,6 +48,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
 import { rescueUserOpReceipt } from '@/utils/userop-rescue.utils'
+import { clearInvite, extendInviteForRetry, readInviteCode, readInviteType } from '@/utils/invite-stash'
 
 // types
 type UserOpEncodedParams = {
@@ -69,12 +74,13 @@ class PasskeyError extends Error {
 let loginTransitionInFlight = false
 
 export const useZeroDev = () => {
-    const dispatch = useAppDispatch()
     const { user, logoutUser, hydrateLoginSession } = useAuth()
-    const { isKernelClientReady, isRegistering, isLoggingIn, isSendingUserOp, address } = useZerodevStore()
+    const { isKernelClientReady, isRegistering, isLoggingIn, isSendingUserOp, address } = useZeroDevFlow()
     const { setWebAuthnKey, getClientForChain, ensureClientForChain } = useKernelClient()
     const { setLoadingState } = useContext(loadingStateContext)
-    const { inviteCode, inviteType } = useSetupStore()
+    // invite hand-off lives in cookies (survives the PWA-install hop) — TASK-21460
+    const inviteCode = readInviteCode()
+    const inviteType = readInviteType()
 
     // Future note: could be `${username}.${process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN || 'peanut.me'}` (have to change BE too)
     const _getPasskeyName = (username: string) => `${username}.peanut.wallet`
@@ -101,9 +107,9 @@ export const useZeroDev = () => {
         // handles cases where: old cookies persist, session expired, user didn't logout properly
         console.log('[useZeroDev] starting new passkey registration, clearing any stale state')
         removeFromCookie(WEB_AUTHN_COOKIE_KEY) // clear old passkey cookie
-        dispatch(zerodevActions.resetZeroDevState()) // clear redux state (including old address)
+        zeroDevFlowActions.reset() // clear the flow flags (including old address)
 
-        dispatch(zerodevActions.setIsRegistering(true))
+        zeroDevFlowActions.setIsRegistering(true)
         try {
             const rpId = isCapacitor() ? getNativeRpId() : window.location.hostname.replace(/^www\./, '')
 
@@ -126,6 +132,14 @@ export const useZeroDev = () => {
                 )
             )
 
+            // Keep the new key recoverable even if the API session cannot load yet.
+            saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
+
+            // Bind the ceremony key to the fresh API session, never the render's previous user.
+            // Native cookies may disappear on restart; persist before any RPC-dependent build.
+            const registeredUser = await hydrateLoginSession()
+            updateUserPreferences(registeredUser.user.userId, { webAuthnKey })
+
             const inviteCodeFromCookie = getFromCookie('inviteCode')
 
             // invite code can also be store in cookies, so we need to check both
@@ -141,10 +155,9 @@ export const useZeroDev = () => {
                  * a systematic accept failure looks like a completed signup otherwise.
                  * The cookie is only cleared on confirmed success.
                  */
-                const keepInviteCodeForRetry = () => saveToCookie('inviteCode', userInviteCode, 30)
+                const keepInviteCodeForRetry = () => extendInviteForRetry(30)
                 const clearAcceptedInviteCode = () => {
-                    removeFromCookie('inviteCode')
-                    dispatch(setupActions.setInviteCode(''))
+                    clearInvite()
                 }
                 try {
                     const result = await invitesApi.acceptInvite(userInviteCode, inviteType)
@@ -266,11 +279,10 @@ export const useZeroDev = () => {
             }
 
             setWebAuthnKey(webAuthnKey)
-            saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
         } catch (e) {
             if ((e as Error).message.includes('pending')) {
                 // the concurrent-request bail must still release the button
-                dispatch(zerodevActions.setIsRegistering(false))
+                zeroDevFlowActions.setIsRegistering(false)
                 return
             }
             const err = normalizeNativePasskeyError(e) as Error
@@ -280,7 +292,7 @@ export const useZeroDev = () => {
             // A conflict means another ceremony owns isRegistering — clearing it
             // here would unlock the button while that one is still on screen.
             if (err.name !== 'CeremonyConflictError') {
-                dispatch(zerodevActions.setIsRegistering(false))
+                zeroDevFlowActions.setIsRegistering(false)
             }
             throw err
         }
@@ -293,7 +305,7 @@ export const useZeroDev = () => {
             throw new PasskeyError(message, code)
         }
         loginTransitionInFlight = true
-        dispatch(zerodevActions.setIsLoggingIn(true))
+        zeroDevFlowActions.setIsLoggingIn(true)
         const ceremonyStartedAt = Date.now()
         try {
             const passkeyServerHeaders: Record<string, string> = {}
@@ -323,7 +335,8 @@ export const useZeroDev = () => {
             )
 
             saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
-            await hydrateLoginSession()
+            const loggedInUser = await hydrateLoginSession()
+            updateUserPreferences(loggedInUser.user.userId, { webAuthnKey })
             setWebAuthnKey(webAuthnKey)
         } catch (e) {
             const err = normalizePasskeyServerError(e)
@@ -331,7 +344,7 @@ export const useZeroDev = () => {
             // Same ownership rule as registration: the losing ceremony must not
             // release the flag the running one set.
             if (!(err instanceof Error && err.name === 'CeremonyConflictError')) {
-                dispatch(zerodevActions.setIsLoggingIn(false))
+                zeroDevFlowActions.setIsLoggingIn(false)
             }
             // Ceremony guards and server/network failures: nothing was
             // authenticated, so keep any existing state (no clearAuthState) and
@@ -364,7 +377,15 @@ export const useZeroDev = () => {
             // of a reverted userOp so it can verify migration state against
             // on-chain truth (kernelMigration.utils.ts). Payment flows must
             // instead FAIL a reverted op — throwing is the default.
-            opts?: { returnRevertedReceipt?: boolean }
+            opts?: {
+                returnRevertedReceipt?: boolean
+                /** Fired immediately before the UserOp broadcast — the caller's
+                 *  "failures after this are execution-ambiguous" boundary. A
+                 *  WebAuthn ceremony rejection INSIDE the broadcast call still
+                 *  proves pre-broadcast (an unsigned op cannot submit) — see
+                 *  useSpendBundle's ceremony-rejection carve-out. */
+                onBroadcastAttempt?: () => void
+            }
         ): Promise<{ userOpHash: Hash; receipt: TransactionReceipt | null }> => {
             // demo mode: simulated success, no chain.
             if (isDemoMode()) {
@@ -375,16 +396,40 @@ export const useZeroDev = () => {
             // Non-Arb chains (recover-funds) aren't pre-built — wait for lazy build.
             await ensureClientForChain(chainId)
             const client = getClientForChain(chainId)
-            dispatch(zerodevActions.setIsSendingUserOp(true))
+            // Encode BEFORE the sending-state flag: a rejecting encoder must
+            // not leave isSendingUserOp stuck true (that suppresses
+            // stale-deployment reloads for the rest of the session).
+            const encodedCallData = await client.account!.encodeCalls(calls)
+            zeroDevFlowActions.setIsSendingUserOp(true)
 
             let userOpHash: Hash
             try {
-                userOpHash = await withCeremonyPurpose('user_op', async () =>
-                    client.sendUserOperation({
-                        account: client.account,
-                        callData: await client.account!.encodeCalls(calls),
+                // Decomposed so onBroadcastAttempt fires at the TRUE transport
+                // boundary: estimation + paymaster (prepareUserOperation) and
+                // the WebAuthn signature both complete first, so any failure
+                // in them is provably pre-broadcast to the caller. The final
+                // sendUserOperation receives the fully-prepared request plus
+                // the signature with `parameters: []`, making it a pure
+                // eth_sendUserOperation transport call (viem skips both the
+                // prepare fill-list and signing when they are supplied).
+                userOpHash = await withCeremonyPurpose('user_op', async () => {
+                    const preparedOp = await client.prepareUserOperation({
+                        account: client.account!,
+                        callData: encodedCallData,
                     })
-                )
+                    // Same cast viem's sendUserOperation applies internally
+                    // before calling account.signUserOperation.
+                    const signature = await client.account!.signUserOperation(
+                        preparedOp as Parameters<NonNullable<typeof client.account>['signUserOperation']>[0]
+                    )
+                    opts?.onBroadcastAttempt?.()
+                    return client.sendUserOperation({
+                        ...preparedOp,
+                        account: client.account!,
+                        signature,
+                        parameters: [],
+                    } as never)
+                })
             } catch (error) {
                 console.error('Error sending UserOp:', error)
                 capturePasskeySignFailure(error, 'send-user-op')
@@ -404,12 +449,12 @@ export const useZeroDev = () => {
                             userId: user?.user.userId,
                         },
                     })
-                    dispatch(zerodevActions.setIsSendingUserOp(false))
+                    zeroDevFlowActions.setIsSendingUserOp(false)
                     logoutUser()
                     throw createStaleSessionError(error)
                 }
 
-                dispatch(zerodevActions.setIsSendingUserOp(false))
+                zeroDevFlowActions.setIsSendingUserOp(false)
                 throw error
             }
             setLoadingState('Executing transaction')
@@ -425,7 +470,7 @@ export const useZeroDev = () => {
                 // timeout; captures telemetry). See rescueUserOpReceipt.
                 const rescued = await rescueUserOpReceipt(client, userOpHash, error, 'zerodev-send')
                 setLoadingState('Idle')
-                dispatch(zerodevActions.setIsSendingUserOp(false))
+                zeroDevFlowActions.setIsSendingUserOp(false)
                 // A rescued-but-REVERTED op is a real revert, not a lost
                 // receipt: returning a success-shaped result would send flows
                 // down the userOpHash fallback and show a success screen for a
@@ -438,7 +483,7 @@ export const useZeroDev = () => {
             }
 
             setLoadingState('Idle')
-            dispatch(zerodevActions.setIsSendingUserOp(false))
+            zeroDevFlowActions.setIsSendingUserOp(false)
 
             // A mined-but-REVERTED userOp still carries a successful EntryPoint
             // bundle receipt — returning it here let downstream flows record a
@@ -462,13 +507,13 @@ export const useZeroDev = () => {
 
     return {
         isKernelClientReady,
-        setIsKernelClientReady: (value: boolean) => dispatch(zerodevActions.setIsKernelClientReady(value)),
+        setIsKernelClientReady: (value: boolean) => zeroDevFlowActions.setIsKernelClientReady(value),
         isRegistering,
-        setIsRegistering: (value: boolean) => dispatch(zerodevActions.setIsRegistering(value)),
+        setIsRegistering: (value: boolean) => zeroDevFlowActions.setIsRegistering(value),
         isLoggingIn,
-        setIsLoggingIn: (value: boolean) => dispatch(zerodevActions.setIsLoggingIn(value)),
+        setIsLoggingIn: (value: boolean) => zeroDevFlowActions.setIsLoggingIn(value),
         isSendingUserOp,
-        setIsSendingUserOp: (value: boolean) => dispatch(zerodevActions.setIsSendingUserOp(value)),
+        setIsSendingUserOp: (value: boolean) => zeroDevFlowActions.setIsSendingUserOp(value),
         handleRegister,
         handleLogin,
         handleSendUserOpEncoded,

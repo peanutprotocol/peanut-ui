@@ -41,11 +41,10 @@ jest.mock('@/services/sendLinks', () => ({
     sendLinksApi: mockSendLinksApi,
 }))
 
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ fetchUser: jest.fn() }) }))
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: null, fetchUser: jest.fn() }) }))
 jest.mock('@/context/ClaimBankFlowContext', () => ({
     useClaimBankFlow: () => ({ offrampDetails: null, claimType: 'claim', bankDetails: null }),
 }))
-jest.mock('@/redux/hooks', () => ({ useUserStore: () => ({ user: null }) }))
 jest.mock('@/hooks/useRecipientDisplay', () => ({
     useRecipientDisplay: () => ({ displayName: 'alice' }),
 }))

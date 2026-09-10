@@ -9,7 +9,7 @@ import type { Address } from 'viem'
  *
  * Imported at click time, not at render: resolving it needs the user and their
  * balance, and reaching for those through `useAuth` was the only thing keeping
- * AuthProvider — and behind it react-query and the redux store — mounted on the
+ * AuthProvider — and behind it react-query — mounted on the
  * marketing site. Nobody who never clicks the CTA should pay for that.
  *
  * Falls back to signup whenever the session or the balance can't be read, which

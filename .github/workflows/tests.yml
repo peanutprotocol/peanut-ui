@@ -12,9 +12,9 @@ on:
     # read caches from its own ref, its base branch, and the default branch.
     # Remove it from all three allowlists once the DS branch merges to dev.
     push:
-        branches: [main, dev, feat/design-system]
+        branches: [main, dev, feat/design-system, tech-debt]
     pull_request:
-        branches: [main, dev, develop, feat/design-system]
+        branches: [main, dev, develop, feat/design-system, tech-debt]
     workflow_dispatch:
 
 # Cancel in-progress runs on the same PR / branch when a newer commit lands.
@@ -884,9 +884,9 @@ jobs:
         name: human-authors
         if: github.event_name == 'pull_request'
         runs-on: ubuntu-latest
-        # The workflow-level permissions block drops pull-requests, and the
-        # commit-listing endpoint 403s without it.
+        # Commit comparisons require repository contents access.
         permissions:
+            contents: read
             pull-requests: read
         steps:
             - name: Verify every commit is authored by a team member or a provenance-trailed bot
@@ -938,18 +938,29 @@ jobs:
                         landedCache.set(sha, landed);
                         return landed;
                       }
-                      const commits = await github.paginate(github.rest.pulls.listCommits, {
-                        owner: context.repo.owner,
-                        repo: context.repo.repo,
-                        pull_number: context.payload.pull_request.number,
-                        per_page: 100,
-                      });
-                      // Fail closed when the listing is truncated: the API caps PR commit
-                      // listings at 250, and a gate blind to even one commit must not pass.
-                      const total = context.payload.pull_request.commits;
-                      if ((typeof total === 'number' && commits.length < total) || (typeof total !== 'number' && commits.length >= 250)) {
-                        core.setFailed(`The PR has ${typeof total === 'number' ? total : '250+'} commits but the API enumerated ${commits.length} — the gate cannot see every commit. Split the PR or merge in stages.`);
-                        return;
+                      // The PR commits endpoint stops at 250. Compare pinned SHAs instead.
+                      const comparison = context.payload.pull_request;
+                      const commits = [];
+                      let total;
+                      for (let page = 1; ; page++) {
+                        const { data } = await github.rest.repos.compareCommitsWithBasehead({
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          basehead: `${comparison.base.sha}...${comparison.head.sha}`,
+                          per_page: 100,
+                          page,
+                        });
+                        if (!Number.isSafeInteger(data.total_commits) || data.total_commits < 0 ||
+                            (total !== undefined && total !== data.total_commits)) {
+                          throw new Error('Cannot verify the comparison commit count');
+                        }
+                        total = data.total_commits;
+                        commits.push(...data.commits);
+                        if (commits.length >= total || data.commits.length === 0) break;
+                      }
+                      if (commits.length !== total || new Set(commits.map(c => c.sha)).size !== total ||
+                          (typeof comparison.commits === 'number' && comparison.commits !== total)) {
+                        throw new Error('Incomplete commit comparison — refusing to skip ownership checks');
                       }
                       const bad = [];
                       const landed = [];

@@ -13,6 +13,7 @@ jest.mock('next-intl', () => ({
 }))
 jest.mock('@/hooks/useAppHaptic', () => ({ useAppHaptic: () => ({ triggerHaptic: jest.fn() }) }))
 jest.mock('@/hooks/useSupportUnread', () => ({ useSupportUnread: () => false }))
+jest.mock('@/hooks/useForegroundPushRefresh', () => ({ useForegroundPushRefresh: () => {} }))
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({
         isSupportModalOpen: false,
@@ -92,6 +93,18 @@ describe('BottomNav pill release', () => {
 
         expect(pill.style.transform).toBe(restingTransform)
         expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    it('a finger down on a tab squashes its icon and release springs it back', () => {
+        render(<BottomNav />)
+        const supportTab = screen.getByRole('button', { name: 'support' })
+        const icon = supportTab.querySelector('span')!
+
+        expect(icon.className).not.toContain('scale-[0.82]')
+        fireEvent.pointerDown(supportTab, { pointerId: 1 })
+        expect(icon.className).toContain('scale-[0.82]')
+        fireEvent.pointerUp(supportTab, { pointerId: 1 })
+        expect(icon.className).not.toContain('scale-[0.82]')
     })
 
     it('leaving the tab routes clears the pill', () => {

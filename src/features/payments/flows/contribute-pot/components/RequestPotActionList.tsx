@@ -28,12 +28,11 @@ import { useCapabilities } from '@/hooks/useCapabilities'
 import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
 import { ACTION_METHODS, type PaymentMethod } from '@/constants/actionlist.consts'
 import { MIN_BANK_TRANSFER_AMOUNT, validateMinimumAmount } from '@/constants/payment.consts'
-import { useAppDispatch } from '@/redux/hooks'
-import { setupActions } from '@/redux/slices/setup-slice'
 import { EInviteType } from '@/services/services.types'
 import { saveRedirectUrl, saveToLocalStorage, toInviteCode, inviteFlowUrl } from '@/utils/general.utils'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
 import { useTranslations } from 'next-intl'
+import { stashInvite } from '@/utils/invite-stash'
 
 interface RequestPotActionListProps {
     isAmountEntered: boolean
@@ -59,7 +58,6 @@ export function RequestPotActionList({
     const router = useRouter()
     const t = useTranslations('payment')
     const tCommon = useTranslations('common')
-    const dispatch = useAppDispatch()
     const { user } = useAuth()
     const { hasSufficientSpendableBalance: hasSufficientBalance, isFetchingSpendableBalance } = useWallet()
     // MIGRATION-REVIEW: mercadopago/pix are QR `pay` methods over Manteca. Old gate was
@@ -140,8 +138,7 @@ export function RequestPotActionList({
                     const redirectUri = encodeURIComponent('/add-money')
                     if (recipientUsername) {
                         const inviteCode = toInviteCode(recipientUsername)
-                        dispatch(setupActions.setInviteCode(inviteCode))
-                        dispatch(setupActions.setInviteType(EInviteType.PAYMENT_LINK))
+                        stashInvite(inviteCode, EInviteType.PAYMENT_LINK)
                         router.push(inviteFlowUrl(inviteCode, redirectUri))
                     } else {
                         router.push(`/setup?redirect_uri=${redirectUri}`)

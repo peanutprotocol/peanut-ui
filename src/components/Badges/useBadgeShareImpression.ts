@@ -3,7 +3,7 @@ import { captureBadgeShareShown } from './badge.utils'
 
 /**
  * Fires the badge-share impression once per OPEN, not per username change — the
- * handle can resolve mid-open (redux hydration), and re-firing would count one
+ * handle can resolve mid-open (user-query hydration), and re-firing would count one
  * exposure twice, split across two link_type buckets.
  */
 export function useBadgeShareImpression(isOpen: boolean, source: string, username: string | null | undefined): void {

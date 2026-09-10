@@ -24,10 +24,10 @@ jest.mock('@/config/underMaintenance.config', () => ({
     },
 }))
 
-const renderNavHeader = () =>
+const renderNavHeader = (title = 'Your card') =>
     render(
         <NextIntlClientProvider locale="en" messages={en}>
-            <NavHeader title="Your card" />
+            <NavHeader title={title} />
         </NextIntlClientProvider>
     )
 
@@ -55,5 +55,17 @@ describe('NavHeader maintenance banner placement', () => {
         const banner = screen.getByText(en.global.maintenanceBody)
         // DOCUMENT_POSITION_FOLLOWING: the banner comes after the header row
         expect(backButton.compareDocumentPosition(banner) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    it('wraps long titles in the center column without moving the side controls', () => {
+        renderNavHeader('Exchange rate & fees')
+
+        const backButton = screen.getByTestId('nav-back')
+        const row = backButton.closest('div.grid')
+        const title = screen.getByText('Exchange rate & fees')
+
+        expect(row).toHaveClass('grid-cols-[2.5rem_minmax(0,1fr)_2.5rem]', 'items-start')
+        expect(title).toHaveClass('col-start-2', 'row-start-1', 'break-words', 'whitespace-normal')
+        expect(title).not.toHaveClass('truncate')
     })
 })
