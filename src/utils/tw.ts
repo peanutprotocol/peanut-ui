@@ -47,8 +47,8 @@ const DS_RADIUS_TOKEN = /^(?:round|1)$/
 // inset/…, shadow → shadow, ease → ease, animate → animate), so one entry per
 // token is enough. `--transition-duration-*` has no theme scale in
 // tailwind-merge, so those go through the duration class group directly.
-const DS_DURATION_TOKENS = ['instant', 'fast', 'moderate', 'slow']
-const DS_EASE_TOKENS = ['spring', 'sharp']
+const DS_DURATION_TOKENS = ['instant', 'fast', 'moderate', 'slow', 'nav-spring', 'nav-pop']
+const DS_EASE_TOKENS = ['spring', 'sharp', 'nav-spring', 'nav-pop']
 const DS_ANIMATE_TOKENS = [
     'pulsate',
     'pulse-strong',
