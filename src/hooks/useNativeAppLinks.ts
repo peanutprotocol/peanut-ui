@@ -12,6 +12,8 @@ import { hasDeepLinkNavigated, markDeepLinkNavigated } from '@/utils/deep-link-s
 import { sanitizeRedirectURL } from '@/utils/cookie-url.utils'
 import { toInviteCode } from '@/utils/invite-code.utils'
 import { getOneSignalAdapter } from '@/services/onesignal'
+import { isDemoMode } from '@/utils/demo'
+import { notifyNotificationsUpdated, onForegroundPushDelivered } from '@/utils/notifications-events'
 import { dispatchBackPress } from '@/utils/back-handler'
 import { stashInvite } from '@/utils/invite-stash'
 import { EInviteType } from '@/services/services.types'
@@ -171,7 +173,7 @@ export function useNativeAppLinks() {
                     // Android WebViews do not reliably emit visibilitychange on
                     // resume. Refresh lightweight notification consumers (the
                     // support unread badge) from the native lifecycle too.
-                    if (isActive) window.dispatchEvent(new CustomEvent('notifications:updated'))
+                    if (isActive) notifyNotificationsUpdated()
                 })
                 track(() => {
                     stateListener.remove()
@@ -276,10 +278,9 @@ export function useNativeAppLinks() {
                 // A push can arrive while the app stays foregrounded, so there
                 // may be no lifecycle or document-visibility edge to refresh the
                 // support badge. The unread endpoint remains the source of truth;
-                // this event only tells its consumers to recheck it.
-                track(
-                    adapter.onNotificationReceived(() => window.dispatchEvent(new CustomEvent('notifications:updated')))
-                )
+                // the events only tell its consumers to recheck it (with a
+                // bounded delayed recheck — see onForegroundPushDelivered).
+                track(adapter.onNotificationReceived(onForegroundPushDelivered))
                 track(
                     adapter.onNotificationClick(({ deepLink, additionalData }) => {
                         const target = additionalData.deepLink
@@ -301,6 +302,17 @@ export function useNativeAppLinks() {
                         openDeepLink(link, 'push')
                     })
                 )
+                /*
+                 * foregroundWillDisplay only fires once init() attached the
+                 * underlying SDK listeners, and useNotifications drives init on
+                 * home surfaces only — a session deep-linked elsewhere would
+                 * never get the event. Drive init here too (idempotent, no
+                 * permission prompt); registrations above come first so the
+                 * cold-start click replay lands in a non-empty listener set.
+                 */
+                if (!isDemoMode()) {
+                    adapter.init().catch((e) => console.warn('onesignal init from app links failed:', e))
+                }
             } catch (e) {
                 console.warn('failed to init notification click listener:', e)
                 // launch URLs are suppressed in the SDKs, so without this listener a push tap does nothing

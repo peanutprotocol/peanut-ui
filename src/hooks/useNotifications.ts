@@ -4,7 +4,9 @@ import { useEffect, useSyncExternalStore } from 'react'
 import { addBreadcrumb, captureException, captureMessage } from '@sentry/nextjs'
 import { getOneSignalAdapter, type NotificationPermissionState } from '@/services/onesignal'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
+import { isCapacitor } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
+import { onForegroundPushDelivered } from '@/utils/notifications-events'
 import { useAuth } from '@/context/authContext'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
@@ -214,6 +216,12 @@ async function ensureInitialized() {
     try {
         const adapter = await getOneSignalAdapter()
         await adapter.init()
+
+        // Web half of the foreground-push badge refresh. On native the bridge
+        // lives in useNativeAppLinks, which runs on every cold-start
+        // destination; on web nothing can fire before this init anyway, so
+        // registering here costs marketing pages no extra chunk.
+        if (!isCapacitor()) adapter.onNotificationReceived(onForegroundPushDelivered)
 
         adapter.onPermissionChange((permissionState) => {
             addBreadcrumb({ category: 'onesignal', message: 'permission change', data: { permissionState } })

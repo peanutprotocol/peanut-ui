@@ -98,8 +98,22 @@ function attachUnderlyingListeners() {
         subscriptionListeners.forEach((cb) => cb(change))
     })
 
+    /*
+     * Attaching ANY foregroundWillDisplay listener changes plugin behavior:
+     * @onesignal/capacitor-plugin (1.0.6) then calls preventDefault() natively
+     * and re-displays the banner only after the JS listeners return, with no
+     * timeout fallback. Accepted for the badge refresh — but a listener that
+     * throws would suppress the banner entirely, so each callback is guarded
+     * and must stay synchronous and cheap.
+     */
     OneSignal.Notifications.addEventListener('foregroundWillDisplay', () => {
-        notificationReceivedListeners.forEach((cb) => cb())
+        notificationReceivedListeners.forEach((cb) => {
+            try {
+                cb()
+            } catch (e) {
+                console.warn('notification received listener failed:', e)
+            }
+        })
     })
 
     OneSignal.Notifications.addEventListener('click', (event: NotificationClickEvent) => {

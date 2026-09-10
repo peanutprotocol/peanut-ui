@@ -101,4 +101,24 @@ describe('nativeOneSignalAdapter cold-start click buffering', () => {
         getForegroundNotificationCallback()()
         expect(listener).toHaveBeenCalledTimes(1)
     })
+
+    // The plugin preventDefault()s the banner natively and re-displays it only
+    // after the JS listeners return — an escaping throw would suppress the
+    // banner and starve the listeners after it.
+    it('contains a throwing listener so delivery completes and later listeners run', () => {
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+        const throwing = jest.fn(() => {
+            throw new Error('boom')
+        })
+        const after = jest.fn()
+        const offThrowing = nativeOneSignalAdapter.onNotificationReceived(throwing)
+        const offAfter = nativeOneSignalAdapter.onNotificationReceived(after)
+
+        expect(() => getForegroundNotificationCallback()()).not.toThrow()
+        expect(after).toHaveBeenCalledTimes(1)
+
+        offThrowing()
+        offAfter()
+        warn.mockRestore()
+    })
 })

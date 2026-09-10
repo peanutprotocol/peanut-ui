@@ -32,9 +32,11 @@ jest.mock('@/utils/capacitor', () => ({
 
 const mockOnNotificationClick = jest.fn(() => () => {})
 const mockOnNotificationReceived = jest.fn((_listener: () => void) => () => {})
+const mockAdapterInit = jest.fn(() => Promise.resolve())
 jest.mock('@/services/onesignal', () => ({
     getOneSignalAdapter: jest.fn(() =>
         Promise.resolve({
+            init: mockAdapterInit,
             onNotificationClick: mockOnNotificationClick,
             onNotificationReceived: mockOnNotificationReceived,
         })
@@ -186,17 +188,33 @@ describe('notification unread refresh', () => {
         window.removeEventListener('notifications:updated', onUpdated)
     })
 
-    it('refreshes consumers when a push arrives while the app remains foregrounded', async () => {
+    it('refreshes consumers when a push arrives while the app remains foregrounded, then rechecks once', async () => {
         const onUpdated = jest.fn()
         window.addEventListener('notifications:updated', onUpdated)
         renderHook(() => useNativeAppLinks())
 
         await waitFor(() => expect(mockOnNotificationReceived).toHaveBeenCalled())
         const onReceived = mockOnNotificationReceived.mock.calls[0][0]
-        onReceived()
 
-        expect(onUpdated).toHaveBeenCalledTimes(1)
-        window.removeEventListener('notifications:updated', onUpdated)
+        jest.useFakeTimers()
+        try {
+            onReceived()
+            expect(onUpdated).toHaveBeenCalledTimes(1)
+
+            // The dispatcher writes the in-app unread row in parallel with the
+            // push send, so the immediate refresh can read zero. The bounded
+            // recheck is what closes that race — pin it.
+            jest.advanceTimersByTime(2_500)
+            expect(onUpdated).toHaveBeenCalledTimes(2)
+        } finally {
+            jest.useRealTimers()
+            window.removeEventListener('notifications:updated', onUpdated)
+        }
+    })
+
+    it('drives adapter init so delivery events fire in sessions that never mount useNotifications', async () => {
+        renderHook(() => useNativeAppLinks())
+        await waitFor(() => expect(mockAdapterInit).toHaveBeenCalledTimes(1))
     })
 })
 

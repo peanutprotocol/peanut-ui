@@ -42,7 +42,14 @@ function attachUnderlyingListeners() {
     })
 
     OneSignal.Notifications.addEventListener('foregroundWillDisplay', () => {
-        notificationReceivedListeners.forEach((cb) => cb())
+        notificationReceivedListeners.forEach((cb) => {
+            // a throwing listener must not starve the ones after it
+            try {
+                cb()
+            } catch (e) {
+                console.warn('notification received listener failed:', e)
+            }
+        })
     })
 
     OneSignal.Notifications.addEventListener('click', (event) => {
