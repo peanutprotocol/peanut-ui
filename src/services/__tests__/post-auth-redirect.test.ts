@@ -69,3 +69,70 @@ describe('post-auth redirect consumption', () => {
         expect(getRedirectUrl()).toBeNull()
     })
 })
+
+/*
+ * Two tabs, one localStorage — the shape of Chip's round-1 repro. The logout
+ * latch is module memory, so only the tab the person logged out in has it
+ * armed: tab B's revoked session refetches to null and its gate stores tab B's
+ * own page, because nothing in that document knows a logout happened. A logout
+ * broadcast would have to reach it in time; the provenance on the record does
+ * not have to reach anywhere, which is why the new account is safe either way.
+ * The same holds when tab B's session simply expires and no logout ever runs.
+ */
+describe('post-auth redirect across two tabs', () => {
+    type UtilsModule = typeof import('@/utils/general.utils')
+
+    // a separate module registry per tab: distinct module memory (the latch),
+    // one shared localStorage — exactly what two same-origin documents get
+    const openTab = (): UtilsModule => {
+        let tab!: UtilsModule
+        jest.isolateModules(() => {
+            tab = require('@/utils/general.utils')
+        })
+        return tab
+    }
+
+    beforeEach(() => localStorage.clear())
+
+    it("a second tab's collapsing session cannot hand its page to the new account", () => {
+        const tabA = openTab()
+        const tabB = openTab()
+
+        // tab A: the person logs out here, so this tab's latch is armed and it
+        // leaves nothing behind
+        window.history.replaceState({}, '', '/profile')
+        tabA.beginIntentionalLogout()
+        tabA.saveRedirectUrl('session-end')
+        expect(tabA.getRedirectUrl()).toBeNull()
+
+        // tab B: same origin, different document, latch never armed — it
+        // stores its own protected page as tab A's logout revokes the session
+        window.history.replaceState({}, '', '/card')
+        tabB.saveRedirectUrl('session-end')
+        expect(tabB.getRedirectUrl()).toBe('/card')
+
+        // the account created back in tab A inherits none of it
+        expect(consumePostAuthRedirect(null, { rejectSessionEndOrigin: true })).toEqual({
+            destination: '/home',
+            source: 'fallback',
+            deferred: false,
+        })
+        // consumed, so a later account cannot pick it up either
+        expect(tabA.getRedirectUrl()).toBeNull()
+    })
+
+    it('a deep link opened in that second tab still reaches the new account', () => {
+        const tabB = openTab()
+
+        // this document never held a session: the destination is the visitor's
+        // own intent, not the residue of someone's session
+        window.history.replaceState({}, '', '/pay-request/abc')
+        tabB.saveRedirectUrl()
+
+        expect(consumePostAuthRedirect(null, { rejectSessionEndOrigin: true })).toEqual({
+            destination: '/pay-request/abc',
+            source: 'stored',
+            deferred: false,
+        })
+    })
+})
