@@ -310,12 +310,17 @@ export function useWithdrawRootFlow() {
             // address-book tap does — chain, token and a pre-validated address
             // in flow state, which InitialWithdrawView then preserves instead
             // of resetting to USDC on Arbitrum.
-            if (scannedDestination) {
-                const tokens = supportedChainsAndTokens?.[scannedDestination.chainId]?.tokens ?? []
-                // USDC where the chain has it; otherwise its only/first token (Tron → USDT)
-                const token = tokens.find((tok) => tok.symbol.toUpperCase() === 'USDC') ?? tokens[0]
+            const tokens = scannedDestination
+                ? (supportedChainsAndTokens?.[scannedDestination.chainId]?.tokens ?? [])
+                : []
+            // USDC where the chain has it; otherwise its only/first token (Tron → USDT).
+            // No token means the chain list has not arrived yet — seeding the chain and
+            // recipient without one opens the step with a valid recipient and nothing to
+            // send, so leave it to its own defaults instead.
+            const token = tokens.find((tok) => tok.symbol.toUpperCase() === 'USDC') ?? tokens[0]
+            if (scannedDestination && token) {
                 setSelectedChainID(scannedDestination.chainId)
-                setSelectedTokenAddress(token?.address ?? '')
+                setSelectedTokenAddress(token.address)
                 setRecipient({ name: undefined, address: scannedDestination.address })
                 setIsValidRecipient(true)
             }

@@ -137,11 +137,10 @@ jest.mock('@/constants/zerodev.consts', () => ({
 const mockSetSelectedChainID = jest.fn()
 const mockSetSelectedTokenAddress = jest.fn()
 const SOLANA_USDC = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
+const mockSupportedChainsAndTokens: Record<string, { chainId: string; tokens: unknown[] }> = {}
 jest.mock('@/context/tokenSelector.context', () => ({
     tokenSelectorContext: jest.requireActual('react').createContext({
-        supportedChainsAndTokens: {
-            solana: { chainId: 'solana', tokens: [{ symbol: 'USDC', address: SOLANA_USDC }] },
-        },
+        supportedChainsAndTokens: mockSupportedChainsAndTokens,
         setSelectedChainID: (...args: unknown[]) => mockSetSelectedChainID(...args),
         setSelectedTokenAddress: (...args: unknown[]) => mockSetSelectedTokenAddress(...args),
     }),
@@ -286,6 +285,10 @@ function renderWithdraw(params: Record<string, string> = {}) {
 // ---------- default mock values ----------
 
 function applyDefaults() {
+    mockSupportedChainsAndTokens.solana = {
+        chainId: 'solana',
+        tokens: [{ symbol: 'USDC', address: SOLANA_USDC }],
+    }
     mockWithdrawFlow.error = { showError: false, errorMessage: '' }
     mockWithdrawFlow.selectedMethod = null
     mockWithdrawFlow.selectedBankAccount = null
@@ -573,6 +576,27 @@ describe('GROUP 3: Amount Validation', () => {
             expect(mockSetRecipient).not.toHaveBeenCalled()
             expect(mockSetIsValidRecipient).not.toHaveBeenCalled()
             expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto?method=crypto&amount=25')
+        })
+
+        test('leaves the step to its defaults when the chain list has no token yet', () => {
+            // A recipient marked valid with no token to send is a broken review
+            // step, so an unresolved chain seeds nothing at all.
+            mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+            mockSupportedChainsAndTokens.solana = { chainId: 'solana', tokens: [] }
+
+            renderWithdraw({
+                method: 'crypto',
+                step: 'amount',
+                amount: '25',
+                destination: SOLANA_ADDRESS,
+                chain: 'solana',
+            })
+            fireEvent.click(screen.getByText('Continue'))
+
+            expect(mockSetSelectedChainID).not.toHaveBeenCalled()
+            expect(mockSetSelectedTokenAddress).not.toHaveBeenCalled()
+            expect(mockSetRecipient).not.toHaveBeenCalled()
+            expect(mockSetIsValidRecipient).not.toHaveBeenCalled()
         })
     })
 
