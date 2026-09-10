@@ -145,23 +145,9 @@ export function bundleNeedsNewerBinary(bundleVersion: string, binaryVersion: str
 /**
  * Whether this install needs a store update before it can run the JS on offer.
  *
- * Answered against the running bundle's baked floor for THIS platform when it
- * has one, and against the candidate's own version otherwise. The floor is the
- * better question of the two — it is derived from the native surface rather
- * than from a number that cannot distinguish the platforms — and the fallback
- * keeps behaviour unchanged for bundles published before the floors existed.
- *
- * The floor describes the RUNNING bundle, not the candidate: nothing in Capgo's
- * getLatest() response carries a candidate's `min_update_version`, so a device
- * cannot learn it before downloading. Across a native-release boundary that
- * makes this permissive rather than restrictive — a device whose binary clears
- * the running bundle's floor may still be offered a bundle built against a newer
- * release. The server is what closes that: `min_update_version` per bundle,
- * enforced under the channel's `metadata` strategy, and exactly per-platform once
- * the two production channels land (docs/NATIVE-RELEASE.md). Permissive is the
- * right side to err on for the client half — the alternative refuses the whole
- * iOS population an update its binary can run, silently, because the App Store
- * listing is not live and there is no prompt to show it.
+ * Uses the offered candidate's own platform floor from its comment. Without a
+ * valid marker, compares the candidate version conservatively. The running
+ * bundle's baked floor is never authority for admitting a different bundle.
  *
  * False on web and whenever the binary's own version cannot be read — see the
  * fail-open reasoning above.

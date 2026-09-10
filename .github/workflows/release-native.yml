@@ -80,7 +80,8 @@ jobs:
                   # has no floor — and skipping the check there is what would let a
                   # lagging ref build 2.1.0 without containing v1.6.0. Only a
                   # repository with no native release at all has nothing to contain.
-                  if ! FLOOR="$(node scripts/release-version.mjs newest-native 2>/dev/null)"; then
+                  FLOOR="$(node scripts/release-version.mjs newest-native --allow-none)"
+                  if [ -z "$FLOOR" ]; then
                       echo "no native release exists yet — nothing to contain"
                       exit 0
                   fi

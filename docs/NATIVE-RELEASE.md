@@ -358,7 +358,7 @@ the build is reproducible, the AAB lands on a Play track.
   write `keystore.properties` → write prod `NEXT_PUBLIC_*` → `pnpm native:release`
   (`versionCode = github.run_number`) → upload AAB to Play (`internal` by default).
 - **Gate** with a `production` GitHub Environment + required reviewers — not configured
-  yet: the environment has no protection rules today, so runs ship without a second
+  yet: the environment has no required reviewers today, so runs ship without a second
   approval (see §9, "No second approver yet").
 - **Track promotion:** internal → closed/beta → production with **staged rollout**
   (`status: inProgress` + `userFraction: 0.1`, promote after metrics look clean).
@@ -408,7 +408,7 @@ one was selected — three times in one evening, the last of them a `main` dispa
 minute after the fix had merged to `dev`.
 
 Automatic means automatic: the `deploy` job declares the `Production` environment, which
-today has **no protection rules**, so a merge reaches every install with nobody approving
+has a branch allowlist but **no required reviewers**, so a merge reaches every install with nobody approving
 it. Adding required reviewers under Settings → Environments → Production restores a human
 gate with no workflow change, and is the recommended pairing for this trigger.
 
@@ -474,10 +474,26 @@ restating it — the workflow's own shell builds the string and the app's own re
 so the two cannot drift.
 
 A bundle whose comment has no marker falls back to comparing the candidate's own version,
-which is the conservative direction. The publish lane **asserts the marker landed on that
-version's own row** rather than assuming it: `--version-exists-ok` makes a re-upload a
-no-op, so an earlier run's comment is what the fleet would read, and a bare search of the
-bundle listing passes on any older bundle that happens to share the same floors.
+which is the conservative direction. The production OTA lane uploads to `ota-candidate`
+first. It creates or updates that reserved channel with public/default access, self-assignment,
+and every device audience disabled, then reads those settings back before uploading. The
+Capgo key needs channel creation/settings permission for this step; missing permission
+fails the run before production changes.
+
+`scripts/capgo-release-guard.mjs` reads structured Capgo API records and selects the exact
+`name` field. The pinned CLI's human bundle table does not expose comments and cannot be
+used for this check. Before promotion, the guard requires the expected candidate marker at
+the end of that record's comment, the shared minimum native version, a link to the full
+source commit, and artifact metadata. HTTP errors, malformed responses and missing
+metadata stop the run. Uploads must finish successfully in that run: the production OTA
+lane no longer uses `--version-exists-ok`, because a failed upload can leave a record before
+its bytes are available. Version collisions require investigation, including interrupted
+candidate uploads; never delete or overwrite a served bundle to bypass this guard.
+
+Only then does the workflow point `production` to the verified version, and it reads back
+the production channel and artifact before tagging. Failed pre-promotion verification
+leaves production on its prior bundle. This is publication validation, not evidence that the bundle boots on
+real devices; the staging and device recovery checks remain necessary.
 
 **The floors are kept next to the staged bundle id.** A bundle is admitted at check time,
 when the comment is in hand, but applied on a *later launch* — and the plugin's queue
@@ -485,8 +501,8 @@ carries only an id and a version (`BundleInfo` has no comment field). Without th
 launch-time gate re-asks with nothing to answer from, falls back to the version rule, and
 disarms the bundle the check just approved: an iOS 1.5.0 install would download 1.6.3 and
 throw it away on every launch. Only one bundle is ever queued, so it is one entry, replaced
-on each stage and dropped when the queue is; a mismatched id reads as "no floors", which is
-also what a bundle staged before any of this existed gets.
+before native queueing on each stage and dropped when the queue is. A mismatched id reads
+as "no floors", which is also what a bundle staged before any of this existed gets.
 
 The scan that produces a floor **stops at the major boundary**, even where the surface
 matches across it. A major is a deliberate app-generation break: `release-version.mjs`
@@ -517,9 +533,15 @@ bundle exists.
 
 ### Provenance: the ref must contain the newest native release
 
-Both release workflows assert that the dispatched commit contains the newest
-`v<major>.<build>.0` tag, before anything is built. Neither resolver can tell on its own:
-`ota` lands the next bundle inside the newest native build's range and `native` returns
+Both release workflows assert that the selected commit contains the newest attested
+`v<major>.<build>.0` release across all majors, before anything is built. Release tags must
+be annotated with the exact `Native release X.Y.0` subject written by `release-native.yml`;
+this recognizes the existing 1.1.0–1.6.0 releases and excludes unrelated date/snapshot tags.
+The checked-out package major never hides a newer release. The native workflow permits an
+empty registry explicitly via `newest-native --allow-none`; Git, shallow-history and
+resolver failures abort instead of being treated as the first release.
+
+Neither version-numbering mode proves ancestry on its own: `ota` lands the next bundle inside the newest native build's range and `native` returns
 `latestBuild + 1`, so **both produce a number that outranks the binary whether or not the
 commit contains it**. A bundle numbered above the binary is accepted by every device, and
 an OTA carrying pre-release code is therefore a silent downgrade of the JS the binary
@@ -540,7 +562,7 @@ own. Two things had to line up:
   surface check and `--auto-min-update-version`. Retiring a workflow on `dev`/`main` does
   **not** retire it at older commits, and the same trap applies to the `v*` prefix. Treat
   every `ota-*` / `v*` tag push as running last month's pipeline, and ship through the
-  dispatch workflows instead.
+  current main-push OTA and manual native workflows instead.
 
 `check-native-ota-surface.mjs` already asserted the same ancestry, but only as a
 precondition of its fingerprint diff — in the deploy job, after a full install and native
@@ -563,14 +585,14 @@ own `out/` under the binary's versionName, then assert the channel serves it.
 - **The `production` channel** must exist in the Capgo dashboard and be bound to the prod
   app. It does — bundle 1.0.48 shipped to it on 2026-08-06.
 - **No second approver yet.** The job declares the `Production` environment, but that
-  environment has no protection rules, so the run ships immediately. Adding required
+  environment has no required reviewers, so the run ships immediately. Adding required
   reviewers under Settings → Environments → Production makes it queue for approval with no
   workflow change (needs repo admin).
 - **Native-version gating:** every upload passes an explicit `--min-update-version`, so a
   JS bundle built against new plugins stays off older native shells. The release lanes pin
-  it to the binary they ship; `App Release OTA` resolves it from the newest `v<major>.<build>.0`
-  tag (`scripts/release-version.mjs native-floor`) and fails if none is visible. It replaced
-  `--auto-min-update-version`, which only copies the previous bundle's floor forward — with no
+  it to the binary they ship; `App Release OTA` uses the lower verified platform floor
+  (`scripts/ota-platform-floor.mjs --lowest`) and fails if no compatible release is visible.
+  It replaced `--auto-min-update-version`, which only copies the previous bundle's floor forward — with no
   native version stamped on the `dev` checkout (package.json says 1.0.53) the floor never
   rose past the first upload, and the CLI refuses the two flags together.
   **Bump the native version whenever you change plugins/native code**, then ship that via

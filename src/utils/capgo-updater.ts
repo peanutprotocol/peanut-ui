@@ -125,10 +125,11 @@ async function checkAndStageUpdate(callbacks: OtaUpdateCallbacks = {}): Promise<
             // apply on next launch (no mid-session reload — avoids yanking the
             // UI out from under the user). set() reloads IMMEDIATELY; next()
             // is the deferred variant.
-            await CapacitorUpdater.next({ id: bundle.id })
-            // The comment is in hand here and gone by the next launch, when the
-            // apply actually happens — see rememberStagedFloors.
+            // Persist before arming next(): the native bridge can reload the
+            // WebView as soon as it queues the bundle. A later JS write may never
+            // run, leaving the next launch without the floors that admitted it.
             rememberStagedFloors(bundle.id, latest.comment)
+            await CapacitorUpdater.next({ id: bundle.id })
             callbacks.onUpdateAvailable?.(bundle)
             removeStoredValue(FAILURE_STREAK_KEY)
             return 'staged'

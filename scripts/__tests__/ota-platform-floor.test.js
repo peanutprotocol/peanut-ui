@@ -45,7 +45,7 @@ function write(dir, rel, contents) {
 function release({ dir, git }, tag) {
     git('add', '-A')
     git('commit', '-q', '-m', tag, '--allow-empty')
-    git('tag', '-a', tag, '-m', tag)
+    git('tag', '-a', tag, '-m', `Native release ${tag.slice(1)}`)
 }
 
 function floors(dir, ref = 'HEAD') {

@@ -16,7 +16,7 @@ name: App Release OTA
 # silently honoured.
 #
 # NOTE: automatic means automatic. The `deploy` job declares the Production
-# environment, which today has no protection rules, so a merge reaches every
+# environment, which has a branch allowlist but no required reviewers, so a merge reaches every
 # install with nobody approving it. Adding required reviewers under
 # Settings → Environments → Production restores a human gate without touching
 # this file, and is the recommended pairing for this trigger.
@@ -34,6 +34,9 @@ on:
     push:
         branches: [main]
     workflow_dispatch:
+
+env:
+    CAPGO_APP_ID: me.peanut.wallet
 
 permissions:
     contents: read
@@ -113,44 +116,7 @@ jobs:
               env:
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
               run: |
-                  # Keep the raw output rather than piping the CLI into grep, which
-                  # discarded its diagnostics and made a config-load or auth failure
-                  # indistinguishable from an empty channel.
-                  #
-                  # Streams stay separate and the EXIT STATUS is the gate. The CLI
-                  # mirrors its errors onto stdout as well as stderr, so "did any
-                  # version-shaped text appear" is not a safe success test: npx's
-                  # install warning names `@capgo/cli@8.42.4`, and npm prints its
-                  # own "new version available" notice at exit — either can satisfy
-                  # the version grep and be read as the current bundle.
-                  set +e
-                  npx @capgo/cli@8.42.4 channel currentBundle production \
-                    --apikey "$CAPGO_API_KEY" --quiet >"$RUNNER_TEMP/capgo-out.txt" 2>"$RUNNER_TEMP/capgo-err.txt"
-                  STATUS=$?
-                  set -e
-
-                  dump_capgo() {
-                      echo "--- capgo stdout ---" >&2
-                      cat "$RUNNER_TEMP/capgo-out.txt" >&2
-                      echo "--- capgo stderr ---" >&2
-                      cat "$RUNNER_TEMP/capgo-err.txt" >&2
-                      echo "--------------------" >&2
-                  }
-
-                  if [ "$STATUS" -ne 0 ]; then
-                      dump_capgo
-                      echo "::error::the Capgo CLI failed (exit $STATUS) reading the production channel" >&2
-                      exit 1
-                  fi
-
-                  # stdout only: npm's notices land on stderr after the CLI output,
-                  # where `tail -n1` would pick one up as if it were the version.
-                  CURRENT="$(grep -oE '[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?' "$RUNNER_TEMP/capgo-out.txt" | tail -n1 || true)"
-                  if [ -z "$CURRENT" ]; then
-                      dump_capgo
-                      echo "::error::cannot read the production channel's current bundle from Capgo — refusing to guess the next OTA version" >&2
-                      exit 1
-                  fi
+                  CURRENT="$(node scripts/capgo-release-guard.mjs current-version)"
                   VERSION="$(node scripts/release-version.mjs ota --current "$CURRENT")"
                   echo "version=$VERSION" >> "$GITHUB_OUTPUT"
                   echo "Production serves $CURRENT — next OTA is $VERSION"
@@ -269,12 +235,17 @@ jobs:
                   node scripts/check-native-capabilities.mjs "v$FLOOR"
                   node scripts/check-native-ota-surface.mjs "v$FLOOR" --platform android
 
+            - name: Prepare disabled candidate channel
+              env:
+                  CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
+              run: node scripts/capgo-release-guard.mjs prepare-candidate
+
             - name: Upload bundle to Capgo
               env:
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   CAPGO_PRIVATE_KEY: ${{ secrets.CAPGO_PRIVATE_KEY }}
                   COMMIT_MSG: ${{ github.event.head_commit.message }}
-                  CHANNEL: production
+                  CHANNEL: ota-candidate
                   VERSION: ${{ steps.version.outputs.name }}
                   # The lower of the two platform floors. One bundle serves both
                   # platforms and Capgo carries one min_update_version, so the
@@ -303,58 +274,38 @@ jobs:
                     --path ./out \
                     --bundle "$VERSION" \
                     --min-update-version "$NATIVE_FLOOR" \
-                    --version-exists-ok \
-                    --comment "$COMMENT"
+                    --comment "$COMMENT" \
+                    --link "https://github.com/peanutprotocol/peanut-ui/commit/$GITHUB_SHA"
 
-            # --version-exists-ok makes re-running the same resolved release safe;
-            # this assertion still fails if that run did not actually serve it.
-            - name: Verify channel serves the new bundle
-              env:
-                  CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
-                  CHANNEL: production
-                  EXPECTED: ${{ steps.version.outputs.name }}
-              run: |
-                  CURRENT="$(npx @capgo/cli@8.42.4 channel currentBundle "$CHANNEL" \
-                    --apikey "$CAPGO_API_KEY" --quiet | grep -oE '[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?' | tail -n1 || true)"
-                  if [ "$CURRENT" != "$EXPECTED" ]; then
-                    echo "ERROR: channel $CHANNEL serves '${CURRENT:-<none>}', expected $EXPECTED — nothing shipped" >&2
-                    exit 1
-                  fi
-                  echo "Channel $CHANNEL now serves $EXPECTED"
-
-            # --version-exists-ok makes a re-upload a no-op, and a comment written
-            # by an earlier run is what the fleet would then read. A bundle whose
-            # comment carries no floors falls every device back to the
-            # candidate-version rule, which is what froze the iOS population in the
-            # first place — so the marker is asserted, not assumed.
+            # Upload must finish successfully in this run. Do not use
+            # --version-exists-ok: a failed upload can leave metadata behind
+            # without a usable artifact. Version collisions require investigation.
+            # Verify the exact record before production can serve the candidate.
             - name: Verify the floors reached the bundle
               env:
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   VERSION: ${{ steps.version.outputs.name }}
                   FLOOR_ANDROID: ${{ steps.ota_floors.outputs.android }}
                   FLOOR_IOS: ${{ steps.ota_floors.outputs.ios }}
+                  NATIVE_FLOOR: ${{ steps.ota_floors.outputs.lowest }}
+              run: node scripts/capgo-release-guard.mjs verify-bundle
+
+            - name: Promote verified bundle to production
+              env:
+                  CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
+                  VERSION: ${{ steps.version.outputs.name }}
               run: |
-                  EXPECTED="[ota-floors: android=$FLOOR_ANDROID ios=$FLOOR_IOS]"
-                  LISTING="$(npx @capgo/cli@8.42.4 bundle list --apikey "$CAPGO_API_KEY" 2>&1 || true)"
-                  # Scoped to THIS version's row, with boundaries. A bare search of
-                  # the listing passes on any older bundle that happens to share
-                  # these floors, and a substring search for the version passes on
-                  # 1.6.30 when 1.6.3 is what was uploaded — both are the re-run
-                  # case, where --version-exists-ok leaves the earlier comment in
-                  # place, the assertion goes green, and the served candidate
-                  # silently falls back to version gating. Dots are escaped so the
-                  # version cannot match across separators, the trailing class
-                  # excludes digits (1.6.30), dots (1.6.3.1) and `-` (1.6.3-rc1),
-                  # and the leading class excludes digits and dots (11.6.3).
-                  VERSION_RE="$(printf '%s' "$VERSION" | sed 's/\./\\./g')"
-                  if ! printf '%s\n' "$LISTING" | grep -E "(^|[^0-9.])${VERSION_RE}([^0-9.-]|$)" | grep -Fq "$EXPECTED"; then
-                      echo "--- capgo bundle list ---" >&2
-                      printf '%s\n' "$LISTING" >&2
-                      echo "-------------------------" >&2
-                      echo "::error::bundle $VERSION does not carry '$EXPECTED' on its own row — every device would fall back to the candidate-version rule" >&2
-                      exit 1
-                  fi
-                  echo "Bundle $VERSION carries $EXPECTED"
+                  npx @capgo/cli@8.42.4 channel set production \
+                    --apikey "$CAPGO_API_KEY" --bundle "$VERSION"
+
+            - name: Verify channel serves the new bundle
+              env:
+                  CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
+                  VERSION: ${{ steps.version.outputs.name }}
+                  FLOOR_ANDROID: ${{ steps.ota_floors.outputs.android }}
+                  FLOOR_IOS: ${{ steps.ota_floors.outputs.ios }}
+                  NATIVE_FLOOR: ${{ steps.ota_floors.outputs.lowest }}
+              run: node scripts/capgo-release-guard.mjs verify-production
 
             - name: Deployment summary
               run: |

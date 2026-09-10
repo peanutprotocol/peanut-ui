@@ -80,7 +80,7 @@ function main(argv) {
         case 'native-floor':
             return nativeFloor(major)
         case 'newest-native':
-            return newestNative(major)
+            return newestNative(rest.includes('--allow-none'))
         case 'validate':
             return validate(major, rest[0], flag(rest, '--kind'))
         default:
@@ -145,28 +145,32 @@ function nativeFloor(major) {
 // no answer, and skipping the check there is what would let a lagging ref build
 // 2.1.0 without containing v1.6.0 — a higher store version carrying older code,
 // exactly what the guard exists to stop.
-function newestNative(currentMajor) {
-    // Majors ABOVE the one package.json declares are not releases this code can
-    // be behind — and `v*` is a loose enough glob to let a date-shaped tag in:
-    // `v2026.02.0` matches the release pattern exactly, and unbounded it would
-    // become "the newest native release" and demand every ref contain a tag that
-    // never shipped a binary. (main really does carry a v2026.02.26; only its
-    // third segment keeps it out.) Majors at or below the declared one are kept,
-    // which is what lets the first release of a new major still answer.
-    const releases = allNativeReleases().filter(({ major }) => major <= currentMajor)
+function newestNative(allowNone = false) {
+    const releases = allNativeReleases()
     if (releases.length === 0) {
-        throw new Error(`no v<major>.<build>.0 tag at or below major ${currentMajor} exists in this repository`)
+        if (allowNone) return ''
+        throw new Error('no attested v<major>.<build>.0 native release exists in this repository')
     }
     const [{ major, build }] = releases
     return `${major}.${build}.0`
 }
 
-// Newest first, ordered numerically on (major, build) — `sort -V` semantics
-// without the shell.
+// All app generations count for provenance, regardless of the checked-out
+// package major. The release workflow creates annotated tags with this exact
+// subject after its native jobs succeed. A date-shaped or unrelated tag is not
+// release evidence. Never infer a tag's meaning from the stale checkout's major.
 export function allNativeReleases() {
-    return readTags()
-        .map((tag) => /^v(\d+)\.(\d+)\.0$/.exec(tag))
+    return readTags({ allowEmpty: true })
+        .map((tag) => /^v(0|[1-9]\d*)\.([1-9]\d*)\.0$/.exec(tag))
         .filter(Boolean)
+        .filter(([tag, major, build]) => {
+            const metadata = execFileSync(
+                'git',
+                ['for-each-ref', '--format=%(objecttype)%00%(contents:subject)', `refs/tags/${tag}`],
+                { cwd: repoRoot, encoding: 'utf8' }
+            ).trim()
+            return metadata === `tag\0Native release ${major}.${build}.0`
+        })
         .map(([, major, build]) => ({ major: Number(major), build: Number(build) }))
         .sort((a, b) => b.major - a.major || b.build - a.build)
 }
@@ -206,11 +210,16 @@ function latestBuild(major) {
     }, 0)
 }
 
-function readTags() {
+function readTags({ allowEmpty = false } = {}) {
+    const shallow = execFileSync('git', ['rev-parse', '--is-shallow-repository'], {
+        cwd: repoRoot,
+        encoding: 'utf8',
+    }).trim()
+    if (shallow !== 'false') throw new Error('shallow clone — release registry needs fetch-depth: 0')
     const tags = execFileSync('git', ['tag', '--list', 'v*'], { cwd: repoRoot, encoding: 'utf8' })
         .split('\n')
         .map((tag) => tag.trim())
-    if (!tags.some(Boolean)) {
+    if (!allowEmpty && !tags.some(Boolean)) {
         throw new Error('no v* tags are visible — the resolver needs actions/checkout with fetch-depth: 0')
     }
     return tags.filter(Boolean)

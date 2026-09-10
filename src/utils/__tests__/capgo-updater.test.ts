@@ -39,6 +39,7 @@ jest.mock('@/utils/app-version', () => ({
 }))
 
 import { canRestartInPlace, initCapgoUpdater, readStagedBundle } from '../capgo-updater'
+import { stagedFloors } from '../ota-native-gate'
 
 let info: jest.SpyInstance
 let error: jest.SpyInstance
@@ -506,9 +507,14 @@ describe('store-update gate', () => {
             comment: 'abc1234 — subject [ota-floors: android=1.6.0 ios=1.5.0]',
         })
         mockUpdater.download.mockResolvedValue({ id: 'b-9', version: '1.6.3' })
+        let floorsAtQueueTime: string | undefined
+        mockUpdater.next.mockImplementation(async ({ id }: { id: string }) => {
+            floorsAtQueueTime = stagedFloors(id)
+        })
         await initCapgoUpdater()
         await jest.advanceTimersByTimeAsync(5_000)
         expect(mockUpdater.next).toHaveBeenCalledWith({ id: 'b-9' })
+        expect(floorsAtQueueTime).toBe('[ota-floors: android=1.6.0 ios=1.5.0]')
 
         // next launch: the queue names b-9 and nothing else
         mockUpdater.getNextBundle.mockResolvedValue({ id: 'b-9', version: '1.6.3' })
