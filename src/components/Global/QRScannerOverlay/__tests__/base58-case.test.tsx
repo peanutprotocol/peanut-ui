@@ -36,11 +36,17 @@ jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
 jest.mock('@/utils/capacitor', () => ({
     isCapacitor: () => false,
     isAndroidNative: () => false,
-    // read by underMaintenance.config's iOS cross-chain gate, which the
-    // withdraw-destination check consults (removed by TASK-22250)
-    isIOSNative: () => false,
     openExternalUrl: jest.fn(),
 }))
+
+// The two gates that keep a scanned Solana address out of the payout flow. Both
+// are ON by default here: `nonProdBypass` makes the rollout flag true under
+// Jest, and the kill-switch is off in production config.
+const mockChainRolledOut = jest.fn((_chainKey: string) => true)
+jest.mock('@/hooks/useChainRollout', () => ({ useChainRollout: () => mockChainRolledOut }))
+
+const mockMaintenance = { disableXchainWithdraw: false }
+jest.mock('@/config/underMaintenance.config', () => ({ __esModule: true, default: mockMaintenance }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { username: 'satoshi' } } }) }))
 jest.mock('@/context/ModalsContext', () => ({
@@ -97,6 +103,8 @@ const scan = async (data: string) => {
 describe('QRScannerOverlay case handling', () => {
     beforeEach(() => {
         mockPush.mockClear()
+        mockChainRolledOut.mockReturnValue(true)
+        mockMaintenance.disableXchainWithdraw = false
     })
 
     describe('base58 addresses — case is data, so recognize the raw scan', () => {
@@ -109,6 +117,24 @@ describe('QRScannerOverlay case handling', () => {
         it('recognizes a Tron address, which always starts with an uppercase T', async () => {
             await scan(TRON)
             expect(screen.getByText('Tron not supported yet.')).toBeInTheDocument()
+        })
+
+        // Both gates that can refuse the route. Each is the honest answer while
+        // it is closed, and each MUST refuse rather than route: the same
+        // kill-switch locks the withdraw token selector to USDC on Arbitrum, so
+        // routing a Solana address past it lands the user on the wrong-chain
+        // payout pattern in product/feedback/problems/withdraw-non-arbitrum-chain-broken.md.
+        // The kill-switch case is the live iOS behaviour until TASK-22250 lands.
+        it.each([
+            ['Solana is not rolled out', () => mockChainRolledOut.mockReturnValue(false)],
+            ['the ops kill-switch is on', () => (mockMaintenance.disableXchainWithdraw = true)],
+        ])('refuses a Solana scan when %s', async (_case, close) => {
+            close()
+            await scan(SOLANA_WITH_UPPERCASE_L)
+
+            expect(screen.getByText('Solana not supported yet.')).toBeInTheDocument()
+            expect(screen.queryByText('Payment Confirmation')).not.toBeInTheDocument()
+            expect(mockPush).not.toHaveBeenCalled()
         })
 
         // TASK-22251 opened Solana only. Tron, Bitcoin and XRP keep the
