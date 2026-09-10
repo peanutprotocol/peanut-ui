@@ -5,6 +5,7 @@ import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
 import { type BeforeInstallPromptEvent, type ScreenId, type ISetupStep } from '@/components/Setup/Setup.types'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useSetupBackHandler } from '@/hooks/useSetupBackHandler'
+import { dispatchBackPress } from '@/utils/back-handler'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
 import { useIosPwaInstallGate } from '@/hooks/useIosPwaInstallGate'
@@ -418,9 +419,12 @@ function SetupPageContent() {
             showBackButton={step.showBackButton}
             showSkipButton={step.showSkipButton}
             showLogoutButton={step.screenId === 'sign-test-transaction'}
-            showLoginButton={step.showLoginButton}
             imageClassName={step.imageClassName}
-            onBack={handleBack}
+            // The visible back button walks the same handler stack as hardware
+            // back, so a step's sub-view (residence heads-up) collapses first
+            // instead of being skipped straight to the previous step. The page
+            // handler below it steps back when nothing consumed the press.
+            onBack={dispatchBackPress}
             onSkip={() => handleNext()}
             onLogout={logoutUser}
             isLoggingOut={isLoggingOut}
