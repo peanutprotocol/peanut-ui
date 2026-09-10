@@ -171,3 +171,73 @@ describe('runningBundleOutranksBinary', () => {
         await expect(m.runningBundleOutranksBinary()).resolves.toBe(false)
     })
 })
+
+/**
+ * The floors have to survive the download. A bundle is admitted at check time,
+ * when the comment is in hand, but applied on a later launch — and the plugin's
+ * queue carries only an id and a version. Without this, the launch-time gate
+ * re-asks with nothing to answer from, falls back to the version rule, and
+ * disarms the bundle the check just approved: an iOS 1.5.0 install downloads
+ * 1.6.3 and throws it away on every launch, forever.
+ */
+describe('staged floors', () => {
+    let gate: typeof import('../ota-native-gate')
+
+    beforeEach(async () => {
+        window.localStorage.clear()
+        jest.resetModules()
+        jest.doMock('@/utils/capacitor', () => ({ isIOSNative: () => true }))
+        jest.doMock('@/utils/app-version', () => ({
+            getBinaryInfo: async () => ({ appVersion: '1.5.0', appBuild: '1' }),
+        }))
+        gate = await import('../ota-native-gate')
+    })
+
+    afterEach(() => {
+        jest.dontMock('@/utils/capacitor')
+        jest.dontMock('@/utils/app-version')
+        jest.resetModules()
+    })
+
+    const marker = '[ota-floors: android=1.6.0 ios=1.5.0]'
+
+    it('carries the admitting floors from the check to the next launch', async () => {
+        // check time: admitted on the candidate's iOS floor
+        await expect(gate.needsStoreUpdate('1.6.3', `abc1234 — subject ${marker}`)).resolves.toBe(false)
+        gate.rememberStagedFloors('b-9', `abc1234 — subject ${marker}`)
+
+        // next launch: only the id and version remain, and the answer must hold
+        await expect(gate.needsStoreUpdate('1.6.3', gate.stagedFloors('b-9'))).resolves.toBe(false)
+    })
+
+    it('gives nothing back for a different bundle id', async () => {
+        gate.rememberStagedFloors('b-9', `abc1234 ${marker}`)
+        expect(gate.stagedFloors('b-other')).toBeUndefined()
+        // …so the launch gate falls back to the version rule and refuses
+        await expect(gate.needsStoreUpdate('1.6.3', gate.stagedFloors('b-other'))).resolves.toBe(true)
+    })
+
+    // A bundle staged before any of this existed has no entry, which must read as
+    // "no floors" rather than as an error.
+    it('gives nothing back when nothing was remembered', () => {
+        expect(gate.stagedFloors('b-9')).toBeUndefined()
+    })
+
+    it('replaces the entry on each stage, so only the queued bundle is described', () => {
+        gate.rememberStagedFloors('b-9', `abc1234 ${marker}`)
+        gate.rememberStagedFloors('b-10', 'abc1234 — no floors here')
+        expect(gate.stagedFloors('b-9')).toBeUndefined()
+        expect(gate.stagedFloors('b-10')).toBeUndefined()
+    })
+
+    it('drops the entry when the queue is dropped', () => {
+        gate.rememberStagedFloors('b-9', `abc1234 ${marker}`)
+        gate.forgetStagedFloors()
+        expect(gate.stagedFloors('b-9')).toBeUndefined()
+    })
+
+    it('survives unreadable storage without throwing', () => {
+        window.localStorage.setItem('capgoStagedFloors', 'not json')
+        expect(gate.stagedFloors('b-9')).toBeUndefined()
+    })
+})

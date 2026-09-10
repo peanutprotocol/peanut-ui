@@ -471,9 +471,25 @@ restating it — the workflow's own shell builds the string and the app's own re
 so the two cannot drift.
 
 A bundle whose comment has no marker falls back to comparing the candidate's own version,
-which is the conservative direction. The publish lane **asserts the marker landed** rather
-than assuming it: `--version-exists-ok` makes a re-upload a no-op, and a comment written by
-an earlier run is what the fleet would then read.
+which is the conservative direction. The publish lane **asserts the marker landed on that
+version's own row** rather than assuming it: `--version-exists-ok` makes a re-upload a
+no-op, so an earlier run's comment is what the fleet would read, and a bare search of the
+bundle listing passes on any older bundle that happens to share the same floors.
+
+**The floors are kept next to the staged bundle id.** A bundle is admitted at check time,
+when the comment is in hand, but applied on a *later launch* — and the plugin's queue
+carries only an id and a version (`BundleInfo` has no comment field). Without that, the
+launch-time gate re-asks with nothing to answer from, falls back to the version rule, and
+disarms the bundle the check just approved: an iOS 1.5.0 install would download 1.6.3 and
+throw it away on every launch. Only one bundle is ever queued, so it is one entry, replaced
+on each stage and dropped when the queue is; a mismatched id reads as "no floors", which is
+also what a bundle staged before any of this existed gets.
+
+The scan that produces a floor **stops at the major boundary**, even where the surface
+matches across it. A major is a deliberate app-generation break: `release-version.mjs`
+keeps a bundle's floor inside one major band, and the on-device comparison checks majors
+before builds — so a floor of `1.6.0` published from a `2.x` tree would have every `1.6`
+binary accept a `2.x` bundle.
 
 The baked `NEXT_PUBLIC_OTA_FLOOR_*` constants stay, for the one question they can answer
 honestly — `runningBundleOutranksBinary()`, "is this install running JS built for a native

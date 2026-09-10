@@ -4,7 +4,7 @@
 import type { BundleInfo, CapacitorUpdaterPlugin } from '@capgo/capacitor-updater'
 import { isAndroidNativeBridge } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
-import { needsStoreUpdate } from '@/utils/ota-native-gate'
+import { forgetStagedFloors, needsStoreUpdate, rememberStagedFloors, stagedFloors } from '@/utils/ota-native-gate'
 import { readStoredValue, removeStoredValue, writeStoredValue } from '@/utils/safe-storage'
 
 export interface OtaUpdateCallbacks {
@@ -126,6 +126,9 @@ async function checkAndStageUpdate(callbacks: OtaUpdateCallbacks = {}): Promise<
             // UI out from under the user). set() reloads IMMEDIATELY; next()
             // is the deferred variant.
             await CapacitorUpdater.next({ id: bundle.id })
+            // The comment is in hand here and gone by the next launch, when the
+            // apply actually happens — see rememberStagedFloors.
+            rememberStagedFloors(bundle.id, latest.comment)
             callbacks.onUpdateAvailable?.(bundle)
             removeStoredValue(FAILURE_STREAK_KEY)
             return 'staged'
@@ -359,7 +362,9 @@ export async function readStagedBundle(
         CapacitorUpdater.current().catch(() => null),
     ])
     if (!next?.version || next.id === current?.bundle?.id) return null
-    if (!(await needsStoreUpdate(next.version))) return next
+    // Asked with the floors this bundle was admitted under, not with nothing:
+    // re-deciding on the version alone would disarm a bundle the check approved.
+    if (!(await needsStoreUpdate(next.version, stagedFloors(next.id)))) return next
 
     // Say so, rather than letting the update row vanish: the launch check would
     // reach the same verdict, but only once it has reached the network.
@@ -396,6 +401,7 @@ async function disarmStagedBundle(
     runningId: string | undefined
 ): Promise<null> {
     console.info(`[capgo] dropping staged bundle ${staged.version} — it needs a newer binary`)
+    forgetStagedFloors()
     const sentinels =
         runningId && runningId !== BUILTIN_BUNDLE_ID ? [runningId, BUILTIN_BUNDLE_ID] : [BUILTIN_BUNDLE_ID]
 

@@ -58,6 +58,10 @@ function floors(dir, ref = 'HEAD') {
     )
 }
 
+function lowest(dir) {
+    return execFileSync('node', [SCRIPT, '--root', dir, '--lowest'], { cwd: dir, encoding: 'utf8' }).trim()
+}
+
 function floorsFail(dir, platform) {
     const res = require('child_process').spawnSync('node', [SCRIPT, '--root', dir, '--platform', platform], {
         cwd: dir,
@@ -152,4 +156,83 @@ it('rejects an unknown platform', () => {
     const { status, stderr } = floorsFail(repo.dir, 'windows')
     expect(status).toBe(1)
     expect(stderr).toContain('platform must be android or ios')
+})
+
+/*
+ * --lowest is the single number Capgo gets, because one bundle serves both
+ * platforms and a channel carries one min_update_version. Every install's
+ * eligibility goes through it, and the per-platform cases above would stay green
+ * if it picked the wrong side.
+ */
+describe('--lowest, the shared server floor', () => {
+    it('takes the iOS side when iOS is lower', () => {
+        const repo = makeRepo()
+        release(repo, 'v1.4.0')
+        release(repo, 'v1.5.0')
+        write(repo.dir, 'android/app/src/main/AndroidManifest.xml', 'android v2\n')
+        release(repo, 'v1.6.0')
+
+        expect(floors(repo.dir)).toEqual({
+            NEXT_PUBLIC_OTA_FLOOR_ANDROID: '1.6.0',
+            NEXT_PUBLIC_OTA_FLOOR_IOS: '1.4.0',
+        })
+        expect(lowest(repo.dir)).toBe('1.4.0')
+    })
+
+    it('takes the Android side when Android is lower', () => {
+        const repo = makeRepo()
+        release(repo, 'v1.4.0')
+        release(repo, 'v1.5.0')
+        write(repo.dir, 'ios/App/App.xcodeproj/project.pbxproj', 'ios v2\n')
+        release(repo, 'v1.6.0')
+
+        expect(floors(repo.dir)).toEqual({
+            NEXT_PUBLIC_OTA_FLOOR_ANDROID: '1.4.0',
+            NEXT_PUBLIC_OTA_FLOOR_IOS: '1.6.0',
+        })
+        expect(lowest(repo.dir)).toBe('1.4.0')
+    })
+
+    it('compares builds numerically, not lexically', () => {
+        const repo = makeRepo()
+        release(repo, 'v1.9.0')
+        write(repo.dir, 'android/app/src/main/AndroidManifest.xml', 'android v2\n')
+        release(repo, 'v1.10.0')
+
+        expect(floors(repo.dir)).toEqual({
+            NEXT_PUBLIC_OTA_FLOOR_ANDROID: '1.10.0',
+            NEXT_PUBLIC_OTA_FLOOR_IOS: '1.9.0',
+        })
+        expect(lowest(repo.dir)).toBe('1.9.0')
+    })
+})
+
+/*
+ * A major is a deliberate app-generation break. release-version.mjs keeps a
+ * bundle's floor inside one major band, and the on-device comparison checks
+ * majors before builds — so a floor reaching back across the boundary would have
+ * every 1.x binary accept a 2.x bundle.
+ */
+describe('major boundary', () => {
+    const acrossMajors = () => {
+        const repo = makeRepo()
+        release(repo, 'v1.5.0')
+        release(repo, 'v1.6.0')
+        // A new generation whose iOS surface is untouched all the way back.
+        write(repo.dir, 'android/app/src/main/AndroidManifest.xml', 'android v2\n')
+        release(repo, 'v2.1.0')
+        return repo
+    }
+
+    it('does not reach past the newest major, even when the surface matches', () => {
+        const repo = acrossMajors()
+        expect(floors(repo.dir)).toEqual({
+            NEXT_PUBLIC_OTA_FLOOR_ANDROID: '2.1.0',
+            NEXT_PUBLIC_OTA_FLOOR_IOS: '2.1.0',
+        })
+    })
+
+    it('keeps the shared server floor inside the same band', () => {
+        expect(lowest(acrossMajors().dir)).toBe('2.1.0')
+    })
 })

@@ -1,5 +1,6 @@
 import { getBinaryInfo } from '@/utils/app-version'
 import { isIOSNative } from '@/utils/capacitor'
+import { readStoredValue, removeStoredValue, writeStoredValue } from '@/utils/safe-storage'
 
 /**
  * The oldest native build of each platform this bundle may run on, baked in at
@@ -59,6 +60,47 @@ const FLOOR_MARKER = /\[ota-floors: android=(\d+\.\d+\.\d+) ios=(\d+\.\d+\.\d+)\
 export function parseCandidateFloors(comment: string | undefined): { android: string; ios: string } | null {
     const match = FLOOR_MARKER.exec(comment ?? '')
     return match ? { android: match[1], ios: match[2] } : null
+}
+
+/*
+ * The candidate's floors have to survive the download.
+ *
+ * A bundle is admitted at check time, when the comment is in hand, but applied
+ * on a LATER LAUNCH — and the plugin's queue carries only an id and a version
+ * (`BundleInfo` has no comment field). The launch-time gate would therefore
+ * re-ask the question with nothing to answer it from, fall back to the version
+ * rule, and disarm the very bundle the check had just approved: an iOS 1.5.0
+ * install would download 1.6.3 and then throw it away on every launch, forever.
+ *
+ * So the marker is kept next to the staged id. Only one bundle is ever queued,
+ * so this is one entry, replaced on each stage and dropped when the queue is.
+ * An id that does not match means no floors, which is the conservative fallback
+ * — including for a bundle staged before any of this existed.
+ */
+const STAGED_FLOORS_KEY = 'capgoStagedFloors'
+
+export function rememberStagedFloors(bundleId: string, comment: string | undefined): void {
+    const match = FLOOR_MARKER.exec(comment ?? '')
+    if (!match) {
+        removeStoredValue(STAGED_FLOORS_KEY)
+        return
+    }
+    // The matched text, not the parsed values: one format, one parser, no second
+    // shape to keep in step with the first.
+    writeStoredValue(STAGED_FLOORS_KEY, JSON.stringify({ id: bundleId, marker: match[0] }))
+}
+
+export function stagedFloors(bundleId: string): string | undefined {
+    try {
+        const stored = JSON.parse(readStoredValue(STAGED_FLOORS_KEY) ?? '')
+        return stored?.id === bundleId && typeof stored.marker === 'string' ? stored.marker : undefined
+    } catch {
+        return undefined
+    }
+}
+
+export function forgetStagedFloors(): void {
+    removeStoredValue(STAGED_FLOORS_KEY)
 }
 
 /**

@@ -336,11 +336,16 @@ jobs:
               run: |
                   EXPECTED="[ota-floors: android=$FLOOR_ANDROID ios=$FLOOR_IOS]"
                   LISTING="$(npx @capgo/cli@8.42.4 bundle list --apikey "$CAPGO_API_KEY" 2>&1 || true)"
-                  if ! printf '%s' "$LISTING" | grep -Fq "$EXPECTED"; then
+                  # Scoped to THIS version's row. A bare search of the listing
+                  # passes on any older bundle that happens to share these floors,
+                  # which is exactly the re-run case: --version-exists-ok leaves the
+                  # earlier upload's comment in place, the assertion goes green, and
+                  # the served candidate silently falls back to version gating.
+                  if ! printf '%s\n' "$LISTING" | grep -F "$VERSION" | grep -Fq "$EXPECTED"; then
                       echo "--- capgo bundle list ---" >&2
                       printf '%s\n' "$LISTING" >&2
                       echo "-------------------------" >&2
-                      echo "::error::bundle $VERSION does not carry '$EXPECTED' — every device would fall back to the candidate-version rule" >&2
+                      echo "::error::bundle $VERSION does not carry '$EXPECTED' on its own row — every device would fall back to the candidate-version rule" >&2
                       exit 1
                   fi
                   echo "Bundle $VERSION carries $EXPECTED"

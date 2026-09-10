@@ -46,6 +46,13 @@ export const PLATFORMS = ['android', 'ios']
  * the binaries in between can run this JS, and treating it as a floor would
  * hand a bundle to exactly the binaries the intervening change was made for.
  *
+ * The scan also stops at the major boundary, even when the surface matches
+ * across it. A major is a deliberate app-generation break: release-version.mjs
+ * keeps a bundle's floor inside one major band, and the on-device comparison
+ * checks majors before builds — so a floor of 1.6.0 published from a 2.x tree
+ * would have every 1.6 binary accept a 2.x bundle, which is the one boundary
+ * the scheme exists to hold.
+ *
  * Throws when even the NEWEST release differs for this platform: there is no
  * binary in the field that carries this tree's contract, which is the state
  * check-native-ota-surface fails the publish on.
@@ -58,8 +65,10 @@ export function platformFloor({ platform, headRef = 'HEAD', root = defaultRoot }
     const releases = allNativeReleases()
     if (releases.length === 0) throw new Error('no v<major>.<build>.0 tag exists in this repository')
 
+    const currentMajor = releases[0].major
     let floor = null
     for (const { major, build } of releases) {
+        if (major !== currentMajor) break
         const tag = `v${major}.${build}.0`
         if (platformDiff(platform, tag, headRef).length > 0) break
         floor = `${major}.${build}.0`

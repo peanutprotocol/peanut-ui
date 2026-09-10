@@ -93,3 +93,16 @@ it('the verify step checks for the same string the upload writes', () => {
     expect(workflowSource).toContain(`EXPECTED="${marker}"`)
     expect(commentAssignment()).toContain(marker)
 })
+
+/*
+ * --lowest is what the channel's single min_update_version is set from. A
+ * refactor that leaves the resolver's unit cases green can still hand production
+ * the wrong shared floor if this handoff moves.
+ */
+it('passes the shared floor to --min-update-version, and the per-platform ones to the export', () => {
+    expect(workflowSource).toContain('NATIVE_FLOOR: ${{ steps.ota_floors.outputs.lowest }}')
+    expect(workflowSource).toContain('--min-update-version "$NATIVE_FLOOR"')
+    expect(workflowSource).toContain('NEXT_PUBLIC_OTA_FLOOR_ANDROID=${{ steps.ota_floors.outputs.android }}')
+    expect(workflowSource).toContain('NEXT_PUBLIC_OTA_FLOOR_IOS=${{ steps.ota_floors.outputs.ios }}')
+    expect(workflowSource).toContain('node scripts/ota-platform-floor.mjs --lowest')
+})
