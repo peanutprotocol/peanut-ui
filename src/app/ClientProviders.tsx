@@ -23,10 +23,11 @@ import { useSplashGate } from '@/hooks/useSplashGate'
 import { useZeroLegacyAndroidSafeAreaInsets } from '@/hooks/useZeroLegacyAndroidSafeAreaInsets'
 import { applyLegacyAndroidSafeAreaZeroFromUserAgent, isCapacitor, isWebViewCssSupported } from '@/utils/capacitor'
 import { isMarketingRoute } from '@/utils/marketing-routes'
+import { captureSignupAttribution } from '@/utils/signup-attribution'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import dynamic from 'next/dynamic'
 import { usePathname } from 'next/navigation'
-import { Suspense } from 'react'
+import { Suspense, useEffect } from 'react'
 
 // Harness bootstrap ships only in harness builds. In prod bundles the dynamic
 // import is in dead code behind `if (false)` and webpack drops the chunk.
@@ -68,7 +69,9 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
     // The marketing site renders without the wallet provider tree, so the
     // globals that depend on it are not mounted there either. `isMarketingRoute`
     // fails safe: an unrecognised path gets the full app tree.
-    const marketing = isMarketingRoute(usePathname())
+    const pathname = usePathname()
+    const marketing = isMarketingRoute(pathname)
+
     const IntlProvider = marketing ? MarketingIntlProvider : AppIntlProvider
 
     if (UNSUPPORTED_WEBVIEW) {
@@ -91,6 +94,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
            only through the dynamically-imported AppStateProviders chunk, and a
            chunk that loads slowly or fails would take readiness down with it. */
         <OtaUpdateProvider>
+            <SignupAttributionNavigationCapture pathname={pathname} />
             <NuqsAdapter>
                 <PeanutProvider>
                     {/* Must sit ABOVE ContextProvider: TokenContextProvider → useWallet
@@ -118,4 +122,12 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
             </NuqsAdapter>
         </OtaUpdateProvider>
     )
+}
+
+/** Capture every App Router entry, including client navigations. */
+export function SignupAttributionNavigationCapture({ pathname }: { pathname: string | null }) {
+    useEffect(() => {
+        if (!isCapacitor()) captureSignupAttribution()
+    }, [pathname])
+    return null
 }

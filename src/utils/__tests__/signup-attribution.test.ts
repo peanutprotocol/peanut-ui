@@ -1,6 +1,9 @@
 import {
     buildSignupAttributionHeader,
     captureSignupAttribution,
+    clearPendingSignupAttribution,
+    hasPendingSignupAttribution,
+    markSignupAttributionPending,
     parseSignupAttribution,
     readSignupAttribution,
     restoreSignupAttribution,
@@ -13,6 +16,7 @@ const clearAttributionCookie = () => {
 
 beforeEach(() => {
     process.env.NEXT_PUBLIC_CAPACITOR_BUILD = 'false'
+    clearPendingSignupAttribution()
     clearAttributionCookie()
     window.history.replaceState({}, '', '/')
     Object.defineProperty(document, 'referrer', { configurable: true, value: '' })
@@ -84,5 +88,25 @@ describe('signup attribution context', () => {
             captureMethod: 'deferred_link',
         })
         expect(readSignupAttribution()).toEqual(restored)
+    })
+
+    it('rejects identifier-shaped campaign values at capture time', () => {
+        window.history.replaceState(
+            {},
+            '',
+            '/?utm_source=550e8400-e29b-41d4-a716-446655440000&utm_campaign=wallet%40example.com'
+        )
+        const captured = captureSignupAttribution()
+        expect(captured?.firstTouch).toMatchObject({ path: '/' })
+        expect(captured?.firstTouch.utmSource).toBeUndefined()
+        expect(captured?.firstTouch.utmCampaign).toBeUndefined()
+    })
+
+    it('limits authenticated finalization retries to a completed signup marker', async () => {
+        expect(await hasPendingSignupAttribution()).toBe(false)
+        markSignupAttributionPending()
+        expect(await hasPendingSignupAttribution()).toBe(true)
+        clearPendingSignupAttribution()
+        expect(await hasPendingSignupAttribution()).toBe(false)
     })
 })

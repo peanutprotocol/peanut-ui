@@ -18,7 +18,7 @@ import posthog from 'posthog-js'
 import { storeDeclaredResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { getFromCookie } from '@/utils/general.utils'
-import { clearSignupAttribution, readSignupAttribution } from '@/utils/signup-attribution'
+import { readSignupAttribution } from '@/utils/signup-attribution'
 import { twMerge } from '@/utils/tw'
 import { useTranslations } from 'next-intl'
 
@@ -181,7 +181,6 @@ const SignTestTransaction = () => {
                           }
                         : {}),
                 })
-                clearSignupAttribution()
 
                 // Persist the residence answer from the residence step, now that
                 // the account exists. Fire-and-forget: prequalification data,

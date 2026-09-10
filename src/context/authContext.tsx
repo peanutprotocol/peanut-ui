@@ -31,6 +31,8 @@ import { clearStepUpToken } from '@/services/step-up'
 import { claimAndSettlePendingBadgeCampaigns, isConfirmedBadgeCampaignClaim } from '@/services/badge-campaigns'
 import { clearPendingBadgeCampaigns, getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 import { clearInvite } from '@/utils/invite-stash'
+import { attachSignupAttribution } from '@/services/signup-attribution'
+import { clearSignupAttribution } from '@/utils/signup-attribution'
 
 interface AuthContextType {
     user: IUserProfile | null
@@ -142,6 +144,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 username: user.user.username ?? undefined,
                 email: user.user.email ?? undefined,
             })
+            // Covers a native restart or a transient API outage after signup.
+            // The service is idempotent and clears local evidence only after
+            // the authenticated endpoint acknowledges it.
+            void attachSignupAttribution().catch((error) =>
+                captureException(error, { level: 'warning', tags: { error_type: 'signup_attribution_retry_failed' } })
+            )
         } else {
             // Logout / unauthenticated: clear Sentry user so subsequent
             // anonymous-session errors don't get misattributed.
@@ -300,6 +308,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // has it set; leaving it through logout would strand them on Signup,
         // unable to log back in until the process dies (session cookie).
         clearInvite()
+
+        // Source context is account-linkable; an explicit account switch must
+        // never let the next user inherit the previous user's journey.
+        clearSignupAttribution()
 
         // A cached step-up proof outliving the session would let the next user
         // of this device skip verification on card and withdrawal screens.
