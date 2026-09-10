@@ -1,4 +1,4 @@
-import { clearRedirectUrl, getRedirectUrl, getValidRedirectUrl } from '@/utils/general.utils'
+import { clearRedirectUrl, getRedirectOrigin, getRedirectUrl, getValidRedirectUrl } from '@/utils/general.utils'
 
 export type PostAuthRedirectDecision = {
     destination: string
@@ -13,6 +13,13 @@ type PostAuthRedirectOptions = {
      * showing the bank-claim continuation after identity verification).
      */
     deferStoredRedirect?: (destination: string) => boolean
+    /**
+     * Refuse a destination that only records where an earlier session ended.
+     * Set by a brand-new account: it inherits no other session's page, however
+     * that page came to be stored (this device's own logout, a revoked session
+     * in another tab, a token that expired while the app stood open).
+     */
+    rejectSessionEndOrigin?: boolean
 }
 
 /**
@@ -44,6 +51,13 @@ export function consumePostAuthRedirect(
 
     const storedValue = getRedirectUrl()
     if (typeof storedValue === 'string' && storedValue.length > 0) {
+        // Consumed, not merely skipped: leaving it would hand the same page to
+        // whoever authenticates next on this device.
+        if (options.rejectSessionEndOrigin && getRedirectOrigin() === 'session-end') {
+            clearRedirectUrl()
+            return { destination: fallbackRoute, source: 'fallback', deferred: false }
+        }
+
         const destination = getValidRedirectUrl(storedValue, fallbackRoute)
         if (destination !== fallbackRoute && options.deferStoredRedirect?.(destination)) {
             return { destination: fallbackRoute, source: 'stored', deferred: true }

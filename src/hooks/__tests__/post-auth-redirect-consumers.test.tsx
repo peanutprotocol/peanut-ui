@@ -1,7 +1,7 @@
 import { act, waitFor } from '@testing-library/react'
 // These hooks localize their error copy now, so they need the intl provider.
 import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
-import { getRedirectUrl, saveToLocalStorage } from '@/utils/general.utils'
+import { getRedirectUrl, saveRedirectUrl, saveToLocalStorage } from '@/utils/general.utils'
 import { useAccountSetup } from '../useAccountSetup'
 import { useLogin } from '../useLogin'
 
@@ -74,6 +74,50 @@ describe('post-auth redirect consumers', () => {
         expect(mockRouterReplace).not.toHaveBeenCalled()
         // the redirect is still queued for the CTA to consume
         expect(getRedirectUrl()).toBe(CAMPAIGN_REDIRECT)
+    })
+
+    /*
+     * A destination that only marks where an earlier session ended is not the
+     * new account's inheritance. This is the reported bug — logout from
+     * /profile, create an account, land on /profile — and it survives every
+     * same-tab guard: another tab's session can collapse (revoked, expired)
+     * and store its own page after this device's logout already finished.
+     */
+    describe('a brand-new account and a session-end destination', () => {
+        beforeEach(() => {
+            explicitRedirect = null
+            window.history.replaceState({}, '', '/profile')
+        })
+
+        it('refuses it and consumes it, so the next account cannot inherit it either', () => {
+            saveRedirectUrl('session-end')
+            expect(getRedirectUrl()).toBe('/profile')
+            const { result } = renderHook(() => useAccountSetup())
+
+            act(() => expect(result.current.handleRedirect({ isNewAccount: true })).toBe(false))
+
+            expect(mockRouterReplace).toHaveBeenCalledWith('/home')
+            expect(getRedirectUrl()).toBeNull()
+        })
+
+        it('still honours a deep link the person asked for', () => {
+            window.history.replaceState({}, '', CAMPAIGN_REDIRECT)
+            saveRedirectUrl('deep-link')
+            const { result } = renderHook(() => useAccountSetup())
+
+            act(() => expect(result.current.handleRedirect({ isNewAccount: true })).toBe(false))
+
+            expect(mockRouterReplace).toHaveBeenCalledWith(CAMPAIGN_REDIRECT)
+        })
+
+        it('an existing account logging in on this device still resumes where it was', () => {
+            saveRedirectUrl('session-end')
+            const { result } = renderHook(() => useAccountSetup())
+
+            act(() => expect(result.current.handleRedirect()).toBe(false))
+
+            expect(mockRouterReplace).toHaveBeenCalledWith('/profile')
+        })
     })
 
     it('login cannot resurrect a campaign redirect after an explicit financial route consumed it', async () => {

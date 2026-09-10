@@ -6,6 +6,7 @@ import {
     formatExtendedNumber,
     generateInviteCodeLink,
     getContributorsFromCharge,
+    getRedirectOrigin,
     getRedirectUrl,
     getRequestLink,
     formatTokenAmount,
@@ -596,6 +597,17 @@ describe('General Utilities', () => {
         it('stores the current path for a normal auth-gate bounce', () => {
             saveRedirectUrl()
             expect(getRedirectUrl()).toBe('/profile')
+            // a caller that says nothing is storing someone's own intent
+            expect(getRedirectOrigin()).toBe('deep-link')
+        })
+
+        it('keeps the origin with the path, and clears the two together', () => {
+            saveRedirectUrl('session-end')
+            expect(getRedirectOrigin()).toBe('session-end')
+
+            clearRedirectUrl()
+            expect(getRedirectUrl()).toBeNull()
+            expect(getRedirectOrigin()).toBeNull()
         })
 
         it('stores nothing once a logout is under way', () => {

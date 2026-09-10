@@ -19,10 +19,17 @@ export const useAccountSetup = () => {
     const [error, setError] = useState<string | null>(null)
     const [isProcessing, setIsProcessing] = useState(false)
 
-    const handleRedirect = (): boolean => {
+    /**
+     * @param options.isNewAccount - This account was just created here, so a
+     * destination that only marks where an earlier session ended is not its
+     * inheritance (a fresh signup landed on the previous account's /profile).
+     * A deep link the person actually asked for still wins.
+     */
+    const handleRedirect = (options?: { isNewAccount?: boolean }): boolean => {
         const redirect = consumePostAuthRedirect(searchParams.get('redirect_uri'), {
             deferStoredRedirect: (destination) =>
                 POST_SIGNUP_ACTIONS.some((action) => action.pathPattern.test(destination)),
+            rejectSessionEndOrigin: options?.isNewAccount,
         })
 
         console.log('[useAccountSetup] Resolved post-auth redirect:', redirect)

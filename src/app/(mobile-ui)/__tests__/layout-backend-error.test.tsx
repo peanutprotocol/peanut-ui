@@ -61,7 +61,13 @@ jest.mock('@/components/Invites/JoinWaitlistPage', () => ({ __esModule: true, de
 jest.mock('@/components/Migration/SunsetScreen', () => ({ __esModule: true, default: () => <div /> }))
 
 import Layout from '../layout'
-import { beginIntentionalLogout, clearRedirectUrl, endIntentionalLogout, getRedirectUrl } from '@/utils/general.utils'
+import {
+    beginIntentionalLogout,
+    clearRedirectUrl,
+    endIntentionalLogout,
+    getRedirectOrigin,
+    getRedirectUrl,
+} from '@/utils/general.utils'
 
 const CACHED_USER = {
     user: { userId: 'u1', username: 'probe', hasAppAccess: true },
@@ -168,6 +174,28 @@ describe('(mobile-ui) layout — no user', () => {
 
             expect(mockRouterReplace).toHaveBeenCalledWith('/setup')
             expect(getRedirectUrl()).toBe('/pay-request/abc')
+            // never held a session: this is the visitor's own intent
+            expect(getRedirectOrigin()).toBe('deep-link')
+        })
+
+        /*
+         * The other tab in the two-tab logout: this document held a session
+         * that then went away (logout elsewhere, revocation, expiry), so its
+         * latch never ran. Marking the destination for what it is keeps a
+         * fresh signup from inheriting it — see the consumer spec.
+         */
+        it('a session collapsing under a standing app is marked session-end', () => {
+            window.history.replaceState({}, '', '/card')
+            mockUseAuth.mockReturnValue(authState({ user: CACHED_USER }))
+            const { rerender } = renderLayout()
+            expect(getRedirectUrl()).toBeNull()
+
+            mockUseAuth.mockReturnValue(authState())
+            act(() => rerenderLayout(rerender))
+
+            expect(mockRouterReplace).toHaveBeenCalledWith('/setup')
+            expect(getRedirectUrl()).toBe('/card')
+            expect(getRedirectOrigin()).toBe('session-end')
         })
 
         it('logging out from /profile: reaches /setup with no destination stored', () => {

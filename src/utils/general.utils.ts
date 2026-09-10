@@ -749,20 +749,38 @@ export const endIntentionalLogout = () => {
     intentionalLogout = false
 }
 
-export const saveRedirectUrl = () => {
+/**
+ * Why a post-auth destination was stored. `deep-link` is an intent of the
+ * person who will authenticate — they asked for that page and could not have
+ * it yet. `session-end` is merely where some session happened to be standing
+ * when it collapsed (logout, revocation, token expiry), which is nobody's
+ * intent and belongs to an account that is not necessarily the next one.
+ */
+export type RedirectOrigin = 'deep-link' | 'session-end'
+
+const REDIRECT_ORIGIN_KEY = 'redirect-origin'
+
+export const saveRedirectUrl = (origin: RedirectOrigin = 'deep-link') => {
     if (intentionalLogout) return
     const currentUrl = new URL(window.location.href)
     const relativeUrl = currentUrl.href.replace(currentUrl.origin, '')
     saveToLocalStorage('redirect', relativeUrl)
+    saveToLocalStorage(REDIRECT_ORIGIN_KEY, origin)
 }
 
 export const getRedirectUrl = () => {
     return getFromLocalStorage('redirect')
 }
 
+export const getRedirectOrigin = (): RedirectOrigin | null => {
+    const stored = getFromLocalStorage(REDIRECT_ORIGIN_KEY)
+    return stored === 'session-end' || stored === 'deep-link' ? stored : null
+}
+
 export const clearRedirectUrl = () => {
     if (typeof localStorage !== 'undefined') {
         localStorage.removeItem('redirect')
+        localStorage.removeItem(REDIRECT_ORIGIN_KEY)
     }
 }
 

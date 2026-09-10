@@ -85,6 +85,21 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     useLongPressGuard()
 
     const isRedirecting = useRef(false)
+    /*
+     * Did this document ever hold a session? It separates the two reasons the
+     * gate below fires: a logged-out arrival at a protected deep link (the
+     * person's own intent — keep it) from a session collapsing under a
+     * standing app (logout, revocation, expiry — where it happened to be
+     * standing is nobody's intent, and belongs to an account that is not
+     * necessarily the next one to authenticate here).
+     */
+    const hadSession = useRef(false)
+    // Recorded in an effect, not during render: React can discard or replay a
+    // render, and this outlives the one it was observed in. Declared above the
+    // gate so the gate reads it already settled.
+    useEffect(() => {
+        if (user) hadSession.current = true
+    }, [user])
 
     useEffect(() => {
         // Harness-only: if a reproduce session is in progress, ReproduceBootstrap
@@ -115,8 +130,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             // Keep the target: a logged-out tap on a protected deep link
             // (/pay-request, /card, /receipt, every push) used to be dropped
             // here and land on /home after login. useLogin/useAccountSetup
-            // consume this via consumePostAuthRedirect.
-            saveRedirectUrl()
+            // consume this via consumePostAuthRedirect — which is why the
+            // origin rides along: a fresh signup must not inherit the page a
+            // previous session was standing on.
+            saveRedirectUrl(hadSession.current ? 'session-end' : 'deep-link')
             router.replace('/setup')
             // Hard-nav fallback if the soft nav silently fails; re-check at fire time.
             const fallback = setTimeout(() => {
