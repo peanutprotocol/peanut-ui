@@ -24,8 +24,6 @@ import { AVATAR_PICKER_PARAM, avatarPickerParser } from '@/components/Avatar/ava
 import { useOtaUpdate } from '@/context/OtaUpdateContext'
 import OtaUpdateModal from './components/OtaUpdateModal'
 import StoreUpdateModal from './components/StoreUpdateModal'
-import { IOS_APP_STORE_LISTING_LIVE } from '@/constants/migration.consts'
-import { isIOSNative } from '@/utils/capacitor'
 
 export const Profile = () => {
     const { logoutUser, isLoggingOut, user } = useAuth()
@@ -45,7 +43,6 @@ export const Profile = () => {
     const { pendingBundle, storeUpdateRequired } = useOtaUpdate()
     const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
     const [isStoreUpdateModalOpen, setIsStoreUpdateModalOpen] = useState(false)
-    const storeUpdateOffered = storeUpdateRequired && (!isIOSNative() || IOS_APP_STORE_LISTING_LIVE)
     // A staged OTA bundle wins over the store hint: it is already on the device,
     // and the gate only ever stages one this binary can run. Store updates get
     // their own modal — offering a restart for one would reload the same JS.
@@ -152,7 +149,7 @@ export const Profile = () => {
                             the path and opens the in-app browser in Capacitor */}
                         <ProfileMenuItem icon="question-mark" label={t('menu.help')} href="/en/help" isDocsLink />
                         <ProfileMenuItem icon="info" label={t('menu.about')} href="/profile/about" />
-                        {(pendingBundle || storeUpdateOffered) && (
+                        {(pendingBundle || storeUpdateRequired) && (
                             <ProfileMenuItem
                                 icon="download"
                                 label={t('menu.updateAvailable')}
