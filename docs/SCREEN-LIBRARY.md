@@ -138,3 +138,9 @@ one another (up to 100 queued runs; see [GitHub concurrency documentation](https
 When GitHub omits the event PR list, publication binds to the unique open
 same-repository PR matching the run's branch and head. If no original base
 snapshot is available, a changed merge base requires a rerun.
+
+Support fallback captures replace only the provider iframe transport with a
+synthetic `CRISP_FAILED` message, then assert the app-owned failure copy. The
+third-party chat UI and its network readiness are not part of this visual tier.
+Modal readiness waits for full opacity before transitions are disabled, since
+browser visibility alone can accept a transparent entering panel.

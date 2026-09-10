@@ -41,6 +41,7 @@ const flow = (value: string): string => {
     return rules.find(([pattern]) => new RegExp(pattern, 'i').test(value))?.[1] ?? 'Home and shared states'
 }
 const readiness: Record<string, string> = {
+    '55-d-supportdrawer': "Chat couldn't load",
     'fixture-early-user': 'Earn from invites',
     '11-a-earlyusermodal': 'Earn from invites',
     'fixture-reconsent': 'A small update to our terms',

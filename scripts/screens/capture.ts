@@ -210,6 +210,12 @@ async function main() {
                     try {
                         const request = route.request(),
                             url = new URL(request.url())
+                        if (url.origin === base.origin && url.pathname === '/crisp-proxy')
+                            return route.fulfill({
+                                status: 200,
+                                contentType: 'text/html',
+                                body: '<!doctype html><script>parent.postMessage({type:"CRISP_FAILED"}, location.origin)</script>',
+                            })
                         // All API transports, including local same-origin test API, use synthetic answers.
                         if (
                             url.hostname === 'api.peanut.me' ||
