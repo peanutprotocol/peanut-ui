@@ -54,9 +54,6 @@ export function OtaUpdateProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         if (!isCapacitor()) return
-        // The app rendered, so the running bundle boots — this is what the
-        // document-start notifyAppReady trades Capgo's rollback net for.
-        markNativeBootComplete()
         let disposed = false
         let cleanup: (() => void) | undefined
 
@@ -82,6 +79,10 @@ export function OtaUpdateProvider({ children }: { children: React.ReactNode }) {
                     return
                 }
                 cleanup = remove
+                // Rendering alone does not prove this bundle can receive its
+                // replacement. Keep boot recovery armed until the local updater
+                // works too; init schedules its network check without awaiting it.
+                markNativeBootComplete()
                 // Sequenced after init on purpose: the launch apply writes the
                 // pending-apply marker that init's reportPendingApply consumes,
                 // and racing them would report this launch's marker as a

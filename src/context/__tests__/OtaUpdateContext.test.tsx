@@ -37,6 +37,8 @@ jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
 jest.mock('@/utils/capacitor', () => ({
     isCapacitor: () => platform.capacitor,
     isAndroidNativeBridge: () => platform.android,
+    // the store-update gate reads it to pick which platform's floor applies
+    isIOSNative: () => !platform.android,
 }))
 jest.mock('@/hooks/useSplashGate', () => ({ isSplashVisible: () => platform.splashVisible }))
 // Null by default so the store-update gate fails open and the cases below are
@@ -47,6 +49,8 @@ jest.mock('@/utils/app-version', () => ({
 }))
 
 import { OtaUpdateProvider, useOtaUpdate } from '../OtaUpdateContext'
+import { NATIVE_APP_READY_SCRIPT } from '@/utils/native-app-ready'
+import * as chunkRecovery from '@/utils/chunk-error-recovery'
 
 const STAGED = { id: 'b-2', version: '1.2.0', downloaded: '', checksum: '', status: 'pending' as const }
 
@@ -63,6 +67,8 @@ beforeEach(() => {
     platform.capacitor = true
     platform.splashVisible = false
     platform.binaryVersion = null
+    mockUpdater.notifyAppReady.mockReset().mockResolvedValue(undefined)
+    mockUpdater.addListener.mockReset().mockResolvedValue({ remove: jest.fn() })
     mockUpdater.delete.mockReset().mockResolvedValue(undefined)
     mockUpdater.getFailedUpdate.mockReset().mockResolvedValue(null)
     mockExitApp.mockClear()
@@ -95,6 +101,69 @@ const withStagedBundle = async () => {
     await waitFor(() => expect(rendered.result.current.pendingBundle).toEqual(STAGED))
     return rendered
 }
+
+describe('native boot recovery includes the updater', () => {
+    const bootKey = 'peanutNativeBootIncomplete'
+
+    it('keeps recovery armed when the updater chunk cannot load', async () => {
+        window.localStorage.setItem(bootKey, '2')
+        jest.spyOn(chunkRecovery, 'importWithChunkRetry').mockRejectedValue(new Error('updater chunk unavailable'))
+        setup()
+        await waitFor(() => expect(warn).toHaveBeenCalledWith('[capgo] ota init failed:', expect.any(Error)))
+        expect(window.localStorage.getItem(bootKey)).toBe('2')
+        expect(mockUpdater.notifyAppReady).not.toHaveBeenCalled()
+    })
+
+    it('keeps recovery armed while local updater initialization is pending', async () => {
+        window.localStorage.setItem(bootKey, '2')
+        let ready!: () => void
+        mockUpdater.notifyAppReady.mockReturnValue(new Promise<void>((resolve) => (ready = resolve)))
+        setup()
+        await waitFor(() => expect(mockUpdater.notifyAppReady).toHaveBeenCalled())
+        expect(window.localStorage.getItem(bootKey)).toBe('2')
+        await act(async () => ready())
+        await waitFor(() => expect(window.localStorage.getItem(bootKey)).toBeNull())
+    })
+
+    it('marks a working local updater ready without waiting for network access', async () => {
+        window.localStorage.setItem(bootKey, '2')
+        mockUpdater.getLatest.mockRejectedValue(new Error('offline'))
+        setup()
+        await waitFor(() => expect(window.localStorage.getItem(bootKey)).toBeNull())
+        expect(mockUpdater.addListener).toHaveBeenCalledWith('appReloaded', expect.any(Function))
+        expect(mockUpdater.getLatest).not.toHaveBeenCalled()
+    })
+
+    it('does not acknowledge an initialization that finishes after unmount', async () => {
+        window.localStorage.setItem(bootKey, '2')
+        let ready!: () => void
+        mockUpdater.notifyAppReady.mockReturnValue(new Promise<void>((resolve) => (ready = resolve)))
+        const { unmount } = setup()
+        await waitFor(() => expect(mockUpdater.notifyAppReady).toHaveBeenCalled())
+        unmount()
+        await act(async () => ready())
+        expect(window.localStorage.getItem(bootKey)).toBe('2')
+    })
+
+    it('resets to the builtin bundle after repeated updater failures even when React renders', async () => {
+        mockUpdater.addListener.mockRejectedValue(new Error('updater initialization broken'))
+        const reset = jest.fn()
+        const bridge = { Capacitor: { Plugins: { CapacitorUpdater: { notifyAppReady: jest.fn(), reset } } } }
+        const launch = () =>
+            new Function('window', 'localStorage', NATIVE_APP_READY_SCRIPT)(bridge, window.localStorage)
+
+        for (let failures = 1; failures <= 3; failures++) {
+            launch()
+            const { unmount } = setup()
+            await waitFor(() => expect(warn).toHaveBeenCalledWith('[capgo] ota init failed:', expect.any(Error)))
+            expect(window.localStorage.getItem(bootKey)).toBe(String(failures))
+            unmount()
+            warn.mockClear()
+        }
+        launch()
+        expect(reset).toHaveBeenCalledTimes(1)
+    })
+})
 
 it('seeds the pending bundle from the plugin queue, so it survives a reload', async () => {
     const { result } = await withStagedBundle()

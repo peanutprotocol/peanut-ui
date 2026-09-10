@@ -27,6 +27,9 @@ jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
 jest.mock('@/utils/capacitor', () => ({
     ...jest.requireActual('@/utils/capacitor'),
     isAndroidNativeBridge: () => mockPlatform.android,
+    // the gate reads it to pick which platform's floor applies; the real one
+    // answers false under jsdom, which would silently test Android everywhere
+    isIOSNative: () => !mockPlatform.android,
 }))
 // The gate asks the binary for its version; jsdom is not Capacitor, so the real
 // getBinaryInfo would answer null and fail the gate open in every case below.
@@ -36,6 +39,7 @@ jest.mock('@/utils/app-version', () => ({
 }))
 
 import { canRestartInPlace, initCapgoUpdater, readStagedBundle } from '../capgo-updater'
+import { stagedFloors } from '../ota-native-gate'
 
 let info: jest.SpyInstance
 let error: jest.SpyInstance
@@ -489,6 +493,33 @@ describe('store-update gate', () => {
         expect(mockUpdater.next).toHaveBeenCalledWith({ id: 'b-3' })
         expect(mockUpdater.delete).toHaveBeenCalledWith({ id: 'b-6' })
         expect(error).not.toHaveBeenCalled()
+    })
+
+    // The pair that makes the candidate floors useful: admitted at check time on
+    // the candidate's own floor, and still admitted on the next launch, when the
+    // queue carries only an id and a version.
+    it('applies a bundle admitted under its candidate floor on the next launch', async () => {
+        mockPlatform.android = false
+        mockPlatform.binaryVersion = '1.5.0'
+        mockUpdater.getLatest.mockResolvedValue({
+            url: 'https://cdn.test/1.6.3.zip',
+            version: '1.6.3',
+            comment: 'abc1234 — subject [ota-floors: android=1.6.0 ios=1.5.0]',
+        })
+        mockUpdater.download.mockResolvedValue({ id: 'b-9', version: '1.6.3' })
+        let floorsAtQueueTime: string | undefined
+        mockUpdater.next.mockImplementation(async ({ id }: { id: string }) => {
+            floorsAtQueueTime = stagedFloors(id)
+        })
+        await initCapgoUpdater()
+        await jest.advanceTimersByTimeAsync(5_000)
+        expect(mockUpdater.next).toHaveBeenCalledWith({ id: 'b-9' })
+        expect(floorsAtQueueTime).toBe('[ota-floors: android=1.6.0 ios=1.5.0]')
+
+        // next launch: the queue names b-9 and nothing else
+        mockUpdater.getNextBundle.mockResolvedValue({ id: 'b-9', version: '1.6.3' })
+        await expect(readStagedBundle()).resolves.toEqual({ id: 'b-9', version: '1.6.3' })
+        expect(mockUpdater.delete).not.toHaveBeenCalled()
     })
 
     it('reports a queued bundle this binary can run', async () => {

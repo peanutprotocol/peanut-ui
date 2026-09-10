@@ -4,7 +4,7 @@
 import type { BundleInfo, CapacitorUpdaterPlugin } from '@capgo/capacitor-updater'
 import { isAndroidNativeBridge } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
-import { needsStoreUpdate } from '@/utils/ota-native-gate'
+import { forgetStagedFloors, needsStoreUpdate, rememberStagedFloors, stagedFloors } from '@/utils/ota-native-gate'
 import { readStoredValue, removeStoredValue, writeStoredValue } from '@/utils/safe-storage'
 
 export interface OtaUpdateCallbacks {
@@ -109,7 +109,7 @@ async function checkAndStageUpdate(callbacks: OtaUpdateCallbacks = {}): Promise<
             // downloaded. Capgo's own floor is the server-side half of this rule and
             // only applies under one channel strategy, in a dashboard nothing here
             // can read — so the client decides too.
-            if (await needsStoreUpdate(latest.version)) {
+            if (await needsStoreUpdate(latest.version, latest.comment)) {
                 console.info(`[capgo] bundle ${latest.version} needs a newer binary — store update only`)
                 removeStoredValue(FAILURE_STREAK_KEY)
                 callbacks.onStoreUpdateRequired?.()
@@ -125,6 +125,10 @@ async function checkAndStageUpdate(callbacks: OtaUpdateCallbacks = {}): Promise<
             // apply on next launch (no mid-session reload — avoids yanking the
             // UI out from under the user). set() reloads IMMEDIATELY; next()
             // is the deferred variant.
+            // Persist before arming next(): the native bridge can reload the
+            // WebView as soon as it queues the bundle. A later JS write may never
+            // run, leaving the next launch without the floors that admitted it.
+            rememberStagedFloors(bundle.id, latest.comment)
             await CapacitorUpdater.next({ id: bundle.id })
             callbacks.onUpdateAvailable?.(bundle)
             removeStoredValue(FAILURE_STREAK_KEY)
@@ -359,7 +363,9 @@ export async function readStagedBundle(
         CapacitorUpdater.current().catch(() => null),
     ])
     if (!next?.version || next.id === current?.bundle?.id) return null
-    if (!(await needsStoreUpdate(next.version))) return next
+    // Asked with the floors this bundle was admitted under, not with nothing:
+    // re-deciding on the version alone would disarm a bundle the check approved.
+    if (!(await needsStoreUpdate(next.version, stagedFloors(next.id)))) return next
 
     // Say so, rather than letting the update row vanish: the launch check would
     // reach the same verdict, but only once it has reached the network.
@@ -396,6 +402,7 @@ async function disarmStagedBundle(
     runningId: string | undefined
 ): Promise<null> {
     console.info(`[capgo] dropping staged bundle ${staged.version} — it needs a newer binary`)
+    forgetStagedFloors()
     const sentinels =
         runningId && runningId !== BUILTIN_BUNDLE_ID ? [runningId, BUILTIN_BUNDLE_ID] : [BUILTIN_BUNDLE_ID]
 

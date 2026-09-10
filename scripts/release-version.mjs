@@ -24,25 +24,46 @@
 //   node scripts/release-version.mjs ota --current <version>
 //   node scripts/release-version.mjs staging
 //   node scripts/release-version.mjs native-floor
+//   node scripts/release-version.mjs newest-native
 //   node scripts/release-version.mjs validate <version> --kind <native|ota>
 //
 // Needs full history and tags (actions/checkout with fetch-depth: 0).
 
 import { execFileSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { readFileSync, realpathSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const PLAIN_SEMVER = /^(\d+)\.(\d+)\.(\d+)$/
 const CHANNEL_SEMVER = /^(\d+)\.(\d+)\.(\d+)(?:-[0-9A-Za-z.-]+)?$/
 
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+let repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
-try {
-    process.stdout.write(`${main(process.argv.slice(2))}\n`)
-} catch (err) {
-    console.error(`✗ release-version: ${err.message}`)
-    process.exit(1)
+export function setRepoRoot(root) {
+    repoRoot = resolve(root)
+}
+
+// Guarded so this file can be imported for its tag reader (ota-platform-floor)
+// without running the CLI and calling process.exit on a missing mode.
+// realpath, not resolve: the suite copies this script under os.tmpdir(), which on
+// macOS hands back /var/... while import.meta.url resolves to /private/var/...,
+// and a plain string compare would leave the CLI silently printing nothing.
+function invokedDirectly() {
+    if (!process.argv[1]) return false
+    try {
+        return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))
+    } catch {
+        return false
+    }
+}
+
+if (invokedDirectly()) {
+    try {
+        process.stdout.write(`${main(process.argv.slice(2))}\n`)
+    } catch (err) {
+        console.error(`✗ release-version: ${err.message}`)
+        process.exit(1)
+    }
 }
 
 function main(argv) {
@@ -58,10 +79,14 @@ function main(argv) {
             return `${major}.${latestBuild(major)}.${commitCount()}`
         case 'native-floor':
             return nativeFloor(major)
+        case 'newest-native':
+            return newestNative(rest.includes('--allow-none'))
         case 'validate':
             return validate(major, rest[0], flag(rest, '--kind'))
         default:
-            throw new Error(`unknown mode "${mode ?? ''}" — expected native, ota, staging, native-floor or validate`)
+            throw new Error(
+                `unknown mode "${mode ?? ''}" — expected native, ota, staging, native-floor, newest-native or validate`
+            )
     }
 }
 
@@ -112,6 +137,44 @@ function nativeFloor(major) {
     return `${major}.${build}.0`
 }
 
+// The newest native release in the repository, ACROSS majors — which is the one
+// a release ref has to contain. `nativeFloor` deliberately scopes to the current
+// major, because a bundle's --min-update-version has to sit in the same major
+// band as the bundle. Provenance is the opposite question: the moment
+// package.json advances to a major with no tag yet, the major-scoped floor has
+// no answer, and skipping the check there is what would let a lagging ref build
+// 2.1.0 without containing v1.6.0 — a higher store version carrying older code,
+// exactly what the guard exists to stop.
+function newestNative(allowNone = false) {
+    const releases = allNativeReleases()
+    if (releases.length === 0) {
+        if (allowNone) return ''
+        throw new Error('no attested v<major>.<build>.0 native release exists in this repository')
+    }
+    const [{ major, build }] = releases
+    return `${major}.${build}.0`
+}
+
+// All app generations count for provenance, regardless of the checked-out
+// package major. The release workflow creates annotated tags with this exact
+// subject after its native jobs succeed. A date-shaped or unrelated tag is not
+// release evidence. Never infer a tag's meaning from the stale checkout's major.
+export function allNativeReleases() {
+    return readTags({ allowEmpty: true })
+        .map((tag) => /^v(0|[1-9]\d*)\.([1-9]\d*)\.0$/.exec(tag))
+        .filter(Boolean)
+        .filter(([tag, major, build]) => {
+            const metadata = execFileSync(
+                'git',
+                ['for-each-ref', '--format=%(objecttype)%00%(contents:subject)', `refs/tags/${tag}`],
+                { cwd: repoRoot, encoding: 'utf8' }
+            ).trim()
+            return metadata === `tag\0Native release ${major}.${build}.0`
+        })
+        .map(([, major, build]) => ({ major: Number(major), build: Number(build) }))
+        .sort((a, b) => b.major - a.major || b.build - a.build)
+}
+
 function validate(major, version, kind) {
     const match = PLAIN_SEMVER.exec(version ?? '')
     if (!match) throw new Error(`"${version}" is not a plain X.Y.Z version`)
@@ -140,15 +203,26 @@ function readMajor() {
 
 // Returns 0 when no native release exists for this major, so the first one is .1.
 function latestBuild(major) {
-    const tags = execFileSync('git', ['tag', '--list', 'v*'], { cwd: repoRoot, encoding: 'utf8' }).split('\n')
-    if (!tags.some((tag) => tag.trim())) {
-        throw new Error('no v* tags are visible — the resolver needs actions/checkout with fetch-depth: 0')
-    }
     const pattern = new RegExp(`^v${major}\\.(\\d+)\\.0$`)
-    return tags.reduce((highest, tag) => {
-        const match = pattern.exec(tag.trim())
+    return readTags().reduce((highest, tag) => {
+        const match = pattern.exec(tag)
         return match ? Math.max(highest, Number(match[1])) : highest
     }, 0)
+}
+
+function readTags({ allowEmpty = false } = {}) {
+    const shallow = execFileSync('git', ['rev-parse', '--is-shallow-repository'], {
+        cwd: repoRoot,
+        encoding: 'utf8',
+    }).trim()
+    if (shallow !== 'false') throw new Error('shallow clone — release registry needs fetch-depth: 0')
+    const tags = execFileSync('git', ['tag', '--list', 'v*'], { cwd: repoRoot, encoding: 'utf8' })
+        .split('\n')
+        .map((tag) => tag.trim())
+    if (!allowEmpty && !tags.some(Boolean)) {
+        throw new Error('no v* tags are visible — the resolver needs actions/checkout with fetch-depth: 0')
+    }
+    return tags.filter(Boolean)
 }
 
 function flag(argv, name) {

@@ -68,7 +68,7 @@ describe('NATIVE_APP_READY_SCRIPT', () => {
      * one the OS froze mid-boot and rolled back on both; a frozen boot resumes
      * and clears the counter, a broken one never does.
      */
-    it('falls back to the builtin bundle after three launches that never rendered', () => {
+    it('falls back to the builtin bundle after three incomplete app/updater launches', () => {
         const { notifyAppReady, reset, store } = bootScript({ failures: 3 })
         expect(reset).toHaveBeenCalled()
         expect(notifyAppReady).not.toHaveBeenCalled()
