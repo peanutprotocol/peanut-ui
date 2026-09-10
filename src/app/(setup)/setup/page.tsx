@@ -79,17 +79,17 @@ function SetupPageContent() {
      */
     const [isLeavingForHome, setIsLeavingForHome] = useState(false)
 
-    const recoveryReason =
-        initializationError ??
-        (!isLoading &&
-        sessionChecked &&
-        !step &&
-        !isLeavingForHome &&
-        !existingSessionUsername &&
-        !showDeviceNotSupportedModal &&
-        !showBrowserNotSupportedModal
-            ? 'missing_step'
-            : null)
+    const recoveryReason = isLeavingForHome
+        ? null
+        : (initializationError ??
+          (!isLoading &&
+          sessionChecked &&
+          !step &&
+          !existingSessionUsername &&
+          !showDeviceNotSupportedModal &&
+          !showBrowserNotSupportedModal
+              ? 'missing_step'
+              : null))
 
     useEffect(() => {
         if (recoveryReason) {

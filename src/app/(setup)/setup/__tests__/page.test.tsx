@@ -184,6 +184,24 @@ it('bounds waiting for session hydration', async () => {
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
 })
 
+it('suppresses timeout recovery when a completed session starts leaving for home', async () => {
+    mockAuth.isFetchingUser = true
+    const view = renderWithIntl(<SetupPage />)
+    await advance(100)
+    await advance(15000)
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+
+    mockAuth.isFetchingUser = false
+    mockAuth.user = { user: { username: 'peanutter', hasAppAccess: true } }
+    await act(async () => {
+        view.rerender(<SetupPage />)
+    })
+
+    expect(mockRouter.replace).toHaveBeenCalledWith('/home')
+    expect(screen.getByRole('status')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+})
+
 it.each([true, false])('preserves the resolved entry flow (native=%s)', async (native) => {
     mockNative = native
     Object.defineProperty(window, 'PublicKeyCredential', {
