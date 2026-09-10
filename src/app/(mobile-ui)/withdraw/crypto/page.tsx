@@ -943,7 +943,7 @@ export default function WithdrawCryptoPage() {
                         usdAmount={executedAmountUsd ?? usdAmount}
                         message={
                             successNickname ? (
-                                <span className="text-body-s font-normal text-foreground-secondary">
+                                <span className="text-body-s text-foreground-secondary">
                                     {savedAddressLabel(successNickname, withdrawData.address)}
                                 </span>
                             ) : (

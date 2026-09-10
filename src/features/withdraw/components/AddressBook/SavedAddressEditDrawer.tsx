@@ -51,24 +51,26 @@ export default function SavedAddressEditDrawer({ saved, onClose, onRename, onDel
     return (
         <Drawer open={!!saved} dismissible={!busy} onOpenChange={(open) => !open && !busy && onClose()}>
             <DrawerContent>
-                <div className="flex flex-col gap-4 px-5 pt-1 pb-6">
+                <div className="flex flex-col gap-4 px-4 pt-1 pb-6">
                     <DrawerHeader className="w-full gap-1 p-0 text-left sm:text-left">
-                        <DrawerTitle className="text-base font-bold text-black">
+                        <DrawerTitle className="text-heading-card text-foreground-primary">
                             {t('savedAddresses.editTitle')}
                         </DrawerTitle>
-                        <DrawerDescription className="text-sm text-grey-1">
+                        <DrawerDescription className="text-body-s text-foreground-secondary">
                             {saved ? shortSavedAddress(saved.address) : ''}
                         </DrawerDescription>
                     </DrawerHeader>
                     <label className="flex flex-col gap-1">
-                        <span className="text-xs font-bold">{t('savedAddresses.nicknameLabel')}</span>
+                        <span className="text-label-m text-foreground-primary">
+                            {t('savedAddresses.nicknameLabel')}
+                        </span>
                         <BaseInput
                             value={nickname}
                             maxLength={SAVED_ADDRESS_NICKNAME_MAX}
                             onChange={(e) => setNickname(e.target.value)}
                             placeholder={t('savedAddresses.nicknamePlaceholder')}
                             rightContent={
-                                <span className="text-xs text-grey-1">
+                                <span className="text-body-xs text-foreground-secondary">
                                     {nickname.length}/{SAVED_ADDRESS_NICKNAME_MAX}
                                 </span>
                             }

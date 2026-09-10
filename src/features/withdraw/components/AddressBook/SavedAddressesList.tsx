@@ -31,7 +31,7 @@ export default function SavedAddressesList({ savedAddresses, onSelect, onEdit }:
                     <ListItem
                         key={saved.id}
                         position="single"
-                        className="p-4 py-2.5"
+                        className="p-4 py-2"
                         onClick={() => onSelect(saved)}
                         title={
                             <span className="flex items-center gap-2">
@@ -49,8 +49,8 @@ export default function SavedAddressesList({ savedAddresses, onSelect, onEdit }:
                                     sizeClass="h-8 w-8"
                                     className="rounded-full"
                                 />
-                                <div className="absolute -right-1 -bottom-1 flex h-5 w-5 items-center justify-center rounded-full bg-yellow-400 p-1">
-                                    <Icon size={12} name="wallet" className="text-black" />
+                                <div className="absolute -right-1 -bottom-1 flex h-6 w-6 items-center justify-center rounded-full bg-background-icon-bubble-yellow p-1">
+                                    <Icon size={16} name="wallet" className="text-foreground-primary" />
                                 </div>
                             </div>
                         }
@@ -58,13 +58,13 @@ export default function SavedAddressesList({ savedAddresses, onSelect, onEdit }:
                             <button
                                 type="button"
                                 aria-label={t('savedAddresses.editAria', { nickname: saved.nickname })}
-                                className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-grey-4"
+                                className="flex h-8 w-8 items-center justify-center rounded-full transition-colors duration-instant hover:bg-background-disabled active:bg-background-disabled"
                                 onClick={(e) => {
                                     e.stopPropagation()
                                     onEdit(saved)
                                 }}
                             >
-                                <Icon name="more-horizontal" size={18} />
+                                <Icon name="more-horizontal" size={20} />
                             </button>
                         }
                     />
