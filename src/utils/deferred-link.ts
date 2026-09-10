@@ -22,6 +22,14 @@ import {
     parsePendingBadgeCampaigns,
     queuePendingBadgeCampaigns,
 } from '@/components/Invites/badge-campaign-context'
+import {
+    parseSignupAttribution,
+    readSignupAttribution,
+    restoreSignupAttribution,
+    serializeSignupAttribution,
+    signupAttributionPosthogProperties,
+    type SignupAttributionContext,
+} from './signup-attribution'
 
 // marker param distinguishing our payload from Play's organic referrer
 // (utm_source=google-play&utm_medium=organic)
@@ -51,6 +59,8 @@ export interface DeferredPayload {
     badgeCampaigns?: string[]
     /** Legacy single-campaign payload accepted during app upgrade. */
     campaign?: string
+    /** Durable marketing-attribution context from the web journey. */
+    attribution?: SignupAttributionContext
     dest?: string
 }
 
@@ -106,6 +116,9 @@ export function buildDeferredPayload(dest?: string, invite?: string): string {
         params.append(BADGE_CAMPAIGN_QUERY_PARAM, badgeCampaign)
     }
 
+    const attribution = serializeSignupAttribution()
+    if (attribution) params.set('attribution', attribution)
+
     // a page whose url carries the claim secret in the fragment (#p=) must not
     // ride as a default dest: the fragment never rides (by design), so the
     // restored claim page would render unclaimable. the working path is the
@@ -158,10 +171,12 @@ export function parseDeferredPayload(raw: string): DeferredPayload | null {
     if (params.get(MARKER) !== '1') return null
     const pick = (key: string) => params.get(key) || undefined
     const badgeCampaigns = badgeCampaignIdentitiesFromDeferredSearchParams(params)
+    const attribution = parseSignupAttribution(params.get('attribution'))
     return {
         lang: pick('lang'),
         invite: pick('invite'),
         badgeCampaigns: badgeCampaigns.length > 0 ? badgeCampaigns : undefined,
+        attribution: attribution ?? undefined,
         dest: pick('dest'),
     }
 }
@@ -307,12 +322,25 @@ async function doRestore(): Promise<RestoredContext | null> {
     }
 
     const restored = applyDeferredPayload(payload)
-    captureRestore(channel, DEFERRED_LINK_OUTCOMES.RESTORED, {
+    const restoreFields: Record<string, boolean> = {
         has_dest: !!restored.dest,
         has_locale: !!restored.locale,
         has_invite: !!payload.invite,
         has_campaign: !!(payload.badgeCampaigns?.length || payload.campaign),
-    })
+    }
+    // Keep the legacy event shape for old payloads, while making attribution
+    // presence observable for the new hand-off contract.
+    if (payload.attribution) restoreFields.has_attribution = true
+    captureRestore(channel, DEFERRED_LINK_OUTCOMES.RESTORED, restoreFields)
+
+    // Register only after the privacy-preserving restore event above. The
+    // journey id is useful on subsequent native events, but must not turn the
+    // restore telemetry into a payload dump.
+    if (payload.attribution && typeof posthog.register === 'function') {
+        try {
+            posthog.register(signupAttributionPosthogProperties(readSignupAttribution()))
+        } catch {}
+    }
 
     // privacy: clear the consumed hand-off off the clipboard. after the flag —
     // an interrupted clear can't cause a re-read. single space: some platforms
@@ -333,6 +361,8 @@ async function doRestore(): Promise<RestoredContext | null> {
  * the /dev/deferred simulator so there is exactly one apply path.
  */
 export function applyDeferredPayload(payload: DeferredPayload): RestoredContext {
+    if (payload.attribution) restoreSignupAttribution(payload.attribution)
+
     // inviteCode: SESSION cookie, exactly matching the web invite flow
     // (InvitesPage). the cookie routes /setup past Landing — the only screen
     // with Log In — so a durable cookie would lock an existing user who

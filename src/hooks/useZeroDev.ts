@@ -49,6 +49,7 @@ import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
 import { rescueUserOpReceipt } from '@/utils/userop-rescue.utils'
 import { clearInvite, extendInviteForRetry, readInviteCode, readInviteType } from '@/utils/invite-stash'
+import { buildSignupAttributionHeader } from '@/utils/signup-attribution'
 
 // types
 type UserOpEncodedParams = {
@@ -112,6 +113,15 @@ export const useZeroDev = () => {
         zeroDevFlowActions.setIsRegistering(true)
         try {
             const rpId = isCapacitor() ? getNativeRpId() : window.location.hostname.replace(/^www\./, '')
+            // Native store hand-off restoration is intentionally started in the
+            // app-link listener without blocking app boot. Join the same
+            // in-flight promise here so a fast signup tap cannot outrun the
+            // Android referrer read or iOS paste hand-off.
+            if (isCapacitor()) {
+                const { restoreDeferredContext } = await import('@/utils/deferred-link')
+                await restoreDeferredContext()
+            }
+            const signupAttributionHeader = buildSignupAttributionHeader()
 
             // @capgo/capacitor-passkey shim patches navigator.credentials on native,
             // so toWebAuthnKey works on all platforms (web, android, ios).
@@ -126,7 +136,10 @@ export const useZeroDev = () => {
                         // Consent-ledger echo (tos-v1 phase 2): the ZeroDev SDK owns the
                         // register/verify request body, so the terms+privacy versions the
                         // signup screen displayed ride in a header the backend ledgers.
-                        passkeyServerHeaders: { 'x-accepted-legal': JSON.stringify(signupConsentDocuments()) },
+                        passkeyServerHeaders: {
+                            'x-accepted-legal': JSON.stringify(signupConsentDocuments()),
+                            ...(signupAttributionHeader ? { 'x-signup-attribution': signupAttributionHeader } : {}),
+                        },
                         rpID: rpId,
                     })
                 )

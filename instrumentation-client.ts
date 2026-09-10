@@ -10,6 +10,7 @@ import { startWebVitalsShim } from '@/utils/web-vitals-shim'
 import { noteAppReviewFriction } from '@/utils/app-review-friction'
 import { isNativeFetchRejectionExceptionEvent } from '@/utils/native-fetch-rejection'
 import { installPaymentNetworkGoogleAnalyticsGuard, isPaymentNetworkExplorerPath } from '@/utils/private-routes'
+import { captureSignupAttribution, signupAttributionPosthogProperties } from '@/utils/signup-attribution'
 
 // Same conditions as the GA bootstrap in app/layout.tsx: with no GA to disable
 // there is nothing to guard, and PERF_BARE builds exist to carry no instrumentation.
@@ -33,6 +34,10 @@ if (
 ) {
     const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://eu.i.posthog.com'
     const isNativeBuild = process.env.NEXT_PUBLIC_CAPACITOR_BUILD === 'true'
+    // Web journeys begin at the first pageview. Native journeys are created
+    // at registration unless a deferred store handoff restores this context
+    // first; the native app cannot observe the pre-install browser page.
+    const signupAttribution = isNativeBuild ? null : captureSignupAttribution()
 
     posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
         // Web posts through the `/relay` Next.js rewrite — the path is intentionally
@@ -48,7 +53,8 @@ if (
         // persisted — so a late register left the first open after an OTA
         // carrying the PREVIOUS bundle's release. `loaded` runs before that
         // first capture, which is the whole point of the denominator.
-        loaded: (ph) => ph.register({ app_release: APP_RELEASE }),
+        loaded: (ph) =>
+            ph.register({ app_release: APP_RELEASE, ...signupAttributionPosthogProperties(signupAttribution) }),
         capture_pageleave: true,
         // The payment explorer contains team-only identity and relationship data.
         // Drop every event on client navigation; direct loads skip init above.
