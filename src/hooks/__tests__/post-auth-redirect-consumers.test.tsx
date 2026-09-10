@@ -1,7 +1,7 @@
 import { act, waitFor } from '@testing-library/react'
 // These hooks localize their error copy now, so they need the intl provider.
 import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
-import { getRedirectUrl, saveRedirectUrl, saveToLocalStorage } from '@/utils/general.utils'
+import { getRedirectUrl, saveRedirectUrl, saveToLocalStorage, setRedirectUrl } from '@/utils/general.utils'
 import { useAccountSetup } from '../useAccountSetup'
 import { useLogin } from '../useLogin'
 
@@ -108,6 +108,22 @@ describe('post-auth redirect consumers', () => {
             act(() => expect(result.current.handleRedirect({ isNewAccount: true })).toBe(false))
 
             expect(mockRouterReplace).toHaveBeenCalledWith(CAMPAIGN_REDIRECT)
+        })
+
+        /*
+         * Mixed writers: a session ended and recorded itself, then a confirmed
+         * invite or campaign continuation replaced the destination. The
+         * continuation is the new account's own, so the earlier session's
+         * provenance must not outlive the destination it described.
+         */
+        it('honours a continuation written over a session-end destination', () => {
+            saveRedirectUrl('session-end')
+            setRedirectUrl('/card')
+            const { result } = renderHook(() => useAccountSetup())
+
+            act(() => expect(result.current.handleRedirect({ isNewAccount: true })).toBe(false))
+
+            expect(mockRouterReplace).toHaveBeenCalledWith('/card')
         })
 
         it('an existing account logging in on this device still resumes where it was', () => {

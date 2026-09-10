@@ -760,12 +760,22 @@ export type RedirectOrigin = 'deep-link' | 'session-end'
 
 const REDIRECT_ORIGIN_KEY = 'redirect-origin'
 
+/**
+ * The ONLY way to store a post-auth destination: the origin is part of the
+ * record, so writing the destination alone cannot leave a previous writer's
+ * origin standing over it (which would make a fresh signup discard a
+ * confirmed invite or campaign continuation as if it were someone's
+ * abandoned session).
+ */
+export const setRedirectUrl = (destination: string, origin: RedirectOrigin = 'deep-link') => {
+    saveToLocalStorage('redirect', destination)
+    saveToLocalStorage(REDIRECT_ORIGIN_KEY, origin)
+}
+
 export const saveRedirectUrl = (origin: RedirectOrigin = 'deep-link') => {
     if (intentionalLogout) return
     const currentUrl = new URL(window.location.href)
-    const relativeUrl = currentUrl.href.replace(currentUrl.origin, '')
-    saveToLocalStorage('redirect', relativeUrl)
-    saveToLocalStorage(REDIRECT_ORIGIN_KEY, origin)
+    setRedirectUrl(currentUrl.href.replace(currentUrl.origin, ''), origin)
 }
 
 export const getRedirectUrl = () => {
