@@ -3,6 +3,7 @@ import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { Button } from '@/components/0_Bruddle/Button'
 import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
+import { BulletList } from '@/components/0_Bruddle/BulletList'
 import { CountryCombobox } from '@/components/Common/CountryCombobox'
 import { useSetupImageOverride } from '@/components/Setup/components/SetupWrapper'
 import { PeanutCheering } from '@/assets/mascot'
@@ -28,11 +29,6 @@ type PartialRestriction = 'card' | 'banking'
 const UNDERLINED_LINK =
     'relative text-body-s underline underline-offset-2 after:absolute after:inset-x-0 after:-inset-y-3.5 focus-visible:outline-[3px] focus-visible:outline-action-focus'
 const CHANGE_COUNTRY_LINK = `mt-1 self-center text-center disabled:opacity-50 ${UNDERLINED_LINK}`
-const BULLET_ROW = 'flex items-start gap-2'
-// h-4 is the Body/XS line box, so the dot centres on the first line (and stays
-// put when the row wraps) without an off-scale margin nudge
-const BULLET_MARKER = 'flex h-4 shrink-0 items-center'
-const BULLET_DOT = 'size-1 rounded-round bg-action-primary'
 
 const ResidenceStep = () => {
     const t = useTranslations('setup')
@@ -458,30 +454,19 @@ const ResidenceStep = () => {
                                         <p className="mb-1 text-label-m">
                                             {t('residenceStep.compare.cardTitle', { country: label })}
                                         </p>
-                                        {/* Drawn rather than list-disc: an outside marker hangs
-                                                left of the text column and an inside one re-indents
-                                                wrapped lines, and neither puts the dot on the card
-                                                title's own left edge. */}
-                                        <ul className="space-y-2 text-body-xs text-foreground-secondary">
-                                            {summary.available.map((item) => (
-                                                <li key={item} className={BULLET_ROW}>
-                                                    <span aria-hidden className={BULLET_MARKER}>
-                                                        <span className={BULLET_DOT} />
-                                                    </span>
-                                                    <span>{t(`residenceStep.compare.items.${item}`)}</span>
-                                                </li>
-                                            ))}
-                                            {summary.unavailable.map((item) => (
-                                                <li key={item} className={BULLET_ROW}>
-                                                    <span aria-hidden className={BULLET_MARKER}>
-                                                        <span className={BULLET_DOT} />
-                                                    </span>
-                                                    <span className="line-through">
+                                        <BulletList
+                                            size="xs"
+                                            items={[
+                                                ...summary.available.map((item) =>
+                                                    t(`residenceStep.compare.items.${item}`)
+                                                ),
+                                                ...summary.unavailable.map((item) => (
+                                                    <span key={item} className="line-through">
                                                         {t(`residenceStep.compare.missing.${item}`)}
                                                     </span>
-                                                </li>
-                                            ))}
-                                        </ul>
+                                                )),
+                                            ]}
+                                        />
                                         {/* One verification enrols every rail in the region's
                                                 set, but a rail in another currency only pays out
                                                 into an account on that network — so it is stated
