@@ -12,9 +12,9 @@ on:
     # read caches from its own ref, its base branch, and the default branch.
     # Remove it from all three allowlists once the DS branch merges to dev.
     push:
-        branches: [main, dev, feat/design-system]
+        branches: [main, dev, feat/design-system, tech-debt]
     pull_request:
-        branches: [main, dev, develop, feat/design-system]
+        branches: [main, dev, develop, feat/design-system, tech-debt]
     workflow_dispatch:
 
 # Cancel in-progress runs on the same PR / branch when a newer commit lands.
@@ -76,8 +76,22 @@ jobs:
     # --check against the committed baseline: debt counts (raw hex, inline
     # styles, stock text sizes, non-DS classes in views, useSearchParams files)
     # may only go down. A PR that lowers a count should also tighten the
-    # baseline (--write-baseline) so the gain locks in. Pure-node script — no
-    # pnpm install needed.
+    # baseline (--write-baseline) so the gain locks in.
+    #
+    # No longer a pure-node script: countWeightStacks parses the file rather
+    # than regex-matching source regions (scripts/ds-lint-ast.cjs), so the job
+    # needs `typescript` on disk. It installs with --ignore-scripts AND
+    # --ignore-pnpmfile, which keeps this job's "runs no PR code" posture — what
+    # it needs is a parser, not a build. pnpm treats those as SEPARATE controls:
+    # a repository-root .pnpmfile.cjs is evaluated before dependency resolution
+    # even with scripts off, so a PR could add a hook that rewrites the ratchet
+    # script this job is about to run. The repo has no pnpmfile today; the flag
+    # is what stops one arriving in a pull request from being honoured here. Drop the install and the script fails to load at all ("Cannot find
+    # module 'typescript'"), which is the failure mode we want: loud, and about
+    # the real cause. The in-script fallback to the regex counter covers a file
+    # that does not PARSE, not a missing parser — it reports a higher number
+    # than the AST baseline, so leaning on it here would fail the ratchet on
+    # every PR with a misleading message.
     ds-lint:
         runs-on: ubuntu-latest
         steps:
@@ -88,9 +102,14 @@ jobs:
               with:
                   persist-credentials: false
 
+            - uses: pnpm/action-setup@v4
+
             - uses: actions/setup-node@v4
               with:
                   node-version: '20'
+                  cache: 'pnpm'
+
+            - run: pnpm install --frozen-lockfile --ignore-scripts --ignore-pnpmfile
 
             - name: DS lint-count ratchet
               run: node scripts/ds-lint-counts.mjs --check
@@ -486,7 +505,8 @@ jobs:
             # Next's incremental build cache — roughly halves the ~4 min build
             # when warm. Key follows the Next.js docs recipe: exact key per
             # source hash, restore-keys falls back to the newest cache for the
-            # same lockfile, which is the incremental rebuild Next optimizes.
+            # same lockfile and build configuration. Do not restore Webpack caches
+            # across configuration changes; stale module hashes can crash the build.
             # Restore-only on purpose: a save on every PR push would upload a
             # fresh 100-400 MB entry that is branch-scoped (no other PR can
             # read it), churning the shared 10 GB cache quota and spending
@@ -496,9 +516,9 @@ jobs:
               uses: actions/cache/restore@v4
               with:
                   path: .next/cache
-                  key: ds-shots-next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
+                  key: ds-shots-next-v2-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
                   restore-keys: |
-                      ds-shots-next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+                      ds-shots-next-v2-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-
 
             - name: Build
               env:
@@ -525,7 +545,7 @@ jobs:
               uses: actions/cache/save@v4
               with:
                   path: .next/cache
-                  key: ds-shots-next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
+                  key: ds-shots-next-v2-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
 
             # The capture fails a shot that still has a spinner on camera, on
             # purpose. No continue-on-error: a red step is how anyone finds out.
@@ -864,9 +884,9 @@ jobs:
         name: human-authors
         if: github.event_name == 'pull_request'
         runs-on: ubuntu-latest
-        # The workflow-level permissions block drops pull-requests, and the
-        # commit-listing endpoint 403s without it.
+        # Commit comparisons require repository contents access.
         permissions:
+            contents: read
             pull-requests: read
         steps:
             - name: Verify every commit is authored by a team member or a provenance-trailed bot
@@ -918,18 +938,29 @@ jobs:
                         landedCache.set(sha, landed);
                         return landed;
                       }
-                      const commits = await github.paginate(github.rest.pulls.listCommits, {
-                        owner: context.repo.owner,
-                        repo: context.repo.repo,
-                        pull_number: context.payload.pull_request.number,
-                        per_page: 100,
-                      });
-                      // Fail closed when the listing is truncated: the API caps PR commit
-                      // listings at 250, and a gate blind to even one commit must not pass.
-                      const total = context.payload.pull_request.commits;
-                      if ((typeof total === 'number' && commits.length < total) || (typeof total !== 'number' && commits.length >= 250)) {
-                        core.setFailed(`The PR has ${typeof total === 'number' ? total : '250+'} commits but the API enumerated ${commits.length} — the gate cannot see every commit. Split the PR or merge in stages.`);
-                        return;
+                      // The PR commits endpoint stops at 250. Compare pinned SHAs instead.
+                      const comparison = context.payload.pull_request;
+                      const commits = [];
+                      let total;
+                      for (let page = 1; ; page++) {
+                        const { data } = await github.rest.repos.compareCommitsWithBasehead({
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          basehead: `${comparison.base.sha}...${comparison.head.sha}`,
+                          per_page: 100,
+                          page,
+                        });
+                        if (!Number.isSafeInteger(data.total_commits) || data.total_commits < 0 ||
+                            (total !== undefined && total !== data.total_commits)) {
+                          throw new Error('Cannot verify the comparison commit count');
+                        }
+                        total = data.total_commits;
+                        commits.push(...data.commits);
+                        if (commits.length >= total || data.commits.length === 0) break;
+                      }
+                      if (commits.length !== total || new Set(commits.map(c => c.sha)).size !== total ||
+                          (typeof comparison.commits === 'number' && comparison.commits !== total)) {
+                        throw new Error('Incomplete commit comparison — refusing to skip ownership checks');
                       }
                       const bad = [];
                       const landed = [];

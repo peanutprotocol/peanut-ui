@@ -9,7 +9,7 @@ import { type TransactionDetails } from '@/components/TransactionDetails/transac
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useUserStore } from '@/redux/hooks'
+import { useAuth } from '@/context/authContext'
 import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
@@ -24,7 +24,7 @@ export function useReceiptActions(transaction: TransactionDetails | null) {
     const queryClient = useQueryClient()
     const { fetchBalance } = useWallet()
     const { cancelLinkAndClaim, pollForClaimConfirmation } = useClaimLink()
-    const { user } = useUserStore()
+    const { user } = useAuth()
     const toast = useToast()
     const friendly = useFriendlyError()
     const t = useTranslations('transaction')
@@ -85,19 +85,19 @@ export function useReceiptActions(transaction: TransactionDetails | null) {
                 throw new Error('No link found for cancellation')
             }
 
-            await cancelLinkAndClaim({
+            const txHash = await cancelLinkAndClaim({
                 link: transaction.extraDataForDrawer.link,
                 walletAddress,
                 userId: user?.user?.userId,
             })
 
             try {
-                const isConfirmed = await pollForClaimConfirmation(transaction.extraDataForDrawer.link)
+                const isConfirmed = txHash || (await pollForClaimConfirmation(transaction.extraDataForDrawer.link))
                 if (!isConfirmed) {
                     console.warn('Transaction confirmation timeout - proceeding with refresh')
                 }
                 fetchBalance()
-                await invalidateTransactions()
+                void invalidateTransactions().catch((error) => captureException(error))
                 toast.success(t('toast.linkCancelled'))
             } catch (invalidateError) {
                 console.error('Failed to update after claim:', invalidateError)
@@ -112,7 +112,7 @@ export function useReceiptActions(transaction: TransactionDetails | null) {
             if (wireErrorCode(error) === API_ERROR_CODES.LINK_ALREADY_CLAIMED) {
                 // refetch so the entry re-renders as claimed; a refetch failure is
                 // not a cancel failure (same rule as the success path above)
-                await invalidateTransactions().catch(() => undefined)
+                void invalidateTransactions().catch(() => undefined)
                 toast.info(friendly(error))
                 return 'already-claimed'
             }

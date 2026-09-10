@@ -269,6 +269,7 @@ const MantecaAddMoney: FC = () => {
         return (
             <>
                 <InitiateKycModal
+                    cooldownActive={!!sumsubFlow.errorCooldown}
                     prepPath="extended"
                     visible={showKycModal}
                     onClose={() => setShowKycModal(false)}
@@ -306,7 +307,7 @@ const MantecaAddMoney: FC = () => {
                     reasonCode={mantecaRejection.reasonCode ?? undefined}
                     regionName={selectedCountry && localizedCountryTitle(locale, selectedCountry)}
                 />
-                <SumsubKycModals flow={sumsubFlow} />
+                <SumsubKycModals flow={sumsubFlow} onCooldownClose={() => setShowKycModal(false)} />
                 <InputAmountStep
                     tokenAmount={displayedAmount}
                     setTokenAmount={handleUsdAmountChange}

@@ -160,3 +160,24 @@ describe('direct-send acknowledgement gate', () => {
         expect(continueButton()).toBeDisabled()
     })
 })
+
+describe('QR scan analytics privacy', () => {
+    it.each([
+        'private-user@example.test',
+        'https://peanut.example.org/claim?id=42#p=s3cret',
+        'cHJpdmF0ZS1wYXltZW50'.repeat(22) + 'AAAA',
+        '0002010102110015com.mercadopagoPRIVATE53030325802AR',
+        `Send to ${EVM_CHECKSUMMED} please`,
+    ])('keeps scanned payloads out of every emitted event: %s', async (payload) => {
+        const posthog = (await import('posthog-js')).default
+        jest.mocked(posthog.capture).mockClear()
+        await scan(payload)
+        expect(posthog.capture).toHaveBeenCalled()
+        for (const [event, properties] of jest.mocked(posthog.capture).mock.calls) {
+            expect(event).toBe('qr_scanned')
+            expect(Object.keys(properties ?? {}).sort()).toEqual(['qrKind', 'qrLengthBucket', 'qr_type'])
+            expect(JSON.stringify(properties)).not.toContain(payload)
+            expect(JSON.stringify(properties)).not.toContain(EVM_CHECKSUMMED.toLowerCase())
+        }
+    })
+})

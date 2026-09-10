@@ -13,17 +13,20 @@ import { render as rtlRender, screen, fireEvent, act } from '@testing-library/re
 import posthog from 'posthog-js'
 import { IntlWrapper } from '@/test-utils/intl'
 import ResidenceStep from '@/components/Setup/Views/Residence'
-import { setupActions } from '@/redux/slices/setup-slice'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { dispatchBackPress, resetBackHandlersForTests } from '@/utils/back-handler'
 
 const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
-const mockDispatch = jest.fn()
+const mockSetResidenceCountry = jest.fn()
+const mockSetSecondResidenceCountry = jest.fn()
 let mockSetupState: { residenceCountry: string; secondResidenceCountry: string }
-jest.mock('@/redux/hooks', () => ({
-    useAppDispatch: () => mockDispatch,
-    useSetupStore: () => mockSetupState,
+jest.mock('@/features/setup/SetupFlowContext', () => ({
+    useSetupFlowContext: () => ({
+        ...mockSetupState,
+        setResidenceCountry: mockSetResidenceCountry,
+        setSecondResidenceCountry: mockSetSecondResidenceCountry,
+    }),
 }))
 
 const mockHandleNext = jest.fn()
@@ -86,7 +89,7 @@ describe('ResidenceStep', () => {
     it('prefills from geo as a suggestion without advancing', () => {
         mockGeoCountry = 'br'
         render(<ResidenceStep />)
-        expect(mockDispatch).toHaveBeenCalledWith(setupActions.setResidenceCountry('BR'))
+        expect(mockSetResidenceCountry).toHaveBeenCalledWith('BR')
         expect(mockHandleNext).not.toHaveBeenCalled()
     })
 
@@ -94,14 +97,14 @@ describe('ResidenceStep', () => {
         mockGeoCountry = 'br'
         mockSetupState.residenceCountry = 'AR'
         render(<ResidenceStep />)
-        expect(mockDispatch).not.toHaveBeenCalled()
+        expect(mockSetResidenceCountry).not.toHaveBeenCalled()
     })
 
     it('reveals the second selector via the multi-doc link', () => {
         render(<ResidenceStep />)
-        expect(screen.queryByPlaceholderText('Select your second country')).not.toBeInTheDocument()
+        expect(screen.queryByPlaceholderText('Second country')).not.toBeInTheDocument()
         fireEvent.click(screen.getByText('Have documents from more than one country?'))
-        expect(screen.getByPlaceholderText('Select your second country')).toBeInTheDocument()
+        expect(screen.getByPlaceholderText('Second country')).toBeInTheDocument()
     })
 
     it('clears the stored second residence when the selector is collapsed', () => {
@@ -110,7 +113,7 @@ describe('ResidenceStep', () => {
         mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
         render(<ResidenceStep />)
         fireEvent.click(screen.getByText('Have documents from more than one country?'))
-        expect(mockDispatch).toHaveBeenCalledWith(setupActions.setSecondResidenceCountry(''))
+        expect(mockSetSecondResidenceCountry).toHaveBeenCalledWith('')
     })
 
     it('shows the per-country availability comparison with the truth-first guidance', () => {
@@ -121,9 +124,9 @@ describe('ResidenceStep', () => {
         // BR rides Manteca only — no Bridge rail exists for it, so the card must not claim one
         expect(screen.getByText('PIX payments & transfers')).toBeInTheDocument()
         // DE is Bridge-served: one verification opens every Bridge virtual-account rail
-        expect(screen.getByText('SEPA transfers (EUR)')).toBeInTheDocument()
-        expect(screen.getByText('GBP transfers (Faster Payments)')).toBeInTheDocument()
-        expect(screen.getByText('USD transfers (ACH & Wire)')).toBeInTheDocument()
+        expect(screen.getByText('Euro bank transfers')).toBeInTheDocument()
+        expect(screen.getByText('British pound bank transfers')).toBeInTheDocument()
+        expect(screen.getByText('US dollar bank transfers')).toBeInTheDocument()
         expect(screen.getAllByText('Peanut-to-Peanut payments')).toHaveLength(2)
         expect(screen.getByText('Which country goes first?')).toBeInTheDocument()
         expect(screen.getByText(/genuinely hold legal residence/)).toBeInTheDocument()
@@ -144,8 +147,8 @@ describe('ResidenceStep', () => {
         mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: 'Select Germany' }))
-        expect(mockDispatch).toHaveBeenCalledWith(setupActions.setResidenceCountry('DE'))
-        expect(mockDispatch).toHaveBeenCalledWith(setupActions.setSecondResidenceCountry('BR'))
+        expect(mockSetResidenceCountry).toHaveBeenCalledWith('DE')
+        expect(mockSetSecondResidenceCountry).toHaveBeenCalledWith('BR')
         expect(mockedCapture).toHaveBeenCalledWith(
             ANALYTICS_EVENTS.SIGNUP_RESIDENCE_SELECTED,
             expect.objectContaining({ residence_country: 'DE', second_residence_country: 'BR' })
@@ -156,8 +159,8 @@ describe('ResidenceStep', () => {
         mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: 'Remove Brazil' }))
-        expect(mockDispatch).toHaveBeenCalledWith(setupActions.setResidenceCountry('DE'))
-        expect(mockDispatch).toHaveBeenCalledWith(setupActions.setSecondResidenceCountry(''))
+        expect(mockSetResidenceCountry).toHaveBeenCalledWith('DE')
+        expect(mockSetSecondResidenceCountry).toHaveBeenCalledWith('')
         expect(screen.queryByText('Available with Brazil')).not.toBeInTheDocument()
     })
 
@@ -167,7 +170,7 @@ describe('ResidenceStep', () => {
         mockGeoCountry = 'br'
         const view = render(<ResidenceStep />)
         // the geo effect prefilled BR and latched the flag
-        expect(mockDispatch).toHaveBeenCalledWith(setupActions.setResidenceCountry('BR'))
+        expect(mockSetResidenceCountry).toHaveBeenCalledWith('BR')
         mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
         view.rerender(<ResidenceStep />)
         fireEvent.click(screen.getByText('Have documents from more than one country?'))
@@ -185,8 +188,8 @@ describe('ResidenceStep', () => {
         mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: 'Remove Germany' }))
-        expect(mockDispatch).not.toHaveBeenCalledWith(setupActions.setResidenceCountry('DE'))
-        expect(mockDispatch).toHaveBeenCalledWith(setupActions.setSecondResidenceCountry(''))
+        expect(mockSetResidenceCountry).not.toHaveBeenCalledWith('DE')
+        expect(mockSetSecondResidenceCountry).toHaveBeenCalledWith('')
         expect(screen.queryByText('Available with Germany')).not.toBeInTheDocument()
     })
 

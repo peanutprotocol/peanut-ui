@@ -58,6 +58,20 @@ describe('GettingStartedChecklist', () => {
         expect(screen.getByText('Done. Your money has a username now')).toBeInTheDocument()
     })
 
+    it('uses the light-green design-system background only for completed rows', () => {
+        render()
+        expect(screen.getByTestId('checklist-create-account')).toHaveClass('bg-background-icon-bubble-green/10')
+        expect(screen.getByTestId('checklist-add-money')).toHaveClass('bg-white')
+        expect(screen.getByTestId('checklist-get-card')).toHaveClass('bg-white')
+    })
+
+    it('wraps checklist subtitles instead of truncating them', () => {
+        render()
+        const subtitle = screen.getByText('Bank transfer or crypto · bank needs a one-time ID check')
+        expect(subtitle).toHaveClass('whitespace-normal', 'break-words')
+        expect(subtitle).not.toHaveClass('truncate')
+    })
+
     // The row opens /add-money, a chooser offering bank transfer AND crypto, so
     // it no longer names one rail per residence — that promised a route the
     // chooser does not take you straight to.

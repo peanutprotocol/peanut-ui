@@ -47,4 +47,16 @@ describe('AppShell bottom nav slot', () => {
         )
         expect(screen.queryByTestId('app-shell-nav')).not.toBeInTheDocument()
     })
+
+    it('starts app content 16px below the safe-area boundary', () => {
+        const { container } = render(
+            <AppShell variant="app">
+                <div>content</div>
+            </AppShell>
+        )
+
+        const content = container.querySelector('#scrollable-content')
+        expect(content).toHaveClass('px-4', 'pt-4', 'pb-6')
+        expect(content).not.toHaveClass('py-6')
+    })
 })

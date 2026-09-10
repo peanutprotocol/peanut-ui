@@ -1,3 +1,4 @@
+import { redactQrTelemetry } from './qr-telemetry-privacy'
 import { beforeSendHandler } from '../../sentry.utils'
 import { posthogErrorMirror, withoutNoise } from '@/utils/sentry-posthog-mirror'
 import { inferSentryEnvironment } from '@/utils/sentry-env'
@@ -66,7 +67,7 @@ export function initSentry(): void {
              * volume arrived unattributable — a message, no frames, no way to tell
              * which of several call sites produced it. This synthesizes a stack at
              * the capture point for every message event, including the deliberate
-             * captureMessage calls in fetchWithSentry and native-auth-capture.
+             * captureMessage calls in fetchWithSentry.
              *
              * Note it lands on `threads`, not `exception.values`, so PostHog's
              * mirror still reports these as an empty exception list; only passing a
@@ -77,7 +78,8 @@ export function initSentry(): void {
             // A client-side navigation can enter a private route after init.
             beforeSend: (event) =>
                 isPaymentNetworkExplorerPath(window.location.pathname) ? null : beforeSendHandler(event),
-            beforeSendTransaction: (event) => (isPaymentNetworkExplorerPath(window.location.pathname) ? null : event),
+            beforeSendTransaction: (event) =>
+                isPaymentNetworkExplorerPath(window.location.pathname) ? null : redactQrTelemetry(event),
 
             integrations: [
                 Sentry.captureConsoleIntegration({

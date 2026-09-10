@@ -3,15 +3,19 @@ import { Notification } from '@/components/0_Bruddle/Notification'
 import { Button } from '@/components/0_Bruddle/Button'
 import { isCapacitor } from '@/utils/capacitor'
 import { apiFetch } from '@/utils/api-fetch'
-import { useSetupStore } from '@/redux/hooks'
+import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useLogin } from '@/hooks/useLogin'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { useEffect, useRef, useState } from 'react'
-import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
 import { checkPasskeySupport } from '@/utils/passkeyPreflight'
-import { WebAuthnErrorName, getPasskeyErrorSetupKey, withWebAuthnRetry } from '@/utils/webauthn.utils'
+import {
+    WebAuthnErrorName,
+    classifyPasskeyError,
+    getPasskeyErrorSetupKey,
+    withWebAuthnRetry,
+} from '@/utils/webauthn.utils'
 import { isCeremonyGuardError } from '@/utils/passkeyCeremony.utils'
 import { PasskeySetupHelpModal } from './PasskeySetupHelpModal'
 import * as Sentry from '@sentry/nextjs'
@@ -38,7 +42,7 @@ const isUsernameTaken = async (username: string): Promise<boolean> => {
 
 const SetupPasskey = () => {
     const t = useTranslations('setup')
-    const { username } = useSetupStore()
+    const { username } = useSetupFlowContext()
     const { isLoading, handleNext } = useSetupFlow()
     const { handleRegister, address, isRegistering } = useZeroDev()
     const { handleLoginClick, isLoggingIn } = useLogin()
@@ -126,6 +130,7 @@ const SetupPasskey = () => {
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED, {
                 device_type: deviceType,
                 error_name: 'UsernameTaken',
+                error_code: 'USERNAME_TAKEN',
             })
             return
         }
@@ -137,16 +142,18 @@ const SetupPasskey = () => {
             await withWebAuthnRetry(() => handleRegister(username), 'passkey-registration')
             // success - useEffect below will handle navigation
         } catch (error) {
+            registrationInitiatedRef.current = false
             const err = error as Error
-            // the Error itself, not its name/message — captureConsole only attaches a stack when an arg is an Error
-            console.error('[SetupPasskey] registration failed:', err)
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED, {
                 device_type: deviceType,
                 error_name: err.name,
+                error_code: err.name === 'UsernameTaken' ? 'USERNAME_TAKEN' : classifyPasskeyError(err).code,
             })
 
-            // capture debug info for all failures
-            await capturePasskeyDebugInfo('passkey-registration-failed')
+            if (err.name === 'UsernameTaken') {
+                setUsernameTaken(true)
+                return
+            }
 
             // Ceremony-guard errors (shim race / timeout, TASK-21782) are already
             // reported with a discriminating tag inside handleRegister — surface

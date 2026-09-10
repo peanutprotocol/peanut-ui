@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { saveToLocalStorage } from '@/utils/general.utils'
 import SignTestTransaction from '../SignTestTransaction'
+import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
 
 const WALLET = '0x1111111111111111111111111111111111111111'
 
@@ -34,9 +35,8 @@ jest.mock('@/context/authContext', () => ({
     }),
 }))
 
-jest.mock('@/redux/hooks', () => ({
-    useAppDispatch: () => jest.fn(),
-    useSetupStore: () => ({ residenceCountry: '', secondResidenceCountry: '', telegramHandle: '' }),
+jest.mock('@/features/setup/SetupFlowContext', () => ({
+    useSetupFlowContext: () => ({ residenceCountry: '', secondResidenceCountry: '', setIsLoading: jest.fn() }),
 }))
 
 jest.mock('@/app/actions/users', () => ({ updateUserById: jest.fn() }))
@@ -56,6 +56,16 @@ describe('SignTestTransaction — the account-ready screen', () => {
         mockAddAccount.mockImplementation(async () => {
             accounts = [{ type: 'peanut' }]
         })
+    })
+
+    it('releases the confirm button when signing fails even if diagnostics never finish', async () => {
+        mockSendUserOp.mockRejectedValueOnce(new Error('Signing failed'))
+        jest.mocked(capturePasskeyDebugInfo).mockReturnValueOnce(new Promise(() => {}))
+        renderWithIntl(<SignTestTransaction />)
+        fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
+        await waitFor(() => expect(capturePasskeyDebugInfo).toHaveBeenCalled())
+        await waitFor(() => expect(screen.getByRole('button', { name: /confirm/i })).toBeEnabled())
+        expect(mockAddAccount).not.toHaveBeenCalled()
     })
 
     it('never navigates on its own — the CTA is the only way off it', async () => {

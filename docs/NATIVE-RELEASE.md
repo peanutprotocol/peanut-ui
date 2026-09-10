@@ -183,6 +183,11 @@ out of the shape that used to be maintained by hand: an OTA always sorts strictl
 the binary it targets (Capgo drops anything below it — TASK-21793), and the version alone
 says which binary a bundle belongs to.
 
+The About screen shows this three-part version of the code currently running: the native
+version for the built-in bundle, or the Capgo bundle version after an OTA. The platform
+build identifier (`versionCode` / `CFBundleVersion`) remains separate support metadata;
+it is not appended as a fourth dotted segment because it is not a comparable release.
+
 **Nobody types a number.** `scripts/release-version.mjs` resolves them from git tags
 (`v<major>.<build>.0`) plus the Capgo channel. That registry is deliberately not a file
 in the repo: `dev` and `main` both carry a `pull_request` ruleset with no bypass actors,
@@ -192,17 +197,60 @@ and it is fine for it to lag behind what ships.
 
 ### Cutting a release
 
-Two `workflow_dispatch` buttons, both run from `dev` (they refuse any other ref — `main`
-runs well behind, and a release off the wrong ref would look correctly numbered while
-shipping stale code):
+All three manual workflows accept `dev`, `main`, and `release/android-kyc`.
+Select the source branch before dispatch. A supported branch name does not prove
+that its current commit is ready to ship.
+
+1. Inspect the selected branch's current commit and confirm its release QA is complete.
+2. Before dispatching from `main`, verify it contains the reviewed native changes and
+   completed KYC fixes. A workflow change alone does not include those fixes.
+3. Before integrating `release/android-kyc`, compare it with current production and
+   preserve later production fixes. This branch started from an older OTA commit.
+4. Complete the reviewed back-merge into `dev` and production release into `main`
+   before using `main` for those fixes. Never replace the newer tree with the older OTA tree.
+
+Use the workflow that matches the release:
 
 | | button | what it does |
 |-|--------|--------------|
 | native | **Release Native** | resolves `<major>.<build+1>.0` → builds iOS + Android from that one number → TestFlight + Play `internal` → tags `v<version>` |
+| Android replacement | **Android Release (Play)** | leave `versionName` blank on the selected supported branch → rebuilds the current tagged Android version with a new Play `versionCode`; refuses iOS/shared native changes and does not move the shared OTA floor |
 | OTA | **Release OTA** | resolves `<major>.<build>.<ota+1>` off the production channel → uploads the bundle → tags `ota-<version>` |
 
-Neither is automatic: no push, merge or commit reaches them. They are the same deliberate
+For production OTA, use **Release OTA** so it resolves the version before calling Capgo.
+Do not dispatch the Capgo production workflow directly without a resolved version.
+
+None is automatic: no push, merge or commit reaches them. They are the same deliberate
 act as the `git tag … && git push` they replace, minus the hand-picked number.
+
+Use the Android replacement lane only for an Android-only native correction to the
+currently shipped build. It verifies the existing native tag attests both platforms,
+checks that every native input changed since that tag is an explicitly
+legacy-compatible Android packaging input, and keeps the existing native
+`versionName`. Today that allowlist contains only `android/app/proguard-rules.pro`;
+plugin manifests, native bridges, dependencies, resources, permissions, and build
+configuration all require **Release Native**. That narrow rule matters because Capgo
+cannot distinguish an original Android 1.5.0 install from its replacement: both must
+continue to accept the same JS bundle. Advancing the shared native version for Android
+alone would instead make the production Capgo minimum strand the older iOS binary.
+
+After Play accepts a replacement AAB, a separate credentialless job records an
+annotated `android-v<version>-replacement-<commit>` tag. The production build job keeps
+read-only repository access; only this small post-release job receives `contents:
+write`, and its only write is that tag. Future OTA checks accept the tag only when it is
+annotated, is an ancestor of the bundle commit, fingerprints the tagged native surface,
+and differs from the original `v<version>` tag only by the legacy-compatible allowlist.
+The attestation also names the `android-capacitor-permissions-v1` JavaScript guard.
+While the floor still includes original Android 1.5.0 binaries, every OTA scans all
+shipped source: direct Capacitor `checkPermissions` / `requestPermissions` calls are
+forbidden, `@capacitor/camera` may only be loaded by the iOS preflight wrapper, and that
+wrapper must return on Android before the lazy import. This prevents a later JS-only
+change from reintroducing the native crash on the original same-version population.
+Adding a new permission-bearing plugin changes the native fingerprint and is rejected
+independently. Any native drift or legacy-permission violation blocks OTA. The guard is
+retired naturally when a coordinated native release advances the shared floor beyond
+the original binary. The tag is created after the Play upload, so a failed or
+never-launched replacement cannot prematurely relax the OTA guard.
 
 The tag is written **after** the build, as the record of what shipped — a failed run
 leaves no tag, so a re-run resolves the same number instead of burning one. CI tags with
@@ -216,6 +264,38 @@ cannot reject `v2026.02.26` (a real tag on `main`) because it is `X.Y.Z` shaped 
 the major comparison catches it.
 
 ---
+
+### Android release optimization
+
+Release builds use R8 code shrinking, optimization and obfuscation, plus resource
+shrinking. Capacitor supplies consumer keep rules for its plugins; app-specific
+rules preserve the reflected Google Pay callback and resources loaded by name
+(`mea_config` and the OneSignal notification icon). Keep any additional rules narrow:
+blanket package keeps can prevent meeting Google Play's optimization thresholds.
+The Android workflow also inspects the optimized DEX and refuses to upload when
+`CameraPlugin` has lost its runtime permission annotation or nested permission data.
+
+For the first optimized release:
+
+1. Build with the normal release credentials so the MeaWallet SDK is included.
+   Resolve R8 errors using the relevant SDK's consumer rules; do not globally disable
+   shrinking/obfuscation or suppress all missing-class warnings.
+2. Upload to Play internal testing and inspect that exact version in App Bundle
+   Explorer. Confirm obfuscation, optimization and shrinking each meet the required
+   25% threshold (for apps with more than 10 MB of DEX code).
+3. Test the Play-installed release: startup, login/passkeys, biometric unlock,
+   identity verification/camera, Google Pay provisioning and its return callback,
+   push notification icon/tap routing, deep links, support chat and OTA updates.
+   A debug build does not exercise R8.
+4. Retain `android/app/build/outputs/mapping/release/mapping.txt` with the exact
+   released AAB. CI archives the mapping directory before uploading to Play; download
+   it for long-term retention before GitHub artifacts expire. AGP also embeds the
+   mapping in the AAB for Play. Use the matching mapping with Android's Retrace for
+   obfuscated native stack traces. This workflow does not upload native mappings to
+   Sentry, so automatic Sentry deobfuscation still needs a separate integration.
+
+References: [R8 configuration](https://developer.android.com/topic/performance/app-optimization/enable-app-optimization)
+and [Play technical quality requirements](https://support.google.com/googleplay/android-developer/answer/17492799?hl=en).
 
 ## 7. Signing, keystore & secret management
 
@@ -357,21 +437,29 @@ own `out/` under the binary's versionName, then assert the channel serves it.
   hashing the whole name set was tried and reverted after `web-vitals`, a pure-JS library,
   would have refused every staging OTA until a native release was cut).
   Every Android source set is hashed, including the credential-gated `src/meawallet`:
-  whether it reaches a binary is not knowable from the tree, and of the two unsound
-  choices, over-claiming only forces an unnecessary native release while under-claiming
-  fails silently. **The real fix is for that variant to stop depending on a CI secret.**
+  the fingerprint proves source compatibility, while the compiled capability gate
+  below independently requires provisioning support in the released binaries.
   An unresolvable ref is an error, never an empty read, and `--root` points the CLI at
   another checkout so its tests never mutate this one. `capgo-deploy.yml` recomputes it and compares against the
-  `v<major>.<build>.0` tag the bundle's floor targets; a mismatch **fails the OTA** and
-  names the file that moved. It is a pure function of the tree, so nothing is stored and
-  any tag can be fingerprinted retroactively (`--ref v1.2.0`). `MARKETING_VERSION` and
+  `v<major>.<build>.0` tag the bundle's floor targets. When a same-version Android
+  replacement has successfully reached Play, `scripts/check-native-ota-surface.mjs`
+  may select its annotated replacement tag instead—but only after validating the tag's
+  ancestry, attested fingerprint, Android-only scope, legacy-compatible input set, and
+  the source-wide legacy Android permission guard named by the attestation. That guard
+  forbids direct Capacitor permission calls and only permits the Camera plugin behind
+  the wrapper that returns before its lazy import on Android.
+  A mismatch **fails the OTA** and names the file that moved. The fingerprint remains a
+  pure function of the tree; tags only attest which successfully uploaded binary owns
+  that surface, and any tag can be fingerprinted retroactively (`--ref v1.2.0`).
+  `MARKETING_VERSION` and
   `CURRENT_PROJECT_VERSION` are normalised out — `native-ios-postsync.js` stamps them on
   every sync, and leaving them in would refuse an OTA after every release.
   **Why it exists:** `min_update_version` only blocks *delivery*, only under the
   `metadata` channel strategy, and lives in a dashboard CI cannot read, so nothing
   previously reported that an incompatible bundle had been *built* — the mismatch first
-  appeared on a user's device. The remedy for a failure is always to cut a native
-  release, never to widen or skip the check.
+  appeared on a user's device. The remedy for a failure is a coordinated native release
+  or the narrowly gated same-version Android replacement lane—never widening or
+  skipping the check.
 - **Staged rollout:** roll production OTA to ~10% → watch Sentry/crash + error rates →
   100%. Don't 100% every merge.
 - **Rollback** is configured in `capacitor.config.ts` (`appReadyTimeout: 15000` +
@@ -499,3 +587,25 @@ one-time signing-material setup, secrets table, and manual App Store promotion.
 - Re-check Data safety, permissions (camera for QR/KYC), content rating, and the App
   access instructions in §4.
 - Promote to **production** review only after the internal track passes.
+
+### Compiled capability gate (TASK-22282)
+
+Production Android releases require both MeaWallet Nexus credentials and the
+MeaWallet config. Production iOS archives compile with
+`PEANUT_REQUIRE_PUSH_PROVISIONING`; compilation fails if the SDK cannot be imported.
+The iOS sync step uses `MEAWALLET_NEXUS_USER_IOS` and
+`MEAWALLET_NEXUS_PASSWORD_IOS`. The archive also requires the iOS encrypted
+config in `MEAWALLET_CONFIG_BASE64_IOS`; the Xcode build phase refuses a missing
+or empty config and copies it into the app bundle. Both provisioning Swift files
+are app target sources and the bridge registers the plugin. Local builds can still
+use the stub.
+
+After both store builds succeed, Release Native writes a compiled-capability
+attestation into the annotated release tag. OTA checks that attestation in
+addition to the source fingerprint. Older tags and manually created tags lack
+this evidence and cannot serve as OTA floors. Run Release Native to establish
+a compatible floor; do not add an attestation to an unverified old tag.
+
+This gate intentionally blocks new native releases until the MeaWallet SDK
+setup is complete. It proves SDK compilation, not vendor activation or Apple
+entitlements. Those remain separate launch checks.

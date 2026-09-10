@@ -13,7 +13,7 @@ name: Code analysis
 
 on:
     pull_request:
-        branches: [main, master, dev]
+        branches: [main, master, dev, tech-debt]
         # Skip code-analysis on doc-only commits — pure overhead. Not a
         # required gate (just a comment), so paths-ignore is safe here.
         paths-ignore:

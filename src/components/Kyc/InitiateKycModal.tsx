@@ -27,6 +27,7 @@ type InitiateKycVariant =
     | 'region-unavailable'
 
 interface InitiateKycModalProps {
+    cooldownActive?: boolean
     visible: boolean
     onClose: () => void
     onVerify: () => void
@@ -70,6 +71,7 @@ interface InitiateKycModalProps {
 // no bank provider onboards.
 export const InitiateKycModal = ({
     visible,
+    cooldownActive,
     onClose,
     onVerify,
     onContactSupport,
@@ -205,6 +207,8 @@ export const InitiateKycModal = ({
 
     const cta = getCta()
 
+    if (cooldownActive) return null
+
     // Outage outranks everything, including the region screen: whatever the
     // user's state, opening the SDK during a verification outage burns an
     // attempt against a wall. Same choke-point rationale as the region check
@@ -218,7 +222,7 @@ export const InitiateKycModal = ({
                 }}
             >
                 <DrawerContent>
-                    <div className="flex flex-col items-center gap-4 px-4 pt-1 pb-6 text-center">
+                    <div className="flex flex-col items-center gap-4 pt-1 pb-6 text-center">
                         <IconBubble icon="alert" color="yellow" />
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                             <DrawerTitle>{t('degraded.title')}</DrawerTitle>
@@ -333,7 +337,7 @@ export const InitiateKycModal = ({
             }}
         >
             <DrawerContent>
-                <div className="flex flex-col items-center px-4 pt-1 pb-6 text-center">
+                <div className="flex flex-col items-center pt-1 pb-6 text-center">
                     {/* the head owns the M/12 beneath it; everything after keeps
                         the drawer's L/16 rhythm */}
                     <div className="mb-3 flex w-full flex-col items-center gap-4">

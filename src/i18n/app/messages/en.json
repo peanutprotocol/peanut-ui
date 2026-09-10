@@ -180,15 +180,15 @@
                 },
                 "us": {
                     "label": "United States",
-                    "value": "ACH & Wire transfers"
+                    "value": "US dollar bank transfers"
                 },
                 "europe": {
                     "label": "Europe",
-                    "value": "SEPA transfers"
+                    "value": "Euro bank transfers"
                 },
                 "mexico": {
                     "label": "Mexico",
-                    "value": "SPEI bank transfers"
+                    "value": "Mexican peso bank transfers"
                 },
                 "ownCountry": {
                     "value": "Bank transfers to your own accounts"
@@ -243,7 +243,7 @@
             },
             "bugBounty": {
                 "title": "Help us improve and <b>get $5!</b>",
-                "description": "Report a bug. Get rewarded! No questions asked."
+                "description": "Be the first to report a bug. Get rewarded!"
             },
             "userInterview": {
                 "title": "Help shape Peanut",
@@ -299,25 +299,25 @@
         },
         "language": "Language",
         "menu": {
-            "inviteFriends": "Invite friends to Peanut",
+            "inviteFriends": "Invite Friends to Peanut",
             "yourCard": "Your Card",
             "peanutCard": "Peanut Card",
             "newBadge": "New!",
             "unlockBadge": "Unlock",
             "yourBadges": "Your Badges",
             "points": "Points",
-            "personalDetails": "Personal details",
-            "unlockedRegions": "Unlock payments",
+            "personalDetails": "Personal Details",
+            "unlockedRegions": "Payment Channels",
             "paymentLimits": "Payment limits",
             "showMyFullName": "Show my full name",
             "backup": "Backup",
-            "exchangeRatesAndFees": "Exchange rates and fees",
+            "exchangeRatesAndFees": "Exchange Rates and Fees",
             "starAlt": "star",
             "help": "Help Center",
             "about": "About Peanut",
-            "updateAvailable": "Update available"
+            "updateAvailable": "Update Available"
         },
-        "logOut": "Log out",
+        "logOut": "Log Out",
         "edit": {
             "title": "Edit Profile",
             "fields": {
@@ -358,7 +358,7 @@
             }
         },
         "unlockPayments": {
-            "title": "Unlock payments",
+            "title": "Payment Channels",
             "description": "Everything you can use today, and what opens after ID verification.",
             "residence": {
                 "label": "Residence: {country}",
@@ -386,8 +386,8 @@
                 "arQrBank": "QR payments & transfers (Argentina)",
                 "arQr": "QR payments (Argentina)",
                 "arBank": "Bank transfers (Argentina)",
-                "naBank": "ACH, Wire (US) & SPEI (Mexico)",
-                "sepa": "SEPA transfers"
+                "naBank": "US dollar and Mexican peso bank transfers",
+                "sepa": "Euro bank transfers"
             },
             "chips": {
                 "active": "Active",
@@ -431,6 +431,12 @@
                 "monthlyLeft": "{remaining} of {limit} left this month",
                 "perTransfer": "Up to {amount} per transfer",
                 "p2pNoLimit": "No limits on Peanut-to-Peanut payments"
+            },
+            "cooldown": {
+                "title": "Give it a little time",
+                "until": "Verification attempts are temporarily limited. You can try again after {until}.",
+                "short": "Verification attempts are temporarily limited. Please try again in a little while.",
+                "dismiss": "I'll try later"
             }
         },
         "backup": {
@@ -544,7 +550,7 @@
         },
         "about": {
             "title": "About Peanut",
-            "intro": "Peanut makes dollars easy: hold your balance, send to any @username, and move money on local rails after one ID check. Built by Squirrel Labs.",
+            "intro": "Peanut makes dollars easy: hold your balance, send to any @username, and use local bank transfers after one ID check. Built by Squirrel Labs.",
             "policiesHeading": "Policies",
             "policies": {
                 "terms": "Terms of Service",
@@ -556,7 +562,7 @@
                 "cardProhibitedActivities": "Prohibited Activities Policy",
                 "securityDisclosure": "Security Disclosure"
             },
-            "rateHeading": "Rate the app",
+            "rateHeading": "Liking it so far?",
             "rate": "Leave a review",
             "version": "Version {version}",
             "beta": {
@@ -588,7 +594,7 @@
             "title": "Language"
         },
         "deleteAccount": {
-            "button": "Delete My Account",
+            "button": "Delete my account",
             "confirmTitle": "Aw, you're leaving?",
             "confirmDescription": "Deleting your account is permanent. We'll switch it off right away and wipe your data within 30 days. This little guy would really rather you stayed.",
             "confirmCta": "Yes, delete it",
@@ -674,7 +680,7 @@
     },
     "exchangeRate": {
         "title": "Exchange rate & fees",
-        "balanceNote": "Your Peanut balance is shown in USD. Where a local bank rail is supported, you can withdraw in that local currency.",
+        "balanceNote": "Your Peanut balance is shown in USD. Where local-currency bank transfers are supported, you can withdraw in that currency.",
         "tryIt": "Withdraw now",
         "addMoneyCta": "Add money",
         "widget": {
@@ -771,7 +777,7 @@
             "recoverWallet": "Need to recover your Peanut account?"
         },
         "waitlist": {
-            "inviterUsernamePlaceholder": "Their username",
+            "inviterUsernamePlaceholder": "Username",
             "inviterNotFound": "No Peanut member with that username. Double-check your inviter's exact handle.",
             "joinWaitlist": "Join waitlist",
             "loginCanceled": "Login was canceled. Please try again.",
@@ -779,7 +785,7 @@
             "loginUnexpectedError": "An unexpected error occurred during login."
         },
         "signupStep": {
-            "usernamePlaceholder": "Enter a username",
+            "usernamePlaceholder": "Username",
             "errors": {
                 "required": "Username is required",
                 "tooShort": "Username must be at least 4 characters long",
@@ -794,7 +800,7 @@
         },
         "residenceStep": {
             "countryPlaceholder": "Select your country",
-            "secondCountryPlaceholder": "Select your second country",
+            "secondCountryPlaceholder": "Second country",
             "multiDocLink": "Have documents from more than one country?",
             "errors": {
                 "invalidEmail": "Please enter a valid email address"
@@ -813,10 +819,10 @@
                 "rails": {
                     "pix": "PIX transfers",
                     "arQr": "QR payments and transfers",
-                    "spei": "SPEI transfers",
-                    "usdAch": "USD transfers (ACH and wire)",
-                    "eurSepa": "bank transfers",
-                    "gbpFps": "GBP bank transfers (Faster Payments)"
+                    "spei": "Mexican peso bank transfers",
+                    "usdAch": "US dollar bank transfers",
+                    "eurSepa": "Euro bank transfers",
+                    "gbpFps": "British pound bank transfers"
                 },
                 "continue": "Continue"
             },
@@ -836,10 +842,10 @@
                     "p2p": "Peanut-to-Peanut payments",
                     "pix": "PIX payments & transfers",
                     "arQr": "QR payments & transfers",
-                    "spei": "SPEI transfers (MXN)",
-                    "usdAch": "USD transfers (ACH & Wire)",
-                    "eurSepa": "SEPA transfers (EUR)",
-                    "gbpFps": "GBP transfers (Faster Payments)",
+                    "spei": "Mexican peso bank transfers",
+                    "usdAch": "US dollar bank transfers",
+                    "eurSepa": "Euro bank transfers",
+                    "gbpFps": "British pound bank transfers",
                     "bank": "Bank transfers where supported",
                     "card": "Peanut card"
                 },
@@ -1056,7 +1062,7 @@
         "linkCreatedToast": "Link created successfully!",
         "linkCreatedAndCopiedToast": "Link created and copied to clipboard!",
         "requestUpdatedToast": "Request updated successfully!",
-        "recipientPlaceholder": "Enter a username, an address or ENS",
+        "recipientPlaceholder": "Username, address, or ENS",
         "errors": {
             "createFailed": "Failed to create link",
             "updateFailed": "Failed to update request",
@@ -1198,7 +1204,7 @@
         },
         "initial": {
             "receiveOn": "Receive on",
-            "recipientPlaceholder": "Enter a username, an address or ENS",
+            "recipientPlaceholder": "Username, address, or ENS",
             "usdcArbitrumOnly": "You can only claim USDC on Arbitrum for Peanut Wallet users."
         },
         "addressCompatible": {
@@ -1299,7 +1305,7 @@
         },
         "info": {
             "exchangeRate": "Exchange Rate",
-            "exchangeRateTooltip": "Rate shown is current but may vary slightly (~$1-5 ARS) until payment is confirmed.",
+            "exchangeRateTooltip": "Rate shown is current but may vary slightly until payment is confirmed.",
             "saveVsCard": "Save vs card",
             "saveVsCardTooltipBrl": "Foreign cards pay IOF (~3.5%) plus a typical ~3% issuer FX fee. Peanut routes via PIX at the current market rate.",
             "saveVsCardTooltipArs": "Foreign cards apply the official rate plus a typical ~3% issuer FX fee. Peanut routes via MercadoPago at the current market rate."
@@ -1347,7 +1353,11 @@
             "maxQrAmount": "QR payment amount exceeds maximum limit of ${amount}",
             "minQrAmount": "QR payment amount must be at least ${amount}",
             "genericQrDetails": "An error occurred while getting the QR details.",
-            "authError": "Couldn't verify your session. Please try again."
+            "authError": "Couldn't verify your session. Please try again.",
+            "maxTransferAmount": "Transfer amount exceeds maximum limit of ${amount}",
+            "minTransferAmount": "Transfer amount must be at least ${amount}",
+            "paymentStatusUnknown": "We couldn't confirm the payment status. Check Activity before trying again. If the status is unclear, contact support.",
+            "paymentCancelled": "The provider cancelled this payment before funds were sent. Scan a new QR code to try again."
         },
         "claim": {
             "navTitle": "Claim QR Code",
@@ -1387,6 +1397,25 @@
             },
             "claimSuccess": {
                 "stickerDescription": "Stick it on your laptop, water bottle, or anywhere you want people to find you. Anyone who scans will be able to join Peanut with your invite."
+            }
+        },
+        "result": {
+            "viewActivity": "View activity",
+            "cancelled": {
+                "title": "Payment cancelled",
+                "description": "This payment was cancelled. Check Activity for the status of any funds returned before trying again."
+            },
+            "refunded": {
+                "title": "Payment refunded",
+                "description": "Your funds have been returned. You can see the refund in Activity."
+            },
+            "failed": {
+                "title": "Payment did not complete",
+                "description": "Check Activity for the payment and any refund before trying again."
+            },
+            "processing": {
+                "title": "Payment is processing",
+                "description": "The payment has not been confirmed yet. Check Activity before trying again."
             }
         }
     },
@@ -1455,7 +1484,7 @@
             "canceledTitle": "Card canceled",
             "canceledBody": "It can no longer be used for payments. You can request a new card, subject to eligibility.",
             "feedbackLabel": "Help us improve our product for you",
-            "feedbackPlaceholder": "Why did you cancel the card?",
+            "feedbackPlaceholder": "Why did you cancel?",
             "submit": "Submit",
             "thanksTitle": "Thank you for the feedback",
             "thanksBody": "We appreciate your feedback, it helps us improve the experience of our app.",
@@ -1516,7 +1545,7 @@
             "noLimitSet": "No limit set",
             "edit": "Edit",
             "editTitle": "Change limit",
-            "invalidAmount": "Enter a valid amount",
+            "invalidAmount": "Enter an amount from {minimum} to {maximum}, with no more than two decimal places.",
             "saveFailed": "Failed to save limit",
             "saveChanges": "Save changes",
             "noActiveCard": "No active card to manage limits for."
@@ -1672,6 +1701,10 @@
             "noActiveCard": "No active card found on this account — please contact support.",
             "regrantFailed": "Re-enabling did not complete — please try again or contact support.",
             "diagnostics": "Diagnostics: nonce {nonce} / floor {floor}"
+        },
+        "reveal": {
+            "loadFailed": "Could not load card details. Please try again or contact support.",
+            "rateLimited": "Card details are temporarily unavailable. Please try again later."
         }
     },
     "addMoney": {
@@ -1851,11 +1884,13 @@
         "methods": {
             "mercadopago": "MercadoPago",
             "pix": "Pix",
-            "bankTransfer": "Bank Transfer"
+            "bankTransfer": "Bank Transfer",
+            "euroBankTransfers": "Euro bank transfers",
+            "euroBankTransfersDescription": "Usually arrives within 20 minutes, up to 1 business day."
         },
         "initial": {
-            "placeholderEns": "Enter an address or ENS",
-            "placeholderAddress": "Enter an address",
+            "placeholderEns": "Address or ENS",
+            "placeholderAddress": "Address",
             "detailsMissing": "Withdrawal details are missing"
         },
         "confirm": {
@@ -1880,8 +1915,8 @@
         "pixKey": {
             "title": "Send with Pix",
             "heading": "Enter Pix key",
-            "placeholder": "PIX Key (Include +55 in case of phone number)",
-            "info": "Send to any Pix key — email, phone, CPF/CNPJ or random key.",
+            "placeholder": "PIX key",
+            "info": "Send to any Pix key — email, phone (include +55), CPF/CNPJ or random key.",
             "invalid": "Invalid Pix key"
         },
         "bank": {
@@ -1910,7 +1945,7 @@
             "redirecting": "Redirecting...",
             "lockingRate": "Locking rate...",
             "exchangeRate": "Exchange Rate",
-            "exchangeRateInfo": "Rate shown is current but may vary slightly (~$1-5 ARS) until payment is confirmed.",
+            "exchangeRateInfo": "Rate shown is current but may vary slightly until payment is confirmed.",
             "flagAlt": "flag",
             "increaseLimitsMessage": "Hi, I would like to increase my payment limits."
         },
@@ -2595,7 +2630,7 @@
             "titleDefault": "Unlock your account",
             "descriptionError": "{error} Please contact support for assistance.",
             "descriptionBlocked": "We couldn't confirm your ID. Please contact support for assistance.",
-            "descriptionRestartIdentity": "This rail needs a document from a supported country. You can verify with a different ID.",
+            "descriptionRestartIdentity": "This payment method needs a document from a supported country. You can verify with a different ID.",
             "descriptionProviderRejection": "Please upload a clearer photo of your ID to continue.",
             "descriptionCrossRegion": "Your identity is already verified. To turn on payments in {region}, we need to confirm a few more details.",
             "descriptionCrossRegionGeneric": "Your identity is already verified. To turn on payments here, we need to confirm a few more details.",
@@ -2666,8 +2701,8 @@
         "bridgeTos": {
             "baseTitle": "Accept Terms of Service",
             "baseDescription": "To enable bank transfers, you need to accept our payment partner's Terms of Service.",
-            "sepaTitle": "Accept SEPA Terms of Service",
-            "sepaDescription": "To enable EUR (SEPA) and GBP (Faster Payments) bank transfers, you need to accept our payment partner's updated Terms of Service.",
+            "sepaTitle": "Accept updated bank transfer provider terms",
+            "sepaDescription": "To enable euro and British pound bank transfers, accept our bank transfer provider's updated Terms of Service.",
             "errorTitle": "Could not load terms",
             "loadFailed": "Could not load terms. You can accept them later from your activity feed.",
             "genericError": "Something went wrong. You can accept terms later from your activity feed.",
@@ -2964,7 +2999,7 @@
                 "taxId": {
                     "label": "Tax ID",
                     "title": "Your tax ID",
-                    "body": "CPF in Brazil, CUIT or CUIL in Argentina. Needed to send and receive on local bank rails."
+                    "body": "CPF in Brazil, CUIT or CUIL in Argentina. Needed for local bank transfers."
                 },
                 "questions": {
                     "label": "Questions",
@@ -3011,19 +3046,19 @@
         "rails": {
             "europe": {
                 "label": "Europe",
-                "value": "SEPA transfers"
+                "value": "Euro bank transfers"
             },
             "uk": {
                 "label": "UK",
-                "value": "Faster Payments"
+                "value": "British pound bank transfers"
             },
             "us": {
                 "label": "United States",
-                "value": "ACH & Wire transfers"
+                "value": "US dollar bank transfers"
             },
             "mexico": {
                 "label": "Mexico",
-                "value": "SPEI bank transfers"
+                "value": "Mexican peso bank transfers"
             },
             "qr": {
                 "label": "Argentina & Brazil",
@@ -3049,9 +3084,9 @@
             "email_required": "We need an email address to finish setting up this account. Add one to your profile and we'll retry automatically.",
             "submission_failed": "We hit a snag finishing your verification on our side. We'll get you sorted — tap below to message support.",
             "proof_of_address_review": "We received your proof of address — it's being reviewed.",
-            "bridge_tos_required": "Accept the Bridge terms of service to continue.",
-            "bridge_tos_v2_required": "Accept the SEPA terms of service to enable EUR / GBP rails.",
-            "bridge_processing": "We're finalizing your verification with Bridge — this usually takes a few minutes.",
+            "bridge_tos_required": "Accept our payment partner's terms to continue.",
+            "bridge_tos_v2_required": "Accept the bank transfer provider's updated Terms of Service to enable euro and British pound bank transfers.",
+            "bridge_processing": "Our payment partner is finishing your verification. This usually takes a few minutes.",
             "verification_blocked": "Verification issue — contact support for help.",
             "terminal_rejection": "Verification issue — contact support for help.",
             "bridge_terminal_rejection": "We couldn't verify your account for bank transfers. Message support if you think this is a mistake.",
@@ -3060,7 +3095,7 @@
             "compliance_block": "We couldn't approve your card application after a compliance review.",
             "card_rejected": "Your card application couldn't be approved. Message support if you think this is a mistake.",
             "manteca_us_nationality": "Payments from this country are not available for US citizens at this time.",
-            "country_not_supported": "This rail needs a document from a supported country. You can verify with a different ID.",
+            "country_not_supported": "This payment method needs a document from a supported country. You can verify with a different ID.",
             "tax_id_unresolved": "We couldn't read the tax ID that local deposits and withdrawals need. You can verify again to provide it. QR payments aren't affected.",
             "uk_resident_blocked": "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe — you can withdraw them as crypto anytime.",
             "identity_region_restricted": "Our verification partner doesn't accept documents issued in your country. Re-uploading won't change the result."
@@ -3071,7 +3106,7 @@
         "selectToken": "Select a token to recover",
         "noTokens": "No tokens to recover",
         "noTokensDescription": "Tokens sent to your address on other networks will show up here.",
-        "recipientPlaceholder": "Enter the address where you want to receive the funds",
+        "recipientPlaceholder": "Destination address",
         "review": "Review",
         "youWillReceiveTo": "You will receive to",
         "sentTo": "Sent to",
@@ -3100,7 +3135,7 @@
             "crossChainUnavailable": "Cross-chain transactions are temporarily unavailable. You can use USDC on Arbitrum.",
             "selectANetwork": "Select a network",
             "moreNetworksButton": "more",
-            "searchTokenPlaceholder": "Search for a token or paste address",
+            "searchTokenPlaceholder": "Token or address",
             "sponsoredHint": "Transactions using USDC on Arbitrum are sponsored",
             "availableToken": "Available token",
             "searchResults": "Search Results",
@@ -3110,7 +3145,7 @@
             "noMatchingTokensDescription": "Try searching for a different token",
             "noPopularTokensTitle": "No popular tokens available",
             "moreNetworksTitle": "More networks",
-            "searchNetworkPlaceholder": "Search for a network",
+            "searchNetworkPlaceholder": "Search network",
             "noNetworksFoundTitle": "No networks found matching {search}",
             "noNetworksFoundDescription": "Try searching for a different network",
             "searchPlaceholder": "Search...",
@@ -3193,7 +3228,7 @@
             "shareTitle": "Share your profile"
         },
         "inviteFriendsModal": {
-            "title": "Invite friends!",
+            "title": "Invite Friends!",
             "description": "Share your link. Every time a friend you brought makes a payment, you earn rewards.",
             "shareSheetTitle": "Share your invite link",
             "shareCta": "Share Invite Link",
@@ -3365,6 +3400,7 @@
         },
         "copyToClipboard": {
             "copyCode": "Copy code",
+            "copyProfileLink": "Copy profile link",
             "copyFailed": "Copy failed"
         },
         "copyField": {
@@ -3543,6 +3579,10 @@
         "genericSupport": "There was an issue with your request. Please contact support.",
         "rainCooldownRetry": "A previous card withdrawal is still active. Try again in about {minutes, plural, one {# minute} other {# minutes}}.",
         "rainCooldownRetryShortly": "A previous card withdrawal is still active. Please try again shortly.",
+        "xchainWithdrawLimit": "You reached the limit for withdrawals to other networks. Withdrawals on Arbitrum have no limit, or contact support to raise yours.",
+        "xchainWithdrawLimitRetry": "You reached the limit for withdrawals to other networks. Try again in about {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minute} other {# minutes}}} one {# hour} other {# hours}}} one {# day} other {# days}}. Withdrawals on Arbitrum have no limit, or contact support to raise yours.",
+        "xchainPaymentLimit": "You made too many transfers to other networks recently. Contact support to raise your limit.",
+        "xchainPaymentLimitRetry": "You made too many transfers to other networks recently. Try again in about {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minute} other {# minutes}}} one {# hour} other {# hours}}} one {# day} other {# days}}, or contact support to raise your limit.",
         "rainInsufficientCollateral": "Your card doesn’t have enough collateral for this withdrawal.",
         "staleCardApproval": "Your card needs to be re-enabled before you can withdraw. It only takes one passkey tap.",
         "cardRateLimited": "Too many card requests. Please wait a moment and try again.",
@@ -3551,7 +3591,9 @@
         "cardApprovalFailed": "Card approval failed — please try again.",
         "logoutFailed": "Couldn’t log out. Please try again.",
         "loginIncomplete": "Login didn’t complete. Please try again.",
-        "rateUnavailable": "Exchange rates are temporarily unavailable. Please try again in a moment."
+        "rateUnavailable": "Exchange rates are temporarily unavailable. Please try again in a moment.",
+        "transferTemporarilyUnavailable": "Transfers are temporarily unavailable. Please check Activity before trying again.",
+        "userOpReverted": "This payment could not be completed. Please try again."
     },
     "appLock": {
         "title": "Welcome back!",
@@ -3691,14 +3733,93 @@
     },
     "avatar": {
         "title": "Your avatar",
-        "description": "Pick one, or roll the dice for a fresh row of basics.",
-        "initials": "Initials",
-        "fromBadges": "From your badges",
-        "basics": "Basics",
-        "unlocked": "{count} unlocked",
-        "noBadgeAvatars": "Earn a badge and its avatars appear here.",
-        "rollDice": "Roll the dice",
         "change": "Change avatar",
-        "saveFailed": "Could not save your avatar. Try again."
+        "saveFailed": "Could not save your avatar. Try again.",
+        "earned": "Earned",
+        "rollDie": "Roll the die",
+        "initialName": "Just {letter}",
+        "initialLine": "Your initial",
+        "cast": {
+            "apple": {
+                "name": "Jackpot Cherry",
+                "line": "Two short of rich"
+            },
+            "avocado": {
+                "name": "Watermelon Slice",
+                "line": "Feeds eleven people"
+            },
+            "cactus": {
+                "name": "Bold Chili",
+                "line": "Picked the spicy one"
+            },
+            "cloud": {
+                "name": "Grumpy Raincloud",
+                "line": "Complains, still comes"
+            },
+            "cube": {
+                "name": "Lucky Die",
+                "line": "Settles every tie"
+            },
+            "donut": {
+                "name": "Glazed Donut",
+                "line": "Missing the middle"
+            },
+            "drop": {
+                "name": "Boba Cup",
+                "line": "Sips through drama"
+            },
+            "egg": {
+                "name": "Fortune Cookie",
+                "line": "Vague on purpose"
+            },
+            "fish": {
+                "name": "Puffy Pufferfish",
+                "line": "Overreacts on cue"
+            },
+            "flower": {
+                "name": "Lucky Ladybug",
+                "line": "Lands on the bill"
+            },
+            "frog": {
+                "name": "Smiley Axolotl",
+                "line": "Never says no"
+            },
+            "gem": {
+                "name": "Lucky Horseshoe",
+                "line": "Heavy but lucky"
+            },
+            "ghost": {
+                "name": "Lucky Cat",
+                "line": "Grins at the odds"
+            },
+            "heart": {
+                "name": "Serene Capybara",
+                "line": "Fine with anything"
+            },
+            "leaf": {
+                "name": "Twisted Pretzel",
+                "line": "Overthinks the plan"
+            },
+            "moon": {
+                "name": "Ramen Bowl",
+                "line": "Cures the hangover"
+            },
+            "mushroom": {
+                "name": "Prickly Hedgehog",
+                "line": "Soft under it all"
+            },
+            "planet": {
+                "name": "Sideways Crab",
+                "line": "Avoids the question"
+            },
+            "star": {
+                "name": "Wishing Star",
+                "line": "Grants half of it"
+            },
+            "sun": {
+                "name": "Bossy Goose",
+                "line": "Herds the group"
+            }
+        }
     }
 }

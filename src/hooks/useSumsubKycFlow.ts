@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useWebSocket } from '@/hooks/useWebSocket'
-import { useUserStore } from '@/redux/hooks'
+import { useAuth } from '@/context/authContext'
 import {
     initiateSumsubKyc,
     initiateSelfHealResubmission,
@@ -92,7 +92,7 @@ const getKycPollDelayMs = (elapsedMs: number): number => {
 }
 
 export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: UseSumsubKycFlowOptions = {}) => {
-    const { user } = useUserStore()
+    const { user } = useAuth()
     const router = useRouter()
     const t = useTranslations('kyc')
 
@@ -109,7 +109,12 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const [accessToken, setAccessToken] = useState<string | null>(null)
     const [showWrapper, setShowWrapper] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
+    const [error, setErrorState] = useState<string | null>(null)
+    const [errorCooldown, setErrorCooldown] = useState<{ retryAt?: string } | null>(null)
+    const setError = useCallback((message: string | null) => {
+        setErrorState(message)
+        setErrorCooldown(null)
+    }, [])
     // Some initiate failures are terminal: the user has no action that could
     // change the outcome, so offering a retry is worse than offering nothing.
     // Callers must suppress their retry CTA on this rather than inferring
@@ -178,7 +183,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         //
         // The one close that must NOT replay it is a submission — the user just
         // acted, so the held transition is stale for what they submitted.
-        // handleSdkComplete consumes it by advancing prevStatusRef itself.
+        // Only a single-level completion consumes it; multi-level completion comes from the backend.
         //
         // Both flags are committed state rather than refs, so an interrupted render
         // can never leak a value this guard acts on.
@@ -475,23 +480,19 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         userInitiatedRef.current = true
         selfHealProviderRef.current = null
         actionKeyRef.current = null
-        // Consume a deferred ACTION_REQUIRED (see the transition effect): this
-        // close IS a submission, so the held transition is stale — replaying it
-        // would close the progress modal this handler opens (in-session resubmit
-        // after a RED decline). The manual close keeps the replay: abandoning
-        // really does leave the action required.
-        if (liveKycStatus === 'ACTION_REQUIRED') prevStatusRef.current = 'ACTION_REQUIRED'
+        // Only a single-level submission proves the deferred action was completed.
+        if (!isMultiLevel && liveKycStatus === 'ACTION_REQUIRED') prevStatusRef.current = 'ACTION_REQUIRED'
         setShowWrapper(false)
         setIsActionFlow(false)
         setIsMultiLevel(false)
         setIsVerificationProgressModalOpen(true)
-    }, [liveKycStatus])
+    }, [isMultiLevel, liveKycStatus])
 
     // Called when the user manually closes the SDK modal. Every manual close
     // replays a deferred ACTION_REQUIRED: the wrapper cannot tell "submitted the
     // required follow-up" from "submitted level 1 and walked away", so treating
     // any close as a submission would swallow a real action-required state.
-    // handleSdkComplete is the one unambiguous submission, and it consumes.
+    // Only single-level completion consumes the deferred action.
     const handleClose = useCallback(() => {
         setShowWrapper(false)
         setIsActionFlow(false)
@@ -586,6 +587,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 if (response.error) {
                     userInitiatedRef.current = false
                     setError(actionErrorMessage(response))
+                    setErrorCooldown(response.cooldown ?? null)
                     return
                 }
                 if (response.data?.token) {
@@ -715,9 +717,13 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         [handleStartAction, handleSelfHealResubmit]
     )
 
+    const dismissErrorCooldown = useCallback(() => setError(null), [setError])
+
     return {
         isLoading,
-        error,
+        error: errorCooldown ? null : error,
+        errorCooldown,
+        dismissErrorCooldown,
         isTerminalError,
         showWrapper,
         accessToken,

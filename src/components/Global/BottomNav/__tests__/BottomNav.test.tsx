@@ -94,6 +94,18 @@ describe('BottomNav pill release', () => {
         expect(mockPush).not.toHaveBeenCalled()
     })
 
+    it('a finger down on a tab squashes its icon and release springs it back', () => {
+        render(<BottomNav />)
+        const supportTab = screen.getByRole('button', { name: 'support' })
+        const icon = supportTab.querySelector('span')!
+
+        expect(icon.className).not.toContain('scale-[0.82]')
+        fireEvent.pointerDown(supportTab, { pointerId: 1 })
+        expect(icon.className).toContain('scale-[0.82]')
+        fireEvent.pointerUp(supportTab, { pointerId: 1 })
+        expect(icon.className).not.toContain('scale-[0.82]')
+    })
+
     it('leaving the tab routes clears the pill', () => {
         const { rerender } = render(<BottomNav />)
         expect(screen.getByTestId('bottom-nav-pill')).toBeInTheDocument()

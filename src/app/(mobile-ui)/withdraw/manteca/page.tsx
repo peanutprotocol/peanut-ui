@@ -1,5 +1,8 @@
 'use client'
 
+import { API_ERROR_CODES } from '@/services/api-error'
+
+import { submitSignedSpend } from '@/hooks/wallet/signSpendRetry'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
 import { Notification } from '@/components/0_Bruddle/Notification'
@@ -9,7 +12,8 @@ import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
 import { SessionKeyGrantRequiredError } from '@/hooks/wallet/spendPreflight'
 import { friendlyError } from '@/utils/friendly-error.utils'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
-import { rainCentsToUsdcUnits, isAmountWithinBalance } from '@/utils/balance.utils'
+import { resolveOfframpSpendRecipient } from '@/utils/manteca.utils'
+import { rainCentsToUsdcUnits, isAmountWithinBalance, parseUsdAmountToUnits } from '@/utils/balance.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useState, useMemo, useContext, useEffect, useCallback, useId } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -52,7 +56,6 @@ import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import PointsCard from '@/components/Common/PointsCard'
 import {
     MANTECA_COUNTRIES_CONFIG,
-    MANTECA_DEPOSIT_ADDRESS,
     MantecaAccountType,
     isMantecaSupportedCountryCode,
     type MantecaBankCode,
@@ -71,14 +74,17 @@ import { initiateIncreaseLimits } from '@/app/actions/increase-limits'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { useLimits } from '@/hooks/useLimits'
 import { isVerifiedForCountry } from '@/utils/regions.utils'
-import PixKeySendView from '@/components/Withdraw/views/PixKeySend.view'
+import PixKeySendView from '@/features/withdraw/views/PixKeySendView'
+import { useFlowStepper } from '@/hooks/useFlowStepper'
+import { useWithdrawAmount } from '@/features/withdraw/useWithdrawAmount'
+import { useMantecaAmountSeed } from '@/features/withdraw/useMantecaAmountSeed'
+import { WITHDRAW_MANTECA_STEPS } from '@/features/withdraw/types'
+import { mantecaStepGuards, type MantecaOutcome } from '@/features/withdraw/step-guards'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { MantecaTransfersMaintenanceView } from '@/components/Global/Banner/MantecaTransfersMaintenanceView'
 import { useLocale, useTranslations } from 'next-intl'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 import { loadingStateKey } from '@/i18n/app/loading-states'
-
-type MantecaWithdrawStep = 'amountInput' | 'bankDetails' | 'review' | 'success' | 'failure'
 
 export default function MantecaWithdrawFlow() {
     const searchParams = useSearchParams()
@@ -115,8 +121,9 @@ function MantecaBankWithdrawFlow() {
     const [usdAmount, setUsdAmount] = useState<string | undefined>(undefined)
     // store original currency amount before price lock to restore on back navigation
     const [originalCurrencyAmount, setOriginalCurrencyAmount] = useState<string | undefined>(undefined)
-    const [step, setStep] = useState<MantecaWithdrawStep>('amountInput')
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
+    // USD amount handed over by the shared /withdraw amount step (TASK-21664)
+    const [urlAmount] = useWithdrawAmount()
     const searchParams = useSearchParams()
     const paramAddress = searchParams.get('destination')
     const isSavedAccount = searchParams.get('isSavedAccount') === 'true'
@@ -141,6 +148,22 @@ function MantecaBankWithdrawFlow() {
     // price lock state - holds the locked price from /withdraw/init
     const [priceLock, setPriceLock] = useState<WithdrawPriceLock | null>(null)
     const [isLockingPrice, setIsLockingPrice] = useState(false)
+    // Execution proof for the terminal steps: set only by the withdrawal
+    // submission. A hand-edited ?step=success (or =failure) with no completed
+    // operation falls back to a working step (Chip review, PR #2917).
+    const [outcome, setOutcome] = useState<MantecaOutcome>(null)
+    // amount → bank-details → review → success|failure as named screen ids in
+    // the URL. Guards bounce a refresh/deep-link into a step whose local state
+    // did not survive back to the amount step (which re-seeds from ?amount=).
+    const stepper = useFlowStepper({
+        steps: WITHDRAW_MANTECA_STEPS,
+        guards: mantecaStepGuards({
+            hasAmount: !!usdAmount,
+            priceLocked: !!priceLock,
+            outcome,
+        }),
+    })
+    const step = stepper.step
     const router = useRouter()
     const { spendableBalance: balance, formattedSpendableBalance } = useWallet()
     const { signSpend } = useSignSpendBundle()
@@ -194,6 +217,50 @@ function MantecaBankWithdrawFlow() {
         flowType: 'offramp',
         amount: usdAmount,
         currency: selectedCountry?.currency,
+    })
+
+    // Synchronous twin of the balanceErrorMessage effect below (same
+    // minimum/ceiling predicates, live balance). Effect-set state lags the
+    // render by a tick, so every decision that must not outrun the balance —
+    // the ?amount= seed advance, the price lock, and the submission itself —
+    // asks this instead of the message state (Chip rounds 3+6).
+    const isAmountWithinLiveBalance = useCallback(
+        (usd: string) => {
+            if (balance === undefined) return false
+            const paymentAmount = parseUnits(usd, PEANUT_WALLET_TOKEN_DECIMALS)
+            if (paymentAmount < parseUnits(MIN_MANTECA_WITHDRAW_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
+                return false
+            }
+            return isAmountWithinBalance(usd, balance)
+        },
+        [balance]
+    )
+
+    // Blanket mount reset — registered BEFORE the ?amount= seed below, so a
+    // fresh mount clears leftover flow state FIRST and the seed then arms on
+    // clean state. Registered after, the reset ran after the seed's mount
+    // effects and clobbered the seeded amounts (the hand-off silently died —
+    // caught by manteca-withdraw-gates.test.tsx). resetState is defined below;
+    // the callback runs post-render, when it exists.
+    useEffect(() => {
+        resetState()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
+    // ?amount= hand-off from the shared amount step: seed both denominations
+    // and advance past this flow's amount screen ONLY once its balance/limits
+    // gates pass for the seeded amount (Chip review round 3). A blocked amount
+    // stays on the amount screen, which renders the reason.
+    const { seededFromUrl, resetSeed } = useMantecaAmountSeed({
+        urlAmount,
+        currencyPriceSell: currencyPrice?.sell,
+        step,
+        isAmountAllowed: isAmountWithinLiveBalance,
+        limitsLoading: limitsValidation.isLoading,
+        limitsBlocking: limitsValidation.isBlocking,
+        setUsdAmount,
+        setCurrencyAmount,
+        goToBankDetails: () => void stepper.goTo('bank-details'),
     })
 
     // BR self-service limit increase flow
@@ -294,9 +361,32 @@ function MantecaBankWithdrawFlow() {
         )
     }, [selectedBank, accountType, countryConfig, destinationAddress, setErrorMessage])
 
+    const validateSubmissionAmount = useCallback(() => {
+        const units = parseUsdAmountToUnits(usdAmount ?? '')
+        if (
+            units === null ||
+            units < parseUnits(MIN_MANTECA_WITHDRAW_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)
+        ) {
+            setErrorMessage(t('errors.minWithdrawAmount', { amount: MIN_MANTECA_WITHDRAW_AMOUNT }))
+            return false
+        }
+        if (!isAmountWithinBalance(usdAmount!, balance)) {
+            setErrorMessage(
+                balance === undefined ? tErrors('balanceSettling') : tErrors('notEnoughBalanceAddFunds'),
+                balance === undefined ? 'balanceSettling' : null
+            )
+            return false
+        }
+        return true
+    }, [usdAmount, balance, t, tErrors, setErrorMessage])
+
     const handleBankDetailsSubmit = useCallback(async () => {
         // prevent duplicate requests from rapid clicks
         if (isLockingPrice) return
+        if (!validateSubmissionAmount()) {
+            void stepper.goTo('amount')
+            return
+        }
 
         if (!destinationAddress.trim()) {
             setFieldError(t('errors.enterAccountAddress'))
@@ -314,6 +404,22 @@ function MantecaBankWithdrawFlow() {
             return
         }
 
+        // The amount may have arrived via the user-editable ?amount= and the
+        // async balance/limits gates live on the amount screen — re-check them
+        // before locking a price, against the LIVE balance (the message state
+        // is effect-set and lags a render). A failure returns to the amount
+        // screen, which renders the reason (Chip review rounds 3+6).
+        if (
+            balance === undefined ||
+            balanceErrorMessage ||
+            (usdAmount && !isAmountWithinLiveBalance(usdAmount)) ||
+            limitsValidation.isLoading ||
+            limitsValidation.isBlocking
+        ) {
+            void stepper.goTo('amount')
+            return
+        }
+
         // lock the price before showing review screen
         // this ensures user sees the exact amount they'll receive
         if (!usdAmount || !currencyCode) return
@@ -327,7 +433,11 @@ function MantecaBankWithdrawFlow() {
 
             if (result.error) {
                 if (handleOnboardingError(result.error)) return
-                setErrorMessage(result.error)
+                setErrorMessage(
+                    result.code === API_ERROR_CODES.MANTECA_TEMPORARILY_UNAVAILABLE
+                        ? tErrors('transferTemporarilyUnavailable')
+                        : result.error
+                )
                 return
             }
 
@@ -337,7 +447,7 @@ function MantecaBankWithdrawFlow() {
                 setPriceLock(result.data)
                 // update the displayed fiat amount to the locked amount
                 setCurrencyAmount(result.data.fiatAmount)
-                setStep('review')
+                void stepper.goTo('review')
             }
         } catch (error) {
             void captureNetworkTriagedFailure(error, {
@@ -356,15 +466,43 @@ function MantecaBankWithdrawFlow() {
         usdAmount,
         currencyCode,
         currencyAmount,
+        isAmountWithinLiveBalance,
         isUserMantecaKycApprovedForCountry,
         isLockingPrice,
+        validateSubmissionAmount,
         handleOnboardingError,
+        balance,
+        balanceErrorMessage,
+        limitsValidation.isLoading,
+        limitsValidation.isBlocking,
+        stepper,
         t,
+        tErrors,
         setErrorMessage,
     ])
 
     const handleWithdraw = async () => {
         if (!destinationAddress || !usdAmount || !currencyCode || !priceLock) return
+        if (!validateSubmissionAmount()) {
+            void stepper.goTo('amount')
+            return
+        }
+
+        // last line of defense before the money operation: the balance and the
+        // async LATAM limits must hold for this amount RIGHT NOW — checked
+        // against the live balance, not the effect-lagged message state — and
+        // a stale amount that outran the gates goes back to the amount screen,
+        // which renders the reason (Chip review rounds 3+6)
+        if (
+            balance === undefined ||
+            balanceErrorMessage ||
+            !isAmountWithinLiveBalance(usdAmount) ||
+            limitsValidation.isLoading ||
+            limitsValidation.isBlocking
+        ) {
+            void stepper.goTo('amount')
+            return
+        }
 
         posthog.capture(ANALYTICS_EVENTS.WITHDRAW_CONFIRMED, {
             amount_usd: usdAmount,
@@ -389,7 +527,10 @@ function MantecaBankWithdrawFlow() {
                 const requiredUsdcAmount = parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS)
                 signedArtifact = await signSpend({
                     requiredUsdcAmount,
-                    recipient: MANTECA_DEPOSIT_ADDRESS,
+                    // Entity-aware deposit address served by /withdraw/init
+                    // (per-entity balances from 2026-09-14); the constant is
+                    // only the fallback for an older API without the field.
+                    recipient: resolveOfframpSpendRecipient(priceLock),
                     rainSpendingPower: rainCentsToUsdcUnits(rainCardOverview?.balance?.spendingPower),
                     kind: 'FIAT_OFFRAMP',
                 })
@@ -433,37 +574,39 @@ function MantecaBankWithdrawFlow() {
             // Manteca order FIRST, then either broadcasts the signed UserOp
             // (smart-only / mixed) or submits the Rain withdrawal via the
             // user's session-key UserOp (collateral-only). No stuck funds.
-            const result = await mantecaApi.withdrawWithSignedTx(
-                signedArtifact.strategy === 'collateral-only'
-                    ? {
-                          kind: 'rainWithdrawal' as const,
-                          priceLockCode: priceLock.priceLockCode,
-                          amount: usdAmount,
-                          destinationAddress: destinationAddress.toLowerCase(),
-                          bankCode: selectedBank?.code,
-                          accountType: accountType ?? undefined,
-                          currency: currencyCode,
-                          signedRainWithdrawal: signedArtifact.rainWithdrawal,
-                          chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                      }
-                    : {
-                          kind: 'userOp' as const,
-                          priceLockCode: priceLock.priceLockCode,
-                          amount: usdAmount,
-                          destinationAddress: destinationAddress.toLowerCase(),
-                          bankCode: selectedBank?.code,
-                          accountType: accountType ?? undefined,
-                          currency: currencyCode,
-                          signedUserOp: signedArtifact.signedUserOp.signedUserOp,
-                          chainId: signedArtifact.signedUserOp.chainId,
-                          entryPointAddress: signedArtifact.signedUserOp.entryPointAddress,
-                          // For mixed: tell backend about the Rain prepare intent
-                          // embedded in the UserOp's batched callData so it can
-                          // reconcile the collateral webhook to OFFRAMP in history.
-                          ...(signedArtifact.strategy === 'mixed'
-                              ? { rainPreparationId: signedArtifact.rainPreparationId }
-                              : {}),
-                      }
+            const result = await submitSignedSpend(signedArtifact, () =>
+                mantecaApi.withdrawWithSignedTx(
+                    signedArtifact.strategy === 'collateral-only'
+                        ? {
+                              kind: 'rainWithdrawal' as const,
+                              priceLockCode: priceLock.priceLockCode,
+                              amount: usdAmount,
+                              destinationAddress: destinationAddress.toLowerCase(),
+                              bankCode: selectedBank?.code,
+                              accountType: accountType ?? undefined,
+                              currency: currencyCode,
+                              signedRainWithdrawal: signedArtifact.rainWithdrawal,
+                              chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                          }
+                        : {
+                              kind: 'userOp' as const,
+                              priceLockCode: priceLock.priceLockCode,
+                              amount: usdAmount,
+                              destinationAddress: destinationAddress.toLowerCase(),
+                              bankCode: selectedBank?.code,
+                              accountType: accountType ?? undefined,
+                              currency: currencyCode,
+                              signedUserOp: signedArtifact.signedUserOp.signedUserOp,
+                              chainId: signedArtifact.signedUserOp.chainId,
+                              entryPointAddress: signedArtifact.signedUserOp.entryPointAddress,
+                              // For mixed: tell backend about the Rain prepare intent
+                              // embedded in the UserOp's batched callData so it can
+                              // reconcile the collateral webhook to OFFRAMP in history.
+                              ...(signedArtifact.strategy === 'mixed'
+                                  ? { rainPreparationId: signedArtifact.rainPreparationId }
+                                  : {}),
+                          }
+                )
             )
 
             if (result.error) {
@@ -471,6 +614,11 @@ function MantecaBankWithdrawFlow() {
                     method_type: 'manteca',
                     error_message: result.error,
                 })
+
+                if (result.code === API_ERROR_CODES.MANTECA_TEMPORARILY_UNAVAILABLE) {
+                    setErrorMessage(tErrors('transferTemporarilyUnavailable'))
+                    return
+                }
 
                 // Wrong-passkey session: backend rejected the signed UserOp with
                 // AA24 / wapk. Unrecoverable without re-auth — force a clean logout.
@@ -484,14 +632,18 @@ function MantecaBankWithdrawFlow() {
                     setErrorMessage(t('errors.ownAccountOnly'))
                 } else if (result.error === 'Unexpected error') {
                     setErrorMessage(t('errors.unexpected'))
-                    setStep('failure')
+                    setOutcome('failure')
+                    void stepper.goTo('failure')
+                } else if (result.code === 'USER_OP_REVERTED') {
+                    setErrorMessage(toFriendlyError(result), 'userOpReverted')
                 } else {
                     setErrorMessage(result.message ?? result.error)
                 }
                 return
             }
 
-            setStep('success')
+            setOutcome('success')
+            void stepper.goTo('success')
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_COMPLETED, {
                 amount_usd: usdAmount,
                 method_type: 'manteca',
@@ -517,14 +669,18 @@ function MantecaBankWithdrawFlow() {
                 },
             })
             setErrorMessage(t('errors.unexpected'))
-            setStep('failure')
+            setOutcome('failure')
+            void stepper.goTo('failure')
         } finally {
             setLoadingState('Idle')
         }
     }
 
+    // clears the flow's local fields; the step itself lives in the URL —
+    // "Try again" pairs this with stepper.reset()
     const resetState = () => {
-        setStep('amountInput')
+        resetSeed()
+        setOutcome(null)
         setCurrencyAmount(undefined)
         setUsdAmount(undefined)
         setOriginalCurrencyAmount(undefined)
@@ -541,10 +697,6 @@ function MantecaBankWithdrawFlow() {
     }
 
     useEffect(() => {
-        resetState()
-    }, [])
-
-    useEffect(() => {
         // Skip balance check if transaction is being processed
         // Use hasPendingTransactions to prevent race condition with optimistic updates
         // isLoading covers the gap between sendMoney completing and API withdraw completing
@@ -552,7 +704,12 @@ function MantecaBankWithdrawFlow() {
             return
         }
 
-        if (!usdAmount || usdAmount === '0.00' || isNaN(Number(usdAmount)) || balance === undefined) {
+        if (
+            (!Number(usdAmount) && !Number(currencyAmount)) ||
+            !usdAmount ||
+            isNaN(Number(usdAmount)) ||
+            balance === undefined
+        ) {
             setBalanceErrorMessage(null)
             return
         }
@@ -567,7 +724,7 @@ function MantecaBankWithdrawFlow() {
         } else {
             setBalanceErrorMessage(null)
         }
-    }, [usdAmount, balance, hasPendingTransactions, isLoading, t, tErrors])
+    }, [usdAmount, currencyAmount, balance, hasPendingTransactions, isLoading, t, tErrors])
 
     // Fetch points early to avoid latency penalty - fetch as soon as we have usdAmount
     // Use flowId as uniqueId to prevent cache collisions between different withdrawal flows
@@ -663,7 +820,13 @@ function MantecaBankWithdrawFlow() {
                             <Card.Description>{errorMessage}</Card.Description>
                         </Card.Header>
                         <Card.Content className="flex flex-col gap-3">
-                            <Button onClick={resetState} variant="purple">
+                            <Button
+                                onClick={() => {
+                                    resetState()
+                                    void stepper.reset()
+                                }}
+                                variant="purple"
+                            >
                                 {tCommon('tryAgain')}
                             </Button>
                             <LinkButton onClick={() => setIsSupportModalOpen(true)} className="self-center">
@@ -678,6 +841,7 @@ function MantecaBankWithdrawFlow() {
     return (
         <div className="flex min-h-inherit flex-col gap-8">
             <InitiateKycModal
+                cooldownActive={!!sumsubFlow.errorCooldown}
                 prepPath="extended"
                 visible={showKycModal}
                 onClose={() => setShowKycModal(false)}
@@ -719,7 +883,7 @@ function MantecaBankWithdrawFlow() {
                 reasonCode={mantecaRejection.reasonCode ?? undefined}
                 regionName={selectedCountry && localizedCountryTitle(locale, selectedCountry)}
             />
-            <SumsubKycModals flow={sumsubFlow} />
+            <SumsubKycModals flow={sumsubFlow} onCooldownClose={() => setShowKycModal(false)} />
             <SumsubKycWrapper
                 visible={limitIncreaseFlow.showWrapper}
                 accessToken={limitIncreaseFlow.accessToken}
@@ -738,16 +902,23 @@ function MantecaBankWithdrawFlow() {
                             setCurrencyAmount(originalCurrencyAmount)
                             setOriginalCurrencyAmount(undefined)
                         }
-                        setStep('bankDetails')
-                    } else if (step === 'bankDetails') {
-                        setStep('amountInput')
+                        void stepper.goTo('bank-details')
+                    } else if (step === 'bank-details') {
+                        // an amount seeded from ?amount= was entered on the root
+                        // amount step — back returns there, not to a second
+                        // amount entry (TASK-21664)
+                        if (seededFromUrl) {
+                            onBack()
+                            return
+                        }
+                        void stepper.goTo('amount')
                     } else {
                         onBack()
                     }
                 }}
             />
 
-            {step === 'amountInput' && (
+            {step === 'amount' && (
                 <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     <div className="text-heading-xs text-foreground-primary">{t('amountToWithdraw')}</div>
                     {/* only show the balance error if limits blocking card is not displayed (warnings can coexist) */}
@@ -800,7 +971,7 @@ function MantecaBankWithdrawFlow() {
                                 if (isSavedAccount) {
                                     handleBankDetailsSubmit()
                                 } else {
-                                    setStep('bankDetails')
+                                    void stepper.goTo('bank-details')
                                 }
                             }
                         }}
@@ -812,7 +983,7 @@ function MantecaBankWithdrawFlow() {
                 </div>
             )}
 
-            {step === 'bankDetails' && (
+            {step === 'bank-details' && (
                 <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     {/* Amount Display Card */}
                     <Card className="p-4">
@@ -967,7 +1138,7 @@ function MantecaBankWithdrawFlow() {
                         <PaymentInfoRow
                             label={t('manteca.exchangeRate')}
                             value={`1 USD = ${priceLock?.price ?? currencyPrice!.sell} ${currencyCode!.toUpperCase()}`}
-                            moreInfoText={t('manteca.exchangeRateInfo')}
+                            moreInfoText={t('manteca.exchangeRateInfo', { currency: currencyCode ?? '' })}
                         />
                         <PaymentInfoRow
                             label={tCommon('peanutFee')}

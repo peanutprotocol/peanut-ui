@@ -75,3 +75,20 @@ function fnv1a64(value: string): string {
     }
     return h1.toString(16).padStart(8, '0') + h2.toString(16).padStart(8, '0')
 }
+
+export function qrPaymentDisplayStatus(
+    status: string | undefined
+): 'completed' | 'cancelled' | 'refunded' | 'failed' | 'processing' {
+    switch (status?.toUpperCase()) {
+        case 'COMPLETED':
+            return 'completed'
+        case 'CANCELLED':
+            return 'cancelled'
+        case 'REFUNDED':
+            return 'refunded'
+        case 'FAILED':
+            return 'failed'
+        default:
+            return 'processing'
+    }
+}

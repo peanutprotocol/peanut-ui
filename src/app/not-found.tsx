@@ -2,8 +2,9 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import SupportDrawer from '@/components/Global/SupportDrawer'
+import { SUPPORT_EMAIL } from '@/constants/crisp'
 import { RAGDOLL_ENABLED } from '@/constants/ragdoll.consts'
-import { useModalsContext } from '@/context/ModalsContext'
+import { useModalsContextOptional } from '@/context/ModalsContext'
 import dynamic from 'next/dynamic'
 
 // Same dynamic-import + kill-switch pattern as the rewards easter egg. When
@@ -12,13 +13,16 @@ import dynamic from 'next/dynamic'
 const PeanutRagdoll = RAGDOLL_ENABLED ? dynamic(() => import('@/components/PeanutRagdoll'), { ssr: false }) : null
 
 export default function NotFound() {
-    const { openSupportWithMessage } = useModalsContext()
+    // Localized marketing misses intentionally render without AppFlowProviders.
+    // Keep their 404 page provider-free; app routes still get the support drawer.
+    const modals = useModalsContextOptional()
+    const supportHref = `mailto:${SUPPORT_EMAIL}`
 
     // Send only the pathname — query + hash can carry magic-link tokens,
     // OAuth callback secrets, or signed-share params that we don't want
     // landing in Crisp chat logs.
     const openSupport = () =>
-        openSupportWithMessage(
+        modals?.openSupportWithMessage(
             `Hey! I hit a 404 — can you help?${typeof window !== 'undefined' ? `\n\nPath: ${window.location.pathname}` : ''}`
         )
 
@@ -38,9 +42,15 @@ export default function NotFound() {
                             <h1 className="text-heading-m">Hmm, we can&apos;t find that page.</h1>
                             <p className="text-body-m text-foreground-secondary">
                                 If we&apos;ve sent you here, please{' '}
-                                <button type="button" onClick={openSupport} className="text-black underline">
-                                    let support know
-                                </button>{' '}
+                                {modals ? (
+                                    <button type="button" onClick={openSupport} className="text-black underline">
+                                        let support know
+                                    </button>
+                                ) : (
+                                    <a href={supportHref} className="text-black underline">
+                                        let support know
+                                    </a>
+                                )}{' '}
                                 so we can fix it.
                             </p>
                         </div>
@@ -52,14 +62,23 @@ export default function NotFound() {
                             <a href="/" className="btn btn-purple flex w-full text-center shadow-4">
                                 Take me home
                             </a>
-                            <Button variant="stroke" className="w-full" onClick={openSupport}>
-                                Contact support
-                            </Button>
+                            {modals ? (
+                                <Button variant="stroke" className="w-full" onClick={openSupport}>
+                                    Contact support
+                                </Button>
+                            ) : (
+                                <a
+                                    href={supportHref}
+                                    className="btn btn-stroke flex w-full items-center justify-center text-center"
+                                >
+                                    Contact support
+                                </a>
+                            )}
                         </div>
                     </div>
                 </div>
             </div>
-            <SupportDrawer />
+            {modals && <SupportDrawer />}
         </>
     )
 }

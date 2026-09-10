@@ -1,16 +1,16 @@
 import { renderHook, act } from '@testing-library/react'
-import { useUserStore } from '@/redux/hooks'
+import { useAuth } from '@/context/authContext'
 import { useBadgeEarnToast } from '@/components/Badges/useBadgeEarnToast'
 import { celebrationStorageKey } from '@/components/Badges/badgeCelebration.utils'
 
-jest.mock('@/redux/hooks', () => ({ useUserStore: jest.fn() }))
-const mockUseUserStore = useUserStore as jest.Mock
+jest.mock('@/context/authContext', () => ({ useAuth: jest.fn() }))
+const mockUseAuth = useAuth as jest.Mock
 
 type TestBadge = { code: string; name: string; description: string | null; earnedAt: string; isVisible?: boolean }
 const freshIso = () => new Date().toISOString()
 
 function setUser(userId: string | undefined, badges: TestBadge[]): void {
-    mockUseUserStore.mockReturnValue({ user: userId ? { user: { userId, badges } } : null })
+    mockUseAuth.mockReturnValue({ user: userId ? { user: { userId, badges } } : null })
 }
 
 describe('useBadgeEarnToast', () => {

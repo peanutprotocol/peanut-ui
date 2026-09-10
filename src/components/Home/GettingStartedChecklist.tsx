@@ -121,7 +121,7 @@ const GettingStartedChecklist = () => {
 
     return (
         <Section title={t('title')}>
-            <ListGroup>
+            <ListGroup className="bg-background-default">
                 {items.map((item) => {
                     const tappable = !item.done && !!item.onTap
                     const showSub = (item.done && item.id === 'create-account') || (!item.done && !!item.sub)
@@ -132,9 +132,11 @@ const GettingStartedChecklist = () => {
                             leading={item.done ? <StatusPill status="completed" /> : <PendingMarker />}
                             title={item.label}
                             body={showSub ? item.sub : undefined}
+                            bodyWrap
                             chevron={tappable}
                             disabled={!tappable}
                             onClick={tappable ? item.onTap : undefined}
+                            className={item.done ? 'bg-background-icon-bubble-green/10' : undefined}
                         />
                     )
                 })}

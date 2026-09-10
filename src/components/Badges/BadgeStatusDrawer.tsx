@@ -61,7 +61,7 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                     py-4 + p-4 here stacked 32px of extra head room (PR #2813
                     review, Jota). */}
                 <DrawerContent className="pb-4">
-                    <div className="px-4">
+                    <div>
                         {/* centered head per the TX Details chrome (board 17490:115877):
                             badge art → one-line title. Tapping it opens the detail
                             modal — close the unlock drawer (z-50) first so the modal

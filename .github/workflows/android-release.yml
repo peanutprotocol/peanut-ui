@@ -4,7 +4,11 @@ name: Android Release (Play)
 # Removes the "release only builds on one laptop" gap: the upload keystore lives
 # as CI secrets, the build is reproducible, and the AAB lands on a Play track.
 #
-# Trigger: push a tag `vX.Y.Z`, or run manually (workflow_dispatch) and pick a track.
+# Trigger: normally called by release-native.yml. A manual run on `dev`, `main`, or `release/android-kyc` with no
+# versionName rebuilds the current tagged Android version only: versionName stays
+# put, Play receives a new monotonic versionCode, the shared iOS OTA floor does
+# not advance, and a credentialless follow-up job records the attested Android
+# baseline for later OTAs. A manually supplied version or v* tag remains break-glass.
 # Prereq: fix/native-build-reliability must be merged (card-comparison static-export
 #         fix) or `native:release` will fail to build.
 #
@@ -45,7 +49,7 @@ on:
                 type: choice
                 options: [internal, alpha, beta, production]
             versionName:
-                description: 'Break-glass <major>.<build>.0 version (required; there is no package.json fallback)'
+                description: 'Leave blank to rebuild the current Android version on dev, main, or release/android-kyc; explicit values are break-glass'
                 required: false
                 type: string
             pushDebug:
@@ -58,26 +62,31 @@ permissions:
     contents: read
 
 concurrency:
-    # A break-glass `v*` tag push runs outside release-native.yml's mutex, so it joins
-    # `production-release` here (which serialises iOS and Android for that path only —
-    # the price of not racing a concurrent OTA). When release-native.yml calls this
-    # workflow the parent already holds the mutex, and github.event_name is the
-    # caller's `workflow_dispatch`, so the called run keeps its own group instead of
-    # deadlocking against its parent. A direct dispatch of this workflow is
-    # indistinguishable from that, so it sits outside the mutex — deepest break-glass.
+    # A break-glass `v*` tag push and the sanctioned blank-version replacement both
+    # write the production Capgo channel, so they join the release mutex. When
+    # release-native.yml calls this workflow it passes versionName and already holds
+    # that mutex; its child keeps a separate group instead of deadlocking its parent.
+    # A direct dispatch with an explicit version remains deepest break-glass.
     group: >-
         ${{ github.event_name == 'push' && 'production-release'
+        || (inputs.versionName == '' && 'production-release')
         || format('android-release-{0}', github.ref) }}
     cancel-in-progress: false
 
 jobs:
     release:
         runs-on: ubuntu-latest
+        outputs:
+            version: ${{ steps.version.outputs.name }}
+            rebuild: ${{ steps.version.outputs.rebuild }}
         # Protect with required reviewers in repo Settings → Environments → Production.
         environment: Production
         steps:
             - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
               with:
+                  # Direct replacement builds resolve and compare against the
+                  # current native tag, so a shallow checkout is not sufficient.
+                  fetch-depth: 0
                   submodules: recursive
                   token: ${{ secrets.SUBMODULE_TOKEN }}
 
@@ -153,6 +162,17 @@ jobs:
                   # so the OTA floor check and the bundle publish below see the exact
                   # version the binary ships with. Keep in lockstep with ios-release.yml.
                   VERSION_NAME="$INPUT_VERSION"
+                  DIRECT_REBUILD=false
+                  if [ -z "$VERSION_NAME" ] && [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && [ "$GITHUB_REF_TYPE" != "tag" ]; then
+                      if [ "$GITHUB_REF_NAME" != "dev" ] && [ "$GITHUB_REF_NAME" != "main" ] && [ "$GITHUB_REF_NAME" != "release/android-kyc" ]; then
+                          echo "::error::Android replacement builds are cut from dev, main, or release/android-kyc, not $GITHUB_REF_NAME" >&2
+                          exit 1
+                      fi
+                      VERSION_NAME="$(node scripts/release-version.mjs native-floor)"
+                      node scripts/check-native-capabilities.mjs "v$VERSION_NAME"
+                      node scripts/check-native-change-scope.cjs "v$VERSION_NAME" android --legacy-compatible
+                      DIRECT_REBUILD=true
+                  fi
                   if [ -z "$VERSION_NAME" ] && [ "$GITHUB_REF_TYPE" = "tag" ]; then
                       VERSION_NAME="${GITHUB_REF_NAME#v}"
                   fi
@@ -162,6 +182,7 @@ jobs:
                   fi
                   node scripts/release-version.mjs validate "$VERSION_NAME" --kind native
                   echo "name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+                  echo "rebuild=$DIRECT_REBUILD" >> "$GITHUB_OUTPUT"
                   echo "Release versionName: $VERSION_NAME"
 
             # A binary whose versionName is ahead of the newest production OTA bundle
@@ -176,6 +197,7 @@ jobs:
               env:
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   VERSION_NAME: ${{ steps.version.outputs.name }}
+                  IS_REBUILD: ${{ steps.version.outputs.rebuild }}
               run: |
                   CURRENT="$(npx @capgo/cli@8.42.4 channel currentBundle production \
                     --apikey "$CAPGO_API_KEY" --quiet | grep -oE '[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?' | tail -n1 || true)"
@@ -185,13 +207,17 @@ jobs:
                   fi
                   # Fail closed on an anomalous read. CURRENT is scraped from a CLI
                   # whose stdout format is not contractual, so a stray version-like
-                  # token that sorts ABOVE this release would make needs_ota false,
+                  # token that sorts ABOVE a new release would make needs_ota false,
                   # silently skip the matching publish, and recreate TASK-21793 with
-                  # CI green. A production bundle ahead of a brand-new binary cannot
-                  # happen in the version scheme, so treat it as a bad read.
+                  # CI green. A same-build replacement is the one valid exception:
+                  # its existing .1+ OTA is expected to sort above the rebuilt .0.
                   if [ "$(node scripts/semver-newer.mjs "$CURRENT" "$VERSION_NAME")" = "true" ]; then
-                      echo "::error::production bundle $CURRENT sorts above the release $VERSION_NAME — impossible in the version scheme, so the channel read is unreliable; refusing to ship" >&2
-                      exit 1
+                      CURRENT_CORE="${CURRENT%%-*}"
+                      if [ "$IS_REBUILD" != "true" ] || [ "${CURRENT_CORE%.*}" != "${VERSION_NAME%.*}" ]; then
+                          echo "::error::production bundle $CURRENT sorts above the release $VERSION_NAME — impossible for a new release, so the channel read is unreliable; refusing to ship" >&2
+                          exit 1
+                      fi
+                      echo "Replacement build $VERSION_NAME remains covered by production OTA $CURRENT"
                   fi
                   NEEDS_OTA="$(node scripts/semver-newer.mjs "$VERSION_NAME" "$CURRENT")"
                   echo "needs_ota=$NEEDS_OTA" >> "$GITHUB_OUTPUT"
@@ -213,7 +239,8 @@ jobs:
                       echo "$MEA_CONFIG" | base64 -d > android/app/src/main/res/raw/mea_config
                       echo "mea_config written"
                   else
-                      echo "MEAWALLET_CONFIG_BASE64 not set — push provisioning stays stubbed"
+                      echo "::error::MEAWALLET_CONFIG_BASE64 is required for a production native release"
+                      exit 1
                   fi
 
             - name: Build signed AAB
@@ -223,8 +250,9 @@ jobs:
                   # the static export above; no new secret needed.
                   SENTRY_DSN_ANDROID: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
                   # MeaWallet MPP SDK — gradle gates both the dependency and the
-                  # plugin source on these; absent secrets build without the SDK.
+                  # plugin source on these; production must never compile the stub.
                   # Android-specific names: see the note in ios-release.yml.
+                  PEANUT_REQUIRE_PUSH_PROVISIONING: '1'
                   MEAWALLET_NEXUS_USER: ${{ secrets.MEAWALLET_NEXUS_USER_ANDROID }}
                   MEAWALLET_NEXUS_PASSWORD: ${{ secrets.MEAWALLET_NEXUS_PASSWORD_ANDROID }}
                   ANDROID_VERSION_NAME: ${{ steps.version.outputs.name }}
@@ -243,6 +271,69 @@ jobs:
                   export ANDROID_VERSION_CODE
                   echo "versionCode $ANDROID_VERSION_CODE (version $ANDROID_VERSION_NAME, run $GITHUB_RUN_NUMBER attempt $GITHUB_RUN_ATTEMPT)"
                   pnpm native:release
+
+            - name: Verify Capacitor permission metadata survived R8
+              run: |
+                  DEXDUMP="$(find "$ANDROID_HOME/build-tools" -type f -name dexdump -print | sort -V | tail -n1)"
+                  if [ -z "$DEXDUMP" ]; then
+                      echo "::error::dexdump is unavailable; cannot verify the optimized artifact" >&2
+                      exit 1
+                  fi
+
+                  mapfile -t DEX_FILES < <(find android/app/build/intermediates/dex/release/minifyReleaseWithR8 -maxdepth 1 -type f -name 'classes*.dex' -print | sort)
+                  if [ "${#DEX_FILES[@]}" -eq 0 ]; then
+                      echo "::error::R8 produced no release DEX files to inspect" >&2
+                      exit 1
+                  fi
+
+                  CAMERA_ANNOTATION='VISIBILITY_RUNTIME Lcom/getcapacitor/annotation/CapacitorPlugin; name="Camera" permissions={'
+                  FOUND=false
+                  for DEX in "${DEX_FILES[@]}"; do
+                      if "$DEXDUMP" -a "$DEX" | grep -F "$CAMERA_ANNOTATION" >/dev/null; then
+                          FOUND=true
+                          break
+                      fi
+                  done
+                  if [ "$FOUND" != "true" ]; then
+                      echo "::error::CameraPlugin lost its runtime Capacitor permission metadata during R8; refusing to upload a crash-prone AAB" >&2
+                      exit 1
+                  fi
+                  echo "CameraPlugin runtime permission metadata is present in the optimized DEX"
+
+            # The Cordova plugin registry (res/xml/config.xml) is generated by
+            # `cap sync` and read only through reflection, so the resource
+            # shrinker sees it as unused and can silently drop it. Binary
+            # 1.5.0+21653381 shipped that way: the Sumsub class was in the DEX
+            # but the registry was gone, so every Android KYC launch failed
+            # with "Class not found" (TASK-22471). res/raw/me_peanut_wallet_keep.xml
+            # pins the resource; this step proves the pin held in the exact AAB
+            # that is about to go to Play — both the registry and the native class.
+            - name: Verify Cordova plugin registration survived resource shrinking
+              run: |
+                  AAB=android/app/build/outputs/bundle/release/app-release.aab
+                  if ! unzip -p "$AAB" base/res/xml/config.xml 2>/dev/null | grep -aq 'com.sumsub.msdk.plugins.cordova.SNSMobileSdkCordovaPlugin'; then
+                      echo "::error::base/res/xml/config.xml is missing from the AAB or does not register SNSMobileSdkCordovaPlugin — the shrinker stripped the Cordova plugin registry and Sumsub KYC would fail with 'Class not found' (TASK-22471)" >&2
+                      exit 1
+                  fi
+                  FOUND=false
+                  while IFS= read -r DEX; do
+                      if unzip -p "$AAB" "$DEX" | grep -aq 'Lcom/sumsub/msdk/plugins/cordova/SNSMobileSdkCordovaPlugin;'; then
+                          FOUND=true
+                          break
+                      fi
+                  done < <(unzip -Z1 "$AAB" 'base/dex/classes*.dex')
+                  if [ "$FOUND" != "true" ]; then
+                      echo "::error::SNSMobileSdkCordovaPlugin is absent from the AAB DEX files — the Sumsub native half did not make it into the artifact (TASK-22471)" >&2
+                      exit 1
+                  fi
+                  echo "Cordova plugin registry and Sumsub native class are present in the AAB"
+
+            - name: Preserve R8 mapping
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+              with:
+                  name: android-r8-mapping-${{ steps.version.outputs.name }}-${{ github.run_id }}-${{ github.run_attempt }}
+                  path: android/app/build/outputs/mapping/release/
+                  if-no-files-found: error
 
             - name: Upload to Google Play
               uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1
@@ -298,3 +389,48 @@ jobs:
                   name: app-release-aab
                   path: android/app/build/outputs/bundle/release/app-release.aab
                   if-no-files-found: warn
+
+    # A same-version replacement must leave a durable OTA baseline, but the
+    # production build job should not receive repository write access. This
+    # separate job has no release environment or secrets and runs only after
+    # Play upload/build completion. Its sole write is one annotated tag.
+    record-replacement-baseline:
+        needs: release
+        if: needs.release.outputs.rebuild == 'true'
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        steps:
+            - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+              with:
+                  fetch-depth: 0
+
+            - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+              with:
+                  node-version: '22'
+
+            - name: Record attested Android replacement
+              env:
+                  VERSION: ${{ needs.release.outputs.version }}
+              run: |
+                  node scripts/check-native-change-scope.cjs "v$VERSION" android --legacy-compatible --ref "$GITHUB_SHA"
+                  FINGERPRINT="$(node scripts/native-fingerprint.mjs --ref "$GITHUB_SHA")"
+                  TAG="android-v${VERSION}-replacement-${GITHUB_SHA:0:12}"
+                  ATTESTATION="peanut-native-replacement-v2: platform=android base=v$VERSION native-compatible=true js-guard=android-capacitor-permissions-v1 fingerprint=$FINGERPRINT"
+
+                  if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+                      EXISTING_COMMIT="$(git rev-parse "$TAG^{commit}")"
+                      if [ "$EXISTING_COMMIT" != "$GITHUB_SHA" ]; then
+                          echo "::error::$TAG points at $EXISTING_COMMIT, expected $GITHUB_SHA" >&2
+                          exit 1
+                      fi
+                      node scripts/check-native-ota-surface.mjs "v$VERSION" --platform android --ref "$GITHUB_SHA"
+                      echo "$TAG already records this replacement"
+                  else
+                      git config user.name "github-actions[bot]"
+                      git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                      git tag -a "$TAG" "$GITHUB_SHA" -m "Android $VERSION replacement" -m "$ATTESTATION"
+                      node scripts/check-native-ota-surface.mjs "v$VERSION" --platform android --ref "$GITHUB_SHA"
+                      git push origin "$TAG"
+                      echo "Recorded $TAG at ${GITHUB_SHA:0:12}"
+                  fi

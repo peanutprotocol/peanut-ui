@@ -165,12 +165,11 @@ const Navigation = memo(function Navigation({
 
     // Icons inherit currentColor: the stroke button inverts on hover/active, and
     // a hard-coded fill vanished into the black background.
-    // The row's containing block is the initial one (no positioned ancestor), so a
-    // bare top-8 is 32px from the VIEWPORT — under the status bar on any device
-    // whose inset is deeper than that, and under the shell's inset cover with it.
-    // Same max() shape the QR scanner header uses.
+    // The row's containing block is the initial one (no positioned ancestor).
+    // Match app navigation at 16px from either horizontal edge and 16px below
+    // the safe-area boundary; on web --safe-top is zero.
     return (
-        <div className="absolute top-[max(2rem,calc(var(--safe-top)_+_0.5rem))] z-20 flex w-full items-center justify-between px-6">
+        <div className="absolute top-[calc(var(--safe-top)_+_1rem)] z-20 flex w-full items-center justify-between px-4">
             <div>
                 {showBackButton && (
                     <Button

@@ -13,6 +13,7 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
 import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query'
+import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { parseUnits } from 'viem'
 import type { RailCapability } from '@/types/capabilities'
 
@@ -31,6 +32,7 @@ type TestRestriction = { code: string; affectedRailIds: string[]; userMessage?: 
 // next/navigation
 const mockRouterPush = jest.fn()
 const mockRouterBack = jest.fn()
+const mockRouterReplace = jest.fn()
 const mockSearchParams = new Map<string, string>()
 
 jest.mock('next/navigation', () => ({
@@ -40,7 +42,7 @@ jest.mock('next/navigation', () => ({
     useRouter: () => ({
         push: mockRouterPush,
         back: mockRouterBack,
-        replace: jest.fn(),
+        replace: mockRouterReplace,
         prefetch: jest.fn(),
     }),
     usePathname: () => '/qr-pay',
@@ -69,7 +71,7 @@ jest.mock('posthog-js', () => ({
 
 // Sound player — no-op
 jest.mock('@/components/Global/SoundPlayer', () => ({
-    SoundPlayer: () => null,
+    SoundPlayer: () => <div data-testid="success-sound" />,
 }))
 
 // Confetti — no-op
@@ -161,7 +163,9 @@ jest.mock('@/hooks/useTransactionHistory', () => ({
 }))
 
 jest.mock('@/components/TransactionDetails/TransactionDetailsDrawer', () => ({
-    TransactionDetailsDrawer: () => null,
+    TransactionDetailsDrawer: ({ transaction }: { transaction: { status: string } | null }) => (
+        <div data-testid="receipt-status">{transaction?.status}</div>
+    ),
 }))
 
 // Stubbed to keep the QR canvas out of jsdom. The props are the contract that
@@ -192,11 +196,15 @@ jest.mock('@/app/actions/increase-limits', () => ({
     initiateIncreaseLimits: jest.fn(),
 }))
 
+let mockCooldown: { retryAt?: string } | null = null
+const mockDismissCooldown = jest.fn()
 const mockHandleFixableRejection = jest.fn()
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => ({
         isLoading: false,
         error: null,
+        errorCooldown: mockCooldown,
+        dismissErrorCooldown: mockDismissCooldown,
         showWrapper: false,
         accessToken: null,
         handleInitiateKyc: jest.fn(),
@@ -222,9 +230,8 @@ jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     }),
 }))
 
-jest.mock('@/components/Kyc/SumsubKycModals', () => ({
-    SumsubKycModals: () => null,
-}))
+jest.mock('@/components/Kyc/KycVerificationInProgressModal', () => ({ KycVerificationInProgressModal: () => null }))
+jest.mock('@/components/Global/IframeWrapper', () => ({ __esModule: true, default: () => null }))
 
 const mockIsPaymentProcessorQR = jest.fn()
 jest.mock('@/components/Global/DirectSendQR/utils', () => ({
@@ -328,6 +335,7 @@ jest.mock('@/utils/network-triage', () => ({
     captureNetworkTriagedFailure: (...args: unknown[]) => mockCaptureNetworkTriagedFailure(...args),
 }))
 
+let mockUsdScale = 1
 jest.mock('@/components/Global/AmountInput', () => ({
     __esModule: true,
     default: (props: any) => (
@@ -337,7 +345,9 @@ jest.mock('@/components/Global/AmountInput', () => ({
                 value={props.initialAmount ?? ''}
                 onChange={(e) => {
                     props.setPrimaryAmount?.(e.target.value)
-                    props.setSecondaryAmount?.(e.target.value)
+                    props.setSecondaryAmount?.(
+                        mockUsdScale === 1 ? e.target.value : (Number(e.target.value) * mockUsdScale).toFixed(2)
+                    )
                 }}
                 disabled={props.disabled}
             />
@@ -542,6 +552,9 @@ jest.mock('@/context/loadingStates.context', () => ({
 }))
 
 function renderQrPay(params: Record<string, string> = {}) {
+    // the page reads ?qrCode/?t/?type through nuqs — the testing adapter is
+    // the URL (setSearchParams keeps the legacy useSearchParams mock in sync
+    // for anything else that still reads it)
     setSearchParams(params)
     const queryClient = createQueryClient()
     const { loadingStateContext } = require('@/context/loadingStates.context')
@@ -557,13 +570,15 @@ function renderQrPay(params: Record<string, string> = {}) {
     }
 
     return render(
-        <IntlWrapper>
-            <QueryClientProvider client={queryClient}>
-                <LoadingProvider>
-                    <QRPayPage />
-                </LoadingProvider>
-            </QueryClientProvider>
-        </IntlWrapper>
+        <NuqsTestingAdapter searchParams={params}>
+            <IntlWrapper>
+                <QueryClientProvider client={queryClient}>
+                    <LoadingProvider>
+                        <QRPayPage />
+                    </LoadingProvider>
+                </QueryClientProvider>
+            </IntlWrapper>
+        </NuqsTestingAdapter>
     )
 }
 
@@ -668,7 +683,9 @@ function applyDefaults() {
 // ---------- test suites ----------
 
 beforeEach(() => {
+    mockUsdScale = 1
     jest.clearAllMocks()
+    mockCooldown = null
     mockSearchParams.clear()
     mockIsRegionRestricted = false
     applyDefaults()
@@ -885,6 +902,25 @@ describe('GROUP 2: Payment Form States', () => {
         }
         mockMantecaApi.initiateQrPayment.mockResolvedValue(defaultLock)
     }
+
+    test('a positive BRL amount that rounds to zero USD still shows its minimum error', async () => {
+        setupMantecaPayment({ code: '' })
+        renderQrPay({ qrCode: 'pix://payment?id=123', type: 'PIX', t: '1' })
+        await screen.findByText('PIX Merchant')
+        mockUsdScale = 0.05
+        fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '0.05' } })
+        await waitFor(() => expect(screen.getByText(/must be at least/i)).toBeInTheDocument())
+    })
+
+    test('PIX-key transfer keeps the full recipient and uses transfer limit copy', async () => {
+        setupMantecaPayment({ code: '' })
+        const { pixKeyToBRCode } = require('@/utils/pix.utils')
+        const pixKey = 'verylongemailaddress@verylongdomain.com.br'
+        renderQrPay({ qrCode: pixKeyToBRCode(pixKey), pixKey, type: 'PIX', t: '1' })
+        expect(await screen.findByText(pixKey)).toHaveClass('ph-mask', 'ph-no-capture')
+        fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '2500' } })
+        await waitFor(() => expect(screen.getByText(/Transfer amount exceeds maximum/i)).toBeInTheDocument())
+    })
 
     test('Manteca PIX form ready shows merchant card + amount input + pay button', async () => {
         setupMantecaPayment()
@@ -1149,6 +1185,25 @@ describe('GROUP 4: Success States', () => {
 
         return baseQrPayment
     }
+
+    test.each([
+        ['CANCELLED', 'Payment cancelled', 'cancelled'],
+        ['REFUNDED', 'Payment refunded', 'refunded'],
+        ['FAILED', 'Payment did not complete', 'failed'],
+        ['ACTIVE', 'Payment is processing', 'processing'],
+        ['UNRECOGNIZED', 'Payment is processing', 'processing'],
+    ])('a 200 %s result cannot show payment success', async (status, title, receiptStatus) => {
+        await completeMantecaPayment({ status, perk: { eligible: true, amountSponsored: 5 } })
+        await waitFor(() => expect(screen.getByText(title)).toBeInTheDocument())
+        expect(screen.queryByText(/You paid/)).not.toBeInTheDocument()
+        expect(screen.queryByTestId('success-sound')).not.toBeInTheDocument()
+        expect(screen.getByTestId('receipt-status')).toHaveTextContent(receiptStatus)
+        expect(screen.queryByText(/You earned/)).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Pay' })).not.toBeInTheDocument()
+        expect(posthog.capture).not.toHaveBeenCalledWith('card_withdraw_succeeded', expect.anything())
+        fireEvent.click(screen.getByRole('button', { name: 'View activity' }))
+        expect(mockRouterPush).toHaveBeenCalledWith('/history')
+    })
 
     test('Manteca success, no perk shows success card, no reward', async () => {
         await completeMantecaPayment()
@@ -1489,6 +1544,56 @@ const reconnectLock = {
 }
 
 describe('GROUP 5: Error States', () => {
+    test('a corporate provider rejection shows localized availability guidance', async () => {
+        mockMantecaApi.completeQrPaymentWithSignedTx.mockRejectedValue(
+            Object.assign(new Error('Company has exceeded their debt limit'), {
+                name: 'ApiError',
+                status: 500,
+                code: 'MANTECA_TEMPORARILY_UNAVAILABLE',
+            })
+        )
+        renderQrPay({ qrCode: '000201-payment', type: 'PIX', t: '1' })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+        await waitFor(() => expect(screen.getByText(en.errors.transferTemporarilyUnavailable)).toBeInTheDocument())
+        expect(screen.queryByText(/Company has exceeded/)).not.toBeInTheDocument()
+        expect(screen.queryByTestId('success-sound')).not.toBeInTheDocument()
+    })
+
+    test.each(['PIX', 'MERCADO_PAGO'])(
+        'an untyped %s submission failure asks users to check Activity without claiming cancellation',
+        async (type) => {
+            mockMantecaApi.completeQrPaymentWithSignedTx.mockRejectedValue(
+                Object.assign(new Error('Payment verification failed'), { name: 'ApiError', status: 500 })
+            )
+            renderQrPay({ qrCode: '000201-payment', type, t: '1' })
+            await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+            await act(async () => {
+                fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+            })
+            await waitFor(() => expect(screen.getByText(en.qrPay.errors.paymentStatusUnknown)).toBeInTheDocument())
+            expect(screen.queryByText(en.qrPay.errors.paymentCancelled)).not.toBeInTheDocument()
+            expect(screen.queryByText(en.qrPay.errors.merchantNotSupported)).not.toBeInTheDocument()
+            expect(screen.queryByTestId('success-sound')).not.toBeInTheDocument()
+        }
+    )
+
+    test('a typed pre-broadcast cancellation shows retry guidance without success or merchant blame', async () => {
+        mockMantecaApi.completeQrPaymentWithSignedTx.mockRejectedValue(
+            Object.assign(new Error('Cancelled'), { name: 'ApiError', status: 400, code: 'QR_PAYMENT_CANCELLED' })
+        )
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+        await waitFor(() => expect(screen.getByText(en.qrPay.errors.paymentCancelled)).toBeInTheDocument())
+        expect(screen.queryByText(/You paid/)).not.toBeInTheDocument()
+        expect(screen.queryByTestId('success-sound')).not.toBeInTheDocument()
+    })
+
     // The offline test below flips global online state; a failure mid-test
     // would otherwise leave every later suite running as if disconnected.
     afterEach(() => onlineManager.setOnline(true))
@@ -2047,4 +2152,70 @@ describe('GROUP 6: Edge Cases', () => {
             expect(waitingText || orderNotReady).toBeTruthy()
         })
     })
+})
+
+// ============================================================
+// GROUP: Entity deposit recipient (2026-09-14 Manteca split)
+// ============================================================
+describe('GROUP: Entity deposit recipient wiring', () => {
+    const LEGACY_AR_ADDRESS = '0x6E945f8EC93061f5f11Edc5e6Fb4A70BeB514e97'
+    const LEGACY_NON_AR_ADDRESS = '0x49200bF84dC26349C86ce040019063FeCE88CB1c'
+    const DISTINCT_SERVED = '0x49200bF84dC26349C86ce040019063FeCE88CB1c'
+
+    async function payWithLock(lockExtra: Record<string, unknown>) {
+        mockMantecaApi.initiateQrPayment.mockResolvedValue({
+            code: 'LOCK123',
+            type: 'QR3_PAYMENT',
+            companyId: 'c1',
+            userId: 'u1',
+            userNumberId: 'un1',
+            userExternalId: 'ue1',
+            paymentRecipientName: 'Test Merchant',
+            paymentRecipientLegalId: 'legal1',
+            paymentAssetAmount: '12000',
+            paymentAsset: 'ARS',
+            paymentPrice: '1200',
+            paymentAgainstAmount: '10',
+            paymentAgainst: 'USD',
+            expireAt: '2026-04-16T23:59:59Z',
+            creationTime: '2026-04-16T00:00:00Z',
+            ...lockExtra,
+        })
+
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+        await waitFor(() => {
+            expect(screen.getByText('Test Merchant')).toBeInTheDocument()
+        })
+        const payButton = screen.getByRole('button', { name: 'Pay' })
+        await act(async () => {
+            fireEvent.click(payButton)
+        })
+        await waitFor(() => expect(mockSignSpend).toHaveBeenCalledTimes(1))
+    }
+
+    test('the spend is signed to the API-served entity depositAddress, not the constant', async () => {
+        // A DISTINCT address (the non-AR wallet for a MERCADO_PAGO QR, which
+        // the constant fallback would never pick) proves the wire value wins.
+        await payWithLock({ depositAddress: DISTINCT_SERVED })
+
+        expect(mockSignSpend).toHaveBeenCalledWith(expect.objectContaining({ recipient: DISTINCT_SERVED }))
+    })
+
+    test('an older API without depositAddress falls back to the per-rail constant', async () => {
+        await payWithLock({})
+
+        expect(mockSignSpend).toHaveBeenCalledWith(expect.objectContaining({ recipient: LEGACY_AR_ADDRESS }))
+        expect(mockSignSpend).not.toHaveBeenCalledWith(expect.objectContaining({ recipient: LEGACY_NON_AR_ADDRESS }))
+    })
+})
+
+test('cooldown replaces the QR provider prompt and dismissal leaves the flow', () => {
+    setCapabilitiesGate('provider_rejection_fixable', { userMessage: 'Upload a clearer ID.' })
+    mockCooldown = { retryAt: '2026-09-08T18:57:00Z' }
+    renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+    expect(screen.getAllByTestId('action-modal')).toHaveLength(1)
+    expect(screen.queryByText('Upload document')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByText("I'll try later"))
+    expect(mockRouterReplace).toHaveBeenCalledWith('/home')
+    expect(mockDismissCooldown).toHaveBeenCalledTimes(1)
 })

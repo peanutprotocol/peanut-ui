@@ -72,7 +72,7 @@ export const CardUnlockDrawer: FC<Props> = ({ isOpen, onClose, entry, username, 
                     doesn't blow up to 432px tall at the drawer's full xl
                     width and force a scrollbar. Centred so the buttons
                     below it span the same content column. */}
-                <div className="flex flex-col gap-4 px-4 pb-6">
+                <div className="flex flex-col gap-4 pb-6">
                     <div className="mx-auto w-full max-w-md">
                         <ScaledShareAsset
                             ref={captureRef}
@@ -97,6 +97,7 @@ export const CardUnlockDrawer: FC<Props> = ({ isOpen, onClose, entry, username, 
                             source="history-replay"
                             ready={assetReady}
                             shareUrl={profileShareUrl(username, hideUsername)}
+                            hideUsername={hideUsername}
                         />
                     </div>
                 </div>

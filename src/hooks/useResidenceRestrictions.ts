@@ -4,9 +4,9 @@ import {
     useResidenceRestrictionSets,
     type ResidenceRestrictionSets,
 } from '@/hooks/useResidenceRestrictionSets'
-import { useSetupStore } from '@/redux/hooks'
 import { readDeclaredResidence, readSecondResidence } from '@/utils/declared-residence.storage'
 import { useMemo } from 'react'
+import { useOptionalSetupFlow } from '@/features/setup/SetupFlowContext'
 
 export interface ResidenceRestrictions {
     /** Bank transfer rails should not be offered to this user. */
@@ -56,7 +56,8 @@ export const deriveResidenceRestrictions = (iso2: string | null | undefined): Re
  */
 export const useResidenceRestrictions = (): ResidenceRestrictions => {
     const { user } = useAuth()
-    const { residenceCountry } = useSetupStore()
+    // during signup the answer lives in the setup provider; outside /setup no provider is mounted
+    const residenceCountry = useOptionalSetupFlow()?.residenceCountry ?? ''
     const sets = useResidenceRestrictionSets()
 
     return useMemo(() => {

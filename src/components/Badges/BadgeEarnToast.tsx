@@ -30,7 +30,7 @@ import { useBadgeEarnToast } from '@/components/Badges/useBadgeEarnToast'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { BadgeImage } from '@/components/Badges/BadgeImage'
 import { badgeAvatarKeys } from '@/components/Avatar/avatar.utils'
-import { AVATAR_PICKER_PATH } from '@/components/Avatar/avatar.consts'
+import { avatarPickerPath } from '@/components/Avatar/avatar.consts'
 
 const HOME_PATH = '/home'
 /** Gap between the badge toast and the avatar-unlock toast that follows it. */
@@ -92,25 +92,20 @@ export default function BadgeEarnToast() {
 
         const label = count === 1 ? t('toastSingle', { name: newestName }) : t('toastMultiple', { count })
 
-        // A badge that ships avatars (TASK-22142) gets its own follow-up toast
-        // linking to the picker, fired AVATAR_TOAST_DELAY_MS after the badge
-        // toast so the two announcements read as sequential events.
-        const avatarCount = badgeAvatarKeys(codes).length
+        // Codes are newest-first. Link the first badge with art so the hand includes a new unlock.
+        const withArt = codes.filter((code) => badgeAvatarKeys([code]).length > 0)
+        const avatarCount = badgeAvatarKeys(withArt).length
         const chooseAvatar = () => {
             dismiss(avatarToastId)
             posthog.capture(ANALYTICS_EVENTS.BADGE_EARN_TOAST_TAPPED, { count, target: 'avatar_picker' })
-            router.push(AVATAR_PICKER_PATH)
+            router.push(avatarPickerPath(withArt[0]))
         }
 
         toast({
             id: toastId,
             type: 'success',
             duration: 6000,
-            // the floating notification already carries its default black
-            // border (border-border-default) — this only overrides the tinted
-            // success surface with an opaque white one. custom content
-            // suppresses the priority icon by construction (ToastStack), no
-            // hideIcon needed.
+            // ToastStack supplies the border and suppresses its icon for custom content.
             className: 'bg-background-default',
             content: (
                 <button type="button" onClick={openInspect} className="flex items-center gap-3 text-left">

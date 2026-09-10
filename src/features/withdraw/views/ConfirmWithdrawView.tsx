@@ -1,0 +1,258 @@
+'use client'
+
+import { Button } from '@/components/0_Bruddle/Button'
+import { Notification } from '@/components/0_Bruddle/Notification'
+import AddressLink from '@/components/Global/AddressLink'
+import Card from '@/components/Global/Card'
+import DisplayIcon from '@/components/Global/DisplayIcon'
+import NavHeader from '@/components/Global/NavHeader'
+import NetworkFeeRow from '@/components/Global/NetworkFeeRow'
+import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
+import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
+import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
+import { type ITokenPriceData } from '@/interfaces/interfaces'
+import { formatNumberForDisplay, isStableCoin } from '@/utils/general.utils'
+import type { ChainWithTokens } from '@/interfaces/chain-meta'
+import { useMemo } from 'react'
+import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
+import { useTranslations } from 'next-intl'
+
+interface WithdrawConfirmViewProps {
+    amount: string
+    token: ITokenPriceData
+    chain: ChainWithTokens
+    toAddress: string
+    /** Rhino's quoted total fee (USD), verbatim from `useCrossChainTransfer`. */
+    networkFee?: number
+    peanutFee?: string
+    onConfirm: () => void
+    onBack: () => void
+    isProcessing?: boolean
+    error?: string | null
+    isCrossChain?: boolean
+    /** True while the shared `useCrossChainTransfer` hook is provisioning the SDA / previewing fees. */
+    isCalculating?: boolean
+    /** The Rhino quote failed — the fee is unknown, not sponsored. */
+    quoteFailed?: boolean
+    /**
+     * Decimal receive amount from Rhino's quote — e.g. "99.95". Nullable for
+     * same-chain (no bridge) or while the preview call is in flight. Under SDA
+     * there's no slippage on same-stablecoin bridges; this is the deterministic
+     * "they'll receive X" number.
+     */
+    receiveAmount?: string | null
+    /**
+     * The exact USDC the kernel spends (decimal string) — the honest "You pay".
+     * SDA (receive mode) = principal + quoted fee; bridge (pay mode) = principal
+     * (any fee comes out of what the recipient receives). Nullable while
+     * calculating.
+     */
+    payAmount?: string | null
+    /**
+     * True when the bridge fee is a large share of the amount (e.g. a small
+     * withdraw to Ethereum mainnet where the flat gas floor dominates). Shows a
+     * non-blocking heads-up — the user can still proceed; the fee is honest.
+     */
+    showHighFeeWarning?: boolean
+    /**
+     * True when the balance can't cover amount + cross-chain fee. Blocks the CTA
+     * with an honest "not enough balance" message instead of letting the user
+     * sign into the misleading "balance still settling" send error.
+     */
+    insufficientBalance?: boolean
+    /**
+     * Set when the cross-chain deposit falls below Rhino's route minimum — the
+     * bridge would accept the funds on-chain but never deliver them. Blocks the
+     * CTA and shows the message.
+     */
+    belowMinimumMessage?: string | null
+    /** Reached via Send → Exchange or Wallet, so the copy says send, not withdraw. */
+    isFromSendFlow?: boolean
+}
+
+export default function ConfirmWithdrawView({
+    amount,
+    token,
+    chain,
+    toAddress,
+    networkFee = 0,
+    peanutFee = '0.00',
+    onConfirm,
+    onBack,
+    isProcessing,
+    error,
+    isCrossChain = false,
+    isCalculating = false,
+    quoteFailed = false,
+    receiveAmount,
+    payAmount,
+    showHighFeeWarning = false,
+    insufficientBalance = false,
+    belowMinimumMessage = null,
+    isFromSendFlow = false,
+}: WithdrawConfirmViewProps) {
+    const t = useTranslations('withdraw')
+    const tNav = useTranslations('navigation')
+    const tCommon = useTranslations('common')
+    const tLoading = useTranslations('loadingStates')
+    const tErrors = useTranslations('errors')
+    const { tokenIconUrl, chainIconUrl, resolvedChainName, resolvedTokenSymbol } = useTokenChainIcons({
+        chainId: chain.chainId,
+        tokenAddress: token.address,
+        tokenSymbol: token.symbol,
+    })
+
+    const displayReceived = useMemo<string | null>(() => {
+        if (!isCrossChain || !receiveAmount || !resolvedTokenSymbol) return null
+        return isStableCoin(resolvedTokenSymbol) ? `$${receiveAmount}` : `${receiveAmount} ${resolvedTokenSymbol}`
+    }, [isCrossChain, receiveAmount, resolvedTokenSymbol])
+
+    // What actually leaves the wallet on a cross-chain withdraw — the exact USDC
+    // the kernel spends (`payAmount`). This is authoritative for BOTH paths and
+    // avoids guessing: SDA (receive mode) = principal + quoted fee, bridge (pay
+    // mode) = principal (any fee comes out of the recipient's amount, not on
+    // top). Using amount + fee would over-state the bridge path.
+    // USDC spending amounts retain all six decimals on confirmation.
+    const totalPayDisplay = useMemo<string | null>(() => {
+        if (!isCrossChain || !payAmount) return null
+        const parsed = parseFloat(payAmount)
+        return Number.isFinite(parsed) ? `$${formatNumberForDisplay(payAmount, { maxDecimals: 6 })}` : null
+    }, [isCrossChain, payAmount])
+
+    return (
+        <div className="space-y-8">
+            <NavHeader title={isFromSendFlow ? tNav('send') : tNav('withdraw')} onPrev={onBack} />
+
+            <div className="space-y-4 pb-4">
+                <PeanutActionDetailsCard
+                    avatarSize="small"
+                    transactionType={'WITHDRAW'}
+                    recipientType="USERNAME"
+                    recipientName={''}
+                    amount={formatNumberForDisplay(amount, { maxDecimals: 6 })}
+                    tokenSymbol="USDC"
+                    isFromSendFlow={isFromSendFlow}
+                />
+
+                <Card className="rounded-sm">
+                    {isCrossChain && (isCalculating || displayReceived) && (
+                        <PaymentInfoRow
+                            label={t('confirm.recipientReceives')}
+                            value={displayReceived}
+                            loading={isCalculating}
+                            moreInfoText={t('confirm.recipientReceivesInfo')}
+                        />
+                    )}
+                    <PaymentInfoRow
+                        label={t('confirm.tokenAndNetwork')}
+                        value={
+                            <div className="flex items-center gap-2">
+                                {token && (
+                                    <div className="relative flex h-6 w-6 min-w-6 items-center justify-center">
+                                        <DisplayIcon
+                                            iconUrl={tokenIconUrl}
+                                            altText={resolvedTokenSymbol || t('confirm.tokenAlt')}
+                                            fallbackName={resolvedTokenSymbol || 'T'}
+                                            sizeClass="h-6 w-6"
+                                        />
+                                        {chainIconUrl && (
+                                            <div className="absolute -right-1 -bottom-1">
+                                                <DisplayIcon
+                                                    iconUrl={chainIconUrl}
+                                                    altText={resolvedChainName || t('confirm.chainAlt')}
+                                                    fallbackName={resolvedChainName || 'C'}
+                                                    sizeClass="h-3.5 w-3.5"
+                                                    className="rounded-full border-2 border-white dark:border-gray-100"
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                                <span>
+                                    {t.rich('confirm.tokenOnChain', {
+                                        token: resolvedTokenSymbol || token.symbol,
+                                        chain: resolvedChainName || chain.networkName,
+                                        c: (chunks) => <span className="capitalize">{chunks}</span>,
+                                    })}
+                                </span>
+                            </div>
+                        }
+                    />
+                    <PaymentInfoRow
+                        label={t('confirm.to')}
+                        value={
+                            <AddressLink
+                                isLink={false}
+                                address={toAddress}
+                                className="text-foreground-primary no-underline"
+                            />
+                        }
+                    />
+                    <NetworkFeeRow
+                        label={t('confirm.networkFee')}
+                        feeUsd={networkFee}
+                        isCrossChain={isCrossChain}
+                        loading={isCrossChain && isCalculating}
+                        estimationFailed={isCrossChain && quoteFailed}
+                        // Two different things to explain: nothing charged on
+                        // top (the sponsored row), or a quoted fee — which this
+                        // flow quotes receive-mode, so it sits inside You pay,
+                        // not on top of it.
+                        moreInfoText={
+                            isCrossChain && (networkFee ?? 0) > 0
+                                ? t('confirm.networkFeeChargedInfo')
+                                : t('confirm.networkFeeInfo')
+                        }
+                    />
+                    {isCrossChain && (isCalculating || totalPayDisplay) && (
+                        <PaymentInfoRow label={t('confirm.youPay')} value={totalPayDisplay} loading={isCalculating} />
+                    )}
+                    <PaymentInfoRow hideBottomBorder label={tCommon('peanutFee')} value={`$${peanutFee}`} />
+                </Card>
+
+                {showHighFeeWarning && <Notification priority="info">{t('confirm.highFeeWarning')}</Notification>}
+
+                {error ? (
+                    <Button
+                        variant="purple"
+                        shadowSize="4"
+                        onClick={() => {
+                            if (error === ROUTE_NOT_FOUND_ERROR) {
+                                onBack()
+                            } else {
+                                onConfirm()
+                            }
+                        }}
+                        disabled={false}
+                        loading={false}
+                        className="w-full"
+                        icon="retry"
+                    >
+                        {tCommon('retry')}
+                    </Button>
+                ) : (
+                    <Button
+                        variant="purple"
+                        shadowSize="4"
+                        onClick={onConfirm}
+                        disabled={isProcessing || isCalculating || insufficientBalance || !!belowMinimumMessage}
+                        loading={isProcessing}
+                        className="w-full"
+                    >
+                        {isProcessing
+                            ? tLoading(isFromSendFlow ? 'sending' : 'withdrawing')
+                            : tNav(isFromSendFlow ? 'send' : 'withdraw')}
+                    </Button>
+                )}
+
+                {insufficientBalance && !error && (
+                    <Notification priority="error">{tErrors('notEnoughBalanceAddFunds')}</Notification>
+                )}
+                {belowMinimumMessage && !insufficientBalance && !error && (
+                    <Notification priority="error">{belowMinimumMessage}</Notification>
+                )}
+                {error && <Notification priority="error">{error}</Notification>}
+            </div>
+        </div>
+    )
+}
