@@ -51,14 +51,20 @@ DevOps setup:
    (393×852, fit scale-down, no cropping; no signed URL requirement).
 2. Create a dedicated private R2 bucket. Retain objects
    indefinitely; respect object Cache-Control (index/latest use 60 seconds).
-3. Create one Cloudflare API token with Images Edit, Workers R2 Storage Edit,
-   and Workers Scripts Edit scoped to this gallery's Images account, R2 bucket,
-   and Worker. Save it as the `CLOUDFLARE_API_TOKEN` GitHub Actions secret and
-   also as the `CLOUDFLARE_API_TOKEN` secret in the `screen-library-deploy`
-   environment. The publisher verifies the token ID and derives the S3 secret
-   from its SHA-256 hash at runtime; no separate R2 keys are stored. Reusing one
-   token gives the artifact-processing publisher deployment authority as well as
-   storage authority, so use separate tokens if least privilege is required.
+3. Create two Cloudflare API tokens with separate values:
+   - a publisher token with Images Edit and Workers R2 Storage Edit scoped to
+     this gallery's Images account and R2 bucket. Save it as the repository
+     `CLOUDFLARE_API_TOKEN` secret. The reusable workflow keeps its historical
+     `CLOUDFLARE_PUBLISH_TOKEN` input for compatibility while exposing the
+     value to the publisher process as `CLOUDFLARE_API_TOKEN`; this token never
+     receives Workers Scripts Edit.
+   - a deployment token with Workers Scripts Edit scoped to this gallery's
+     Worker. Save it as the `CLOUDFLARE_API_TOKEN` secret in the
+     `screen-library-deploy` environment. For a custom domain it also needs
+     Zone Read and DNS Edit, as described below. The deployment job exposes
+     this separate value under the same `CLOUDFLARE_API_TOKEN` runtime name.
+     The publisher verifies its token ID and derives the S3 secret from its
+     SHA-256 hash at runtime; no separate R2 keys are stored.
 4. In GitHub Actions repository variables set `CLOUDFLARE_ACCOUNT_ID`,
    `SCREEN_LIBRARY_R2_BUCKET`, `SCREEN_LIBRARY_R2_JURISDICTION` (`eu` for screenshots-library),
    `SCREEN_LIBRARY_PUBLIC_URL` (gallery HTTPS origin,

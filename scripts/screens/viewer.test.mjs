@@ -107,3 +107,13 @@ test('landing page shows a friendly empty state when captures are not published'
         assert.equal(elements.get('route-coverage').hidden, true)
     }
 })
+
+test('hosted report 404 shows a report-not-found state instead of an unpublished catalogue', async () => {
+    const elements = await loadLanding('/screens/2026-09-11/dev-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/', {
+        ok: false,
+    })
+    assert.equal(elements.get('empty-state').hidden, false)
+    assert.match(elements.get('empty-title').textContent, /report is not available/i)
+    assert.doesNotMatch(elements.get('empty-title').textContent, /almost here/i)
+    assert.match(elements.get('empty-message').textContent, /published report/i)
+})

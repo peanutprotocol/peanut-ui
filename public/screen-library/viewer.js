@@ -116,14 +116,27 @@ async function loadJSON(url) {
 }
 function showEmptyState(kind = 'unpublished') {
     const unpublished = kind === 'unpublished'
+    const reportNotFound = kind === 'report-not-found'
     $('empty-kicker').textContent = unpublished
         ? 'SCREEN LIBRARY · COMING TO LIFE'
-        : 'SCREEN LIBRARY · TEMPORARILY UNAVAILABLE'
-    $('empty-title').textContent = unpublished ? 'Your gallery is almost here.' : 'The gallery needs a moment.'
+        : reportNotFound
+          ? 'SCREEN LIBRARY · REPORT NOT FOUND'
+          : 'SCREEN LIBRARY · TEMPORARILY UNAVAILABLE'
+    $('empty-title').textContent = unpublished
+        ? 'Your gallery is almost here.'
+        : reportNotFound
+          ? 'That report is not available.'
+          : 'The gallery needs a moment.'
     $('empty-message').textContent = unpublished
         ? 'Screenshots are generated in the background and will appear here after the first capture is published.'
-        : 'We could not load the library right now. Check again in a moment and your gallery will be here when it is ready.'
-    $('empty-status').textContent = unpublished ? 'No published captures yet' : 'Temporary loading issue'
+        : reportNotFound
+          ? 'This screen-library link does not point to a published report. Return to the gallery to choose an available version.'
+          : 'We could not load the library right now. Check again in a moment and your gallery will be here when it is ready.'
+    $('empty-status').textContent = unpublished
+        ? 'No published captures yet'
+        : reportNotFound
+          ? 'Published report not found'
+          : 'Temporary loading issue'
     $('coverage').hidden = true
     $('screen-filters').hidden = true
     $('route-coverage').hidden = true
@@ -241,4 +254,13 @@ $('slider').oninput = () => {
     if (n) n.style.clipPath = `inset(0 ${100 - Number($('slider').value)}% 0 0)`
 }
 $('empty-retry').onclick = () => location.reload()
-start().catch((e) => showEmptyState(e.status === 404 ? 'unpublished' : 'error'))
+start().catch((e) => {
+    const pathname = location.pathname
+    const isHostedIndex =
+        pathname === '/' ||
+        pathname === '/index.html' ||
+        pathname === '/screen-library' ||
+        pathname === '/screen-library/' ||
+        pathname === '/screen-library/index.html'
+    showEmptyState(e.status === 404 ? (isHostedIndex ? 'unpublished' : 'report-not-found') : 'error')
+})
