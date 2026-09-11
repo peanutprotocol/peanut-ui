@@ -195,13 +195,14 @@ for (const locale of APP_LOCALES_SWEEP) {
             await settle(page)
             const landed = new URL(page.url()).pathname
             if (landed !== route.split('?')[0]) return landed
-            return undefined
-            // scan only after the app renders the catalog (IntlCore stamps lang)
+            // scan only after the app renders the catalog (IntlCore stamps
+            // lang) — without this a cell can scan English fallback and pass
             await expect
                 .poll(() => page.evaluate(() => document.documentElement.lang), {
                     message: 'translated catalog never rendered',
                 })
                 .toBe(locale)
+            return undefined
         }
 
         for (const [name, fixture] of Object.entries(FIXTURES)) {
