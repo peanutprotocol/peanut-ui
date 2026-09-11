@@ -186,6 +186,12 @@ export async function run(mode, { env = process.env, fetchImpl = fetch } = {}) {
         }
         if (candidate.rolloutEnabled !== false) throw new Error('candidate rollout must be disabled')
     }
+    const verifyCandidateReset = async () => {
+        const matches = (await policies()).filter((row) => row.name === CANDIDATE_CHANNEL)
+        if (matches.length !== 1 || channelVersion(matches[0], CANDIDATE_CHANNEL) !== 'builtin') {
+            throw new Error('candidate channel must be reset to builtin')
+        }
+    }
     const bundles = async () => {
         const rows = []
         for (let page = 0; page < 100; page++) {
@@ -210,6 +216,10 @@ export async function run(mode, { env = process.env, fetchImpl = fetch } = {}) {
             await request('channel', {
                 body: {
                     channel: CANDIDATE_CHANNEL,
+                    // A failed run can leave its first platform bundle attached.
+                    // Reset the disabled channel so the next run retains the
+                    // checksum guard on its first upload.
+                    version: null,
                     ...DISABLED_AUDIENCES,
                     ios: false,
                     android: false,
@@ -218,7 +228,8 @@ export async function run(mode, { env = process.env, fetchImpl = fetch } = {}) {
                 },
             })
             await verifyCandidate()
-            return 'Candidate channel has no enabled device audience'
+            await verifyCandidateReset()
+            return 'Candidate channel is disabled and reset to builtin'
         case 'verify-bundle':
             await verifyCandidate()
             return `Verified bundle ${await bundle()}`
