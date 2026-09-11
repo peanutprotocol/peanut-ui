@@ -11,9 +11,8 @@ if (
     )
 )
     throw new Error('Invalid immutable report path')
-const token = process.env.SCREEN_LIBRARY_BLOB_TOKEN
-if (!token) throw new Error('SCREEN_LIBRARY_BLOB_TOKEN is not configured')
-const { put, list } = await import('@vercel/blob')
+import { createStorage } from './cloudflare-storage.mjs'
+const { put, list, read, preview } = await createStorage()
 const { default: sharp } = await import('sharp')
 const dir = resolve(inputDir),
     assets = join(dir, 'assets')
@@ -35,20 +34,17 @@ for (const capture of report.type === 'capture' ? [report] : [report.before, rep
             refs.add(s.thumbnail)
         }
 if (report.type === 'comparison') for (const s of report.screens) if (s.diff) refs.add(s.diff)
-const options = { access: 'public', token, addRandomSuffix: false, allowOverwrite: false }
+const options = { allowOverwrite: false }
+const previewUrls = {}
 async function immutable(path, body, contentType) {
     // Conflict on a rerun is acceptable only when the remote bytes agree.
     try {
         return await put(path, body, { ...options, contentType })
     } catch (error) {
-        const existing = await list({ token, prefix: path, limit: 2 })
+        const existing = await list({ prefix: path, limit: 2 })
         const item = existing.blobs.find((b) => b.pathname === path)
         if (!item) throw error
-        const response = await fetch(item.url)
-        if (
-            !response.ok ||
-            !Buffer.from(await response.arrayBuffer()).equals(Buffer.isBuffer(body) ? body : Buffer.from(body))
-        )
+        if (!(await read(path)).equals(Buffer.isBuffer(body) ? body : Buffer.from(body)))
             throw new Error(`Immutable object conflict: ${path}`)
         return item
     }
@@ -62,8 +58,8 @@ try {
             const meta = await sharp(bytes, { limitInputPixels: 393 * 852 }).metadata()
             if (meta.width !== 197 || meta.height !== 427) throw new Error('Invalid thumbnail dimensions')
         }
+        previewUrls[name] = await preview(name, bytes)
         copyFileSync(join(assets, name), join(offline, 'assets', name))
-        await immutable(`assets/${name}`, bytes, name.endsWith('.png') ? 'image/png' : 'image/webp')
     }
     const json = JSON.stringify(report)
     writeFileSync(join(offline, 'manifest.json'), json)
@@ -86,11 +82,15 @@ try {
     // Relative entries only; filenames were validated above. Archive built by trusted code.
     execFileSync('tar', ['-czf', join(dir, 'offline.tar.gz'), '-C', offline, '.'])
     const archivePath = `reports/${reportPath}/offline.tar.gz`
-    const priorArchive = await list({ token, prefix: archivePath, limit: 2 })
+    const priorArchive = await list({ prefix: archivePath, limit: 2 })
     if (!priorArchive.blobs.some((b) => b.pathname === archivePath))
         await immutable(archivePath, readFileSync(join(dir, 'offline.tar.gz')), 'application/gzip')
     // Commit marker last. Incomplete captures remain explicitly incomplete in the viewer.
-    const manifest = await immutable(`reports/${reportPath}/manifest.json`, json, 'application/json')
+    const manifest = await immutable(
+        `reports/${reportPath}/manifest.json`,
+        JSON.stringify({ ...report, previewUrls }),
+        'application/json'
+    )
     const date = reportPath.slice(0, 10)
     await immutable(
         `entries/${reportPath.replaceAll('/', '_')}.json`,
@@ -107,11 +107,9 @@ try {
     const entries = []
     let cursor
     do {
-        const page = await list({ token, prefix: 'entries/', cursor })
+        const page = await list({ prefix: 'entries/', cursor })
         for (const b of page.blobs) {
-            const r = await fetch(b.url)
-            if (!r.ok) throw new Error('Could not read version index entry')
-            entries.push(await r.json())
+            entries.push(JSON.parse((await read(b.pathname)).toString('utf8')))
         }
         cursor = page.cursor
         if (!page.hasMore) break

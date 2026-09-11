@@ -65,12 +65,34 @@ new screens. Build each revision with its own lockfile and content commit.
 The viewer is static under `public/screen-library`; `/screens/*` rewrites to it,
 so app auth/provider initialization cannot interfere. It reads data through
 `/screen-data/*`. Configure `SCREEN_LIBRARY_STORE_URL` on the staging Vercel
-project to the HTTPS base URL of a dedicated public Vercel Blob store, then
+project to the HTTPS custom-domain origin of a dedicated public Cloudflare R2 bucket, then
 redeploy staging to register the rewrite. Do not put any write token in a
 `NEXT_PUBLIC_` variable or in the capture environment.
 
-Set `SCREEN_LIBRARY_BLOB_TOKEN` as the GitHub Actions secret containing that
-store's write token. Only the separate trusted publisher receives it. The
+Use Cloudflare Images for all screenshots, thumbnails and pixel-difference images.
+R2 holds only JSON/indexes and offline archives, with no standalone PNG objects.
+Pixel comparisons run on original local capture bytes before upload. Online
+images (including zoom/overlay) use Images delivery, which may optimize formats;
+offline archives retain the original capture files. No Vercel Blob store is needed.
+
+DevOps setup:
+
+1. Enable Cloudflare Images and create a public `screen-preview` variant
+   (393×852, fit scale-down, no cropping; no signed URL requirement).
+2. Create a dedicated R2 bucket with a public custom domain. Retain objects
+   indefinitely; respect object Cache-Control (index/latest use 60 seconds).
+3. In GitHub Actions repository secrets set `CLOUDFLARE_IMAGES_TOKEN`
+   (Account → Cloudflare Images → Edit, scoped to the account),
+   `SCREEN_LIBRARY_R2_ACCESS_KEY_ID` and `SCREEN_LIBRARY_R2_SECRET_ACCESS_KEY`
+   (R2 Object Read & Write credentials scoped to this bucket).
+4. In GitHub Actions repository variables set `CLOUDFLARE_ACCOUNT_ID`,
+   `SCREEN_LIBRARY_R2_BUCKET`, `SCREEN_LIBRARY_STORE_URL` (public R2 HTTPS origin),
+   `SCREEN_LIBRARY_IMAGES_HASH` (Images delivery account hash, distinct from account ID),
+   and `SCREEN_LIBRARY_IMAGES_VARIANT=screen-preview`.
+5. Set the same `SCREEN_LIBRARY_STORE_URL` in Vercel's staging/Preview environment
+   and redeploy. Keep the existing Vercel deployment token. The Blob secret is unused.
+
+Only the separate trusted publisher receives the write credentials. The
 publisher accepts hashes and validated JSON/PNG/WebP; no downloaded code or
 HTML is executed. It reconstructs the comparison itself and generates offline
 HTML from its own trusted viewer. Artifacts expire after 14 days; published

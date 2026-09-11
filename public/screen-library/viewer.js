@@ -9,7 +9,16 @@ const el = (tag, value, className) => {
 }
 const offline = location.protocol === 'file:' || location.pathname.endsWith('/index.html')
 const assetBase = offline ? './assets/' : '/screen-data/assets/'
-const asset = (name) => (/^[a-f0-9]{64}\.(png|webp)$/.test(name || '') ? assetBase + name : null)
+const asset = (name) => {
+    if (!/^[a-f0-9]{64}\.(png|webp)$/.test(name || '')) return null
+    const preview = !offline && report?.previewUrls?.[name]
+    if (
+        typeof preview === 'string' &&
+        /^https:\/\/imagedelivery\.net\/[\w-]+\/peanut-screen-[a-f0-9]{64}\/[\w-]+$/.test(preview)
+    )
+        return preview
+    return assetBase + name
+}
 const image = (name, alt) => {
     const n = el('img')
     const url = asset(name)
