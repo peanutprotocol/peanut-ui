@@ -882,11 +882,8 @@ const isFreshRedirectMirrorPending = (generationId: string): boolean => {
     const pending = getFromLocalStorage(`${REDIRECT_V2_MIRROR_PENDING_PREFIX}${generationId}`)
     if (!pending || typeof pending !== 'object') return false
     const createdAt = (pending as Partial<RedirectMirrorPending>).createdAt
-    return (
-        typeof createdAt === 'number' &&
-        Date.now() - createdAt >= 0 &&
-        Date.now() - createdAt < REDIRECT_V2_MIRROR_PENDING_TTL_MS
-    )
+    const age = Date.now() - (typeof createdAt === 'number' ? createdAt : Date.now())
+    return typeof createdAt === 'number' && age >= 0 && age < REDIRECT_V2_MIRROR_PENDING_TTL_MS
 }
 
 const getLegacyIdentity = (stored: unknown): string | undefined =>
@@ -1073,11 +1070,15 @@ const reclaimRedirectConsumptionSlots = () => {
 
     for (const generationId of reclaimableGenerationIds) {
         if (generationId === refreshedReachableGenerationId) continue
+        const pendingKey = `${REDIRECT_V2_MIRROR_PENDING_PREFIX}${generationId}`
+        const observedPending = localStorage.getItem(pendingKey)
         if (isFreshRedirectMirrorPending(generationId)) continue
         localStorage.removeItem(`${REDIRECT_V2_CONSUMED_PREFIX}${generationId}`)
         localStorage.removeItem(`${REDIRECT_V2_CONSUMED_FALLBACK_PREFIX}${generationId}`)
         localStorage.removeItem(`${REDIRECT_V2_PUBLISHED_PREFIX}${generationId}`)
-        localStorage.removeItem(`${REDIRECT_V2_MIRROR_PENDING_PREFIX}${generationId}`)
+        if (observedPending !== null && localStorage.getItem(pendingKey) === observedPending) {
+            localStorage.removeItem(pendingKey)
+        }
     }
 }
 

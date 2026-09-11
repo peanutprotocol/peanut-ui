@@ -509,6 +509,49 @@ describe('post-auth redirect reads one snapshot', () => {
         expect(getRedirectUrl()).toBe('/card')
     })
 
+    it('does not remove a mirror record created after cleanup observed it absent', () => {
+        saveToLocalStorage('redirect', '/home')
+        let interleaved = false
+        let pendingCreated = false
+        let suppressFreshnessRead = false
+        let newerPublicationComplete = false
+        let mirrorObserved = false
+        let pendingKey = ''
+        Storage.prototype.getItem = function patched(key: string) {
+            if (suppressFreshnessRead && key === pendingKey) {
+                suppressFreshnessRead = false
+                return null
+            }
+            const value = originalGetItem.call(this, key)
+            if (key === 'redirect-v2' && !interleaved && value !== null) {
+                interleaved = true
+                pendingKey = `redirect-v2-mirror-pending:${JSON.parse(value).generationId}`
+                setRedirectUrl('/card', 'deep-link')
+                newerPublicationComplete = true
+            } else if (key === pendingKey && value === null && newerPublicationComplete && !pendingCreated) {
+                pendingCreated = true
+                localStorage.setItem(pendingKey, JSON.stringify({ destination: '/profile', createdAt: Date.now() }))
+                suppressFreshnessRead = true
+            }
+            return value
+        }
+        const setItem = jest.spyOn(Storage.prototype, 'setItem')
+        setItem.mockImplementation(function patched(this: Storage, key: string, value: string) {
+            if (key === pendingKey && pendingCreated) return
+            const result = originalSetItem.call(this, key, value)
+            if (key === 'redirect' && newerPublicationComplete && !mirrorObserved) {
+                mirrorObserved = true
+                expect(getRedirectUrl()).toBe('/card')
+                newerPublicationComplete = false
+            }
+            return result
+        })
+
+        setRedirectUrl('/profile', 'session-end')
+
+        expect(getRedirectUrl()).toBe('/card')
+    })
+
     it('aborts tombstone cleanup when the authoritative pointer changes during the scan', () => {
         setRedirectUrl('/profile', 'session-end')
         const getKey = jest.spyOn(Storage.prototype, 'key')
