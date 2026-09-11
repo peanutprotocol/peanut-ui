@@ -18,6 +18,8 @@ import ProfileEditField from '../components/ProfileEditField'
 import ProfileHeader from '../components/ProfileHeader'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
+import { invalidateCrispTokenId } from '@/hooks/useCrispTokenId'
+import { resetCrispProxySessions } from '@/utils/crisp'
 
 interface ProfileFields {
     name: string
@@ -110,6 +112,14 @@ export const ProfileEditView = () => {
                 }
                 setErrorMessage(result.error)
                 return
+            }
+            if (hasCode) {
+                // The API rotates the server-issued Crisp bearer in the same
+                // transaction as a verified replacement. Unbind this device
+                // from the former support session before refetching the profile,
+                // then force every mounted support hook to fetch the new bearer.
+                await resetCrispProxySessions()
+                invalidateCrispTokenId(user.user.userId)
             }
             await fetchUser()
             router.replace('/profile')

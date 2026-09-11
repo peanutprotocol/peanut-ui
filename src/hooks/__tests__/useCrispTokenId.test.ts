@@ -11,12 +11,24 @@ jest.mock('@/utils/api-fetch', () => ({
     apiFetch: (...args: unknown[]) => apiFetchMock(...args),
 }))
 
+const mockResetCrispSessions = jest.fn()
+jest.mock('@/utils/crisp', () => ({
+    resetCrispProxySessions: (...args: unknown[]) => mockResetCrispSessions(...args),
+}))
+
+const mockIsCapacitor = jest.fn()
+jest.mock('@/utils/capacitor', () => ({
+    isCapacitor: () => mockIsCapacitor(),
+}))
+
 const jsonResponse = (body: unknown, ok = true) => ({ ok, json: async () => body }) as unknown as Response
 
 describe('useCrispTokenId', () => {
     beforeEach(() => {
         apiFetchMock.mockReset()
         mockUseAuth.mockReset()
+        mockResetCrispSessions.mockReset().mockResolvedValue(undefined)
+        mockIsCapacitor.mockReset().mockReturnValue(false)
     })
 
     it('returns undefined and never calls the API when unauthenticated', () => {
@@ -33,6 +45,21 @@ describe('useCrispTokenId', () => {
         const { result } = renderHook(() => useCrispTokenId())
 
         await waitFor(() => expect(result.current).toBe('tok-aaa'))
+    })
+
+    it('resets a persisted native session before the first bind after a cold process start', async () => {
+        mockIsCapacitor.mockReturnValue(true)
+        mockUseAuth.mockReturnValue({ userId: 'cold-native', user: { user: { email: 'new@example.com' } } })
+        apiFetchMock.mockResolvedValue(jsonResponse({ crispTokenId: 'new-token', userId: 'cold-native' }))
+
+        const { result } = renderHook(() => useCrispTokenId())
+
+        expect(result.current).toBeUndefined()
+        await waitFor(() => expect(mockResetCrispSessions).toHaveBeenCalledTimes(1))
+        expect(mockResetCrispSessions.mock.invocationCallOrder[0]).toBeLessThan(
+            apiFetchMock.mock.invocationCallOrder[0]
+        )
+        await waitFor(() => expect(result.current).toBe('new-token'))
     })
 
     it('takes the userId from the auth token, not a parameter — the call carries no userId', async () => {
@@ -82,5 +109,25 @@ describe('useCrispTokenId', () => {
 
         await waitFor(() => expect(apiFetchMock.mock.calls.length).toBeGreaterThan(1), { timeout: 3000 })
         expect(result.current).toBeUndefined()
+    })
+
+    it('drops and rebinds the token before exposing a replacement mailbox', async () => {
+        let email = 'old@example.com'
+        mockUseAuth.mockImplementation(() => ({ userId: 'rotating-user', user: { user: { email } } }))
+        apiFetchMock
+            .mockResolvedValueOnce(jsonResponse({ crispTokenId: 'old-token', userId: 'rotating-user' }))
+            .mockResolvedValueOnce(jsonResponse({ crispTokenId: 'new-token', userId: 'rotating-user' }))
+
+        const { result, rerender } = renderHook(() => useCrispTokenId())
+        await waitFor(() => expect(result.current).toBe('old-token'))
+
+        email = 'new@example.com'
+        rerender()
+
+        // The old token is unusable in the same render that observes the new
+        // email; SupportDrawer therefore unmounts its old session immediately.
+        expect(result.current).toBeUndefined()
+        await waitFor(() => expect(mockResetCrispSessions).toHaveBeenCalledTimes(1))
+        await waitFor(() => expect(result.current).toBe('new-token'))
     })
 })

@@ -237,6 +237,14 @@ const SupportDrawer = () => {
                 // seeded with the current snapshot, so this never returns.
                 if (!snapshot) return
 
+                // Bind the freshly fetched token before publishing identity. On
+                // Android, setUser writes immediately when a session is already
+                // active; doing it first could expose a replacement mailbox to
+                // the former token during a coordinated token rotation.
+                if (tokenId) {
+                    CapacitorCrisp.setTokenID({ tokenID: tokenId })
+                }
+
                 // set user data before opening
                 if (snapshot.email || snapshot.fullName) {
                     CapacitorCrisp.setUser({
@@ -244,9 +252,6 @@ const SupportDrawer = () => {
                         nickname: snapshot.fullName || snapshot.username || undefined,
                         avatar: snapshot.avatar || undefined,
                     })
-                }
-                if (tokenId) {
-                    CapacitorCrisp.setTokenID({ tokenID: tokenId })
                 }
                 /*
                  * Custom data for support agents. Every key is written

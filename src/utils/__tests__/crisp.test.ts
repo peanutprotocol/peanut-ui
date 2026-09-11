@@ -60,13 +60,28 @@ describe('ensureNativeCrispConfigured', () => {
         expect(configure).toHaveBeenCalledTimes(2)
     })
 
-    it('resets the native session on logout once support has been opened', async () => {
+    it('resets the native session once support has been opened', async () => {
         const { ensureNativeCrispConfigured, resetCrispProxySessions } = await import('@/utils/crisp')
 
         await expectToSettle(ensureNativeCrispConfigured())
-        resetCrispProxySessions()
-        await expectToSettle(Promise.resolve())
+        await expectToSettle(resetCrispProxySessions())
 
         expect(reset).toHaveBeenCalled()
+    })
+
+    it('configures and resets a persisted native session after a cold process start', async () => {
+        const { resetCrispProxySessions } = await import('@/utils/crisp')
+
+        await expectToSettle(resetCrispProxySessions())
+
+        expect(configure).toHaveBeenCalledTimes(1)
+        expect(reset).toHaveBeenCalledTimes(1)
+    })
+
+    it('fails closed when the native session cannot be reset', async () => {
+        reset.mockRejectedValueOnce(new Error('reset failed'))
+        const { resetCrispProxySessions } = await import('@/utils/crisp')
+
+        await expect(expectToSettle(resetCrispProxySessions())).rejects.toThrow('reset failed')
     })
 })

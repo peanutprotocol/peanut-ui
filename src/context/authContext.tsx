@@ -330,11 +330,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         disableDemoMode()
 
         // reset third-party sessions (non-fatal)
-        try {
-            resetCrispProxySessions()
-        } catch (e) {
-            console.warn('crisp reset failed:', e)
-        }
+        void resetCrispProxySessions().catch((e) => console.warn('crisp reset failed:', e))
         try {
             posthog.reset()
             // reset() wipes registered super properties — re-register the

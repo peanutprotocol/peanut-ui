@@ -5,6 +5,8 @@ import { updateUserById, requestEmailChange } from '@/app/actions/users'
 
 const mockReplace = jest.fn()
 const mockFetchUser = jest.fn()
+const mockResetCrispSessions = jest.fn()
+const mockInvalidateCrispToken = jest.fn()
 let mockVerified = false
 let mockUser: {
     profileNameLocked?: boolean
@@ -17,6 +19,12 @@ jest.mock('@/hooks/useIdentityVerification', () => ({
 }))
 jest.mock('next/navigation', () => ({ useRouter: () => ({ replace: mockReplace }) }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
+jest.mock('@/utils/crisp', () => ({
+    resetCrispProxySessions: (...args: unknown[]) => mockResetCrispSessions(...args),
+}))
+jest.mock('@/hooks/useCrispTokenId', () => ({
+    invalidateCrispTokenId: (...args: unknown[]) => mockInvalidateCrispToken(...args),
+}))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
 jest.mock('../../components/ProfileHeader', () => ({ __esModule: true, default: () => null }))
 jest.mock('../../components/ShowNameToggle', () => ({ __esModule: true, default: () => null }))
@@ -44,6 +52,7 @@ beforeEach(() => {
     jest.mocked(updateUserById).mockResolvedValue({})
     jest.mocked(requestEmailChange).mockResolvedValue({})
     mockFetchUser.mockResolvedValue(undefined)
+    mockResetCrispSessions.mockResolvedValue(undefined)
 })
 
 test.each([false, true])('email is editable with verified=%s and only the changed email is sent', async (verified) => {
@@ -61,7 +70,22 @@ test.each([false, true])('email is editable with verified=%s and only the change
             emailVerificationCode: '123456',
         })
     )
+    expect(mockResetCrispSessions).toHaveBeenCalledTimes(1)
+    expect(mockInvalidateCrispToken).toHaveBeenCalledWith('test-user')
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/profile'))
+})
+
+test('keeps the replacement identity gated when the old native support session cannot reset', async () => {
+    mockResetCrispSessions.mockRejectedValueOnce(new Error('native reset failed'))
+    renderWithIntl(<ProfileEditView />)
+    await change('Email for notifications', 'new@example.com')
+    save()
+    await verify()
+
+    await waitFor(() => expect(mockResetCrispSessions).toHaveBeenCalledTimes(1))
+    expect(mockInvalidateCrispToken).not.toHaveBeenCalled()
+    expect(mockFetchUser).not.toHaveBeenCalled()
+    expect(mockReplace).not.toHaveBeenCalled()
 })
 
 test('verified names explain the lock while an unverified name can be saved', async () => {
