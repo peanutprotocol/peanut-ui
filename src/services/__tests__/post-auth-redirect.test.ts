@@ -346,6 +346,26 @@ describe('post-auth redirect reads one snapshot', () => {
         expect(getRedirectUrl()).toBeNull()
     })
 
+    it('reclaims consumed generation slots after later redirect publications', () => {
+        for (let index = 0; index < 8; index += 1) {
+            setRedirectUrl(`/receipt?id=${index}`, 'deep-link')
+            expect(consumePostAuthRedirect(null)).toEqual({
+                destination: `/receipt?id=${index}`,
+                source: 'stored',
+                deferred: false,
+            })
+        }
+
+        const generationSlots = Array.from({ length: localStorage.length }, (_, index) =>
+            localStorage.key(index)
+        ).filter(
+            (key): key is string =>
+                typeof key === 'string' &&
+                (key.startsWith('redirect-v2-consumed:') || key.startsWith('redirect-v2-consumed-fallback:'))
+        )
+        expect(generationSlots).toHaveLength(2)
+    })
+
     it('does not consume a newer generation when it arrives before the consumption marker', () => {
         setRedirectUrl('/profile', 'session-end')
         const setItem = jest.spyOn(Storage.prototype, 'setItem')

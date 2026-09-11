@@ -785,9 +785,9 @@ const LEGACY_REDIRECT_CONSUMED_KEY = 'redirect-consumed-legacy'
  * v2 payload is one localStorage write; the v1 mirror is written only after
  * that succeeds. Once a valid v2 payload exists, it has explicit precedence
  * over the legacy mirror, so a failed mirror write cannot make an old value
- * win. A consumer records the consumed generation instead of deleting the
- * shared pointer, so a newer generation cannot be erased by a stale tab and
- * old payload records cannot accumulate.
+ * win. Each generation reserves its own primary and fallback consumption
+ * slots before publication, and consumed slots for older generations are
+ * reclaimed after the pointer moves so the journal stays bounded.
  *
  * A record stored by a version that had no origin (a plain string) reads back
  * as unclassified rather than as intent: see consumePostAuthRedirect for what
@@ -961,6 +961,34 @@ const markRedirectConsumed = (generationId: string): boolean => {
     return saveToLocalStorage(fallbackKey, '1')
 }
 
+const reclaimRedirectConsumptionSlots = () => {
+    if (typeof localStorage === 'undefined') return
+
+    const pointer = getFromLocalStorage(REDIRECT_V2_KEY)
+    const reachableGenerationId = isRedirectPointer(pointer) ? pointer.generationId : null
+    const consumedGenerationIds = new Set<string>()
+
+    for (let index = 0; index < localStorage.length; index += 1) {
+        const key = localStorage.key(index)
+        if (!key) continue
+
+        let generationId: string | null = null
+        if (key.startsWith(REDIRECT_V2_CONSUMED_PREFIX)) {
+            generationId = key.slice(REDIRECT_V2_CONSUMED_PREFIX.length)
+        } else if (key.startsWith(REDIRECT_V2_CONSUMED_FALLBACK_PREFIX)) {
+            generationId = key.slice(REDIRECT_V2_CONSUMED_FALLBACK_PREFIX.length)
+        }
+        if (!generationId || !isRedirectGenerationId(generationId) || generationId === reachableGenerationId) continue
+
+        if (getFromLocalStorage(key) === '1') consumedGenerationIds.add(generationId)
+    }
+
+    for (const generationId of consumedGenerationIds) {
+        localStorage.removeItem(`${REDIRECT_V2_CONSUMED_PREFIX}${generationId}`)
+        localStorage.removeItem(`${REDIRECT_V2_CONSUMED_FALLBACK_PREFIX}${generationId}`)
+    }
+}
+
 /** The ONLY way to store a post-auth destination. */
 export const setRedirectUrl = (destination: string, origin: RedirectOrigin = 'deep-link') => {
     const generationId = createRedirectGenerationId()
@@ -977,6 +1005,7 @@ export const setRedirectUrl = (destination: string, origin: RedirectOrigin = 'de
     // Keep the v1 handoff readable for documents that predate this change, but
     // never publish a mirror that has no authoritative v2 payload behind it.
     if (published) saveToLocalStorage(REDIRECT_KEY, destination)
+    if (published) reclaimRedirectConsumptionSlots()
 }
 
 export const saveRedirectUrl = (origin: RedirectOrigin = 'deep-link') => {
@@ -1009,7 +1038,10 @@ export const clearRedirectUrl = (expected?: StoredRedirect | null) => {
         if (current.generationKey) {
             localStorage.removeItem(current.generationKey)
         }
-        if (current.generationId) markRedirectConsumed(current.generationId)
+        if (current.generationId) {
+            markRedirectConsumed(current.generationId)
+            reclaimRedirectConsumptionSlots()
+        }
 
         if (current.legacyIdentity) {
             saveToLocalStorage(LEGACY_REDIRECT_CONSUMED_KEY, current.legacyIdentity)
