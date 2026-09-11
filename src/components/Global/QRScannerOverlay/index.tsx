@@ -204,6 +204,9 @@ function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose, onN
 export default function QRScannerOverlay() {
     const t = useTranslations('global')
     const [isModalOpen, setIsModalOpen] = useState(false)
+    // camera-permission recovery is a z-50 sheet inside the scanner; the my-QR
+    // peek floats at z-60 and must clear out while it is up
+    const [isCameraRecoveryOpen, setIsCameraRecoveryOpen] = useState(false)
     const [qrType, setQrType] = useState<EQrType | undefined>(undefined)
     const [redirectTo, setRedirectTo] = useState<string | undefined>(undefined)
     const [modalContent, setModalContent] = useState<EModalType | undefined>(undefined)
@@ -465,15 +468,24 @@ export default function QRScannerOverlay() {
 
             {isQRScannerOpen && (
                 <>
-                    <QRScanner onScan={processQRCode} onClose={() => setIsQRScannerOpen(false)} isOpen={true} />
-                    {/* z-[60] keeps this drawer above the QRScanner portal (z-50) */}
-                    <QRBottomDrawer
-                        url={payUserUrl}
-                        title={t('qrScannerOverlay.myQrTitle')}
-                        text={t('qrScannerOverlay.myQrText')}
-                        buttonText={t('qrScannerOverlay.myQrButtonText')}
-                        className="z-[60]"
+                    <QRScanner
+                        onScan={processQRCode}
+                        onClose={() => setIsQRScannerOpen(false)}
+                        onPermissionDenied={setIsCameraRecoveryOpen}
+                        isOpen={true}
                     />
+                    {/* z-[60] keeps this drawer above the QRScanner portal (z-50) —
+                        which also puts it above the z-50 camera-permission recovery
+                        sheet, so it clears out while that sheet is up */}
+                    {!isCameraRecoveryOpen && (
+                        <QRBottomDrawer
+                            url={payUserUrl}
+                            title={t('qrScannerOverlay.myQrTitle')}
+                            text={t('qrScannerOverlay.myQrText')}
+                            buttonText={t('qrScannerOverlay.myQrButtonText')}
+                            className="z-[60]"
+                        />
+                    )}
                 </>
             )}
         </>

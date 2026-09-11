@@ -8,9 +8,9 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { extractInviteeName } from '@/utils/general.utils'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
-import ActionModal from '@/components/Global/ActionModal'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { Drawer, DrawerContent } from '@/components/Global/Drawer'
 import { Button } from '@/components/0_Bruddle/Button'
-import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
 import { useRouter } from 'next/navigation'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { useAuth } from '@/context/authContext'
@@ -19,18 +19,26 @@ import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts
 import type { ClaimPhase } from './perkClaim.types'
 import { SURPRISE_CLAIM_COUNT_KEY } from './perkClaim.consts'
 
-interface PerkClaimSuccessModalProps {
+interface PerkClaimSuccessDrawerProps {
     perk: PendingPerk
     claimPhase: ClaimPhase
     onClose: () => void
     onDismiss: () => void
+    /** Open the invite drawer — rendered by the host, which survives this sheet's unmount. */
+    onShareInvite?: () => void
 }
 
 /**
- * Success modal using ActionModal's native layout for consistent design system styling.
- * Uses icon/title/description props for standard vertical centered layout.
+ * Success sheet for a claimed perk — celebration content, so it rides in a
+ * drawer; the invite handoff closes this sheet before opening its own.
  */
-export function PerkClaimSuccessModal({ perk, claimPhase, onClose, onDismiss }: PerkClaimSuccessModalProps) {
+export function PerkClaimSuccessDrawer({
+    perk,
+    claimPhase,
+    onClose,
+    onDismiss,
+    onShareInvite,
+}: PerkClaimSuccessDrawerProps) {
     const t = useAppTranslations('home.perk')
     const tCommon = useTranslations('common')
     const inviteeName = perk.inviteeName ?? extractInviteeName(perk.reason)
@@ -38,7 +46,6 @@ export function PerkClaimSuccessModal({ perk, claimPhase, onClose, onDismiss }: 
     const router = useRouter()
     const { user } = useAuth()
     const [canDismiss, setCanDismiss] = useState(false)
-    const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
     const isExiting = claimPhase === 'exiting'
 
     // Surprise moment claim count: read synchronously so first render has correct copy.
@@ -64,46 +71,48 @@ export function PerkClaimSuccessModal({ perk, claimPhase, onClose, onDismiss }: 
 
     return (
         <>
-            <ActionModal
-                visible={true}
-                onClose={onClose}
-                hideModalCloseButton
-                preventClose={isExiting}
-                icon="check"
-                iconProps={{ className: 'text-white' }}
-                iconContainerClassName="bg-background-icon-bubble-green"
-                title=""
-                description={
-                    <div className={isExiting ? 'animate-gift-exit' : 'animate-gift-revealed'}>
-                        <p className="text-heading-m text-black">+${perk.amountUsd}</p>
-                        {isSurpriseMoment ? (
-                            <>
-                                {/* Approved copy — see notion: notifs-copy-33083811757980638a27effc79a033f3 */}
-                                <p className="mt-2 text-center text-body-m-semibold text-foreground-primary">
-                                    {t('surpriseTitle', { amount: perk.amountUsd })}
+            <Drawer
+                open
+                // the exit animation must finish before the sheet can be closed
+                dismissible={!isExiting}
+                onOpenChange={(open) => {
+                    if (!open && !isExiting) onClose()
+                }}
+            >
+                <DrawerContent accessibleTitle={t('rewardClaimed')}>
+                    <div className="flex flex-col items-center pt-1 pb-6 text-center">
+                        <div className="mb-3 flex w-full flex-col items-center gap-4">
+                            <IconBubble icon={<Icon name="check" size={24} className="text-white" />} color="green" />
+                        </div>
+                        <div className={isExiting ? 'animate-gift-exit' : 'animate-gift-revealed'}>
+                            <p className="text-heading-m text-black">+${perk.amountUsd}</p>
+                            {isSurpriseMoment ? (
+                                <>
+                                    {/* Approved copy — see notion: notifs-copy-33083811757980638a27effc79a033f3 */}
+                                    <p className="mt-2 text-center text-body-m-semibold text-foreground-primary">
+                                        {t('surpriseTitle', { amount: perk.amountUsd })}
+                                    </p>
+                                    <p className="mt-1 text-center text-body-s text-foreground-secondary">
+                                        {claimCount === 0
+                                            ? t('surpriseDescriptionFirst')
+                                            : t('surpriseDescriptionNext')}
+                                    </p>
+                                </>
+                            ) : inviteeName ? (
+                                <p className="mt-1 flex items-center justify-center gap-1 text-body-s text-foreground-secondary">
+                                    <Icon name="invite-heart" size={16} />
+                                    {t.rich('usedPeanut', {
+                                        inviteeName,
+                                        name: (chunks) => <span className="font-medium">{chunks}</span>,
+                                    })}
                                 </p>
-                                <p className="mt-1 text-center text-body-s text-foreground-secondary">
-                                    {claimCount === 0 ? t('surpriseDescriptionFirst') : t('surpriseDescriptionNext')}
-                                </p>
-                            </>
-                        ) : inviteeName ? (
-                            <p className="mt-1 flex items-center justify-center gap-1 text-body-s text-foreground-secondary">
-                                <Icon name="invite-heart" size={16} />
-                                {t.rich('usedPeanut', {
-                                    inviteeName,
-                                    name: (chunks) => <span className="font-medium">{chunks}</span>,
-                                })}
-                            </p>
-                        ) : (
-                            <p className="mt-1 text-body-s text-foreground-secondary">{t('rewardClaimed')}</p>
-                        )}
-                    </div>
-                }
-                content={
-                    <>
+                            ) : (
+                                <p className="mt-1 text-body-s text-foreground-secondary">{t('rewardClaimed')}</p>
+                            )}
+                        </div>
                         <SoundPlayer sound="success" />
                         {canDismiss && (
-                            <div className="mt-4 flex flex-col items-center gap-2">
+                            <div className="mt-4 flex w-full flex-col items-center gap-2">
                                 {isSurpriseMoment ? (
                                     <>
                                         <Button
@@ -115,7 +124,7 @@ export function PerkClaimSuccessModal({ perk, claimPhase, onClose, onDismiss }: 
                                                     source: REFERRAL_SOURCES.SURPRISE_MOMENT,
                                                 })
                                                 onDismiss()
-                                                setIsInviteModalOpen(true)
+                                                onShareInvite?.()
                                             }}
                                         >
                                             {t('shareAndEarn')}
@@ -143,17 +152,9 @@ export function PerkClaimSuccessModal({ perk, claimPhase, onClose, onDismiss }: 
                                 )}
                             </div>
                         )}
-                    </>
-                }
-            />
-            {user?.user.username && (
-                <InviteFriendsModal
-                    visible={isInviteModalOpen}
-                    onClose={() => setIsInviteModalOpen(false)}
-                    username={user.user.username}
-                    source="surprise_moment"
-                />
-            )}
+                    </div>
+                </DrawerContent>
+            </Drawer>
         </>
     )
 }

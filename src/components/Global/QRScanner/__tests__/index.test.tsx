@@ -34,7 +34,7 @@ jest.mock('next/image', () => ({
 }))
 // Stands in for the real modal's paste CTA: the modal owns the whole screen in
 // the denied state, so paste is only reachable if it is rendered inside it.
-jest.mock('../CameraPermissionModal', () => ({
+jest.mock('../CameraPermissionDrawer', () => ({
     __esModule: true,
     // mirrors the real contract: Try again + Dismiss, and a paste button ONLY
     // if a caller were to pass onPaste (it must not — the assertion relies on it)

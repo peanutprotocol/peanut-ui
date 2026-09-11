@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl as render } from '@/test-utils/intl'
-import CardLimitEditModal from '../CardLimitEditModal'
+import CardLimitEditDrawer from '../CardLimitEditDrawer'
 
 const mockUpdate = jest.fn()
 const mockInvalidate = jest.fn().mockResolvedValue(undefined)
@@ -12,16 +12,6 @@ jest.mock('@/hooks/wallet/useReturnExcessCollateral', () => ({
     useReturnExcessCollateral: () => ({ returnExcess: mockReturnExcess }),
 }))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
-jest.mock('@/components/Global/ActionModal', () => ({
-    __esModule: true,
-    default: ({ content, ctas }: any) => (
-        <div>
-            {content}
-            <button onClick={ctas[0].onClick}>Save</button>
-        </div>
-    ),
-}))
-
 beforeEach(() => {
     jest.clearAllMocks()
     mockUpdate.mockReset().mockResolvedValue(undefined)
@@ -29,7 +19,7 @@ beforeEach(() => {
 
 function edit(value: string) {
     render(
-        <CardLimitEditModal
+        <CardLimitEditDrawer
             cardId="card-test"
             frequency="perAuthorization"
             label="Per transaction"
@@ -39,7 +29,7 @@ function edit(value: string) {
         />
     )
     fireEvent.change(screen.getByLabelText('Per transaction'), { target: { value } })
-    fireEvent.click(screen.getByText('Save'))
+    fireEvent.click(screen.getByRole('button', { name: /save changes/i }))
 }
 
 test.each(['', '0', '-1', '0.001', '21474836.48'])(

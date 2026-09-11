@@ -4,7 +4,9 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useFormatter, useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import ActionModal from '@/components/Global/ActionModal'
+import { Button } from '@/components/0_Bruddle/Button'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { rainApi, type RainCardLimit, type RainLimitFrequency } from '@/services/rain'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
 import { useReturnExcessCollateral } from '@/hooks/wallet/useReturnExcessCollateral'
@@ -21,7 +23,7 @@ interface Props {
     onClose: () => void
 }
 
-const CardLimitEditModal: FC<Props> = ({ cardId, frequency, label, initialAmountCents, isOpen, onClose }) => {
+const CardLimitEditDrawer: FC<Props> = ({ cardId, frequency, label, initialAmountCents, isOpen, onClose }) => {
     const t = useTranslations('card.limits')
     const format = useFormatter()
     const queryClient = useQueryClient()
@@ -114,48 +116,61 @@ const CardLimitEditModal: FC<Props> = ({ cardId, frequency, label, initialAmount
     }
 
     return (
-        <ActionModal
-            visible={isOpen}
-            onClose={onClose}
-            preventClose={saving}
-            hideModalCloseButton={saving}
-            icon="credit-card"
-            title={t('editTitle')}
-            content={
-                <div className="flex w-full flex-col gap-2 text-left">
-                    <label htmlFor="card-limit-input" className="text-label-l">
-                        {label}
-                    </label>
-                    <div className="flex items-center gap-2 rounded-sm border border-border-default bg-background-default px-3 py-2">
-                        <span className="text-foreground-secondary">$</span>
-                        <input
-                            id="card-limit-input"
-                            type="number"
-                            inputMode="decimal"
-                            value={value}
-                            onChange={(e) => setValue(e.target.value)}
-                            className="w-full bg-transparent text-body-m focus:outline-none"
-                            min={0.01}
-                            max={MAX_CARD_LIMIT_CENTS / 100}
-                            step="0.01"
-                            disabled={saving}
-                        />
+        <Drawer
+            open={isOpen}
+            // a save in flight must not be abandoned by a swipe or overlay tap
+            dismissible={!saving}
+            onOpenChange={(open) => {
+                if (!open && !saving) onClose()
+            }}
+        >
+            <DrawerContent>
+                <div className="flex flex-col items-center pt-1 pb-6 text-center">
+                    {/* the head owns the M/12 beneath it; everything after it
+                        keeps the drawer's L/16 rhythm */}
+                    <div className="mb-3 flex w-full flex-col items-center gap-4">
+                        <IconBubble icon="credit-card" className="bg-action-primary" />
+                        <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
+                            <DrawerTitle>{t('editTitle')}</DrawerTitle>
+                        </DrawerHeader>
                     </div>
-                    {error && <p className="text-body-s text-foreground-error">{error}</p>}
+                    <div className="flex w-full flex-col gap-4">
+                        <div className="flex w-full flex-col gap-2 text-left">
+                            <label htmlFor="card-limit-input" className="text-label-l">
+                                {label}
+                            </label>
+                            <div className="flex items-center gap-2 rounded-sm border border-border-default bg-background-default px-3 py-2">
+                                <span className="text-foreground-secondary">$</span>
+                                <input
+                                    id="card-limit-input"
+                                    type="number"
+                                    inputMode="decimal"
+                                    value={value}
+                                    onChange={(e) => setValue(e.target.value)}
+                                    className="w-full bg-transparent text-body-m focus:outline-none"
+                                    min={0.01}
+                                    max={MAX_CARD_LIMIT_CENTS / 100}
+                                    step="0.01"
+                                    disabled={saving}
+                                />
+                            </div>
+                            {error && <p className="text-body-s text-foreground-error">{error}</p>}
+                        </div>
+                        <Button
+                            variant="purple"
+                            shadowSize="4"
+                            className="w-full justify-center"
+                            onClick={save}
+                            loading={saving}
+                            disabled={saving}
+                        >
+                            {t('saveChanges')}
+                        </Button>
+                    </div>
                 </div>
-            }
-            ctas={[
-                {
-                    text: t('saveChanges'),
-                    variant: 'purple',
-                    shadowSize: '4',
-                    onClick: save,
-                    loading: saving,
-                    disabled: saving,
-                },
-            ]}
-        />
+            </DrawerContent>
+        </Drawer>
     )
 }
 
-export default CardLimitEditModal
+export default CardLimitEditDrawer

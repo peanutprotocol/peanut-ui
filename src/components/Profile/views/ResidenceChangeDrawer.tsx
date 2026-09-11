@@ -1,7 +1,9 @@
 'use client'
 
+import { Button } from '@/components/0_Bruddle/Button'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { CountryCombobox } from '@/components/Common/CountryCombobox'
-import ActionModal from '@/components/Global/ActionModal'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 import { useResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
@@ -12,7 +14,7 @@ import { readSecondResidence, storeDeclaredResidence, storeSecondResidence } fro
 import { useEffect, useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 
-interface ResidenceChangeModalProps {
+interface ResidenceChangeDrawerProps {
     visible: boolean
     onClose: () => void
     userId: string | undefined
@@ -40,7 +42,7 @@ interface ResidenceChangeModalProps {
  * re-verifies with new-country documents, and offers that re-verification as
  * an explicit second action — never as a silent side effect of saving.
  */
-const ResidenceChangeModal = ({
+const ResidenceChangeDrawer = ({
     visible,
     onClose,
     userId,
@@ -50,7 +52,7 @@ const ResidenceChangeModal = ({
     nextChangeAllowedAt,
     onSaved,
     onReverify,
-}: ResidenceChangeModalProps) => {
+}: ResidenceChangeDrawerProps) => {
     const t = useTranslations('profile.unlockPayments.changeModal')
     const tCommon = useTranslations('common')
     const restrictionSets = useResidenceRestrictionSets()
@@ -137,64 +139,72 @@ const ResidenceChangeModal = ({
     }
 
     return (
-        <ActionModal
-            visible={visible}
-            onClose={onClose}
-            title={t('title')}
-            description={
-                <div className="flex flex-col gap-3 text-center">
-                    <p>{t('description')}</p>
-                    <CountryCombobox
-                        options={countryOptions}
-                        placeholder={t('countryPlaceholder')}
-                        value={selected || undefined}
-                        onValueChange={setSelected}
-                    />
-                    {cooldownActive && cooldownDate && (
-                        <p className="text-body-xs text-foreground-secondary">
-                            {t('cooldownNote', { until: cooldownDate })}
-                        </p>
-                    )}
-                    {differsFromVerified && (
-                        <p className="text-body-xs text-foreground-secondary">{t('verifiedMismatchNote')}</p>
-                    )}
-                    {(selectedRestrictions.banking || selectedRestrictions.card) && (
-                        <p className="text-body-xs text-foreground-secondary">
-                            {selectedRestrictions.banking && selectedRestrictions.card
-                                ? t('fullRestrictionNote')
-                                : selectedRestrictions.card
-                                  ? t('cardRestrictionNote')
-                                  : t('bankingRestrictionNote')}
-                        </p>
-                    )}
-                    {error && <p className="text-body-xs text-foreground-error">{error}</p>}
+        <Drawer
+            open={visible}
+            onOpenChange={(isOpen) => {
+                if (!isOpen) onClose()
+            }}
+        >
+            <DrawerContent>
+                <div className="flex flex-col items-center pt-1 pb-6 text-center">
+                    {/* the head owns the M/12 beneath it; everything after it
+                        keeps the drawer's L/16 rhythm */}
+                    <div className="mb-3 flex w-full flex-col items-center gap-4">
+                        <IconBubble icon="globe" className="bg-action-primary" />
+                        <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
+                            <DrawerTitle>{t('title')}</DrawerTitle>
+                        </DrawerHeader>
+                    </div>
+                    <div className="flex w-full flex-col gap-3 text-center">
+                        <p className="text-body-s">{t('description')}</p>
+                        <CountryCombobox
+                            options={countryOptions}
+                            placeholder={t('countryPlaceholder')}
+                            value={selected || undefined}
+                            onValueChange={setSelected}
+                        />
+                        {cooldownActive && cooldownDate && (
+                            <p className="text-body-xs text-foreground-secondary">
+                                {t('cooldownNote', { until: cooldownDate })}
+                            </p>
+                        )}
+                        {differsFromVerified && (
+                            <p className="text-body-xs text-foreground-secondary">{t('verifiedMismatchNote')}</p>
+                        )}
+                        {(selectedRestrictions.banking || selectedRestrictions.card) && (
+                            <p className="text-body-xs text-foreground-secondary">
+                                {selectedRestrictions.banking && selectedRestrictions.card
+                                    ? t('fullRestrictionNote')
+                                    : selectedRestrictions.card
+                                      ? t('cardRestrictionNote')
+                                      : t('bankingRestrictionNote')}
+                            </p>
+                        )}
+                        {error && <p className="text-body-xs text-foreground-error">{error}</p>}
+                        <Button
+                            variant="purple"
+                            shadowSize="4"
+                            className="mt-1 w-full justify-center"
+                            disabled={isSaving || !selected || !userId || changeBlocked}
+                            onClick={() => void save(false)}
+                        >
+                            {isSaving ? tCommon('loading') : t('save')}
+                        </Button>
+                        {differsFromVerified && (
+                            <Button
+                                variant="stroke"
+                                className="w-full justify-center"
+                                disabled={isSaving || changeBlocked}
+                                onClick={() => void save(true)}
+                            >
+                                {t('saveAndReverify')}
+                            </Button>
+                        )}
+                    </div>
                 </div>
-            }
-            descriptionClassName="text-black"
-            icon="globe"
-            iconContainerClassName="bg-action-primary"
-            iconProps={{ className: 'text-black' }}
-            ctas={[
-                {
-                    shadowSize: '4',
-                    text: isSaving ? tCommon('loading') : t('save'),
-                    disabled: isSaving || !selected || !userId || changeBlocked,
-                    onClick: () => void save(false),
-                    variant: 'purple',
-                },
-                ...(differsFromVerified
-                    ? [
-                          {
-                              text: t('saveAndReverify'),
-                              disabled: isSaving || changeBlocked,
-                              onClick: () => void save(true),
-                              variant: 'stroke' as const,
-                          },
-                      ]
-                    : []),
-            ]}
-        />
+            </DrawerContent>
+        </Drawer>
     )
 }
 
-export default ResidenceChangeModal
+export default ResidenceChangeDrawer

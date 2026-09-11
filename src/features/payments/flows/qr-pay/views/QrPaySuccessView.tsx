@@ -11,7 +11,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import NavHeader from '@/components/Global/NavHeader'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
-import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
+import InviteFriendsDrawer from '@/components/Global/InviteFriendsDrawer'
 import PointsCard from '@/components/Common/PointsCard'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
@@ -38,7 +38,7 @@ export function QrPaySuccessView() {
         setQrPayment
     )
     const { openTransactionDetails, isTransactionSelected, closeTransactionDetails } = useTransactionDetailsDrawer()
-    const [showInviteFriendsModal, setShowInviteFriendsModal] = useState(false)
+    const [showInviteFriendsDrawer, setShowInviteFriendsDrawer] = useState(false)
 
     // Live card-vs-local-rail markup, driven by Manteca's rate + (for ARS)
     // BCRA's official rate. Same hook (and cache entry) the confirm screen's
@@ -257,7 +257,7 @@ export function QrPaySuccessView() {
                         is claimable so it cannot compete with the hold-to-claim gesture. */}
                     {user?.user.username && !rewardClaimable && (
                         <button
-                            onClick={() => setShowInviteFriendsModal(true)}
+                            onClick={() => setShowInviteFriendsDrawer(true)}
                             className="flex w-full items-center justify-center gap-2 text-body-s text-foreground-secondary underline transition-colors hover:text-black active:text-black"
                         >
                             <Icon name="invite-heart" size={16} className="text-foreground-secondary" />
@@ -275,10 +275,10 @@ export function QrPaySuccessView() {
                 for the mount, so a persistent mount would swallow the MODAL_SHOWN /
                 REFERRAL_CTA_SHOWN pair on every re-open. The modal fires every
                 referral capture; this page fires none. */}
-            {showInviteFriendsModal && user?.user.username && (
-                <InviteFriendsModal
+            {showInviteFriendsDrawer && user?.user.username && (
+                <InviteFriendsDrawer
                     visible
-                    onClose={() => setShowInviteFriendsModal(false)}
+                    onClose={() => setShowInviteFriendsDrawer(false)}
                     username={user.user.username}
                     source={REFERRAL_SOURCES.QR_PAY_SUCCESS}
                 />

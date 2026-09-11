@@ -192,7 +192,7 @@ jest.mock('@/components/AddWithdraw/DynamicBankAccountForm', () => ({
         return <div data-testid="bank-form" />
     },
 }))
-jest.mock('@/components/Global/TokenAndNetworkConfirmationModal', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/components/Global/TokenAndNetworkConfirmationDrawer', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({ SumsubKycWrapper: () => null }))
 jest.mock('@/components/Kyc/KycVerificationInProgressModal', () => ({ KycVerificationInProgressModal: () => null }))
 jest.mock('@/components/Global/IframeWrapper', () => ({ __esModule: true, default: () => null }))

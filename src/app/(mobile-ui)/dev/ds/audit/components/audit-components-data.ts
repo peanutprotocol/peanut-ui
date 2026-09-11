@@ -27,7 +27,7 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
         category: 'Modals',
         layer: 'components',
         summary:
-            'Three overlay primitives are still in the tree, but the balance changed. Global/ActionModal is now the standard: 65 app call sites against 6 for the raw base. Global/Modal (BaseModal, @headlessui/react Dialog+Transition) survives as a low-level escape hatch with 5 direct consumers — SumsubKycWrapper, SumsubNativeSdk, IframeWrapper, QRScannerOverlay and the Typeform host in Global/Layout — plus ActionModal itself. Global/Drawer (vaul) is the third family; it is covered in the next category. Radius still splits at the base. BaseModal paints rounded-md, max-w-[26rem], bg-white, and a bg-n-1/85 overlay with click-to-close wired by hand around a headlessui v2 regression. ActionModal overrides all of it to rounded-sm, border border-border-default, bg-background-default and max-w-[85%], per figma board 17800:57216. So a \'BaseModal\' modal and an \'ActionModal\' modal still do not match by default. Two modals then fight the new border back off: ConfirmInviteModal and NoMoreJailModal both pass modalPanelClassName="rounded-none border-0". Eight more copy-paste the same width recipe, modalPanelClassName="max-w-md mx-8", instead of it being a size prop. The header pattern consolidated. ActionModal owns icon + title + description as one nested stack (icon and head 16px apart, title and description 4px apart, head and CTAs 24px apart). BaseModal\'s own border-b title bar has no app consumer left. The close button is still hard-fixed at top-2 right-2 on the panel; 16 call sites hide it with hideModalCloseButton, and 13 suppress the backdrop with hideOverlay. One hand-rolled centring recipe remains: QRScannerOverlay still passes the old classWrap "sm:m-auto sm:self-center self-center m-4 bg-background rounded-none border-0" — the same string ActionModal absorbed as its default. The two other copies of it are gone. Mount points are centralised: AppGlobals hosts the always-on modals and features/home/components/HomeModals hosts the home-screen stack behind Suspense.',
+            'Three overlay primitives are still in the tree, but the balance changed. Global/ActionModal is now the standard: 65 app call sites against 6 for the raw base. Global/Modal (BaseModal, @headlessui/react Dialog+Transition) survives as a low-level escape hatch with 5 direct consumers — SumsubKycWrapper, SumsubNativeSdk, IframeWrapper, QRScannerOverlay and the Typeform host in Global/Layout — plus ActionModal itself. Global/Drawer (vaul) is the third family; it is covered in the next category. Radius still splits at the base. BaseModal paints rounded-md, max-w-[26rem], bg-white, and a bg-n-1/85 overlay with click-to-close wired by hand around a headlessui v2 regression. ActionModal overrides all of it to rounded-sm, border border-border-default, bg-background-default and max-w-[85%], per figma board 17800:57216. So a \'BaseModal\' modal and an \'ActionModal\' modal still do not match by default. Two modals then fight the new border back off: ConfirmInviteModal and NoMoreJailDrawer both pass modalPanelClassName="rounded-none border-0". Eight more copy-paste the same width recipe, modalPanelClassName="max-w-md mx-8", instead of it being a size prop. The header pattern consolidated. ActionModal owns icon + title + description as one nested stack (icon and head 16px apart, title and description 4px apart, head and CTAs 24px apart). BaseModal\'s own border-b title bar has no app consumer left. The close button is still hard-fixed at top-2 right-2 on the panel; 16 call sites hide it with hideModalCloseButton, and 13 suppress the backdrop with hideOverlay. One hand-rolled centring recipe remains: QRScannerOverlay still passes the old classWrap "sm:m-auto sm:self-center self-center m-4 bg-background rounded-none border-0" — the same string ActionModal absorbed as its default. The two other copies of it are gone. Mount points are centralised: AppGlobals hosts the always-on modals and features/home/components/HomeModals hosts the home-screen stack behind Suspense.',
         items: [
             {
                 name: 'Modal (BaseModal, Global/Modal)',
@@ -73,8 +73,8 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 usedIn: [
                     'components/AddMoney/components/OnrampConfirmationModal.tsx',
                     'components/Global/GuestVerificationModal/index.tsx',
-                    'components/Global/QRScanner/CameraPermissionModal.tsx',
-                    'components/Setup/Views/PasskeySetupHelpModal.tsx',
+                    'components/Global/QRScanner/CameraPermissionDrawer.tsx',
+                    'components/Setup/Views/PasskeySetupHelpDrawer.tsx',
                     'components/Claim/Link/SendLinkActionList.tsx',
                 ],
                 verified: true,
@@ -97,34 +97,34 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 verified: true,
             },
             {
-                name: 'NoMoreJailModal',
+                name: 'NoMoreJailDrawer',
                 realUsages: 1,
                 status: 'variant',
-                source: 'components/Global/NoMoreJailModal/index.tsx',
+                source: 'components/Global/NoMoreJailDrawer/index.tsx',
                 divergence:
                     'Same as ConfirmInviteModal: ActionModal plus modalPanelClassName="rounded-none border-0". Mounted from HomeModals.',
                 verified: true,
             },
             {
-                name: 'EarlyUserModal',
+                name: 'EarlyUserDrawer',
                 realUsages: 1,
                 status: 'live',
-                source: 'components/Global/EarlyUserModal/index.tsx',
+                source: 'components/Global/EarlyUserDrawer/index.tsx',
                 divergence: 'Mounted from HomeModals behind Suspense.',
             },
             {
-                name: 'IosPwaInstallModal',
+                name: 'IosPwaInstallDrawer',
                 realUsages: 1,
                 status: 'live',
-                source: 'components/Global/IosPwaInstallModal/index.tsx',
+                source: 'components/Global/IosPwaInstallDrawer/index.tsx',
                 divergence: 'Mounted from HomeModals behind Suspense.',
             },
             {
-                name: 'EasterEggModal',
+                name: 'EasterEggDrawer',
                 realUsages: 1,
                 devUsages: 2,
                 status: 'live',
-                source: 'components/Global/EasterEggModal/index.tsx',
+                source: 'components/Global/EasterEggDrawer/index.tsx',
                 divergence: 'The only modal also rendered in the /dev/ds showcase.',
             },
             {
@@ -136,25 +136,25 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                     'ActionModal with modalPanelClassName="max-w-md" — a fourth width value next to max-w-sm, max-w-md mx-8 and max-w-full.',
             },
             {
-                name: 'InviteFriendsModal',
+                name: 'InviteFriendsDrawer',
                 realUsages: 4,
                 status: 'live',
-                source: 'components/Global/InviteFriendsModal/index.tsx',
+                source: 'components/Global/InviteFriendsDrawer/index.tsx',
             },
             {
-                name: 'BalanceWarningModal',
+                name: 'BalanceWarningDrawer',
                 realUsages: 1,
                 status: 'variant',
-                source: 'components/Global/BalanceWarningModal/index.tsx',
+                source: 'components/Global/BalanceWarningDrawer/index.tsx',
                 divergence:
                     'Forces its own geometry with five !important overrides: modalPanelClassName="!bottom-auto !mx-auto !w-auto !max-w-md !self-center". The heaviest panel override in the app.',
                 verified: true,
             },
             {
-                name: 'TokenAndNetworkConfirmationModal',
+                name: 'TokenAndNetworkConfirmationDrawer',
                 realUsages: 3,
                 status: 'live',
-                source: 'components/Global/TokenAndNetworkConfirmationModal/index.tsx',
+                source: 'components/Global/TokenAndNetworkConfirmationDrawer/index.tsx',
                 divergence: 'ActionModal with modalPanelClassName="max-w-sm".',
             },
             {
@@ -174,16 +174,16 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 verified: true,
             },
             {
-                name: 'WelcomeUnlockModal',
+                name: 'WelcomeUnlockDrawer',
                 realUsages: 1,
                 status: 'live',
-                source: 'components/Home/WelcomeUnlockModal/index.tsx',
+                source: 'components/Home/WelcomeUnlockDrawer/index.tsx',
             },
             {
-                name: 'PerkClaimModal',
+                name: 'PerkClaimDrawer',
                 realUsages: 1,
                 status: 'live',
-                source: 'components/Home/PerkClaimModal.tsx',
+                source: 'components/Home/PerkClaimDrawer.tsx',
             },
             {
                 name: 'OnrampConfirmationModal',
@@ -193,17 +193,17 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 divergence: 'ActionModal + the copy-pasted "max-w-md mx-8" width string.',
             },
             {
-                name: 'SupportedNetworksModal',
+                name: 'SupportedNetworksDrawer',
                 realUsages: 1,
                 status: 'live',
-                source: 'components/AddMoney/components/SupportedNetworksModal.tsx',
+                source: 'components/AddMoney/components/SupportedNetworksDrawer.tsx',
                 divergence: 'Moved to ActionModal, so its old rounded-sm panel override is gone.',
             },
             {
-                name: 'HowToDepositModal',
+                name: 'HowToDepositDrawer',
                 realUsages: 1,
                 status: 'live',
-                source: 'components/AddMoney/components/HowToDepositModal.tsx',
+                source: 'components/AddMoney/components/HowToDepositDrawer.tsx',
                 divergence: 'Moved to ActionModal, so its old rounded-sm panel override is gone.',
             },
             {
@@ -219,10 +219,10 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 source: 'components/Card/CancelCardModal.tsx',
             },
             {
-                name: 'CardLimitEditModal',
+                name: 'CardLimitEditDrawer',
                 realUsages: 1,
                 status: 'live',
-                source: 'components/Card/CardLimitEditModal.tsx',
+                source: 'components/Card/CardLimitEditDrawer.tsx',
                 divergence:
                     'Now on ActionModal. Its old rounded-2xl panel — the outlier radius of the 2026-06 sweep — is gone.',
                 verified: true,
@@ -237,10 +237,10 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 verified: true,
             },
             {
-                name: 'BadgeDetailModal',
+                name: 'BadgeDetailDrawer',
                 realUsages: 3,
                 status: 'live',
-                source: 'components/Badges/BadgeDetailModal.tsx',
+                source: 'components/Badges/BadgeDetailDrawer.tsx',
                 divergence:
                     'New since the last sweep. ActionModal with modalPanelClassName="m-0" — a fifth panel-geometry recipe.',
             },
@@ -338,10 +338,10 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 divergence: 'ActionModal with modalPanelClassName="m-0 max-w-[90%]" — a sixth width value.',
             },
             {
-                name: 'CameraPermissionModal',
+                name: 'CameraPermissionDrawer',
                 realUsages: 1,
                 status: 'live',
-                source: 'components/Global/QRScanner/CameraPermissionModal.tsx',
+                source: 'components/Global/QRScanner/CameraPermissionDrawer.tsx',
                 divergence: 'ActionModal + the copy-pasted "max-w-md mx-8" width string.',
             },
             {
@@ -352,10 +352,10 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 divergence: 'Mounted once in app/AppGlobals.tsx.',
             },
             {
-                name: 'PasskeySetupHelpModal',
+                name: 'PasskeySetupHelpDrawer',
                 realUsages: 1,
                 status: 'live',
-                source: 'components/Setup/Views/PasskeySetupHelpModal.tsx',
+                source: 'components/Setup/Views/PasskeySetupHelpDrawer.tsx',
                 divergence: 'ActionModal + the copy-pasted "max-w-md mx-8" width string.',
             },
             {
@@ -379,7 +379,7 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 status: 'adhoc',
                 source: 'components/Global/QRScannerOverlay/index.tsx',
                 divergence:
-                    'The last hand-rolled centred panel: classWrap="sm:m-auto sm:self-center self-center m-4 bg-background rounded-none border-0". ActionModal now ships that exact recipe as its default, so this is a straight migration candidate. The other two copies (NoMoreJailModal, ConfirmInviteModal) already moved.',
+                    'The last hand-rolled centred panel: classWrap="sm:m-auto sm:self-center self-center m-4 bg-background rounded-none border-0". ActionModal now ships that exact recipe as its default, so this is a straight migration candidate. The other two copies (NoMoreJailDrawer, ConfirmInviteModal) already moved.',
                 verified: true,
             },
             {
