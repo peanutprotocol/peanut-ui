@@ -338,7 +338,7 @@ export const SetupWrapper = memo(function SetupWrapper({
     const headingDescription = shouldShowBraveInstalledHeaderOnly ? t('description') : description
 
     return (
-        <div className="flex min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] flex-col overflow-hidden">
+        <div className="flex min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] flex-col overflow-x-hidden overflow-y-auto">
             {/* navigation buttons */}
             <Navigation
                 showBackButton={showBackButton}
@@ -369,7 +369,10 @@ export const SetupWrapper = memo(function SetupWrapper({
                     animate={animatePanelIn ? { y: 0 } : undefined}
                     transition={{ type: 'spring', stiffness: 260, damping: 30 }}
                     className={twMerge(
-                        'flex flex-col justify-between overflow-hidden bg-white px-6 pt-6 pb-8 md:space-y-4 md:h-dvh md:justify-center',
+                        // y-auto, not hidden: es/pt copy wraps one line longer and the
+                        // bottom of the card (recover-account link) clipped at exact
+                        // viewport height (TASK-22366 sweep) — scroll instead of clip
+                        'flex flex-col justify-between overflow-x-hidden overflow-y-auto bg-white px-6 pt-6 pb-8 md:space-y-4 md:h-dvh md:justify-center',
                         // signup: panel hugs its content so the hero absorbs the slack
                         // (paired with the grow classes in IMAGE_CONTAINER_CLASSES)
                         layoutType === 'signup' ? 'grow-0 md:grow' : 'flex-grow',

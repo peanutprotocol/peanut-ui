@@ -49,7 +49,9 @@
         "capgo:upload:dev": "node scripts/native-build.js && pnpm dlx @capgo/cli@8.42.4 bundle upload --channel development --path ./out --version-exists-ok --bundle \"$(node scripts/release-version.mjs staging)\"",
         "capgo:upload:staging": "node scripts/native-build.js && pnpm dlx @capgo/cli@8.42.4 bundle upload --channel staging --path ./out --version-exists-ok --bundle \"$(node scripts/release-version.mjs staging)\"",
         "test:unit:ci": "jest --coverage --reporters=default --reporters=jest-junit",
-        "generate:marketing-messages": "node scripts/generate-marketing-messages.js"
+        "generate:marketing-messages": "node scripts/generate-marketing-messages.js",
+        "test:i18n-overflow:sweep": "NEXT_PUBLIC_VERCEL_ENV=preview pnpm build && pnpm test:i18n-overflow:sweep:run",
+        "test:i18n-overflow:sweep:run": "export SWEEP_OUT=${SWEEP_OUT:-e2e/__sweep__}; rm -rf \"$SWEEP_OUT\"; playwright test --config=playwright.sweep.config.ts; node scripts/overflow-sweep-report.mjs \"$SWEEP_OUT\""
     },
     "dependencies": {
         "@capacitor/android": "8.2.0",
