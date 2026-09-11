@@ -48,13 +48,16 @@ import { isNativeBridge } from './capacitor'
 import { getBinaryInfo } from './app-version'
 import { getUnderlyingFetch } from './passkey-auth-capture'
 import { nativeHttpRequest } from './native-http'
-import { readStoredValue, writeStoredValue } from './safe-storage'
+import { readStoredValue, removeStoredValue, writeStoredValue } from './safe-storage'
 
 const CANARY_TIMEOUT_MS = 10_000
 const CAPGO_CONTROL_URL = 'https://plugin.capgo.app/'
 const INTERNET_CONTROL_URL = 'https://www.gstatic.com/generate_204'
 const CONNECTIVITY_SENTRY_SAMPLE_RATE = 0.1
 const CONNECTIVITY_SENTRY_DAY_KEY = 'nativeCanaryConnectivitySentryDay'
+const CONNECTIVITY_OUTBOX_KEY = 'nativeCanaryConnectivityOutboxV1'
+const CONNECTIVITY_OUTBOX_RETENTION_DAYS = 7
+const CANARY_EVENT_NAME = 'native_transport_canary_failed'
 
 type CanaryClassification = 'transport-asymmetry' | 'api-unreachable' | 'device-connectivity'
 
@@ -65,6 +68,16 @@ interface ProbeResult {
     durationMs: number
     errorName?: string
     errorMessage?: string
+}
+
+type CanaryEventProperties = Record<string, string | number | boolean | undefined>
+
+interface PendingCanaryEvent {
+    id: string
+    day: string
+    capturedAt: string
+    lastReplayDay?: string
+    properties: CanaryEventProperties
 }
 
 function isFailure(result: ProbeResult): boolean {
@@ -133,7 +146,111 @@ function shouldSampleConnectivityToSentry(): boolean {
     return Math.random() < CONNECTIVITY_SENTRY_SAMPLE_RATE
 }
 
+function utcDay(date: Date = new Date()): string {
+    return date.toISOString().slice(0, 10)
+}
+
+function isPendingCanaryEvent(value: unknown): value is PendingCanaryEvent {
+    if (!value || typeof value !== 'object') return false
+    const event = value as Partial<PendingCanaryEvent>
+    return (
+        typeof event.id === 'string' &&
+        typeof event.day === 'string' &&
+        typeof event.capturedAt === 'string' &&
+        !!event.properties &&
+        typeof event.properties === 'object'
+    )
+}
+
+function readConnectivityOutbox(): PendingCanaryEvent[] {
+    const stored = readStoredValue(CONNECTIVITY_OUTBOX_KEY)
+    if (!stored) return []
+    try {
+        const parsed: unknown = JSON.parse(stored)
+        return Array.isArray(parsed) ? parsed.filter(isPendingCanaryEvent) : []
+    } catch {
+        return []
+    }
+}
+
+function writeConnectivityOutbox(events: PendingCanaryEvent[]): void {
+    if (events.length === 0) {
+        removeStoredValue(CONNECTIVITY_OUTBOX_KEY)
+        return
+    }
+    writeStoredValue(CONNECTIVITY_OUTBOX_KEY, JSON.stringify(events))
+}
+
+function freshConnectivityEvents(events: PendingCanaryEvent[], now: Date = new Date()): PendingCanaryEvent[] {
+    const oldest = new Date(now)
+    oldest.setUTCDate(oldest.getUTCDate() - CONNECTIVITY_OUTBOX_RETENTION_DAYS)
+    return events.filter(({ capturedAt }) => {
+        const timestamp = Date.parse(capturedAt)
+        return Number.isFinite(timestamp) && timestamp >= oldest.getTime()
+    })
+}
+
+function eventId(): string {
+    return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
+function persistConnectivityEvent(properties: CanaryEventProperties, now: Date = new Date()): PendingCanaryEvent {
+    const day = utcDay(now)
+    const events = freshConnectivityEvents(readConnectivityOutbox(), now)
+    const existing = events.find((event) => event.day === day)
+    if (existing) {
+        writeConnectivityOutbox(events)
+        return existing
+    }
+
+    const pending = { id: eventId(), day, capturedAt: now.toISOString(), properties }
+    writeConnectivityOutbox([...events, pending])
+    return pending
+}
+
+function capturePostHog(properties: CanaryEventProperties, pending?: PendingCanaryEvent, replayed = false) {
+    if (!pending) return posthog.capture(CANARY_EVENT_NAME, properties)
+
+    const durableProperties = {
+        ...pending.properties,
+        $insert_id: pending.id,
+        canary_replayed: replayed,
+        canary_original_captured_at: pending.capturedAt,
+    }
+    return replayed
+        ? posthog.capture(CANARY_EVENT_NAME, durableProperties, {
+              send_instantly: true,
+              timestamp: new Date(pending.capturedAt),
+          })
+        : posthog.capture(CANARY_EVENT_NAME, durableProperties)
+}
+
+function flushConnectivityOutbox(): void {
+    if (!navigator.onLine) return
+
+    const now = new Date()
+    const day = utcDay(now)
+    const events = freshConnectivityEvents(readConnectivityOutbox(), now)
+    for (const event of events) {
+        if (event.lastReplayDay === day) continue
+        try {
+            // A stable $insert_id makes retries idempotent at ingestion. Keep the
+            // compact event for the retention window because capture() confirms
+            // SDK acceptance, not network delivery; retry it at most once/day.
+            if (capturePostHog(event.properties, event, true)) event.lastReplayDay = day
+        } catch {
+            // Leave it pending for the next online launch.
+        }
+    }
+    writeConnectivityOutbox(events)
+}
+
 export async function runCanary(): Promise<void> {
+    // PostHog's retry queue is memory-only. Replay any durable connectivity
+    // signal before the healthy fast path returns, so offline -> kill -> online
+    // relaunch still produces an analytics event.
+    flushConnectivityOutbox()
+
     const probes = [
         { name: 'get', transport: 'webview', run: () => probe('/healthz', { method: 'GET' }) },
         {
@@ -179,27 +296,32 @@ export async function runCanary(): Promise<void> {
     const { appVersion, appBuild } = (await getBinaryInfo()) ?? { appVersion: 'unknown', appBuild: 'unknown' }
     const sentrySampled = classification !== 'device-connectivity' || shouldSampleConnectivityToSentry()
 
+    const eventProperties: CanaryEventProperties = {
+        canary_version: '6',
+        canary_signature: signature,
+        canary_classification: classification,
+        canary_get: outcomes.get,
+        canary_post: outcomes.post,
+        canary_native: outcomes.native,
+        canary_capgo: capgo?.outcome,
+        canary_internet: internet?.outcome,
+        canary_get_ms: results[0].durationMs,
+        canary_post_ms: results[1].durationMs,
+        canary_native_ms: results[2].durationMs,
+        canary_capgo_ms: capgo?.durationMs,
+        canary_internet_ms: internet?.durationMs,
+        webview_transport: webviewTransport,
+        app_version: appVersion,
+        app_build: appBuild,
+        online: navigator.onLine,
+        sentry_sampled: sentrySampled,
+    }
+
     try {
-        posthog.capture('native_transport_canary_failed', {
-            canary_version: '5',
-            canary_signature: signature,
-            canary_classification: classification,
-            canary_get: outcomes.get,
-            canary_post: outcomes.post,
-            canary_native: outcomes.native,
-            canary_capgo: capgo?.outcome,
-            canary_internet: internet?.outcome,
-            canary_get_ms: results[0].durationMs,
-            canary_post_ms: results[1].durationMs,
-            canary_native_ms: results[2].durationMs,
-            canary_capgo_ms: capgo?.durationMs,
-            canary_internet_ms: internet?.durationMs,
-            webview_transport: webviewTransport,
-            app_version: appVersion,
-            app_build: appBuild,
-            online: navigator.onLine,
-            sentry_sampled: sentrySampled,
-        })
+        const pending = classification === 'device-connectivity' ? persistConnectivityEvent(eventProperties) : undefined
+        // flushConnectivityOutbox already replayed this device-day on this
+        // launch. Do not enqueue the same stable $insert_id a second time.
+        if (!pending || pending.lastReplayDay !== utcDay()) capturePostHog(eventProperties, pending)
     } catch {
         // Diagnostics must never affect app startup or the Sentry signal.
     }
@@ -208,10 +330,10 @@ export async function runCanary(): Promise<void> {
 
     Sentry.captureMessage(`native canary: ${signature}`, {
         level: classification === 'device-connectivity' ? 'info' : 'warning',
-        fingerprint: ['native-canary-v5', classification, signature, webviewTransport],
+        fingerprint: ['native-canary-v6', classification, signature, webviewTransport],
         tags: {
             canary: 'transport',
-            canaryVersion: '5',
+            canaryVersion: '6',
             canary_signature: signature,
             canary_classification: classification,
             canary_get: outcomes.get,

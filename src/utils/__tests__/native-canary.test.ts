@@ -28,6 +28,8 @@ function mockWebFetch(impl: (url: string, init?: RequestInit) => Promise<Respons
 beforeEach(() => {
     jest.clearAllMocks()
     localStorage.clear()
+    Object.defineProperty(navigator, 'onLine', { configurable: true, value: true })
+    capturePosthog.mockReturnValue({ uuid: 'accepted-for-send' })
     nativeHttpRequest.mockResolvedValue(ok())
     mockWebFetch(async () => ok())
 })
@@ -67,14 +69,14 @@ describe('transport canary', () => {
         expect(message).toBe('native canary: get:fail post:ok native:ok')
         expect(options.level).toBe('warning')
         expect(options.fingerprint).toEqual([
-            'native-canary-v5',
+            'native-canary-v6',
             'transport-asymmetry',
             'get:fail post:ok native:ok',
             'direct',
         ])
         expect(options.tags).toMatchObject({
             canary: 'transport',
-            canaryVersion: '5',
+            canaryVersion: '6',
             canary_classification: 'transport-asymmetry',
             canary_get: 'network-error',
             canary_post: 'http-405',
@@ -139,7 +141,7 @@ describe('transport canary', () => {
         expect(captureMessage.mock.calls[0][0]).toBe('native canary: get:fail post:fail native:fail')
         expect(captureMessage.mock.calls[0][1]).toMatchObject({
             level: 'warning',
-            fingerprint: ['native-canary-v5', 'api-unreachable', 'get:fail post:fail native:fail', 'direct'],
+            fingerprint: ['native-canary-v6', 'api-unreachable', 'get:fail post:fail native:fail', 'direct'],
             tags: {
                 canary_classification: 'api-unreachable',
                 canary_capgo: 'http-204',
@@ -166,7 +168,49 @@ describe('transport canary', () => {
                 canary_capgo: 'network-error',
                 canary_internet: 'network-error',
                 sentry_sampled: false,
+                canary_replayed: false,
+                $insert_id: expect.any(String),
             })
+        )
+        expect(localStorage.getItem('nativeCanaryConnectivityOutboxV1')).not.toBeNull()
+    })
+
+    it('replays a persisted offline event once after close and online relaunch', async () => {
+        Object.defineProperty(navigator, 'onLine', { configurable: true, value: false })
+        mockWebFetch(async () => {
+            throw new TypeError('Failed to fetch')
+        })
+        nativeHttpRequest.mockRejectedValue(new TypeError('Unable to resolve host'))
+        jest.spyOn(Math, 'random').mockReturnValue(0.5)
+
+        await runCanary()
+
+        const firstProperties = capturePosthog.mock.calls[0][1]
+        expect(firstProperties).toMatchObject({
+            canary_classification: 'device-connectivity',
+            canary_replayed: false,
+            $insert_id: expect.any(String),
+        })
+
+        // Simulate a killed process: SDK memory is gone, durable storage remains.
+        capturePosthog.mockReset().mockReturnValue({ uuid: 'accepted-for-send' })
+        Object.defineProperty(navigator, 'onLine', { configurable: true, value: true })
+        nativeHttpRequest.mockResolvedValue(ok())
+        mockWebFetch(async () => ok())
+
+        await runCanary()
+        await runCanary()
+
+        expect(capturePosthog).toHaveBeenCalledTimes(1)
+        expect(capturePosthog).toHaveBeenCalledWith(
+            'native_transport_canary_failed',
+            expect.objectContaining({
+                canary_classification: 'device-connectivity',
+                canary_replayed: true,
+                $insert_id: firstProperties.$insert_id,
+                canary_original_captured_at: expect.any(String),
+            }),
+            expect.objectContaining({ send_instantly: true, timestamp: expect.any(Date) })
         )
     })
 
@@ -181,10 +225,11 @@ describe('transport canary', () => {
         await runCanary()
 
         expect(capturePosthog).toHaveBeenCalledTimes(2)
+        expect(capturePosthog.mock.calls[0][1].$insert_id).toBe(capturePosthog.mock.calls[1][1].$insert_id)
         expect(captureMessage).toHaveBeenCalledTimes(1)
         expect(captureMessage.mock.calls[0][1]).toMatchObject({
             level: 'info',
-            fingerprint: ['native-canary-v5', 'device-connectivity', 'get:fail post:fail native:fail', 'direct'],
+            fingerprint: ['native-canary-v6', 'device-connectivity', 'get:fail post:fail native:fail', 'direct'],
         })
     })
 
