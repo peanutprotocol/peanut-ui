@@ -19,7 +19,14 @@ function makeRepo() {
     for (const rel of ['scripts', 'android/app/src/main', 'ios/App/App.xcodeproj', 'patches']) {
         fs.mkdirSync(path.join(dir, rel), { recursive: true })
     }
-    for (const name of ['ota-platform-floor.mjs', 'native-fingerprint.mjs', 'release-version.mjs']) {
+    for (const name of [
+        'ota-platform-floor.mjs',
+        'native-fingerprint.mjs',
+        'release-version.mjs',
+        'check-native-ota-surface.mjs',
+        'check-native-change-scope.cjs',
+        'check-legacy-android-permissions.mjs',
+    ]) {
         fs.copyFileSync(path.join(REPO_ROOT, 'scripts', name), path.join(dir, 'scripts', name))
     }
     fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ version: '1.0.0' }))
@@ -118,6 +125,36 @@ it('keeps the iOS floor when only the Android runtime dependency changes', () =>
     expect(floors(repo.dir)).toEqual({
         NEXT_PUBLIC_OTA_FLOOR_ANDROID: '1.5.0',
         NEXT_PUBLIC_OTA_FLOOR_IOS: '1.4.0',
+    })
+})
+
+it('uses an attested same-version replacement as the platform baseline', () => {
+    const repo = makeRepo()
+    release(repo, 'v1.5.0')
+    write(repo.dir, 'android/app/proguard-rules.pro', '# retain runtime metadata\n')
+    repo.git('add', 'android/app/proguard-rules.pro')
+    repo.git('commit', '-q', '-m', 'repair R8')
+    const fingerprint = execFileSync(
+        'node',
+        [path.join(REPO_ROOT, 'scripts/native-fingerprint.mjs'), '--root', repo.dir, '--ref', 'HEAD'],
+        { cwd: repo.dir, encoding: 'utf8' }
+    ).trim()
+    repo.git(
+        'tag',
+        '-a',
+        'android-v1.5.0-replacement-fix',
+        '-m',
+        'Android replacement',
+        '-m',
+        `peanut-native-replacement-v2: platform=android base=v1.5.0 native-compatible=true js-guard=android-capacitor-permissions-v1 fingerprint=${fingerprint}`
+    )
+    write(repo.dir, 'src/later.ts', 'export const later = true\n')
+    repo.git('add', 'src/later.ts')
+    repo.git('commit', '-q', '-m', 'later OTA')
+
+    expect(floors(repo.dir)).toEqual({
+        NEXT_PUBLIC_OTA_FLOOR_ANDROID: '1.5.0',
+        NEXT_PUBLIC_OTA_FLOOR_IOS: '1.5.0',
     })
 })
 

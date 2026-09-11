@@ -30,6 +30,7 @@
 
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { replacementBaseline } from './check-native-ota-surface.mjs'
 import { platformDiff, setRepoRoot } from './native-fingerprint.mjs'
 import { allNativeReleases, setRepoRoot as setVersionRepoRoot } from './release-version.mjs'
 
@@ -70,7 +71,8 @@ export function platformFloor({ platform, headRef = 'HEAD', root = defaultRoot }
     for (const { major, build } of releases) {
         if (major !== currentMajor) break
         const tag = `v${major}.${build}.0`
-        if (platformDiff(platform, tag, headRef).length > 0) break
+        const baseline = replacementBaseline({ root, baseRef: tag, platform, headRef })
+        if (platformDiff(platform, baseline, headRef).length > 0) break
         floor = `${major}.${build}.0`
     }
     if (floor === null) {

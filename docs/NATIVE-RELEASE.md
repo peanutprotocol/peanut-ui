@@ -680,8 +680,9 @@ own `out/` under the binary's versionName, then assert the channel serves it.
   appeared on a user's device. The remedy for a failure is a coordinated native release
   or the narrowly gated same-version Android replacement lane—never widening or
   skipping the check.
-- **Staged rollout:** roll production OTA to ~10% → watch Sentry/crash + error rates →
-  100%. Don't 100% every merge.
+- **Production exposure:** `release-ota.yml` promotes the verified bundle directly to the
+  stable channel with rollout disabled; there is no 10% staging step today. Watch Sentry/crash
+  and error rates immediately after the `main` run.
 - **Rollback** is configured in `capacitor.config.ts` (`appReadyTimeout: 15000` +
   `autoDeleteFailed` + `autoDeletePrevious`): a bundle that never calls
   `notifyAppReady()` auto-reverts. **Verify once** with a deliberately-broken bundle.
