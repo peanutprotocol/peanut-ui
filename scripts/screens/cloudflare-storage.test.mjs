@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { configuration, uploadPreview, r2Endpoint, tokenCredentials } from './cloudflare-storage.mjs'
 const config = {
     CLOUDFLARE_ACCOUNT_ID: 'a'.repeat(32),
-    CLOUDFLARE_PUBLISH_TOKEN: 'test-token',
+    CLOUDFLARE_API_TOKEN: 'test-token',
     SCREEN_LIBRARY_R2_BUCKET: 'screens',
     SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.example.com',
     SCREEN_LIBRARY_IMAGES_HASH: 'hash',
