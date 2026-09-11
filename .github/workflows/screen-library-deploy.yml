@@ -28,6 +28,7 @@ jobs:
             - name: Prepare static gallery and R2 binding
               env:
                   SCREEN_LIBRARY_R2_BUCKET: ${{ vars.SCREEN_LIBRARY_R2_BUCKET }}
+                  SCREEN_LIBRARY_R2_JURISDICTION: ${{ vars.SCREEN_LIBRARY_R2_JURISDICTION }}
                   SCREEN_LIBRARY_PUBLIC_URL: ${{ vars.SCREEN_LIBRARY_PUBLIC_URL }}
               run: node scripts/screens/worker/prepare.mjs /tmp/screen-gallery
             - name: Deploy trusted dev gallery

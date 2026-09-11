@@ -19,12 +19,18 @@ export function configuration(env = process.env) {
         throw new Error('Store URL must be an HTTPS origin')
     return { ...env, SCREEN_LIBRARY_PUBLIC_URL: url.origin }
 }
+export function r2Endpoint(env = process.env) {
+    const jurisdiction = env.SCREEN_LIBRARY_R2_JURISDICTION || 'default'
+    if (!['default', 'eu', 'us', 'fedramp'].includes(jurisdiction)) throw new Error('Invalid R2 jurisdiction')
+    if (!/^[a-f0-9]{32}$/.test(env.CLOUDFLARE_ACCOUNT_ID ?? '')) throw new Error('Invalid Cloudflare account ID')
+    return `https://${env.CLOUDFLARE_ACCOUNT_ID}${jurisdiction === 'default' ? '' : `.${jurisdiction}`}.r2.cloudflarestorage.com`
+}
 export async function createStorage(env = process.env) {
     const config = configuration(env)
     const { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command } = await import('@aws-sdk/client-s3')
     const client = new S3Client({
         region: 'auto',
-        endpoint: `https://${config.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+        endpoint: r2Endpoint(config),
         credentials: {
             accessKeyId: config.SCREEN_LIBRARY_R2_ACCESS_KEY_ID,
             secretAccessKey: config.SCREEN_LIBRARY_R2_SECRET_ACCESS_KEY,

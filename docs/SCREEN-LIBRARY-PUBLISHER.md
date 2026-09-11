@@ -46,7 +46,7 @@ offline archives retain the original capture files. No Vercel Blob store is need
 
 DevOps setup:
 
-1. Enable Cloudflare Images and create a public `screen-preview` variant
+1. Enable Cloudflare Images and create a public `screenpreview` variant
    (393×852, fit scale-down, no cropping; no signed URL requirement).
 2. Create a dedicated private R2 bucket. Retain objects
    indefinitely; respect object Cache-Control (index/latest use 60 seconds).
@@ -55,10 +55,11 @@ DevOps setup:
    `SCREEN_LIBRARY_R2_ACCESS_KEY_ID` and `SCREEN_LIBRARY_R2_SECRET_ACCESS_KEY`
    (R2 Object Read & Write credentials scoped to this bucket).
 4. In GitHub Actions repository variables set `CLOUDFLARE_ACCOUNT_ID`,
-   `SCREEN_LIBRARY_R2_BUCKET`, `SCREEN_LIBRARY_PUBLIC_URL` (gallery HTTPS origin,
+   `SCREEN_LIBRARY_R2_BUCKET`, `SCREEN_LIBRARY_R2_JURISDICTION` (`eu` for screenshots-library),
+   `SCREEN_LIBRARY_PUBLIC_URL` (gallery HTTPS origin,
    e.g. `https://screens.peanut.me` or the Worker’s `workers.dev` origin),
    `SCREEN_LIBRARY_IMAGES_HASH` (Images delivery account hash, distinct from account ID),
-   and `SCREEN_LIBRARY_IMAGES_VARIANT=screen-preview`.
+   and `SCREEN_LIBRARY_IMAGES_VARIANT=screenpreview`.
 5. Add GitHub secret `CLOUDFLARE_WORKERS_TOKEN` with Account → Workers Scripts → Edit
    and Account → Workers R2 Storage → Edit, scoped to this account. For the custom
    domain also grant Zone → Zone → Read and Zone → DNS → Edit scoped to peanut.me.
