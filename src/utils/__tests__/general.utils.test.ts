@@ -587,7 +587,7 @@ describe('General Utilities', () => {
     describe('post-auth redirect through an intentional logout', () => {
         beforeEach(() => {
             endIntentionalLogout()
-            clearRedirectUrl()
+            localStorage.clear()
             window.history.replaceState({}, '', '/profile')
         })
         afterEach(() => {

@@ -1,5 +1,5 @@
 import { consumePostAuthRedirect } from '../post-auth-redirect'
-import { getRedirectUrl, saveToLocalStorage, setRedirectUrl } from '@/utils/general.utils'
+import { getRedirectOrigin, getRedirectUrl, saveToLocalStorage, setRedirectUrl } from '@/utils/general.utils'
 
 const FINANCIAL_REDIRECT = '/claim?step=claim&id=payment-1'
 const CAMPAIGN_REDIRECT = '/add-money/crypto?network=EVM'
@@ -240,7 +240,7 @@ describe('post-auth redirect reads one snapshot', () => {
         const removeItem = jest.spyOn(Storage.prototype, 'removeItem')
         let replaced = false
         removeItem.mockImplementation(function patched(this: Storage, key: string) {
-            if (!replaced && (key === 'redirect' || key.startsWith('redirect-record:'))) {
+            if (!replaced && (key === 'redirect' || key.startsWith('redirect-v2-record:'))) {
                 replaced = true
                 setRedirectUrl('/receipt?id=abc', 'deep-link')
             }
@@ -253,6 +253,24 @@ describe('post-auth redirect reads one snapshot', () => {
             deferred: false,
         })
         expect(getRedirectUrl()).toBe('/receipt?id=abc')
+    })
+
+    it('keeps v2 state when a pre-deploy tab clears the legacy handoff', () => {
+        setRedirectUrl('/pay-request/abc', 'deep-link')
+
+        // The base bundle only knows about v1's destination key.
+        localStorage.removeItem('redirect')
+
+        expect(getRedirectUrl()).toBe('/pay-request/abc')
+        expect(getRedirectOrigin()).toBe('deep-link')
+    })
+
+    it('honours a newer legacy handoff written by a pre-deploy tab', () => {
+        setRedirectUrl('/profile', 'session-end')
+        saveToLocalStorage('redirect', '/receipt?id=abc')
+
+        expect(getRedirectUrl()).toBe('/receipt?id=abc')
+        expect(getRedirectOrigin()).toBeNull()
     })
 })
 
