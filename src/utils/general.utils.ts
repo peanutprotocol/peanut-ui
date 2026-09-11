@@ -779,6 +779,8 @@ const REDIRECT_V2_PUBLISHED_PREFIX = 'redirect-v2-published:'
 const REDIRECT_V2_PUBLISHED_VALUE = '1'
 /** Identifies the v2 generation that last wrote the v1-compatible mirror. */
 const REDIRECT_V2_MIRROR_OWNER_KEY = 'redirect-v2-mirror-owner'
+/** Keeps a late v2 mirror identifiable until its owner write has completed. */
+const REDIRECT_V2_MIRROR_PENDING_PREFIX = 'redirect-v2-mirror-pending:'
 /**
  * Legacy bare-path records cannot be deleted conditionally without the same
  * check/remove race. Remembering their consumed value makes them inert while
@@ -925,7 +927,15 @@ const getStoredRedirectForSnapshot = (): StoredRedirect | null => {
                 continue
             }
             const mirrorOwner = getFromLocalStorage(REDIRECT_V2_MIRROR_OWNER_KEY)
-            if (!isRedirectGenerationId(mirrorOwner) || mirrorOwner === generationId) {
+            let hasPendingV2Mirror = false
+            for (let index = 0; index < localStorage.length; index += 1) {
+                const key = localStorage.key(index)
+                if (key?.startsWith(REDIRECT_V2_MIRROR_PENDING_PREFIX)) {
+                    hasPendingV2Mirror = getFromLocalStorage(key) === legacyValue
+                    if (hasPendingV2Mirror) break
+                }
+            }
+            if (!hasPendingV2Mirror && (!isRedirectGenerationId(mirrorOwner) || mirrorOwner === generationId)) {
                 // A pre-deploy v1 tab can still publish a new handoff. The
                 // baseline distinguishes that from a stale mirror left behind by
                 // a failed v2 -> v1 mirror write.
@@ -989,8 +999,10 @@ const publishRedirectConsumption = (generationId: string) =>
 const publishLegacyRedirectMirror = (generationId: string, destination: string) => {
     const pointer = getFromLocalStorage(REDIRECT_V2_KEY)
     if (!isRedirectPointer(pointer) || pointer.generationId !== generationId) return
+    const pendingKey = `${REDIRECT_V2_MIRROR_PENDING_PREFIX}${generationId}`
+    if (!saveToLocalStorage(pendingKey, destination)) return
     saveToLocalStorage(REDIRECT_KEY, destination)
-    saveToLocalStorage(REDIRECT_V2_MIRROR_OWNER_KEY, generationId)
+    if (saveToLocalStorage(REDIRECT_V2_MIRROR_OWNER_KEY, generationId)) localStorage.removeItem(pendingKey)
 }
 
 const discardRedirectConsumptionReservations = (generationId: string) => {
@@ -999,6 +1011,7 @@ const discardRedirectConsumptionReservations = (generationId: string) => {
     localStorage.removeItem(`${REDIRECT_V2_CONSUMED_PREFIX}${generationId}`)
     localStorage.removeItem(`${REDIRECT_V2_CONSUMED_FALLBACK_PREFIX}${generationId}`)
     localStorage.removeItem(`${REDIRECT_V2_PUBLISHED_PREFIX}${generationId}`)
+    localStorage.removeItem(`${REDIRECT_V2_MIRROR_PENDING_PREFIX}${generationId}`)
 }
 
 const isReclaimableRedirectConsumptionSlot = (generationId: string, value: unknown): boolean => {
@@ -1043,6 +1056,7 @@ const reclaimRedirectConsumptionSlots = () => {
         localStorage.removeItem(`${REDIRECT_V2_CONSUMED_PREFIX}${generationId}`)
         localStorage.removeItem(`${REDIRECT_V2_CONSUMED_FALLBACK_PREFIX}${generationId}`)
         localStorage.removeItem(`${REDIRECT_V2_PUBLISHED_PREFIX}${generationId}`)
+        localStorage.removeItem(`${REDIRECT_V2_MIRROR_PENDING_PREFIX}${generationId}`)
     }
 }
 

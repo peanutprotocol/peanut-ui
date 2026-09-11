@@ -442,6 +442,50 @@ describe('post-auth redirect reads one snapshot', () => {
         expect(getRedirectOrigin()).toBe('deep-link')
     })
 
+    it('identifies a stale mirror while its ownership write is pending', () => {
+        setRedirectUrl('/profile', 'session-end')
+        let interleaved = false
+        Storage.prototype.getItem = function patched(key: string) {
+            const value = originalGetItem.call(this, key)
+            if (key === 'redirect-v2' && !interleaved && value !== null) {
+                interleaved = true
+                setRedirectUrl('/card', 'deep-link')
+            }
+            return value
+        }
+        const setItem = jest.spyOn(Storage.prototype, 'setItem')
+        let observed = false
+        setItem.mockImplementation(function patched(this: Storage, key: string, value: string) {
+            const result = originalSetItem.call(this, key, value)
+            if (key === 'redirect' && !observed) {
+                observed = true
+                expect(getRedirectUrl()).toBe('/card')
+            }
+            return result
+        })
+
+        setRedirectUrl('/profile', 'session-end')
+
+        expect(getRedirectUrl()).toBe('/card')
+    })
+
+    it('keeps the pending mirror record when ownership persistence fails', () => {
+        setRedirectUrl('/profile', 'session-end')
+        const setItem = jest.spyOn(Storage.prototype, 'setItem')
+        setItem.mockImplementation(function patched(this: Storage, key: string, value: string) {
+            if (key === 'redirect-v2-mirror-owner') throw new Error('quota')
+            return originalSetItem.call(this, key, value)
+        })
+
+        setRedirectUrl('/card', 'deep-link')
+
+        const pendingMirrorKeys = Array.from({ length: localStorage.length }, (_, index) =>
+            localStorage.key(index)
+        ).filter((key): key is string => key?.startsWith('redirect-v2-mirror-pending:') ?? false)
+        expect(pendingMirrorKeys).toHaveLength(1)
+        expect(getRedirectUrl()).toBe('/card')
+    })
+
     it('aborts tombstone cleanup when the authoritative pointer changes during the scan', () => {
         setRedirectUrl('/profile', 'session-end')
         const getKey = jest.spyOn(Storage.prototype, 'key')
