@@ -2,14 +2,10 @@
 
 // Resolves, per platform, the OLDEST native release a bundle may be delivered to.
 //
-// Capgo carries one `min_update_version` per bundle and one bundle serves both
-// platforms, so the server side can only express a single floor. That floor is a
-// version number, and a version number cannot say which platform's binary
-// actually changed — while the field keeps the two platforms apart on its own:
-// TestFlight does not auto-update, so iOS sat on 1.5.0 while Android moved to
-// 1.6.0, and every native input that differed between those releases was under
-// `android/`. A single numeric floor of 1.6.0 refuses the entire iOS population
-// a bundle its binary can run perfectly well.
+// Production uploads the same web export as separate iOS and Android bundle
+// records. Each record gets its platform's `min_update_version`, so Capgo can
+// admit older compatible iOS binaries without also admitting Android binaries
+// below the Android floor.
 //
 // So the floor is computed here, per platform, from the surface rather than the
 // number: walk the native releases newest-first and keep going while that
@@ -26,6 +22,7 @@
 // Usage:
 //   node scripts/ota-platform-floor.mjs                 # both, as KEY=value lines
 //   node scripts/ota-platform-floor.mjs --platform ios   # one, as a bare version
+//   node scripts/ota-platform-floor.mjs --lowest         # diagnostic only
 //   node scripts/ota-platform-floor.mjs --ref <git-ref>
 
 import { dirname, resolve } from 'node:path'
@@ -114,11 +111,9 @@ if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import
             if (argv.includes(name) && !flag(argv, name)) throw new Error(`${name} needs a value`)
         }
         if (argv.includes('--lowest')) {
-            // Capgo carries ONE min_update_version per bundle and one bundle
-            // serves both platforms, so the server can only express the more
-            // permissive of the two floors; the on-device gate applies the
-            // platform-specific one. Picking the higher instead would have the
-            // server refuse the very population the floors exist to keep served.
+            // Diagnostic compatibility view for operators and regression tests.
+            // Production must upload separate platform records and use
+            // `--platform`; this permissive value must not be sent to Capgo.
             const floors = platformFloors({ headRef, root })
             const lowest = PLATFORMS.map((name) => floors[name]).sort(compareVersions)[0]
             process.stdout.write(`${lowest}\n`)

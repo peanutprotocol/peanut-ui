@@ -209,12 +209,10 @@ it('rejects an unknown platform', () => {
 })
 
 /*
- * --lowest is the single number Capgo gets, because one bundle serves both
- * platforms and a channel carries one min_update_version. Every install's
- * eligibility goes through it, and the per-platform cases above would stay green
- * if it picked the wrong side.
+ * --lowest is a diagnostic compatibility view. Production uploads separate
+ * platform records and must use --platform for each record's server floor.
  */
-describe('--lowest, the shared server floor', () => {
+describe('--lowest diagnostic output', () => {
     it('takes the iOS side when iOS is lower', () => {
         const repo = makeRepo()
         release(repo, 'v1.4.0')
@@ -282,7 +280,7 @@ describe('major boundary', () => {
         })
     })
 
-    it('keeps the shared server floor inside the same band', () => {
+    it('keeps the diagnostic floor inside the same band', () => {
         expect(lowest(acrossMajors().dir)).toBe('2.1.0')
     })
 })
