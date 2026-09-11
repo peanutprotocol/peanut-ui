@@ -333,9 +333,24 @@ export type OverlayTarget = {
 }
 
 export const OVERLAY_TARGETS: OverlayTarget[] = [
-    { id: 'backup-lose-phone', route: '/profile/backup', clickKeys: ['profile.backup.faq.losePhone'] },
-    { id: 'backup-change-phone', route: '/profile/backup', clickKeys: ['profile.backup.faq.changePhone'] },
-    { id: 'backup-export-keys', route: '/profile/backup', clickKeys: ['profile.backup.faq.exportKeys'] },
+    {
+        id: 'backup-lose-phone',
+        route: '/profile/backup',
+        clickKeys: ['profile.backup.faq.losePhone'],
+        proof: '[data-vaul-drawer], [role="dialog"]',
+    },
+    {
+        id: 'backup-change-phone',
+        route: '/profile/backup',
+        clickKeys: ['profile.backup.faq.changePhone'],
+        proof: '[data-vaul-drawer], [role="dialog"]',
+    },
+    {
+        id: 'backup-export-keys',
+        route: '/profile/backup',
+        clickKeys: ['profile.backup.faq.exportKeys'],
+        proof: '[data-vaul-drawer], [role="dialog"]',
+    },
     { id: 'home-add-drawer', route: '/home?drawer=add', proof: '[data-vaul-drawer], [role="dialog"]' },
     { id: 'home-send-drawer', route: '/home?drawer=send', proof: '[data-vaul-drawer], [role="dialog"]' },
     { id: 'add-money-bank-list', route: '/add-money?method=bank', fixture: 'add-money' },

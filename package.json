@@ -51,7 +51,7 @@
         "test:unit:ci": "jest --coverage --reporters=default --reporters=jest-junit",
         "generate:marketing-messages": "node scripts/generate-marketing-messages.js",
         "test:i18n-overflow:sweep": "NEXT_PUBLIC_VERCEL_ENV=preview pnpm build && pnpm test:i18n-overflow:sweep:run",
-        "test:i18n-overflow:sweep:run": "export SWEEP_OUT=${SWEEP_OUT:-e2e/__sweep__}; rm -rf \"$SWEEP_OUT\"; playwright test --config=playwright.sweep.config.ts; node scripts/overflow-sweep-report.mjs \"$SWEEP_OUT\""
+        "test:i18n-overflow:sweep:run": "export SWEEP_OUT=${SWEEP_OUT:-e2e/__sweep__}; rm -rf \"$SWEEP_OUT\"; playwright test --config=playwright.sweep.config.ts; PW=$?; node scripts/overflow-sweep-report.mjs \"$SWEEP_OUT\" && [ $PW -eq 0 ]"
     },
     "dependencies": {
         "@capacitor/android": "8.2.0",

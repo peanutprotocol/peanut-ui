@@ -227,17 +227,6 @@ for (const locale of APP_LOCALES_SWEEP) {
                     test.skip(true, `redirected to ${bounced}`)
                     return
                 }
-                if (overlay.proof) {
-                    // a renamed query param degrades the cell to a base-page
-                    // scan — prove the overlay actually opened
-                    try {
-                        await page.locator(overlay.proof).first().waitFor({ state: 'visible', timeout: 8_000 })
-                    } catch {
-                        record({ ...cell, status: 'skip', reason: `overlay never opened (${overlay.proof})` }, testInfo)
-                        test.skip(true, 'overlay never opened')
-                        return
-                    }
-                }
                 for (const key of overlay.clickKeys ?? []) {
                     const label = resolveLabel(locale, key)
                     if (!label) {
@@ -251,6 +240,19 @@ for (const locale of APP_LOCALES_SWEEP) {
                     } catch {
                         record({ ...cell, status: 'skip', reason: `could not click “${label}”` }, testInfo)
                         test.skip(true, `could not click ${key}`)
+                        return
+                    }
+                }
+                // AFTER the clicks: a URL param rename degrades the cell to a
+                // base-page scan, and a click whose modal never renders still
+                // "succeeds" — the proof element is what says the overlay is
+                // really on screen
+                if (overlay.proof) {
+                    try {
+                        await page.locator(overlay.proof).first().waitFor({ state: 'visible', timeout: 8_000 })
+                    } catch {
+                        record({ ...cell, status: 'skip', reason: `overlay never opened (${overlay.proof})` }, testInfo)
+                        test.skip(true, 'overlay never opened')
                         return
                     }
                 }
