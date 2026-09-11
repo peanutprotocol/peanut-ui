@@ -58,6 +58,7 @@ export function HomeModals() {
     const [jailCelebrationPending, setJailCelebrationPending] = useState(
         () => typeof window !== 'undefined' && sessionStorage.getItem('showNoMoreJailModal') === 'true'
     )
+    const [earlyUserOpen, setEarlyUserOpen] = useState(false)
 
     // the migration prompt outranks the post-signup modal; unmounting the
     // manager skips its onVisibilityChange(false), so clear the state here or
@@ -148,7 +149,7 @@ export function HomeModals() {
                     {!jailCelebrationPending && (
                         <LazyLoadErrorBoundary>
                             <Suspense fallback={null}>
-                                <EarlyUserDrawer />
+                                <EarlyUserDrawer onVisibilityChange={setEarlyUserOpen} />
                             </Suspense>
                         </LazyLoadErrorBoundary>
                     )}
@@ -160,7 +161,13 @@ export function HomeModals() {
                 <LazyLoadErrorBoundary>
                     <Suspense fallback={null}>
                         <WelcomeUnlockDrawer
-                            isOpen={showKycModal && !showBalanceWarningDrawer && !showMigrationModal}
+                            isOpen={
+                                showKycModal &&
+                                !showBalanceWarningDrawer &&
+                                !showMigrationModal &&
+                                !jailCelebrationPending &&
+                                !earlyUserOpen
+                            }
                             onClose={async () => {
                                 // close the modal immediately for better ux
                                 setShowKycModal(false)
