@@ -361,7 +361,55 @@ it('uploads and verifies both artifacts before any production promotion', () => 
     expect(source.indexOf('- name: Verify the floors')).toBeLessThan(source.indexOf('- name: Promote verified bundles'))
     expect(source).not.toContain('--version-exists-ok')
     expect(source).toContain('--channel ota-candidate')
+    expect(source).toContain('UPLOAD_GUARD_ARGS+=(--ignore-checksum-check)')
+    expect(source).toContain('"${UPLOAD_GUARD_ARGS[@]}"')
     expect(source).not.toContain('channel set production')
+})
+
+it('bypasses the candidate checksum collision only for the second platform record', () => {
+    const source = fs.readFileSync(path.join(ROOT, '.github/workflows/release-ota.yml'), 'utf8')
+    const step = source.slice(source.indexOf('- name: Upload bundles'), source.indexOf('- name: Verify the floors'))
+    const shell = step.match(/run: \|\n([\s\S]*)/)[1]
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ota-platform-uploads-'))
+    const calls = path.join(dir, 'calls')
+    try {
+        const result = spawnSync(
+            'bash',
+            [
+                '-euo',
+                'pipefail',
+                '-c',
+                `
+          npx() { printf '%s\\n' "$*" >> "$CALLS_FILE"; }
+          ${shell}
+        `,
+            ],
+            {
+                encoding: 'utf8',
+                env: {
+                    ...process.env,
+                    CAPGO_API_KEY: 'api-key',
+                    CAPGO_PRIVATE_KEY: 'private-key',
+                    COMMIT_MSG: 'release',
+                    RELEASE_VERSION: '1.6.4',
+                    FLOOR_ANDROID: '1.6.0',
+                    FLOOR_IOS: '1.5.0',
+                    GITHUB_SHA: SHA,
+                    CALLS_FILE: calls,
+                },
+            }
+        )
+        expect(result.status).toBe(0)
+        const [ios, android] = fs.readFileSync(calls, 'utf8').trim().split('\n')
+        expect(ios).toContain('--bundle 1.6.4-ios')
+        expect(ios).toContain('--min-update-version 1.5.0')
+        expect(ios).not.toContain('--ignore-checksum-check')
+        expect(android).toContain('--bundle 1.6.4-android')
+        expect(android).toContain('--min-update-version 1.6.0')
+        expect(android).toContain('--ignore-checksum-check')
+    } finally {
+        fs.rmSync(dir, { recursive: true, force: true })
+    }
 })
 
 it('never assigns a prerelease .0 identity that sorts below its native binary', () => {

@@ -225,9 +225,18 @@ jobs:
                   # not the channel. Old clients are protected by the server.
                   for PLATFORM in ios android; do
                     VERSION="$RELEASE_VERSION-$PLATFORM"
-                    if [ "$PLATFORM" = ios ]; then NATIVE_FLOOR="$FLOOR_IOS"; else NATIVE_FLOOR="$FLOOR_ANDROID"; fi
+                    UPLOAD_GUARD_ARGS=(--channel ota-candidate)
+                    if [ "$PLATFORM" = ios ]; then
+                      NATIVE_FLOOR="$FLOOR_IOS"
+                    else
+                      NATIVE_FLOOR="$FLOOR_ANDROID"
+                      # Both platform records deliberately contain the same web
+                      # assets. Keep the duplicate check for the first upload,
+                      # then allow the second record with its Android floor.
+                      UPLOAD_GUARD_ARGS+=(--ignore-checksum-check)
+                    fi
                     npx @capgo/cli@8.42.4 bundle upload \
-                      --channel ota-candidate \
+                      "${UPLOAD_GUARD_ARGS[@]}" \
                       --apikey "$CAPGO_API_KEY" --key-data-v2 "$CAPGO_PRIVATE_KEY" \
                       --path ./out --bundle "$VERSION" --min-update-version "$NATIVE_FLOOR" \
                       --comment "$COMMENT" --link "https://github.com/peanutprotocol/peanut-ui/commit/$GITHUB_SHA"
