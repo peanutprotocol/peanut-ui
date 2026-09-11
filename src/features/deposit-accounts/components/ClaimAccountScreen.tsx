@@ -31,6 +31,10 @@ export function ClaimAccountScreen({
     onBack: () => void
 }) {
     const { t, arrivalDetail } = useDepositAccountCopy()
+    // GBP comes back in Bridge's name and EUR in the user's, so the pre-claim
+    // copy cannot promise either until the account exists — it says what every
+    // corridor does share, and the details screen states the holder for real.
+    const senderBenefit = `claim.benefit.${rail.expectedSender}` as const
 
     return (
         <PageStack>
@@ -39,17 +43,20 @@ export function ClaimAccountScreen({
                 <TitleBlock
                     size="s"
                     title={t('claim.heading', { currency: rail.currency })}
-                    description={t('claim.subheading', { arrival: arrivalDetail(rail.corridor) })}
+                    description={t('claim.subheading', {
+                        currency: rail.currency,
+                        arrival: arrivalDetail(rail.corridor),
+                    })}
                 />
 
                 <BulletList
                     items={[
                         t('claim.benefitStable'),
-                        t('claim.benefitAnyone'),
+                        t(senderBenefit),
                         t('claim.benefitBalance'),
                         t('claim.benefitNoReference'),
                         // only where a cap is proved — no corridor invents a number
-                        ...(rail.thirdPartyCap ? [t('claim.benefitCap', { cap: rail.thirdPartyCap })] : []),
+                        ...(rail.personCap ? [t('claim.benefitCap', { cap: rail.personCap })] : []),
                     ]}
                 />
 

@@ -9,6 +9,15 @@ import type { DepositCorridor, DepositRowLabels } from './types'
  * typed catalog checks them: a corridor added without its copy fails the
  * build instead of rendering a raw key.
  */
+const RAIL_NAME_KEYS = {
+    EUR_SEPA: 'corridors.EUR_SEPA.railName',
+    GBP_FPS: 'corridors.GBP_FPS.railName',
+    USD_ACH: 'corridors.USD_ACH.railName',
+    MXN_SPEI: 'corridors.MXN_SPEI.railName',
+    BRL_PIX: 'corridors.BRL_PIX.railName',
+    ARS_TRANSFER: 'corridors.ARS_TRANSFER.railName',
+} as const satisfies Record<DepositCorridor, string>
+
 const ARRIVAL_KEYS = {
     EUR_SEPA: 'corridors.EUR_SEPA.arrival',
     GBP_FPS: 'corridors.GBP_FPS.arrival',
@@ -57,12 +66,14 @@ export function useDepositAccountCopy() {
             cvu: t('rows.cvu'),
             alias: t('rows.alias'),
             bankAddress: t('rows.bankAddress'),
+            beneficiaryAddress: t('rows.beneficiaryAddress'),
             paymentReference: t('rows.paymentReference'),
             accepts: t('rows.accepts'),
         }),
         [t]
     )
 
+    const railName = (corridor: DepositCorridor) => t(RAIL_NAME_KEYS[corridor])
     const arrival = (corridor: DepositCorridor) => t(ARRIVAL_KEYS[corridor])
     const arrivalDetail = (corridor: DepositCorridor) => t(ARRIVAL_DETAIL_KEYS[corridor])
     const unclaimableReason = (corridor: DepositCorridor) => {
@@ -70,5 +81,5 @@ export function useDepositAccountCopy() {
         return key ? t(key) : undefined
     }
 
-    return { t, rowLabels, arrival, arrivalDetail, unclaimableReason }
+    return { t, rowLabels, railName, arrival, arrivalDetail, unclaimableReason }
 }

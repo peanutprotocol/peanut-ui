@@ -2,7 +2,6 @@
 
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { Notification } from '@/components/0_Bruddle/Notification'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
@@ -14,6 +13,7 @@ import { DEPOSIT_RAILS, DEPOSIT_RAIL_ORDER, isClaimable } from '../rails'
 import type { DepositAccount, DepositCorridor } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { CorridorFlag } from './CorridorFlag'
+import { DepositGateNotice } from './DepositGateNotice'
 
 /**
  * The hub: every corridor this user could hold, and where each one stands.
@@ -34,17 +34,18 @@ export function DepositAccountsListScreen({
     onOpen: (corridor: DepositCorridor) => void
     onResolveGate: () => void
 }) {
-    const { t, arrival, unclaimableReason } = useDepositAccountCopy()
+    const { t, arrival, railName, unclaimableReason } = useDepositAccountCopy()
     const { claimable, notice } = depositGateView(gate)
 
     const rowBody = (corridor: DepositCorridor, account: DepositAccount | undefined): string => {
         const unclaimable = unclaimableReason(corridor)
         if (unclaimable) return unclaimable
-        if (!claimable) return t('list.rowKyc')
+        if (!claimable) return t('list.rowBlocked')
         const params = { arrival: arrival(corridor) }
         if (!account || account.status === 'unclaimed') return t('list.rowUnclaimed', params)
         if (account.status === 'provisioning') return t('list.rowProvisioning')
         if (account.status === 'failed') return t('list.rowFailed')
+        if (account.status === 'revoked') return t('list.rowRevoked')
         if (account.status === 'unavailable') return t('list.rowUnavailable')
         return t('list.rowReady', params)
     }
@@ -55,6 +56,7 @@ export function DepositAccountsListScreen({
         if (account?.status === 'active') return <StatusBadge status="completed" customText={t('list.badgeReady')} />
         if (account?.status === 'provisioning') return <StatusBadge status="pending" />
         if (account?.status === 'failed') return <StatusBadge status="failed" />
+        if (account?.status === 'revoked') return <StatusBadge status="closed" />
         return undefined
     }
 
@@ -64,16 +66,7 @@ export function DepositAccountsListScreen({
             <div className="flex flex-col gap-6">
                 <TitleBlock size="s" title={t('list.heading')} description={t('list.subheading')} />
 
-                {notice && (
-                    <Notification
-                        priority="attention"
-                        title={t('list.kycTitle')}
-                        ctas={[{ label: t('list.kycCta'), onClick: onResolveGate }]}
-                    >
-                        {/* the provider's own words when it gave any, ours when it did not */}
-                        {notice.message ?? t('list.kycBody')}
-                    </Notification>
-                )}
+                {notice && <DepositGateNotice notice={notice} onAct={onResolveGate} />}
 
                 <Section title={t('list.sectionTitle')}>
                     <ListGroup>
@@ -85,7 +78,7 @@ export function DepositAccountsListScreen({
                                 <ListItem
                                     key={corridor}
                                     leading={<CorridorFlag iso2={rail.flagIso2} />}
-                                    title={`${rail.currency} · ${rail.railName}`}
+                                    title={`${rail.currency} · ${railName(corridor)}`}
                                     body={rowBody(corridor, account)}
                                     bodyWrap
                                     trailing={isClaimable(rail) ? rowBadge(account) : undefined}

@@ -3849,38 +3849,38 @@
             "heading": "Receba na sua moeda local",
             "subheading": "Tenha dados bancários onde uma empresa, um cliente ou uma plataforma pode pagar você. O dinheiro cai no seu saldo da Peanut.",
             "sectionTitle": "Suas contas",
-            "kycTitle": "Primeiro verifique sua identidade",
-            "kycBody": "Só abrimos uma conta no seu nome depois de saber quem você é.",
-            "kycCta": "Verificar identidade",
-            "rowKyc": "Verifique sua identidade para abrir esta conta",
             "rowUnclaimed": "Ainda não configurada · {arrival}",
             "rowProvisioning": "Preparando seus dados",
             "rowFailed": "A configuração não terminou",
             "rowUnavailable": "Indisponível na sua região",
             "rowReady": "Pronta para compartilhar · {arrival}",
-            "badgeReady": "Pronta"
+            "badgeReady": "Pronta",
+            "rowBlocked": "Verifique sua identidade para abrir esta conta",
+            "rowRevoked": "Estes dados não funcionam mais"
         },
         "claim": {
             "heading": "Abra sua conta em {currency}",
-            "subheading": "Dados bancários no seu nome onde qualquer pessoa pode pagar você. {arrival}",
+            "subheading": "Dados bancários que não mudam, então você os envia uma vez só. {arrival}",
             "benefitStable": "Os dados continuam os mesmos, então você os envia uma vez só.",
-            "benefitAnyone": "Qualquer pessoa pode pagar você: uma empresa, um cliente, uma plataforma.",
             "benefitBalance": "O dinheiro chega no seu saldo da Peanut em USD.",
-            "benefitCap": "Outra pessoa pode enviar até {cap}.",
+            "benefitCap": "Uma pessoa pode enviar até {cap} por vez. Uma empresa não tem limite.",
             "benefitNoReference": "Sem referência nem código para lembrar.",
             "cta": "Abrir conta em {currency}",
-            "errorTitle": "Não conseguimos abrir a conta"
+            "errorTitle": "Não conseguimos abrir a conta",
+            "benefit": {
+                "anyone": "Qualquer pessoa pode pagar você: uma empresa, um cliente, uma plataforma.",
+                "business-only": "Uma empresa pode pagar você: um empregador, um cliente ou uma plataforma. Um pagamento da conta de uma pessoa volta para quem enviou.",
+                "unknown": "Use para suas próprias transferências. Estamos confirmando com nosso parceiro se outra pessoa pode pagar aí.",
+                "own-name-only": "Deposite de uma conta bancária no seu nome."
+            }
         },
         "details": {
             "heading": "{currency} · {rail}",
-            "openToAnyone": "Qualquer pessoa pode pagar qualquer valor nestes dados. Não há referência para lembrar.",
-            "ownNameOnly": "Deposite de uma conta bancária no seu nome. Estes dados não aceitam pagamento de outra pessoa.",
             "provisioning": "Preparando seus dados em {currency}. Costuma levar menos de um minuto.",
             "pooledTitle": "A conta não está no seu nome",
             "pooledShared": "Quem paga vê {holder}, o parceiro que mantém as contas em {currency} da Peanut, e não {user}. Isso é esperado.",
             "pooledOwnNameOnly": "{holder} recebe os depósitos em {currency} da Peanut. Envie da sua própria conta bancária e o dinheiro chega no seu saldo.",
             "sectionTitle": "Dados bancários",
-            "thirdPartyCap": "Outra pessoa pode enviar até {cap}.",
             "returnedTitle": "Um pagamento foi devolvido",
             "returnedBody": "{amount} de {payer} em {date} voltou para quem enviou: {reason}",
             "returnedCta": "Compartilhar os dados de novo",
@@ -3890,7 +3890,17 @@
             "unavailableCta": "Escolher outra moeda",
             "failedTitle": "Não conseguimos abrir sua conta em {currency}",
             "failedBody": "Nada foi cobrado. Tente de novo daqui a pouco ou escolha outra moeda.",
-            "failedRetry": "Tentar de novo"
+            "failedRetry": "Tentar de novo",
+            "sender": {
+                "anyone": "Qualquer pessoa pode pagar qualquer valor nestes dados. Não há referência para lembrar.",
+                "business-only": "Uma empresa pode pagar qualquer valor nestes dados. Um pagamento da conta de uma pessoa volta para quem enviou.",
+                "unknown": "Use estes dados para suas próprias transferências. Estamos confirmando com nosso parceiro se outra pessoa pode pagar aí.",
+                "own-name-only": "Deposite de uma conta bancária no seu nome. Estes dados não aceitam pagamento de outra pessoa."
+            },
+            "personCap": "Uma pessoa pode enviar até {cap} por vez. Uma empresa não tem limite.",
+            "revokedTitle": "Seus dados em {currency} não funcionam mais",
+            "revokedBody": "O que for enviado para eles volta para quem enviou. Avise quem paga você para parar de usá-los e abra dados novos.",
+            "topUpCta": "Depositar {currency} de outro jeito"
         },
         "share": {
             "heading": "O que quem paga vê",
@@ -3923,35 +3933,53 @@
             "alias": "Alias",
             "bankAddress": "Endereço do banco",
             "paymentReference": "Referência do pagamento",
-            "accepts": "Aceita"
+            "accepts": "Aceita",
+            "beneficiaryAddress": "Endereço do destinatário"
         },
         "corridors": {
             "EUR_SEPA": {
                 "arrival": "No mesmo dia útil",
-                "arrivalDetail": "As transferências SEPA costumam chegar no mesmo dia útil, no máximo em dois."
+                "arrivalDetail": "As transferências SEPA costumam chegar no mesmo dia útil, no máximo em dois.",
+                "railName": "SEPA"
             },
             "GBP_FPS": {
                 "arrival": "Em minutos",
-                "arrivalDetail": "Os Faster Payments costumam chegar em minutos."
+                "arrivalDetail": "Os Faster Payments costumam chegar em minutos.",
+                "railName": "Faster Payments"
             },
             "USD_ACH": {
                 "arrival": "1 a 3 dias úteis",
-                "arrivalDetail": "O ACH chega em um a três dias úteis. Uma transferência wire chega no mesmo dia."
+                "arrivalDetail": "O ACH chega em um a três dias úteis. Uma transferência wire chega no mesmo dia.",
+                "railName": "ACH ou wire"
             },
             "MXN_SPEI": {
                 "arrival": "Em minutos",
-                "arrivalDetail": "As transferências SPEI costumam chegar em minutos."
+                "arrivalDetail": "As transferências SPEI costumam chegar em minutos.",
+                "railName": "SPEI"
             },
             "BRL_PIX": {
                 "arrival": "Em minutos",
                 "arrivalDetail": "As transferências Pix costumam chegar em minutos.",
-                "unclaimable": "No Brasil o depósito é um código Pix para um pagamento, da sua própria conta."
+                "unclaimable": "No Brasil o depósito é um código Pix para um pagamento, da sua própria conta.",
+                "railName": "Pix"
             },
             "ARS_TRANSFER": {
                 "arrival": "Em minutos",
                 "arrivalDetail": "As transferências na Argentina costumam chegar em minutos.",
-                "unclaimable": "Na Argentina o depósito precisa vir de uma conta no seu nome."
+                "unclaimable": "Na Argentina o depósito precisa vir de uma conta no seu nome.",
+                "railName": "Transferência bancária"
             }
+        },
+        "gate": {
+            "verifyTitle": "Primeiro verifique sua identidade",
+            "verifyBody": "Só abrimos uma conta no seu nome depois de saber quem você é.",
+            "verifyCta": "Verificar identidade",
+            "tosTitle": "Falta aceitar um documento",
+            "tosCta": "Ler e aceitar",
+            "waitTitle": "Estamos preparando isso",
+            "waitBody": "Você não precisa fazer nada. Esta tela se atualiza sozinha.",
+            "blockedTitle": "Não conseguimos abrir uma conta para você",
+            "supportCta": "Falar com o suporte"
         }
     }
 }

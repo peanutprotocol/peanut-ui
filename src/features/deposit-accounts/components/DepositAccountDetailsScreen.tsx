@@ -2,13 +2,16 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NavHeader from '@/components/Global/NavHeader'
+import Link from 'next/link'
 import { instructionRows } from '../instructionRows'
+import { isShareable } from '../rails'
 import type { DepositAccount, DepositRail, ReturnedPayment } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { DepositDetailsCard } from './DepositDetailsCard'
@@ -38,7 +41,7 @@ export function DepositAccountDetailsScreen({
     onShare: () => void
     onRetry: () => void
 }) {
-    const { t, rowLabels, arrivalDetail, unclaimableReason } = useDepositAccountCopy()
+    const { t, rowLabels, arrivalDetail, railName, unclaimableReason } = useDepositAccountCopy()
 
     if (account.status === 'unavailable') {
         return (
@@ -49,6 +52,36 @@ export function DepositAccountDetailsScreen({
                         icon="globe-lock"
                         title={t('details.unavailableTitle', { currency: rail.currency })}
                         description={unclaimableReason(rail.corridor) ?? t('details.unavailableBody')}
+                        cta={
+                            rail.topUpHref ? (
+                                // a corridor with no standing account still has a
+                                // real way in — send them to it rather than back
+                                <Link href={rail.topUpHref}>
+                                    <Button variant="stroke" size="small">
+                                        {t('details.topUpCta', { currency: rail.currency })}
+                                    </Button>
+                                </Link>
+                            ) : (
+                                <Button variant="stroke" size="small" onClick={onBack}>
+                                    {t('details.unavailableCta')}
+                                </Button>
+                            )
+                        }
+                    />
+                </PageStack.Center>
+            </PageStack>
+        )
+    }
+
+    if (account.status === 'revoked') {
+        return (
+            <PageStack>
+                <NavHeader title={t('title')} onPrev={onBack} />
+                <PageStack.Center>
+                    <EmptyState
+                        icon="lock"
+                        title={t('details.revokedTitle', { currency: rail.currency })}
+                        description={t('details.revokedBody')}
                         cta={
                             <Button variant="stroke" size="small" onClick={onBack}>
                                 {t('details.unavailableCta')}
@@ -87,6 +120,7 @@ export function DepositAccountDetailsScreen({
     const rows = account.instructions ? instructionRows(account.instructions, rowLabels) : []
     const pooled = account.matching.nameOnAccount === 'provider'
     const ownNameOnly = account.matching.sender === 'own-name-only'
+    const shareable = isShareable(account.matching.sender)
     const holder = account.instructions?.accountHolderName ?? ''
 
     return (
@@ -95,13 +129,11 @@ export function DepositAccountDetailsScreen({
             <div className="flex flex-col gap-6">
                 <TitleBlock
                     size="s"
-                    title={t('details.heading', { currency: rail.currency, rail: rail.railName })}
+                    title={t('details.heading', { currency: rail.currency, rail: railName(rail.corridor) })}
                     description={
                         provisioning
                             ? t('details.provisioning', { currency: rail.currency })
-                            : ownNameOnly
-                              ? t('details.ownNameOnly')
-                              : t('details.openToAnyone')
+                            : t(`details.sender.${account.matching.sender}`)
                     }
                 />
 
@@ -142,13 +174,19 @@ export function DepositAccountDetailsScreen({
 
                         <p className="text-body-xs text-foreground-secondary">
                             {arrivalDetail(rail.corridor)}
-                            {rail.thirdPartyCap ? ` ${t('details.thirdPartyCap', { cap: rail.thirdPartyCap })}` : ''}
+                            {rail.personCap ? ` ${t('details.personCap', { cap: rail.personCap })}` : ''}
                         </p>
+
+                        {ownNameOnly && rail.topUpHref && (
+                            <LinkButton href={rail.topUpHref}>
+                                {t('details.topUpCta', { currency: rail.currency })}
+                            </LinkButton>
+                        )}
                     </>
                 )}
             </div>
 
-            {!ownNameOnly && (
+            {shareable && (
                 <PageStack.Footer>
                     <Button variant="purple" className="w-full" icon="share" disabled={provisioning} onClick={onShare}>
                         {t('details.shareCta')}

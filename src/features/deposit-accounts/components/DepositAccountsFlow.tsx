@@ -4,6 +4,7 @@ import type { GateState } from '@/utils/capability-gate'
 import { useQueryStates } from 'nuqs'
 import { DEPOSIT_ACCOUNT_PARAMS } from '../params'
 import { DEPOSIT_RAILS, isClaimable } from '../rails'
+import { resolveScreen } from '../resolveScreen'
 import type { DepositAccount, DepositCorridor, ReturnedPayment } from '../types'
 import { ClaimAccountScreen } from './ClaimAccountScreen'
 import { DepositAccountDetailsScreen } from './DepositAccountDetailsScreen'
@@ -24,9 +25,12 @@ export interface DepositAccountsFlowProps {
 
 /**
  * The get-paid flow: one NavHeader title across every step, the step in the
- * URL, in-flow back through `onPrev`. Which screen a corridor opens on is a
- * property of the account, not a separate route — an unclaimed corridor
- * opens the claim step, a held one opens its details.
+ * URL, in-flow back through `onPrev`.
+ *
+ * Which screen renders is resolved from the gate and the account rather than
+ * read off the URL — see `resolveScreen`. The claim step also stays on screen
+ * until an account exists, so a provisioning failure has somewhere to be
+ * shown instead of dropping the user back on the list with no explanation.
  */
 export function DepositAccountsFlow({
     accounts,
@@ -41,6 +45,7 @@ export function DepositAccountsFlow({
     const [{ screen, corridor }, setParams] = useQueryStates(DEPOSIT_ACCOUNT_PARAMS)
     const rail = DEPOSIT_RAILS[corridor]
     const account = accounts[corridor]
+    const resolved = resolveScreen(screen, rail, account, gate)
 
     const openCorridor = (next: DepositCorridor) => {
         const nextAccount = accounts[next]
@@ -50,22 +55,22 @@ export function DepositAccountsFlow({
         setParams({ corridor: next, screen: needsClaim ? 'claim' : 'details' })
     }
 
-    if (screen === 'claim' && isClaimable(rail)) {
+    if (resolved === 'claim') {
         return (
             <ClaimAccountScreen
                 rail={rail}
                 isClaiming={claimingCorridor === corridor}
                 error={claimError}
-                onClaim={() => {
-                    onClaim(corridor)
-                    setParams({ screen: 'details' })
-                }}
+                // no screen change here: once the account exists, resolveScreen
+                // moves the user on by itself, and if it never does the error
+                // renders on this screen rather than nowhere
+                onClaim={() => onClaim(corridor)}
                 onBack={() => setParams({ screen: 'list' })}
             />
         )
     }
 
-    if (screen === 'details' && account) {
+    if (resolved === 'details' && account) {
         return (
             <DepositAccountDetailsScreen
                 rail={rail}
@@ -79,7 +84,7 @@ export function DepositAccountsFlow({
         )
     }
 
-    if (screen === 'share' && account) {
+    if (resolved === 'share' && account) {
         return (
             <ShareDepositDetailsScreen
                 rail={rail}

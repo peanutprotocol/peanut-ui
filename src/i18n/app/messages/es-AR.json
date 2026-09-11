@@ -1674,26 +1674,39 @@
         "list": {
             "heading": "Cobrá en tu moneda local",
             "subheading": "Tené datos bancarios donde te pueda pagar un empleador, un cliente o una plataforma. La plata llega a tu saldo de Peanut.",
-            "kycTitle": "Primero verificá tu identidad",
-            "kycBody": "Solo podemos abrir una cuenta a tu nombre cuando sabemos quién sos.",
-            "rowKyc": "Verificá tu identidad para abrir esta cuenta"
+            "rowBlocked": "Verificá tu identidad para abrir esta cuenta"
         },
         "claim": {
             "heading": "Abrí tu cuenta en {currency}",
             "benefitStable": "Los datos no cambian, así que los compartís una sola vez.",
-            "benefitBalance": "La plata llega a tu saldo de Peanut en USD."
+            "benefitBalance": "La plata llega a tu saldo de Peanut en USD.",
+            "subheading": "Datos bancarios que no cambian, así que los compartís una sola vez. {arrival}",
+            "benefit": {
+                "unknown": "Usalos para tus propias transferencias. Estamos confirmando con nuestro socio si alguien más te puede pagar ahí.",
+                "own-name-only": "Ingresá plata desde una cuenta bancaria a tu nombre."
+            }
         },
         "details": {
-            "ownNameOnly": "Ingresá plata desde una cuenta bancaria a tu nombre. Estos datos no aceptan pagos de otras personas.",
             "pooledOwnNameOnly": "{holder} recibe los depósitos en {currency} de Peanut. Enviá desde tu propia cuenta bancaria y la plata llega a tu saldo.",
             "unavailableTitle": "Todavía no tenés datos en {currency}",
-            "failedBody": "No se cobró nada. Probá de nuevo en un momento o elegí otra moneda."
+            "failedBody": "No se cobró nada. Probá de nuevo en un momento o elegí otra moneda.",
+            "sender": {
+                "unknown": "Usá estos datos para tus propias transferencias. Estamos confirmando con nuestro socio si alguien más te puede pagar ahí.",
+                "own-name-only": "Ingresá plata desde una cuenta bancaria a tu nombre. Estos datos no aceptan pagos de otras personas."
+            },
+            "revokedBody": "Lo que manden a esos datos vuelve a quien lo envió. Avisale a quien te paga que deje de usarlos y abrí datos nuevos.",
+            "topUpCta": "Ingresar {currency} de otra forma"
         },
         "share": {
             "subheading": "Enviale esto a quien te vaya a pagar. Es lo mismo para cada pago.",
             "nameWarningTitle": "Avisale sobre el nombre",
             "textIntroOwn": "Estos son mis datos bancarios para cobrar en {currency}:",
             "textReference": "Poné {memo} en el campo de referencia de la transferencia. Sin eso, el pago se devuelve."
+        },
+        "gate": {
+            "verifyTitle": "Primero verificá tu identidad",
+            "verifyBody": "Solo podemos abrir una cuenta a tu nombre cuando sabemos quién sos.",
+            "waitBody": "No tenés que hacer nada. Esta pantalla se actualiza sola."
         }
     }
 }

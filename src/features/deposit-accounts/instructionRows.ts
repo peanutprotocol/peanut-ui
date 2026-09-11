@@ -54,6 +54,9 @@ export function instructionRowKeys(instructions: DepositInstructions): { key: De
     push('cvu', instructions.cvu)
     push('alias', instructions.alias)
     push('bankAddress', instructions.bankAddress)
+    // the recipient's address, not the bank's — some payroll and bank forms
+    // have a field for it, and without a row here a payer pastes the bank's
+    push('beneficiaryAddress', instructions.beneficiaryAddress)
     push('paymentReference', instructions.memo)
 
     if (instructions.paymentRails.length > 0) {

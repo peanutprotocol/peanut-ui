@@ -53,11 +53,38 @@ describe('bridge adapter', () => {
         })
     })
 
-    it('accepts payment from anyone, in any amount', () => {
-        accounts.forEach((account) => {
-            expect(account.matching.sender).toBe('anyone')
-            expect(account.matching.amount).toBe('flexible')
-        })
+    it('takes any amount on every corridor', () => {
+        accounts.forEach((account) => expect(account.matching.amount).toBe('flexible'))
+    })
+
+    /**
+     * product/providers/fiat/rails/virtual-accounts.md: GBP is "1st party and
+     * 3rd party business" only, USD/EUR/MXN are documented nowhere — and that
+     * file is explicit that silence is not permission. USD is the exception:
+     * Bridge caps person-to-person and exempts businesses, which only makes
+     * sense if a private payer is allowed at all.
+     */
+    it('only promises third-party payment where the corridor proves it', () => {
+        expect(byCurrency('USD').matching.sender).toBe('anyone')
+        expect(byCurrency('GBP').matching.sender).toBe('business-only')
+        expect(byCurrency('EUR').matching.sender).toBe('unknown')
+        expect(byCurrency('MXN').matching.sender).toBe('unknown')
+    })
+
+    it('treats a deactivated account as revoked, not as still setting up', () => {
+        const [deactivated] = fromBridgeVirtualAccounts(
+            [{ ...(fixture.data[0] as BridgeVirtualAccount), status: 'deactivated' }],
+            SANDBOX_USER
+        )
+        expect(deactivated.status).toBe('revoked')
+    })
+
+    it('fails closed on a status Bridge has not documented', () => {
+        const [unknown] = fromBridgeVirtualAccounts(
+            [{ ...(fixture.data[0] as BridgeVirtualAccount), status: 'something_new' }],
+            SANDBOX_USER
+        )
+        expect(unknown.status).toBe('revoked')
     })
 
     it('ignores a currency we have no corridor for', () => {
@@ -83,7 +110,15 @@ describe('instruction rows', () => {
         const labels = (currency: string) =>
             instructionRows(byCurrency(currency).instructions!, ROW_LABELS).map((row) => row.label)
 
-        expect(labels('EUR')).toEqual(['Account holder', 'Bank', 'IBAN', 'BIC', 'Bank address', 'Accepts'])
+        expect(labels('EUR')).toEqual([
+            'Account holder',
+            'Bank',
+            'IBAN',
+            'BIC',
+            'Bank address',
+            'Recipient address',
+            'Accepts',
+        ])
         expect(labels('GBP')).toEqual([
             'Account holder',
             'Bank',
@@ -98,6 +133,7 @@ describe('instruction rows', () => {
             'Account number',
             'Routing number',
             'Bank address',
+            'Recipient address',
             'Accepts',
         ])
         // SPEI returns a CLABE and nothing else — no bank name, no address
@@ -110,6 +146,14 @@ describe('instruction rows', () => {
         )
         expect(accepts?.value).toBe('ACH · FedNow · Wire')
         expect(accepts?.copyable).toBe(false)
+    })
+})
+
+describe('the shared text carries what a payroll form asks for', () => {
+    it('includes the recipient address where the corridor has one', () => {
+        const account = byCurrency('EUR')
+        const text = buildShareText(account, shareCopy(account, 'Ana Pérez'), ROW_LABELS)
+        expect(text).toContain(account.instructions!.beneficiaryAddress!)
     })
 })
 

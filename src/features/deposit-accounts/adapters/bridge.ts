@@ -1,3 +1,4 @@
+import { bridgeSenderPolicy } from '../rails'
 import type { DepositAccount, DepositCorridor, DepositInstructions } from '../types'
 
 /**
@@ -41,11 +42,23 @@ const CORRIDOR_BY_CURRENCY: Record<string, DepositCorridor> = {
 }
 
 /**
- * Bridge reports an account as activated the moment it exists; anything else
- * is still being set up on their side.
+ * Bridge's account states, mapped explicitly and failing closed.
+ *
+ * `deactivated` is the one that matters: Bridge returns incoming funds on a
+ * deactivated account, so treating it as "still setting up" would leave a user
+ * watching a spinner while their employer's transfer bounces. An unrecognised
+ * state is treated the same way — we would rather tell somebody their details
+ * are not working than imply they are.
  */
+const BRIDGE_STATUS: Record<string, DepositAccount['status']> = {
+    activated: 'active',
+    pending: 'provisioning',
+    provisioning: 'provisioning',
+    deactivated: 'revoked',
+}
+
 function statusFrom(bridgeStatus: string): DepositAccount['status'] {
-    return bridgeStatus === 'activated' ? 'active' : 'provisioning'
+    return BRIDGE_STATUS[bridgeStatus] ?? 'revoked'
 }
 
 /**
@@ -88,11 +101,15 @@ function isUserName(holder: string, userLegalName: string): boolean {
 }
 
 /**
- * A Bridge virtual account is reusable, takes any amount from anybody, and
- * carries no reference. That is the whole difference from the transfers SKU
- * we run today, where every deposit is one pre-agreed amount with a mandatory
- * memo — verified against sandbox on 2026-09-11: no `deposit_message`, no
- * reference field, on any corridor.
+ * A Bridge virtual account is reusable, takes any amount, and carries no
+ * reference — verified against sandbox on 2026-09-11: no `deposit_message`,
+ * no reference field, on any corridor. That is the whole difference from the
+ * transfers SKU we run today, where every deposit is one pre-agreed amount
+ * with a mandatory memo.
+ *
+ * Who may pay in is the one thing the payload does not say, so it comes from
+ * the recorded per-corridor policy (`bridgeSenderPolicy`) and defaults to
+ * `unknown` rather than to a promise.
  */
 export function fromBridgeVirtualAccount(raw: BridgeVirtualAccount, userLegalName: string): DepositAccount | null {
     const source = raw.source_deposit_instructions
@@ -108,7 +125,7 @@ export function fromBridgeVirtualAccount(raw: BridgeVirtualAccount, userLegalNam
         status: statusFrom(raw.status),
         matching: {
             nameOnAccount: isUserName(instructions.accountHolderName, userLegalName) ? 'user' : 'provider',
-            sender: 'anyone',
+            sender: bridgeSenderPolicy(corridor),
             memo: 'none',
             amount: 'flexible',
         },
