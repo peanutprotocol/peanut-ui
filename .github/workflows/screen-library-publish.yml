@@ -2,7 +2,11 @@ name: Publish screen library
 on:
     workflow_call:
         secrets:
-            SCREEN_LIBRARY_BLOB_TOKEN:
+            CLOUDFLARE_IMAGES_TOKEN:
+                required: true
+            SCREEN_LIBRARY_R2_ACCESS_KEY_ID:
+                required: true
+            SCREEN_LIBRARY_R2_SECRET_ACCESS_KEY:
                 required: true
 permissions:
     contents: read
@@ -30,13 +34,9 @@ jobs:
               with:
                   node-version: '20'
             # Install only trusted publisher dependencies; do not execute app install scripts.
-            - run: npm install --ignore-scripts --no-save --package-lock=false --prefix /tmp/screen-publisher pixelmatch@7.2.0 pngjs@7.0.0 @vercel/blob@2.3.1 sharp@0.34.5
+            - run: npm install --ignore-scripts --no-save --package-lock=false --prefix /tmp/screen-publisher pixelmatch@7.2.0 pngjs@7.0.0 @aws-sdk/client-s3@3.883.0 sharp@0.34.5
             - name: Link isolated publisher dependencies
               run: ln -s /tmp/screen-publisher/node_modules node_modules
-            - name: Check storage configuration
-              env:
-                  SCREEN_LIBRARY_BLOB_TOKEN: ${{ secrets.SCREEN_LIBRARY_BLOB_TOKEN }}
-              run: test -n "$SCREEN_LIBRARY_BLOB_TOKEN" || { echo "Configure SCREEN_LIBRARY_BLOB_TOKEN for a dedicated public Vercel Blob store." >&2; exit 1; }
             - name: Download current attempt captures
               uses: actions/download-artifact@v4
               with:
@@ -47,7 +47,14 @@ jobs:
             - name: Verify provenance and publish
               env:
                   GH_TOKEN: ${{ github.token }}
-                  SCREEN_LIBRARY_BLOB_TOKEN: ${{ secrets.SCREEN_LIBRARY_BLOB_TOKEN }}
+                  CLOUDFLARE_IMAGES_TOKEN: ${{ secrets.CLOUDFLARE_IMAGES_TOKEN }}
+                  SCREEN_LIBRARY_R2_ACCESS_KEY_ID: ${{ secrets.SCREEN_LIBRARY_R2_ACCESS_KEY_ID }}
+                  SCREEN_LIBRARY_R2_SECRET_ACCESS_KEY: ${{ secrets.SCREEN_LIBRARY_R2_SECRET_ACCESS_KEY }}
+                  CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+                  SCREEN_LIBRARY_R2_BUCKET: ${{ vars.SCREEN_LIBRARY_R2_BUCKET }}
+                  SCREEN_LIBRARY_STORE_URL: ${{ vars.SCREEN_LIBRARY_STORE_URL }}
+                  SCREEN_LIBRARY_IMAGES_HASH: ${{ vars.SCREEN_LIBRARY_IMAGES_HASH }}
+                  SCREEN_LIBRARY_IMAGES_VARIANT: ${{ vars.SCREEN_LIBRARY_IMAGES_VARIANT }}
                   RUN_ID: ${{ github.run_id }}
                   RUN_ATTEMPT: ${{ github.run_attempt }}
                   REPOSITORY: ${{ github.repository }}
