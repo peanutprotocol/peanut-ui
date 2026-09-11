@@ -124,7 +124,8 @@ async function start() {
     if (!offline && !path) {
         const index = await loadJSON('/screen-data/index.json')
         $('coverage').textContent = `${index.length} published versions`
-        $('status').parentElement.hidden = true
+        $('screen-filters').hidden = true
+        $('route-coverage').hidden = true
         for (const v of index) {
             if (!/^[a-z0-9/-]+$/.test(v.path)) continue
             const a = el('a', `${v.date} · ${v.label}${v.complete ? '' : ' · Incomplete'}`, 'version')
