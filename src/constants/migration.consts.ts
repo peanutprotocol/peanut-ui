@@ -50,10 +50,6 @@ export const STORE_URL = {
     android: 'https://play.google.com/store/apps/details?id=me.peanut.wallet',
 } as const
 
-// The iOS listing (App Store Connect app 6786373552) is not published yet:
-// the store URL 404s, so store-update prompts stay hidden on iOS until then.
-export const IOS_APP_STORE_LISTING_LIVE = false
-
 export const STORE_NAME = {
     ios: 'App Store',
     android: 'Google Play',
@@ -68,7 +64,16 @@ export const MIGRATION_SURFACES = {
     SETUP: 'setup',
     GUEST_FLOW: 'guest_flow',
     PROFILE_UPDATE: 'profile_update',
+    // the /app smart link itself: the store buttons a scanner lands on
+    SMART_LINK: 'smart_link',
+    // landing folds that get their own download CTA once the flag is on
+    LANDING_APP_FOLD: 'landing_app_fold',
+    LANDING_FOOTER: 'landing_footer',
+    LANDING_RATES: 'landing_rates',
+    LANDING_COUNTRIES: 'landing_countries',
+    LANDING_DOOR: 'landing_door',
 } as const
 
 export type MigrationSurface = (typeof MIGRATION_SURFACES)[keyof typeof MIGRATION_SURFACES]
+
 export type StoreKind = keyof typeof STORE_URL

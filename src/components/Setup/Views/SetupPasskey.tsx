@@ -17,7 +17,7 @@ import {
     withWebAuthnRetry,
 } from '@/utils/webauthn.utils'
 import { isCeremonyGuardError } from '@/utils/passkeyCeremony.utils'
-import { PasskeySetupHelpModal } from './PasskeySetupHelpModal'
+import { PasskeySetupHelpDrawer } from './PasskeySetupHelpDrawer'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -298,7 +298,7 @@ const SetupPasskey = () => {
 
             {/* help modal for passkey setup issues */}
             {errorName && (
-                <PasskeySetupHelpModal
+                <PasskeySetupHelpDrawer
                     visible={showErrorModal}
                     onClose={() => setShowErrorModal(false)}
                     onRetry={() => {

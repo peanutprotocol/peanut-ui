@@ -95,6 +95,13 @@ describe('demoRespond — routing', () => {
         expect(res.status).toBe(404)
     })
 
+    it('returns a terminal claim status for the optimistic-claim poll', async () => {
+        const { res, data } = await body('/send-links/demo-pubkey/status?c=42161&v=v4.4&i=0')
+
+        expect(res.status).toBe(200)
+        expect(data).toMatchObject({ pubKey: 'demo-pubkey', status: 'CLAIMED' })
+    })
+
     it('returns a believable off-ramp success for POST /bridge/offramp/create', async () => {
         const { data } = await body('/bridge/offramp/create', { method: 'POST', body: '{}' })
         expect(data.transferId).toBeTruthy()

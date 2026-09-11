@@ -106,7 +106,7 @@ jest.mock('@/components/IdentityVerification/UnlockMethodModal', () => ({
     default: ({ visible, methodLabel }: { visible: boolean; methodLabel: string | null }) =>
         visible ? <div>unlock-modal-open:{methodLabel}</div> : null,
 }))
-jest.mock('@/components/Profile/views/ResidenceChangeModal', () => ({
+jest.mock('@/components/Profile/views/ResidenceChangeDrawer', () => ({
     __esModule: true,
     default: ({ visible, onReverify }: { visible: boolean; onReverify: (iso2: string) => void }) =>
         visible ? (

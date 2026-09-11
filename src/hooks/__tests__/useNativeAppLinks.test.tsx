@@ -30,8 +30,17 @@ jest.mock('@/utils/capacitor', () => ({
     markInAppBrowserClosed: jest.fn(),
 }))
 
+const mockOnNotificationClick = jest.fn(() => () => {})
+const mockOnNotificationReceived = jest.fn((_listener: () => void) => () => {})
+const mockAdapterInit = jest.fn(() => Promise.resolve())
 jest.mock('@/services/onesignal', () => ({
-    getOneSignalAdapter: jest.fn(() => Promise.resolve({ onNotificationClick: jest.fn(() => () => {}) })),
+    getOneSignalAdapter: jest.fn(() =>
+        Promise.resolve({
+            init: mockAdapterInit,
+            onNotificationClick: mockOnNotificationClick,
+            onNotificationReceived: mockOnNotificationReceived,
+        })
+    ),
 }))
 
 let launchUrl: string | undefined
@@ -158,6 +167,54 @@ describe('hardware back button', () => {
 
         expect(back).not.toHaveBeenCalled()
         expect(App.minimizeApp).toHaveBeenCalledTimes(1)
+    })
+})
+
+describe('notification unread refresh', () => {
+    it('refreshes consumers when the native app resumes', async () => {
+        const onUpdated = jest.fn()
+        window.addEventListener('notifications:updated', onUpdated)
+        renderHook(() => useNativeAppLinks())
+
+        const addListener = App.addListener as jest.Mock
+        await waitFor(() => expect(addListener.mock.calls.some(([name]) => name === 'appStateChange')).toBe(true))
+        const onAppStateChange = addListener.mock.calls.find(([name]) => name === 'appStateChange')![1]
+
+        onAppStateChange({ isActive: false })
+        expect(onUpdated).not.toHaveBeenCalled()
+        onAppStateChange({ isActive: true })
+        expect(onUpdated).toHaveBeenCalledTimes(1)
+
+        window.removeEventListener('notifications:updated', onUpdated)
+    })
+
+    it('refreshes consumers when a push arrives while the app remains foregrounded, then rechecks once', async () => {
+        const onUpdated = jest.fn()
+        window.addEventListener('notifications:updated', onUpdated)
+        renderHook(() => useNativeAppLinks())
+
+        await waitFor(() => expect(mockOnNotificationReceived).toHaveBeenCalled())
+        const onReceived = mockOnNotificationReceived.mock.calls[0][0]
+
+        jest.useFakeTimers()
+        try {
+            onReceived()
+            expect(onUpdated).toHaveBeenCalledTimes(1)
+
+            // The dispatcher writes the in-app unread row in parallel with the
+            // push send, so the immediate refresh can read zero. The bounded
+            // recheck is what closes that race — pin it.
+            jest.advanceTimersByTime(2_500)
+            expect(onUpdated).toHaveBeenCalledTimes(2)
+        } finally {
+            jest.useRealTimers()
+            window.removeEventListener('notifications:updated', onUpdated)
+        }
+    })
+
+    it('drives adapter init so delivery events fire in sessions that never mount useNotifications', async () => {
+        renderHook(() => useNativeAppLinks())
+        await waitFor(() => expect(mockAdapterInit).toHaveBeenCalledTimes(1))
     })
 })
 

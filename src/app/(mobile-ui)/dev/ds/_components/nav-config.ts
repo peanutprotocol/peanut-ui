@@ -151,7 +151,8 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             label: 'Toast',
             icon: 'bell',
             href: '/dev/ds/primitives/toast',
-            description: 'Context-based toast notification system. 4 types, auto-dismiss',
+            description:
+                'Floating transient feedback over Notification. Four tones, reading-time auto-dismiss, persistent and custom-content options',
             status: 'production',
         },
         {

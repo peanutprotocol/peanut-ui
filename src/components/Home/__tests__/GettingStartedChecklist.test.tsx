@@ -60,9 +60,11 @@ describe('GettingStartedChecklist', () => {
 
     it('uses the light-green design-system background only for completed rows', () => {
         render()
-        expect(screen.getByTestId('checklist-create-account')).toHaveClass('bg-background-icon-bubble-green/10')
-        expect(screen.getByTestId('checklist-add-money')).toHaveClass('bg-white')
-        expect(screen.getByTestId('checklist-get-card')).toHaveClass('bg-white')
+        const completed = screen.getByTestId('checklist-create-account')
+        expect(completed).toHaveClass('bg-background-icon-bubble-green/10', 'border-border-default')
+        expect(screen.getByTestId('checklist-add-money')).toHaveClass('bg-white', 'border-border-default')
+        expect(screen.getByTestId('checklist-get-card')).toHaveClass('bg-white', 'border-border-default')
+        expect(completed).not.toHaveClass('border-border-subtle')
     })
 
     it('wraps checklist subtitles instead of truncating them', () => {

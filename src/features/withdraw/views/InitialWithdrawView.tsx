@@ -167,11 +167,16 @@ export default function InitialWithdrawView({
         if (withdrawData?.chain && withdrawData?.token) {
             setSelectedChainID(withdrawData.chain.chainId)
             setSelectedTokenAddress(withdrawData.token.address)
-        } else {
-            // otherwise, set defaults for new withdraw flow
+        } else if (!(isValidRecipient && recipient.address)) {
+            // otherwise, set defaults for a fresh entry. An address-book tap
+            // arrives with the destination prefilled and its chain + token
+            // already selected — resetting here would silently move an EVM
+            // address onto the Peanut wallet chain (and clear non-EVM ones via
+            // the family-change effect), sending funds on the wrong network.
             setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
             setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     return (

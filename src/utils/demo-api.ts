@@ -392,6 +392,8 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         handler: () => ({ contacts: DEMO_CONTACTS, total: DEMO_CONTACTS.length, hasMore: false }),
     },
     { method: 'GET', pattern: '/users/limits', handler: () => DEMO_LIMITS },
+    // empty by default — the address-book fixtures override this with entries
+    { method: 'GET', pattern: '/users/saved-addresses', handler: () => ({ savedAddresses: [] }) },
     { method: 'GET', pattern: '/users/history', handler: () => ({ entries: DEMO_HISTORY_ENTRIES, hasMore: false }) },
     { method: 'GET', pattern: '/users/bridge-tos-link', handler: () => ({ tosLink: '' }) },
     { method: 'POST', pattern: '/users/bridge-tos-confirm', handler: () => ({ accepted: true }) },
@@ -474,6 +476,11 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     { method: 'GET', pattern: '/send-links', handler: () => demoSendLink('demo-pubkey') },
     { method: 'POST', pattern: '/send-links', handler: () => demoSendLink('demo-pubkey') },
     { method: 'PATCH', pattern: '/send-links/claim/:txHash/associate-user', handler: () => ({}) },
+    {
+        method: 'GET',
+        pattern: '/send-links/:pubKey/status',
+        handler: ({ params }) => ({ ...demoSendLink(params.pubKey), status: 'CLAIMED' }),
+    },
     { method: 'GET', pattern: '/send-links/:pubKey', handler: ({ params }) => demoSendLink(params.pubKey) },
     { method: 'PATCH', pattern: '/send-links/:pubKey', handler: ({ params }) => demoSendLink(params.pubKey) },
 

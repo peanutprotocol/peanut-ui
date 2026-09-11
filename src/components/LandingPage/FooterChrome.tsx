@@ -1,3 +1,4 @@
+import { FooterStoreLinks } from './FooterStoreLinks'
 import GITHUB_WHITE_ICON from '@/assets/icons/github-white.png'
 import PEANUT_LOGO from '@/assets/logos/peanut-logo.svg'
 import TELEGRAM_ICON from '@/assets/icons/telegram-white.svg'
@@ -129,6 +130,7 @@ export const FooterChrome = ({
                     <HandSigns />
                 </div>
             </nav>
+            <FooterStoreLinks />
         </footer>
     )
 }

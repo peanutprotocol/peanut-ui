@@ -1,5 +1,6 @@
 import { redactQrTelemetry, redactQrTelemetryString, maskQrReplayRequest } from '@/utils/qr-telemetry-privacy'
 import { APP_RELEASE } from '@/constants/app-release'
+import { suppressDuplicateLogin } from '@/utils/login-once-per-session'
 import posthog from 'posthog-js'
 import { beforeSendHandler } from './sentry.utils'
 import { inferSentryEnvironment } from '@/utils/sentry-env'
@@ -61,12 +62,17 @@ if (
             // it here (TASK-22408).
             if (isNativeFetchRejectionExceptionEvent(event)) return null
             if (event?.event) noteAppReviewFriction(event.event)
+            // Once-per-session login: runs here, after capture assigned/rotated
+            // $session_id — a pre-capture get_session_id() guard misses idle-
+            // resumed sessions and double-counts reloads (TASK-22516).
+            if (suppressDuplicateLogin(event) === null) return null
             return redactQrTelemetry(event)
         },
-        // autocapture walks the DOM ancestor chain on every tap, which costs frames
-        // in the in-app WebView renderer for data that 220+ explicit
-        // posthog.capture calls already cover. Native keeps the explicit events only.
-        autocapture: !isNativeBuild,
+        // Off everywhere since 2026-09-10 (server-side toggle, mirrored here):
+        // $autocapture was 35% of billed event volume with zero saved insights
+        // reading it, and the DOM ancestor walk on every tap costs frames. The
+        // 220+ explicit posthog.capture calls are the taxonomy (TASK-22516).
+        autocapture: false,
         /*
          * Session recording is ON everywhere, native included, as a deliberate
          * trial from 1.0.48.

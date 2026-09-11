@@ -20,6 +20,8 @@ import { pixKeyToQrPayUrl } from '@/utils/pix.utils'
 import { extractPaymentValue } from '@/utils/clipboard-extract.utils'
 import { recipientPayUrl, qrClaimUrl, deepLinkToNativePath } from '@/utils/native-routes'
 import { qrTelemetry, reportQrScanError } from '@/components/Global/QRScanner/utils'
+import { stashScannedDestination, withdrawScanEntryUrl } from '@/features/withdraw/destination'
+import { useChainRollout } from '@/hooks/useChainRollout'
 import { useTranslations } from 'next-intl'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import posthog from 'posthog-js'
@@ -202,6 +204,9 @@ function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose, onN
 export default function QRScannerOverlay() {
     const t = useTranslations('global')
     const [isModalOpen, setIsModalOpen] = useState(false)
+    // camera-permission recovery is a z-50 sheet inside the scanner; the my-QR
+    // peek floats at z-60 and must clear out while it is up
+    const [isCameraRecoveryOpen, setIsCameraRecoveryOpen] = useState(false)
     const [qrType, setQrType] = useState<EQrType | undefined>(undefined)
     const [redirectTo, setRedirectTo] = useState<string | undefined>(undefined)
     const [modalContent, setModalContent] = useState<EModalType | undefined>(undefined)
@@ -213,6 +218,7 @@ export default function QRScannerOverlay() {
     const payUserUrl = user?.user.username ? `${BASE_URL}/pay/${user.user.username}` : ''
     const { triggerHaptic } = useAppHaptic()
     const { isQRScannerOpen, setIsQRScannerOpen } = useModalsContext()
+    const isChainRolledOut = useChainRollout()
 
     // Remounts the result modal per scan so its acknowledgement starts unticked
     // on the first paint, not after an effect.
@@ -237,7 +243,27 @@ export default function QRScannerOverlay() {
         // mode encodes uppercase only, so that case came from the encoder. Any
         // lowercase letter means the case is the user's, and a mixed-case EIP-55
         // checksum must stay rejectable instead of laundered into a payable address.
-        const recognized = recognizeQr(data) ?? (data === data.toUpperCase() ? recognizeQr(normalized) : null)
+        // `scanned` is the value `recognized` describes — the raw payload, or that
+        // lowercased retry. A Solana address is paid out verbatim from it, so the
+        // two must never drift apart.
+        //
+        // The retry is only sound for the case-INSENSITIVE formats. For base58 it
+        // launders: an all-uppercase payload that fails raw recognition failed
+        // because it holds a character base58 excludes (`O`), and lowercasing
+        // turns that into a legal one — a different account, which nobody
+        // controls. Recognizing it as Solana was harmless while Solana was
+        // refused; it is a wrong payout address now that it is paid. Tron needs
+        // no such guard: its pattern is anchored on an uppercase `T`, which a
+        // lowercased payload can never match.
+        let scanned = data
+        let recognized = recognizeQr(data)
+        if (!recognized && data === data.toUpperCase()) {
+            const retried = recognizeQr(normalized)
+            if (retried && retried !== EQrType.SOLANA_ADDRESS) {
+                recognized = retried
+                scanned = normalized
+            }
+        }
 
         posthog.capture(ANALYTICS_EVENTS.QR_SCANNED, { qr_type: recognized, ...qrTelemetry(data) })
         if (!recognized) {
@@ -358,10 +384,27 @@ export default function QRScannerOverlay() {
                 showModal(EModalType.PIX_RECURRING)
                 return { success: true }
             }
+            case EQrType.SOLANA_ADDRESS:
+            case EQrType.TRON_ADDRESS: {
+                // Both are supported withdrawal destinations, so the scan goes
+                // into the crypto withdrawal flow with the address verbatim —
+                // case is the address in base58. The address is handed over in
+                // process, never in the URL: see stashScannedDestination. Each
+                // is still behind its own rollout flag and behind the ops
+                // kill-switch; while either is off, the notify-me path is the
+                // truth. The chain ids are CHAIN_REGISTRY selector ids — non-EVM
+                // chains have a slug where EVM chains have a numeric chain id.
+                const chainId = recognized === EQrType.SOLANA_ADDRESS ? 'solana' : 'tron'
+                const scanId = isChainRolledOut(chainId) ? stashScannedDestination(scanned, chainId) : null
+                if (!scanId) {
+                    showModal(EModalType.QR_NOT_SUPPORTED)
+                    return { success: true }
+                }
+                toConfirmUrl = withdrawScanEntryUrl(scanId)
+                break
+            }
             case EQrType.BITCOIN_ONCHAIN:
             case EQrType.BITCOIN_INVOICE:
-            case EQrType.TRON_ADDRESS:
-            case EQrType.SOLANA_ADDRESS:
             case EQrType.XRP_ADDRESS: {
                 showModal(EModalType.QR_NOT_SUPPORTED)
                 return { success: true }
@@ -425,15 +468,24 @@ export default function QRScannerOverlay() {
 
             {isQRScannerOpen && (
                 <>
-                    <QRScanner onScan={processQRCode} onClose={() => setIsQRScannerOpen(false)} isOpen={true} />
-                    {/* z-[60] keeps this drawer above the QRScanner portal (z-50) */}
-                    <QRBottomDrawer
-                        url={payUserUrl}
-                        title={t('qrScannerOverlay.myQrTitle')}
-                        text={t('qrScannerOverlay.myQrText')}
-                        buttonText={t('qrScannerOverlay.myQrButtonText')}
-                        className="z-[60]"
+                    <QRScanner
+                        onScan={processQRCode}
+                        onClose={() => setIsQRScannerOpen(false)}
+                        onPermissionDenied={setIsCameraRecoveryOpen}
+                        isOpen={true}
                     />
+                    {/* z-[60] keeps this drawer above the QRScanner portal (z-50) —
+                        which also puts it above the z-50 camera-permission recovery
+                        sheet, so it clears out while that sheet is up */}
+                    {!isCameraRecoveryOpen && (
+                        <QRBottomDrawer
+                            url={payUserUrl}
+                            title={t('qrScannerOverlay.myQrTitle')}
+                            text={t('qrScannerOverlay.myQrText')}
+                            buttonText={t('qrScannerOverlay.myQrButtonText')}
+                            className="z-[60]"
+                        />
+                    )}
                 </>
             )}
         </>

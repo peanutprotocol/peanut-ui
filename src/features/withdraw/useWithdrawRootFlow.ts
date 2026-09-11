@@ -10,12 +10,14 @@ import useGetExchangeRate from '@/hooks/useGetExchangeRate'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { AccountType } from '@/interfaces/interfaces'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { formatUnits } from 'viem'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { withdrawBankUrl, withdrawCountryUrl } from '@/utils/native-routes'
+import { SCAN_ID_PARAM, takeScannedDestination, withdrawTokenForChain } from './destination'
+import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
 import { parseAsString, parseAsBoolean, useQueryState } from 'nuqs'
 import { useTranslations } from 'next-intl'
@@ -37,6 +39,7 @@ export function useWithdrawRootFlow() {
 
     const [, setShowAll] = useQueryState('showAll', parseAsBoolean.withDefault(false))
     const [methodParam] = useQueryState('method', parseAsString)
+    const [scanIdParam] = useQueryState(SCAN_ID_PARAM, parseAsString)
     const [returnToParam] = useQueryState(RETURN_TO_PARAM, parseAsString)
     const { isFromSendFlow, isCryptoFromSend, isBankFromSend } = useSendFlowOrigin()
 
@@ -48,7 +51,11 @@ export function useWithdrawRootFlow() {
         setSelectedBankAccount,
         setSelectedMethod,
         setIsMaxWithdrawal,
+        setRecipient,
+        setIsValidRecipient,
     } = useWithdrawFlow()
+
+    const { supportedChainsAndTokens, setSelectedChainID, setSelectedTokenAddress } = useContext(tokenSelectorContext)
 
     const [urlAmount, setUrlAmount] = useWithdrawAmount()
     // raw amount currently typed in the input; the URL is the commit point
@@ -81,12 +88,18 @@ export function useWithdrawRootFlow() {
     // is implied, so commit it and land straight on the amount step.
     useEffect(() => {
         if (!isCryptoFromSend) return
-        if (!selectedMethod) {
+        // A scan names the rail, so it replaces a method the user left selected —
+        // /withdraw keeps its layout mounted, so scanning from the amount step of
+        // a bank withdrawal arrives with that bank method still in flow memory,
+        // and Continue would follow the old bank route (and apply its fiat
+        // minimum) instead of paying the scanned address.
+        if (!selectedMethod || (scanIdParam && selectedMethod.type !== 'crypto')) {
             setSelectedMethod({ type: 'crypto', title: 'Crypto', countryPath: undefined })
+            setSelectedBankAccount(null)
         }
         if (stepper.step === 'method') void stepper.goTo('amount')
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isCryptoFromSend, selectedMethod, stepper.step])
+    }, [isCryptoFromSend, selectedMethod, stepper.step, scanIdParam])
 
     // flag to know if the user has manually entered something
     const userTypedRef = useRef<boolean>(false)
@@ -287,6 +300,25 @@ export function useWithdrawRootFlow() {
         // Route based on selected method type (check method type first to avoid
         // a stale bank account taking priority)
         if (selectedMethod.type === 'crypto') {
+            // Hand the scanned destination to the recipient step the way an
+            // address-book tap does — chain, token and a pre-validated address
+            // in flow state, which InitialWithdrawView then preserves instead
+            // of resetting to USDC on Arbitrum. Consumed here, at its one
+            // legitimate use, so nothing can re-apply it over a destination the
+            // user picks afterwards.
+            // No token means the chain list has not arrived yet — seeding the chain and
+            // recipient without one opens the step with a valid recipient and nothing to
+            // send, so leave it to its own defaults instead.
+            const scannedDestination = takeScannedDestination(scanIdParam)
+            const token = scannedDestination
+                ? withdrawTokenForChain(supportedChainsAndTokens?.[scannedDestination.chainId]?.tokens)
+                : undefined
+            if (scannedDestination && token) {
+                setSelectedChainID(scannedDestination.chainId)
+                setSelectedTokenAddress(token.address)
+                setRecipient({ name: undefined, address: scannedDestination.address })
+                setIsValidRecipient(true)
+            }
             router.push(`/withdraw/crypto${downstreamQuery()}`)
         } else if (selectedMethod.type === 'manteca') {
             // Manteca (AR/BR) accounts route to the Manteca flow. Checked BEFORE
@@ -339,6 +371,12 @@ export function useWithdrawRootFlow() {
         downstreamQuery,
         setError,
         t,
+        scanIdParam,
+        supportedChainsAndTokens,
+        setSelectedChainID,
+        setSelectedTokenAddress,
+        setRecipient,
+        setIsValidRecipient,
     ])
 
     const handleAmountBack = useCallback(() => {

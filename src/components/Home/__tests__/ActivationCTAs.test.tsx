@@ -92,20 +92,6 @@ jest.mock('@/context/ModalsContext', () => ({
 jest.mock('@/hooks/useCardInfo', () => ({
     useCardInfo: () => ({ hasCardAccess: mockHasCardAccess }),
 }))
-jest.mock('@/components/Global/ActionModal', () => ({
-    __esModule: true,
-    default: (props: { visible: boolean; title?: string; ctas?: { text: string; onClick: () => void }[] }) =>
-        props.visible ? (
-            <div data-testid="spend-chooser">
-                <p>{props.title}</p>
-                {props.ctas?.map((c) => (
-                    <button key={c.text} onClick={c.onClick}>
-                        {c.text}
-                    </button>
-                ))}
-            </div>
-        ) : null,
-}))
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockPush }),
 }))
@@ -367,7 +353,7 @@ describe('ActivationCTAs — happy path renders the checklist', () => {
         mockRails = [enabledQrRail]
         render(<ActivationCTAs activationStep="outbound" />)
         fireEvent.click(screen.getByText('Start Spending'))
-        expect(screen.getByTestId('spend-chooser')).toBeInTheDocument()
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
     })
 
     it('outbound with neither a card nor a QR rail renders nothing — no spend would clear it', () => {
