@@ -48,6 +48,8 @@ type DemoRequestBody = {
     reference?: string
     dismissActivationCelebration?: boolean
     username?: string
+    /** card apply (demo): true submits, false/absent asks for terms */
+    termsAccepted?: boolean
 }
 
 function parseBody(options?: RequestInit): DemoRequestBody {
@@ -366,6 +368,9 @@ const stampDemoActivationCelebrated = (): void => {
 // demo state: a pick made through the picker must survive the next
 // GET /users/me or the tile snaps back. Fixtures still override on top.
 let demoAvatarKey: string | null = null
+// demo state: applying for the card flips the overview to a PENDING
+// application so the entry screen advances like the real flow
+let demoCardApplied = false
 
 // ---- routes (ordered: literal paths before :param paths) ----
 
@@ -702,7 +707,26 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     {
         method: 'GET',
         pattern: '/rain/cards',
-        handler: () => ({ status: { hasApplication: false }, balance: null, cards: [] }),
+        handler: () =>
+            demoCardApplied
+                ? { status: { hasApplication: true, railStatus: 'PENDING' }, balance: null, cards: [] }
+                : { status: { hasApplication: false }, balance: null, cards: [] },
+    },
+    // Demo apply mirrors the real two-step contract: first call asks for
+    // terms, the accepting call submits and the overview flips to PENDING —
+    // without this, Get your card fell through to the {} fallback and the
+    // entry screen never advanced.
+    {
+        method: 'POST',
+        pattern: '/rain/cards',
+        handler: ({ options }) => {
+            const body = parseBody(options)
+            if (body.termsAccepted === true) {
+                demoCardApplied = true
+                return { status: 'pending' }
+            }
+            return { status: 'terms-required', isUsResident: false, termsVersion: 'demo' }
+        },
     },
 
     // rhino (crypto deposit / cross-chain) — return a believable deposit address
