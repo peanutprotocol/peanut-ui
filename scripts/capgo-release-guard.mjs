@@ -17,6 +17,23 @@ const DISABLED_AUDIENCES = {
 const CORE = /^(0|[1-9]\d*)\.([1-9]\d*)\.(0|[1-9]\d*)$/
 const CHANNEL_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?$/
 
+function channelVersion(row, channelName) {
+    // Capgo represents the builtin bundle as a null channels.version foreign
+    // key, so the embedded app_versions relation is null too. Check both the
+    // raw key and relation to distinguish that legitimate state from a broken
+    // or incomplete PostgREST response.
+    if (row?.version_id === null && row.version === null) return 'builtin'
+    if (
+        !Number.isInteger(row?.version_id) ||
+        row.version_id <= 0 ||
+        row.version?.id !== row.version_id ||
+        !CHANNEL_VERSION.test(row.version?.name ?? '')
+    ) {
+        throw new Error(`${channelName} has no valid current bundle version`)
+    }
+    return row.version.name
+}
+
 function required(env, name) {
     if (!env[name]) throw new Error(`${name} is required`)
     return env[name]
@@ -102,9 +119,7 @@ export function verifyPolicies(channels, appId) {
         for (const [field, value] of Object.entries(expected)) {
             if (row[field] !== value) throw new Error(`${name} must have ${field}=${value}`)
         }
-        if (row.version?.name !== 'builtin' && !CHANNEL_VERSION.test(row.version?.name ?? '')) {
-            throw new Error(`${name} has no valid current bundle version`)
-        }
+        channelVersion(row, name)
     }
     if (
         channels.some(
@@ -148,7 +163,7 @@ export async function run(mode, { env = process.env, fetchImpl = fetch } = {}) {
         url.search = new URLSearchParams({
             app_id: `eq.${appId}`,
             limit: '1000',
-            select: 'name,app_id,public,ios,android,electron,disable_auto_update,disable_auto_update_under_native,allow_device_self_set,allow_prod,allow_device,rollout_enabled,version:app_versions!channels_version_fkey(name,id)',
+            select: 'name,app_id,public,ios,android,electron,disable_auto_update,disable_auto_update_under_native,allow_device_self_set,allow_prod,allow_device,rollout_enabled,version_id:version,version:app_versions!channels_version_fkey(name,id)',
         }).toString()
         return verifyPolicies(
             await json(url, {
@@ -213,12 +228,15 @@ export async function run(mode, { env = process.env, fetchImpl = fetch } = {}) {
             return bundle({ allowMissing: true })
         case 'current-version': {
             const name = PRODUCTION_CHANNELS[platform(env)]
-            return (await policies()).find((row) => row.name === name).version.name
+            return channelVersion(
+                (await policies()).find((row) => row.name === name),
+                name
+            )
         }
         case 'current-release': {
             const current = (await policies())
                 .filter((row) => Object.values(PRODUCTION_CHANNELS).includes(row.name))
-                .map((row) => row.version.name)
+                .map((row) => channelVersion(row, row.name))
                 .filter((name) => name !== 'builtin')
             // Include failed/partial and deleted platform uploads: their names
             // remain reserved. Exclude staging's commit-count version sequence.
@@ -239,7 +257,7 @@ export async function run(mode, { env = process.env, fetchImpl = fetch } = {}) {
         case 'verify-production': {
             const name = PRODUCTION_CHANNELS[platform(env)]
             const row = (await policies()).find((entry) => entry.name === name)
-            if (row.version.name !== required(env, 'VERSION'))
+            if (channelVersion(row, name) !== required(env, 'VERSION'))
                 throw new Error(`${name} does not exclusively serve the expected version`)
             return `${name} serves verified bundle ${await bundle()}`
         }
