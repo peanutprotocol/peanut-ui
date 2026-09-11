@@ -259,6 +259,9 @@ read-only repository access; only this small post-release job receives `contents
 write`, and its only write is that tag. Future OTA checks accept the tag only when it is
 annotated, is an ancestor of the bundle commit, fingerprints the tagged native surface,
 and differs from the original `v<version>` tag only by the legacy-compatible allowlist.
+The attestation prefix versions that fingerprint contract: existing `v2` tags retain
+the original combined dependency digest, while new replacement jobs write `v3` with
+the platform-split dependency manifest.
 The attestation also names the `android-capacitor-permissions-v1` JavaScript guard.
 While the floor still includes original Android 1.5.0 binaries, every OTA scans all
 shipped source: direct Capacitor `checkPermissions` / `requestPermissions` calls are

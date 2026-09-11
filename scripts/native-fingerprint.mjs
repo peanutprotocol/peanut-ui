@@ -237,6 +237,15 @@ export const NATIVE_INPUTS = [
     { kind: 'deps', id: 'shared/native-plugin-versions', platform: 'shared' },
 ]
 
+// Replacement attestations created before dependency inputs were split by
+// platform carry a v2 fingerprint. Preserve that schema exactly so those
+// immutable tags remain verifiable; new attestations use the current v3
+// manifest above.
+const LEGACY_V2_NATIVE_INPUTS = [
+    ...NATIVE_INPUTS.filter((input) => input.kind !== 'deps'),
+    { kind: 'deps', id: 'native-plugin-versions', platform: 'shared' },
+]
+
 // A file the tree does not have is still a fact about the surface — adding or
 // deleting one must move the fingerprint — so absence gets its own sentinel
 // rather than being skipped.
@@ -364,19 +373,19 @@ function nativeDependencyVersions(ref, platform) {
         NATIVE_DEPENDENCY_PATTERN.test(name)
     )
     const names = [...new Set([...NATIVE_DEPENDENCIES, ...declared, ...generatedPluginNames(ref)])]
-        .filter((name) => (PLATFORM_NATIVE_DEPENDENCIES.get(name) ?? 'shared') === platform)
+        .filter((name) => platform === 'legacy-v2' || (PLATFORM_NATIVE_DEPENDENCIES.get(name) ?? 'shared') === platform)
         .sort()
 
     // pnpm patch identity: which packages are patched and by which file.
-    const patched =
-        platform === 'shared'
-            ? Object.entries(parsed.pnpm?.patchedDependencies ?? {})
-                  .map(([name, file]) => `${name}=${file}`)
-                  .sort()
-            : []
+    const includesPatches = platform === 'shared' || platform === 'legacy-v2'
+    const patched = includesPatches
+        ? Object.entries(parsed.pnpm?.patchedDependencies ?? {})
+              .map(([name, file]) => `${name}=${file}`)
+              .sort()
+        : []
 
     return [
-        ...(platform === 'shared' ? [`patched:${patched.join(',')}`] : []),
+        ...(includesPatches ? [`patched:${patched.join(',')}`] : []),
         ...names.map((name) => {
             const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
             // Lockfile keys look like `'@capgo/capacitor-updater@8.51.14(@capacitor/core@8.2.0)':`,
@@ -391,10 +400,10 @@ function nativeDependencyVersions(ref, platform) {
     ].join('\n')
 }
 
-export function manifest(ref) {
+function manifestForInputs(ref, inputs, dependencyPlatform) {
     assertRefExists(ref)
     const entries = {}
-    for (const input of NATIVE_INPUTS) {
+    for (const input of inputs) {
         if (input.kind === 'file') {
             const raw = readAtRef(input.id, ref)
             entries[input.id] = raw === null ? ABSENT : sha(normalize(input.id, raw))
@@ -417,19 +426,31 @@ export function manifest(ref) {
             continue
         }
 
-        const versions = nativeDependencyVersions(ref, input.platform)
+        const versions = nativeDependencyVersions(ref, dependencyPlatform ?? input.platform)
         entries[input.id] = versions === null ? ABSENT : sha(versions)
     }
     return entries
+}
+
+export function manifest(ref) {
+    return manifestForInputs(ref, NATIVE_INPUTS)
+}
+
+function fingerprintForInputs(ref, inputs, dependencyPlatform) {
+    const entries = manifestForInputs(ref, inputs, dependencyPlatform)
+    const canonical = inputs.map((input) => `${input.id}:${entries[input.id]}`).join('\n')
+    return sha(canonical).slice(0, 16)
 }
 
 // Hash of the manifest, not of the concatenated inputs: the per-input digests
 // are what a diff reports, so the summary hash must be derived from exactly
 // what the diff inspects or the two could disagree.
 export function fingerprint(ref) {
-    const entries = manifest(ref)
-    const canonical = NATIVE_INPUTS.map((input) => `${input.id}:${entries[input.id]}`).join('\n')
-    return sha(canonical).slice(0, 16)
+    return fingerprintForInputs(ref, NATIVE_INPUTS)
+}
+
+export function legacyV2Fingerprint(ref) {
+    return fingerprintForInputs(ref, LEGACY_V2_NATIVE_INPUTS, 'legacy-v2')
 }
 
 export function diff(baseRef, headRef) {
@@ -477,6 +498,12 @@ function main(argv) {
         setRepoRoot(root)
     }
     const ref = flag(argv, '--ref')
+    const schema = flag(argv, '--schema') ?? 'v3'
+    if (argv.includes('--schema') && !flag(argv, '--schema')) throw new Error('--schema needs v2 or v3')
+    if (!['v2', 'v3'].includes(schema)) throw new Error(`unsupported fingerprint schema "${schema}"`)
+    if (schema !== 'v3' && argv.some((arg) => ['--manifest', '--inputs', '--diff'].includes(arg))) {
+        throw new Error('--schema v2 is only supported when printing a fingerprint')
+    }
 
     if (argv.includes('--manifest')) {
         return JSON.stringify(manifest(ref), null, 2)
@@ -514,7 +541,7 @@ function main(argv) {
         process.exit(1)
     }
 
-    return fingerprint(ref)
+    return schema === 'v2' ? legacyV2Fingerprint(ref) : fingerprint(ref)
 }
 
 // Only run as a CLI; the exports above are what the tests use.

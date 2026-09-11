@@ -128,7 +128,7 @@ it('keeps the iOS floor when only the Android runtime dependency changes', () =>
     })
 })
 
-it('uses an attested same-version replacement as the platform baseline', () => {
+it('uses a pre-split v2 same-version replacement as the platform baseline', () => {
     const repo = makeRepo()
     release(repo, 'v1.5.0')
     write(repo.dir, 'android/app/proguard-rules.pro', '# retain runtime metadata\n')
@@ -136,7 +136,7 @@ it('uses an attested same-version replacement as the platform baseline', () => {
     repo.git('commit', '-q', '-m', 'repair R8')
     const fingerprint = execFileSync(
         'node',
-        [path.join(REPO_ROOT, 'scripts/native-fingerprint.mjs'), '--root', repo.dir, '--ref', 'HEAD'],
+        [path.join(REPO_ROOT, 'scripts/native-fingerprint.mjs'), '--root', repo.dir, '--ref', 'HEAD', '--schema', 'v2'],
         { cwd: repo.dir, encoding: 'utf8' }
     ).trim()
     repo.git(

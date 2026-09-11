@@ -110,6 +110,13 @@ describe('native-fingerprint', () => {
         expect(fingerprint()).toBe(first)
     })
 
+    it('keeps the pre-split v2 fingerprint schema available for immutable attestations', () => {
+        const legacy = fingerprint('--schema', 'v2')
+
+        expect(legacy).toMatch(/^[0-9a-f]{16}$/)
+        expect(legacy).not.toBe(fingerprint('--schema', 'v3'))
+    })
+
     it('covers every native input, hashing it or recording its absence', () => {
         const result = run(fixture.dir, '--manifest')
         const keys = Object.keys(JSON.parse(result.stdout))

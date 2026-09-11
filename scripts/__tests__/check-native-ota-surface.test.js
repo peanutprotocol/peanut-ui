@@ -53,8 +53,8 @@ function run(root, ...args) {
     return spawnSync(process.execPath, [script, 'v1.5.0', '--root', root, ...args], { encoding: 'utf8' })
 }
 
-function fingerprint(root, ref = 'HEAD') {
-    return execFileSync(process.execPath, [fingerprintScript, '--root', root, '--ref', ref], {
+function fingerprint(root, ref = 'HEAD', schema = 'v3') {
+    return execFileSync(process.execPath, [fingerprintScript, '--root', root, '--ref', ref, '--schema', schema], {
         encoding: 'utf8',
     }).trim()
 }
@@ -65,7 +65,8 @@ function recordReplacement(
         tag = 'android-v1.5.0-replacement-fix',
         platform = 'android',
         baseRef = 'v1.5.0',
-        value = fingerprint(fixture.root),
+        schema = 'v3',
+        value = fingerprint(fixture.root, 'HEAD', schema),
     } = {}
 ) {
     fixture.git(
@@ -75,7 +76,7 @@ function recordReplacement(
         '-m',
         'Android replacement',
         '-m',
-        `peanut-native-replacement-v2: platform=${platform} base=${baseRef} native-compatible=true js-guard=android-capacitor-permissions-v1 fingerprint=${value}`
+        `peanut-native-replacement-${schema}: platform=${platform} base=${baseRef} native-compatible=true js-guard=android-capacitor-permissions-v1 fingerprint=${value}`
     )
     return tag
 }
@@ -109,6 +110,18 @@ describe('native OTA replacement baseline', () => {
         expect(result.status).toBe(0)
         expect(result.stdout).toContain(`matches attested android replacement ${tag}`)
         expect(result.stdout).toContain('older v1.5.0 installs remain')
+    })
+
+    it('keeps pre-split v2 replacement attestations verifiable', () => {
+        fs.appendFileSync(path.join(fixture.root, 'android/app/proguard-rules.pro'), '\n# retain runtime metadata\n')
+        fixture.git('add', 'android/app/proguard-rules.pro')
+        fixture.git('commit', '-qm', 'repair R8 before schema split')
+        const tag = recordReplacement(fixture, { schema: 'v2' })
+
+        const result = run(fixture.root)
+        expect(result.status).toBe(0)
+        expect(result.stdout).toContain(`matches attested android replacement ${tag}`)
+        expect(fingerprint(fixture.root, tag, 'v2')).not.toBe(fingerprint(fixture.root, tag, 'v3'))
     })
 
     it('rejects later JavaScript that calls Camera directly on legacy Android shells', () => {
@@ -209,6 +222,6 @@ describe('native OTA replacement baseline', () => {
 
         const result = run(fixture.root)
         expect(result.status).toBe(1)
-        expect(result.stderr).toContain('missing a valid peanut-native-replacement-v2 attestation')
+        expect(result.stderr).toContain('missing a valid peanut-native-replacement-v2 or v3 attestation')
     })
 })

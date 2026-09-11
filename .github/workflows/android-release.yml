@@ -416,7 +416,7 @@ jobs:
                   node scripts/check-native-change-scope.cjs "v$VERSION" android --legacy-compatible --ref "$GITHUB_SHA"
                   FINGERPRINT="$(node scripts/native-fingerprint.mjs --ref "$GITHUB_SHA")"
                   TAG="android-v${VERSION}-replacement-${GITHUB_SHA:0:12}"
-                  ATTESTATION="peanut-native-replacement-v2: platform=android base=v$VERSION native-compatible=true js-guard=android-capacitor-permissions-v1 fingerprint=$FINGERPRINT"
+                  ATTESTATION="peanut-native-replacement-v3: platform=android base=v$VERSION native-compatible=true js-guard=android-capacitor-permissions-v1 fingerprint=$FINGERPRINT"
 
                   if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
                       EXISTING_COMMIT="$(git rev-parse "$TAG^{commit}")"
