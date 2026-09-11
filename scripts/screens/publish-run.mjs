@@ -103,7 +103,7 @@ for (const [capture, source, branch] of libraries) {
 
 if (pr) {
     const marker = '<!-- screen-library -->'
-    const body = `${marker}\n[Open screen comparison](https://staging.peanut.me/screens/${path}/)\n\n${run.event === 'push' ? 'After merge' : 'Review preview'}: ${before.commit} → ${after.commit}. ${before.complete && after.complete ? 'Capture complete.' : 'Incomplete capture; unavailable states are listed in the report.'}`
+    const body = `${marker}\n[Open screen comparison](${process.env.SCREEN_LIBRARY_PUBLIC_URL}/screens/${path}/)\n\n${run.event === 'push' ? 'After merge' : 'Review preview'}: ${before.commit} → ${after.commit}. ${before.complete && after.complete ? 'Capture complete.' : 'Incomplete capture; unavailable states are listed in the report.'}`
     const comments = JSON.parse(
         execFileSync(
             'gh',

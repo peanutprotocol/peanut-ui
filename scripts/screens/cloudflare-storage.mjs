@@ -6,7 +6,7 @@ export function configuration(env = process.env) {
         'SCREEN_LIBRARY_R2_ACCESS_KEY_ID',
         'SCREEN_LIBRARY_R2_SECRET_ACCESS_KEY',
         'SCREEN_LIBRARY_R2_BUCKET',
-        'SCREEN_LIBRARY_STORE_URL',
+        'SCREEN_LIBRARY_PUBLIC_URL',
         'SCREEN_LIBRARY_IMAGES_HASH',
         'SCREEN_LIBRARY_IMAGES_VARIANT',
     ]
@@ -14,10 +14,10 @@ export function configuration(env = process.env) {
     if (!/^[a-f0-9]{32}$/.test(env.CLOUDFLARE_ACCOUNT_ID)) throw new Error('Invalid Cloudflare account ID')
     for (const key of ['SCREEN_LIBRARY_IMAGES_HASH', 'SCREEN_LIBRARY_IMAGES_VARIANT'])
         if (!/^[\w-]+$/.test(env[key])) throw new Error(`Invalid ${key}`)
-    const url = new URL(env.SCREEN_LIBRARY_STORE_URL)
+    const url = new URL(env.SCREEN_LIBRARY_PUBLIC_URL)
     if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash || url.pathname !== '/')
         throw new Error('Store URL must be an HTTPS origin')
-    return { ...env, SCREEN_LIBRARY_STORE_URL: url.origin }
+    return { ...env, SCREEN_LIBRARY_PUBLIC_URL: url.origin }
 }
 export async function createStorage(env = process.env) {
     const config = configuration(env)
@@ -31,7 +31,7 @@ export async function createStorage(env = process.env) {
         },
     })
     const Bucket = config.SCREEN_LIBRARY_R2_BUCKET
-    const url = (key) => `${config.SCREEN_LIBRARY_STORE_URL}/${key}`
+    const url = (key) => `${config.SCREEN_LIBRARY_PUBLIC_URL}/screen-data/${key}`
     return {
         async put(key, body, options = {}) {
             await client.send(

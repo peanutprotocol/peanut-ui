@@ -386,18 +386,7 @@ let nextConfig = {
             // Domain-association files (apple-app-site-association, assetlinks.json)
             // are served statically from public/.well-known/ — no rewrites here,
             // or they would shadow the static files.
-            beforeFiles: [
-                // The library is static and independent of auth/app providers.
-                { source: '/screens/:path*', destination: '/screen-library/index.html' },
-                ...(process.env.SCREEN_LIBRARY_STORE_URL
-                    ? [
-                          {
-                              source: '/screen-data/:path*',
-                              destination: `${process.env.SCREEN_LIBRARY_STORE_URL.replace(/\/$/, '')}/:path*`,
-                          },
-                      ]
-                    : []),
-            ],
+            beforeFiles: [],
             afterFiles: [
                 // PostHog reverse proxy — bypasses ad blockers. Path renamed
                 // from /ingest/ (which uBlock Origin's default lists block as

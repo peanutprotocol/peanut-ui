@@ -62,12 +62,12 @@ new screens. Build each revision with its own lockfile and content commit.
 
 ## Public deployment
 
-The viewer is static under `public/screen-library`; `/screens/*` rewrites to it,
-so app auth/provider initialization cannot interfere. It reads data through
-`/screen-data/*`. Configure `SCREEN_LIBRARY_STORE_URL` on the staging Vercel
-project to the HTTPS custom-domain origin of a dedicated public Cloudflare R2 bucket, then
-redeploy staging to register the rewrite. Do not put any write token in a
-`NEXT_PUBLIC_` variable or in the capture environment.
+The gallery deploys independently to Cloudflare Workers using
+`screen-library-deploy.yml` on pushes to dev affecting the viewer, Worker or
+workflow. No Next.js build or Vercel deployment is involved. Worker Static Assets
+serves the viewer; only `/screen-data/*` invokes the read-only R2 handler.
+The R2 bucket can remain private. Only JSON manifests/indexes and offline archives
+are publicly readable through the Worker; internal entries are not exposed.
 
 Use Cloudflare Images for all screenshots, thumbnails and pixel-difference images.
 R2 holds only JSON/indexes and offline archives, with no standalone PNG objects.
@@ -79,18 +79,32 @@ DevOps setup:
 
 1. Enable Cloudflare Images and create a public `screen-preview` variant
    (393×852, fit scale-down, no cropping; no signed URL requirement).
-2. Create a dedicated R2 bucket with a public custom domain. Retain objects
+2. Create a dedicated private R2 bucket. Retain objects
    indefinitely; respect object Cache-Control (index/latest use 60 seconds).
 3. In GitHub Actions repository secrets set `CLOUDFLARE_IMAGES_TOKEN`
    (Account → Cloudflare Images → Edit, scoped to the account),
    `SCREEN_LIBRARY_R2_ACCESS_KEY_ID` and `SCREEN_LIBRARY_R2_SECRET_ACCESS_KEY`
    (R2 Object Read & Write credentials scoped to this bucket).
 4. In GitHub Actions repository variables set `CLOUDFLARE_ACCOUNT_ID`,
-   `SCREEN_LIBRARY_R2_BUCKET`, `SCREEN_LIBRARY_STORE_URL` (public R2 HTTPS origin),
+   `SCREEN_LIBRARY_R2_BUCKET`, `SCREEN_LIBRARY_PUBLIC_URL` (gallery HTTPS origin,
+   e.g. `https://screens.peanut.me` or the Worker’s `workers.dev` origin),
    `SCREEN_LIBRARY_IMAGES_HASH` (Images delivery account hash, distinct from account ID),
    and `SCREEN_LIBRARY_IMAGES_VARIANT=screen-preview`.
-5. Set the same `SCREEN_LIBRARY_STORE_URL` in Vercel's staging/Preview environment
-   and redeploy. Keep the existing Vercel deployment token. The Blob secret is unused.
+5. Add GitHub secret `CLOUDFLARE_WORKERS_TOKEN` with Account → Workers Scripts → Edit
+   and Account → Workers R2 Storage → Edit, scoped to this account. For the custom
+   domain also grant Zone → Zone → Read and Zone → DNS → Edit scoped to peanut.me.
+   The zone must be active in this Cloudflare account. The deployment creates
+   Worker `peanut-screen-library` and its configured custom domain; no Vercel
+   environment variables or redeployment are needed. A workers.dev address can
+   be used first (initialize the account’s workers.dev subdomain in the dashboard).
+6. Merge #3107, verify the Deploy screen gallery job succeeds and the public
+   gallery loads, then merge #3108 to activate captures. An empty R2 bucket shows
+   a report-unavailable message until the first publication. Verify a report URL
+   without login after publication. Manual workflow dispatch retains GitHub’s
+   default-branch registration limitation; dev push deployment has no such dependency.
+
+The existing Vercel app preview workflow remains independent. Neither the Blob
+secret nor `SCREEN_LIBRARY_STORE_URL` is used by the gallery anymore.
 
 Only the separate trusted publisher receives the write credentials. The
 publisher accepts hashes and validated JSON/PNG/WebP; no downloaded code or
