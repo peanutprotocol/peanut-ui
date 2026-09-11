@@ -223,15 +223,15 @@ export function Hero({
                     style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
                 >
                     <Link prefetch={false} href={contentHrefs.unitedStates} className="hover:underline">
-                        New York
+                        {strings.heroCityNewYork}
                     </Link>
                     .{' '}
                     <Link prefetch={false} href={contentHrefs.spain} className="hover:underline">
-                        Madrid
+                        {strings.heroCityMadrid}
                     </Link>
                     .{' '}
                     <Link prefetch={false} href={contentHrefs.mexico} className="hover:underline">
-                        Mexico City
+                        {strings.heroCityMexicoCity}
                     </Link>
                     .
                 </span>
