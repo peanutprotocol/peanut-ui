@@ -4,9 +4,7 @@ import Card from '@/components/Global/Card'
 import { Toggle } from '@/components/0_Bruddle/Toggle'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import { useAuth } from '@/context/authContext'
 import { useOtaChannel } from '@/hooks/useOtaChannel'
-import { PEANUT_TEAM_BADGE } from '@/constants/badges.consts'
 import { BETA_OTA_CHANNEL } from '@/utils/capgo-updater'
 import { copyTextToClipboard } from '@/utils/clipboard.utils'
 import { useTranslations } from 'next-intl'
@@ -16,13 +14,13 @@ import { useTranslations } from 'next-intl'
  * points the device at the `staging` Capgo channel, which every merge to `dev`
  * publishes to; leaving drops it back to the store bundle.
  *
- * Joining requires the PEANUT_TEAM badge, which the About screen awards on the
- * fifth tap. The badge is a record of who opted in, NOT an access boundary —
- * anyone who performs the gesture can award it to themselves, and deleting the
- * row only holds until they tap again. Capgo's channel self-assignment setting
- * is the real boundary.
+ * The About screen records the fifth tap as PEANUT_TEAM, but that badge is not
+ * an access boundary: anyone who performs the gesture can award it to
+ * themselves. The gesture controls discoverability and Capgo's channel
+ * self-assignment setting is the real boundary, so a delayed or failed profile
+ * refresh must never leave the switch visible but inert.
  *
- * The badge gates the JOIN, never the card. An earlier version gated the whole
+ * The card renders on every native build. An earlier version gated the whole
  * reveal on a PostHog cohort, so the flag never being created hid the switch
  * from everyone and looked exactly like exclusion — invisible for months.
  *
@@ -40,21 +38,12 @@ export function useBetaUpdatesAccess(): { supported: boolean } {
     return { supported }
 }
 
-/** Without the badge, only a device already on beta may work the switch — off. */
-function useCanJoinBeta(): boolean {
-    const { user } = useAuth()
-    return !!user?.user.badges?.some((badge) => badge.code === PEANUT_TEAM_BADGE)
-}
-
 export const BetaUpdatesCard = () => {
     const t = useTranslations('profile.about.beta')
     const toast = useToast()
     const { supported, status, isBeta, busy, setBeta } = useOtaChannel()
-    const canJoin = useCanJoinBeta()
 
     if (!supported) return null
-
-    const blockedFromJoining = !canJoin && !isBeta
 
     const copyDeviceId = async (deviceId: string) => {
         if (await copyTextToClipboard(deviceId)) toast.info(t('deviceCopied'))
@@ -111,15 +100,8 @@ export const BetaUpdatesCard = () => {
                         {t('description', { channel: BETA_OTA_CHANNEL })}
                     </p>
                 </div>
-                <Toggle
-                    checked={isBeta}
-                    disabled={busy || blockedFromJoining}
-                    onChange={onToggle}
-                    aria-label={t('heading')}
-                />
+                <Toggle checked={isBeta} disabled={busy} onChange={onToggle} aria-label={t('heading')} />
             </div>
-
-            {blockedFromJoining && <p className="text-body-xs text-foreground-secondary">{t('notEligible')}</p>}
 
             <dl className="space-y-1 text-body-xs text-foreground-secondary">
                 <div className="flex justify-between gap-4">

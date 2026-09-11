@@ -706,18 +706,16 @@ from the dashboard instead.
 
 Three prerequisites, all one-time:
 
-- The account must be in the **`beta-ota-channel`** PostHog cohort, which is what keeps
-  the switch off customer devices. Read what it is, though: a client-side flag that
-  decides whether a React component renders. `setChannel` talks to Capgo directly with
-  the app key shipped in every binary, and non-prod builds skip the flag entirely, so
-  anyone running a modified client can self-assign regardless. It stops people who did
-  not mean to be on beta, not people who do. Move the join behind the backend (verify
-  the account server-side, assign the device through Capgo's API) if that ever needs to
-  be a real boundary.
+- The five-tap gesture records `PEANUT_TEAM` for support/diagnostics, but the badge is
+  not an access boundary and must not disable the switch while a profile refresh is
+  slow or unavailable. `setChannel` talks to Capgo directly with the app key shipped in
+  every binary, so Capgo's self-assignment setting is the boundary that actually opens
+  the channel. Move the join behind the backend (verify the account server-side, assign
+  the device through Capgo's API) if that ever needs to be a real boundary.
 - `staging` must have **"Allow devices to self dissociate/associate"** enabled, or
   `setChannel()` is refused and the app says so. Changing it needs a Super Admin — and
   it is the decision that actually opens the channel: from that point any install that
-  can call the plugin can join, whatever the cohort says.
+  can call the plugin can join, after the five-tap switch is revealed.
 - The tester's binary must not outrank the bundle: `disable_auto_update_under_native`
   makes a device on versionName 1.1.x refuse anything sorting below it. Staging's
   commit-count band sits far above production's, so this only bites right after a native
