@@ -9,7 +9,7 @@ const config = {
     SCREEN_LIBRARY_R2_BUCKET: 'screens',
     SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.example.com',
     SCREEN_LIBRARY_IMAGES_HASH: 'hash',
-    SCREEN_LIBRARY_IMAGES_VARIANT: 'screen-preview',
+    SCREEN_LIBRARY_IMAGES_VARIANT: 'screenpreview',
 }
 test('configuration requires each credential and rejects unsafe delivery origins', () => {
     assert.equal(configuration(config).SCREEN_LIBRARY_PUBLIC_URL, config.SCREEN_LIBRARY_PUBLIC_URL)
