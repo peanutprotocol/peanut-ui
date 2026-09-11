@@ -164,9 +164,11 @@ describe('post-auth redirect for a record from before the origin existed', () =>
  */
 describe('post-auth redirect reads one snapshot', () => {
     const originalGetItem = Storage.prototype.getItem
+    const originalRemoveItem = Storage.prototype.removeItem
 
     afterEach(() => {
         Storage.prototype.getItem = originalGetItem
+        Storage.prototype.removeItem = originalRemoveItem
         localStorage.clear()
     })
 
@@ -230,6 +232,27 @@ describe('post-auth redirect reads one snapshot', () => {
             source: 'fallback',
             deferred: false,
         })
+        expect(getRedirectUrl()).toBe('/receipt?id=abc')
+    })
+
+    it('does not remove a newer record when cleanup would follow an unusable snapshot', () => {
+        const invalid = JSON.stringify({ origin: 'deep-link' })
+        const fresher = JSON.stringify({ destination: '/receipt?id=abc', origin: 'deep-link' })
+        localStorage.setItem('redirect', invalid)
+
+        const removeItem = jest.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => undefined)
+
+        expect(consumePostAuthRedirect(null, { rejectSessionEndOrigin: true })).toEqual({
+            destination: '/home',
+            source: 'fallback',
+            deferred: false,
+        })
+
+        // Model the newer tab winning immediately after the no-record
+        // decision. Since the unusable snapshot is not cleaned up, this valid
+        // continuation cannot be removed by the consumer.
+        localStorage.setItem('redirect', fresher)
+        expect(removeItem).not.toHaveBeenCalledWith('redirect')
         expect(getRedirectUrl()).toBe('/receipt?id=abc')
     })
 })

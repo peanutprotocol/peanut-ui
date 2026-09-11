@@ -85,10 +85,11 @@ export function consumePostAuthRedirect(
 
     /*
      * Corrupt or blank generic state is no more reusable than an unsafe URL.
-     * Unconditional now that a reader reports an unusable record as no record
-     * at all: the raw value can still be sitting there, and clearing a key
-     * that does not exist costs nothing.
+     * Do not clean it up here: `null` conflates an absent key with an
+     * unusable value, so a second read followed by removeItem could delete a
+     * valid continuation written by another tab in between. An unusable value
+     * is ignored until a later writer replaces it, which is safe because this
+     * reader never treats it as a destination.
      */
-    clearRedirectUrl(stored)
     return { destination: fallbackRoute, source: 'fallback', deferred: false }
 }
