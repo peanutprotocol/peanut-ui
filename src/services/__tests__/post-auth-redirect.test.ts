@@ -426,16 +426,15 @@ describe('post-auth redirect reads one snapshot', () => {
 
     it('does not let a stale publisher overwrite a newer legacy mirror', () => {
         setRedirectUrl('/profile', 'session-end')
-        const setItem = jest.spyOn(Storage.prototype, 'setItem')
         let interleaved = false
-        setItem.mockImplementation(function patched(this: Storage, key: string, value: string) {
-            const result = originalSetItem.call(this, key, value)
-            if (key === 'redirect-v2' && !interleaved) {
+        Storage.prototype.getItem = function patched(key: string) {
+            const value = originalGetItem.call(this, key)
+            if (key === 'redirect-v2' && !interleaved && value !== null) {
                 interleaved = true
                 setRedirectUrl('/card', 'deep-link')
             }
-            return result
-        })
+            return value
+        }
 
         setRedirectUrl('/profile', 'session-end')
 

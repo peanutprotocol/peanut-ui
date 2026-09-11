@@ -777,6 +777,8 @@ const REDIRECT_V2_CONSUMED_RESERVATION_TTL_MS = 60_000
 /** Publication state is separate so it can never overwrite a consumed slot. */
 const REDIRECT_V2_PUBLISHED_PREFIX = 'redirect-v2-published:'
 const REDIRECT_V2_PUBLISHED_VALUE = '1'
+/** Identifies the v2 generation that last wrote the v1-compatible mirror. */
+const REDIRECT_V2_MIRROR_OWNER_KEY = 'redirect-v2-mirror-owner'
 /**
  * Legacy bare-path records cannot be deleted conditionally without the same
  * check/remove race. Remembering their consumed value makes them inert while
@@ -922,14 +924,19 @@ const getStoredRedirectForSnapshot = (): StoredRedirect | null => {
                 pointer = refreshedPointer
                 continue
             }
-            // A pre-deploy v1 tab can still publish a new handoff. The
-            // baseline distinguishes that from a stale mirror left behind by
-            // a failed v2 -> v1 mirror write.
-            const legacy = parseLegacyRedirect(legacyValue)
-            if (legacy) return { ...legacy, supersededGenerationId: generationId }
-            // This legacy handoff was already consumed. It superseded the
-            // v2 generation, so do not resurrect that older destination.
-            return null
+            const mirrorOwner = getFromLocalStorage(REDIRECT_V2_MIRROR_OWNER_KEY)
+            if (!isRedirectGenerationId(mirrorOwner) || mirrorOwner === generationId) {
+                // A pre-deploy v1 tab can still publish a new handoff. The
+                // baseline distinguishes that from a stale mirror left behind by
+                // a failed v2 -> v1 mirror write.
+                const legacy = parseLegacyRedirect(legacyValue)
+                if (legacy) return { ...legacy, supersededGenerationId: generationId }
+                // This legacy handoff was already consumed. It superseded the
+                // v2 generation, so do not resurrect that older destination.
+                return null
+            }
+            // A current v2 publisher from another generation wrote this late.
+            // Ignore its mirror mismatch and continue to the consumption check.
         }
 
         const consumed = getFromLocalStorage(REDIRECT_V2_CONSUMED_KEY)
@@ -983,6 +990,7 @@ const publishLegacyRedirectMirror = (generationId: string, destination: string) 
     const pointer = getFromLocalStorage(REDIRECT_V2_KEY)
     if (!isRedirectPointer(pointer) || pointer.generationId !== generationId) return
     saveToLocalStorage(REDIRECT_KEY, destination)
+    saveToLocalStorage(REDIRECT_V2_MIRROR_OWNER_KEY, generationId)
 }
 
 const discardRedirectConsumptionReservations = (generationId: string) => {
