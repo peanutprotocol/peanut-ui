@@ -1,6 +1,7 @@
 /** @jest-environment node */
 const fs = require('node:fs')
 const path = require('node:path')
+const os = require('node:os')
 const { pathToFileURL } = require('node:url')
 const { spawnSync } = require('node:child_process')
 const ROOT = path.join(__dirname, '../..')
@@ -138,11 +139,107 @@ it('rejects preparation when the server did not persist the audience restriction
     expect(invoke('prepare-candidate', [{ body: {} }, { body: { ...candidate, allow_prod: true } }]).status).toBe(1)
 })
 it('reads the production version field without matching versions in arbitrary text', () => {
-    const production = { app_id: env.CAPGO_APP_ID, name: 'production', version: { name: '1.6.2' } }
+    const production = {
+        app_id: env.CAPGO_APP_ID,
+        name: 'production',
+        version: { name: '1.6.2' },
+        rolloutEnabled: false,
+    }
     expect(invoke('current-version', [{ body: production }]).result).toBe('1.6.2')
     expect(
         invoke('current-version', [{ body: { ...production, version: null, comment: 'version 1.6.2' } }]).status
     ).toBe(1)
+})
+it('refuses to resolve a release while production has an active rollout', () => {
+    const production = {
+        app_id: env.CAPGO_APP_ID,
+        name: 'production',
+        version: { name: '1.6.2' },
+        rolloutEnabled: true,
+    }
+    const result = invoke('current-version', [{ body: production }])
+    expect(result.status).toBe(1)
+    expect(result.requests.every((request) => request.method === 'GET')).toBe(true)
+})
+
+// Execute the workflow's actual promotion shell. Replace only its executables:
+// node runs the real guard with an HTTP fixture, and npx records whether the
+// production mutation would have happened. No deployment or network is possible.
+function promotion(rolloutEnabled, apiFails = false) {
+    const source = fs.readFileSync(path.join(ROOT, '.github/workflows/release-ota.yml'), 'utf8')
+    const step = source.slice(
+        source.indexOf('- name: Promote verified bundle'),
+        source.indexOf('- name: Verify channel serves')
+    )
+    const shell = step.match(/run: \|\n([\s\S]*)/)[1]
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ota-promotion-'))
+    const marker = path.join(dir, 'production-mutated')
+    const driver = `
+      const mode = process.argv[2];
+      // This wrapper receives the real CLI arguments, but must not activate
+      // the imported module's separate CLI entry point or its real fetch.
+      process.argv[1] = process.execPath;
+      globalThis.fetch = () => { throw new Error('unexpected live request'); };
+      const { run } = await import(${JSON.stringify(SCRIPT)});
+      try {
+        await run(mode, { fetchImpl: async () => ({
+          ok: process.env.TEST_API_FAILS !== 'true', status: 503,
+          json: async () => JSON.parse(process.env.TEST_PRODUCTION)
+        }) });
+      } catch (error) { console.error(error.message); process.exitCode = 1; }
+    `
+    try {
+        const result = spawnSync(
+            'bash',
+            [
+                '-euo',
+                'pipefail',
+                '-c',
+                `
+          node() { "$NODE_BINARY" --input-type=module -e "$GUARD_DRIVER" "$@"; }
+          npx() { printf 'promoted' > "$PROMOTED_FILE"; }
+          ${shell}
+        `,
+            ],
+            {
+                encoding: 'utf8',
+                env: {
+                    ...process.env,
+                    ...env,
+                    NODE_BINARY: process.execPath,
+                    GUARD_DRIVER: driver,
+                    PROMOTED_FILE: marker,
+                    TEST_API_FAILS: String(apiFails),
+                    TEST_PRODUCTION: JSON.stringify({
+                        app_id: env.CAPGO_APP_ID,
+                        name: 'production',
+                        version: { name: '1.6.2' },
+                        rolloutEnabled,
+                    }),
+                },
+            }
+        )
+        return { status: result.status, stderr: result.stderr, mutated: fs.existsSync(marker) }
+    } finally {
+        fs.rmSync(dir, { recursive: true, force: true })
+    }
+}
+
+it.each([true, null, undefined, 'false'])(
+    'never changes production when rollout state is %s before promotion',
+    (state) => {
+        const result = promotion(state)
+        expect(result.status).not.toBe(0)
+        expect(result.mutated).toBe(false)
+    }
+)
+it('never changes production when its pre-promotion read fails', () => {
+    const result = promotion(false, true)
+    expect(result.status).not.toBe(0)
+    expect(result.mutated).toBe(false)
+})
+it('allows promotion only after confirming production has no active rollout', () => {
+    expect(promotion(false)).toEqual({ status: 0, mutated: true, stderr: '' })
 })
 it('verifies production and the promoted artifact, and rejects an active alternate rollout', () => {
     const production = {

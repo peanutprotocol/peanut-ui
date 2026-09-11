@@ -123,6 +123,13 @@ export const NATIVE_DEPENDENCIES = [
 // Capacitor, which costs nothing but an extra native release.
 const NATIVE_DEPENDENCY_PATTERN = /capacitor|cordova|^@onesignal\/|^@sumsub\//i
 
+// Explicit exceptions only. Core and cross-platform plugins affect both
+// binaries; an unclassified plugin stays shared until its scope is established.
+const PLATFORM_NATIVE_DEPENDENCIES = new Map([
+    ['@capacitor/android', 'android'],
+    ['@capacitor/ios', 'ios'],
+])
+
 // Every input is one line of the manifest. Adding one is a deliberate act: it
 // widens what counts as "the native surface changed" and therefore how often an
 // OTA is refused, so prefer the narrowest input that actually carries the
@@ -218,7 +225,9 @@ export const NATIVE_INPUTS = [
     { kind: 'glob', id: 'patches/**', platform: 'shared', dirs: ['patches'], extensions: [''] },
 
     // Resolved native plugin versions, from the lockfile rather than the
-    // generated manifests, which the OTA workflow never regenerates.
+    // generated manifests, which the OTA workflow never regenerates. Keep the
+    // combined digest for full-surface checks and stored replacement attestations;
+    // platformDiff computes a scoped dependency digest for this entry instead.
     { kind: 'deps', id: 'native-plugin-versions', platform: 'shared' },
 ]
 
@@ -329,7 +338,7 @@ function assertRefExists(ref) {
 // Every native dependency's resolved version(s), read from the lockfile. Names
 // come from package.json so the set is explicit; versions come from the
 // lockfile so a bump cannot hide behind a caret specifier.
-function nativeDependencyVersions(ref) {
+function nativeDependencyVersions(ref, platform) {
     const packageJson = readAtRef('package.json', ref)
     const lockfile = readAtRef('pnpm-lock.yaml', ref)
     if (!packageJson || !lockfile) return null
@@ -348,7 +357,14 @@ function nativeDependencyVersions(ref) {
     const declared = Object.keys({ ...parsed.dependencies, ...parsed.devDependencies }).filter((name) =>
         NATIVE_DEPENDENCY_PATTERN.test(name)
     )
-    const names = [...new Set([...NATIVE_DEPENDENCIES, ...declared, ...generatedPluginNames(ref)])].sort()
+    const names = [...new Set([...NATIVE_DEPENDENCIES, ...declared, ...generatedPluginNames(ref)])]
+        .filter(
+            (name) =>
+                !platform ||
+                !PLATFORM_NATIVE_DEPENDENCIES.has(name) ||
+                PLATFORM_NATIVE_DEPENDENCIES.get(name) === platform
+        )
+        .sort()
 
     // pnpm patch identity: which packages are patched and by which file.
     const patched = Object.entries(parsed.pnpm?.patchedDependencies ?? {})
@@ -371,7 +387,7 @@ function nativeDependencyVersions(ref) {
     ].join('\n')
 }
 
-export function manifest(ref) {
+export function manifest(ref, dependencyPlatform) {
     assertRefExists(ref)
     const entries = {}
     for (const input of NATIVE_INPUTS) {
@@ -397,7 +413,7 @@ export function manifest(ref) {
             continue
         }
 
-        const versions = nativeDependencyVersions(ref)
+        const versions = nativeDependencyVersions(ref, dependencyPlatform)
         entries[input.id] = versions === null ? ABSENT : sha(versions)
     }
     return entries
@@ -413,8 +429,10 @@ export function fingerprint(ref) {
 }
 
 export function diff(baseRef, headRef) {
-    const base = manifest(baseRef)
-    const head = manifest(headRef)
+    return diffManifests(manifest(baseRef), manifest(headRef))
+}
+
+function diffManifests(base, head) {
     return NATIVE_INPUTS.filter((input) => base[input.id] !== head[input.id]).map((input) => ({
         path: input.id,
         platform: input.platform,
@@ -441,7 +459,12 @@ export function diff(baseRef, headRef) {
  */
 export function platformDiff(platform, baseRef, headRef) {
     if (!['android', 'ios'].includes(platform)) throw new Error(`platform must be android or ios, got "${platform}"`)
-    return diff(baseRef, headRef).filter((change) => change.platform === platform || change.platform === 'shared')
+    // The full fingerprint format is also persisted in native replacement tags.
+    // Scope dependency versions only for floor comparisons so an Android-only
+    // runtime bump cannot raise the iOS floor or invalidate those attestations.
+    return diffManifests(manifest(baseRef, platform), manifest(headRef, platform)).filter(
+        (change) => change.platform === platform || change.platform === 'shared'
+    )
 }
 
 function flag(argv, name) {

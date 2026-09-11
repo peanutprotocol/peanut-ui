@@ -70,6 +70,48 @@ function floorsFail(dir, platform) {
     return { status: res.status, stderr: res.stderr }
 }
 
+it.each([
+    ['@capacitor/android', '1.6.0', '1.5.0'],
+    ['@capacitor/ios', '1.5.0', '1.6.0'],
+    ['@capacitor/core', '1.6.0', '1.6.0'],
+    ['@capacitor-community/example-plugin', '1.6.0', '1.6.0'],
+])('a %s dependency bump raises only the affected native floors', (dependency, android, ios) => {
+    const repo = makeRepo()
+    const dependencies = {
+        '@capacitor/android': '8.2.0',
+        '@capacitor/ios': '8.2.0',
+        '@capacitor/core': '8.2.0',
+        '@capacitor-community/example-plugin': '8.2.0',
+    }
+    write(repo.dir, 'package.json', JSON.stringify({ version: '1.0.0', dependencies }))
+    const lockfile = () =>
+        'packages:\n' +
+        Object.entries(dependencies)
+            .map(([name, version]) => `  '${name}@${version}': {}`)
+            .join('\n')
+    write(repo.dir, 'pnpm-lock.yaml', lockfile())
+    release(repo, 'v1.5.0')
+    // The declared range and generated manifests can remain unchanged; the
+    // resolved lockfile version is the contract the next build actually uses.
+    dependencies[dependency] = '8.3.0'
+    write(repo.dir, 'pnpm-lock.yaml', lockfile())
+    release(repo, 'v1.6.0')
+
+    expect(floors(repo.dir)).toEqual({
+        NEXT_PUBLIC_OTA_FLOOR_ANDROID: android,
+        NEXT_PUBLIC_OTA_FLOOR_IOS: ios,
+    })
+    // The complete surface must still detect every dependency bump. Only the
+    // platform floor comparison narrows the dependency set.
+    const complete = require('child_process').spawnSync(
+        'node',
+        [path.join(REPO_ROOT, 'scripts/native-fingerprint.mjs'), '--root', repo.dir, '--diff', 'v1.5.0'],
+        { encoding: 'utf8' }
+    )
+    expect(complete.status).toBe(1)
+    expect(complete.stdout).toContain('native-plugin-versions')
+})
+
 it('lets an untouched platform keep its older binaries', () => {
     const repo = makeRepo()
     release(repo, 'v1.4.0')

@@ -276,6 +276,9 @@ jobs:
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   VERSION: ${{ steps.version.outputs.name }}
               run: |
+                  # Re-read after the build/upload: changing the stable bundle
+                  # does not clear a progressive rollout's separate target.
+                  node scripts/capgo-release-guard.mjs verify-promotion
                   npx @capgo/cli@8.42.4 channel set production \
                     --apikey "$CAPGO_API_KEY" --bundle "$VERSION"
 

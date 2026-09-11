@@ -409,6 +409,12 @@ all device audiences disabled. Existing staging builds use a different version s
 and do not emit the new floor marker: do not promote a staging bundle to production or
 use it as proof of per-platform production delivery.
 
+An active or unreadable progressive rollout stops the release before version resolution
+and is checked again immediately before production promotion. The stable bundle and
+rollout target are separate channel state; changing one does not clear the other. The
+workflow leaves an existing rollout untouched. Avoid concurrent dashboard/channel edits
+during publication: the preflight read and promotion are separate API operations.
+
 The early inline `notifyAppReady()` avoids false rollbacks when the OS freezes an app in
 the background. The custom incomplete-boot counter stays armed until React has rendered
 and the local updater has initialized. A failed updater import or initialization therefore
@@ -433,6 +439,12 @@ walks the `v<major>.<build>.0` tags newest-first while that platform's half of t
 fingerprint is unchanged; the last release that still matches is the floor — the oldest
 binary of that platform whose native contract is the one this tree was built against. For
 the tree above that is `android 1.6.0, ios 1.5.0`.
+
+Resolved `@capacitor/android` and `@capacitor/ios` versions affect only their own platform's
+floor. Core, cross-platform plugins, and unclassified native dependencies still affect
+both. The complete native fingerprint keeps its existing combined dependency digest so
+stored same-version replacement attestations remain valid; only per-platform comparisons
+use a scoped dependency digest.
 
 - **`shared` inputs count for both platforms.** `capacitor.config.ts`, `patches/` and the
   resolved plugin versions sit outside `android/` and `ios/` while describing the native

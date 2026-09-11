@@ -86,6 +86,13 @@ export async function run(mode, { env = process.env, fetchImpl = fetch } = {}) {
         if (result?.app_id !== appId || result.name !== name) throw new Error('channel identity mismatch')
         return result
     }
+    const productionWithoutRollout = async () => {
+        const production = await channel('production')
+        if (production.rolloutEnabled !== false) {
+            throw new Error('production rollout must be explicitly disabled before releasing')
+        }
+        return production
+    }
     const verifyCandidate = async () => {
         const candidate = await channel(CANDIDATE_CHANNEL)
         for (const [field, expected] of Object.entries(DISABLED_AUDIENCES)) {
@@ -126,12 +133,15 @@ export async function run(mode, { env = process.env, fetchImpl = fetch } = {}) {
             await verifyCandidate()
             return `Verified bundle ${await bundle()}`
         case 'current-version': {
-            const current = (await channel('production')).version?.name
+            const current = (await productionWithoutRollout()).version?.name
             if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?$/.test(current ?? '')) {
                 throw new Error('production has no valid current bundle version')
             }
             return current
         }
+        case 'verify-promotion':
+            await productionWithoutRollout()
+            return 'Production has no active rollout; promotion may proceed'
         case 'verify-production': {
             const production = await channel('production')
             if (production.version?.name !== required(env, 'VERSION') || production.rolloutEnabled !== false) {
