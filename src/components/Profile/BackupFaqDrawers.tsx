@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
+import { BulletList } from '@/components/0_Bruddle/BulletList'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
 import { Notification } from '@/components/0_Bruddle/Notification'
@@ -136,12 +137,16 @@ export const BackupFaqDrawers = ({ active, onClose, platform }: BackupFaqDrawers
                     <div>
                         <MiniHeader>{t('exportKeysModal.saferTitle')}</MiniHeader>
                         <p className="mt-1 text-body-s text-foreground-primary">{t('exportKeysModal.saferIntro')}</p>
-                        <ul className="space-y-1 mt-2 list-disc pl-6 text-body-s text-foreground-primary marker:text-action-primary">
-                            <li>{t('exportKeysModal.bullets.screenshot')}</li>
-                            <li>{t('exportKeysModal.bullets.textMessage')}</li>
-                            <li>{t('exportKeysModal.bullets.noteApp')}</li>
-                            <li>{t('exportKeysModal.bullets.malware')}</li>
-                        </ul>
+                        <BulletList
+                            size="s"
+                            className="mt-2"
+                            items={[
+                                t('exportKeysModal.bullets.screenshot'),
+                                t('exportKeysModal.bullets.textMessage'),
+                                t('exportKeysModal.bullets.noteApp'),
+                                t('exportKeysModal.bullets.malware'),
+                            ]}
+                        />
                     </div>
                     <TextSection
                         title={t('exportKeysModal.tradeoffTitle')}

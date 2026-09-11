@@ -57,6 +57,20 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             status: 'production',
         },
         {
+            label: 'BulletList',
+            icon: 'docs',
+            href: '/dev/ds/primitives/bullet-list',
+            description: 'Unordered text facts with 4px action-primary pink markers and wrapping support',
+            status: 'production',
+        },
+        {
+            label: 'NumberedList',
+            icon: 'docs',
+            href: '/dev/ds/primitives/numbered-list',
+            description: 'Ordered steps with 20px action-primary numbered circles',
+            status: 'production',
+        },
+        {
             label: 'IconBubble',
             icon: 'plus-circle',
             href: '/dev/ds/primitives/icon-bubble',
