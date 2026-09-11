@@ -86,10 +86,9 @@ export function consumePostAuthRedirect(
     /*
      * Corrupt or blank generic state is no more reusable than an unsafe URL.
      * Do not clean it up here: `null` conflates an absent key with an
-     * unusable value, so a second read followed by removeItem could delete a
-     * valid continuation written by another tab in between. An unusable value
-     * is ignored until a later writer replaces it, which is safe because this
-     * reader never treats it as a destination.
+     * unusable value, and there is no generation to delete safely. An
+     * unusable value is ignored until a later writer replaces the pointer,
+     * which is safe because this reader never treats it as a destination.
      */
     return { destination: fallbackRoute, source: 'fallback', deferred: false }
 }

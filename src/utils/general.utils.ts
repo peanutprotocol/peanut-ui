@@ -759,20 +759,32 @@ export const endIntentionalLogout = () => {
 export type RedirectOrigin = 'deep-link' | 'session-end'
 
 const REDIRECT_KEY = 'redirect'
-/** Never shipped: only this branch's first draft wrote a separate origin key. */
-const LEGACY_REDIRECT_ORIGIN_KEY = 'redirect-origin'
+const REDIRECT_RECORD_PREFIX = 'redirect-record:'
+/**
+ * Legacy bare-path records cannot be deleted conditionally without the same
+ * check/remove race. Remembering their consumed value makes them inert while
+ * allowing every new generation (stored through setRedirectUrl) to replace
+ * the pointer safely.
+ */
+const LEGACY_REDIRECT_CONSUMED_KEY = 'redirect-consumed-legacy'
 
 /**
- * Destination and origin are ONE record under ONE key, written in a single
- * setItem. Two writes could half-fail — localStorage errors are swallowed —
- * and leave an old destination wearing a new origin, or a fresh continuation
- * wearing a dead session's. Readers therefore never see a mixed pair.
+ * `redirect` is a pointer to an immutable generation record. The generation
+ * record is written before the pointer, so a reader never observes a pointer
+ * whose payload does not exist. A consumer deletes only the generation it
+ * decided from; if another tab moves the pointer before that deletion, the
+ * newer record is still a different localStorage key and survives.
  *
  * A record stored by a version that had no origin (a plain string) reads back
  * as unclassified rather than as intent: see consumePostAuthRedirect for what
  * a brand-new account does with one.
  */
-export type StoredRedirect = { destination: string; origin: RedirectOrigin | null }
+export type StoredRedirect = {
+    destination: string
+    origin: RedirectOrigin | null
+    generationId: string | null
+    legacyIdentity?: string
+}
 
 /**
  * One parsed snapshot, for a caller that has to decide on the pair. Reading
@@ -780,22 +792,57 @@ export type StoredRedirect = { destination: string; origin: RedirectOrigin | nul
  * and another tab can replace the record between them — pairing an old
  * destination with the newer record's origin.
  */
-export const getStoredRedirect = (): StoredRedirect | null => {
-    const stored = getFromLocalStorage(REDIRECT_KEY)
+const parseStoredRedirect = (
+    stored: unknown,
+    generationId: string | null,
+    legacyIdentity?: string
+): StoredRedirect | null => {
     if (typeof stored === 'string') {
-        return stored.length > 0 ? { destination: stored, origin: null } : null
+        return stored.length > 0 ? { destination: stored, origin: null, generationId, legacyIdentity } : null
     }
     if (stored && typeof stored === 'object') {
         const { destination, origin } = stored as Partial<StoredRedirect>
         if (typeof destination !== 'string' || destination.length === 0) return null
-        return { destination, origin: origin === 'session-end' || origin === 'deep-link' ? origin : null }
+        return {
+            destination,
+            origin: origin === 'session-end' || origin === 'deep-link' ? origin : null,
+            generationId,
+            legacyIdentity,
+        }
     }
     return null
 }
 
+const isRedirectGenerationId = (value: unknown): value is string =>
+    typeof value === 'string' && /^[A-Za-z0-9_-]+$/.test(value)
+
+const createRedirectGenerationId = (): string => {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID()
+    }
+    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+}
+
+export const getStoredRedirect = (): StoredRedirect | null => {
+    const stored = getFromLocalStorage(REDIRECT_KEY)
+
+    if (stored && typeof stored === 'object') {
+        const { generationId } = stored as Partial<StoredRedirect>
+        if (isRedirectGenerationId(generationId)) {
+            return parseStoredRedirect(getFromLocalStorage(`${REDIRECT_RECORD_PREFIX}${generationId}`), generationId)
+        }
+    }
+
+    const legacyIdentity = stored === undefined ? undefined : jsonStringify(stored)
+    if (legacyIdentity && getFromLocalStorage(LEGACY_REDIRECT_CONSUMED_KEY) === legacyIdentity) return null
+    return parseStoredRedirect(stored, null, legacyIdentity)
+}
+
 /** The ONLY way to store a post-auth destination. */
 export const setRedirectUrl = (destination: string, origin: RedirectOrigin = 'deep-link') => {
-    saveToLocalStorage(REDIRECT_KEY, { destination, origin })
+    const generationId = createRedirectGenerationId()
+    saveToLocalStorage(`${REDIRECT_RECORD_PREFIX}${generationId}`, { destination, origin })
+    saveToLocalStorage(REDIRECT_KEY, { generationId })
 }
 
 export const saveRedirectUrl = (origin: RedirectOrigin = 'deep-link') => {
@@ -815,21 +862,24 @@ export const getRedirectOrigin = (): RedirectOrigin | null => {
 
 /**
  * Clear the stored redirect, optionally only if it is still the snapshot a
- * caller consumed. That optimistic compare-and-clear keeps a newer same-origin
- * tab's continuation from being removed after this tab has made its decision.
- * `null` is an intentional snapshot too: it protects the no-record cleanup
- * path from deleting a record written after the read.
+ * caller consumed. Generated records are immutable, so deleting their key is
+ * safe even when another same-origin tab has already published a newer
+ * pointer. Legacy records are marked consumed instead of removed because they
+ * do not have a generation key to delete safely.
  */
 export const clearRedirectUrl = (expected?: StoredRedirect | null) => {
     if (typeof localStorage !== 'undefined') {
-        if (expected !== undefined) {
-            const current = getStoredRedirect()
-            if (current?.destination !== expected?.destination || current?.origin !== expected?.origin) {
-                return
-            }
+        const current = expected === undefined ? getStoredRedirect() : expected
+        if (!current) return
+
+        if (current.generationId) {
+            localStorage.removeItem(`${REDIRECT_RECORD_PREFIX}${current.generationId}`)
+            return
         }
-        localStorage.removeItem(REDIRECT_KEY)
-        localStorage.removeItem(LEGACY_REDIRECT_ORIGIN_KEY)
+
+        if (current.legacyIdentity) {
+            saveToLocalStorage(LEGACY_REDIRECT_CONSUMED_KEY, current.legacyIdentity)
+        }
     }
 }
 
