@@ -112,7 +112,10 @@ async function loadJSON(url) {
 }
 async function start() {
     if (offline) document.querySelector('.brand').href = './index.html'
-    const path = location.pathname.replace(/^\/screens\/?/, '').replace(/\/$/, '')
+    const indexAliases = new Set(['/', '/index.html', '/screen-library', '/screen-library/'])
+    const path = indexAliases.has(location.pathname)
+        ? ''
+        : location.pathname.replace(/^\/screens\/?/, '').replace(/\/$/, '')
     if (!offline && !path) {
         const index = await loadJSON('/screen-data/index.json')
         $('coverage').textContent = `${index.length} published versions`

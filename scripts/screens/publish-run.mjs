@@ -6,6 +6,7 @@ import { integrationBase } from './integration.mjs'
 import { reviewProvenance } from './review-provenance.mjs'
 import { verifyRunIdentity } from './run-identity.mjs'
 import { selectCapturePair } from './capture-artifacts.mjs'
+import { normalizePublicOrigin } from './public-origin.mjs'
 const repo = process.env.REPOSITORY,
     runId = process.env.RUN_ID,
     attempt = process.env.RUN_ATTEMPT
@@ -121,7 +122,8 @@ for (const [capture, source, branch] of libraries) {
 
 if (pr) {
     const marker = '<!-- screen-library -->'
-    const body = `${marker}\n[Open screen comparison](${process.env.SCREEN_LIBRARY_PUBLIC_URL}/screens/${path}/)\n\n${run.event === 'push' ? 'After merge' : 'Review preview'}: ${before.commit} → ${after.commit}. ${before.complete && after.complete ? 'Capture complete.' : 'Incomplete capture; unavailable states are listed in the report.'}`
+    const publicOrigin = normalizePublicOrigin(process.env.SCREEN_LIBRARY_PUBLIC_URL)
+    const body = `${marker}\n[Open screen comparison](${publicOrigin}/screens/${path}/)\n\n${run.event === 'push' ? 'After merge' : 'Review preview'}: ${before.commit} → ${after.commit}. ${before.complete && after.complete ? 'Capture complete.' : 'Incomplete capture; unavailable states are listed in the report.'}`
     const comments = JSON.parse(
         execFileSync(
             'gh',

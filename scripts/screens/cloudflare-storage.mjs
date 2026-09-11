@@ -1,5 +1,6 @@
 /** Trusted publisher only. Images holds all screenshots; R2 holds report data and archives. */
 import { createHash } from 'node:crypto'
+import { normalizePublicOrigin } from './public-origin.mjs'
 export function configuration(env = process.env) {
     const keys = [
         'CLOUDFLARE_ACCOUNT_ID',
@@ -13,10 +14,7 @@ export function configuration(env = process.env) {
     if (!/^[a-f0-9]{32}$/.test(env.CLOUDFLARE_ACCOUNT_ID)) throw new Error('Invalid Cloudflare account ID')
     for (const key of ['SCREEN_LIBRARY_IMAGES_HASH', 'SCREEN_LIBRARY_IMAGES_VARIANT'])
         if (!/^[\w-]+$/.test(env[key])) throw new Error(`Invalid ${key}`)
-    const url = new URL(env.SCREEN_LIBRARY_PUBLIC_URL)
-    if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash || url.pathname !== '/')
-        throw new Error('Store URL must be an HTTPS origin')
-    return { ...env, SCREEN_LIBRARY_PUBLIC_URL: url.origin }
+    return { ...env, SCREEN_LIBRARY_PUBLIC_URL: normalizePublicOrigin(env.SCREEN_LIBRARY_PUBLIC_URL) }
 }
 export function r2Endpoint(env = process.env) {
     const jurisdiction = env.SCREEN_LIBRARY_R2_JURISDICTION || 'default'
