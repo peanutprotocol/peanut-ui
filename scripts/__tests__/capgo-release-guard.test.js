@@ -125,18 +125,26 @@ it.each(['public', 'allow_device_self_set', 'allow_emulator', 'allow_device', 'a
         expect(result.requests).toHaveLength(1)
     }
 )
-it('prepares the disabled channel and reads the persisted settings back', () => {
-    const result = invoke('prepare-candidate', [{ body: { status: 'success' } }, { body: candidate }])
+it('prepares the disabled channel, clears a partial bundle and reads the settings back', () => {
+    const result = invoke('prepare-candidate', [
+        { body: { status: 'success' } },
+        { body: candidate },
+        { body: app },
+        { body: config },
+        { body: [...channels, candidatePolicy()] },
+    ])
     expect(result.status).toBe(0)
     expect(result.requests[0].body).toMatchObject({
         ...Object.fromEntries(Object.entries(candidate).filter(([key]) => key !== 'name')),
         channel: 'ota-candidate',
+        version: null,
         ios: false,
         android: false,
         electron: false,
         rolloutEnabled: false,
     })
     expect(result.requests[1].method).toBe('GET')
+    expect(result.requests.slice(2).every((request) => request.method === 'GET')).toBe(true)
 })
 it('rejects preparation when the server did not persist the audience restrictions', () => {
     expect(invoke('prepare-candidate', [{ body: {} }, { body: { ...candidate, allow_prod: true } }]).status).toBe(1)
@@ -160,8 +168,26 @@ const channelPolicy = (platform, version = 'builtin') => ({
     version_id: version === 'builtin' ? null : 42,
     version: version === 'builtin' ? null : { id: 42, name: version },
 })
+const candidatePolicy = (version = 'builtin') => ({
+    ...channelPolicy('ios', version),
+    name: 'ota-candidate',
+    public: false,
+    ios: false,
+    allow_prod: false,
+    allow_device: false,
+})
 const channels = [channelPolicy('ios'), channelPolicy('android')]
 const policyResponses = (rows = channels) => [{ body: app }, { body: config }, { body: rows }]
+
+it('stops before upload when Capgo did not clear the partial candidate bundle', () => {
+    const result = invoke('prepare-candidate', [
+        { body: { status: 'success' } },
+        { body: candidate },
+        ...policyResponses([...channels, candidatePolicy('1.6.3-ios')]),
+    ])
+    expect(result.status).toBe(1)
+    expect(result.error).toBe('candidate channel must be reset to builtin')
+})
 
 // Capgo routes GET /app to getAll(), regardless of an app_id query.
 // Only GET /app/:id returns the single app required by the metadata check.
