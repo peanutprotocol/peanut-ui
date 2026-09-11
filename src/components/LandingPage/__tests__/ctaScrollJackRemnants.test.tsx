@@ -7,6 +7,7 @@ import { render } from '@testing-library/react'
 import { Hero } from '../hero'
 import { SendInSeconds } from '../sendInSeconds'
 import { landingStrings } from '../landingStrings'
+import { EN_LANDING_CONTENT_HREFS } from '../landingContentHrefs'
 import { getTranslations } from '@/i18n'
 
 jest.mock('next/image', () => ({
@@ -19,7 +20,12 @@ const strings = landingStrings(getTranslations('en'))
 describe('Hero CTA', () => {
     it('renders the CTA without a scale custom property', () => {
         const { container } = render(
-            <Hero strings={strings} locale="en" buttonVisible primaryCta={{ label: 'Sign up', href: '/setup' }} />
+            <Hero
+                strings={strings}
+                contentHrefs={EN_LANDING_CONTENT_HREFS}
+                buttonVisible
+                primaryCta={{ label: 'Sign up', href: '/setup' }}
+            />
         )
 
         const cta = container.querySelector('.cta-motion') as HTMLElement | null
@@ -31,7 +37,12 @@ describe('Hero CTA', () => {
 
     it('keeps rendering a custom CTA without a scale custom property', () => {
         const { container } = render(
-            <Hero strings={strings} locale="en" buttonVisible customCta={<span>store pair</span>} />
+            <Hero
+                strings={strings}
+                contentHrefs={EN_LANDING_CONTENT_HREFS}
+                buttonVisible
+                customCta={<span>store pair</span>}
+            />
         )
 
         const cta = container.querySelector('.cta-motion') as HTMLElement | null

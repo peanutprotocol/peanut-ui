@@ -13,7 +13,6 @@ import dynamic from 'next/dynamic'
 import { StickyMobileCTA } from '@/components/LandingPage/StickyMobileCTA'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import type { LandingStrings } from './landingStrings'
-import type { Locale } from '@/i18n/types'
 import { AppModalProvider } from '@/components/Migration/AppModalProvider'
 import { LandingDownloadCta } from './LandingDownloadCta'
 import { type CTAButton } from '@/components/LandingPage/landing.types'
@@ -32,7 +31,6 @@ type LandingPageClientProps = {
         primaryCta: CTAButton
     }
     marqueeMessages: string[]
-    locale: Locale
     strings: LandingStrings
     contentHrefs: LandingContentHrefs
     // Server-rendered slots
@@ -50,7 +48,6 @@ type LandingPageClientProps = {
 export function LandingPageClient({
     heroConfig,
     marqueeMessages,
-    locale,
     strings,
     contentHrefs,
     problemSlot,
@@ -115,7 +112,7 @@ export function LandingPageClient({
                 primaryCta={primaryCta}
                 buttonVisible={!isFooterVisible}
                 strings={strings}
-                locale={locale}
+                contentHrefs={contentHrefs}
                 customCta={migrationOn ? <LandingDownloadCta subtext={heroConfig.primaryCta.subtext} /> : undefined}
             />
             <Marquee {...marqueeProps} />
