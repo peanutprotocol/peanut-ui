@@ -106,6 +106,4 @@ jobs:
         # Land the reusable publisher (#3107) on dev before this caller (#3108).
         uses: peanutprotocol/peanut-ui/.github/workflows/screen-library-publish.yml@dev
         secrets:
-            CLOUDFLARE_IMAGES_TOKEN: ${{ secrets.CLOUDFLARE_IMAGES_TOKEN }}
-            SCREEN_LIBRARY_R2_ACCESS_KEY_ID: ${{ secrets.SCREEN_LIBRARY_R2_ACCESS_KEY_ID }}
-            SCREEN_LIBRARY_R2_SECRET_ACCESS_KEY: ${{ secrets.SCREEN_LIBRARY_R2_SECRET_ACCESS_KEY }}
+            CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

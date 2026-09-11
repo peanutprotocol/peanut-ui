@@ -81,23 +81,21 @@ DevOps setup:
    (393×852, fit scale-down, no cropping; no signed URL requirement).
 2. Create a dedicated private R2 bucket. Retain objects
    indefinitely; respect object Cache-Control (index/latest use 60 seconds).
-3. In GitHub Actions repository secrets set `CLOUDFLARE_IMAGES_TOKEN`
-   (Account → Cloudflare Images → Edit, scoped to the account),
-   `SCREEN_LIBRARY_R2_ACCESS_KEY_ID` and `SCREEN_LIBRARY_R2_SECRET_ACCESS_KEY`
-   (R2 Object Read & Write credentials scoped to this bucket).
+3. Create one user API token with Account permissions Cloudflare Images Edit,
+   Workers Scripts Edit, and Workers R2 Storage Edit, scoped to the gallery account.
+   Save it once as GitHub Actions secret `CLOUDFLARE_API_TOKEN`. The publisher
+   verifies the token ID and derives the S3 secret from its SHA-256 hash at runtime;
+   no separate R2 keys are stored. This R2 permission covers the account's buckets.
 4. In GitHub Actions repository variables set `CLOUDFLARE_ACCOUNT_ID`,
    `SCREEN_LIBRARY_R2_BUCKET`, `SCREEN_LIBRARY_R2_JURISDICTION` (`eu` for screenshots-library),
    `SCREEN_LIBRARY_PUBLIC_URL` (gallery HTTPS origin,
    e.g. `https://screens.peanut.me` or the Worker’s `workers.dev` origin),
    `SCREEN_LIBRARY_IMAGES_HASH` (Images delivery account hash, distinct from account ID),
    and `SCREEN_LIBRARY_IMAGES_VARIANT=screenpreview`.
-5. Add GitHub secret `CLOUDFLARE_WORKERS_TOKEN` with Account → Workers Scripts → Edit
-   and Account → Workers R2 Storage → Edit, scoped to this account. For the custom
-   domain also grant Zone → Zone → Read and Zone → DNS → Edit scoped to peanut.me.
-   The zone must be active in this Cloudflare account. The deployment creates
-   Worker `peanut-screen-library` and its configured custom domain; no Vercel
-   environment variables or redeployment are needed. A workers.dev address can
-   be used first (initialize the account’s workers.dev subdomain in the dashboard).
+5. For a custom domain, the same token additionally needs Zone Read and DNS Edit
+   scoped to the domain's zone, which must exist in this account. For workers.dev
+   no zone permissions are needed. Initialize the account's workers.dev subdomain
+   in the dashboard and set `SCREEN_LIBRARY_PUBLIC_URL` to the Worker origin.
 6. Merge #3107, verify the Deploy screen gallery job succeeds and the public
    gallery loads, then merge #3108 to activate captures. An empty R2 bucket shows
    a report-unavailable message until the first publication. Verify a report URL
