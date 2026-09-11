@@ -115,15 +115,14 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         // for a 5xx or a network failure. so an error here means the backend is
         // down, not that the person is logged out. leave them on the error screen
         // below — a bounce to signup reads as "you are logged out" during an outage.
-        if (
-            !isPublicPath &&
-            isReady &&
-            !isFetchingUser &&
-            !user &&
-            !userFetchError &&
-            !isRedirecting.current &&
-            !isDemoMode()
-        ) {
+        if (isPublicPath) {
+            // A session can expire while this tab is sitting on a public route.
+            // Retire that tab-local provenance here without storing the public
+            // route, so its next protected deep link is fresh intent.
+            if (isReady && !isFetchingUser && !user && !userFetchError) consumeHeldSession()
+            return undefined
+        }
+        if (isReady && !isFetchingUser && !user && !userFetchError && !isRedirecting.current && !isDemoMode()) {
             isRedirecting.current = true
             // Keep the target: a logged-out tap on a protected deep link
             // (/pay-request, /card, /receipt, every push) used to be dropped

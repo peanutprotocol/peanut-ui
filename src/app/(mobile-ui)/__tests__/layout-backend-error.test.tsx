@@ -10,10 +10,11 @@ import React from 'react'
 import { render, screen, act } from '@testing-library/react'
 
 const mockRouterReplace = jest.fn()
+let mockPathname = '/home'
 
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ replace: mockRouterReplace, push: jest.fn(), back: jest.fn(), prefetch: jest.fn() }),
-    usePathname: () => '/home',
+    usePathname: () => mockPathname,
 }))
 
 const mockUseAuth = jest.fn()
@@ -102,6 +103,7 @@ describe('(mobile-ui) layout — no user', () => {
     beforeEach(() => {
         jest.useFakeTimers()
         mockRouterReplace.mockClear()
+        mockPathname = '/home'
     })
 
     afterEach(() => {
@@ -239,6 +241,18 @@ describe('(mobile-ui) layout — no user', () => {
             expect(mockRouterReplace).toHaveBeenCalledWith('/setup')
             expect(getRedirectOrigin()).toBe('deep-link')
             laterDeepLink.unmount()
+        })
+
+        it('retires held-session residue when settled unauthenticated state is public', () => {
+            markSessionHeld()
+            mockPathname = '/support'
+            mockUseAuth.mockReturnValue(authState())
+
+            renderLayout()
+
+            expect(mockRouterReplace).not.toHaveBeenCalled()
+            expect(hasHeldSession()).toBe(false)
+            expect(getRedirectUrl()).toBeNull()
         })
 
         it('but a logged-out tab opening a deep link later is intent again', () => {

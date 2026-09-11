@@ -979,6 +979,12 @@ const createRedirectConsumptionReservation = (): string =>
 const publishRedirectConsumption = (generationId: string) =>
     saveToLocalStorage(`${REDIRECT_V2_PUBLISHED_PREFIX}${generationId}`, REDIRECT_V2_PUBLISHED_VALUE)
 
+const publishLegacyRedirectMirror = (generationId: string, destination: string) => {
+    const pointer = getFromLocalStorage(REDIRECT_V2_KEY)
+    if (!isRedirectPointer(pointer) || pointer.generationId !== generationId) return
+    saveToLocalStorage(REDIRECT_KEY, destination)
+}
+
 const discardRedirectConsumptionReservations = (generationId: string) => {
     const pointer = getFromLocalStorage(REDIRECT_V2_KEY)
     if (isRedirectPointer(pointer) && pointer.generationId === generationId) return
@@ -1049,7 +1055,7 @@ export const setRedirectUrl = (destination: string, origin: RedirectOrigin = 'de
     // never publish a mirror that has no authoritative v2 payload behind it.
     if (published) {
         publishRedirectConsumption(generationId)
-        saveToLocalStorage(REDIRECT_KEY, destination)
+        publishLegacyRedirectMirror(generationId, destination)
     } else {
         discardRedirectConsumptionReservations(generationId)
     }
