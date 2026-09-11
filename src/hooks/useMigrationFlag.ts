@@ -5,8 +5,9 @@ import { isPwaSunsetOn } from '@/utils/migration.utils'
 
 /**
  * Read the migration flag after hydration and subscribe to PostHog updates.
- * No automatic staging bypass: QA must exercise both flag states.
- * For local or preview QA, set localStorage['pwa-sunset'] = 'true' and reload.
+ * PR previews bypass the flag so reviewers can exercise web signup. Staging
+ * keeps both flag states available to QA. For local or staging QA, set
+ * localStorage['pwa-sunset'] = 'true' and reload.
  */
 export function useMigrationFlag(): boolean {
     useFeatureFlags()
