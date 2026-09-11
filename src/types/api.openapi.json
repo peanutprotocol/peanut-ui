@@ -140,168 +140,6 @@
                 }
             }
         },
-        "/admin/card-waitlist/release": {
-            "post": {
-                "parameters": [
-                    {
-                        "in": "header",
-                        "name": "x-admin-token",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "userIds": {
-                                        "items": {
-                                            "type": "string"
-                                        },
-                                        "maxItems": 100,
-                                        "minItems": 1,
-                                        "type": "array"
-                                    }
-                                },
-                                "required": [
-                                    "userIds"
-                                ],
-                                "type": "object"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "released": {
-                                            "items": {
-                                                "type": "string"
-                                            },
-                                            "type": "array"
-                                        },
-                                        "skipped": {
-                                            "items": {
-                                                "type": "string"
-                                            },
-                                            "type": "array"
-                                        }
-                                    },
-                                    "required": [
-                                        "released",
-                                        "skipped"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "message": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error",
-                                        "message"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "message": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error",
-                                        "message"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    }
-                },
-                "summary": "Release users from the card waitlist",
-                "tags": [
-                    "admin"
-                ]
-            }
-        },
-        "/admin/support/grant": {
-            "post": {
-                "parameters": [
-                    {
-                        "in": "header",
-                        "name": "x-admin-token",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "amountUsd": {
-                                        "maximum": 50,
-                                        "minimum": 0.01,
-                                        "type": "number"
-                                    },
-                                    "override": {
-                                        "type": "boolean"
-                                    },
-                                    "username": {
-                                        "maxLength": 64,
-                                        "minLength": 1,
-                                        "type": "string"
-                                    }
-                                },
-                                "required": [
-                                    "username"
-                                ],
-                                "type": "object"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "description": "Default Response"
-                    }
-                }
-            }
-        },
         "/apple-app-site-association": {
             "get": {
                 "responses": {
@@ -498,20 +336,10 @@
                                                 "acquisition": {
                                                     "properties": {
                                                         "destination": {
-                                                            "anyOf": [
-                                                                {
-                                                                    "enum": [
-                                                                        "offramp_migration"
-                                                                    ],
-                                                                    "type": "string"
-                                                                },
-                                                                {
-                                                                    "enum": [
-                                                                        "normal_app"
-                                                                    ],
-                                                                    "type": "string"
-                                                                }
-                                                            ]
+                                                            "enum": [
+                                                                "normal_app"
+                                                            ],
+                                                            "type": "string"
                                                         },
                                                         "fallback": {
                                                             "enum": [
@@ -686,20 +514,10 @@
                                                     "acquisition": {
                                                         "properties": {
                                                             "destination": {
-                                                                "anyOf": [
-                                                                    {
-                                                                        "enum": [
-                                                                            "offramp_migration"
-                                                                        ],
-                                                                        "type": "string"
-                                                                    },
-                                                                    {
-                                                                        "enum": [
-                                                                            "normal_app"
-                                                                        ],
-                                                                        "type": "string"
-                                                                    }
-                                                                ]
+                                                                "enum": [
+                                                                    "normal_app"
+                                                                ],
+                                                                "type": "string"
                                                             },
                                                             "fallback": {
                                                                 "enum": [
@@ -811,6 +629,40 @@
                                     },
                                     "required": [
                                         "claims"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/badge/team": {
+            "post": {
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "Authorization",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "awarded": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "awarded"
                                     ],
                                     "type": "object"
                                 }
@@ -9384,20 +9236,10 @@
                                                     "acquisition": {
                                                         "properties": {
                                                             "destination": {
-                                                                "anyOf": [
-                                                                    {
-                                                                        "enum": [
-                                                                            "offramp_migration"
-                                                                        ],
-                                                                        "type": "string"
-                                                                    },
-                                                                    {
-                                                                        "enum": [
-                                                                            "normal_app"
-                                                                        ],
-                                                                        "type": "string"
-                                                                    }
-                                                                ]
+                                                                "enum": [
+                                                                    "normal_app"
+                                                                ],
+                                                                "type": "string"
                                                             },
                                                             "fallback": {
                                                                 "enum": [
@@ -9512,20 +9354,10 @@
                                                     "type": "string"
                                                 },
                                                 "destination": {
-                                                    "anyOf": [
-                                                        {
-                                                            "enum": [
-                                                                "offramp_migration"
-                                                            ],
-                                                            "type": "string"
-                                                        },
-                                                        {
-                                                            "enum": [
-                                                                "normal_app"
-                                                            ],
-                                                            "type": "string"
-                                                        }
-                                                    ]
+                                                    "enum": [
+                                                        "normal_app"
+                                                    ],
+                                                    "type": "string"
                                                 },
                                                 "fallback": {
                                                     "enum": [
@@ -9599,20 +9431,10 @@
                                                     "acquisition": {
                                                         "properties": {
                                                             "destination": {
-                                                                "anyOf": [
-                                                                    {
-                                                                        "enum": [
-                                                                            "offramp_migration"
-                                                                        ],
-                                                                        "type": "string"
-                                                                    },
-                                                                    {
-                                                                        "enum": [
-                                                                            "normal_app"
-                                                                        ],
-                                                                        "type": "string"
-                                                                    }
-                                                                ]
+                                                                "enum": [
+                                                                    "normal_app"
+                                                                ],
+                                                                "type": "string"
                                                             },
                                                             "fallback": {
                                                                 "enum": [
@@ -9727,20 +9549,10 @@
                                                     "type": "string"
                                                 },
                                                 "destination": {
-                                                    "anyOf": [
-                                                        {
-                                                            "enum": [
-                                                                "offramp_migration"
-                                                            ],
-                                                            "type": "string"
-                                                        },
-                                                        {
-                                                            "enum": [
-                                                                "normal_app"
-                                                            ],
-                                                            "type": "string"
-                                                        }
-                                                    ]
+                                                    "enum": [
+                                                        "normal_app"
+                                                    ],
+                                                    "type": "string"
                                                 },
                                                 "fallback": {
                                                     "enum": [
@@ -9871,20 +9683,10 @@
                                                     "type": "string"
                                                 },
                                                 "destination": {
-                                                    "anyOf": [
-                                                        {
-                                                            "enum": [
-                                                                "offramp_migration"
-                                                            ],
-                                                            "type": "string"
-                                                        },
-                                                        {
-                                                            "enum": [
-                                                                "normal_app"
-                                                            ],
-                                                            "type": "string"
-                                                        }
-                                                    ]
+                                                    "enum": [
+                                                        "normal_app"
+                                                    ],
+                                                    "type": "string"
                                                 },
                                                 "fallback": {
                                                     "enum": [
@@ -9961,20 +9763,10 @@
                                                     "type": "string"
                                                 },
                                                 "destination": {
-                                                    "anyOf": [
-                                                        {
-                                                            "enum": [
-                                                                "offramp_migration"
-                                                            ],
-                                                            "type": "string"
-                                                        },
-                                                        {
-                                                            "enum": [
-                                                                "normal_app"
-                                                            ],
-                                                            "type": "string"
-                                                        }
-                                                    ]
+                                                    "enum": [
+                                                        "normal_app"
+                                                    ],
+                                                    "type": "string"
                                                 },
                                                 "fallback": {
                                                     "enum": [
@@ -10580,6 +10372,9 @@
                                     "amount": {
                                         "description": "Amount for static QR codes (optional for dynamic QR codes)",
                                         "type": "string"
+                                    },
+                                    "idempotencyKey": {
+                                        "description": "Idempotency key for THIS init request, a non-blank string of at most 200 characters. Scoped to the exact (qrCode, qrType, amount) tuple, not to the scan: retries of the same request reuse one Manteca price lock instead of minting a new one per attempt, but an open-amount QR MUST derive a new key once the user supplies an amount, or the second init is refused with QR_INIT_KEY_MISMATCH. Optional: older clients omit it and get the previous behaviour."
                                     },
                                     "qrCode": {
                                         "description": "The QR code string to process for payment",
@@ -11376,301 +11171,8 @@
                 }
             }
         },
-        "/notifications/admin/recent": {
-            "get": {
-                "parameters": [
-                    {
-                        "in": "query",
-                        "name": "userId",
-                        "required": true,
-                        "schema": {
-                            "minLength": 1,
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "in": "query",
-                        "name": "limit",
-                        "required": true,
-                        "schema": {
-                            "default": 20,
-                            "maximum": 100,
-                            "minimum": 1,
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "in": "header",
-                        "name": "x-admin-token",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "items": {
-                                            "items": {
-                                                "properties": {
-                                                    "channel": {
-                                                        "type": "string"
-                                                    },
-                                                    "createdAt": {
-                                                        "type": "string"
-                                                    },
-                                                    "error": {
-                                                        "anyOf": [
-                                                            {
-                                                                "properties": {
-                                                                    "name": {
-                                                                        "anyOf": [
-                                                                            {
-                                                                                "type": "string"
-                                                                            },
-                                                                            {
-                                                                                "type": "null"
-                                                                            }
-                                                                        ]
-                                                                    },
-                                                                    "reason": {
-                                                                        "anyOf": [
-                                                                            {
-                                                                                "type": "string"
-                                                                            },
-                                                                            {
-                                                                                "type": "null"
-                                                                            }
-                                                                        ]
-                                                                    }
-                                                                },
-                                                                "required": [
-                                                                    "reason",
-                                                                    "name"
-                                                                ],
-                                                                "type": "object"
-                                                            },
-                                                            {
-                                                                "type": "null"
-                                                            }
-                                                        ]
-                                                    },
-                                                    "eventType": {
-                                                        "type": "string"
-                                                    },
-                                                    "id": {
-                                                        "type": "string"
-                                                    },
-                                                    "providerId": {
-                                                        "anyOf": [
-                                                            {
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "type": "null"
-                                                            }
-                                                        ]
-                                                    },
-                                                    "sentAt": {
-                                                        "anyOf": [
-                                                            {
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "type": "null"
-                                                            }
-                                                        ]
-                                                    },
-                                                    "skipReason": {
-                                                        "anyOf": [
-                                                            {
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "type": "null"
-                                                            }
-                                                        ]
-                                                    },
-                                                    "status": {
-                                                        "anyOf": [
-                                                            {
-                                                                "enum": [
-                                                                    "PENDING"
-                                                                ],
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "enum": [
-                                                                    "SENT"
-                                                                ],
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "enum": [
-                                                                    "FAILED"
-                                                                ],
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "enum": [
-                                                                    "SKIPPED"
-                                                                ],
-                                                                "type": "string"
-                                                            }
-                                                        ]
-                                                    }
-                                                },
-                                                "required": [
-                                                    "id",
-                                                    "eventType",
-                                                    "channel",
-                                                    "status",
-                                                    "skipReason",
-                                                    "providerId",
-                                                    "error",
-                                                    "createdAt",
-                                                    "sentAt"
-                                                ],
-                                                "type": "object"
-                                            },
-                                            "type": "array"
-                                        }
-                                    },
-                                    "required": [
-                                        "items"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    }
-                },
-                "summary": "Recent notification rows for a user (all channels + statuses)",
-                "tags": [
-                    "admin"
-                ]
-            }
-        },
         "/notifications/mark-read": {
             "post": {
-                "responses": {
-                    "200": {
-                        "description": "Default Response"
-                    }
-                }
-            }
-        },
-        "/notifications/send": {
-            "post": {
-                "parameters": [
-                    {
-                        "in": "header",
-                        "name": "x-admin-token",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "channel": {
-                                        "anyOf": [
-                                            {
-                                                "enum": [
-                                                    "push"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "email"
-                                                ],
-                                                "type": "string"
-                                            }
-                                        ]
-                                    },
-                                    "data": {
-                                        "additionalProperties": {},
-                                        "type": "object"
-                                    },
-                                    "externalUserIds": {
-                                        "items": {
-                                            "type": "string"
-                                        },
-                                        "maxItems": 10,
-                                        "minItems": 1,
-                                        "type": "array"
-                                    },
-                                    "idempotencyKey": {
-                                        "type": "string"
-                                    },
-                                    "message": {
-                                        "type": "string"
-                                    },
-                                    "templateId": {
-                                        "type": "string"
-                                    },
-                                    "title": {
-                                        "type": "string"
-                                    },
-                                    "url": {
-                                        "type": "string"
-                                    }
-                                },
-                                "required": [
-                                    "externalUserIds"
-                                ],
-                                "type": "object"
-                            }
-                        }
-                    },
-                    "required": true
-                },
                 "responses": {
                     "200": {
                         "description": "Default Response"
@@ -12013,51 +11515,6 @@
                         }
                     }
                 ],
-                "responses": {
-                    "200": {
-                        "description": "Default Response"
-                    }
-                }
-            }
-        },
-        "/points/admin/adjust": {
-            "post": {
-                "parameters": [
-                    {
-                        "in": "header",
-                        "name": "api-key",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "pointsChange": {
-                                        "type": "number"
-                                    },
-                                    "reason": {
-                                        "type": "string"
-                                    },
-                                    "userId": {
-                                        "type": "string"
-                                    }
-                                },
-                                "required": [
-                                    "userId",
-                                    "pointsChange",
-                                    "reason"
-                                ],
-                                "type": "object"
-                            }
-                        }
-                    },
-                    "required": true
-                },
                 "responses": {
                     "200": {
                         "description": "Default Response"
@@ -13473,6 +12930,12 @@
                                         "expiresAt": {
                                             "type": "number"
                                         },
+                                        "mixedSpendContract": {
+                                            "enum": [
+                                                "broadcast-first-revert-v1"
+                                            ],
+                                            "type": "string"
+                                        },
                                         "preparationId": {
                                             "type": "string"
                                         },
@@ -13481,12 +12944,6 @@
                                         },
                                         "tokenAddress": {
                                             "type": "string"
-                                        },
-                                        "mixedSpendContract": {
-                                            "type": "string",
-                                            "enum": [
-                                                "broadcast-first-revert-v1"
-                                            ]
                                         }
                                     },
                                     "required": [
@@ -15250,225 +14707,17 @@
                 }
             }
         },
-        "/rain/cards/{cardId}/provisioning-data": {
+        "/rain/webhooks": {
             "post": {
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "wallet": {
-                                        "anyOf": [
-                                            {
-                                                "type": "string",
-                                                "enum": [
-                                                    "apple"
-                                                ]
-                                            },
-                                            {
-                                                "type": "string",
-                                                "enum": [
-                                                    "google"
-                                                ]
-                                            }
-                                        ]
-                                    }
-                                },
-                                "required": [
-                                    "wallet"
-                                ]
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "parameters": [
-                    {
-                        "schema": {
-                            "format": "uuid",
-                            "type": "string"
-                        },
-                        "in": "path",
-                        "name": "cardId",
-                        "required": true
-                    }
-                ],
                 "responses": {
                     "200": {
-                        "description": "Default Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "cardId": {
-                                            "type": "string"
-                                        },
-                                        "cardSecret": {
-                                            "type": "string"
-                                        },
-                                        "last4": {
-                                            "type": "string"
-                                        },
-                                        "network": {
-                                            "type": "string"
-                                        },
-                                        "cardholderName": {
-                                            "type": "string"
-                                        },
-                                        "billingAddress": {
-                                            "type": "object",
-                                            "properties": {
-                                                "line1": {
-                                                    "type": "string"
-                                                },
-                                                "line2": {
-                                                    "type": "string"
-                                                },
-                                                "city": {
-                                                    "type": "string"
-                                                },
-                                                "region": {
-                                                    "type": "string"
-                                                },
-                                                "postalCode": {
-                                                    "type": "string"
-                                                },
-                                                "countryCode": {
-                                                    "type": "string"
-                                                }
-                                            },
-                                            "required": [
-                                                "line1",
-                                                "city",
-                                                "region",
-                                                "postalCode",
-                                                "countryCode"
-                                            ]
-                                        }
-                                    },
-                                    "required": [
-                                        "cardId",
-                                        "cardSecret",
-                                        "last4",
-                                        "network",
-                                        "billingAddress"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Default Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "code": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "409": {
-                        "description": "Default Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "code": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "429": {
-                        "description": "Default Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "code": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Default Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "code": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "503": {
-                        "description": "Default Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "code": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error"
-                                    ]
-                                }
-                            }
-                        }
+                        "description": "Default Response"
                     }
                 }
             }
         },
-        "/rain/webhooks": {
-            "post": {
+        "/readyz": {
+            "get": {
                 "responses": {
                     "200": {
                         "description": "Default Response"
@@ -15763,6 +15012,26 @@
                         "application/json": {
                             "schema": {
                                 "properties": {
+                                    "context": {
+                                        "anyOf": [
+                                            {
+                                                "enum": [
+                                                    "withdraw"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "pay-request"
+                                                ],
+                                                "type": "string"
+                                            }
+                                        ]
+                                    },
+                                    "contextId": {
+                                        "format": "uuid",
+                                        "type": "string"
+                                    },
                                     "isSameChainSwap": {
                                         "type": "boolean"
                                     },
@@ -15817,6 +15086,26 @@
                                         "type": "string"
                                     },
                                     "chainOut": {
+                                        "minLength": 1,
+                                        "type": "string"
+                                    },
+                                    "context": {
+                                        "anyOf": [
+                                            {
+                                                "enum": [
+                                                    "withdraw"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "pay-request"
+                                                ],
+                                                "type": "string"
+                                            }
+                                        ]
+                                    },
+                                    "contextId": {
                                         "minLength": 1,
                                         "type": "string"
                                     },
@@ -16098,6 +15387,15 @@
                                     "depositChain": {
                                         "type": "string"
                                     },
+                                    "depositChainId": {
+                                        "type": "string"
+                                    },
+                                    "depositContractVersion": {
+                                        "type": "string"
+                                    },
+                                    "depositIdx": {
+                                        "type": "number"
+                                    },
                                     "destinationAddress": {
                                         "type": "string"
                                     },
@@ -16171,6 +15469,10 @@
                                     "chainOut": {
                                         "type": "string"
                                     },
+                                    "depositor": {
+                                        "minLength": 1,
+                                        "type": "string"
+                                    },
                                     "mode": {
                                         "anyOf": [
                                             {
@@ -16187,15 +15489,11 @@
                                             }
                                         ]
                                     },
-                                    "token": {
-                                        "minLength": 1,
-                                        "type": "string"
-                                    },
-                                    "depositor": {
-                                        "minLength": 1,
-                                        "type": "string"
-                                    },
                                     "recipient": {
+                                        "minLength": 1,
+                                        "type": "string"
+                                    },
+                                    "token": {
                                         "minLength": 1,
                                         "type": "string"
                                     }
@@ -16205,9 +15503,7 @@
                                     "chainOut",
                                     "token",
                                     "amount",
-                                    "mode",
-                                    "depositor",
-                                    "recipient"
+                                    "mode"
                                 ],
                                 "type": "object"
                             }
@@ -16496,6 +15792,49 @@
                 }
             }
         },
+        "/send-links/{pubKey}/status": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "c",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "i",
+                        "required": false,
+                        "schema": {
+                            "type": "number"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "v",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "path",
+                        "name": "pubKey",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
         "/status/summary": {
             "get": {
                 "responses": {
@@ -16531,7 +15870,7 @@
                         "name": "address",
                         "required": true,
                         "schema": {
-                            "minLength": 1,
+                            "pattern": "^0x[a-fA-F0-9]{40}$",
                             "type": "string"
                         }
                     },
@@ -16540,7 +15879,7 @@
                         "name": "chainId",
                         "required": true,
                         "schema": {
-                            "minLength": 1,
+                            "pattern": "^[0-9]{1,10}$",
                             "type": "string"
                         }
                     }
@@ -16563,7 +15902,7 @@
                         "name": "address",
                         "required": true,
                         "schema": {
-                            "minLength": 1,
+                            "pattern": "^0x[a-fA-F0-9]{40}$",
                             "type": "string"
                         }
                     }
@@ -16653,6 +15992,18 @@
                         "application/json": {
                             "schema": {
                                 "properties": {
+                                    "avatarKey": {
+                                        "anyOf": [
+                                            {
+                                                "maxLength": 64,
+                                                "pattern": "^(basic\\.[a-z][a-z0-9-]*|badge\\.[A-Z0-9_]+\\.[a-z][a-z0-9-]*|letter\\.[a-z])$",
+                                                "type": "string"
+                                            },
+                                            {
+                                                "type": "null"
+                                            }
+                                        ]
+                                    },
                                     "bridgeKycStatus": {
                                         "anyOf": [
                                             {
@@ -16696,6 +16047,10 @@
                                     "email": {
                                         "type": "string"
                                     },
+                                    "emailVerificationCode": {
+                                        "pattern": "^[0-9]{6}$",
+                                        "type": "string"
+                                    },
                                     "fullName": {
                                         "type": "string"
                                     },
@@ -16733,10 +16088,6 @@
                                     },
                                     "username": {
                                         "type": "string"
-                                    },
-                                    "emailVerificationCode": {
-                                        "type": "string",
-                                        "pattern": "^[0-9]{6}$"
                                     }
                                 },
                                 "required": [
@@ -16777,27 +16128,105 @@
                         },
                         "description": "Invalid input \u2014 malformed email, rejected username, or a residence country that is not a real ISO-3166 alpha-2 code."
                     },
-                    "409": {
+                    "401": {
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
-                                        "message": {
+                                        "code": {
+                                            "enum": [
+                                                "STEP_UP_REQUIRED"
+                                            ],
                                             "type": "string"
                                         },
-                                        "success": {
-                                            "type": "boolean"
+                                        "error": {
+                                            "type": "string"
                                         }
                                     },
                                     "required": [
-                                        "success",
-                                        "message"
+                                        "error",
+                                        "code"
                                     ],
                                     "type": "object"
                                 }
                             }
                         },
                         "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "success": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "success",
+                                                "message"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        {
+                                            "properties": {
+                                                "code": {
+                                                    "enum": [
+                                                        "EMAIL_IN_USE"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                "error": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "error",
+                                                "code"
+                                            ],
+                                            "type": "object"
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "429": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "description": "The declared residence changed too recently. Only the residence keys were refused \u2014 every other field in the request was applied. Retry the residence change at `retryAt`; `/users/me` reports the same instant as `residence.nextChangeAllowedAt`.",
+                                    "properties": {
+                                        "code": {
+                                            "enum": [
+                                                "RESIDENCE_CHANGE_COOLDOWN"
+                                            ],
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "retryAt": {
+                                            "format": "date-time",
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error",
+                                        "code",
+                                        "retryAt"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "The declared residence changed too recently. Only the residence keys were refused \u2014 every other field in the request was applied. Retry the residence change at `retryAt`; `/users/me` reports the same instant as `residence.nextChangeAllowedAt`."
                     },
                     "500": {
                         "content": {
@@ -16821,24 +16250,17 @@
                         },
                         "description": "Default Response"
                     },
-                    "401": {
+                    "503": {
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
-                                        "code": {
-                                            "enum": [
-                                                "STEP_UP_REQUIRED"
-                                            ],
-                                            "type": "string"
-                                        },
                                         "error": {
                                             "type": "string"
                                         }
                                     },
                                     "required": [
-                                        "error",
-                                        "code"
+                                        "error"
                                     ],
                                     "type": "object"
                                 }
@@ -17842,6 +17264,745 @@
                 }
             }
         },
+        "/users/deposit-accounts": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "depositAccounts": {
+                                            "items": {
+                                                "properties": {
+                                                    "country": {
+                                                        "type": "string"
+                                                    },
+                                                    "currency": {
+                                                        "type": "string"
+                                                    },
+                                                    "id": {
+                                                        "type": "string"
+                                                    },
+                                                    "instructions": {
+                                                        "properties": {
+                                                            "accountHolderName": {
+                                                                "type": "string"
+                                                            },
+                                                            "accountNumber": {
+                                                                "type": "string"
+                                                            },
+                                                            "alias": {
+                                                                "type": "string"
+                                                            },
+                                                            "bankAddress": {
+                                                                "type": "string"
+                                                            },
+                                                            "bankName": {
+                                                                "type": "string"
+                                                            },
+                                                            "beneficiaryAddress": {
+                                                                "type": "string"
+                                                            },
+                                                            "beneficiaryName": {
+                                                                "type": "string"
+                                                            },
+                                                            "bic": {
+                                                                "type": "string"
+                                                            },
+                                                            "clabe": {
+                                                                "type": "string"
+                                                            },
+                                                            "cvu": {
+                                                                "type": "string"
+                                                            },
+                                                            "iban": {
+                                                                "type": "string"
+                                                            },
+                                                            "memo": {
+                                                                "type": "string"
+                                                            },
+                                                            "paymentRails": {
+                                                                "items": {
+                                                                    "type": "string"
+                                                                },
+                                                                "type": "array"
+                                                            },
+                                                            "routingNumber": {
+                                                                "type": "string"
+                                                            },
+                                                            "sortCode": {
+                                                                "type": "string"
+                                                            },
+                                                            "taxId": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "accountHolderName",
+                                                            "paymentRails"
+                                                        ],
+                                                        "type": "object"
+                                                    },
+                                                    "isPrimary": {
+                                                        "type": "boolean"
+                                                    },
+                                                    "matching": {
+                                                        "properties": {
+                                                            "amount": {
+                                                                "anyOf": [
+                                                                    {
+                                                                        "enum": [
+                                                                            "flexible"
+                                                                        ],
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "enum": [
+                                                                            "exact"
+                                                                        ],
+                                                                        "type": "string"
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "memo": {
+                                                                "anyOf": [
+                                                                    {
+                                                                        "enum": [
+                                                                            "none"
+                                                                        ],
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "enum": [
+                                                                            "required"
+                                                                        ],
+                                                                        "type": "string"
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "nameOnAccount": {
+                                                                "anyOf": [
+                                                                    {
+                                                                        "enum": [
+                                                                            "user"
+                                                                        ],
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "enum": [
+                                                                            "provider"
+                                                                        ],
+                                                                        "type": "string"
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "sender": {
+                                                                "anyOf": [
+                                                                    {
+                                                                        "enum": [
+                                                                            "anyone"
+                                                                        ],
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "enum": [
+                                                                            "business-only"
+                                                                        ],
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "enum": [
+                                                                            "own-name-only"
+                                                                        ],
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "enum": [
+                                                                            "unknown"
+                                                                        ],
+                                                                        "type": "string"
+                                                                    }
+                                                                ]
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "nameOnAccount",
+                                                            "sender",
+                                                            "memo",
+                                                            "amount"
+                                                        ],
+                                                        "type": "object"
+                                                    },
+                                                    "railId": {
+                                                        "type": "string"
+                                                    },
+                                                    "status": {
+                                                        "anyOf": [
+                                                            {
+                                                                "enum": [
+                                                                    "provisioning"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "active"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "retiring"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "revoked"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "failed"
+                                                                ],
+                                                                "type": "string"
+                                                            }
+                                                        ]
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "railId",
+                                                    "country",
+                                                    "currency",
+                                                    "status",
+                                                    "isPrimary",
+                                                    "matching"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "type": "array"
+                                        }
+                                    },
+                                    "required": [
+                                        "depositAccounts"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            },
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "method": {
+                                        "maxLength": 64,
+                                        "minLength": 1,
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "method"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "depositAccount": {
+                                            "properties": {
+                                                "country": {
+                                                    "type": "string"
+                                                },
+                                                "currency": {
+                                                    "type": "string"
+                                                },
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "instructions": {
+                                                    "properties": {
+                                                        "accountHolderName": {
+                                                            "type": "string"
+                                                        },
+                                                        "accountNumber": {
+                                                            "type": "string"
+                                                        },
+                                                        "alias": {
+                                                            "type": "string"
+                                                        },
+                                                        "bankAddress": {
+                                                            "type": "string"
+                                                        },
+                                                        "bankName": {
+                                                            "type": "string"
+                                                        },
+                                                        "beneficiaryAddress": {
+                                                            "type": "string"
+                                                        },
+                                                        "beneficiaryName": {
+                                                            "type": "string"
+                                                        },
+                                                        "bic": {
+                                                            "type": "string"
+                                                        },
+                                                        "clabe": {
+                                                            "type": "string"
+                                                        },
+                                                        "cvu": {
+                                                            "type": "string"
+                                                        },
+                                                        "iban": {
+                                                            "type": "string"
+                                                        },
+                                                        "memo": {
+                                                            "type": "string"
+                                                        },
+                                                        "paymentRails": {
+                                                            "items": {
+                                                                "type": "string"
+                                                            },
+                                                            "type": "array"
+                                                        },
+                                                        "routingNumber": {
+                                                            "type": "string"
+                                                        },
+                                                        "sortCode": {
+                                                            "type": "string"
+                                                        },
+                                                        "taxId": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "accountHolderName",
+                                                        "paymentRails"
+                                                    ],
+                                                    "type": "object"
+                                                },
+                                                "isPrimary": {
+                                                    "type": "boolean"
+                                                },
+                                                "matching": {
+                                                    "properties": {
+                                                        "amount": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "enum": [
+                                                                        "flexible"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "exact"
+                                                                    ],
+                                                                    "type": "string"
+                                                                }
+                                                            ]
+                                                        },
+                                                        "memo": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "enum": [
+                                                                        "none"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "required"
+                                                                    ],
+                                                                    "type": "string"
+                                                                }
+                                                            ]
+                                                        },
+                                                        "nameOnAccount": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "enum": [
+                                                                        "user"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "provider"
+                                                                    ],
+                                                                    "type": "string"
+                                                                }
+                                                            ]
+                                                        },
+                                                        "sender": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "enum": [
+                                                                        "anyone"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "business-only"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "own-name-only"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "unknown"
+                                                                    ],
+                                                                    "type": "string"
+                                                                }
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "nameOnAccount",
+                                                        "sender",
+                                                        "memo",
+                                                        "amount"
+                                                    ],
+                                                    "type": "object"
+                                                },
+                                                "railId": {
+                                                    "type": "string"
+                                                },
+                                                "status": {
+                                                    "anyOf": [
+                                                        {
+                                                            "enum": [
+                                                                "provisioning"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "active"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "retiring"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "revoked"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "failed"
+                                                            ],
+                                                            "type": "string"
+                                                        }
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "railId",
+                                                "country",
+                                                "currency",
+                                                "status",
+                                                "isPrimary",
+                                                "matching"
+                                            ],
+                                            "type": "object"
+                                        }
+                                    },
+                                    "required": [
+                                        "depositAccount"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/users/email-change": {
+            "post": {
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "Authorization",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "header",
+                        "name": "api-key",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "header",
+                        "name": "x-step-up-token",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "email": {
+                                        "maxLength": 320,
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "email"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "success"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "401": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "enum": [
+                                                "STEP_UP_REQUIRED"
+                                            ],
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error",
+                                        "code"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "429": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "503": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
         "/users/history": {
             "get": {
                 "parameters": [
@@ -17886,6 +18047,181 @@
                         "description": "Default Response"
                     }
                 }
+            }
+        },
+        "/users/identity/restart": {
+            "post": {
+                "description": "Reset the Sumsub IDENTITY step after a residence change and mint a fresh SDK token. Allowed only while the declared residence differs from the verified one.",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "regionIntent": {
+                                        "anyOf": [
+                                            {
+                                                "enum": [
+                                                    "LATAM"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "ROW"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "EU"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "NA"
+                                                ],
+                                                "type": "string"
+                                            }
+                                        ],
+                                        "description": "Level the token must target. The declared residence decides (AR/BR \u2192 LATAM, US/MX \u2192 NA, SEPA zone \u2192 EU, else ROW); a request for another provider's level is rejected with 400, an EU/ROW request is corrected. Defaults to the level the declared residence needs."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "applicantId": {
+                                            "type": "string"
+                                        },
+                                        "levelName": {
+                                            "type": "string"
+                                        },
+                                        "regionIntent": {
+                                            "description": "The intent the server resolved for this restart. The caller must drive its SDK session from THIS value, not from what it asked for: the declared residence can overrule the request, and `levelName` alone cannot tell EU from NA or LATAM from ROW (each pair shares a level).",
+                                            "type": "string"
+                                        },
+                                        "token": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "token",
+                                        "levelName",
+                                        "applicantId",
+                                        "regionIntent"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "403": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "429": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "retryAt": {
+                                            "format": "date-time",
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "503": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                },
+                "tags": [
+                    "users"
+                ]
             }
         },
         "/users/identity/resubmit": {
@@ -18649,6 +18985,9 @@
                                             ],
                                             "type": "object"
                                         },
+                                        "profileNameLocked": {
+                                            "type": "boolean"
+                                        },
                                         "residence": {
                                             "properties": {
                                                 "declared": {
@@ -18725,9 +19064,6 @@
                                                 "card"
                                             ],
                                             "type": "object"
-                                        },
-                                        "profileNameLocked": {
-                                            "type": "boolean"
                                         }
                                     },
                                     "required": [
@@ -19387,172 +19723,6 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Default Response"
-                    }
-                }
-            }
-        },
-        "/users/email-change": {
-            "post": {
-                "parameters": [
-                    {
-                        "in": "header",
-                        "name": "Authorization",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "in": "header",
-                        "name": "api-key",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "in": "header",
-                        "name": "x-step-up-token",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "email": {
-                                        "maxLength": 320,
-                                        "type": "string"
-                                    }
-                                },
-                                "required": [
-                                    "email"
-                                ],
-                                "type": "object"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean"
-                                        }
-                                    },
-                                    "required": [
-                                        "success"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "code": {
-                                            "enum": [
-                                                "STEP_UP_REQUIRED"
-                                            ],
-                                            "type": "string"
-                                        },
-                                        "error": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error",
-                                        "code"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "409": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "503": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
                         "description": "Default Response"
                     }
                 }
