@@ -75,7 +75,7 @@ test.each([false, true])('email is editable with verified=%s and only the change
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/profile'))
 })
 
-test('keeps the replacement identity gated when the old native support session cannot reset', async () => {
+test('shows the committed replacement when the old native support session cannot reset', async () => {
     mockResetCrispSessions.mockRejectedValueOnce(new Error('native reset failed'))
     renderWithIntl(<ProfileEditView />)
     await change('Email for notifications', 'new@example.com')
@@ -83,9 +83,12 @@ test('keeps the replacement identity gated when the old native support session c
     await verify()
 
     await waitFor(() => expect(mockResetCrispSessions).toHaveBeenCalledTimes(1))
-    expect(mockInvalidateCrispToken).not.toHaveBeenCalled()
-    expect(mockFetchUser).not.toHaveBeenCalled()
-    expect(mockReplace).not.toHaveBeenCalled()
+    expect(mockInvalidateCrispToken).toHaveBeenCalledWith('test-user')
+    expect(mockFetchUser).toHaveBeenCalledTimes(1)
+    expect(mockReplace).toHaveBeenCalledWith('/profile')
+    expect(mockInvalidateCrispToken.mock.invocationCallOrder[0]).toBeLessThan(
+        mockResetCrispSessions.mock.invocationCallOrder[0]
+    )
 })
 
 test('verified names explain the lock while an unverified name can be saved', async () => {

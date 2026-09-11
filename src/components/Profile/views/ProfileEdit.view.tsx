@@ -115,11 +115,18 @@ export const ProfileEditView = () => {
             }
             if (hasCode) {
                 // The API rotates the server-issued Crisp bearer in the same
-                // transaction as a verified replacement. Unbind this device
-                // from the former support session before refetching the profile,
-                // then force every mounted support hook to fetch the new bearer.
-                await resetCrispProxySessions()
+                // transaction as a verified replacement. Invalidate it before
+                // any best-effort device reset so support hooks fail closed even
+                // when native Crisp cannot unbind its former session.
                 invalidateCrispTokenId(user.user.userId)
+                try {
+                    await resetCrispProxySessions()
+                } catch (error) {
+                    // The email replacement is already committed. Keep showing
+                    // the committed profile instead of turning a support-session
+                    // cleanup failure into a false save failure.
+                    Sentry.captureException(error)
+                }
             }
             await fetchUser()
             router.replace('/profile')
