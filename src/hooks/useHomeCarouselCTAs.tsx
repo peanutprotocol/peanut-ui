@@ -110,7 +110,7 @@ export const useHomeCarouselCTAs = () => {
     const isInFlight = rails.some((rail) => rail.status === 'pending' || rail.status === 'requires-info')
     const { deviceType } = useDeviceType()
     const isPwa = usePWAStatus()
-    const { setIsIosPwaInstallModalOpen, openSupportWithMessage, setIsGetAppModalOpen } = useModalsContext()
+    const { setIsIosPwaInstallDrawerOpen, openSupportWithMessage, setIsGetAppModalOpen } = useModalsContext()
 
     const { setIsQRScannerOpen } = useModalsContext()
     const { countryCode: userCountryCode } = useGeoLocation()
@@ -241,7 +241,7 @@ export const useHomeCarouselCTAs = () => {
                                 )
                             }
                         } else {
-                            setIsIosPwaInstallModalOpen(true)
+                            setIsIosPwaInstallDrawerOpen(true)
                         }
                         return
                     }
@@ -265,7 +265,7 @@ export const useHomeCarouselCTAs = () => {
                 iconContainerClassName: 'bg-action-secondary',
                 icon: 'mobile-install',
                 onClick: () => {
-                    setIsIosPwaInstallModalOpen(true)
+                    setIsIosPwaInstallDrawerOpen(true)
                 },
                 iconSize: 16,
             })
@@ -363,7 +363,7 @@ export const useHomeCarouselCTAs = () => {
         hasSentInvites,
         hasSupportSurvivorBadge,
         oneSignalInitialized,
-        setIsIosPwaInstallModalOpen,
+        setIsIosPwaInstallDrawerOpen,
         toast,
         dismissCTA,
         openSupportWithMessage,

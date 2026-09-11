@@ -12,7 +12,7 @@ import { Notification } from '@/components/0_Bruddle/Notification'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
 import UnlockMethodModal from '@/components/IdentityVerification/UnlockMethodModal'
-import ResidenceChangeModal from '@/components/Profile/views/ResidenceChangeModal'
+import ResidenceChangeDrawer from '@/components/Profile/views/ResidenceChangeDrawer'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import PendingVerificationTasks from '@/components/Home/PendingVerificationTasks'
 import { KycProcessingModal } from '@/components/Kyc/modals/KycProcessingModal'
@@ -468,7 +468,7 @@ const UnlockPayments = () => {
                 />
             )}
 
-            <ResidenceChangeModal
+            <ResidenceChangeDrawer
                 visible={isChangeModalOpen}
                 onClose={() => setIsChangeModalOpen(false)}
                 userId={user?.user?.userId}

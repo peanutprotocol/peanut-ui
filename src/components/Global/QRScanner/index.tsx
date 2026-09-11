@@ -10,7 +10,7 @@ import Image from 'next/image'
 import { Icon } from '../Icons/Icon'
 import { useQRScanner, type QRScanHandler } from './useQRScanner'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import CameraPermissionModal from './CameraPermissionModal'
+import CameraPermissionDrawer from './CameraPermissionDrawer'
 import { Clipboard } from '@capacitor/clipboard'
 import { clipboardHasStrings } from '@/utils/clipboard-detect'
 import { extractPaymentValue, readClipboard } from '@/utils/clipboard-extract.utils'
@@ -65,6 +65,10 @@ export interface QRScannerProps {
     onScan: QRScanHandler
     onClose?: () => void
     isOpen?: boolean
+    /** Reports the camera-permission-denied recovery state, so the host can
+     *  clear anything it floats above the scanner (the my-QR peek sits at
+     *  z-60 and would cover the z-50 recovery sheet). */
+    onPermissionDenied?: (denied: boolean) => void
 }
 
 // ============================================================================
@@ -287,9 +291,14 @@ function ErrorView({
 // Main Component
 // ============================================================================
 
-export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerProps) {
+export default function QRScanner({ onScan, onClose, onPermissionDenied, isOpen = true }: QRScannerProps) {
     const { error, isPermissionDenied, isScanning, isCameraReady, videoRef, close, toggleCamera, retryCamera } =
         useQRScanner(onScan, onClose, isOpen)
+    useEffect(() => {
+        onPermissionDenied?.(isPermissionDenied)
+        return () => onPermissionDenied?.(false)
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- callback identity is the host's concern
+    }, [isPermissionDenied])
     const t = useTranslations('global')
     const toast = useToast()
     const [detectedAddress, setDetectedAddress] = useState<string | null>(null)
@@ -389,7 +398,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                  * for a copied Pix code. The modal owns the whole screen here, so the
                  * action has to sit inside it to be reachable.
                  */
-                <CameraPermissionModal visible onRetry={retryCamera} onClose={close} />
+                <CameraPermissionDrawer visible onRetry={retryCamera} onClose={close} />
             ) : error ? (
                 <ErrorView message={error} onClose={close} onRetry={retryCamera}>
                     <PasteActions

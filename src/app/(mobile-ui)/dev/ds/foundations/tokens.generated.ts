@@ -967,6 +967,12 @@ export const TEXT_STYLES: TextStyle[] = [
         "section": "parity",
         "fontSize": "3.75rem",
         "lineHeight": "2.875rem"
+    },
+    {
+        "name": "headingSmall",
+        "section": "parity",
+        "fontSize": "2.625rem",
+        "lineHeight": "2.25rem"
     }
 ]
 

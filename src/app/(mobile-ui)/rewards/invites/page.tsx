@@ -22,7 +22,7 @@ import { useCountUp } from '@/hooks/useCountUp'
 import { useInView } from 'framer-motion'
 import { useRef, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
-import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
+import InviteFriendsDrawer from '@/components/Global/InviteFriendsDrawer'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { isIOSNative } from '@/utils/capacitor'
 import InviteePointsBadge from '@/components/Points/InviteePointsBadge'
@@ -97,7 +97,7 @@ const InvitesPage = () => {
                         }
                     />
                 </div>
-                <InviteFriendsModal
+                <InviteFriendsDrawer
                     visible={isInviteModalOpen}
                     onClose={() => setIsInviteModalOpen(false)}
                     username={user?.user.username ?? ''}

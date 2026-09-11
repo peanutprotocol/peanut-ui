@@ -170,7 +170,7 @@ jest.mock('@/components/TransactionDetails/TransactionDetailsDrawer', () => ({
 
 // Stubbed to keep the QR canvas out of jsdom. The props are the contract that
 // matters here — the modal itself owns every referral capture.
-jest.mock('@/components/Global/InviteFriendsModal', () => ({
+jest.mock('@/components/Global/InviteFriendsDrawer', () => ({
     __esModule: true,
     default: ({ visible, username, source }: any) =>
         visible ? <div data-testid="invite-friends-modal" data-username={username} data-source={source} /> : null,

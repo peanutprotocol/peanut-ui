@@ -6,7 +6,7 @@
  * Globally mounted (ClientProviders), self-contained. When the signed-in user
  * lands on /home with freshly-earned badges they haven't seen, it fires ONE
  * coalesced toast ("Badge unlocked: X" / "You unlocked N badges") that taps
- * through to the shared BadgeDetailModal (or the badges list for several). A
+ * through to the shared BadgeDetailDrawer (or the badges list for several). A
  * badge that ships avatars (TASK-22142) gets a SECOND toast, 500ms later, so
  * the two announcements read as sequential events rather than one crowded card.
  *
@@ -23,7 +23,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import { BadgeDetailModal } from '@/components/Badges/BadgeDetailModal'
+import { BadgeDetailDrawer } from '@/components/Badges/BadgeDetailDrawer'
 import { getBadgeIcon } from '@/components/Badges/badge.utils'
 import { useBadgeCopy } from '@/components/Badges/useBadgeCopy'
 import { useBadgeEarnToast } from '@/components/Badges/useBadgeEarnToast'
@@ -173,7 +173,7 @@ export default function BadgeEarnToast() {
     }, [])
 
     return modalBadge ? (
-        <BadgeDetailModal
+        <BadgeDetailDrawer
             isOpen
             onClose={() => setModalBadge(null)}
             code={modalBadge.code}

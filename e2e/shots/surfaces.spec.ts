@@ -31,7 +31,7 @@ const FROZEN_NOW = new Date('2026-08-15T12:00:00.000Z')
 // alone they photograph themselves on top of whatever surface is under test.
 // Both are localStorage-gated (same keys e2e/shots/fixtures.spec.ts uses).
 function seenOnceModals(): void {
-    // NoMoreJailModal reads this on mount; nothing else in the app does.
+    // NoMoreJailDrawer reads this on mount; nothing else in the app does.
     window.sessionStorage.setItem('showNoMoreJailModal', 'true')
     window.localStorage.setItem('peanut_demo_activation_celebrated_at', '2026-01-01T00:00:00.000Z')
     window.localStorage.setItem(
@@ -71,7 +71,9 @@ for (const [id, surface] of Object.entries(SURFACE_META)) {
         await page.clock.setFixedTime(FROZEN_NOW)
         await page.addInitScript(seenOnceModals)
 
-        await page.goto(`/dev/surfaces?s=${id}&__fixture=${FIXTURE}`, { waitUntil: 'domcontentloaded' })
+        await page.goto(`/dev/surfaces?s=${id}&__fixture=${surface.shotFixture ?? FIXTURE}`, {
+            waitUntil: 'domcontentloaded',
+        })
 
         // Prove fixture mode engaged — without it a protected surface bounces to
         // /setup and we would happily shoot 65 pictures of the wrong screen.
@@ -79,12 +81,20 @@ for (const [id, surface] of Object.entries(SURFACE_META)) {
             .poll(() => page.evaluate((key) => window.sessionStorage.getItem(key), FIXTURE_STORAGE_KEY), {
                 message: 'fixture mode never engaged — is this a NEXT_PUBLIC_VERCEL_ENV=preview build?',
             })
-            .toBe(FIXTURE)
+            .toBe(surface.shotFixture ?? FIXTURE)
 
         // A surface that redirects (InstallPWA pushes /home when signed in) would
         // otherwise be photographed as whatever it landed on, under this id's
         // filename — which is how a home screen ended up labelled InstallPWA.
         expect(new URL(page.url()).pathname, 'the surface navigated away from the harness').toBe('/dev/surfaces')
+
+        // A staged surface mounts closed and opens on an in-surface action —
+        // click it and prove the dialog opened, or the shot silently reviews
+        // the wrong UI.
+        if (surface.shotClick) {
+            await page.getByRole('button', { name: surface.shotClick }).click()
+            await expect(page.getByRole('dialog')).toBeVisible()
+        }
 
         // Radix/vaul mount their portals a frame after open; the freeze stylesheet
         // has to land after that or the drawer slides during the shot.

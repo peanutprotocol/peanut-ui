@@ -11,7 +11,8 @@ import { perksApi, type PendingPerk } from '@/services/perks'
 import { useAuth } from '@/context/authContext'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { extractInviteeName } from '@/utils/general.utils'
-import PerkClaimModal from '../PerkClaimModal'
+import PerkClaimDrawer from '../PerkClaimDrawer'
+import InviteFriendsDrawer from '@/components/Global/InviteFriendsDrawer'
 import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
 
 const HomeCarouselCTA = () => {
@@ -23,6 +24,18 @@ const HomeCarouselCTA = () => {
     // Perk claim modal state
     const [selectedPerk, setSelectedPerk] = useState<PendingPerk | null>(null)
     const [claimedPerkIds, setClaimedPerkIds] = useState<Set<string>>(new Set())
+    // The success sheet's share CTA. The invite drawer lives HERE because the
+    // perk tree unmounts 400ms after dismissal — a drawer inside it dies
+    // mid-open, and two open vaul roots would double-apply the background
+    // scale. Deferred until the perk sheet is gone, so the two never overlap.
+    const [pendingInvite, setPendingInvite] = useState(false)
+    const [inviteOpen, setInviteOpen] = useState(false)
+    useEffect(() => {
+        if (!selectedPerk && pendingInvite) {
+            setPendingInvite(false)
+            setInviteOpen(true)
+        }
+    }, [selectedPerk, pendingInvite])
 
     useEffect(() => {
         setClaimedPerkIds(new Set())
@@ -88,44 +101,56 @@ const HomeCarouselCTA = () => {
     }, [])
 
     // reward claimed and our modal gone: a friend joined, money landed, and
-    // nothing of ours is on screen. Lives here rather than in PerkClaimModal,
+    // nothing of ours is on screen. Lives here rather than in PerkClaimDrawer,
     // which unmounts with `selectedPerk` and would take the pending ask with it.
     useAppReviewNudge(user?.user.userId, 'reward_claimed', claimedPerkIds.size > 0 && !selectedPerk)
 
-    // don't render carousel if there are no CTAs
-    if (!allCTAs.length) return null
-
+    // no early return on an empty list: claiming the LAST perk empties
+    // `allCTAs` while the success sheet is still dismissing, and a bare
+    // `return null` here unmounted the claim flow and the invite handoff
+    // mid-animation. Only the carousel itself is conditional.
     return (
         <>
-            <Carousel>
-                {allCTAs.map((cta) => (
-                    <CarouselCTA
-                        key={cta.id}
-                        title={cta.title}
-                        description={cta.description}
-                        icon={cta.icon as IconName}
-                        onClose={() => {
-                            cta.onClose?.()
-                            dismissCTA(cta.id)
-                        }}
-                        onClick={cta.onClick}
-                        logo={cta.logo}
-                        iconContainerClassName={cta.iconContainerClassName}
-                        secondaryIcon={cta.secondaryIcon}
-                        iconSize={16}
-                        logoSize={cta.logoSize}
-                        isPerkClaim={cta.isPerkClaim}
-                    />
-                ))}
-            </Carousel>
+            {allCTAs.length > 0 && (
+                <Carousel>
+                    {allCTAs.map((cta) => (
+                        <CarouselCTA
+                            key={cta.id}
+                            title={cta.title}
+                            description={cta.description}
+                            icon={cta.icon as IconName}
+                            onClose={() => {
+                                cta.onClose?.()
+                                dismissCTA(cta.id)
+                            }}
+                            onClick={cta.onClick}
+                            logo={cta.logo}
+                            iconContainerClassName={cta.iconContainerClassName}
+                            secondaryIcon={cta.secondaryIcon}
+                            iconSize={16}
+                            logoSize={cta.logoSize}
+                            isPerkClaim={cta.isPerkClaim}
+                        />
+                    ))}
+                </Carousel>
+            )}
 
             {/* Perk Claim Modal */}
             {selectedPerk && (
-                <PerkClaimModal
+                <PerkClaimDrawer
                     perk={selectedPerk}
                     visible={!!selectedPerk}
                     onClose={handleModalClose}
                     onClaimed={handlePerkClaimed}
+                    onShareInvite={() => setPendingInvite(true)}
+                />
+            )}
+            {user?.user.username && (
+                <InviteFriendsDrawer
+                    visible={inviteOpen}
+                    onClose={() => setInviteOpen(false)}
+                    username={user.user.username}
+                    source="surprise_moment"
                 />
             )}
         </>

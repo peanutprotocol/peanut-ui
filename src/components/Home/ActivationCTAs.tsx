@@ -8,7 +8,8 @@ import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { type ActivationStep } from '@/hooks/useActivationStatus'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { useRouter } from 'next/navigation'
-import ActionModal from '@/components/Global/ActionModal'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { useModalsContext } from '@/context/ModalsContext'
 import Card from '../Global/Card'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -491,33 +492,54 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                 onComplete={() => setShowProvideEmail(false)}
                 onSkip={() => setShowProvideEmail(false)}
             />
-            <ActionModal
-                visible={showSpendChooser && canApplyForCard === true}
-                onClose={() => setShowSpendChooser(false)}
-                icon="credit-card"
-                title={t('spendChooser.title')}
-                description={t('spendChooser.description')}
-                ctas={[
-                    {
-                        text: t('spendChooser.payWithCard'),
-                        shadowSize: '4',
-                        onClick: () => {
-                            posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SELECTED, { choice: 'card' })
-                            setShowSpendChooser(false)
-                            router.push('/card')
-                        },
-                    },
-                    {
-                        text: t('spendChooser.scanQr'),
-                        variant: 'stroke',
-                        onClick: () => {
-                            posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SELECTED, { choice: 'qr' })
-                            setShowSpendChooser(false)
-                            setIsQRScannerOpen(true)
-                        },
-                    },
-                ]}
-            />
+            <Drawer
+                open={showSpendChooser && canApplyForCard === true}
+                onOpenChange={(open) => {
+                    if (!open) setShowSpendChooser(false)
+                }}
+            >
+                <DrawerContent>
+                    <div className="flex flex-col items-center pt-1 pb-6 text-center">
+                        {/* the head owns the M/12 beneath it; everything after it
+                            keeps the drawer's L/16 rhythm */}
+                        <div className="mb-3 flex w-full flex-col items-center gap-4">
+                            <IconBubble icon="credit-card" className="bg-action-primary" />
+                            <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
+                                <DrawerTitle>{t('spendChooser.title')}</DrawerTitle>
+                                <DrawerDescription>{t('spendChooser.description')}</DrawerDescription>
+                            </DrawerHeader>
+                        </div>
+                        <div className="flex w-full flex-col items-center gap-4">
+                            <Button
+                                shadowSize="4"
+                                className="w-full justify-center"
+                                onClick={() => {
+                                    posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SELECTED, {
+                                        choice: 'card',
+                                    })
+                                    setShowSpendChooser(false)
+                                    router.push('/card')
+                                }}
+                            >
+                                {t('spendChooser.payWithCard')}
+                            </Button>
+                            <Button
+                                variant="stroke"
+                                className="w-full justify-center"
+                                onClick={() => {
+                                    posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SELECTED, {
+                                        choice: 'qr',
+                                    })
+                                    setShowSpendChooser(false)
+                                    setIsQRScannerOpen(true)
+                                }}
+                            >
+                                {t('spendChooser.scanQr')}
+                            </Button>
+                        </div>
+                    </div>
+                </DrawerContent>
+            </Drawer>
             <SumsubKycModals flow={kycFlow} />
         </Card>
     )
