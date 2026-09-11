@@ -136,6 +136,24 @@ export async function run(mode, { env = process.env, fetchImpl = fetch } = {}) {
             }
             return current
         }
+        case 'promote-production': {
+            const version = required(env, 'VERSION')
+            // Assign the new stable bundle and disable rollout exposure in the
+            // same channel mutation. A rollout may have started after the early
+            // preflight; a bundle-only promotion would preserve that target.
+            await request('channel', {
+                body: {
+                    channel: 'production',
+                    version,
+                    rolloutEnabled: false,
+                },
+            })
+            const production = await channel('production')
+            if (production.version?.name !== version || production.rolloutEnabled !== false) {
+                throw new Error('production did not persist exclusive promotion state')
+            }
+            return `Production exclusively serves ${version}`
+        }
         case 'verify-production': {
             const production = await channel('production')
             if (production.version?.name !== required(env, 'VERSION') || production.rolloutEnabled !== false) {

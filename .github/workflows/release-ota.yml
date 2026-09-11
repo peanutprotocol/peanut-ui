@@ -294,9 +294,7 @@ jobs:
               env:
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   VERSION: ${{ steps.version.outputs.name }}
-              run: |
-                  npx @capgo/cli@8.42.4 channel set production \
-                    --apikey "$CAPGO_API_KEY" --bundle "$VERSION"
+              run: node scripts/capgo-release-guard.mjs promote-production
 
             - name: Verify channel serves the new bundle
               env:

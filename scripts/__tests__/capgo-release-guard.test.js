@@ -158,6 +158,35 @@ it('rejects an active or unverifiable production rollout during preflight', () =
         expect(result.requests).toHaveLength(1)
     }
 })
+it('promotes while atomically disabling a rollout that started after preflight', () => {
+    const production = {
+        app_id: env.CAPGO_APP_ID,
+        name: 'production',
+        version: { name: env.VERSION },
+        rolloutEnabled: false,
+    }
+    const result = invoke('promote-production', [{ body: { status: 'success' } }, { body: production }])
+    expect(result.status).toBe(0)
+    expect(result.requests[0]).toMatchObject({
+        method: 'POST',
+        body: {
+            app_id: env.CAPGO_APP_ID,
+            channel: 'production',
+            version: env.VERSION,
+            rolloutEnabled: false,
+        },
+    })
+    expect(result.requests[1].method).toBe('GET')
+})
+it('fails when production does not persist exclusive promotion state', () => {
+    const production = {
+        app_id: env.CAPGO_APP_ID,
+        name: 'production',
+        version: { name: env.VERSION },
+        rolloutEnabled: true,
+    }
+    expect(invoke('promote-production', [{ body: { status: 'success' } }, { body: production }]).status).toBe(1)
+})
 it('verifies production and the promoted artifact, and rejects an active alternate rollout', () => {
     const production = {
         app_id: env.CAPGO_APP_ID,
@@ -186,11 +215,12 @@ it('keeps production promotion after successful verification and upload isolated
     const prepare = source.indexOf('node scripts/capgo-release-guard.mjs prepare-candidate')
     const preflight = source.indexOf('node scripts/capgo-release-guard.mjs current-version')
     const verify = source.indexOf('node scripts/capgo-release-guard.mjs verify-bundle')
-    const promote = source.indexOf('channel set production')
+    const promote = source.indexOf('node scripts/capgo-release-guard.mjs promote-production')
     expect(preflight).toBeLessThan(source.indexOf('- name: Upload bundle'))
     expect(prepare).toBeLessThan(source.indexOf('- name: Upload bundle'))
     expect(verify).toBeLessThan(promote)
     expect(source.slice(verify, promote)).not.toMatch(/continue-on-error|always\(\)/)
+    expect(source).not.toContain('channel set production')
     expect(source).toContain('CAPGO_APP_ID: me.peanut.wallet')
     expect(fs.readFileSync(path.join(ROOT, 'capacitor.config.ts'), 'utf8')).toContain("appId: 'me.peanut.wallet'")
 })

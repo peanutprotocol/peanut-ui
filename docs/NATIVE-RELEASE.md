@@ -485,10 +485,12 @@ fails the run before production changes.
 `name` field. The pinned CLI's human bundle table does not expose comments and cannot be
 used for this check. Its first production read also requires `rolloutEnabled: false`, so an
 active or unverifiable alternate rollout stops the resolve job before any upload or channel
-mutation. Before promotion, the guard requires the expected candidate marker at
-the end of that record's comment, the shared minimum native version, a link to the full
-source commit, and artifact metadata. HTTP errors, malformed responses and missing
-metadata stop the run. Uploads must finish successfully in that run: the production OTA
+mutation. Promotion assigns the verified stable bundle and `rolloutEnabled: false` in one
+channel mutation, then reads the state back; this prevents a rollout started after preflight
+from surviving the promotion. Before promotion, the guard requires the expected candidate
+marker at the end of that record's comment, the shared minimum native version, a link to
+the full source commit, and artifact metadata. HTTP errors, malformed responses and
+missing metadata stop the run. Uploads must finish successfully in that run: the production OTA
 lane no longer uses `--version-exists-ok`, because a failed upload can leave a record before
 its bytes are available. Version collisions require investigation, including interrupted
 candidate uploads; never delete or overwrite a served bundle to bypass this guard.
