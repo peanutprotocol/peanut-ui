@@ -81,7 +81,8 @@ export function verifyBundle(bundle, env) {
     if (typeof bundle.comment !== 'string' || !bundle.comment.trimEnd().endsWith(expected)) {
         throw new Error(`bundle ${version} does not carry the expected candidate floors`)
     }
-    if (bundle.minUpdateVersion !== nativeFloor) throw new Error(`bundle ${version} has the wrong server floor`)
+    // GET /bundle returns the app_versions row without camel-case mapping.
+    if (bundle.min_update_version !== nativeFloor) throw new Error(`bundle ${version} has the wrong server floor`)
     if (bundle.link !== `https://github.com/peanutprotocol/peanut-ui/commit/${sha}`) {
         throw new Error(`bundle ${version} belongs to a different or unverified source commit`)
     }

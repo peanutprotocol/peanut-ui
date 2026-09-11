@@ -23,7 +23,7 @@ const goodBundle = {
     name: '1.6.3-ios',
     deleted: false,
     comment: `commit ${MARKER}`,
-    minUpdateVersion: '1.5.0',
+    min_update_version: '1.5.0',
     link: `https://github.com/peanutprotocol/peanut-ui/commit/${SHA}`,
     checksum: 'signed-checksum',
     storage_provider: 'r2',
@@ -90,7 +90,8 @@ it.each([
     { comment: null },
     { comment: `${MARKER} trailing text` },
     { comment: '[ota-floors: android=1.5.0 ios=1.5.0]' },
-    { minUpdateVersion: '1.4.0' },
+    { min_update_version: '1.4.0' },
+    { min_update_version: undefined, minUpdateVersion: '1.5.0' },
     { app_id: 'wrong.app' },
     { deleted: true },
     { link: 'https://github.com/peanutprotocol/peanut-ui/commit/other' },
@@ -292,7 +293,7 @@ it.each(['ios', 'android'])('verifies a distinct %s artifact with its own native
     const nativeFloor = platform === 'ios' ? '1.5.0' : '1.6.0'
     const version = `1.6.3-${platform}`
     expect(
-        verify([{ ...goodBundle, name: version, minUpdateVersion: nativeFloor }], {
+        verify([{ ...goodBundle, name: version, min_update_version: nativeFloor }], {
             PLATFORM: platform,
             VERSION: version,
             NATIVE_FLOOR: nativeFloor,
@@ -303,7 +304,7 @@ it('allows reuse only of a verified native .0 record from the exact source', () 
     const native = {
         ...goodBundle,
         name: '1.7.0',
-        minUpdateVersion: '1.7.0',
+        min_update_version: '1.7.0',
         comment: '[ota-floors: android=1.7.0 ios=1.7.0]',
     }
     const overrides = { VERSION: '1.7.0', FLOOR_ANDROID: '1.7.0', FLOOR_IOS: '1.7.0', NATIVE_FLOOR: '1.7.0' }
