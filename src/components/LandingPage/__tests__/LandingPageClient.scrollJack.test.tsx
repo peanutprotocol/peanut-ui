@@ -6,7 +6,7 @@
 import { render, screen } from '@testing-library/react'
 import { act, type ReactNode } from 'react'
 import type { LandingStrings } from '../landingStrings'
-import type { LandingContentHrefs } from '../landingContentHrefs'
+import { EN_LANDING_CONTENT_HREFS } from '../landingContentHrefs'
 
 const heroProps: Record<string, unknown>[] = []
 
@@ -83,9 +83,8 @@ const renderLanding = (sendInSecondsSlot: ReactNode = <section id="send-in-secon
         <LandingPageClient
             heroConfig={{ primaryCta: { label: 'Sign up', href: '/setup' } }}
             marqueeMessages={['GLOBAL']}
-            locale="en"
             strings={{} as LandingStrings}
-            contentHrefs={{} as LandingContentHrefs}
+            contentHrefs={EN_LANDING_CONTENT_HREFS}
             problemSlot={<div />}
             mantecaSlot={<div />}
             regulatedRailsSlot={<div />}
