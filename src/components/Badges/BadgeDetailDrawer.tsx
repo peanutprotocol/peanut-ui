@@ -2,7 +2,6 @@
 
 import type { StaticImageData } from 'next/image'
 import { useLocale, useTranslations } from 'next-intl'
-import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { BadgeImage } from './BadgeImage'
 import ShareButton from '../Global/ShareButton'
@@ -49,20 +48,18 @@ export const BadgeDetailDrawer = ({ isOpen, onClose, code, title, description, l
                     {/* the head owns the M/12 beneath it; everything after it
                         keeps the drawer's L/16 rhythm */}
                     <div className="mb-3 flex w-full flex-col items-center gap-4">
-                        {/* the DS hero slot: l bubble, logo fill — the badge art IS the mark */}
-                        <IconBubble
-                            size="l"
-                            color="logo"
-                            icon={
-                                <BadgeImage
-                                    height={100}
-                                    width={100}
-                                    src={logo}
-                                    alt={title}
-                                    className="size-full object-contain"
-                                    unoptimized
-                                />
-                            }
+                        {/* bare hero illustration, not an IconBubble: badge art is
+                            non-square artwork (ruled with kush 2026-09-11) — the bubble's
+                            round clip cuts it. h-42 object-contain is the NoMoreJailDrawer
+                            hero precedent: full art, natural aspect, head still above
+                            the fold. */}
+                        <BadgeImage
+                            height={240}
+                            width={240}
+                            src={logo}
+                            alt={title}
+                            className="h-42 w-auto object-contain"
+                            unoptimized
                         />
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                             <DrawerTitle>{title}</DrawerTitle>
