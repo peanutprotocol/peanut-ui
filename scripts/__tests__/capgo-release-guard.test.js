@@ -52,7 +52,8 @@ function invoke(mode, responses, overrides = {}) {
       try {
         const result = await run(input.mode, { env: input.env, fetchImpl: async (url, init) => {
           requests.push({ url: String(url), method: init.method, body: init.body && JSON.parse(init.body) });
-          const response = input.responses.shift();
+          let response = input.responses.shift();
+          if (response?.routes) response = response.routes[new URL(url).pathname];
           if (!response) throw new Error('unexpected request');
           if (response.networkError) throw new Error('network failure');
           return { ok: !response.status || response.status === 200, status: response.status || 200,
@@ -160,6 +161,30 @@ const channelPolicy = (platform, version = 'builtin') => ({
 })
 const channels = [channelPolicy('ios'), channelPolicy('android')]
 const policyResponses = (rows = channels) => [{ body: app }, { body: config }, { body: rows }]
+
+// Capgo routes GET /app to getAll(), regardless of an app_id query.
+// Only GET /app/:id returns the single app required by the metadata check.
+it('resolves a release through the app-specific endpoint when the app list is enabled', () => {
+    const result = invoke('current-release', [
+        { routes: { '/app': { body: [app] }, [`/app/${env.CAPGO_APP_ID}`]: { body: app } } },
+        { body: config },
+        { body: channels },
+        { body: [] },
+    ])
+    expect(result.status).toBe(0)
+    expect(result.result).toBe('builtin')
+    expect(new URL(result.requests[0].url).pathname).toBe(`/app/${env.CAPGO_APP_ID}`)
+    expect(result.requests.every((request) => request.method === 'GET')).toBe(true)
+})
+it.each([{ body: [app] }, { body: { ...app, app_id: 'another.app' } }, { body: null }])(
+    'identifies an invalid app response separately from disabled metadata: %j',
+    ({ body }) => {
+        const result = invoke('verify-promotion', [{ body }])
+        expect(result.status).toBe(1)
+        expect(result.error).toBe('Capgo app response does not match the requested app')
+        expect(result.requests).toHaveLength(1)
+    }
+)
 
 it('reads builtin as a legitimate starting state, but rejects a missing version', () => {
     expect(invoke('current-version', policyResponses()).result).toBe('builtin')

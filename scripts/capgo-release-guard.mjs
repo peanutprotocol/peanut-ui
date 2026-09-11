@@ -134,9 +134,10 @@ export async function run(mode, { env = process.env, fetchImpl = fetch } = {}) {
         })
     }
     const policies = async () => {
-        const app = await request('app')
-        if (app?.app_id !== appId || app.expose_metadata !== true)
-            throw new Error('app must expose bundle metadata to the plugin')
+        // GET /app lists apps; app_id in its query does not select one record.
+        const app = await request(`app/${encodeURIComponent(appId)}`)
+        if (app?.app_id !== appId) throw new Error('Capgo app response does not match the requested app')
+        if (app.expose_metadata !== true) throw new Error('app must expose bundle metadata to the plugin')
         // Same public configuration and capgkey authentication as Capgo CLI's
         // createSupabaseClient(). Pin the host before sending the release key.
         const config = await json('https://api.capgo.app/private/config', { method: 'GET' })
