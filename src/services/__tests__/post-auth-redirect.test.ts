@@ -265,6 +265,42 @@ describe('post-auth redirect reads one snapshot', () => {
         expect(getRedirectOrigin()).toBe('deep-link')
     })
 
+    it('re-reads the v2 pointer when a newer v2 generation arrives during the legacy read', () => {
+        setRedirectUrl('/profile', 'session-end')
+        const getItem = jest.spyOn(Storage.prototype, 'getItem')
+        let replaced = false
+        getItem.mockImplementation(function patched(this: Storage, key: string) {
+            if (key === 'redirect-expiry' && !replaced) {
+                replaced = true
+                setRedirectUrl('/card', 'session-end')
+            }
+            return originalGetItem.call(this, key)
+        })
+
+        expect(consumePostAuthRedirect(null, { rejectSessionEndOrigin: true })).toEqual({
+            destination: '/home',
+            source: 'fallback',
+            deferred: false,
+        })
+        expect(getRedirectUrl()).toBeNull()
+    })
+
+    it('does not re-consume a redirect when the primary consumption marker write fails', () => {
+        setRedirectUrl('/receipt?id=abc', 'deep-link')
+        const setItem = jest.spyOn(Storage.prototype, 'setItem')
+        setItem.mockImplementation(function patched(this: Storage, key: string, value: string) {
+            if (key === 'redirect-v2-consumed') throw new Error('quota')
+            return originalSetItem.call(this, key, value)
+        })
+
+        expect(consumePostAuthRedirect(null)).toEqual({
+            destination: '/receipt?id=abc',
+            source: 'stored',
+            deferred: false,
+        })
+        expect(getRedirectUrl()).toBeNull()
+    })
+
     it('does not consume a newer generation when it arrives before the consumption marker', () => {
         setRedirectUrl('/profile', 'session-end')
         const setItem = jest.spyOn(Storage.prototype, 'setItem')

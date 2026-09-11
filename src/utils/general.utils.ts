@@ -767,6 +767,9 @@ const REDIRECT_RECORD_PREFIX = 'redirect-v2-record:'
 /** The generation-key format briefly used by the preceding unreleased build. */
 const LEGACY_GENERATION_RECORD_PREFIX = 'redirect-record:'
 const REDIRECT_V2_CONSUMED_KEY = 'redirect-v2-consumed'
+/** Fixed-size fallback tombstone capacity reserved before v2 publication. */
+const REDIRECT_V2_CONSUMED_RESERVE_KEY = 'redirect-v2-consumed-reserve'
+const REDIRECT_V2_CONSUMED_RESERVE_VALUE = '0'.repeat(36)
 /**
  * Legacy bare-path records cannot be deleted conditionally without the same
  * check/remove race. Remembering their consumed value makes them inert while
@@ -842,10 +845,17 @@ type RedirectPointer = {
     version: 2
     generationId: string
     destination: string
-    origin: RedirectOrigin
+    origin?: RedirectOrigin
     /** The legacy mirror observed before this generation was published. */
     legacyMirror?: string | null
 }
+
+const isRedirectPointer = (stored: unknown): stored is RedirectPointer =>
+    !!stored &&
+    typeof stored === 'object' &&
+    (stored as Partial<RedirectPointer>).version === 2 &&
+    isRedirectGenerationId((stored as Partial<RedirectPointer>).generationId) &&
+    typeof (stored as Partial<RedirectPointer>).destination === 'string'
 
 const getLegacyIdentity = (stored: unknown): string | undefined =>
     stored === undefined ? undefined : jsonStringify(stored)
@@ -867,15 +877,9 @@ const parseLegacyRedirect = (stored: unknown): StoredRedirect | null => {
     return parseStoredRedirect(stored, null, undefined, legacyIdentity)
 }
 
-export const getStoredRedirect = (): StoredRedirect | null => {
+const getStoredRedirectForSnapshot = (retryOnMirrorRace: boolean): StoredRedirect | null => {
     const pointer = getFromLocalStorage(REDIRECT_V2_KEY)
-    if (
-        pointer &&
-        typeof pointer === 'object' &&
-        (pointer as Partial<RedirectPointer>).version === 2 &&
-        isRedirectGenerationId((pointer as Partial<RedirectPointer>).generationId) &&
-        typeof (pointer as Partial<RedirectPointer>).destination === 'string'
-    ) {
+    if (isRedirectPointer(pointer)) {
         const { generationId, destination } = pointer as RedirectPointer
         let generated: StoredRedirect | null = null
 
@@ -892,9 +896,9 @@ export const getStoredRedirect = (): StoredRedirect | null => {
         }
         generated ??= parseStoredRedirect(pointer, generationId)
 
-        const legacyValue = getFromLocalStorage(REDIRECT_KEY)
         const legacyMirror = (pointer as Partial<RedirectPointer>).legacyMirror
         const hasLegacyMirror = Object.prototype.hasOwnProperty.call(pointer, 'legacyMirror')
+        const legacyValue = hasLegacyMirror ? getFromLocalStorage(REDIRECT_KEY) : null
         if (
             hasLegacyMirror &&
             typeof legacyValue === 'string' &&
@@ -902,6 +906,12 @@ export const getStoredRedirect = (): StoredRedirect | null => {
             legacyValue !== destination &&
             legacyValue !== legacyMirror
         ) {
+            if (retryOnMirrorRace) {
+                const refreshedPointer = getFromLocalStorage(REDIRECT_V2_KEY)
+                if (isRedirectPointer(refreshedPointer) && refreshedPointer.generationId !== generationId) {
+                    return getStoredRedirectForSnapshot(false)
+                }
+            }
             // A pre-deploy v1 tab can still publish a new handoff. The
             // baseline distinguishes that from a stale mirror left behind by
             // a failed v2 -> v1 mirror write.
@@ -910,11 +920,10 @@ export const getStoredRedirect = (): StoredRedirect | null => {
         }
 
         const consumed = getFromLocalStorage(REDIRECT_V2_CONSUMED_KEY)
+        const reservedConsumption = getFromLocalStorage(REDIRECT_V2_CONSUMED_RESERVE_KEY)
         if (
-            consumed &&
-            typeof consumed === 'object' &&
-            (consumed as Partial<RedirectPointer>).generationId === generationId &&
-            (consumed as Partial<RedirectPointer>).destination === destination
+            (isRedirectGenerationId(consumed) && consumed === generationId) ||
+            (isRedirectGenerationId(reservedConsumption) && reservedConsumption === generationId)
         ) {
             return null
         }
@@ -924,8 +933,23 @@ export const getStoredRedirect = (): StoredRedirect | null => {
     return parseLegacyRedirect(getFromLocalStorage(REDIRECT_KEY))
 }
 
+export const getStoredRedirect = (): StoredRedirect | null => getStoredRedirectForSnapshot(true)
+
+const reserveRedirectConsumptionCapacity = (): boolean => {
+    if (typeof localStorage === 'undefined') return false
+    if (getFromLocalStorage(REDIRECT_V2_CONSUMED_RESERVE_KEY) !== null) return true
+    return saveToLocalStorage(REDIRECT_V2_CONSUMED_RESERVE_KEY, REDIRECT_V2_CONSUMED_RESERVE_VALUE)
+}
+
+const markRedirectConsumed = (generationId: string): boolean => {
+    if (saveToLocalStorage(REDIRECT_V2_CONSUMED_KEY, generationId)) return true
+    if (!reserveRedirectConsumptionCapacity()) return false
+    return saveToLocalStorage(REDIRECT_V2_CONSUMED_RESERVE_KEY, generationId)
+}
+
 /** The ONLY way to store a post-auth destination. */
 export const setRedirectUrl = (destination: string, origin: RedirectOrigin = 'deep-link') => {
+    if (!reserveRedirectConsumptionCapacity()) return
     const generationId = createRedirectGenerationId()
     const previousLegacy = getFromLocalStorage(REDIRECT_KEY)
     const legacyMirror = typeof previousLegacy === 'string' ? previousLegacy : null
@@ -971,12 +995,7 @@ export const clearRedirectUrl = (expected?: StoredRedirect | null) => {
         if (current.generationKey) {
             localStorage.removeItem(current.generationKey)
         }
-        if (current.generationId) {
-            saveToLocalStorage(REDIRECT_V2_CONSUMED_KEY, {
-                generationId: current.generationId,
-                destination: current.destination,
-            })
-        }
+        if (current.generationId) markRedirectConsumed(current.generationId)
 
         if (current.legacyIdentity) {
             saveToLocalStorage(LEGACY_REDIRECT_CONSUMED_KEY, current.legacyIdentity)
