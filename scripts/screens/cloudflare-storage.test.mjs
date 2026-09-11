@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { configuration, uploadPreview } from './cloudflare-storage.mjs'
+import { configuration, uploadPreview, r2Endpoint } from './cloudflare-storage.mjs'
 const config = {
     CLOUDFLARE_ACCOUNT_ID: 'a'.repeat(32),
     CLOUDFLARE_IMAGES_TOKEN: 'test-token',
@@ -53,4 +53,13 @@ test('API failures and private/missing variants cannot publish a valid image URL
         ),
         /not public/
     )
+})
+
+test('EU buckets use the jurisdiction endpoint and reject malformed jurisdictions', () => {
+    assert.equal(
+        r2Endpoint({ ...config, SCREEN_LIBRARY_R2_JURISDICTION: 'eu' }),
+        `https://${config.CLOUDFLARE_ACCOUNT_ID}.eu.r2.cloudflarestorage.com`
+    )
+    assert.equal(r2Endpoint(config), `https://${config.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`)
+    assert.throws(() => r2Endpoint({ ...config, SCREEN_LIBRARY_R2_JURISDICTION: 'eu/path' }))
 })

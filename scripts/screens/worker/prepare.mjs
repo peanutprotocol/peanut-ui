@@ -3,6 +3,8 @@ import { mkdirSync, copyFileSync, writeFileSync } from 'node:fs'
 import { resolve, join } from 'node:path'
 const target = resolve(process.argv[2] ?? '.screen-worker')
 const bucket = process.env.SCREEN_LIBRARY_R2_BUCKET
+const jurisdiction = process.env.SCREEN_LIBRARY_R2_JURISDICTION || 'default'
+if (!['default', 'eu', 'us', 'fedramp'].includes(jurisdiction)) throw new Error('Invalid R2 jurisdiction')
 const origin = new URL(process.env.SCREEN_LIBRARY_PUBLIC_URL)
 if (
     origin.protocol !== 'https:' ||
@@ -39,7 +41,7 @@ writeFileSync(
                 not_found_handling: 'single-page-application',
                 run_worker_first: ['/screen-data/*'],
             },
-            r2_buckets: [{ binding: 'REPORTS', bucket_name: bucket }],
+            r2_buckets: [{ binding: 'REPORTS', bucket_name: bucket, jurisdiction }],
         },
         null,
         2
