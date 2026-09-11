@@ -19,7 +19,7 @@ import { useState, useCallback } from 'react'
 import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
 import { type TRequestChargeResponse, type TCharge, type TChargeTransactionType } from '@/services/services.types'
-import { isNativeCurrency, validateEnsName } from '@/utils/general.utils'
+import { isNativeCurrency, isStableCoin, validateEnsName } from '@/utils/general.utils'
 import { BASE_URL } from '@/constants/general.consts'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { type Address } from 'viem'
@@ -98,6 +98,11 @@ export const useChargeManager = (): UseChargeManagerReturn => {
                 } catch {
                     throw new Error('invalid request id')
                 }
+            }
+
+            // A token amount is a dollar amount only for supported USD stablecoins.
+            if ((!params.currencyAmount || !params.currencyCode) && !isStableCoin(params.tokenSymbol)) {
+                throw new Error('Token price is unavailable. Please try again.')
             }
 
             // build the create charge payload

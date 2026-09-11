@@ -37,7 +37,7 @@ const ctx = {
     isAmountFromUrl: false,
     isTokenFromUrl: false,
     isChainFromUrl: false,
-    urlToken: null,
+    urlToken: null as { symbol: string; address: string; chainId: string } | null,
     isTokenDenominated: false,
     attachment: {},
     setAttachment: jest.fn(),
@@ -115,6 +115,7 @@ const mockTokenSelection = {
         chainId: '8453',
         decimals: 6,
         symbol: 'USDC',
+        price: 1,
     },
     setSelectedChainID: jest.fn(),
     setSelectedTokenAddress: jest.fn(),
@@ -252,5 +253,66 @@ describe('request self-contributions', () => {
         )
         expect(mockSendMoney).toHaveBeenCalledTimes(externalWallet ? 0 : 1)
         expect(mockRecordPayment).toHaveBeenCalledTimes(externalWallet ? 0 : 1)
+    })
+})
+
+describe('semantic request USD metadata', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        ctx.charge = null
+        ctx.currentView = 'INITIAL'
+        ctx.amount = '0.1'
+        ctx.usdAmount = '0.1'
+        ctx.isTokenDenominated = true
+        ctx.recipient.recipientType = 'ADDRESS'
+        ctx.urlToken = { symbol: 'ETH', address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', chainId: '8453' }
+        mockTokenSelection.selectedChainID = '8453'
+        mockTokenSelection.selectedTokenAddress = ctx.urlToken.address
+        mockTokenSelection.selectedTokenData = {
+            address: ctx.urlToken.address,
+            chainId: '8453',
+            decimals: 18,
+            symbol: 'ETH',
+            price: 2500,
+        }
+        mockCreateCharge.mockResolvedValue(originalCharge)
+    })
+
+    it('prices a preset 0.1 ETH request using the live price, not its token units', async () => {
+        const { result } = renderHookWithIntl(() => useSemanticRequestFlow())
+        await act(async () => {
+            await result.current.handlePayment(true, true)
+        })
+        expect(mockCreateCharge).toHaveBeenCalledWith(
+            expect.objectContaining({ tokenAmount: '0.1', currencyAmount: '250', currencyCode: 'USD' })
+        )
+    })
+
+    it.each([0, -1, NaN, Infinity])('refuses to create a charge for invalid price %s', async (price) => {
+        mockTokenSelection.selectedTokenData.price = price
+        const { result } = renderHookWithIntl(() => useSemanticRequestFlow())
+        await act(async () => {
+            await result.current.handlePayment(true, true)
+        })
+        expect(mockCreateCharge).not.toHaveBeenCalled()
+        expect(ctx.setError).toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+    })
+
+    it('recalculates a preset amount when the live price arrives', () => {
+        mockTokenSelection.selectedTokenData.price = 0
+        const { rerender } = renderHookWithIntl(() => useSemanticRequestFlow())
+        expect(ctx.setUsdAmount).toHaveBeenLastCalledWith('')
+        mockTokenSelection.selectedTokenData.price = 2500
+        rerender()
+        expect(ctx.setUsdAmount).toHaveBeenLastCalledWith('250')
+    })
+
+    it('does not reuse price data from a previous token selection', async () => {
+        mockTokenSelection.selectedTokenData.address = '0x1111111111111111111111111111111111111111'
+        const { result } = renderHookWithIntl(() => useSemanticRequestFlow())
+        await act(async () => {
+            await result.current.handlePayment(true, true)
+        })
+        expect(mockCreateCharge).not.toHaveBeenCalled()
     })
 })
