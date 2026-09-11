@@ -1,11 +1,9 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { configuration, uploadPreview, r2Endpoint } from './cloudflare-storage.mjs'
+import { configuration, uploadPreview, r2Endpoint, tokenCredentials } from './cloudflare-storage.mjs'
 const config = {
     CLOUDFLARE_ACCOUNT_ID: 'a'.repeat(32),
-    CLOUDFLARE_IMAGES_TOKEN: 'test-token',
-    SCREEN_LIBRARY_R2_ACCESS_KEY_ID: 'key',
-    SCREEN_LIBRARY_R2_SECRET_ACCESS_KEY: 'secret',
+    CLOUDFLARE_API_TOKEN: 'test-token',
     SCREEN_LIBRARY_R2_BUCKET: 'screens',
     SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.example.com',
     SCREEN_LIBRARY_IMAGES_HASH: 'hash',
@@ -62,4 +60,18 @@ test('EU buckets use the jurisdiction endpoint and reject malformed jurisdiction
     )
     assert.equal(r2Endpoint(config), `https://${config.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`)
     assert.throws(() => r2Endpoint({ ...config, SCREEN_LIBRARY_R2_JURISDICTION: 'eu/path' }))
+})
+
+test('one active token derives R2 credentials without additional secrets', async () => {
+    const credentials = await tokenCredentials('abc', async () =>
+        Response.json({ success: true, result: { id: 'b'.repeat(32), status: 'active' } })
+    )
+    assert.equal(credentials.accessKeyId, 'b'.repeat(32))
+    assert.equal(credentials.secretAccessKey, 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad')
+    await assert.rejects(
+        tokenCredentials('abc', async () =>
+            Response.json({ success: true, result: { id: 'b'.repeat(32), status: 'expired' } })
+        )
+    )
+    await assert.rejects(tokenCredentials('abc', async () => new Response(null, { status: 401 })))
 })

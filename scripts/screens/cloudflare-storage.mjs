@@ -1,10 +1,9 @@
 /** Trusted publisher only. Images holds all screenshots; R2 holds report data and archives. */
+import { createHash } from 'node:crypto'
 export function configuration(env = process.env) {
     const keys = [
         'CLOUDFLARE_ACCOUNT_ID',
-        'CLOUDFLARE_IMAGES_TOKEN',
-        'SCREEN_LIBRARY_R2_ACCESS_KEY_ID',
-        'SCREEN_LIBRARY_R2_SECRET_ACCESS_KEY',
+        'CLOUDFLARE_API_TOKEN',
         'SCREEN_LIBRARY_R2_BUCKET',
         'SCREEN_LIBRARY_PUBLIC_URL',
         'SCREEN_LIBRARY_IMAGES_HASH',
@@ -25,16 +24,24 @@ export function r2Endpoint(env = process.env) {
     if (!/^[a-f0-9]{32}$/.test(env.CLOUDFLARE_ACCOUNT_ID ?? '')) throw new Error('Invalid Cloudflare account ID')
     return `https://${env.CLOUDFLARE_ACCOUNT_ID}${jurisdiction === 'default' ? '' : `.${jurisdiction}`}.r2.cloudflarestorage.com`
 }
+export async function tokenCredentials(token, request = fetch) {
+    const response = await request('https://api.cloudflare.com/client/v4/user/tokens/verify', {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(30000),
+    })
+    if (!response.ok) throw new Error('Cloudflare token verification failed')
+    const data = await response.json()
+    if (!data.success || data.result?.status !== 'active' || !/^[a-f0-9]{32}$/.test(data.result?.id ?? ''))
+        throw new Error('Cloudflare token is not active or has no valid ID')
+    return { accessKeyId: data.result.id, secretAccessKey: createHash('sha256').update(token).digest('hex') }
+}
 export async function createStorage(env = process.env) {
     const config = configuration(env)
     const { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command } = await import('@aws-sdk/client-s3')
     const client = new S3Client({
         region: 'auto',
         endpoint: r2Endpoint(config),
-        credentials: {
-            accessKeyId: config.SCREEN_LIBRARY_R2_ACCESS_KEY_ID,
-            secretAccessKey: config.SCREEN_LIBRARY_R2_SECRET_ACCESS_KEY,
-        },
+        credentials: await tokenCredentials(config.CLOUDFLARE_API_TOKEN),
     })
     const Bucket = config.SCREEN_LIBRARY_R2_BUCKET
     const url = (key) => `${config.SCREEN_LIBRARY_PUBLIC_URL}/screen-data/${key}`
@@ -82,7 +89,7 @@ export async function uploadPreview(config, name, bytes, request = cloudflareReq
     if (!/^[a-f0-9]{64}\.(png|webp)$/.test(name)) throw new Error('Invalid preview name')
     const id = `peanut-screen-${name.slice(0, 64)}`
     const endpoint = `https://api.cloudflare.com/client/v4/accounts/${config.CLOUDFLARE_ACCOUNT_ID}/images/v1`
-    const headers = { Authorization: `Bearer ${config.CLOUDFLARE_IMAGES_TOKEN}` }
+    const headers = { Authorization: `Bearer ${config.CLOUDFLARE_API_TOKEN}` }
     // Verify original bytes on reuse, never trust a custom ID alone.
     let response = await request(`${endpoint}/${id}/blob`, { headers })
     if (response.status === 404) {
