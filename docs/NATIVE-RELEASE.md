@@ -213,13 +213,14 @@ and it is fine for it to lag behind what ships.
 > filter cannot ship over the air, so on their own they block OTA again for no user-visible
 > gain. `native-routes.ts` still maps `/app/*` → `/app`, so nothing else needs touching.
 
-The native and production OTA workflows are manual and accept `dev`, `main`, and
-`release/android-kyc`. Select the source branch before dispatch — a supported branch name
-does not prove that its current commit is ready to ship.
+The native workflows are manual and accept `dev`, `main`, and `release/android-kyc`.
+Production OTA is different: every update to `main` runs **App Release OTA**, and that
+workflow refuses every other ref. Treat merging to `main` as the production OTA decision.
 
-1. Inspect the selected branch's current commit and confirm its release QA is complete.
-2. Before dispatching from `main`, verify it contains the reviewed native changes and
-   completed KYC fixes. A workflow change alone does not include those fixes.
+1. Inspect the selected native-release branch or the commit proposed for `main` and confirm
+   its release QA is complete.
+2. Before merging to `main`, verify it contains the reviewed native changes and completed
+   KYC fixes. Updating the workflow alone does not include those fixes.
 3. Before integrating `release/android-kyc`, compare it with current production and
    preserve later production fixes. This branch started from an older OTA commit.
 4. Complete the reviewed back-merge into `dev` and production release into `main`
@@ -233,8 +234,9 @@ Use the workflow that matches the release:
 | Android replacement | **App Release Android** | leave `versionName` blank on the selected supported branch → rebuilds the current tagged Android version with a new Play `versionCode`; refuses iOS/shared native changes and does not move the iOS OTA floor |
 | OTA | **App Release OTA** | resolves the next version across platform channels and reserved uploads → verifies two inactive candidates → promotes each platform → tags `ota-<version>` |
 
-All three lanes require a manual dispatch. A push or merge does not release an app or OTA.
-The workflow resolves the version; do not create release tags by hand.
+The native lanes require a manual dispatch. Updating `main` automatically publishes the
+production OTA after all guards pass. The workflows resolve versions; do not create release
+tags by hand.
 
 Use the Android replacement lane only for an Android-only native correction to the
 currently shipped build. It verifies the existing native tag attests both platforms,
@@ -380,41 +382,39 @@ the build is reproducible, the AAB lands on a Play track.
 
 ## 9. OTA updates (Capgo)
 
-`App Release OTA` builds and publishes a production static export after a manual dispatch
-from `dev`, `main`, or `release/android-kyc`. This backport includes the protections from
-PR #3111 while preserving the existing release refs and manual trigger.
+`App Release OTA` builds and publishes a production static export automatically after every
+update to `main`. It has no manual dispatch trigger and refuses every other ref.
 
 | trigger | channel | bundle version |
 | ------- | ------- | -------------- |
-| **App Release OTA** — manual, approved release ref | `ios-mobile-release` and `android-mobile-release` | `<major>.<build>.<ota+1>-ios` / `-android` |
+| **App Release OTA** — automatic push to `main` | `ios-mobile-release` and `android-mobile-release` | `<major>.<build>.<ota+1>-ios` / `-android` |
 | **App Staging OTA** — manual, `dev` source | `staging` | `<major>.<build>.<commit count>` |
 
-For an OTA from `dev`:
+For a production OTA:
 
-1. Merge the reviewed protections and desired app changes into `dev`. Record its exact
-   commit and wait for its required checks. Verify the installed native versions in scope.
+1. Merge the desired app changes into `dev`, record its exact commit, and wait for its
+   required checks. Verify the installed native versions in scope.
 2. Validate on representative real devices that the current OTA accepts the candidate and
    the candidate can receive a subsequent compatible OTA. Include cold starts, offline
    launches, and recovery after an updater initialization failure. Unit tests cover these
    mechanisms but do not replace tests on the installed binaries.
-3. Open Actions → **App Release OTA** → **Run workflow** and select `dev`. The CLI equivalent
-   is `gh workflow run release-ota.yml --repo peanutprotocol/peanut-ui --ref dev`.
-4. Verify the run's source SHA, compatibility checks, both exact candidate records and
+3. Merge the reviewed commit to `main`. That push starts **App Release OTA**; there is no
+   separate manual release action.
+4. Verify the automatic run's source SHA, compatibility checks, both exact candidate records and
    platform channels, and the `ota-<version>` tag. The next version exceeds both channels,
    previous OTA tags and reserved platform upload names (including partial/deleted uploads).
    `builtin` is a valid initial channel state; never overwrite a failed candidate.
 
-Dispatching publishes to production after the automated checks; this workflow does not
+Updating `main` publishes to production after the automated checks; this workflow does not
 pause for device QA between upload and promotion. The reserved `ota-candidate` channel has
 all device audiences disabled. Existing staging builds use a different version sequence
 and do not emit the new floor marker: do not promote a staging bundle to production or
 use it as proof of per-platform production delivery.
 
-An active or unreadable progressive rollout stops the release before version resolution
-and is checked again immediately before production promotion. The stable bundle and
-rollout target are separate channel state; changing one does not clear the other. The
-workflow leaves an existing rollout untouched. Avoid concurrent dashboard/channel edits
-during publication: the preflight read and promotion are separate API operations.
+An active or unreadable progressive rollout stops the release before version resolution.
+At promotion, the workflow sets the stable bundle and disables rollout in one Capgo API
+mutation, then reads the complete channel policy and exact artifact back. This prevents a
+dashboard rollout enabled after preflight from surviving the bundle change.
 
 The early inline `notifyAppReady()` avoids false rollbacks when the OS freezes an app in
 the background. The custom incomplete-boot counter stays armed until React has rendered
@@ -445,9 +445,13 @@ the tree above that is `android 1.6.0, ios 1.5.0`.
 
 Resolved `@capacitor/android` and `@capacitor/ios` versions affect only their own platform's
 floor. Core, cross-platform plugins, and unclassified native dependencies still affect
-both. The complete native fingerprint keeps its existing combined dependency digest so
-stored same-version replacement attestations remain valid; only per-platform comparisons
-use a scoped dependency digest.
+both. New replacement tags use the v3 fingerprint, which records Android, iOS, and shared
+dependency digests separately. The verifier retains the original combined v2 calculation
+solely so immutable replacement tags created under that schema remain valid.
+
+The floor scan resolves an attested same-version replacement before comparing each release.
+Without that baseline, a narrowly compatible Android packaging repair would make the floor
+resolver reject every later OTA even though the publish guard accepts the same replacement.
 
 - **`shared` inputs count for both platforms.** `capacitor.config.ts`, `patches/` and the
   resolved plugin versions sit outside `android/` and `ios/` while describing the native
@@ -599,7 +603,7 @@ own. Two things had to line up:
   surface check and `--auto-min-update-version`. Retiring a workflow on `dev`/`main` does
   **not** retire it at older commits, and the same trap applies to the `v*` prefix. Treat
   every `ota-*` / `v*` tag push as running last month's pipeline, and ship through the
-  current manual OTA and native workflows instead.
+  current automatic OTA and manual native workflows instead.
 
 `check-native-ota-surface.mjs` already asserted the same ancestry, but only as a
 precondition of its fingerprint diff — in the deploy job, after a full install and native
@@ -617,8 +621,10 @@ before promotion. An existing `.0` record with incomplete metadata fails closed.
   policies above. Public API artifact reads are combined with the same authenticated
   channel-policy interface used by Capgo CLI, since the public channel response omits
   platform flags. Unreadable policies or missing metadata exposure stop publication.
-- **Manual dispatch publishes after checks.** The workflow uses the `Production` GitHub
-  environment; adding required reviewers there is a separate repository policy decision.
+- **A manually dispatched native release publishes its matching `.0` bootstrap bundle after
+  the native checks pass.** This is part of the native release lane; normal production OTA
+  remains automatic from `main`. The native workflow uses the `Production` GitHub environment;
+  adding required reviewers there is a separate repository policy decision.
 - **Native-version gating:** every record has an explicit `--min-update-version`, enforced
   by the channel's Metadata strategy. Each OTA uses its own platform floor; native `.0`
   records use their binary version. Never use the lower platform floor for a shared record.
@@ -687,7 +693,7 @@ before promotion. An existing `.0` record with incomplete metadata fails closed.
   or the narrowly gated same-version Android replacement lane—never widening or
   skipping the check.
 - **Rollout:** this workflow requires progressive rollout disabled and promotes both
-  stable channels after checks. Device QA must happen before dispatch; a separate reviewed
+  stable channels after checks. Device QA must happen before merging to `main`; a separate reviewed
   rollout process is required for percentage-based delivery.
 - **Rollback** is configured in `capacitor.config.ts` (`appReadyTimeout: 15000` +
   `autoDeleteFailed` + `autoDeletePrevious`): a bundle that never calls

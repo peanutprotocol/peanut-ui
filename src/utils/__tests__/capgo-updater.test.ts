@@ -459,6 +459,20 @@ describe('store-update gate', () => {
         expect(error).not.toHaveBeenCalled()
     })
 
+    it.each(['disable_auto_update_to_major', 'disable_auto_update_to_minor', 'disable_auto_update_to_metadata'])(
+        'treats Capgo %s rejection as requiring a store update',
+        async (code) => {
+            mockUpdater.getLatest.mockRejectedValue(new Error(code))
+            const onStoreUpdateRequired = jest.fn()
+            await initCapgoUpdater({ onStoreUpdateRequired })
+            await jest.advanceTimersByTimeAsync(5_000)
+
+            expect(mockUpdater.download).not.toHaveBeenCalled()
+            expect(onStoreUpdateRequired).toHaveBeenCalled()
+            expect(error).not.toHaveBeenCalled()
+        }
+    )
+
     it('still stages an OTA inside the running binary build', async () => {
         mockUpdater.getLatest.mockResolvedValue({ url: 'https://cdn.test/1.5.4.zip', version: '1.5.4' })
         mockUpdater.download.mockResolvedValue({ id: 'b-4', version: '1.5.4' })

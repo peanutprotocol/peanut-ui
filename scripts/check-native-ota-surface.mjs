@@ -13,13 +13,13 @@ import { createRequire } from 'node:module'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { checkLegacyAndroidPermissions } from './check-legacy-android-permissions.mjs'
-import { diff, fingerprint, setRepoRoot } from './native-fingerprint.mjs'
+import { diff, fingerprint, legacyV2Fingerprint, setRepoRoot } from './native-fingerprint.mjs'
 
 const require = createRequire(import.meta.url)
 const { changesOutsidePlatform, changesUnsafeForSameVersion } = require('./check-native-change-scope.cjs')
 const defaultRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const ATTESTATION =
-    /^peanut-native-replacement-v2: platform=(android|ios) base=(v\d+\.\d+\.\d+) native-compatible=true js-guard=(android-capacitor-permissions-v1) fingerprint=([0-9a-f]{16})$/
+    /^peanut-native-replacement-v(2|3): platform=(android|ios) base=(v\d+\.\d+\.\d+) native-compatible=true js-guard=(android-capacitor-permissions-v1) fingerprint=([0-9a-f]{16})$/
 
 function git(root, args) {
     return execFileSync('git', args, {
@@ -52,10 +52,16 @@ function parseAttestation(root, tag) {
         throw new Error(`${tag} is lightweight; replacement baselines must be annotated attestations`)
     }
     const contents = git(root, ['for-each-ref', '--format=%(contents)', `refs/tags/${tag}`])
-    const line = contents.split('\n').find((candidate) => candidate.startsWith('peanut-native-replacement-v2:'))
+    const line = contents.split('\n').find((candidate) => candidate.startsWith('peanut-native-replacement-v'))
     const match = ATTESTATION.exec(line ?? '')
-    if (!match) throw new Error(`${tag} is missing a valid peanut-native-replacement-v2 attestation`)
-    return { platform: match[1], baseRef: match[2], jsGuard: match[3], fingerprint: match[4] }
+    if (!match) throw new Error(`${tag} is missing a valid peanut-native-replacement-v2 or v3 attestation`)
+    return {
+        schema: Number(match[1]),
+        platform: match[2],
+        baseRef: match[3],
+        jsGuard: match[4],
+        fingerprint: match[5],
+    }
 }
 
 function validateCandidate(root, tag, baseRef, platform) {
@@ -85,14 +91,14 @@ function validateCandidate(root, tag, baseRef, platform) {
                     .join('\n')
         )
     }
-    const actual = fingerprint(tag)
+    const actual = attestation.schema === 2 ? legacyV2Fingerprint(tag) : fingerprint(tag)
     if (attestation.fingerprint !== actual) {
         throw new Error(`${tag} attests fingerprint ${attestation.fingerprint}, but its commit is ${actual}`)
     }
     return git(root, ['rev-list', '--count', `${baseRef}..${tag}`])
 }
 
-export function checkNativeOtaSurface({ root = defaultRoot, baseRef, platform = 'android', headRef = 'HEAD' }) {
+export function replacementBaseline({ root = defaultRoot, baseRef, platform = 'android', headRef = 'HEAD' }) {
     if (!/^v\d+\.\d+\.\d+$/.test(baseRef ?? '')) throw new Error('base ref must be vX.Y.Z')
     if (!['android', 'ios'].includes(platform)) throw new Error('platform must be android or ios')
     setRepoRoot(root)
@@ -109,13 +115,18 @@ export function checkNativeOtaSurface({ root = defaultRoot, baseRef, platform = 
         .map((tag) => ({ tag, distance: Number(validateCandidate(root, tag, baseRef, platform)) }))
         .sort((a, b) => b.distance - a.distance || b.tag.localeCompare(a.tag))
 
-    if (candidates.length === 0) {
+    return candidates[0]?.tag ?? baseRef
+}
+
+export function checkNativeOtaSurface({ root = defaultRoot, baseRef, platform = 'android', headRef = 'HEAD' }) {
+    const baseline = replacementBaseline({ root, baseRef, platform, headRef })
+
+    if (baseline === baseRef) {
         const changes = diff(baseRef, headRef)
         if (changes.length > 0) failChanged(baseRef, headRef, changes)
         return `native surface matches original ${baseRef} (${fingerprint(baseRef)})`
     }
 
-    const baseline = candidates[0].tag
     const changes = diff(baseline, headRef)
     if (changes.length > 0) failChanged(baseline, headRef, changes)
     if (platform === 'android') checkLegacyAndroidPermissions({ root, ref: headRef })

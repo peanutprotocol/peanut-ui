@@ -315,98 +315,43 @@ it('allows reuse only of a verified native .0 record from the exact source', () 
     expect(invoke('existing-native', [], { VERSION: '1.7.1-ios' }).status).toBe(1)
 })
 
-// Run the actual promotion shell; only executables are replaced. The real
-// preflight consumes recorded API responses. Post-promotion verification has
-// separate exact-artifact cases above. No network or publication is possible.
-function promotion(change = {}, apiFails = false, versions = { ios: 'builtin', android: 'builtin' }) {
-    const source = fs.readFileSync(path.join(ROOT, '.github/workflows/release-ota.yml'), 'utf8')
-    const step = source.slice(
-        source.indexOf('- name: Promote verified bundles'),
-        source.indexOf('- name: Deployment summary')
+it('promotes one platform bundle and disables rollout in the same mutation', () => {
+    const promoted = channelPolicy('ios', env.VERSION)
+    const result = invoke('promote-production', [
+        ...policyResponses(),
+        { body: { status: 'success' } },
+        ...policyResponses([promoted, channels[1]]),
+    ])
+
+    expect(result.status).toBe(0)
+    expect(result.requests[3]).toMatchObject({
+        method: 'POST',
+        body: {
+            app_id: env.CAPGO_APP_ID,
+            channel: 'ios-mobile-release',
+            version: env.VERSION,
+            rolloutEnabled: false,
+        },
+    })
+})
+
+it('does not mutate production after a rejected policy preflight', () => {
+    const result = invoke(
+        'promote-production',
+        policyResponses([{ ...channels[0], rollout_enabled: true }, channels[1]])
     )
-    const shell = step.match(/run: \|\n([\s\S]*)/)[1]
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ota-promotion-'))
-    const marker = path.join(dir, 'production-mutated')
-    const driver = `
-      const mode = process.argv[2]; process.argv[1] = process.execPath;
-      globalThis.fetch = () => { throw new Error('unexpected live request'); };
-      if (!['verify-promotion', 'current-version'].includes(mode)) process.exit(0);
-      const { run } = await import(${JSON.stringify(SCRIPT)});
-      const responses = JSON.parse(process.env.TEST_RESPONSES);
-      try { const result = await run(mode, { fetchImpl: async () => ({
-        ok: process.env.TEST_API_FAILS !== 'true', status: 503,
-        json: async () => responses.shift().body
-      }) }); if (mode === 'current-version') process.stdout.write(result); }
-      catch (error) { console.error(error.message); process.exitCode = 1; }
-    `
-    try {
-        const result = spawnSync(
-            'bash',
-            [
-                '-euo',
-                'pipefail',
-                '-c',
-                `
-          node() { "$NODE_BINARY" --input-type=module -e "$GUARD_DRIVER" "$@"; }
-          npx() { printf '%s\n' "$*" >> "$PROMOTED_FILE"; }
-          ${shell}
-        `,
-            ],
-            {
-                encoding: 'utf8',
-                env: {
-                    ...process.env,
-                    ...env,
-                    RELEASE_VERSION: '1.6.3',
-                    NODE_BINARY: process.execPath,
-                    GUARD_DRIVER: driver,
-                    PROMOTED_FILE: marker,
-                    TEST_API_FAILS: String(apiFails),
-                    TEST_RESPONSES: JSON.stringify(
-                        policyResponses([
-                            { ...channelPolicy('ios', versions.ios), ...change },
-                            channelPolicy('android', versions.android),
-                        ])
-                    ),
-                },
-            }
-        )
-        return {
-            status: result.status,
-            promoted: fs.existsSync(marker),
-            calls: fs.existsSync(marker) ? fs.readFileSync(marker, 'utf8').trim().split('\n') : [],
-        }
-    } finally {
-        fs.rmSync(dir, { recursive: true, force: true })
-    }
-}
-it.each([{ rollout_enabled: true }, { rollout_enabled: null }, { android: true }, { disable_auto_update: 'major' }])(
-    'the actual workflow cannot mutate either channel after rejected preflight %j',
-    (change) => {
-        expect(promotion(change)).toMatchObject({ status: 1, promoted: false })
-    }
-)
-it('the actual workflow stops before mutation on API failure', () => {
-    expect(promotion({}, true)).toMatchObject({ status: 1, promoted: false })
+    expect(result.status).toBe(1)
+    expect(result.requests.every((request) => request.method === 'GET')).toBe(true)
 })
-it('the actual workflow promotes only after both platform policies pass', () => {
-    expect(promotion()).toMatchObject({ status: 0, promoted: true })
-})
-it('bypasses Capgo metadata comparison only while each production channel is builtin', () => {
-    const bootstrap = promotion()
-    expect(bootstrap.status).toBe(0)
-    expect(bootstrap.calls).toHaveLength(2)
-    expect(bootstrap.calls.every((call) => call.includes('--ignore-metadata-check'))).toBe(true)
 
-    const partialBootstrap = promotion({}, false, { ios: '1.6.4-ios', android: 'builtin' })
-    expect(partialBootstrap.status).toBe(0)
-    expect(partialBootstrap.calls[0]).not.toContain('--ignore-metadata-check')
-    expect(partialBootstrap.calls[1]).toContain('--ignore-metadata-check')
-
-    const laterOta = promotion({}, false, { ios: '1.6.4-ios', android: '1.6.4-android' })
-    expect(laterOta.status).toBe(0)
-    expect(laterOta.calls).toHaveLength(2)
-    expect(laterOta.calls.every((call) => !call.includes('--ignore-metadata-check'))).toBe(true)
+it('fails when Capgo does not persist the exclusive promotion', () => {
+    const result = invoke('promote-production', [
+        ...policyResponses(),
+        { body: { status: 'success' } },
+        ...policyResponses(),
+    ])
+    expect(result.status).toBe(1)
+    expect(result.error).toContain('did not persist the exclusive promotion')
 })
 it('uploads and verifies both artifacts before any production promotion', () => {
     const source = fs.readFileSync(path.join(ROOT, '.github/workflows/release-ota.yml'), 'utf8')
@@ -416,7 +361,8 @@ it('uploads and verifies both artifacts before any production promotion', () => 
     expect(source).toContain('--channel ota-candidate')
     expect(source).toContain('UPLOAD_GUARD_ARGS+=(--ignore-checksum-check)')
     expect(source).toContain('"${UPLOAD_GUARD_ARGS[@]}"')
-    expect(source).not.toContain('channel set production')
+    expect(source).toContain('capgo-release-guard.mjs promote-production')
+    expect(source).not.toContain('channel set')
 })
 
 it('bypasses the candidate checksum collision only for the second platform record', () => {
@@ -471,7 +417,7 @@ it('never assigns a prerelease .0 identity that sorts below its native binary', 
 
 // Execute the native publisher with deterministic command responses. Assertions
 // cover the ordering and failures that can otherwise promote an absent artifact.
-function publishNative({ existing = 'missing', failure = '', platform = 'ios' } = {}) {
+function publishNative({ existing = 'missing', raceWinner = 'missing', failure = '', platform = 'ios' } = {}) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'native-ota-publish-'))
     const log = path.join(dir, 'calls')
     fs.mkdirSync(path.join(dir, 'out'))
@@ -485,7 +431,10 @@ function publishNative({ existing = 'missing', failure = '', platform = 'ios' } 
           node() {
             printf '%s\\n' "$2" >> "$CALL_LOG"
             [ "$FAILURE" != "$2" ] || return 1
-            if [ "$2" = existing-native ]; then printf '%s' "$EXISTING"; fi
+            if [ "$2" = existing-native ]; then
+              COUNT="$(grep -c '^existing-native$' "$CALL_LOG")"
+              if [ "$COUNT" -eq 1 ]; then printf '%s' "$EXISTING"; else printf '%s' "$RACE_WINNER"; fi
+            fi
           }
           npx() {
             printf '%s\\n' "$*" >> "$CALL_LOG"
@@ -505,6 +454,7 @@ function publishNative({ existing = 'missing', failure = '', platform = 'ios' } 
                     CAPGO_PRIVATE_KEY: 'test-private-key',
                     CALL_LOG: log,
                     EXISTING: existing,
+                    RACE_WINNER: raceWinner,
                     FAILURE: failure,
                     PUBLISH_SCRIPT: path.join(ROOT, 'scripts/publish-native-ota.sh'),
                 },
@@ -519,12 +469,11 @@ it.each(['ios', 'android'])('native publisher verifies before promoting %s', (pl
     const { status, calls } = publishNative({ platform })
     expect(status).toBe(0)
     const upload = calls.findIndex((line) => line.includes('bundle upload'))
-    const promote = calls.findIndex((line) => line.includes('channel set'))
+    const promote = calls.indexOf('promote-production')
     expect(upload).toBeGreaterThan(calls.indexOf('existing-native'))
     expect(calls[upload]).toContain('--min-update-version 1.7.0')
     expect(calls[upload]).toContain('[ota-floors: android=1.7.0 ios=1.7.0]')
     expect(promote).toBeGreaterThan(calls.indexOf('verify-bundle'))
-    expect(calls[promote]).toContain(`channel set ${platform}-mobile-release`)
     expect(calls.at(-1)).toBe('verify-production')
 })
 it('native publisher skips uploading only an already verified record', () => {
@@ -533,11 +482,18 @@ it('native publisher skips uploading only an already verified record', () => {
     expect(calls.some((line) => line.includes('bundle upload'))).toBe(false)
     expect(calls).toContain('verify-bundle')
 })
-it.each(['existing-native', 'upload', 'verify-bundle', 'verify-promotion'])(
+it('native publisher recovers only when a concurrent upload verifies exactly', () => {
+    const { status, calls } = publishNative({ failure: 'upload', raceWinner: '1.7.0' })
+    expect(status).toBe(0)
+    expect(calls.filter((line) => line === 'existing-native')).toHaveLength(2)
+    expect(calls.indexOf('verify-bundle')).toBeLessThan(calls.indexOf('promote-production'))
+})
+it.each(['existing-native', 'upload', 'verify-bundle', 'verify-promotion', 'promote-production'])(
     'native publisher cannot promote after %s fails',
     (failure) => {
         const { status, calls } = publishNative({ failure })
         expect(status).toBe(1)
-        expect(calls.some((line) => line.includes('channel set'))).toBe(false)
+        if (failure !== 'promote-production') expect(calls).not.toContain('promote-production')
+        expect(calls).not.toContain('verify-production')
     }
 )

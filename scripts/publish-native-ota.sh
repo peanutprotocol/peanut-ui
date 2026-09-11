@@ -9,13 +9,22 @@ node scripts/capgo-release-guard.mjs verify-promotion
 node scripts/capgo-release-guard.mjs prepare-candidate
 EXISTING="$(node scripts/capgo-release-guard.mjs existing-native)"
 if [ "$EXISTING" = missing ]; then
-  npx @capgo/cli@8.42.4 bundle upload \
-    --channel ota-candidate --apikey "$CAPGO_API_KEY" --key-data-v2 "$CAPGO_PRIVATE_KEY" \
-    --path ./out --bundle "$VERSION" --min-update-version "$VERSION" \
-    --comment "${GITHUB_SHA:0:7} — native release $VERSION [ota-floors: android=$VERSION ios=$VERSION]" \
-    --link "https://github.com/peanutprotocol/peanut-ui/commit/$GITHUB_SHA"
+  if ! npx @capgo/cli@8.42.4 bundle upload \
+      --channel ota-candidate --apikey "$CAPGO_API_KEY" --key-data-v2 "$CAPGO_PRIVATE_KEY" \
+      --path ./out --bundle "$VERSION" --min-update-version "$VERSION" \
+      --comment "${GITHUB_SHA:0:7} — native release $VERSION [ota-floors: android=$VERSION ios=$VERSION]" \
+      --link "https://github.com/peanutprotocol/peanut-ui/commit/$GITHUB_SHA"; then
+    # iOS and Android publish the same .0 identity in parallel. Both can see it
+    # missing before one wins creation. Recover only when the loser can now
+    # read the exact, fully verified record from this source; every other upload
+    # error still fails closed.
+    RACE_WINNER="$(node scripts/capgo-release-guard.mjs existing-native)"
+    if [ "$RACE_WINNER" != "$VERSION" ]; then
+      echo "Native bundle upload failed and no verified concurrent upload exists" >&2
+      exit 1
+    fi
+  fi
 fi
 node scripts/capgo-release-guard.mjs verify-bundle
-node scripts/capgo-release-guard.mjs verify-promotion
-npx @capgo/cli@8.42.4 channel set "$PLATFORM-mobile-release" --apikey "$CAPGO_API_KEY" --bundle "$VERSION"
+node scripts/capgo-release-guard.mjs promote-production
 node scripts/capgo-release-guard.mjs verify-production

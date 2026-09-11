@@ -269,6 +269,29 @@ export async function run(mode, { env = process.env, fetchImpl = fetch } = {}) {
         case 'verify-promotion':
             await policies()
             return 'Platform production policies verified'
+        case 'promote-production': {
+            const target = platform(env)
+            const name = PRODUCTION_CHANNELS[target]
+            const version = required(env, 'VERSION')
+
+            // Validate routing before mutation, then set the bundle and disable
+            // rollout in one API request. A separate preflight followed by CLI
+            // `channel set` leaves a window where a newly enabled rollout can
+            // survive the promotion and keep serving the previous bundle.
+            await policies()
+            await request('channel', {
+                body: {
+                    channel: name,
+                    version,
+                    rolloutEnabled: false,
+                },
+            })
+            const row = (await policies()).find((entry) => entry.name === name)
+            if (channelVersion(row, name) !== version || row.rollout_enabled !== false) {
+                throw new Error(`${name} did not persist the exclusive promotion`)
+            }
+            return `${name} exclusively serves ${version}`
+        }
         case 'verify-production': {
             const name = PRODUCTION_CHANNELS[platform(env)]
             const row = (await policies()).find((entry) => entry.name === name)

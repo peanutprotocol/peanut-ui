@@ -60,7 +60,7 @@ describe('Android replacement release workflow', () => {
         expect(releaseJob).toBeGreaterThan(-1)
         expect(baselineJob).toBeGreaterThan(releaseJob)
         expect(workflow).toContain("if: needs.release.outputs.rebuild == 'true'")
-        expect(workflow).toContain('peanut-native-replacement-v2: platform=android')
+        expect(workflow).toContain('peanut-native-replacement-v3: platform=android')
         expect(workflow).toContain('js-guard=android-capacitor-permissions-v1')
         expect(workflow).toContain('android-v${VERSION}-replacement-${GITHUB_SHA:0:12}')
         expect(workflow.slice(baselineJob)).toContain('contents: write')
