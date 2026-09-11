@@ -25,7 +25,11 @@ function makeRepo(version, { commits = 3, tags = [] } = {}) {
     for (let i = 0; i < commits; i++) {
         git('-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-q', '--allow-empty', '-m', `c${i}`)
     }
-    tags.forEach((tag) => git('tag', tag))
+    tags.forEach((tag) => {
+        if (/^v\d+\.[1-9]\d*\.0$/.test(tag)) {
+            git('-c', 'user.email=t@t', '-c', 'user.name=t', 'tag', '-a', tag, '-m', `Native release ${tag.slice(1)}`)
+        } else git('tag', tag)
+    })
     return dir
 }
 
@@ -89,6 +93,17 @@ describe('release version resolver', () => {
     })
 
     describe('ota', () => {
+        it('advances beyond shipped tags after channels are reset to builtin', () => {
+            const result = run(repo('1.0.53', { tags: ['v1.6.0', 'ota-1.6.2'] }), ['ota', '--current', 'builtin'])
+            expect(result.status).toBe(0)
+            expect(result.stdout.trim()).toBe('1.6.3')
+        })
+        it('advances after a partial platform upload', () => {
+            const result = run(repo('1.0.53', { tags: ['v1.6.0', 'ota-1.6.2'] }), ['ota', '--current', '1.6.3-ios'])
+            expect(result.status).toBe(0)
+            expect(result.stdout.trim()).toBe('1.6.4')
+        })
+
         it('increments the OTA component within the current build', () => {
             const result = run(repo('1.0.53', { tags: ['v1.5.0'] }), ['ota', '--current', '1.5.3'])
 
@@ -164,6 +179,135 @@ describe('release version resolver', () => {
 
             expect(result.status).toBe(1)
             expect(result.stderr).toMatch(/cut a native release/)
+        })
+    })
+
+    /*
+     * newest-native is the provenance input for both production release
+     * workflows: it answers "the release this commit must contain". Unlike
+     * native-floor it deliberately ignores package.json's major, because the
+     * first release of a new major has no floor and skipping the check there is
+     * what would let a lagging ref build 2.1.0 without containing v1.6.0.
+     */
+    describe('newest-native', () => {
+        it('does not hide a newer major from a stale release ref', () => {
+            const dir = repo('1.0.53', { tags: ['v1.6.0'] })
+            const git = (...args) => execFileSync('git', args, { cwd: dir, stdio: 'ignore' })
+            git('-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '--allow-empty', '-m', 'new major')
+            git('-c', 'user.email=t@t', '-c', 'user.name=t', 'tag', '-a', 'v2.1.0', '-m', 'Native release 2.1.0')
+            git('checkout', '--detach', 'HEAD~1')
+            const result = run(dir, ['newest-native'])
+            expect(result.status).toBe(0)
+            expect(result.stdout.trim()).toBe('2.1.0')
+            expect(
+                spawnSync('git', ['merge-base', '--is-ancestor', `v${result.stdout.trim()}`, 'HEAD'], { cwd: dir })
+                    .status
+            ).toBe(1)
+        })
+
+        it('picks the newest attested native release across majors', () => {
+            const result = run(repo('2.0.0', { tags: ['v1.4.0', 'v1.6.0', 'v1.5.0', 'v2.1.0'] }), ['newest-native'])
+
+            expect(result.status).toBe(0)
+            expect(result.stdout.trim()).toBe('2.1.0')
+        })
+
+        // The load-bearing case: package.json has moved to a major with no tag
+        // yet. native-floor has no answer here and the guard would skip; this
+        // must still name v1.6.0 as the release the commit has to contain.
+        it('answers for a major that has no release of its own yet', () => {
+            const result = run(repo('2.0.0', { tags: ['v1.5.0', 'v1.6.0'] }), ['newest-native'])
+
+            expect(result.status).toBe(0)
+            expect(result.stdout.trim()).toBe('1.6.0')
+        })
+
+        it('orders builds numerically, not lexically', () => {
+            const result = run(repo('1.0.53', { tags: ['v1.9.0', 'v1.10.0'] }), ['newest-native'])
+
+            expect(result.status).toBe(0)
+            expect(result.stdout.trim()).toBe('1.10.0')
+        })
+
+        // Same exclusions as native-floor: an OTA tag and the date-shaped
+        // v2026.02.26 that really is on main are not native releases.
+        it('ignores tags that are not native releases', () => {
+            const result = run(repo('1.0.53', { tags: ['v1.6.0', 'v1.6.3', 'v2026.02.26'] }), ['newest-native'])
+
+            expect(result.status).toBe(0)
+            expect(result.stdout.trim()).toBe('1.6.0')
+        })
+
+        // `v*` is loose enough that a date-shaped tag can match the release
+        // pattern exactly. Unbounded, v2026.02.0 would become the newest release
+        // and demand every ref contain a tag that never shipped a binary.
+        it('ignores a date-shaped tag that does match the release pattern', () => {
+            const result = run(repo('1.0.53', { tags: ['v1.6.0', 'v2026.02.0'] }), ['newest-native'])
+
+            expect(result.status).toBe(0)
+            expect(result.stdout.trim()).toBe('1.6.0')
+        })
+
+        it('ignores an unrelated canonical-looking tag without release metadata', () => {
+            const dir = repo('1.0.53', { tags: ['v1.6.0'] })
+            execFileSync(
+                'git',
+                ['-c', 'user.email=t@t', '-c', 'user.name=t', 'tag', '-a', 'v2026.2.0', '-m', 'Website snapshot'],
+                { cwd: dir }
+            )
+            expect(run(dir, ['newest-native']).stdout.trim()).toBe('1.6.0')
+        })
+
+        it('returns an empty success only for an explicitly allowed empty registry', () => {
+            const result = run(repo('1.0.53'), ['newest-native', '--allow-none'])
+            expect(result.status).toBe(0)
+            expect(result.stdout.trim()).toBe('')
+        })
+
+        it('does not mistake an unreadable registry for the first release', () => {
+            const dir = repo('1.0.53', { tags: ['v1.6.0'] })
+            fs.renameSync(path.join(dir, '.git'), path.join(dir, 'hidden-git'))
+            expect(run(dir, ['newest-native', '--allow-none']).status).toBe(1)
+        })
+
+        it('rejects shallow history even when no prior release is allowed', () => {
+            const dir = makeShallowClone(repo('1.0.53', { tags: ['v1.6.0'] }), 1)
+            repos.push(dir)
+            const result = run(dir, ['newest-native', '--allow-none'])
+            expect(result.status).toBe(1)
+            expect(result.stderr).toMatch(/fetch-depth/)
+        })
+
+        it('fails when the repository has no native release at all', () => {
+            const result = run(repo('1.0.53', { tags: ['v1.0.1', 'v1.0.2'] }), ['newest-native'])
+
+            expect(result.status).toBe(1)
+            expect(result.stderr).toMatch(/no attested v<major>\.<build>\.0 native release/)
+        })
+    })
+
+    describe('native workflow provenance guard', () => {
+        const workflow = fs.readFileSync(path.join(REPO_ROOT, '.github/workflows/release-native.yml'), 'utf8')
+        const guard = workflow
+            .split('- name: Guard release provenance')[1]
+            .split('- name: Resolve next build version')[0]
+            .split('run: |')[1]
+            .split('\n')
+            .map((line) => line.replace(/^ {18}/, ''))
+            .join('\n')
+        const execute = (dir) =>
+            spawnSync('bash', ['-euo', 'pipefail', '-c', guard], {
+                cwd: dir,
+                env: { ...process.env, GITHUB_REF_NAME: 'dev', GITHUB_SHA: 'a'.repeat(40) },
+                encoding: 'utf8',
+            })
+        it('accepts a verified empty release registry for the first native release', () => {
+            expect(execute(repo('1.0.53')).status).toBe(0)
+        })
+        it('does not turn a broken resolver into permission to publish', () => {
+            const dir = repo('1.0.53', { tags: ['v1.6.0'] })
+            fs.writeFileSync(path.join(dir, 'package.json'), 'invalid JSON')
+            expect(execute(dir).status).not.toBe(0)
         })
     })
 

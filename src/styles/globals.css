@@ -407,6 +407,11 @@
     --text-headingMedium--line-height: 4rem;
     --text-heading: 3.75rem;
     --text-heading--line-height: 2.875rem;
+    /* the mobile step of the display family: text-heading (60px) clips long
+       es/pt headings at 320px (TASK-22366). weightless like its siblings —
+       landing pairs these with font-extraBlack */
+    --text-headingSmall: 2.625rem;
+    --text-headingSmall--line-height: 2.25rem;
 
     --font-weight-extraBlack: 1000;
 
@@ -2064,7 +2069,7 @@ input::placeholder {
    Hover is gated on (hover: hover) to match tailwind's hoverOnlyWhenSupported,
    so a tap on iOS can't latch the button into its hover transform. */
 .cta-motion {
-    transform: translate(var(--cta-x, 0px), var(--cta-y, 0px)) rotate(var(--cta-r, 0deg)) scale(var(--cta-scale, 1));
+    transform: translate(var(--cta-x, 0px), var(--cta-y, 0px)) rotate(var(--cta-r, 0deg));
     transition:
         transform 0.45s cubic-bezier(0.34, 1.36, 0.64, 1),
         opacity 0.45s ease;
@@ -2087,7 +2092,7 @@ input::placeholder {
 @keyframes cta-enter {
     from {
         opacity: 0;
-        transform: translate(0, 4px) rotate(0.75deg) scale(var(--cta-scale, 1));
+        transform: translate(0, 4px) rotate(0.75deg);
     }
 }
 

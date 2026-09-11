@@ -129,6 +129,12 @@ function mapDeepLinkPath(parsed: URL): string | null {
         return isCapacitor() ? null : appendParams(path, extraParams)
     }
 
+    // OS associations also claim /app/*, but only /app exists in the native export.
+    // Preserve the query so /app can apply the deferred payload and open its destination.
+    if (segments[0] === 'app') {
+        return appendParams('/app', extraParams)
+    }
+
     if (segments[0] === 'send' && segments[1]) {
         return appendParams(sendUrl(decodeURIComponent(segments.slice(1).join('/'))), extraParams)
     }
@@ -255,6 +261,8 @@ function mapDeepLinkPath(parsed: URL): string | null {
  */
 export const NATIVE_EXPORT_ROOTS: ReadonlySet<string> = new Set([
     'add-money',
+    // QR scans can open this page inside the app, where it applies any deferred payload.
+    'app',
     'badges',
     'card',
     'card-payment',

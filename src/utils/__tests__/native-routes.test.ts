@@ -686,6 +686,23 @@ describe('native-routes', () => {
             const sample = SAMPLE_BY_ROOT[root] ?? `/${root}`
             expect(deepLinkToNativePath(`https://peanut.me${sample}`)).not.toBeNull()
         })
+
+        /*
+         * The claim is `/app` + `/app/*`, but only `/app` is a real page — on
+         * the web app and in the static export alike. The wildcard therefore has
+         * to collapse rather than pass through, or an installed user opening
+         * peanut.me/app/anything gets the SPA's missing-route → home bounce,
+         * which reads as a dropped tap.
+         */
+        it('collapses the /app wildcard onto the one real page', () => {
+            expect(deepLinkToNativePath('https://peanut.me/app')).toBe('/app')
+            expect(deepLinkToNativePath('https://peanut.me/app/anything')).toBe('/app')
+            expect(deepLinkToNativePath('https://peanut.me/app/x?pnutdl=1&dest=%2Fsend')).toBe(
+                '/app?pnutdl=1&dest=%2Fsend'
+            )
+            mockIsCapacitor.mockReturnValue(false)
+            expect(deepLinkToNativePath('https://peanut.me/app/anything')).toBe('/app')
+        })
     })
 })
 
@@ -706,11 +723,12 @@ describe('NATIVE_EXPORT_ROOTS matches the pages the native export ships', () => 
     const PAGE_FILE = /^page\.(tsx|ts|jsx|js)$/
 
     // Exported, deliberately not in NATIVE_EXPORT_ROOTS:
-    // - `app`: the smart store link. It must open externally, never be pushed
-    //   in-app, so isNativeExportPath must keep saying no.
     // - `dev`: pruneExportedAssets() strips every /dev page but /dev/deferred,
     //   which is reached through the AASA, not from in-app anchors.
-    const WEB_ONLY_EXPORTED = ['app', 'dev']
+    // (`app` used to sit here: the smart store link was web-only. It is now
+    // claimed by App Links so a scan by an installed user opens the app, which
+    // means the deep-link mapper has to resolve it — see NATIVE_EXPORT_ROOTS.)
+    const WEB_ONLY_EXPORTED = ['dev']
 
     // A directory counts once it has a page file anywhere below it that the
     // native build does not disable — a disabled page/dir contributes nothing.

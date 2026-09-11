@@ -26,7 +26,7 @@ import { type Account } from '@/interfaces/interfaces'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
-import TokenAndNetworkConfirmationModal from '../Global/TokenAndNetworkConfirmationModal'
+import TokenAndNetworkConfirmationDrawer from '../Global/TokenAndNetworkConfirmationDrawer'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
@@ -580,7 +580,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     renderPaymentMethods(t('chooseWithdrawingMethod'), methods.withdraw)}
             </div>
             {flow === 'add' && (
-                <TokenAndNetworkConfirmationModal
+                <TokenAndNetworkConfirmationDrawer
                     onClose={() => {
                         setIsSupportedTokensModalOpen(false)
                     }}

@@ -41,20 +41,14 @@ export const KEEP_WEB_COOKIE_DAYS = 90
  * release valve for a user whose OS quota silently swallowed the sheet.
  */
 export const REVIEW_URL = {
-    ios: 'https://apps.apple.com/app/id6786373552?action=write-review',
+    ios: 'https://apps.apple.com/us/app/id6786373552?action=write-review',
     android: 'https://play.google.com/store/apps/details?id=me.peanut.wallet',
 } as const
 
-// No storefront segment in the iOS URL: Apple resolves it to the visitor's own
-// storefront, and the app is not on sale in every country.
 export const STORE_URL = {
-    ios: 'https://apps.apple.com/app/id6786373552',
+    ios: 'https://apps.apple.com/us/app/id6786373552',
     android: 'https://play.google.com/store/apps/details?id=me.peanut.wallet',
 } as const
-
-// The iOS listing is live (https://apps.apple.com/app/id6786373552), but the
-// store-update prompt stays off until the native-release owner turns it on.
-export const IOS_APP_STORE_LISTING_LIVE = false
 
 export const STORE_NAME = {
     ios: 'App Store',
@@ -70,7 +64,16 @@ export const MIGRATION_SURFACES = {
     SETUP: 'setup',
     GUEST_FLOW: 'guest_flow',
     PROFILE_UPDATE: 'profile_update',
+    // the /app smart link itself: the store buttons a scanner lands on
+    SMART_LINK: 'smart_link',
+    // landing folds that get their own download CTA once the flag is on
+    LANDING_APP_FOLD: 'landing_app_fold',
+    LANDING_FOOTER: 'landing_footer',
+    LANDING_RATES: 'landing_rates',
+    LANDING_COUNTRIES: 'landing_countries',
+    LANDING_DOOR: 'landing_door',
 } as const
 
 export type MigrationSurface = (typeof MIGRATION_SURFACES)[keyof typeof MIGRATION_SURFACES]
+
 export type StoreKind = keyof typeof STORE_URL

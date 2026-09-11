@@ -9,7 +9,7 @@ import Card from '@/components/Global/Card'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import NavHeader from '@/components/Global/NavHeader'
-import { BackupFaqModals, type BackupFaq } from '@/components/Profile/BackupFaqModals'
+import { BackupFaqDrawers, type BackupFaq } from '@/components/Profile/BackupFaqDrawers'
 import { BackupStep } from '@/components/Profile/BackupStep'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { useTranslations } from 'next-intl'
@@ -69,7 +69,7 @@ export default function BackupPage() {
                 </Section>
             </div>
 
-            <BackupFaqModals active={activeModal} onClose={closeModal} platform={platform} />
+            <BackupFaqDrawers active={activeModal} onClose={closeModal} platform={platform} />
         </PageContainer>
     )
 }

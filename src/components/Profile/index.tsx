@@ -15,7 +15,7 @@ import { useAppLocale } from '@/i18n/app/locale-context'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useCardSurfaceAccess } from '@/hooks/useCardSurfaceAccess'
-import InviteFriendsModal from '../Global/InviteFriendsModal'
+import InviteFriendsDrawer from '../Global/InviteFriendsDrawer'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import Image from 'next/image'
 import { useQueryState } from 'nuqs'
@@ -23,13 +23,11 @@ import { AvatarPicker } from '@/components/Avatar/AvatarPicker'
 import { AVATAR_PICKER_PARAM, avatarPickerParser } from '@/components/Avatar/avatar.consts'
 import { useOtaUpdate } from '@/context/OtaUpdateContext'
 import OtaUpdateModal from './components/OtaUpdateModal'
-import { openStore } from '@/utils/migration.utils'
-import { IOS_APP_STORE_LISTING_LIVE, MIGRATION_SURFACES } from '@/constants/migration.consts'
-import { isIOSNative } from '@/utils/capacitor'
+import StoreUpdateModal from './components/StoreUpdateModal'
 
 export const Profile = () => {
     const { logoutUser, isLoggingOut, user } = useAuth()
-    const [isInviteFriendsModalOpen, setIsInviteFriendsModalOpen] = useState(false)
+    const [isInviteFriendsDrawerOpen, setIsInviteFriendsDrawerOpen] = useState(false)
     // URL state so the badge-earned toast can deep-link straight into the picker
     const [avatarPickerOpen, setAvatarPickerOpen] = useQueryState(AVATAR_PICKER_PARAM, avatarPickerParser)
     const router = useRouter()
@@ -44,11 +42,13 @@ export const Profile = () => {
     const { locale } = useAppLocale()
     const { pendingBundle, storeUpdateRequired } = useOtaUpdate()
     const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
-    const storeUpdateOffered = storeUpdateRequired && (!isIOSNative() || IOS_APP_STORE_LISTING_LIVE)
-    // a staged OTA bundle wins over the store hint: it is already on the device
+    const [isStoreUpdateModalOpen, setIsStoreUpdateModalOpen] = useState(false)
+    // A staged OTA bundle wins over the store hint: it is already on the device,
+    // and the gate only ever stages one this binary can run. Store updates get
+    // their own modal — offering a restart for one would reload the same JS.
     const onUpdateTap = () => {
         if (pendingBundle) setIsUpdateModalOpen(true)
-        else openStore(isIOSNative() ? 'ios' : 'android', MIGRATION_SURFACES.PROFILE_UPDATE)
+        else setIsStoreUpdateModalOpen(true)
     }
 
     const logout = async () => {
@@ -120,7 +120,7 @@ export const Profile = () => {
                         <ProfileMenuItem
                             icon="smile"
                             label={t('menu.inviteFriends')}
-                            onClick={() => setIsInviteFriendsModalOpen(true)}
+                            onClick={() => setIsInviteFriendsDrawerOpen(true)}
                             href="/dummy" // Dummy link, wont be called
                         />
                         <ProfileMenuItem icon="achievements" label={t('menu.yourBadges')} href="/badges" />
@@ -149,7 +149,7 @@ export const Profile = () => {
                             the path and opens the in-app browser in Capacitor */}
                         <ProfileMenuItem icon="question-mark" label={t('menu.help')} href="/en/help" isDocsLink />
                         <ProfileMenuItem icon="info" label={t('menu.about')} href="/profile/about" />
-                        {(pendingBundle || storeUpdateOffered) && (
+                        {(pendingBundle || storeUpdateRequired) && (
                             <ProfileMenuItem
                                 icon="download"
                                 label={t('menu.updateAvailable')}
@@ -183,13 +183,14 @@ export const Profile = () => {
                 </div>
             </div>
 
-            <InviteFriendsModal
-                visible={isInviteFriendsModalOpen}
-                onClose={() => setIsInviteFriendsModalOpen(false)}
+            <InviteFriendsDrawer
+                visible={isInviteFriendsDrawerOpen}
+                onClose={() => setIsInviteFriendsDrawerOpen(false)}
                 username={user?.user.username ?? ''}
                 source="profile"
             />
             <OtaUpdateModal visible={isUpdateModalOpen} onClose={() => setIsUpdateModalOpen(false)} />
+            <StoreUpdateModal visible={isStoreUpdateModalOpen} onClose={() => setIsStoreUpdateModalOpen(false)} />
         </div>
     )
 }

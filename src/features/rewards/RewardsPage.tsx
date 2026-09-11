@@ -7,7 +7,7 @@ import Card from '@/components/Global/Card'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Icon } from '@/components/Global/Icons/Icon'
-import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
+import InviteFriendsDrawer from '@/components/Global/InviteFriendsDrawer'
 import InvitesGraph from '@/components/Global/InvitesGraph'
 import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
@@ -313,7 +313,7 @@ export function RewardsPage() {
                 )}
 
                 {/* Invite Modal */}
-                <InviteFriendsModal
+                <InviteFriendsDrawer
                     visible={isInviteModalOpen}
                     onClose={() => setIsInviteModalOpen(false)}
                     username={username ?? ''}

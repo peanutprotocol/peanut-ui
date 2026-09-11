@@ -54,7 +54,9 @@ export function FAQsPanel({ heading, questions, learnMoreLabel = 'Learn more' }:
         // drift fix: was near-miss hex — snapped to the page-background token
         <section className="relative overflow-hidden bg-background-page px-4 py-24 text-foreground-primary md:py-32">
             <div className="mx-auto max-w-3xl">
-                <h2 className="font-roboto-flex-extrabold text-heading font-extraBlack uppercase md:text-headingMedium">
+                {/* headingSmall on mobile: "PERGUNTAS FREQUENTES" at text-heading
+                    (60px) needs 401px and clips at 320px (TASK-22366) */}
+                <h2 className="font-roboto-flex-extrabold text-headingSmall font-extraBlack uppercase md:text-headingMedium">
                     {heading}
                 </h2>
                 <div className="mt-10 border-y-2 border-border-default">

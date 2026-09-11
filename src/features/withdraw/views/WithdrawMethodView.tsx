@@ -16,10 +16,15 @@ import { isMantecaCountry } from '@/constants/manteca.consts'
 import { getFromLocalStorage } from '@/utils/general.utils'
 import { withdrawCountryUrl } from '@/utils/native-routes'
 import { mantecaWithdrawUrl } from '@/features/withdraw/routes'
+import { clearScannedDestination, withdrawTokenForChain } from '@/features/withdraw/destination'
 import { useWithdrawFlow } from '@/features/withdraw/WithdrawFlowContext'
+import { useSavedAddresses } from '@/hooks/useSavedAddresses'
+import SavedAddressEditDrawer from '@/features/withdraw/components/AddressBook/SavedAddressEditDrawer'
+import { tokenSelectorContext } from '@/context/tokenSelector.context'
+import type { SavedAddress } from '@/interfaces/interfaces'
 import { useRouter } from 'next/navigation'
 import { parseAsBoolean, parseAsString, useQueryState } from 'nuqs'
-import { type FC, useMemo, useTransition } from 'react'
+import { type FC, useContext, useMemo, useState, useTransition } from 'react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useTranslations } from 'next-intl'
@@ -45,7 +50,16 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
     const router = useRouter()
     const { user } = useAuth()
     const t = useTranslations('withdraw')
-    const { setSelectedBankAccount, setSelectedMethod } = useWithdrawFlow()
+    const { setSelectedBankAccount, setSelectedMethod, setRecipient, setIsValidRecipient } = useWithdrawFlow()
+    // crypto address book — its rows render beside the saved bank accounts
+    const {
+        savedAddresses,
+        isLoading: isLoadingSavedAddresses,
+        rename: renameSavedAddress,
+        remove: removeSavedAddress,
+    } = useSavedAddresses()
+    const { setSelectedChainID, setSelectedTokenAddress, supportedChainsAndTokens } = useContext(tokenSelectorContext)
+    const [editingSavedAddress, setEditingSavedAddress] = useState<SavedAddress | null>(null)
     const [, startTransition] = useTransition()
     const [showAllParam, setShowAll] = useQueryState('showAll', parseAsBoolean.withDefault(false))
 
@@ -95,10 +109,34 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
         onMethodChosen()
     }
 
+    // address-book tap: preselect chain + USDC on it, prefill the destination, then
+    // pick the crypto method exactly like the "Crypto" tile (no navigation — the
+    // withdraw page owns the amount step and pushes /withdraw/crypto after Continue)
+    const handleSavedAddressClick = (saved: SavedAddress) => {
+        // A destination picked by hand wins over one a scan is still offering.
+        clearScannedDestination()
+        const token = withdrawTokenForChain(supportedChainsAndTokens?.[saved.chainId]?.tokens)
+        setSelectedChainID(saved.chainId)
+        setSelectedTokenAddress(token?.address ?? '')
+        setRecipient({ name: undefined, address: saved.address })
+        setIsValidRecipient(true)
+        handleMethodSelected({ id: 'crypto', type: 'crypto', title: 'Crypto', path: 'crypto' })
+    }
+
+    // the plain "Exchange or Wallet" tile is a fresh destination — drop anything
+    // an address-book tap left in the recipient state before picking the method
+    const handleCryptoTileClick = () => {
+        clearScannedDestination()
+        setRecipient({ name: undefined, address: '' })
+        setIsValidRecipient(false)
+        handleMethodSelected({ id: 'crypto', type: 'crypto', title: 'Crypto', path: 'crypto' })
+    }
+
     // The saved-accounts vs no-accounts split needs the user to have resolved —
     // rendering the empty-state card off a still-null user flashed the wrong
-    // screen for signed-in users.
-    if (!user) {
+    // screen for signed-in users. Same for the address book: its rows share the
+    // saved-accounts screen, so an unresolved list would flash the wrong split.
+    if (!user || isLoadingSavedAddresses) {
         return (
             <div className="flex min-h-inherit flex-col justify-center gap-8">
                 <Loading variant="mascot" />
@@ -106,7 +144,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
         )
     }
 
-    if (!showAll && savedAccounts.length === 0) {
+    if (!showAll && savedAccounts.length === 0 && savedAddresses.length === 0) {
         return (
             <div className="flex min-h-inherit flex-col justify-start gap-8">
                 <NavHeader title={pageTitle} onPrev={onExit} />
@@ -128,52 +166,61 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
         )
     }
 
-    if (!showAll && savedAccounts.length > 0) {
+    if (!showAll && (savedAccounts.length > 0 || savedAddresses.length > 0)) {
         return (
-            <SavedAccountsView
-                pageTitle={pageTitle}
-                onPrev={onExit}
-                savedAccounts={savedAccounts}
-                onAccountClick={(account, path) => {
-                    setSelectedBankAccount(account)
-                    const countryPath = account.details?.countryName || path || ''
-                    setSelectedMethod({
-                        type: account.type === AccountType.MANTECA ? 'manteca' : 'bridge',
-                        countryPath,
-                        title: 'To Bank',
-                    })
-                    if (account.type === AccountType.MANTECA) {
-                        // Manteca saved accounts skip the shared amount step — the
-                        // manteca flow collects the amount in the local currency.
-                        // preserve method param if coming from send flow
-                        router.push(
-                            mantecaWithdrawUrl({
-                                country: countryPath,
-                                destination: account.identifier,
-                                isSavedAccount: 'true',
-                                method: isBankFromSend ? (methodParam ?? undefined) : undefined,
-                            })
-                        )
-                        return
+            <>
+                <SavedAddressEditDrawer
+                    saved={editingSavedAddress}
+                    onClose={() => setEditingSavedAddress(null)}
+                    onRename={(id, nickname) => renameSavedAddress.mutateAsync({ id, nickname })}
+                    onDelete={(id) => removeSavedAddress.mutateAsync(id)}
+                />
+                <SavedAccountsView
+                    pageTitle={pageTitle}
+                    onPrev={onExit}
+                    savedAccounts={savedAccounts}
+                    onAccountClick={(account, path) => {
+                        setSelectedBankAccount(account)
+                        const countryPath = account.details?.countryName || path || ''
+                        setSelectedMethod({
+                            type: account.type === AccountType.MANTECA ? 'manteca' : 'bridge',
+                            countryPath,
+                            title: 'To Bank',
+                        })
+                        if (account.type === AccountType.MANTECA) {
+                            // Manteca saved accounts skip the shared amount step — the
+                            // manteca flow collects the amount in the local currency.
+                            // preserve method param if coming from send flow
+                            router.push(
+                                mantecaWithdrawUrl({
+                                    country: countryPath,
+                                    destination: account.identifier,
+                                    isSavedAccount: 'true',
+                                    method: isBankFromSend ? (methodParam ?? undefined) : undefined,
+                                })
+                            )
+                            return
+                        }
+                        onMethodChosen()
+                    }}
+                    onSelectNewMethodClick={() => setShowAll(true)}
+                    savedAddresses={savedAddresses}
+                    onSavedAddressClick={handleSavedAddressClick}
+                    onSavedAddressEdit={setEditingSavedAddress}
+                    onCryptoClick={handleCryptoTileClick}
+                    onMercadoPagoClick={
+                        isMercadoPagoAvailable
+                            ? () => {
+                                  posthog.capture(ANALYTICS_EVENTS.WITHDRAW_METHOD_SELECTED, {
+                                      method_type: 'manteca',
+                                      country: 'argentina',
+                                  })
+                                  router.push(mantecaWithdrawUrl({ method: 'mercadopago', country: 'argentina' }))
+                              }
+                            : undefined
                     }
-                    onMethodChosen()
-                }}
-                onSelectNewMethodClick={() => setShowAll(true)}
-                onCryptoClick={() =>
-                    handleMethodSelected({ id: 'crypto', type: 'crypto', title: 'Crypto', path: 'crypto' })
-                }
-                onMercadoPagoClick={
-                    isMercadoPagoAvailable
-                        ? () => {
-                              posthog.capture(ANALYTICS_EVENTS.WITHDRAW_METHOD_SELECTED, {
-                                  method_type: 'manteca',
-                                  country: 'argentina',
-                              })
-                              router.push(mantecaWithdrawUrl({ method: 'mercadopago', country: 'argentina' }))
-                          }
-                        : undefined
-                }
-            />
+                />
+            </>
         )
     }
 
@@ -189,7 +236,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
                         return
                     }
                     // toggle back to saved accounts when the user navigated to "select new method"
-                    if (showAllParam && savedAccounts.length > 0) {
+                    if (showAllParam && (savedAccounts.length > 0 || savedAddresses.length > 0)) {
                         void setShowAll(null)
                     } else {
                         onExit()
@@ -236,10 +283,10 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
                         router.push(withdrawCountryUrl(country.path))
                     })
                 }}
-                onCryptoClick={() =>
+                onCryptoClick={
                     // set method in context, no navigation — the withdraw page owns
                     // the amount step and navigates to /withdraw/crypto after Continue
-                    handleMethodSelected({ id: 'crypto', type: 'crypto', title: 'Crypto', path: 'crypto' })
+                    handleCryptoTileClick
                 }
                 flow="withdraw"
             />

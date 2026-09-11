@@ -84,7 +84,7 @@ export const TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS = networks
  * Rhino-supported withdrawal destinations: chainId → token symbols Rhino can
  * actually deliver. Cross-chain withdraw routes through Rhino (stables via SDA,
  * ETH/native via swaps), and Rhino supports a different, smaller set than the
- * Squid-era token selector — and toggles chains over time (it has Scroll
+ * static token catalog — and toggles chains over time (it has Scroll
  * disabled, which 400s `SCROLL is disabled` on preview). Derived from Rhino's
  * live SDA + bridge config (2026-06-26); update when Rhino enables/disables a
  * chain or token.

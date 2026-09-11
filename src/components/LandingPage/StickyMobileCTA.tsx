@@ -69,6 +69,7 @@ export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
         <>
             {
                 <div
+                    data-testid="sticky-mobile-cta"
                     className={`pointer-events-none fixed right-0 bottom-0 left-0 z-50 border-t-2 border-n-1 bg-white px-4 py-3 md:hidden ${
                         visible ? 'sticky-cta-in' : 'sticky-cta-out'
                     }`}
@@ -93,24 +94,11 @@ export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
                             </Button>
                         </a>
                     ) : (
-                        <div className="pointer-events-auto flex items-center gap-4">
-                            <Link prefetch={false} href="/setup" className="block flex-1">
-                                <Button
-                                    variant="purple"
-                                    shadowSize="4"
-                                    className="w-full py-3 text-base font-extrabold"
-                                >
-                                    {strings.signUpNow}
-                                </Button>
-                            </Link>
-                            <Link
-                                prefetch={false}
-                                href="/setup?step=login"
-                                className="shrink-0 text-body-s text-n-1 underline"
-                            >
-                                {strings.logIn}
-                            </Link>
-                        </div>
+                        <Link prefetch={false} href="/setup" className="pointer-events-auto block">
+                            <Button variant="purple" shadowSize="4" className="w-full py-3 text-base font-extrabold">
+                                {strings.signUpNow}
+                            </Button>
+                        </Link>
                     )}
                 </div>
             }

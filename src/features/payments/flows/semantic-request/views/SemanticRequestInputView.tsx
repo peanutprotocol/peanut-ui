@@ -41,6 +41,7 @@ export function SemanticRequestInputView() {
         chargeIdFromUrl,
         isAmountFromUrl,
         urlToken,
+        tokenUsdPrice,
         isTokenDenominated,
         error,
         formattedBalance,
@@ -137,7 +138,7 @@ export function SemanticRequestInputView() {
         if (isTokenDenominated && urlToken) {
             return {
                 symbol: urlToken.symbol.toUpperCase(),
-                price: urlToken.usdPrice,
+                price: tokenUsdPrice ?? 0,
                 decimals: urlToken.decimals,
             }
         }
@@ -147,7 +148,7 @@ export function SemanticRequestInputView() {
             price: 1,
             decimals: 6, // USDC decimals
         }
-    }, [isTokenDenominated, urlToken])
+    }, [isTokenDenominated, urlToken, tokenUsdPrice])
 
     return (
         <div className="flex min-h-inherit flex-col justify-between gap-8">
