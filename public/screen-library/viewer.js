@@ -112,10 +112,15 @@ async function loadJSON(url) {
 }
 async function start() {
     if (offline) document.querySelector('.brand').href = './index.html'
-    const indexAliases = new Set(['/', '/index.html', '/screen-library', '/screen-library/'])
-    const path = indexAliases.has(location.pathname)
-        ? ''
-        : location.pathname.replace(/^\/screens\/?/, '').replace(/\/$/, '')
+    // The worker publishes both the root and nested copies of index.html.
+    const pathname = location.pathname
+    const isHostedIndex =
+        pathname === '/' ||
+        pathname === '/index.html' ||
+        pathname === '/screen-library' ||
+        pathname === '/screen-library/' ||
+        pathname === '/screen-library/index.html'
+    const path = isHostedIndex ? '' : pathname.replace(/^\/screens\/?/, '').replace(/\/$/, '')
     if (!offline && !path) {
         const index = await loadJSON('/screen-data/index.json')
         $('coverage').textContent = `${index.length} published versions`
