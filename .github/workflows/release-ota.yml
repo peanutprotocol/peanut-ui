@@ -270,8 +270,17 @@ jobs:
                     # The two promotions are independent. Recheck before each;
                     # a failure leaves the other platform on its previous bundle.
                     node scripts/capgo-release-guard.mjs verify-promotion
+                    CHANNEL_SET_ARGS=(--apikey "$CAPGO_API_KEY" --bundle "$VERSION")
+                    CURRENT_PRODUCTION="$(node scripts/capgo-release-guard.mjs current-version)"
+                    # A builtin bundle has no native-package metadata, so Capgo
+                    # cannot compare it with the first OTA on this channel. The
+                    # workflow's native-surface and exact-artifact gates cover
+                    # this one-time bootstrap. Keep Capgo's check for later OTAs.
+                    if [ "$CURRENT_PRODUCTION" = builtin ]; then
+                      CHANNEL_SET_ARGS+=(--ignore-metadata-check)
+                    fi
                     npx @capgo/cli@8.42.4 channel set "$PLATFORM-mobile-release" \
-                      --apikey "$CAPGO_API_KEY" --bundle "$VERSION"
+                      "${CHANNEL_SET_ARGS[@]}"
                     node scripts/capgo-release-guard.mjs verify-production
                   done
 

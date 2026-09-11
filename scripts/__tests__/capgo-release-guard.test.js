@@ -318,7 +318,7 @@ it('allows reuse only of a verified native .0 record from the exact source', () 
 // Run the actual promotion shell; only executables are replaced. The real
 // preflight consumes recorded API responses. Post-promotion verification has
 // separate exact-artifact cases above. No network or publication is possible.
-function promotion(change = {}, apiFails = false) {
+function promotion(change = {}, apiFails = false, versions = { ios: 'builtin', android: 'builtin' }) {
     const source = fs.readFileSync(path.join(ROOT, '.github/workflows/release-ota.yml'), 'utf8')
     const step = source.slice(
         source.indexOf('- name: Promote verified bundles'),
@@ -330,13 +330,14 @@ function promotion(change = {}, apiFails = false) {
     const driver = `
       const mode = process.argv[2]; process.argv[1] = process.execPath;
       globalThis.fetch = () => { throw new Error('unexpected live request'); };
-      if (mode !== 'verify-promotion') process.exit(0);
+      if (!['verify-promotion', 'current-version'].includes(mode)) process.exit(0);
       const { run } = await import(${JSON.stringify(SCRIPT)});
       const responses = JSON.parse(process.env.TEST_RESPONSES);
-      try { await run(mode, { fetchImpl: async () => ({
+      try { const result = await run(mode, { fetchImpl: async () => ({
         ok: process.env.TEST_API_FAILS !== 'true', status: 503,
         json: async () => responses.shift().body
-      }) }); } catch (error) { console.error(error.message); process.exitCode = 1; }
+      }) }); if (mode === 'current-version') process.stdout.write(result); }
+      catch (error) { console.error(error.message); process.exitCode = 1; }
     `
     try {
         const result = spawnSync(
@@ -347,7 +348,7 @@ function promotion(change = {}, apiFails = false) {
                 '-c',
                 `
           node() { "$NODE_BINARY" --input-type=module -e "$GUARD_DRIVER" "$@"; }
-          npx() { printf 'promoted' >> "$PROMOTED_FILE"; }
+          npx() { printf '%s\n' "$*" >> "$PROMOTED_FILE"; }
           ${shell}
         `,
             ],
@@ -361,11 +362,20 @@ function promotion(change = {}, apiFails = false) {
                     GUARD_DRIVER: driver,
                     PROMOTED_FILE: marker,
                     TEST_API_FAILS: String(apiFails),
-                    TEST_RESPONSES: JSON.stringify(policyResponses([{ ...channels[0], ...change }, channels[1]])),
+                    TEST_RESPONSES: JSON.stringify(
+                        policyResponses([
+                            { ...channelPolicy('ios', versions.ios), ...change },
+                            channelPolicy('android', versions.android),
+                        ])
+                    ),
                 },
             }
         )
-        return { status: result.status, promoted: fs.existsSync(marker) }
+        return {
+            status: result.status,
+            promoted: fs.existsSync(marker),
+            calls: fs.existsSync(marker) ? fs.readFileSync(marker, 'utf8').trim().split('\n') : [],
+        }
     } finally {
         fs.rmSync(dir, { recursive: true, force: true })
     }
@@ -373,14 +383,30 @@ function promotion(change = {}, apiFails = false) {
 it.each([{ rollout_enabled: true }, { rollout_enabled: null }, { android: true }, { disable_auto_update: 'major' }])(
     'the actual workflow cannot mutate either channel after rejected preflight %j',
     (change) => {
-        expect(promotion(change)).toEqual({ status: 1, promoted: false })
+        expect(promotion(change)).toMatchObject({ status: 1, promoted: false })
     }
 )
 it('the actual workflow stops before mutation on API failure', () => {
-    expect(promotion({}, true)).toEqual({ status: 1, promoted: false })
+    expect(promotion({}, true)).toMatchObject({ status: 1, promoted: false })
 })
 it('the actual workflow promotes only after both platform policies pass', () => {
-    expect(promotion()).toEqual({ status: 0, promoted: true })
+    expect(promotion()).toMatchObject({ status: 0, promoted: true })
+})
+it('bypasses Capgo metadata comparison only while each production channel is builtin', () => {
+    const bootstrap = promotion()
+    expect(bootstrap.status).toBe(0)
+    expect(bootstrap.calls).toHaveLength(2)
+    expect(bootstrap.calls.every((call) => call.includes('--ignore-metadata-check'))).toBe(true)
+
+    const partialBootstrap = promotion({}, false, { ios: '1.6.4-ios', android: 'builtin' })
+    expect(partialBootstrap.status).toBe(0)
+    expect(partialBootstrap.calls[0]).not.toContain('--ignore-metadata-check')
+    expect(partialBootstrap.calls[1]).toContain('--ignore-metadata-check')
+
+    const laterOta = promotion({}, false, { ios: '1.6.4-ios', android: '1.6.4-android' })
+    expect(laterOta.status).toBe(0)
+    expect(laterOta.calls).toHaveLength(2)
+    expect(laterOta.calls.every((call) => !call.includes('--ignore-metadata-check'))).toBe(true)
 })
 it('uploads and verifies both artifacts before any production promotion', () => {
     const source = fs.readFileSync(path.join(ROOT, '.github/workflows/release-ota.yml'), 'utf8')
