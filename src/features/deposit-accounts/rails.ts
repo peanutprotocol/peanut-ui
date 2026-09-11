@@ -103,7 +103,19 @@ export function isClaimable(rail: DepositRail): boolean {
     return rail.claimable !== false
 }
 
-/** may these details be handed to somebody else at all */
+/**
+ * May these details be handed to somebody else at all?
+ *
+ * `unknown` shares. Bridge names restrictions where it has them — Pix and
+ * Faster Payments are documented as first-party and third-party BUSINESS only,
+ * and USD is documented permissively with a person-to-person cap — while EUR
+ * and SPEI carry no sender rule either way. Withholding the feature over that
+ * silence costs more than it protects, so the details are shareable and the
+ * copy simply does not promise what Bridge has not said.
+ *
+ * Only `own-name-only` is withheld, because there the provider has told us
+ * plainly that nobody else may pay in.
+ */
 export function isShareable(sender: SenderPolicy): boolean {
-    return sender === 'anyone' || sender === 'business-only'
+    return sender !== 'own-name-only'
 }

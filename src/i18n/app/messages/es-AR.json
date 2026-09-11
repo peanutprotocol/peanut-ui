@@ -1688,7 +1688,7 @@
             "benefitBalance": "La plata llega a tu saldo de Peanut en USD.",
             "subheading": "Datos bancarios que no cambian, así que los compartís una sola vez. {arrival}",
             "benefit": {
-                "unknown": "Usalos para tus propias transferencias. Estamos confirmando con nuestro socio si alguien más te puede pagar ahí.",
+                "unknown": "Cualquier monto, sin referencia que recordar. Todavía no está confirmado si alguien más te puede pagar ahí.",
                 "own-name-only": "Ingresá plata desde una cuenta bancaria a tu nombre."
             }
         },
@@ -1697,7 +1697,7 @@
             "unavailableTitle": "Todavía no tenés datos en {currency}",
             "failedBody": "No se cobró nada. Probá de nuevo en un momento o elegí otra moneda.",
             "sender": {
-                "unknown": "Usá estos datos para tus propias transferencias. Estamos confirmando con nuestro socio si alguien más te puede pagar ahí.",
+                "unknown": "Se puede pagar cualquier monto a estos datos, sin ninguna referencia que recordar. No confirmamos con nuestro socio si alguien más te puede pagar ahí: avisanos si un pago se devuelve.",
                 "own-name-only": "Ingresá plata desde una cuenta bancaria a tu nombre. Estos datos no aceptan pagos de otras personas."
             },
             "revokedBody": "Lo que manden a esos datos vuelve a quien lo envió. Avisale a quien te paga que deje de usarlos y abrí datos nuevos.",

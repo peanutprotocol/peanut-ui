@@ -3877,7 +3877,7 @@
             "benefit": {
                 "anyone": "Anyone can pay you: an employer, a client, a platform.",
                 "business-only": "A company can pay you — an employer, a client or a platform. A payment from a person's own account is sent back.",
-                "unknown": "Use them for your own transfers. We are confirming with our partner whether someone else can pay in.",
+                "unknown": "Any amount, with no reference to remember. Whether someone else can pay in is not confirmed yet.",
                 "own-name-only": "Top up from a bank account in your own name."
             }
         },
@@ -3901,7 +3901,7 @@
             "sender": {
                 "anyone": "Anyone can pay any amount into these details. There is no reference to remember.",
                 "business-only": "A company can pay any amount into these details. A payment from a person's own account is sent back.",
-                "unknown": "Use these details for your own transfers. We are confirming with our partner whether someone else can pay in.",
+                "unknown": "Any amount can be paid into these details, with no reference to remember. We have not confirmed with our partner whether someone else can pay in — tell us if a payment comes back.",
                 "own-name-only": "Top up from a bank account in your own name. These details do not accept payments from anyone else."
             },
             "personCap": "A person can send up to {cap} each time. A company has no limit.",

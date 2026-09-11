@@ -34,9 +34,12 @@ describe('resolveScreen', () => {
         expect(resolveScreen('share', ars, own, READY)).toBe('details')
     })
 
-    it('will not share a corridor whose sender policy is unproved', () => {
+    it('shares a corridor whose sender policy is unproved', () => {
+        // Bridge names a restriction where it has one. Silence about EUR is not
+        // a restriction, and withholding the share screen over it would hide a
+        // working feature — the copy carries the uncertainty instead.
         const unproved = account({ matching: { ...account().matching, sender: 'unknown' } })
-        expect(resolveScreen('share', eur, unproved, READY)).toBe('details')
+        expect(resolveScreen('share', eur, unproved, READY)).toBe('share')
     })
 
     it('will not share an account that is not active yet', () => {

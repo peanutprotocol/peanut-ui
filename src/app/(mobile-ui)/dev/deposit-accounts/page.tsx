@@ -82,7 +82,11 @@ export default function DepositAccountsPrototypePage() {
                         at phone widths this is the screen itself · screen and corridor live in the URL
                     </div>
                     <div className="w-full bg-background-default lg:max-w-sm lg:overflow-hidden lg:rounded-sm lg:border-2 lg:border-border-default lg:shadow-4">
-                        <div className="flex min-h-160 flex-col lg:p-4">
+                        {/* The (mobile-ui) layout strips its px-4 for /dev routes, so the
+                            harness has to supply the screen-edge inset itself — otherwise
+                            these screens render flush to the frame and look nothing like
+                            the app, where AppShell owns that gutter. */}
+                        <div className="flex min-h-160 flex-col p-4">
                             <DepositAccountsFlow
                                 accounts={sandbox.accounts}
                                 userName={sandbox.userName}

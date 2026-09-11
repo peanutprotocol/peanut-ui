@@ -3877,7 +3877,7 @@
             "benefit": {
                 "anyone": "Qualquer pessoa pode pagar você: uma empresa, um cliente, uma plataforma.",
                 "business-only": "Uma empresa pode pagar você: um empregador, um cliente ou uma plataforma. Um pagamento da conta de uma pessoa volta para quem enviou.",
-                "unknown": "Use para suas próprias transferências. Estamos confirmando com nosso parceiro se outra pessoa pode pagar aí.",
+                "unknown": "Qualquer valor, sem referência para lembrar. Ainda não está confirmado se outra pessoa pode pagar aí.",
                 "own-name-only": "Deposite de uma conta bancária no seu nome."
             }
         },
@@ -3901,7 +3901,7 @@
             "sender": {
                 "anyone": "Qualquer pessoa pode pagar qualquer valor nestes dados. Não há referência para lembrar.",
                 "business-only": "Uma empresa pode pagar qualquer valor nestes dados. Um pagamento da conta de uma pessoa volta para quem enviou.",
-                "unknown": "Use estes dados para suas próprias transferências. Estamos confirmando com nosso parceiro se outra pessoa pode pagar aí.",
+                "unknown": "Qualquer valor pode ser pago nestes dados, sem referência para lembrar. Ainda não confirmamos com nosso parceiro se outra pessoa pode pagar aí: avise se um pagamento voltar.",
                 "own-name-only": "Deposite de uma conta bancária no seu nome. Estes dados não aceitam pagamento de outra pessoa."
             },
             "personCap": "Uma pessoa pode enviar até {cap} por vez. Uma empresa não tem limite.",
