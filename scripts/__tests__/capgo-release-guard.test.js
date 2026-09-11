@@ -157,7 +157,8 @@ const channelPolicy = (platform, version = 'builtin') => ({
     allow_prod: true,
     allow_device: true,
     rollout_enabled: false,
-    version: { name: version },
+    version_id: version === 'builtin' ? null : 42,
+    version: version === 'builtin' ? null : { id: 42, name: version },
 })
 const channels = [channelPolicy('ios'), channelPolicy('android')]
 const policyResponses = (rows = channels) => [{ body: app }, { body: config }, { body: rows }]
@@ -188,7 +189,19 @@ it.each([{ body: [app] }, { body: { ...app, app_id: 'another.app' } }, { body: n
 
 it('reads builtin as a legitimate starting state, but rejects a missing version', () => {
     expect(invoke('current-version', policyResponses()).result).toBe('builtin')
-    expect(invoke('current-version', policyResponses([{ ...channels[0], version: null }, channels[1]])).status).toBe(1)
+    expect(
+        invoke('current-version', policyResponses([{ ...channels[0], version_id: 42, version: null }, channels[1]]))
+            .status
+    ).toBe(1)
+})
+it.each([
+    { version_id: undefined, version: null },
+    { version_id: null, version: { id: 42, name: '1.6.2-ios' } },
+    { version_id: 42, version: null },
+    { version_id: 42, version: { id: 41, name: '1.6.2-ios' } },
+    { version_id: 42, version: { id: 42, name: 'invalid' } },
+])('rejects an inconsistent channel version response: %j', (change) => {
+    expect(invoke('current-version', policyResponses([{ ...channels[0], ...change }, channels[1]])).status).toBe(1)
 })
 it.each([
     { android: true },
