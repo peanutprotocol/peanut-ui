@@ -219,7 +219,10 @@ export async function run(mode, { env = process.env, fetchImpl = fetch } = {}) {
                     // A failed run can leave its first platform bundle attached.
                     // Reset the disabled channel so the next run retains the
                     // checksum guard on its first upload.
-                    version: null,
+                    // The hosted endpoint returned HTTP 400 for a JSON null.
+                    // "builtin" is Capgo's public wire name for the same unlinked
+                    // database state.
+                    version: 'builtin',
                     ...DISABLED_AUDIENCES,
                     ios: false,
                     android: false,
