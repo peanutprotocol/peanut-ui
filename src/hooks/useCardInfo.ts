@@ -24,6 +24,9 @@ export const useCardInfo = () => {
     return {
         cardInfo: query.data,
         isLoading: query.isLoading,
+        // Keep consumers from treating cached booleans as authoritative while
+        // React Query is refreshing the user-scoped card record.
+        isFetching: query.isFetching,
         error: query.error,
         refetch: query.refetch,
         // Convenience booleans - return undefined while loading to prevent flash
