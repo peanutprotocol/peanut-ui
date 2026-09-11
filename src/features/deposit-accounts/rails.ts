@@ -75,7 +75,7 @@ export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
         detailRowCount: 3,
         expectedSender: 'own-name-only',
         claimable: false,
-        topUpHref: '/add-money/brazil',
+        topUpHref: '/add-money/brazil/manteca',
     },
     ARS_TRANSFER: {
         corridor: 'ARS_TRANSFER',
@@ -85,7 +85,7 @@ export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
         detailRowCount: 5,
         expectedSender: 'own-name-only',
         claimable: false,
-        topUpHref: '/add-money/argentina',
+        topUpHref: '/add-money/argentina/manteca',
     },
 }
 
