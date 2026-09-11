@@ -173,11 +173,13 @@ describe('post-auth redirect reads one snapshot', () => {
     const originalGetItem = Storage.prototype.getItem
     const originalRemoveItem = Storage.prototype.removeItem
     const originalSetItem = Storage.prototype.setItem
+    const originalKey = Storage.prototype.key
 
     afterEach(() => {
         Storage.prototype.getItem = originalGetItem
         Storage.prototype.removeItem = originalRemoveItem
         Storage.prototype.setItem = originalSetItem
+        Storage.prototype.key = originalKey
         localStorage.clear()
     })
 
@@ -343,6 +345,74 @@ describe('post-auth redirect reads one snapshot', () => {
         })
 
         clearRedirectUrl(olderSnapshot)
+        expect(getRedirectUrl()).toBeNull()
+    })
+
+    it('reclaims reserved slots when a later redirect overwrites an unconsumed one', () => {
+        setRedirectUrl('/profile', 'session-end')
+        setRedirectUrl('/card', 'deep-link')
+
+        const generationSlots = Array.from({ length: localStorage.length }, (_, index) =>
+            localStorage.key(index)
+        ).filter(
+            (key): key is string =>
+                typeof key === 'string' &&
+                (key.startsWith('redirect-v2-consumed:') || key.startsWith('redirect-v2-consumed-fallback:'))
+        )
+        expect(generationSlots).toHaveLength(2)
+    })
+
+    it('reclaims reservations left by a failed v2 publication', () => {
+        setRedirectUrl('/profile', 'session-end')
+        const setItem = jest.spyOn(Storage.prototype, 'setItem')
+        setItem.mockImplementation(function patched(this: Storage, key: string, value: string) {
+            if (key === 'redirect-v2') throw new Error('quota')
+            return originalSetItem.call(this, key, value)
+        })
+
+        setRedirectUrl('/card', 'deep-link')
+
+        const generationSlots = Array.from({ length: localStorage.length }, (_, index) =>
+            localStorage.key(index)
+        ).filter(
+            (key): key is string =>
+                typeof key === 'string' &&
+                (key.startsWith('redirect-v2-consumed:') || key.startsWith('redirect-v2-consumed-fallback:'))
+        )
+        expect(generationSlots).toHaveLength(2)
+        expect(getRedirectUrl()).toBe('/profile')
+    })
+
+    it('aborts tombstone cleanup when the authoritative pointer changes during the scan', () => {
+        setRedirectUrl('/profile', 'session-end')
+        const getKey = jest.spyOn(Storage.prototype, 'key')
+        let interleaved = false
+        getKey.mockImplementation(function patched(this: Storage, index: number) {
+            if (!interleaved) {
+                interleaved = true
+                setRedirectUrl('/card', 'deep-link')
+                expect(consumePostAuthRedirect(null)).toEqual({
+                    destination: '/card',
+                    source: 'stored',
+                    deferred: false,
+                })
+            }
+            return originalKey.call(this, index)
+        })
+
+        clearRedirectUrl()
+        expect(getRedirectUrl()).toBeNull()
+    })
+
+    it('retires the v2 generation superseded by a consumed legacy handoff', () => {
+        setRedirectUrl('/profile', 'session-end')
+        saveToLocalStorage('redirect', '/receipt?id=abc')
+
+        expect(consumePostAuthRedirect(null)).toEqual({
+            destination: '/receipt?id=abc',
+            source: 'stored',
+            deferred: false,
+        })
         expect(getRedirectUrl()).toBeNull()
     })
 

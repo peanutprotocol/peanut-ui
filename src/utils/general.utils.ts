@@ -799,6 +799,7 @@ export type StoredRedirect = {
     generationId: string | null
     generationKey?: string
     legacyIdentity?: string
+    supersededGenerationId?: string
 }
 
 const parseStoredRedirect = (
@@ -919,7 +920,10 @@ const getStoredRedirectForSnapshot = (): StoredRedirect | null => {
             // baseline distinguishes that from a stale mirror left behind by
             // a failed v2 -> v1 mirror write.
             const legacy = parseLegacyRedirect(legacyValue)
-            if (legacy) return legacy
+            if (legacy) return { ...legacy, supersededGenerationId: generationId }
+            // This legacy handoff was already consumed. It superseded the
+            // v2 generation, so do not resurrect that older destination.
+            return null
         }
 
         const consumed = getFromLocalStorage(REDIRECT_V2_CONSUMED_KEY)
@@ -965,8 +969,8 @@ const reclaimRedirectConsumptionSlots = () => {
     if (typeof localStorage === 'undefined') return
 
     const pointer = getFromLocalStorage(REDIRECT_V2_KEY)
-    const reachableGenerationId = isRedirectPointer(pointer) ? pointer.generationId : null
-    const consumedGenerationIds = new Set<string>()
+    const initiallyReachableGenerationId = isRedirectPointer(pointer) ? pointer.generationId : null
+    const reclaimableGenerationIds = new Set<string>()
 
     for (let index = 0; index < localStorage.length; index += 1) {
         const key = localStorage.key(index)
@@ -978,12 +982,18 @@ const reclaimRedirectConsumptionSlots = () => {
         } else if (key.startsWith(REDIRECT_V2_CONSUMED_FALLBACK_PREFIX)) {
             generationId = key.slice(REDIRECT_V2_CONSUMED_FALLBACK_PREFIX.length)
         }
-        if (!generationId || !isRedirectGenerationId(generationId) || generationId === reachableGenerationId) continue
+        if (!generationId || !isRedirectGenerationId(generationId)) continue
 
-        if (getFromLocalStorage(key) === '1') consumedGenerationIds.add(generationId)
+        const value = getFromLocalStorage(key)
+        if (value === '0' || value === '1') reclaimableGenerationIds.add(generationId)
     }
 
-    for (const generationId of consumedGenerationIds) {
+    const refreshedPointer = getFromLocalStorage(REDIRECT_V2_KEY)
+    const refreshedReachableGenerationId = isRedirectPointer(refreshedPointer) ? refreshedPointer.generationId : null
+    if (refreshedReachableGenerationId !== initiallyReachableGenerationId) return
+
+    for (const generationId of reclaimableGenerationIds) {
+        if (generationId === refreshedReachableGenerationId) continue
         localStorage.removeItem(`${REDIRECT_V2_CONSUMED_PREFIX}${generationId}`)
         localStorage.removeItem(`${REDIRECT_V2_CONSUMED_FALLBACK_PREFIX}${generationId}`)
     }
@@ -1005,7 +1015,7 @@ export const setRedirectUrl = (destination: string, origin: RedirectOrigin = 'de
     // Keep the v1 handoff readable for documents that predate this change, but
     // never publish a mirror that has no authoritative v2 payload behind it.
     if (published) saveToLocalStorage(REDIRECT_KEY, destination)
-    if (published) reclaimRedirectConsumptionSlots()
+    reclaimRedirectConsumptionSlots()
 }
 
 export const saveRedirectUrl = (origin: RedirectOrigin = 'deep-link') => {
@@ -1038,10 +1048,11 @@ export const clearRedirectUrl = (expected?: StoredRedirect | null) => {
         if (current.generationKey) {
             localStorage.removeItem(current.generationKey)
         }
-        if (current.generationId) {
-            markRedirectConsumed(current.generationId)
-            reclaimRedirectConsumptionSlots()
-        }
+        const generationsToConsume = [current.generationId, current.supersededGenerationId].filter(
+            (generationId): generationId is string => !!generationId
+        )
+        for (const generationId of new Set(generationsToConsume)) markRedirectConsumed(generationId)
+        if (generationsToConsume.length > 0) reclaimRedirectConsumptionSlots()
 
         if (current.legacyIdentity) {
             saveToLocalStorage(LEGACY_REDIRECT_CONSUMED_KEY, current.legacyIdentity)
