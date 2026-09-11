@@ -3842,5 +3842,116 @@
                 "line": "Herds the group"
             }
         }
+    },
+    "depositAccounts": {
+        "title": "Get paid",
+        "list": {
+            "heading": "Get paid in your local currency",
+            "subheading": "Hold bank details an employer, a client or a platform can pay into. The money lands in your Peanut balance.",
+            "sectionTitle": "Your accounts",
+            "kycTitle": "Verify your identity first",
+            "kycBody": "We can only open an account in your name once we know who you are.",
+            "kycCta": "Verify identity",
+            "rowKyc": "Verify your identity to open this account",
+            "rowUnclaimed": "Not set up yet · {arrival}",
+            "rowProvisioning": "Setting up your details",
+            "rowFailed": "Setup did not finish",
+            "rowUnavailable": "Not available in your region",
+            "rowReady": "Ready to share · {arrival}",
+            "badgeReady": "Ready"
+        },
+        "claim": {
+            "heading": "Open your {currency} account",
+            "subheading": "Bank details in your own name that anyone can pay into. {arrival}",
+            "benefitStable": "The details stay the same, so you hand them over once.",
+            "benefitAnyone": "Anyone can pay you: an employer, a client, a platform.",
+            "benefitBalance": "Money arrives in your Peanut balance as USD.",
+            "benefitCap": "Someone else can send up to {cap}.",
+            "benefitNoReference": "No reference or memo to remember.",
+            "cta": "Open {currency} account",
+            "errorTitle": "We could not open the account"
+        },
+        "details": {
+            "heading": "{currency} · {rail}",
+            "openToAnyone": "Anyone can pay any amount into these details. There is no reference to remember.",
+            "ownNameOnly": "Top up from a bank account in your own name. These details do not accept payments from anyone else.",
+            "provisioning": "Setting up your {currency} details. This usually takes under a minute.",
+            "pooledTitle": "The account is not in your name",
+            "pooledShared": "Payers see {holder}, the partner that holds {currency} accounts for Peanut, not {user}. That is expected.",
+            "pooledOwnNameOnly": "{holder} holds {currency} deposits for Peanut. Send from your own bank account, and the money reaches your balance.",
+            "sectionTitle": "Bank details",
+            "thirdPartyCap": "Someone else can send up to {cap}.",
+            "returnedTitle": "A payment was returned",
+            "returnedBody": "{amount} from {payer} on {date} went back to the sender: {reason}",
+            "returnedCta": "Share details again",
+            "shareCta": "Share details",
+            "unavailableTitle": "{currency} details are not available to you yet",
+            "unavailableBody": "We check this before showing details, so no payment can go missing.",
+            "unavailableCta": "Choose another currency",
+            "failedTitle": "We could not open your {currency} account",
+            "failedBody": "Nothing was charged. Try again in a moment, or choose another currency.",
+            "failedRetry": "Try again"
+        },
+        "share": {
+            "heading": "What the payer sees",
+            "subheading": "Send this to whoever is paying you. It stays the same for every payment.",
+            "sectionTitle": "Pay {user} in {currency}",
+            "nameWarningTitle": "Tell them about the name",
+            "nameWarningBody": "The account is held by {holder}, so that is the name on the transfer, not {user}. Some payroll forms reject a name they do not expect.",
+            "shareCta": "Share",
+            "copyCta": "Copy as text",
+            "copied": "Details copied",
+            "copyFailed": "Could not copy the details",
+            "textIntroOwn": "Here are my bank details to get paid in {currency}:",
+            "textIntroPooled": "Bank details to pay {user} in {currency}:",
+            "textReference": "Put {memo} in the reference field of the transfer. Without it the payment comes back.",
+            "textOutro": "Sent from Peanut · peanut.me",
+            "sheetTitleOwn": "My bank details",
+            "sheetTitlePooled": "Bank details to pay {user}"
+        },
+        "rows": {
+            "accountHolder": "Account holder",
+            "taxId": "Tax ID",
+            "bank": "Bank",
+            "iban": "IBAN",
+            "bic": "BIC",
+            "sortCode": "Sort code",
+            "accountNumber": "Account number",
+            "routingNumber": "Routing number",
+            "clabe": "CLABE",
+            "cvu": "CVU",
+            "alias": "Alias",
+            "bankAddress": "Bank address",
+            "paymentReference": "Payment reference",
+            "accepts": "Accepts"
+        },
+        "corridors": {
+            "EUR_SEPA": {
+                "arrival": "Same business day",
+                "arrivalDetail": "SEPA transfers usually arrive the same business day, at most in two."
+            },
+            "GBP_FPS": {
+                "arrival": "Within minutes",
+                "arrivalDetail": "Faster Payments usually arrive within minutes."
+            },
+            "USD_ACH": {
+                "arrival": "1–3 business days",
+                "arrivalDetail": "ACH arrives in one to three business days. A wire arrives the same day."
+            },
+            "MXN_SPEI": {
+                "arrival": "Within minutes",
+                "arrivalDetail": "SPEI transfers usually arrive within minutes."
+            },
+            "BRL_PIX": {
+                "arrival": "Within minutes",
+                "arrivalDetail": "Pix transfers usually arrive within minutes.",
+                "unclaimable": "Brazilian deposits are a Pix code for one payment, from your own account."
+            },
+            "ARS_TRANSFER": {
+                "arrival": "Within minutes",
+                "arrivalDetail": "Argentine transfers usually arrive within minutes.",
+                "unclaimable": "Argentine deposits must come from an account in your own name."
+            }
+        }
     }
 }

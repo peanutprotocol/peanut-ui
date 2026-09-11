@@ -3842,5 +3842,116 @@
                 "line": "Arrea al grupo"
             }
         }
+    },
+    "depositAccounts": {
+        "title": "Cobrar",
+        "list": {
+            "heading": "Cobra en tu moneda local",
+            "subheading": "Ten datos bancarios donde te pueda pagar un empleador, un cliente o una plataforma. El dinero llega a tu saldo de Peanut.",
+            "sectionTitle": "Tus cuentas",
+            "kycTitle": "Primero verifica tu identidad",
+            "kycBody": "Solo podemos abrir una cuenta a tu nombre cuando sabemos quién eres.",
+            "kycCta": "Verificar identidad",
+            "rowKyc": "Verifica tu identidad para abrir esta cuenta",
+            "rowUnclaimed": "Sin configurar · {arrival}",
+            "rowProvisioning": "Estamos preparando tus datos",
+            "rowFailed": "La configuración no terminó",
+            "rowUnavailable": "No disponible en tu región",
+            "rowReady": "Lista para compartir · {arrival}",
+            "badgeReady": "Lista"
+        },
+        "claim": {
+            "heading": "Abre tu cuenta en {currency}",
+            "subheading": "Datos bancarios a tu nombre donde cualquiera te puede pagar. {arrival}",
+            "benefitStable": "Los datos no cambian, así que los compartes una sola vez.",
+            "benefitAnyone": "Cualquiera te puede pagar: un empleador, un cliente, una plataforma.",
+            "benefitBalance": "El dinero llega a tu saldo de Peanut en USD.",
+            "benefitCap": "Otra persona puede enviarte hasta {cap}.",
+            "benefitNoReference": "Sin referencia ni concepto que recordar.",
+            "cta": "Abrir cuenta en {currency}",
+            "errorTitle": "No pudimos abrir la cuenta"
+        },
+        "details": {
+            "heading": "{currency} · {rail}",
+            "openToAnyone": "Cualquiera puede pagar cualquier monto a estos datos. No hay referencia que recordar.",
+            "ownNameOnly": "Ingresa dinero desde una cuenta bancaria a tu nombre. Estos datos no aceptan pagos de otras personas.",
+            "provisioning": "Estamos preparando tus datos en {currency}. Suele tardar menos de un minuto.",
+            "pooledTitle": "La cuenta no está a tu nombre",
+            "pooledShared": "Quien te paga ve {holder}, el socio que tiene las cuentas en {currency} de Peanut, y no a {user}. Es lo esperado.",
+            "pooledOwnNameOnly": "{holder} recibe los depósitos en {currency} de Peanut. Envía desde tu propia cuenta bancaria y el dinero llega a tu saldo.",
+            "sectionTitle": "Datos bancarios",
+            "thirdPartyCap": "Otra persona puede enviarte hasta {cap}.",
+            "returnedTitle": "Se devolvió un pago",
+            "returnedBody": "{amount} de {payer} del {date} volvió a quien lo envió: {reason}",
+            "returnedCta": "Compartir los datos otra vez",
+            "shareCta": "Compartir datos",
+            "unavailableTitle": "Todavía no tienes datos en {currency}",
+            "unavailableBody": "Lo verificamos antes de mostrar los datos, así que ningún pago se puede perder.",
+            "unavailableCta": "Elegir otra moneda",
+            "failedTitle": "No pudimos abrir tu cuenta en {currency}",
+            "failedBody": "No se cobró nada. Inténtalo de nuevo en un momento o elige otra moneda.",
+            "failedRetry": "Intentar de nuevo"
+        },
+        "share": {
+            "heading": "Esto ve quien te paga",
+            "subheading": "Envíale esto a quien te vaya a pagar. Es lo mismo para cada pago.",
+            "sectionTitle": "Pagar a {user} en {currency}",
+            "nameWarningTitle": "Avísale sobre el nombre",
+            "nameWarningBody": "La cuenta es de {holder}, así que ese es el nombre de la transferencia, no {user}. Algunos formularios de nómina rechazan un nombre que no esperan.",
+            "shareCta": "Compartir",
+            "copyCta": "Copiar como texto",
+            "copied": "Datos copiados",
+            "copyFailed": "No se pudieron copiar los datos",
+            "textIntroOwn": "Estos son mis datos bancarios para que me pagues en {currency}:",
+            "textIntroPooled": "Datos bancarios para pagarle a {user} en {currency}:",
+            "textReference": "Pon {memo} en el campo de referencia de la transferencia. Sin eso, el pago se devuelve.",
+            "textOutro": "Enviado desde Peanut · peanut.me",
+            "sheetTitleOwn": "Mis datos bancarios",
+            "sheetTitlePooled": "Datos bancarios para pagarle a {user}"
+        },
+        "rows": {
+            "accountHolder": "Titular de la cuenta",
+            "taxId": "ID fiscal",
+            "bank": "Banco",
+            "iban": "IBAN",
+            "bic": "BIC",
+            "sortCode": "Sort Code",
+            "accountNumber": "Número de cuenta",
+            "routingNumber": "Número de ruta",
+            "clabe": "CLABE",
+            "cvu": "CVU",
+            "alias": "Alias",
+            "bankAddress": "Dirección del banco",
+            "paymentReference": "Referencia del pago",
+            "accepts": "Acepta"
+        },
+        "corridors": {
+            "EUR_SEPA": {
+                "arrival": "El mismo día hábil",
+                "arrivalDetail": "Las transferencias SEPA suelen llegar el mismo día hábil, como máximo en dos."
+            },
+            "GBP_FPS": {
+                "arrival": "En minutos",
+                "arrivalDetail": "Los Faster Payments suelen llegar en minutos."
+            },
+            "USD_ACH": {
+                "arrival": "1 a 3 días hábiles",
+                "arrivalDetail": "ACH llega en uno a tres días hábiles. Una transferencia wire llega el mismo día."
+            },
+            "MXN_SPEI": {
+                "arrival": "En minutos",
+                "arrivalDetail": "Las transferencias SPEI suelen llegar en minutos."
+            },
+            "BRL_PIX": {
+                "arrival": "En minutos",
+                "arrivalDetail": "Las transferencias Pix suelen llegar en minutos.",
+                "unclaimable": "En Brasil el depósito es un código Pix para un solo pago, desde tu propia cuenta."
+            },
+            "ARS_TRANSFER": {
+                "arrival": "En minutos",
+                "arrivalDetail": "Las transferencias en Argentina suelen llegar en minutos.",
+                "unclaimable": "En Argentina el depósito tiene que venir de una cuenta a tu nombre."
+            }
+        }
     }
 }
