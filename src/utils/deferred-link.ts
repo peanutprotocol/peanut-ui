@@ -22,10 +22,20 @@ import {
     parsePendingBadgeCampaigns,
     queuePendingBadgeCampaigns,
 } from '@/components/Invites/badge-campaign-context'
+import {
+    parseSignupAttribution,
+    persistSignupAttribution,
+    readSignupAttribution,
+    restoreSignupAttribution,
+    signupAttributionPosthogProperties,
+    type SignupAttributionContext,
+} from './signup-attribution'
 
 // marker param distinguishing our payload from Play's organic referrer
 // (utm_source=google-play&utm_medium=organic)
 const MARKER = 'pnutdl'
+const ATTRIBUTION_PARAM = 'at'
+export const MAX_PLAY_REFERRER_LENGTH = 512
 export const CONSUMED_KEY = 'deferredLinkConsumed'
 
 // the key the in-app i18n reads (src/i18n/app/locale-store.ts — Preferences
@@ -51,7 +61,106 @@ export interface DeferredPayload {
     badgeCampaigns?: string[]
     /** Legacy single-campaign payload accepted during app upgrade. */
     campaign?: string
+    /** Durable marketing-attribution context from the web journey. */
+    attribution?: SignupAttributionContext
     dest?: string
+}
+
+type CompactTouch = {
+    t: number
+    s?: string
+    m?: string
+    c?: string
+    n?: string
+    r?: string
+    p?: string
+}
+
+type CompactAttribution = {
+    v: 1
+    j: string
+    p: SignupAttributionContext['platform']
+    f: CompactTouch
+    c?: CompactTouch
+    l?: CompactTouch
+}
+
+function compactTouch(touch: SignupAttributionContext['firstTouch']): CompactTouch {
+    return {
+        t: Date.parse(touch.occurredAt),
+        ...(touch.utmSource ? { s: touch.utmSource } : {}),
+        ...(touch.utmMedium ? { m: touch.utmMedium } : {}),
+        ...(touch.utmCampaign ? { c: touch.utmCampaign } : {}),
+        ...(touch.utmContent ? { n: touch.utmContent } : {}),
+        ...(touch.referrerHost ? { r: touch.referrerHost } : {}),
+        ...(touch.path ? { p: touch.path } : {}),
+    }
+}
+
+function expandTouch(touch: CompactTouch): SignupAttributionContext['firstTouch'] | null {
+    if (!Number.isFinite(touch.t)) return null
+    return {
+        occurredAt: new Date(touch.t).toISOString(),
+        ...(touch.s ? { utmSource: touch.s } : {}),
+        ...(touch.m ? { utmMedium: touch.m } : {}),
+        ...(touch.c ? { utmCampaign: touch.c } : {}),
+        ...(touch.n ? { utmContent: touch.n } : {}),
+        ...(touch.r ? { referrerHost: touch.r } : {}),
+        ...(touch.p ? { path: touch.p } : {}),
+    }
+}
+
+function base64UrlEncode(value: string): string {
+    return btoa(value).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
+}
+
+function base64UrlDecode(value: string): string {
+    const padded = value.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (value.length % 4)) % 4)
+    return atob(padded)
+}
+
+/** Compact ASCII-only handoff token; Play's encoded referrer is capped at 512 chars. */
+function serializeAttributionHandoff(context: SignupAttributionContext): string {
+    const first = compactTouch(context.firstTouch)
+    const compact: CompactAttribution = {
+        v: 1,
+        j: context.journeyId,
+        p: context.platform,
+        f: first,
+        ...(context.firstContentTouch &&
+        JSON.stringify(context.firstContentTouch) !== JSON.stringify(context.firstTouch)
+            ? { c: compactTouch(context.firstContentTouch) }
+            : {}),
+        ...(context.lastTouch && JSON.stringify(context.lastTouch) !== JSON.stringify(context.firstTouch)
+            ? { l: compactTouch(context.lastTouch) }
+            : {}),
+    }
+    return base64UrlEncode(JSON.stringify(compact))
+}
+
+function parseAttributionHandoff(value: string | null): SignupAttributionContext | null {
+    if (!value) return null
+    try {
+        const compact = JSON.parse(base64UrlDecode(value)) as Partial<CompactAttribution>
+        if (compact.v !== 1 || typeof compact.j !== 'string' || !compact.f) return null
+        const firstTouch = expandTouch(compact.f)
+        if (!firstTouch) return null
+        const firstContentTouch = compact.c ? expandTouch(compact.c) : null
+        const lastTouch = compact.l ? expandTouch(compact.l) : null
+        const context: SignupAttributionContext = {
+            schemaVersion: '1',
+            journeyId: compact.j,
+            platform: compact.p ?? 'unknown',
+            analyticsState: 'enabled',
+            captureMethod: 'deferred_link',
+            firstTouch,
+            ...(firstContentTouch ? { firstContentTouch } : {}),
+            ...(lastTouch ? { lastTouch } : {}),
+        }
+        return parseSignupAttribution(JSON.stringify(context))
+    } catch {
+        return null
+    }
 }
 
 // app-local android plugin (InstallReferrerPlugin.java); absent on iOS/web and
@@ -106,6 +215,9 @@ export function buildDeferredPayload(dest?: string, invite?: string): string {
         params.append(BADGE_CAMPAIGN_QUERY_PARAM, badgeCampaign)
     }
 
+    const attribution = readSignupAttribution()
+    if (attribution) params.set(ATTRIBUTION_PARAM, serializeAttributionHandoff(attribution))
+
     // a page whose url carries the claim secret in the fragment (#p=) must not
     // ride as a default dest: the fragment never rides (by design), so the
     // restored claim page would render unclaimable. the working path is the
@@ -114,12 +226,27 @@ export function buildDeferredPayload(dest?: string, invite?: string): string {
     const destination = dest ?? stripLocalePrefix(window.location.pathname) + window.location.search
     if (destination && destination !== '/' && !secretOnPage) params.set('dest', destination)
 
-    return params.toString()
+    if (encodeURIComponent(params.toString()).length > MAX_PLAY_REFERRER_LENGTH) {
+        // Destination and badge identities are useful but optional. Never drop
+        // source attribution; if this still exceeds Play's limit, the caller
+        // uses the bare store URL instead of a broken handoff.
+        params.delete('dest')
+        params.delete('badge_campaign')
+        params.delete('badgeCampaign')
+    }
+
+    const result = params.toString()
+    if (encodeURIComponent(result).length > MAX_PLAY_REFERRER_LENGTH) {
+        throw new Error('deferred attribution exceeds Play referrer limit')
+    }
+    return result
 }
 
 /** play store listing url with the payload riding the install referrer. */
 export function playStoreUrlWithReferrer(payload: string): string {
-    return `${PLAY_STORE_URL}&referrer=${encodeURIComponent(payload)}`
+    const encoded = encodeURIComponent(payload)
+    if (encoded.length > MAX_PLAY_REFERRER_LENGTH) throw new Error('deferred attribution exceeds Play referrer limit')
+    return `${PLAY_STORE_URL}&referrer=${encoded}`
 }
 
 /**
@@ -158,10 +285,13 @@ export function parseDeferredPayload(raw: string): DeferredPayload | null {
     if (params.get(MARKER) !== '1') return null
     const pick = (key: string) => params.get(key) || undefined
     const badgeCampaigns = badgeCampaignIdentitiesFromDeferredSearchParams(params)
+    const attribution =
+        parseAttributionHandoff(params.get(ATTRIBUTION_PARAM)) ?? parseSignupAttribution(params.get('attribution'))
     return {
         lang: pick('lang'),
         invite: pick('invite'),
         badgeCampaigns: badgeCampaigns.length > 0 ? badgeCampaigns : undefined,
+        attribution: attribution ?? undefined,
         dest: pick('dest'),
     }
 }
@@ -307,12 +437,29 @@ async function doRestore(): Promise<RestoredContext | null> {
     }
 
     const restored = applyDeferredPayload(payload)
-    captureRestore(channel, DEFERRED_LINK_OUTCOMES.RESTORED, {
+    if (payload.attribution) {
+        const persisted = readSignupAttribution()
+        if (persisted) await persistSignupAttribution(persisted)
+    }
+    const restoreFields: Record<string, boolean> = {
         has_dest: !!restored.dest,
         has_locale: !!restored.locale,
         has_invite: !!payload.invite,
         has_campaign: !!(payload.badgeCampaigns?.length || payload.campaign),
-    })
+    }
+    // Keep the legacy event shape for old payloads, while making attribution
+    // presence observable for the new hand-off contract.
+    if (payload.attribution) restoreFields.has_attribution = true
+    captureRestore(channel, DEFERRED_LINK_OUTCOMES.RESTORED, restoreFields)
+
+    // Register only after the privacy-preserving restore event above. The
+    // journey id is useful on subsequent native events, but must not turn the
+    // restore telemetry into a payload dump.
+    if (payload.attribution && typeof posthog.register === 'function') {
+        try {
+            posthog.register(signupAttributionPosthogProperties(readSignupAttribution()))
+        } catch {}
+    }
 
     // privacy: clear the consumed hand-off off the clipboard. after the flag —
     // an interrupted clear can't cause a re-read. single space: some platforms
@@ -333,6 +480,8 @@ async function doRestore(): Promise<RestoredContext | null> {
  * the /dev/deferred simulator so there is exactly one apply path.
  */
 export function applyDeferredPayload(payload: DeferredPayload): RestoredContext {
+    if (payload.attribution) restoreSignupAttribution(payload.attribution)
+
     // inviteCode: SESSION cookie, exactly matching the web invite flow
     // (InvitesPage). the cookie routes /setup past Landing — the only screen
     // with Log In — so a durable cookie would lock an existing user who

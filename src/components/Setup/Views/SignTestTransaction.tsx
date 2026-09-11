@@ -18,6 +18,7 @@ import posthog from 'posthog-js'
 import { storeDeclaredResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { getFromCookie } from '@/utils/general.utils'
+import { readSignupAttribution } from '@/utils/signup-attribution'
 import { twMerge } from '@/utils/tw'
 import { useTranslations } from 'next-intl'
 
@@ -168,9 +169,17 @@ const SignTestTransaction = () => {
                 // account setup complete - addAccount() already fetched and verified user data
                 console.log('[SignTestTransaction] Account setup complete, showing the account-ready screen')
                 const inviteCode = getFromCookie('inviteCode')
+                const signupAttribution = readSignupAttribution()
                 posthog.capture(ANALYTICS_EVENTS.SIGNUP_COMPLETED, {
                     acquisition_source: inviteCode ? 'referred' : 'organic',
                     invite_code: inviteCode || undefined,
+                    ...(signupAttribution
+                        ? {
+                              signup_journey_id: signupAttribution.journeyId,
+                              signup_platform: signupAttribution.platform,
+                              signup_attribution_capture_method: signupAttribution.captureMethod,
+                          }
+                        : {}),
                 })
 
                 // Persist the residence answer from the residence step, now that

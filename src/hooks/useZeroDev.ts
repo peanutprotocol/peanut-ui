@@ -49,6 +49,8 @@ import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
 import { rescueUserOpReceipt } from '@/utils/userop-rescue.utils'
 import { clearInvite, extendInviteForRetry, readInviteCode, readInviteType } from '@/utils/invite-stash'
+import { attachSignupAttribution } from '@/services/signup-attribution'
+import { markSignupAttributionPending } from '@/utils/signup-attribution'
 
 // types
 type UserOpEncodedParams = {
@@ -112,7 +114,14 @@ export const useZeroDev = () => {
         zeroDevFlowActions.setIsRegistering(true)
         try {
             const rpId = isCapacitor() ? getNativeRpId() : window.location.hostname.replace(/^www\./, '')
-
+            // Native store hand-off restoration is intentionally started in the
+            // app-link listener without blocking app boot. Join the same
+            // in-flight promise here so a fast signup tap cannot outrun the
+            // Android referrer read or iOS paste hand-off.
+            if (isCapacitor()) {
+                const { restoreDeferredContext } = await import('@/utils/deferred-link')
+                await restoreDeferredContext()
+            }
             // @capgo/capacitor-passkey shim patches navigator.credentials on native,
             // so toWebAuthnKey works on all platforms (web, android, ios).
             // Same TASK-21782 guard as login: native shim gate + 60s bound —
@@ -126,7 +135,9 @@ export const useZeroDev = () => {
                         // Consent-ledger echo (tos-v1 phase 2): the ZeroDev SDK owns the
                         // register/verify request body, so the terms+privacy versions the
                         // signup screen displayed ride in a header the backend ledgers.
-                        passkeyServerHeaders: { 'x-accepted-legal': JSON.stringify(signupConsentDocuments()) },
+                        passkeyServerHeaders: {
+                            'x-accepted-legal': JSON.stringify(signupConsentDocuments()),
+                        },
                         rpID: rpId,
                     })
                 )
@@ -134,11 +145,22 @@ export const useZeroDev = () => {
 
             // Keep the new key recoverable even if the API session cannot load yet.
             saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
+            // The ceremony has created the account. This marker lets a native
+            // restart retry the authenticated attribution attach without
+            // allowing ordinary returning-user logins to claim the journey.
+            markSignupAttributionPending()
 
             // Bind the ceremony key to the fresh API session, never the render's previous user.
             // Native cookies may disappear on restart; persist before any RPC-dependent build.
             const registeredUser = await hydrateLoginSession()
             updateUserPreferences(registeredUser.user.userId, { webAuthnKey })
+            try {
+                await attachSignupAttribution()
+            } catch (error) {
+                // Attribution is best-effort for signup UX. The durable device
+                // copy remains for the authenticated retry on the next start.
+                captureException(error, { level: 'warning', tags: { error_type: 'signup_attribution_attach_failed' } })
+            }
 
             const inviteCodeFromCookie = getFromCookie('inviteCode')
 
