@@ -11,7 +11,8 @@ The default branch stays unchanged. Manual historical dispatch is separate and
 still follows GitHub's workflow registration requirements.
 
 Capture jobs receive no storage write credentials. This job receives them separately,
-downloads only the caller's current run attempt, checks the capture workflow path,
+downloads all capture attempts from the caller's run and selects one complete pair,
+checks the capture workflow path,
 repository, event and exact revisions, validates images, recomputes differences,
 and publishes immutable objects. It builds offline HTML from trusted viewer code;
 it never executes downloaded scripts or HTML. Failed captures remain visible;
@@ -20,7 +21,7 @@ cancelled runs do not publish. Public index updates are queued and serialized.
 Validate with Node 20 and the pinned publisher dependencies:
 
 ```sh
-node --test scripts/screens/core.test.mjs scripts/screens/integration.test.mjs scripts/screens/review-provenance.test.mjs scripts/screens/run-identity.test.mjs scripts/screens/cloudflare-storage.test.mjs
+node --test scripts/screens/*.test.mjs
 ```
 
 The publisher installs pixelmatch 7.2.0, pngjs 7.0.0, @aws-sdk/client-s3 3.883.0 and sharp
@@ -50,21 +51,27 @@ DevOps setup:
    (393×852, fit scale-down, no cropping; no signed URL requirement).
 2. Create a dedicated private R2 bucket. Retain objects
    indefinitely; respect object Cache-Control (index/latest use 60 seconds).
-3. Create one user API token with Account permissions Cloudflare Images Edit,
-   Workers Scripts Edit, and Workers R2 Storage Edit, scoped to the gallery account.
-   Save it once as GitHub Actions secret `CLOUDFLARE_API_TOKEN`. The publisher
-   verifies the token ID and derives the S3 secret from its SHA-256 hash at runtime;
-   no separate R2 keys are stored. This R2 permission covers the account's buckets.
+3. Create two narrowly scoped API tokens:
+   - a publisher token with Cloudflare Images Edit and Workers R2 Storage Edit
+     scoped to this gallery's Images account and R2 bucket. Save it as the
+     `CLOUDFLARE_PUBLISH_TOKEN` GitHub Actions secret. The publisher verifies the
+     token ID and derives the S3 secret from its SHA-256 hash at runtime; no
+     separate R2 keys are stored.
+   - a deployment token with Workers Scripts Edit. Save it as the
+     `CLOUDFLARE_DEPLOY_TOKEN` secret in the `screen-library-deploy` environment.
+     This token is used only by the Worker deployment job, never while parsing
+     PR-controlled image artifacts.
 4. In GitHub Actions repository variables set `CLOUDFLARE_ACCOUNT_ID`,
    `SCREEN_LIBRARY_R2_BUCKET`, `SCREEN_LIBRARY_R2_JURISDICTION` (`eu` for screenshots-library),
    `SCREEN_LIBRARY_PUBLIC_URL` (gallery HTTPS origin,
    e.g. `https://screens.peanut.me` or the Worker’s `workers.dev` origin),
    `SCREEN_LIBRARY_IMAGES_HASH` (Images delivery account hash, distinct from account ID),
    and `SCREEN_LIBRARY_IMAGES_VARIANT=screenpreview`.
-5. For a custom domain, the same token additionally needs Zone Read and DNS Edit
-   scoped to the domain's zone, which must exist in this account. For workers.dev
-   no zone permissions are needed. Initialize the account's workers.dev subdomain
-   in the dashboard and set `SCREEN_LIBRARY_PUBLIC_URL` to the Worker origin.
+5. For a custom domain, the deployment token additionally needs Zone Read and
+   DNS Edit scoped to the domain's zone, which must exist in this account. For
+   workers.dev no zone permissions are needed. Initialize the account's
+   workers.dev subdomain in the dashboard and set `SCREEN_LIBRARY_PUBLIC_URL`
+   to the Worker origin.
 6. Merge #3107, verify the Deploy screen gallery job succeeds and the public
    gallery loads, then merge #3108 to activate captures. An empty R2 bucket shows
    a report-unavailable message until the first publication. Verify a report URL
