@@ -226,9 +226,8 @@ export function HomeModals() {
                 </LazyLoadErrorBoundary>
             )}
 
-            {/* card pioneer modal — eligibility check happens during the flow (geo
-                screen), not here. unmounted while the migration prompt shows (it
-                re-checks on remount); the effect above clears its stuck state */}
+            {/* Post-signup actions are unmounted while the migration prompt shows.
+                The effect above clears their visibility state before remounting. */}
             {!showMigrationModal && (
                 <PostSignupActionManager onActionModalVisibilityChange={setIsPostSignupActionModalVisible} />
             )}

@@ -89,15 +89,7 @@ export const BottomNav = () => {
     // never mounts useNotifications (direct /card or /history load) still
     // gets the foreground-push event the badge listens for
     useForegroundPushRefresh()
-    // The middle slot is the card tab only while the card is attainable. A
-    // resident of a Rain-prohibited country who was released from the waitlist
-    // still has `hasCardAccess`, so gating on that shipped them a tab whose
-    // only destination is /card's geo-blocked screen — the exchange-rates page
-    // is the useful thing to put in a slot the card cannot fill.
-    // The destination follows the profile menu's rule: past the waitlist gate
-    // goes to /card, everyone else to /shhhhh — the canonical card door. The
-    // tab used to link at /card unconditionally, which notFound()s a user with
-    // no flowEarlyAccess stamp.
+    // Existing card relationships stay accessible; prohibited residences get exchange rates.
     const { showCardSurface, cardHref } = useCardSurfaceAccess()
     const middleTab = showCardSurface
         ? ({ href: cardHref, icon: 'credit-card', label: t('card') } as const)

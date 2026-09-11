@@ -10,7 +10,7 @@ import { logRunMode } from '@/utils/mode'
 import { isDemoMode } from '@/utils/demo'
 
 /**
- * App-wide announcement surface. The old marquee banners (beta feedback,
+ * App-wide announcement surface. The old marquee banners (feedback,
  * GenericBanner) are gone — announcements now render as an inline
  * Notification (maintenance example: figma 17994:21117). Connectivity moved
  * to the toast surface (ConnectivityToast, ruled 2026-09-03) — this banner

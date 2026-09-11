@@ -74,15 +74,8 @@ export default function DevToolsPage() {
         {
             name: 'Home CTAs',
             description:
-                'Force-renders every home-screen CTA in isolation (card launch banner, carousel CTAs, activation steps) ignoring auth/state/launch gating.',
+                'Force-renders every home-screen CTA in isolation (carousel CTAs and activation steps) ignoring auth/state/launch gating.',
             path: '/dev/home-ctas',
-            icon: 'credit-card',
-        },
-        {
-            name: 'Rejection screen builder',
-            description:
-                'Iterate the full mobile CardRejectionScreen — bouncer mascot, door tally, waitlist state — inside a phone frame.',
-            path: '/dev/rejection-builder',
             icon: 'credit-card',
         },
         {

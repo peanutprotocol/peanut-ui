@@ -1,63 +1,24 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
-import { chargesApi } from '@/services/charges'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Loading from '@/components/Global/Loading'
-import { isCapacitor } from '@/utils/capacitor'
-import { chargePayUrl } from '@/utils/native-routes'
 
 /**
- * Card Payment Route (DEPRECATED)
- *
- * This page is kept for backwards compatibility with existing URLs/bookmarks.
- * The card flow now navigates directly to the semantic URL from /card page,
- * avoiding this intermediate loading state.
- *
- * Fetches charge and redirects to semantic URL with context=card-pioneer
+ * Retired paid-admission links. A link with a chargeId forwards to the
+ * semantic request surface, which renders a COMPLETED charge as a receipt
+ * and redirects unpaid admission charges to /card. Links without a charge
+ * open the public card application.
  */
 export default function CardPaymentPage() {
-    const searchParams = useSearchParams()
     const router = useRouter()
-
+    const searchParams = useSearchParams()
     useEffect(() => {
         const chargeId = searchParams.get('chargeId')
-        if (!chargeId) {
-            router.push('/card')
-            return
-        }
-
-        const redirectToPayment = async () => {
-            try {
-                const charge = await chargesApi.get(chargeId)
-
-                // Build semantic URL from charge data
-                // Format: /recipient@chainId/amountTOKEN?chargeId=uuid&context=card-pioneer
-                // NOTE: Use chargeId parameter (not id) to match semantic request flow
-                const recipient = charge.requestLink.recipientAddress
-                const chain = charge.chainId ? `@${charge.chainId}` : ''
-                const amount = charge.tokenAmount
-                const token = charge.tokenSymbol
-                const uuid = charge.uuid
-
-                if (isCapacitor()) {
-                    router.push(chargePayUrl(uuid, 'card-pioneer'))
-                } else {
-                    const semanticUrl = `/${recipient}${chain}/${amount}${token}?chargeId=${uuid}&context=card-pioneer`
-                    router.push(semanticUrl)
-                }
-            } catch (err) {
-                console.error('Failed to load charge:', err)
-                router.push('/card')
-            }
-        }
-
-        redirectToPayment()
-    }, [searchParams, router])
-
-    return (
-        <div className="flex min-h-screen items-center justify-center">
-            <Loading />
-        </div>
-    )
+        // cross-route redirect, not URL state on this page — nuqs does not
+        // apply; the params belong to the destination route
+        const destination = new URLSearchParams({ chargeId: chargeId ?? '', context: 'card-pioneer' })
+        router.replace(chargeId ? '/pay-request?' + destination.toString() : '/card')
+    }, [router, searchParams])
+    return <Loading />
 }

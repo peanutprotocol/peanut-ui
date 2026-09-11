@@ -38,7 +38,6 @@ import UnlockMethodModal from '@/components/IdentityVerification/UnlockMethodMod
 import CancelCardModal from '@/components/Card/CancelCardModal'
 import CardLimitEditDrawer from '@/components/Card/CardLimitEditDrawer'
 import LockCardModal from '@/components/Card/LockCardModal'
-import { CardUnlockDrawer } from '@/components/Card/CardUnlockDrawer'
 import { BadgeDetailDrawer } from '@/components/Badges/BadgeDetailDrawer'
 import { BadgeStatusDrawer } from '@/components/Badges/BadgeStatusDrawer'
 import HowToDepositDrawer from '@/components/AddMoney/components/HowToDepositDrawer'
@@ -332,18 +331,6 @@ export const SURFACES: Record<string, Surface> = {
         name: 'LockCardModal (lock)',
         path: 'Card/LockCardModal.tsx',
         render: () => <LockCardModal cardId="demo-card" mode="lock" isOpen onClose={noop} />,
-    },
-    '35-c-cardunlockdrawer': {
-        name: 'CardUnlockDrawer',
-        path: 'Card/CardUnlockDrawer.tsx',
-        render: () => (
-            <CardUnlockDrawer
-                isOpen
-                onClose={noop}
-                username="demo"
-                entry={{ unlockedAt: '2026-08-01T10:00:00.000Z', position: 42 } as never}
-            />
-        ),
     },
     '36-c-badgedetailmodal': {
         name: 'BadgeDetailDrawer',

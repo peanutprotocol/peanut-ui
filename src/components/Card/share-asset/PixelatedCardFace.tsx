@@ -8,14 +8,14 @@
  * offsets that scale linearly with the wrapper. For width-fit, use
  * <ScaledPixelatedCardFace />.
  *
- * When `blurAll` is true (the closed-beta tease), the visa logo, peanut
+ * When `blurAll` is true, the visa logo, peanut
  * logo, card number, and Virtual pill all get rasterised through a
  * canvas → image-rendering:pixelated pipeline, with a shared CELL_PX cell
  * size — so every detail on the card is hidden by consistent chunky pixels
  * instead of a mix of pixelation + CSS blur. The hand follows the same
  * switch: pixelated with the rest of the tease, crisp on the share asset.
  *
- * Shared between <ShareAssetD3 />, the eligibility-check screen, and the
+ * Shared between the internal share builder, application preview, and the
  * `/shhhhh` LP hero. Keep this file the single source of truth for the
  * pixelation algorithm — the module-level canvas cache means assets are
  * decoded once per session.
@@ -88,6 +88,7 @@ export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
             style={{ inset: 0, background: shadowColor, transform: 'translate(0.625rem, 0.625rem)' }}
         />
         <div
+            data-decorative-clip
             className={`relative h-full w-full overflow-hidden rounded-3xl border-[4px] border-black ${className ?? ''}`}
             style={{
                 background: '#FF90E8',

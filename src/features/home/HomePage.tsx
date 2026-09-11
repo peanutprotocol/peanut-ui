@@ -3,7 +3,6 @@
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import Loading from '@/components/Global/Loading'
 import ActivationCTAs from '@/components/Home/ActivationCTAs'
-import CardLaunchCTA from '@/components/Home/CardLaunchCTA'
 import EnableAutoBalanceBanner from '@/components/Home/EnableAutoBalanceBanner'
 import HomeCarouselCTA from '@/components/Home/HomeCarouselCTA'
 import HomeHistory from '@/components/Home/HomeHistory'
@@ -54,7 +53,6 @@ export function HomePage() {
                 />
                 <div className="flex flex-col gap-2">
                     <EnableAutoBalanceBanner />
-                    <CardLaunchCTA />
                     <PendingVerificationTasks dismissible />
                     {isActivated ? (
                         <HomeCarouselCTA />

@@ -254,7 +254,7 @@ const ResidenceStep = () => {
            no ID check; the bank rail unlocks with verification. The card IS
            named here as of 2026-09-05 (slava's call, reversing the earlier
            product direction that kept it unnamed in onboarding), and the
-           clause states both of its gates — the ID check and the waitlist.
+           clause describes the identity verification needed to apply.
 
            The clause carries no country framing, which is what Rain's
            §7 forbids (content/_system/guidelines/partners/rain/marketing-compliance.md:

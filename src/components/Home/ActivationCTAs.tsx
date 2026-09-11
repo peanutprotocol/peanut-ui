@@ -1,6 +1,7 @@
 'use client'
 
 import { railUserMessage, railVerdict } from '@/utils/capability-gate'
+import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
@@ -18,7 +19,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import GettingStartedChecklist from '@/components/Home/GettingStartedChecklist'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
-import { useCardInfo } from '@/hooks/useCardInfo'
+import { useCardSurfaceAccess } from '@/hooks/useCardSurfaceAccess'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { REGION_RESTRICTED_CTA_HREF } from '@/components/Kyc/KycRegionRestrictedContent'
 import { useAuth } from '@/context/authContext'
@@ -64,7 +65,11 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     // `undefined` while loading collapses to false → scanner behavior (never
     // tease the card to a user we can't confirm has access), which is also why
     // the scanner path must stand on its own QR-rail check below.
-    const { hasCardAccess } = useCardInfo()
+    const { showCardSurface } = useCardSurfaceAccess()
+    // The Home card-prompt kill switch mutes every card arm in this component
+    // (outbound copy, chooser, spend-to-activate) while the QR path stands.
+    // /card itself stays available — the switch is documented as prompt-only.
+    const canApplyForCard = underMaintenanceConfig.disableCardPromotion ? false : showCardSurface
     // Suppress the "Unlock payments" verify CTA while identity is mid-flight
     // (Sumsub processing / action_required). The user already took the verify
     // action; the identity-verification page surfaces the in-progress modal,
@@ -184,8 +189,8 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     // If card access is revoked (or the card-info refetch flips it) while the
     // chooser is open, close it — a no-access user must never see the card option.
     useEffect(() => {
-        if (hasCardAccess !== true) setShowSpendChooser(false)
-    }, [hasCardAccess])
+        if (canApplyForCard !== true) setShowSpendChooser(false)
+    }, [canApplyForCard])
 
     const steps: Record<Exclude<ActivationStep, 'completed'>, StepConfig> = useMemo(
         () => ({
@@ -265,7 +270,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     // (This preserves the shielding the pre-2026-08-20 card-first step gave
     // this exact cohort; a fixable RFI still surfaces in the /add-money bank
     // flow, in context.)
-    const hasCardPath = hasCardAccess === true
+    const hasCardPath = canApplyForCard === true
     const hasProviderRejection =
         activationStep !== 'verify' &&
         activationStep !== 'card' &&
@@ -362,7 +367,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         // Card-access users can activate by swiping too — broaden the QR-only
         // framing. Users without card access keep the QR copy untouched so we
         // never tease a card they can't get.
-        if (activationStep === 'outbound' && hasCardAccess) {
+        if (activationStep === 'outbound' && canApplyForCard) {
             return {
                 ...steps.outbound,
                 icon: 'credit-card',
@@ -384,7 +389,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         isIdentityProcessing,
         isIdentityActionRequired,
         residenceRestrictions,
-        hasCardAccess,
+        canApplyForCard,
         isRegionRestricted,
         tRegion,
         tProviderRejection,
@@ -410,7 +415,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     // cannot clear this step at all — a peer send is volume, not activation —
     // so the card would reappear after every payment they make. They keep the
     // activity list instead.
-    const canSpendToActivate = hasCardAccess === true || hasQrSpendRail
+    const canSpendToActivate = canApplyForCard === true || hasQrSpendRail
     if (activationStep === 'outbound' && !hasProviderRejection && !isRegionRestricted && !canSpendToActivate) {
         return null
     }
@@ -458,7 +463,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                                 provider: fixableProvider,
                                 actionKey: fixableActionKey,
                             })
-                        } else if (activationStep === 'outbound' && !hasProviderRejection && hasCardAccess) {
+                        } else if (activationStep === 'outbound' && !hasProviderRejection && canApplyForCard) {
                             posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SHOWN)
                             setShowSpendChooser(true)
                         } else if (activationStep === 'outbound' && !hasProviderRejection) {
@@ -488,7 +493,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                 onSkip={() => setShowProvideEmail(false)}
             />
             <Drawer
-                open={showSpendChooser && hasCardAccess === true}
+                open={showSpendChooser && canApplyForCard === true}
                 onOpenChange={(open) => {
                     if (!open) setShowSpendChooser(false)
                 }}

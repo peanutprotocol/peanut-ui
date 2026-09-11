@@ -166,91 +166,64 @@
     },
     "shhhhh": {
         "hero": {
-            "wordmark": "shhhhh.",
-            "tagline": "The peanut card is out. For you. Maybe.",
-            "body": "A card accepted at over 150 million Visa-accepting merchants. We're letting beta users in slowly — <counter></counter> a week. If you've got the right badge, you skip the line entirely.",
-            "onlyCount": "only {count}",
-            "tryTheDoor": "TRY THE DOOR",
-            "orJoinWaitlist": "or join the waitlist →",
-            "disclaimer": "Verification required for all cardholders. No monthly or annual fees. Standard fees and limits apply per the cardholder terms. Beta programme.",
-            "joinError": "Couldn't join the waitlist — try the door again."
-        },
-        "waitlist": {
-            "joined": "✓ You're on the waitlist",
-            "joinedWithPosition": "✓ You're on the waitlist · #{position}",
-            "holler": "We'll holler when your turn comes up."
-        },
-        "marquee": {
-            "iykyk": "IYKYK",
-            "wordTravels": "WORD TRAVELS",
-            "closedBeta": "CLOSED BETA",
-            "shhhh": "SHHHH",
-            "peanutClub": "PEANUT CLUB"
+            "wordmark": "Peanut Card",
+            "tagline": "Your money. Ready to spend.",
+            "body": "Use your Peanut Card online, and contactless with Apple Pay or Google Pay where supported, wherever Visa is accepted.",
+            "cta": "Get your card",
+            "disclaimer": "Verification and approval required. No monthly or annual fees. Standard fees and limits apply under the cardholder terms."
         },
         "whatItDoes": {
-            "titleLine1": "It's a card.",
-            "titleLine2": "That's the whole trick.",
-            "body": "Fund the card however you already move money: bank transfer, exchange withdrawal, or stablecoins (USDC, USDT). Your balance is yours. Non-custodial. No monthly fees. No annual fees.",
-            "statMerchants": "Visa-accepting merchants",
-            "statBalance": "balance",
-            "statCard": "card",
-            "statMiddlemen": "middlemen"
+            "titleLine1": "One card.",
+            "titleLine2": "Everyday spending.",
+            "body": "Add money to Peanut by bank transfer, exchange withdrawal, or supported stablecoins. Use your card online or add it to Apple Pay or Google Pay where supported."
         },
-        "whoItsFor": {
-            "title": "If you live in more than one country, this is for you.",
-            "body": "We built peanut for people who don't fit. Digital nomads who get bounced by every neobank's verification the moment they cross a border. Expats who pay 4% on every transaction home. Cross-border users who earn in one currency and spend in another."
+        "howToApply": {
+            "title": "How to get your card",
+            "verify": "Sign in and complete identity verification.",
+            "terms": "Review and accept the cardholder terms.",
+            "spend": "Once approved, add funds and start spending."
         },
-        "howToGetIn": {
-            "title": "How to get in.",
-            "subtitle": "Cred check. Badge skips the queue.",
-            "badgeTitle": "Got a badge.",
-            "badgeBody": "You skip the line. We're whitelisting holders of:",
-            "badgeFooter": "Sign in, we check the badges on your account, you go straight to verification. No peanut account yet? Sign up first — takes a minute.",
-            "badgeShowMore": "+{count} more →",
-            "badgeShowLess": "show less",
-            "noBadgeTitle": "No badge.",
-            "noBadgeBody": "Join the waitlist. We let people in 50 a week.",
-            "noBadgeFooter": "Put your name on the list and we'll holler when your turn comes up."
-        },
-        "notForYou": {
-            "title": "Probably not for you.",
-            "body1": "If your money lives in one country and one currency, your bank card already works. Keep it.",
-            "body2": "If your money lives elsewhere — across borders, in dollars, in self-custody — the peanut card was built for you."
+        "marquee": {
+            "peanutCard": "PEANUT CARD",
+            "contactless": "CONTACTLESS",
+            "available": "GET YOUR CARD",
+            "online": "ONLINE PAYMENTS",
+            "noMonthlyFee": "NO MONTHLY FEE"
         },
         "faq": {
-            "title": "FAQ.",
+            "title": "Questions about Peanut Card",
             "q1": {
-                "question": "WHAT'S THE PEANUT CARD?",
-                "answer": "A non-custodial card. Top up with stablecoins, then use the card for everyday spending wherever Visa is accepted."
+                "question": "What is Peanut Card?",
+                "answer": "Peanut Card is a virtual Visa card for spending your Peanut balance online and through supported mobile wallets."
             },
             "q2": {
-                "question": "WHERE DOES IT WORK?",
-                "answer": "Accepted wherever Visa is accepted — about 150 million merchants. Online, in-store, ATMs."
+                "question": "Where can I pay?",
+                "answer": "Use your card at Visa-accepting online merchants and for contactless payments with Apple Pay or Google Pay where supported."
             },
             "q3": {
-                "question": "IS MY MONEY SAFE?",
-                "answer": "It's yours. Non-custodial — your stablecoins stay in your wallet until the moment you use the card. We don't hold custody. We don't lend it out."
+                "question": "How is the card funded?",
+                "answer": "Card spending uses USDC held in a dedicated smart contract. Funds from your Peanut wallet can be added to your card balance."
             },
             "q5": {
-                "question": "HOW LONG IS THE WAITLIST?",
-                "answer": "We're letting in about 50 people a week during closed beta. Order matters. Badges skip the line entirely."
+                "question": "How do I get a card?",
+                "answer": "Sign in, complete verification, and accept the cardholder terms. Your application is subject to approval."
             },
             "q6": {
-                "question": "CAN I USE IT WHERE I LIVE?",
-                "answer": "It's a Visa card — accepted wherever Visa is accepted, in shops, online and at ATMs. Sign in and try the door to see what's next for your account."
+                "question": "Do I need to deposit before applying?",
+                "answer": "No. You can apply before adding money. Add funds once your card is ready to make payments."
             },
             "q7": {
-                "question": "ANY FEES?",
-                "answer": "No monthly fees. No annual fees. Standard fees and limits apply per the cardholder terms."
+                "question": "Are there fees?",
+                "answer": "No monthly or annual fees. Standard transaction fees and limits apply under the cardholder terms."
             },
             "q8": {
-                "question": "WHY \"SHHHHH\"?",
-                "answer": "We'd rather under-promise and over-deliver to a small group than blast the whole internet on day one. Word travels."
+                "question": "Is a physical card available?",
+                "answer": "Peanut Card is virtual. You can register your interest in a physical card from the app."
             }
         },
         "ready": {
-            "title": "ready?",
-            "subtitle": "Try the door."
+            "title": "Get your Peanut Card",
+            "subtitle": "Start your application today."
         }
     }
 }

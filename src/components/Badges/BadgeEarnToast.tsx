@@ -15,7 +15,7 @@
  * card), EVENT_ALUMNI, NOT_SO_SHHHH. A fullscreen would stack 2-3 takeovers
  * mid-/shhhhh-registration. The toast surfaces the badge without blocking the
  * flow. Gated to /home so it never appears mid-onboarding (/setup, /shhhhh).
- * WAITLIST_SKIP is excluded upstream — it keeps its bespoke card celebration.
+ * Retired admission badges are excluded upstream; earned badges stay on profiles.
  */
 
 import { useEffect, useRef, useState } from 'react'

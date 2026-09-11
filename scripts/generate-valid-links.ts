@@ -10,12 +10,13 @@
 
 import fs from 'fs'
 import path from 'path'
+import { EXCHANGES } from '../src/data/seo/exchanges'
+import { DEPOSIT_RAILS } from '../src/data/seo/deposit-rails'
+import { listPublishedSlugs } from '../src/lib/content'
 
 const ROOT = path.join(process.cwd(), 'src/content')
 const CONTENT_DIR = path.join(ROOT, 'content')
 const OUTPUT = path.join(ROOT, 'input/context/valid-links.md')
-
-const LOCALES = ['en', 'es-419', 'es-ar', 'es-es', 'pt-br']
 
 function listDirs(dir: string): string[] {
     if (!fs.existsSync(dir)) return []
@@ -30,10 +31,14 @@ function main() {
     const countrySlugs = listDirs(path.join(CONTENT_DIR, 'countries'))
     const competitorSlugs = listDirs(path.join(CONTENT_DIR, 'compare'))
     const payWithSlugs = listDirs(path.join(CONTENT_DIR, 'pay-with'))
-    const depositSlugs = listDirs(path.join(CONTENT_DIR, 'deposit'))
+    const depositRails = Object.keys(DEPOSIT_RAILS).sort()
+    const depositExchanges = Object.keys(EXCHANGES).sort()
     const helpSlugs = listDirs(path.join(CONTENT_DIR, 'help'))
     const useCaseSlugs = listDirs(path.join(CONTENT_DIR, 'use-cases'))
-    const withdrawSlugs = listDirs(path.join(CONTENT_DIR, 'withdraw'))
+    const withdrawSlugs = listPublishedSlugs('withdraw').sort()
+    const storySlugs = listPublishedSlugs('stories')
+        .filter((slug) => slug !== 'index')
+        .sort()
 
     // Build corridors from file structure
     const corridors: Array<{ to: string; from: string }> = []
@@ -59,7 +64,9 @@ function main() {
     // Static pages
     lines.push('## Static Pages')
     lines.push('')
-    for (const p of ['/', '/careers', '/privacy', '/terms', '/shhhhh']) {
+    // /lp/card and /exchange are permanent redirects (redirects.json) — content
+    // links only to canonical destinations, never to redirect hops.
+    for (const p of ['/', '/careers', '/privacy', '/terms', '/shhhhh', '/card']) {
         lines.push(`- \`${p}\``)
     }
     lines.push('')
@@ -140,11 +147,20 @@ function main() {
     lines.push('')
 
     // Deposit
-    lines.push('## Deposit Pages')
+    lines.push('## Deposit Pages — Rails/Networks')
     lines.push('')
-    lines.push('Pattern: `/{locale}/deposit/from-{source}`')
+    lines.push('Pattern: `/{locale}/deposit/via-{rail}`')
     lines.push('')
-    for (const slug of depositSlugs) {
+    for (const slug of depositRails) {
+        lines.push(`- \`/{locale}/deposit/via-${slug}\``)
+    }
+    lines.push('')
+
+    lines.push('## Deposit Pages — Exchanges')
+    lines.push('')
+    lines.push('Pattern: `/{locale}/deposit/from-{exchange}`')
+    lines.push('')
+    for (const slug of depositExchanges) {
         lines.push(`- \`/{locale}/deposit/from-${slug}\``)
     }
     lines.push('')
@@ -152,10 +168,20 @@ function main() {
     // Withdraw
     lines.push('## Withdraw Pages')
     lines.push('')
-    lines.push('Pattern: `/{locale}/withdraw/to-{destination}`')
+    lines.push('Pattern: `/{locale}/withdraw/{destination}`')
     lines.push('')
     for (const slug of withdrawSlugs) {
-        lines.push(`- \`/{locale}/withdraw/to-${slug}\``)
+        lines.push(`- \`/{locale}/withdraw/${slug}\``)
+    }
+    lines.push('')
+
+    lines.push('## User Story Pages')
+    lines.push('')
+    lines.push('Pattern: `/{locale}/stories/{slug}`')
+    lines.push('')
+    lines.push('- `/{locale}/stories`')
+    for (const slug of storySlugs) {
+        lines.push(`- \`/{locale}/stories/${slug}\``)
     }
     lines.push('')
 
@@ -176,7 +202,7 @@ function main() {
     console.log(`  ${corridors.length} corridors`)
     console.log(`  ${competitorSlugs.length} competitors`)
     console.log(`  ${payWithSlugs.length} payment methods`)
-    console.log(`  ${depositSlugs.length} deposit sources`)
+    console.log(`  ${depositRails.length + depositExchanges.length} deposit sources`)
     console.log(`  ${withdrawSlugs.length} withdraw destinations`)
     console.log(`  ${helpSlugs.length} help articles`)
     console.log(`  ${useCaseSlugs.length} use cases`)
