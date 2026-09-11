@@ -817,12 +817,14 @@ export const getRedirectOrigin = (): RedirectOrigin | null => {
  * Clear the stored redirect, optionally only if it is still the snapshot a
  * caller consumed. That optimistic compare-and-clear keeps a newer same-origin
  * tab's continuation from being removed after this tab has made its decision.
+ * `null` is an intentional snapshot too: it protects the no-record cleanup
+ * path from deleting a record written after the read.
  */
-export const clearRedirectUrl = (expected?: StoredRedirect) => {
+export const clearRedirectUrl = (expected?: StoredRedirect | null) => {
     if (typeof localStorage !== 'undefined') {
-        if (expected) {
+        if (expected !== undefined) {
             const current = getStoredRedirect()
-            if (!current || current.destination !== expected.destination || current.origin !== expected.origin) {
+            if (current?.destination !== expected?.destination || current?.origin !== expected?.origin) {
                 return
             }
         }

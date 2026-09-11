@@ -89,6 +89,6 @@ export function consumePostAuthRedirect(
      * at all: the raw value can still be sitting there, and clearing a key
      * that does not exist costs nothing.
      */
-    clearRedirectUrl()
+    clearRedirectUrl(stored)
     return { destination: fallbackRoute, source: 'fallback', deferred: false }
 }
