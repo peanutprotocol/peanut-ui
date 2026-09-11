@@ -135,7 +135,7 @@ const GettingStartedChecklist = () => {
     return (
         <Section>
             <div className="flex flex-col gap-1.5">
-                <div className="text-body-s text-foreground-secondary flex items-center justify-between">
+                <div className="flex items-center justify-between text-body-s text-foreground-secondary">
                     <span>{progressLabel}</span>
                     <span>{completionPercent}%</span>
                 </div>
@@ -157,9 +157,7 @@ const GettingStartedChecklist = () => {
                             chevron={tappable}
                             disabled={!tappable}
                             onClick={tappable ? item.onTap : undefined}
-                            className={
-                                item.done ? 'border-border-default bg-background-icon-bubble-green/10' : undefined
-                            }
+                            className={item.done ? 'border-border-default' : undefined}
                         />
                     )
                 })}
