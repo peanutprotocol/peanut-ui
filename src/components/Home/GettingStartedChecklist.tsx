@@ -144,7 +144,8 @@ const GettingStartedChecklist = () => {
             <ListGroup className="bg-background-default">
                 {items.map((item) => {
                     const tappable = !item.done && !!item.onTap
-                    const showSub = (item.done && item.id === 'create-account') || (!item.done && !!item.sub)
+                    const showSub =
+                        !allDone && ((item.done && item.id === 'create-account') || (!item.done && !!item.sub))
                     return (
                         <ListItem
                             key={item.id}

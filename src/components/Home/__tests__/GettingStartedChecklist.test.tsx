@@ -192,6 +192,7 @@ describe('GettingStartedChecklist', () => {
         expect(screen.getByText('100%')).toBeInTheDocument()
         expect(screen.getAllByTestId(/^checklist-/)).toHaveLength(3)
         expect(screen.queryByText('Get started')).not.toBeInTheDocument()
+        expect(screen.queryByText('Done. Your money has a username now')).not.toBeInTheDocument()
     })
 
     it('add money taps into /add-money', () => {
