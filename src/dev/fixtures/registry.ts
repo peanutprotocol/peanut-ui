@@ -226,6 +226,31 @@ export const FIXTURES: Record<string, Fixture> = {
             'GET /users/me': { user: { badges: [] }, identityVerification: { status: 'not_started' } },
             'GET /card': { isEligible: false, geoProhibited: false },
             'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
+            'POST /rain/cards': { status: 'terms-required', isUsResident: false },
+        },
+    },
+    'card-holder': {
+        route: '/card',
+        about: 'Existing holder keeps card management even when new issuance is prohibited for their residence.',
+        responses: {
+            'GET /card': { isEligible: false, geoProhibited: true },
+            'GET /rain/cards': {
+                status: { hasApplication: true, railStatus: 'ENABLED' },
+                balance: null,
+                cards: [
+                    {
+                        id: 'fixture-card',
+                        rainCardId: 'fixture-rain',
+                        status: 'ACTIVE',
+                        last4: '0420',
+                        expiryMonth: 6,
+                        expiryYear: 2069,
+                        network: 'visa',
+                        issuedAt: '2026-01-01T00:00:00Z',
+                        hasWithdrawApproval: false,
+                    },
+                ],
+            },
         },
     },
     'card-prohibited': {
