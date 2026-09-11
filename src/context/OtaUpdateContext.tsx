@@ -6,8 +6,8 @@ import { isSplashVisible } from '@/hooks/useSplashGate'
 import { isAndroidNativeBridge, isCapacitor } from '@/utils/capacitor'
 import type { OtaApplyOutcome } from '@/utils/capgo-updater'
 import { importWithChunkRetry } from '@/utils/chunk-error-recovery'
-import { markNativeBootComplete } from '@/utils/native-app-ready'
 import { runningBundleOutranksBinary } from '@/utils/ota-native-gate'
+import { markNativeBootComplete } from '@/utils/native-app-ready'
 
 /**
  * `manual-restart` — a reload was issued but the page outlived it (iOS, which
@@ -55,20 +55,16 @@ export function OtaUpdateProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         if (!isCapacitor()) return
-        // The app rendered, so the running bundle boots — this is what the
-        // document-start notifyAppReady trades Capgo's rollback net for.
-        markNativeBootComplete()
         let disposed = false
         let cleanup: (() => void) | undefined
 
-        // A floor-bearing OTA can already be running when there is no staged or
-        // newer candidate to trigger the callbacks below. Its baked floor is the
-        // only evidence that this binary still owes the user a store update.
+        // This check describes already-running JS; it must not depend on a newer
+        // candidate existing, and failure must not prevent updater initialization.
         runningBundleOutranksBinary()
             .then((required) => {
                 if (!disposed && required) setStoreUpdateRequired(true)
             })
-            .catch((err) => console.warn('[capgo] running bundle floor check failed:', err))
+            .catch((err) => console.warn('[capgo] running floor read failed:', err))
 
         // a bundle staged on an earlier launch is still queued in the plugin —
         // read through the gate, which drops one built for a newer binary
@@ -92,6 +88,10 @@ export function OtaUpdateProvider({ children }: { children: React.ReactNode }) {
                     return
                 }
                 cleanup = remove
+                // Rendering alone does not prove this bundle can receive its
+                // replacement. Keep boot recovery armed until the local updater
+                // works too; init schedules its network check without awaiting it.
+                markNativeBootComplete()
                 // Sequenced after init on purpose: the launch apply writes the
                 // pending-apply marker that init's reportPendingApply consumes,
                 // and racing them would report this launch's marker as a

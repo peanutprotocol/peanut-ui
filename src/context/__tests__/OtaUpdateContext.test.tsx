@@ -26,7 +26,6 @@ const mockUpdater = {
     delete: jest.fn().mockResolvedValue(undefined),
 }
 const mockExitApp = jest.fn().mockResolvedValue(undefined)
-const mockRunningBundleOutranksBinary = jest.fn().mockResolvedValue(false)
 // splashVisible false by default: these cases are about a bundle staged while
 // the user is already in the app, where the launch apply deliberately stands
 // down. The behind-the-splash window has its own describe block.
@@ -42,10 +41,6 @@ jest.mock('@/utils/capacitor', () => ({
     isIOSNative: () => !platform.android,
 }))
 jest.mock('@/hooks/useSplashGate', () => ({ isSplashVisible: () => platform.splashVisible }))
-jest.mock('@/utils/ota-native-gate', () => ({
-    ...jest.requireActual('@/utils/ota-native-gate'),
-    runningBundleOutranksBinary: () => mockRunningBundleOutranksBinary(),
-}))
 // Null by default so the store-update gate fails open and the cases below are
 // about restart mechanics rather than binary compatibility; the one case that
 // is about compatibility names a version.
@@ -54,6 +49,9 @@ jest.mock('@/utils/app-version', () => ({
 }))
 
 import { OtaUpdateProvider, useOtaUpdate } from '../OtaUpdateContext'
+import { NATIVE_APP_READY_SCRIPT } from '@/utils/native-app-ready'
+import * as otaGate from '@/utils/ota-native-gate'
+import * as chunkRecovery from '@/utils/chunk-error-recovery'
 
 const STAGED = { id: 'b-2', version: '1.2.0', downloaded: '', checksum: '', status: 'pending' as const }
 
@@ -70,7 +68,8 @@ beforeEach(() => {
     platform.capacitor = true
     platform.splashVisible = false
     platform.binaryVersion = null
-    mockRunningBundleOutranksBinary.mockReset().mockResolvedValue(false)
+    mockUpdater.notifyAppReady.mockReset().mockResolvedValue(undefined)
+    mockUpdater.addListener.mockReset().mockResolvedValue({ remove: jest.fn() })
     mockUpdater.delete.mockReset().mockResolvedValue(undefined)
     mockUpdater.getFailedUpdate.mockReset().mockResolvedValue(null)
     mockExitApp.mockClear()
@@ -104,6 +103,69 @@ const withStagedBundle = async () => {
     return rendered
 }
 
+describe('native boot recovery includes the updater', () => {
+    const bootKey = 'peanutNativeBootIncomplete'
+
+    it('keeps recovery armed when the updater chunk cannot load', async () => {
+        window.localStorage.setItem(bootKey, '2')
+        jest.spyOn(chunkRecovery, 'importWithChunkRetry').mockRejectedValue(new Error('updater chunk unavailable'))
+        setup()
+        await waitFor(() => expect(warn).toHaveBeenCalledWith('[capgo] ota init failed:', expect.any(Error)))
+        expect(window.localStorage.getItem(bootKey)).toBe('2')
+        expect(mockUpdater.notifyAppReady).not.toHaveBeenCalled()
+    })
+
+    it('keeps recovery armed while local updater initialization is pending', async () => {
+        window.localStorage.setItem(bootKey, '2')
+        let ready!: () => void
+        mockUpdater.notifyAppReady.mockReturnValue(new Promise<void>((resolve) => (ready = resolve)))
+        setup()
+        await waitFor(() => expect(mockUpdater.notifyAppReady).toHaveBeenCalled())
+        expect(window.localStorage.getItem(bootKey)).toBe('2')
+        await act(async () => ready())
+        await waitFor(() => expect(window.localStorage.getItem(bootKey)).toBeNull())
+    })
+
+    it('marks a working local updater ready without waiting for network access', async () => {
+        window.localStorage.setItem(bootKey, '2')
+        mockUpdater.getLatest.mockRejectedValue(new Error('offline'))
+        setup()
+        await waitFor(() => expect(window.localStorage.getItem(bootKey)).toBeNull())
+        expect(mockUpdater.addListener).toHaveBeenCalledWith('appReloaded', expect.any(Function))
+        expect(mockUpdater.getLatest).not.toHaveBeenCalled()
+    })
+
+    it('does not acknowledge an initialization that finishes after unmount', async () => {
+        window.localStorage.setItem(bootKey, '2')
+        let ready!: () => void
+        mockUpdater.notifyAppReady.mockReturnValue(new Promise<void>((resolve) => (ready = resolve)))
+        const { unmount } = setup()
+        await waitFor(() => expect(mockUpdater.notifyAppReady).toHaveBeenCalled())
+        unmount()
+        await act(async () => ready())
+        expect(window.localStorage.getItem(bootKey)).toBe('2')
+    })
+
+    it('resets to the builtin bundle after repeated updater failures even when React renders', async () => {
+        mockUpdater.addListener.mockRejectedValue(new Error('updater initialization broken'))
+        const reset = jest.fn()
+        const bridge = { Capacitor: { Plugins: { CapacitorUpdater: { notifyAppReady: jest.fn(), reset } } } }
+        const launch = () =>
+            new Function('window', 'localStorage', NATIVE_APP_READY_SCRIPT)(bridge, window.localStorage)
+
+        for (let failures = 1; failures <= 3; failures++) {
+            launch()
+            const { unmount } = setup()
+            await waitFor(() => expect(warn).toHaveBeenCalledWith('[capgo] ota init failed:', expect.any(Error)))
+            expect(window.localStorage.getItem(bootKey)).toBe(String(failures))
+            unmount()
+            warn.mockClear()
+        }
+        launch()
+        expect(reset).toHaveBeenCalledTimes(1)
+    })
+})
+
 it('seeds the pending bundle from the plugin queue, so it survives a reload', async () => {
     const { result } = await withStagedBundle()
     expect(result.current.storeUpdateRequired).toBe(false)
@@ -117,14 +179,6 @@ it('flags a store update when the served bundle needs a newer binary', async () 
     })
     expect(result.current.storeUpdateRequired).toBe(true)
     expect(window.localStorage.getItem('capgoUpdateFailureStreak')).toBeNull()
-})
-
-it('flags a store update when the running bundle floor outranks the binary', async () => {
-    mockRunningBundleOutranksBinary.mockResolvedValue(true)
-    const { result } = setup()
-
-    await waitFor(() => expect(result.current.storeUpdateRequired).toBe(true))
-    expect(mockRunningBundleOutranksBinary).toHaveBeenCalledTimes(1)
 })
 
 // A native release publishes a bundle carrying its own version, and a device on
@@ -648,4 +702,11 @@ describe('rollbacks the plugin performed while no page could report them', () =>
         })
         expect(error).not.toHaveBeenCalledWith(expect.stringContaining('[capgo-apply]'))
     })
+})
+
+it('surfaces an incompatible running bundle even without a newer or staged candidate', async () => {
+    jest.spyOn(otaGate, 'runningBundleOutranksBinary').mockResolvedValue(true)
+    const { result } = setup()
+    await waitFor(() => expect(result.current.storeUpdateRequired).toBe(true))
+    expect(result.current.pendingBundle).toBeNull()
 })

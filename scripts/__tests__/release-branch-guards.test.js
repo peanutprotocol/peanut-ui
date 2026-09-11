@@ -39,11 +39,10 @@ describe('release-ota.yml ships from main only', () => {
         expect(result.stderr).toContain('::error::')
     })
 
-    // The guard covers workflow_dispatch, which GitHub offers on every branch;
-    // the trigger itself must not widen that back out.
     it('only auto-runs on pushes to main', () => {
         const workflow = fs.readFileSync(path.join(workflowsDir, 'release-ota.yml'), 'utf8')
         expect(workflow).toMatch(/push:\n\s+branches: \[main\]/)
+        expect(workflow).not.toContain('workflow_dispatch')
     })
 })
 

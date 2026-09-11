@@ -4,7 +4,7 @@ import { useFormatter, useLocale, useTranslations } from 'next-intl'
 import Card from '../Global/Card'
 import { DataRow } from '../0_Bruddle/DataRow'
 import ShareButton from '../Global/ShareButton'
-import { BadgeDetailModal } from './BadgeDetailModal'
+import { BadgeDetailDrawer } from './BadgeDetailDrawer'
 import { captureBadgeShare, getBadgeIcon, getBadgeShareLink, getBadgeShareText } from './badge.utils'
 import { useBadgeCopy } from './useBadgeCopy'
 import { useBadgeShareImpression } from './useBadgeShareImpression'
@@ -64,8 +64,8 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                     <div>
                         {/* centered head per the TX Details chrome (board 17490:115877):
                             badge art → one-line title. Tapping it opens the detail
-                            modal — close the unlock drawer (z-50) first so the modal
-                            (z-20) isn't occluded. */}
+                            drawer — close the unlock drawer first so the two
+                            sheets never stack. */}
                         <button
                             type="button"
                             className="mb-3 flex w-full cursor-pointer flex-col items-center gap-4 text-center"
@@ -118,7 +118,7 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                     </div>
                 </DrawerContent>
             </Drawer>
-            <BadgeDetailModal
+            <BadgeDetailDrawer
                 isOpen={isDetailOpen}
                 onClose={() => setIsDetailOpen(false)}
                 code={badge.code}

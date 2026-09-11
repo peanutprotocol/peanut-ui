@@ -113,7 +113,9 @@ export const mdxComponents: MdxComponentMap = {
     strong: (props: React.HTMLAttributes<HTMLElement>) => <strong className="font-semibold text-n-1" {...props} />,
     table: (props: React.HTMLAttributes<HTMLTableElement>) => (
         <div className={`mx-auto my-8 ${PROSE_WIDTH} overflow-x-auto px-6 md:px-4`}>
-            <div className="overflow-hidden rounded-sm border border-n-1">
+            {/* x-auto, not hidden: a table wider than the phone must scroll
+                inside the border, never clip its columns (TASK-22366) */}
+            <div className="overflow-x-auto rounded-sm border border-n-1">
                 <table className="w-full border-collapse text-left text-sm" {...props} />
             </div>
         </div>

@@ -168,7 +168,11 @@ async function checkAndStageUpdate(callbacks: OtaUpdateCallbacks = {}): Promise<
 
 // The bundle Capgo serves was built for a newer native version than the one
 // installed (major/minor gate), so no OTA can land until the store binary does.
-const NEWER_BINARY_ERRORS = ['disable_auto_update_to_major', 'disable_auto_update_to_minor']
+const NEWER_BINARY_ERRORS = [
+    'disable_auto_update_to_major',
+    'disable_auto_update_to_minor',
+    'disable_auto_update_to_metadata',
+]
 
 function isNewerBinaryRejection(message: string): boolean {
     return NEWER_BINARY_ERRORS.some((pattern) => message.includes(pattern))
@@ -507,14 +511,13 @@ function recordFailureStreak(message: string): number {
 }
 
 // The channel used for opt-in beta updates. Testers opt in from the About screen;
-// every other install stays on the app's default channel (production) and never
+// every other install stays on the app's platform default channel and never
 // sees these bundles.
 export const BETA_OTA_CHANNEL = 'staging'
 
-// The app's default channel (ios-release.yml / android-release.yml / release-ota.yml).
-// Leaving beta also assigns the device here when the channel allows device
-// self-assign in the Capgo dashboard; otherwise the local unset has to do.
-export const PRODUCTION_OTA_CHANNEL = 'production'
+// Server defaults required by all production release workflows. Beta exit
+// unsets local routing and verifies the effective default without assigning one.
+export const PRODUCTION_OTA_CHANNELS = { ios: 'ios-mobile-release', android: 'android-mobile-release' } as const
 
 export interface OtaChannelStatus {
     channel: string | null
@@ -644,32 +647,26 @@ export async function leaveBetaOtaChannel(): Promise<void> {
             throw err
         }
 
-        // unsetChannel() only drops the plugin's local preference (verified in
-        // the plugin source: both platforms just remove a stored key). The
-        // device→channel assignment lives on the server, and only setChannel()
-        // rewrites it — so also assign production. Best effort: a channel that
-        // refuses self-assign must not strand a device whose beta preference is
-        // already gone; getChannel() below is what decides whether beta still
-        // sticks server-side.
-        try {
-            const reassigned = await CapacitorUpdater.setChannel({
-                channel: PRODUCTION_OTA_CHANNEL,
-                triggerAutoUpdate: false,
-            })
-            if (reassigned.error) console.info(`[capgo] production self-assign refused: ${reassigned.error}`)
-        } catch (err) {
-            console.info(`[capgo] production self-assign failed: ${err instanceof Error ? err.message : String(err)}`)
-        }
+        // unsetChannel returns to the platform's server-selected default.
+        // Assigning the retired shared production channel here would override
+        // platform routing. Explicit dashboard overrides are checked below.
 
         // getChannel() asks the backend what it will actually serve, and only a
-        // successful, channel-bearing answer licenses the reset. Offline, rate
+        // successful platform channel or explicit default answer licenses reset. Offline, rate
         // limited, or an error field means indeterminate — not "clear".
         const effective = await CapacitorUpdater.getChannel().catch(() => null)
         if (!effective || effective.error) {
             throw new OtaChannelUnknownError(effective?.error ?? 'the effective channel could not be read')
         }
-        if (effective.channel === BETA_OTA_CHANNEL) {
-            throw new OtaChannelOverrideError(`${BETA_OTA_CHANNEL} is still assigned to this device`)
+        const expected = isAndroidNativeBridge() ? PRODUCTION_OTA_CHANNELS.android : PRODUCTION_OTA_CHANNELS.ios
+        if (effective.channel && effective.channel !== expected) {
+            throw new OtaChannelOverrideError(
+                `expected ${expected}, but ${effective.channel ?? 'no channel'} is assigned`
+            )
+        }
+
+        if (!effective.channel && effective.status !== 'default') {
+            throw new OtaChannelUnknownError('the platform default could not be confirmed')
         }
 
         try {

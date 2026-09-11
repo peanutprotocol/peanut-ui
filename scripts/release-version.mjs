@@ -97,7 +97,7 @@ function nextOta(major, current) {
     const build = latestBuild(major)
     if (build === 0) throw new Error(`no v${major}.<build>.0 tag exists yet — cut a native release before an OTA`)
 
-    const match = CHANNEL_SEMVER.exec(current ?? '')
+    const match = CHANNEL_SEMVER.exec(current === 'builtin' ? `${major}.${build}.0` : (current ?? ''))
     if (!match) throw new Error(`--current must be X.Y.Z or X.Y.Z-<prerelease>, got "${current}"`)
     const [, currentMajor, currentBuild, currentOta] = match.map(Number)
 
@@ -107,7 +107,16 @@ function nextOta(major, current) {
                 `refusing to guess a version that devices would refuse`
         )
     }
-    return currentBuild === build ? `${major}.${build}.${currentOta + 1}` : `${major}.${build}.1`
+    // A rollback to builtin must not reuse a version already shipped and tagged.
+    const shipped = execFileSync('git', ['tag', '--list', `ota-${major}.${build}.*`], {
+        cwd: repoRoot,
+        encoding: 'utf8',
+    })
+        .split('\n')
+        .map((tag) => new RegExp(`^ota-${major}\\.${build}\\.(\\d+)$`).exec(tag))
+        .filter(Boolean)
+        .map((match) => Number(match[1]))
+    return `${major}.${build}.${Math.max(currentBuild === build ? currentOta : 0, 0, ...shipped) + 1}`
 }
 
 // Staging deliberately keeps the commit count as its ota component. It shares one

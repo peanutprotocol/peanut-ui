@@ -29,10 +29,28 @@ describe('Android replacement release workflow', () => {
         expect(workflow).toContain('Replacement build $VERSION_NAME remains covered by production OTA $CURRENT')
     })
 
-    it('refuses to upload an optimized DEX without CameraPlugin permission metadata', () => {
-        expect(workflow).toContain('Verify Capacitor permission metadata survived R8')
-        expect(workflow).toContain('Lcom/getcapacitor/annotation/CapacitorPlugin; name="Camera" permissions={')
-        expect(workflow).toContain('refusing to upload a crash-prone AAB')
+    it('refuses to upload optimized DEX without required Capacitor metadata', () => {
+        const check = workflow.slice(
+            workflow.indexOf('            - name: Verify optimized native metadata survived R8'),
+            workflow.indexOf('            # The Cordova plugin registry')
+        )
+
+        expect(check).toContain('Lcom/getcapacitor/annotation/CapacitorPlugin; name="Camera" permissions={')
+        expect(check).toContain('Lme/peanut/wallet/PushProvisioningPlugin;')
+        expect(check).toContain('Lcom/getcapacitor/annotation/CapacitorPlugin; name="PushProvisioning"')
+        expect(check).toContain('refusing to upload a crash-prone AAB')
+    })
+
+    it('refuses to upload optimized AABs without reflection-loaded native resources', () => {
+        const check = workflow.slice(
+            workflow.indexOf('            - name: Verify Cordova plugin registration survived resource shrinking'),
+            workflow.indexOf('            - name: Preserve R8 mapping')
+        )
+
+        expect(check).toContain('base/res/xml/config.xml')
+        expect(check).toContain('base/res/raw/mea_config')
+        expect(check).toContain('ic_stat_onesignal_default')
+        expect(check).toContain('Google Pay config')
     })
 
     it('records an attested replacement baseline only after the read-only release job succeeds', () => {
