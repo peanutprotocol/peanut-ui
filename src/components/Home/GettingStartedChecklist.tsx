@@ -48,7 +48,7 @@ const GettingStartedChecklist = () => {
     const router = useRouter()
     const { user } = useAuth()
     const restrictions = useResidenceRestrictions()
-    const { isEligible, isFetching: isCardInfoFetching } = useCardInfo()
+    const { isEligible } = useCardInfo()
     const { overview } = useRainCardOverview()
 
     const milestone = user?.user?.activationMilestone ?? 'registered'
@@ -56,11 +56,10 @@ const GettingStartedChecklist = () => {
     const isVerified = milestone === 'verified' || milestone === 'funded' || milestone === 'activated'
     const isFunded = milestone === 'funded' || milestone === 'activated'
     const hasActiveCard = !!findActiveCard(overview)
-    // While card info is loading or refetching, the slot stays on the
-    // first-payment step. React Query can expose cached eligibility while a
-    // background request is in flight; using that value here caused the card
-    // row to flash and then be replaced for users who are not eligible.
-    const cardAvailable = !restrictions.card && !isCardInfoFetching && isEligible === true
+    // isEligible is undefined only for the initial no-data load and remains
+    // stable from cached data during background refetches, so the third slot
+    // does not flip between card and first-payment on focus or reconnect.
+    const cardAvailable = !restrictions.card && isEligible === true
 
     const items: ChecklistItem[] = useMemo(() => {
         const tap = (id: ChecklistItemId, action: () => void) => () => {

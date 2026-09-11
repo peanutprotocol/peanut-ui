@@ -177,11 +177,12 @@ describe('GettingStartedChecklist', () => {
         expect(screen.getByText('Make your first payment')).toBeInTheDocument()
     })
 
-    it('does not flash the card while cached eligibility is refetching', () => {
+    it('keeps the cached card row stable while eligibility is refetching', () => {
+        mockIsEligible = true
         mockIsCardInfoFetching = true
         render()
-        expect(screen.queryByText('Get your Peanut card')).not.toBeInTheDocument()
-        expect(screen.getByText('Make your first payment')).toBeInTheDocument()
+        expect(screen.getByText('Get your Peanut card')).toBeInTheDocument()
+        expect(screen.queryByText('Make your first payment')).not.toBeInTheDocument()
     })
 
     it('shows the congratulations state once every item is done', () => {
