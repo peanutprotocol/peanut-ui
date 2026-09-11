@@ -20,6 +20,7 @@ import type { ScreenId } from '@/components/Setup/Setup.types'
 import { PasskeySetupHelpDrawer } from '@/components/Setup/Views/PasskeySetupHelpDrawer'
 import PasskeyInfoDrawer from '@/components/Setup/components/PasskeyInfoDrawer'
 import ConfirmInviteModal from '@/components/Global/ConfirmInviteModal'
+import EarlyUserDrawer from '@/components/Global/EarlyUserDrawer'
 import EasterEggDrawer from '@/components/Global/EasterEggDrawer'
 import { GuestVerificationModal } from '@/components/Global/GuestVerificationModal'
 import InviteFriendsDrawer from '@/components/Global/InviteFriendsDrawer'
@@ -182,9 +183,11 @@ export const SURFACES: Record<string, Surface> = {
         ),
     },
     '11-a-earlyusermodal': {
+        // self-opens off user.showEarlyUserModal — the early-user fixture stubs it true
         name: 'EarlyUserDrawer',
         path: 'Global/EarlyUserDrawer/index.tsx',
-        blocked: 'Opens itself from the signed-in user’s creation date — no visible prop.',
+        shotFixture: 'early-user',
+        render: () => <EarlyUserDrawer />,
     },
     '12-a-eastereggmodal': {
         name: 'EasterEggDrawer',

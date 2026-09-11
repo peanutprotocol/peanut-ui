@@ -42,7 +42,7 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '11-a-earlyusermodal': {
         name: 'EarlyUserDrawer',
         path: 'Global/EarlyUserDrawer/index.tsx',
-        blocked: 'Opens itself from the signed-in user’s creation date — no visible prop.',
+        shotFixture: 'early-user',
     },
     '12-a-eastereggmodal': { name: 'EasterEggDrawer', path: 'Global/EasterEggDrawer/index.tsx' },
     '13-a-guestloginmodal': { name: 'GuestLoginModal', path: 'Global/GuestLoginModal/index.tsx' },

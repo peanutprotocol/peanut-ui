@@ -51,6 +51,13 @@ export function HomeModals() {
     // migration download prompt outranks every other home modal (self-gating,
     // only during the pwa-sunset notice window)
     const [showMigrationModal, setShowMigrationModal] = useState(false)
+    // Both celebration drawers open themselves (session storage / a user
+    // flag), and a pre-lockup invitee can qualify for both at once — two open
+    // vaul roots would stack overlays and scroll locks. The jail celebration
+    // goes first; the early-user drawer mounts only once it is out of the way.
+    const [jailCelebrationPending, setJailCelebrationPending] = useState(
+        () => typeof window !== 'undefined' && sessionStorage.getItem('showNoMoreJailModal') === 'true'
+    )
 
     // the migration prompt outranks the post-signup modal; unmounting the
     // manager skips its onVisibilityChange(false), so clear the state here or
@@ -134,15 +141,17 @@ export function HomeModals() {
                 <>
                     <LazyLoadErrorBoundary>
                         <Suspense fallback={null}>
-                            <NoMoreJailDrawer />
+                            <NoMoreJailDrawer onVisibilityChange={setJailCelebrationPending} />
                         </Suspense>
                     </LazyLoadErrorBoundary>
 
-                    <LazyLoadErrorBoundary>
-                        <Suspense fallback={null}>
-                            <EarlyUserDrawer />
-                        </Suspense>
-                    </LazyLoadErrorBoundary>
+                    {!jailCelebrationPending && (
+                        <LazyLoadErrorBoundary>
+                            <Suspense fallback={null}>
+                                <EarlyUserDrawer />
+                            </Suspense>
+                        </LazyLoadErrorBoundary>
+                    )}
                 </>
             )}
 
