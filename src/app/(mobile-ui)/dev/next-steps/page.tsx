@@ -1,10 +1,16 @@
 'use client'
 
+import Image from 'next/image'
+import { PeanutCheering } from '@/assets/mascot'
+import { Button } from '@/components/0_Bruddle/Button'
+import { Card } from '@/components/0_Bruddle/Card'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import ProgressBar from '@/components/0_Bruddle/ProgressBar'
 import { Section } from '@/components/0_Bruddle/Section'
+import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import StatusPill from '@/components/Global/StatusPill'
@@ -195,6 +201,82 @@ export default function NextStepsProposalsPage() {
                         </Section>
                     )}
                 />
+            </section>
+
+            <DevNoteCard title="The disappearing finish (product gap)">
+                The shipped component returns null the moment all three steps are done — the section silently vanishes,
+                so finishing setup has no moment and no answer to &quot;what&apos;s next&quot;. The options below give
+                the finish a shape. Proposed lifecycle: each completed step fires a toast (Option G) → at 3/3 the list
+                renders one last time as the finale (Option F) → the next home visit swaps it for the completion card
+                (Option E) until dismissed → gone, with the badge as the permanent trace. Needs BE: a getting-started
+                badge award and a dismissal flag — flagged, not built here.
+            </DevNoteCard>
+
+            <section className="flex flex-col gap-3">
+                <DevSectionLabel>Option E — completion card with a rewards handoff</DevSectionLabel>
+                <p className="text-body-s text-foreground-secondary">
+                    Renders instead of the checklist once everything is done, until dismissed. Success-screen anatomy
+                    (cheering mascot + TitleBlock + purple primary, stroke secondary) on a single card. The CTA answers
+                    &quot;what&apos;s next&quot; by routing to rewards.
+                </p>
+                <div className="w-full max-w-96">
+                    <Card className="flex flex-col items-center gap-4 bg-background-default p-4 text-center">
+                        <Image
+                            src={PeanutCheering.src}
+                            unoptimized
+                            alt="Peanut mascot cheering"
+                            width={120}
+                            height={120}
+                        />
+                        <TitleBlock
+                            align="center"
+                            title="You're all set"
+                            description="Account, money, card — done. Now make Peanut pay you back."
+                        />
+                        <Button variant="purple" className="w-full" onClick={noop('completion-rewards')}>
+                            See your rewards
+                        </Button>
+                        <Button variant="stroke" className="w-full" onClick={noop('completion-dismiss')}>
+                            Dismiss
+                        </Button>
+                    </Card>
+                </div>
+            </section>
+
+            <section className="flex flex-col gap-3">
+                <DevSectionLabel>Option F — 3/3 finale with a badge award</DevSectionLabel>
+                <p className="text-body-s text-foreground-secondary">
+                    The list renders one last time fully green instead of vanishing, and completion awards a badge — the
+                    celebration leaves a permanent trace on /badges instead of disappearing. Badges are the existing
+                    reward primitive; no new token, no new component.
+                </p>
+                <div className="w-full max-w-96">
+                    <Section title={<CounterTitle doneCount={3} />}>
+                        <ProgressBar value={100} fillClassName="bg-background-badge-success" />
+                        <Checklist variant="trailing-pill" doneCount={3} />
+                        <Notification
+                            priority="success"
+                            title="Setup complete"
+                            ctas={[{ label: 'View badge', onClick: noop('finale-badge') }]}
+                        >
+                            You earned the Getting Started badge.
+                        </Notification>
+                    </Section>
+                </div>
+            </section>
+
+            <section className="flex flex-col gap-3">
+                <DevSectionLabel>Option G — per-step celebration toast</DevSectionLabel>
+                <p className="text-body-s text-foreground-secondary">
+                    Each completed step fires a success toast (the DS floating notification via useToast), so every step
+                    is a moment — not only the last one. Rendered here statically; in the app it floats over the bottom
+                    nav with the countdown bar.
+                </p>
+                <div className="w-full max-w-96">
+                    <Notification variant="floating" priority="success" title="Money added">
+                        2 of 3 done — your card is next.
+                    </Notification>
+                </div>
             </section>
 
             <DevNoteCard title="Why not the Discord options">
