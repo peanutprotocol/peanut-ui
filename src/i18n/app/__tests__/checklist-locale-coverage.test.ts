@@ -23,6 +23,8 @@ const CHECKLIST_KEYS = [
     'firstPaymentNote',
 ] as const
 
+const PROGRESS_KEYS = ['getStarted', 'keepGoing', 'congrats'] as const
+
 describe('getting-started checklist copy resolves in every locale', () => {
     it.each(APP_LOCALES.map((locale) => [locale]))('%s', async (locale) => {
         const messages = await loadMessages(locale)
@@ -33,6 +35,12 @@ describe('getting-started checklist copy resolves in every locale', () => {
             expect(gettingStarted[key].length).toBeGreaterThan(0)
             // a raw key path leaking through as copy is the failure mode here
             expect(gettingStarted[key]).not.toContain('gettingStarted.')
+        }
+
+        for (const key of PROGRESS_KEYS) {
+            expect(typeof gettingStarted.progress[key]).toBe('string')
+            expect(gettingStarted.progress[key].length).toBeGreaterThan(0)
+            expect(gettingStarted.progress[key]).not.toContain('gettingStarted.')
         }
     })
 
