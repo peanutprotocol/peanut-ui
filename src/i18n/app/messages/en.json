@@ -1089,7 +1089,8 @@
             "missingRecipientMessage": "No username provided in the URL. Please check the link and try again.",
             "goToHome": "Go to home",
             "createWallet": "Create your Peanut Wallet"
-        }
+        },
+        "bankDetailsAlternative": "Or get paid to your bank details"
     },
     "payment": {
         "validation": {
@@ -1735,7 +1736,8 @@
             "crypto": "Crypto",
             "cryptoDescription": "Deposit from a wallet or exchange",
             "bankTransfer": "Bank transfer",
-            "kycRequired": "KYC required"
+            "kycRequired": "KYC required",
+            "bankTransferDescription": "Details in your name that anyone can pay"
         },
         "networkDrawer": {
             "title": "Choose Network",
@@ -3907,7 +3909,8 @@
             "personCap": "A person can send up to {cap} each time. A company has no limit.",
             "revokedTitle": "Your {currency} details no longer work",
             "revokedBody": "Anything sent to them is returned to the sender. Tell anyone who pays you to stop using them, and open new details.",
-            "topUpCta": "Add {currency} instead"
+            "topUpCta": "Add {currency} instead",
+            "exactAmountCta": "Deposit a set amount instead"
         },
         "share": {
             "heading": "What the payer sees",

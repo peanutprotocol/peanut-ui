@@ -1,61 +1,27 @@
-import { MANTECA_ARG_DEPOSIT_CUIT, MANTECA_ARG_DEPOSIT_NAME } from '@/constants/manteca.consts'
 import type { DepositAccount } from './types'
 
 /**
- * What the shipped Manteca deposit screen has to work with — the fields
- * `MantecaDepositShareDetails` reads today.
- */
-export interface MantecaDepositDetails {
-    depositAddress?: string
-    depositAlias?: string
-}
-
-/**
- * Argentina and Brazil are not claimable accounts and the adapter says so in
- * the contract rather than in a screen.
+ * Neither Manteca corridor is a standing account, and both say so in the
+ * contract rather than in a screen.
  *
- * The CVU belongs to Sixalime Sas, Manteca's Argentine entity, and Manteca
- * only credits a transfer that arrives from an account in the depositing
- * user's own name — so there is nothing a user could hand to an employer.
- * Modelling it as `nameOnAccount: 'provider'` plus `sender: 'own-name-only'`
- * lets the same screens render it honestly: the details are real and useful
- * for the user's own top-up, and the share surface stays off.
+ * Argentina looked like the exception, because the CVU and its alias read like
+ * permanent coordinates. They are not: Manteca mints them per deposit, from an
+ * amount the user names first, and the CVU belongs to Sixalime Sas rather than
+ * to the user. Manteca also only credits a transfer arriving from an account in
+ * the depositing user's own name, so there was never anything to hand to an
+ * employer either.
+ *
+ * Modelling Argentina as `provisioning` — waiting on details that no request
+ * was ever going to fetch — left the details screen on a skeleton that could
+ * not resolve. `unavailable` plus the corridor's real top-up route is the true
+ * state: this corridor has a working way in, and it is not this flow.
  */
-export function fromMantecaArgentina(details: MantecaDepositDetails): DepositAccount {
+function mantecaCorridor(railId: string, country: string, currency: string, id: string): DepositAccount {
     return {
-        id: 'manteca-ars',
-        railId: 'manteca.bank_transfer_ar',
-        country: 'AR',
-        currency: 'ARS',
-        isPrimary: true,
-        status: details.depositAddress ? 'active' : 'provisioning',
-        matching: {
-            nameOnAccount: 'provider',
-            sender: 'own-name-only',
-            memo: 'none',
-            amount: 'exact',
-        },
-        instructions: {
-            accountHolderName: MANTECA_ARG_DEPOSIT_NAME,
-            cvu: details.depositAddress,
-            alias: details.depositAlias,
-            taxId: MANTECA_ARG_DEPOSIT_CUIT,
-            paymentRails: ['transfer_ar'],
-        },
-    }
-}
-
-/**
- * Brazil is a Pix code minted per payment, from the user's own account. There
- * are no reusable details to hold, so the corridor has no instructions at all
- * and the UI routes the user to the existing Pix flow.
- */
-export function mantecaBrazilAccount(): DepositAccount {
-    return {
-        id: 'manteca-brl',
-        railId: 'manteca.pix_br',
-        country: 'BR',
-        currency: 'BRL',
+        id,
+        railId,
+        country,
+        currency,
         isPrimary: true,
         status: 'unavailable',
         matching: {
@@ -65,4 +31,14 @@ export function mantecaBrazilAccount(): DepositAccount {
             amount: 'exact',
         },
     }
+}
+
+/** Argentina: a per-deposit CVU held by the provider, credited only from the user's own account. */
+export function mantecaArgentinaAccount(): DepositAccount {
+    return mantecaCorridor('manteca.bank_transfer_ar', 'AR', 'ARS', 'manteca-ars')
+}
+
+/** Brazil: a Pix code minted per payment, from the user's own account. */
+export function mantecaBrazilAccount(): DepositAccount {
+    return mantecaCorridor('manteca.pix_br', 'BR', 'BRL', 'manteca-brl')
 }

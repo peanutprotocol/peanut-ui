@@ -14,12 +14,13 @@ import { RETURN_TO_PARAM } from '@/utils/return-to.utils'
 type HomeDrawerKey = 'sendToFriends' | 'withdrawToOwnAccounts'
 type HomeDrawerBodyKey = 'sendToFriendsDescription' | 'withdrawToOwnAccountsDescription'
 type AddMethodKey = 'bankTransfer' | 'crypto'
+type AddMethodBodyKey = 'bankTransferDescription' | 'cryptoDescription'
 
 interface DrawerOption {
     key: string
     /** i18n namespace + key — 'drawers' = home.drawers, 'methods' = addMoney.methods */
     titleKey: ['drawers', HomeDrawerKey] | ['methods', AddMethodKey]
-    bodyKey?: HomeDrawerBodyKey
+    bodyKey?: ['drawers', HomeDrawerBodyKey] | ['methods', AddMethodBodyKey]
     icon: IconName
     href: string
 }
@@ -32,7 +33,7 @@ const DRAWER_OPTIONS: Record<HomeDrawer, DrawerOption[]> = {
         {
             key: 'send-friends',
             titleKey: ['drawers', 'sendToFriends'],
-            bodyKey: 'sendToFriendsDescription',
+            bodyKey: ['drawers', 'sendToFriendsDescription'],
             // person iconography, not arrows: the home CTAs that open this
             // drawer are already arrows, so repeating them here said nothing.
             // friends = several people, own accounts = one person (you).
@@ -42,15 +43,33 @@ const DRAWER_OPTIONS: Record<HomeDrawer, DrawerOption[]> = {
         {
             key: 'withdraw',
             titleKey: ['drawers', 'withdrawToOwnAccounts'],
-            bodyKey: 'withdrawToOwnAccountsDescription',
+            bodyKey: ['drawers', 'withdrawToOwnAccountsDescription'],
             icon: 'user',
             href: '/withdraw',
         },
     ],
     add: [
         // crypto first: the KYC-free path leads per product/activation-funnel.md
-        { key: 'crypto', titleKey: ['methods', 'crypto'], icon: 'credit-card', href: '/add-money/crypto' },
-        { key: 'bank', titleKey: ['methods', 'bankTransfer'], icon: 'bank', href: '/add-money?method=bank' },
+        {
+            key: 'crypto',
+            titleKey: ['methods', 'crypto'],
+            bodyKey: ['methods', 'cryptoDescription'],
+            icon: 'credit-card',
+            href: '/add-money/crypto',
+        },
+        // Bank transfer leads to the standing account the user holds, not to
+        // the one-off amount flow. Both end in bank details; the standing one
+        // is reusable, takes any amount and needs no reference, so it is the
+        // better answer to "how do I get money in by bank" every time it is
+        // available. /get-paid hands the corridors it cannot serve back to
+        // /add-money?method=bank, so nothing is lost where it is not.
+        {
+            key: 'bank',
+            titleKey: ['methods', 'bankTransfer'],
+            bodyKey: ['methods', 'bankTransferDescription'],
+            icon: 'bank',
+            href: '/get-paid',
+        },
     ],
 }
 
@@ -109,7 +128,13 @@ export function HomeActionDrawers() {
                                             ? tMethods(option.titleKey[1] as AddMethodKey)
                                             : t(option.titleKey[1] as HomeDrawerKey)
                                     }
-                                    body={option.bodyKey ? t(option.bodyKey) : undefined}
+                                    body={
+                                        option.bodyKey
+                                            ? option.bodyKey[0] === 'methods'
+                                                ? tMethods(option.bodyKey[1])
+                                                : t(option.bodyKey[1])
+                                            : undefined
+                                    }
                                     chevron
                                     onClick={() => navigate(option.href)}
                                     data-testid={`home-drawer-${content}-${option.key}`}

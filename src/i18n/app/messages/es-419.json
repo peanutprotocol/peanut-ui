@@ -1089,7 +1089,8 @@
             "missingRecipientMessage": "No se incluyó un nombre de usuario en la URL. Revisa el enlace e inténtalo de nuevo.",
             "goToHome": "Ir al inicio",
             "createWallet": "Crea tu Peanut Wallet"
-        }
+        },
+        "bankDetailsAlternative": "O recibe pagos en tus datos bancarios"
     },
     "payment": {
         "validation": {
@@ -1735,7 +1736,8 @@
             "crypto": "Cripto",
             "cryptoDescription": "Deposita desde una billetera o exchange",
             "bankTransfer": "Transferencia bancaria",
-            "kycRequired": "Requiere KYC"
+            "kycRequired": "Requiere KYC",
+            "bankTransferDescription": "Datos a tu nombre que cualquiera puede pagar"
         },
         "networkDrawer": {
             "title": "Elegir red",
@@ -3907,7 +3909,8 @@
             "personCap": "Una persona puede enviarte hasta {cap} cada vez. Una empresa no tiene límite.",
             "revokedTitle": "Tus datos en {currency} ya no funcionan",
             "revokedBody": "Lo que envíen a esos datos vuelve a quien lo mandó. Avisa a quien te paga que deje de usarlos y abre datos nuevos.",
-            "topUpCta": "Ingresar {currency} de otra forma"
+            "topUpCta": "Ingresar {currency} de otra forma",
+            "exactAmountCta": "Depositar un monto fijo"
         },
         "share": {
             "heading": "Esto ve quien te paga",

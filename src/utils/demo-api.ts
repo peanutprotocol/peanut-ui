@@ -369,6 +369,32 @@ let demoAvatarKey: string | null = null
 
 // ---- routes (ordered: literal paths before :param paths) ----
 
+/**
+ * The euro account the demo user holds. Shaped like Bridge sandbox output, with
+ * documentation values rather than real coordinates. The holder is the partner
+ * that holds euro accounts rather than the user, which is exactly the fact the
+ * details screen exists to explain before somebody hands these out.
+ */
+const DEMO_DEPOSIT_ACCOUNT_EUR = {
+    id: 'demo-deposit-account-eur',
+    railId: 'bridge.sepa_eu',
+    country: 'DEU',
+    currency: 'EUR',
+    status: 'active',
+    isPrimary: true,
+    matching: { nameOnAccount: 'provider', sender: 'unknown', memo: 'none', amount: 'flexible' },
+    instructions: {
+        accountHolderName: 'Bridge Building Sp. z o.o.',
+        bankName: 'Modern Treasury Bank',
+        bankAddress: 'Rue du Commerce 4, 1000 Brussels, Belgium',
+        iban: 'DE89 3704 0044 0532 0130 00',
+        bic: 'MTBEBEBB',
+        beneficiaryName: 'Bridge Building Sp. z o.o.',
+        beneficiaryAddress: 'ul. Prosta 51, 00-838 Warszawa, Poland',
+        paymentRails: ['sepa'],
+    },
+}
+
 const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     // user
     {
@@ -400,6 +426,20 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     { method: 'POST', pattern: '/users/initiate-kyc', handler: () => ({}) },
     { method: 'POST', pattern: '/users/interaction-status', handler: () => ({}) },
     { method: 'POST', pattern: '/users/accounts', handler: () => ({ id: 'demo-bank' }) },
+    // Standing deposit accounts. The baseline user holds the EUR one and
+    // nothing else, so the list shows one held corridor and the rest open to
+    // claim — the state most users are in. Fixtures override this to reach the
+    // others.
+    {
+        method: 'GET',
+        pattern: '/users/deposit-accounts',
+        handler: () => ({ depositAccounts: [DEMO_DEPOSIT_ACCOUNT_EUR] }),
+    },
+    {
+        method: 'POST',
+        pattern: '/users/deposit-accounts',
+        handler: () => ({ depositAccount: DEMO_DEPOSIT_ACCOUNT_EUR }),
+    },
     {
         method: 'GET',
         pattern: '/users/username/:username',

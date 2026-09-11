@@ -24,13 +24,18 @@ import { DepositGateNotice } from './DepositGateNotice'
  */
 export function DepositAccountsListScreen({
     accounts,
+    isLoading,
     gate,
+    onBack,
     onOpen,
     onResolveGate,
 }: {
     accounts: Record<DepositCorridor, DepositAccount | undefined>
+    /** the corridor catalogue is static, but which of them the user holds is not */
+    isLoading: boolean
     /** the app's own answer to "can this user deposit by bank" — never a local flag */
     gate: GateState
+    onBack: () => void
     onOpen: (corridor: DepositCorridor) => void
     onResolveGate: () => void
 }) {
@@ -38,6 +43,11 @@ export function DepositAccountsListScreen({
     const { claimable, notice } = depositGateView(gate)
 
     const rowBody = (corridor: DepositCorridor, account: DepositAccount | undefined): string => {
+        // The corridors come from a local catalogue and the accounts from the
+        // network, so the rows can paint before anything is known about them.
+        // Saying "not set up yet" in that gap is a wrong answer that corrects
+        // itself a moment later — the arrival time is true either way.
+        if (isLoading) return arrival(corridor)
         const unclaimable = unclaimableReason(corridor)
         if (unclaimable) return unclaimable
         if (!claimable) return t('list.rowBlocked')
@@ -53,6 +63,7 @@ export function DepositAccountsListScreen({
     // a corridor that cannot be held as an account still works for the user's
     // own top-up, so it gets no badge — the body line carries the difference
     const rowBadge = (account: DepositAccount | undefined) => {
+        if (isLoading) return <div className="h-5 w-16 animate-pulse rounded bg-foreground-primary/10" />
         if (account?.status === 'active') return <StatusBadge status="completed" customText={t('list.badgeReady')} />
         if (account?.status === 'provisioning') return <StatusBadge status="pending" />
         if (account?.status === 'failed') return <StatusBadge status="failed" />
@@ -62,7 +73,7 @@ export function DepositAccountsListScreen({
 
     return (
         <PageStack>
-            <NavHeader title={t('title')} hideBackBtn />
+            <NavHeader title={t('title')} onPrev={onBack} />
             <div className="flex flex-col gap-6">
                 <TitleBlock size="s" title={t('list.heading')} description={t('list.subheading')} />
 
@@ -82,8 +93,8 @@ export function DepositAccountsListScreen({
                                     body={rowBody(corridor, account)}
                                     bodyWrap
                                     trailing={isClaimable(rail) ? rowBadge(account) : undefined}
-                                    chevron={claimable}
-                                    disabled={!claimable}
+                                    chevron={claimable && !isLoading}
+                                    disabled={!claimable || isLoading}
                                     onClick={() => onOpen(corridor)}
                                     data-testid={`deposit-account-${corridor}`}
                                 />

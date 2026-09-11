@@ -18,6 +18,13 @@ import { DepositDetailsCard } from './DepositDetailsCard'
 import { DepositDetailsSkeleton } from './DepositDetailsSkeleton'
 
 /**
+ * The per-amount bank deposit that predates standing accounts: pick a country,
+ * name an amount, get details valid for that one payment. It is the only path
+ * that can check an amount against the user's limits before the money moves.
+ */
+const ONE_OFF_TRANSFER_HREF = '/add-money?method=bank'
+
+/**
  * Screen 2 — the user's own view of one account.
  *
  * Block order is priority order. Whose name a payer will read comes before
@@ -181,6 +188,19 @@ export function DepositAccountDetailsScreen({
                             <LinkButton href={rail.topUpHref}>
                                 {t('details.topUpCta', { currency: rail.currency })}
                             </LinkButton>
+                        )}
+
+                        {/*
+                         * The one-off transfer flow, kept and reachable. A
+                         * standing account takes any amount, which also means
+                         * nothing checks the amount against the user's limits
+                         * before the money moves. Naming a figure first is the
+                         * only way to see that a deposit would exceed them, so
+                         * the older flow stays the answer for a large or
+                         * first-time transfer rather than being retired.
+                         */}
+                        {!ownNameOnly && (
+                            <LinkButton href={ONE_OFF_TRANSFER_HREF}>{t('details.exactAmountCta')}</LinkButton>
                         )}
                     </>
                 )}

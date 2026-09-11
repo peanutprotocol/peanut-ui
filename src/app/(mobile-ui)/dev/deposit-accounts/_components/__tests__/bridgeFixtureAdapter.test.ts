@@ -1,6 +1,6 @@
 import fixture from '../bridge-sandbox-virtual-accounts.json'
 import { fromBridgeVirtualAccounts, type BridgeVirtualAccount } from '../bridgeFixtureAdapter'
-import { fromMantecaArgentina } from '@/features/deposit-accounts/mantecaCorridors'
+import { mantecaArgentinaAccount } from '@/features/deposit-accounts/mantecaCorridors'
 import { instructionRows } from '@/features/deposit-accounts/instructionRows'
 import { buildShareText } from '@/features/deposit-accounts/shareText'
 import enMessages from '@/i18n/app/messages/en.json'
@@ -96,12 +96,19 @@ describe('bridge adapter', () => {
 })
 
 describe('manteca adapter', () => {
-    const argentina = fromMantecaArgentina({ depositAddress: '0000003100010000000001', depositAlias: 'peanut.ars' })
+    const argentina = mantecaArgentinaAccount()
 
     it('models argentina as pooled and own-name-only', () => {
         expect(argentina.matching.nameOnAccount).toBe('provider')
         expect(argentina.matching.sender).toBe('own-name-only')
-        expect(argentina.instructions?.accountHolderName).toBe('Sixalime Sas')
+    })
+
+    it('carries no standing instructions, because Manteca mints them per deposit', () => {
+        // The screen renders a skeleton while details are on their way. Argentina
+        // has none coming, so claiming it as `provisioning` left that skeleton
+        // spinning for good — `unavailable` sends the user to the real top-up.
+        expect(argentina.status).toBe('unavailable')
+        expect(argentina.instructions).toBeUndefined()
     })
 })
 

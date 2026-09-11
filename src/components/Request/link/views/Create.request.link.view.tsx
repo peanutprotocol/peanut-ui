@@ -1,6 +1,7 @@
 'use client'
 import FileUploadInput from '@/components/Global/FileUploadInput'
 import NavHeader from '@/components/Global/NavHeader'
+import Link from 'next/link'
 import PeanutActionCard from '@/components/Global/PeanutActionCard'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import AmountInput from '@/components/Global/AmountInput'
@@ -76,6 +77,20 @@ export const CreateRequestLinkView = () => {
                     tokenValue={tokenValue}
                     onGenerate={generateLink}
                 />
+
+                {/*
+                    The other way to be paid. A request asks one person for one
+                    amount and is answered inside Peanut; standing bank details
+                    take any amount from anybody through their own bank. Both
+                    are money coming in, so the screen for one names the other
+                    rather than leaving the user to find it under Add.
+                */}
+                <Link
+                    href="/get-paid"
+                    className="text-center text-body-s text-foreground-secondary underline underline-offset-4"
+                >
+                    {t('bankDetailsAlternative')}
+                </Link>
 
                 {errorState.showError && (
                     <div className="text-start">

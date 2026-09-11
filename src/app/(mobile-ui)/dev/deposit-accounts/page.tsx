@@ -93,6 +93,7 @@ export default function DepositAccountsPrototypePage() {
                                 gate={sandbox.gate}
                                 claimingCorridor={sandbox.claimingCorridor}
                                 returnedPayment={sandbox.returnedPayment}
+                                onExit={() => {}}
                                 onClaim={sandbox.claim}
                                 onResolveGate={() => setScenario('live')}
                             />

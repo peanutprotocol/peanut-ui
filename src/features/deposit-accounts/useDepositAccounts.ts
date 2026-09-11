@@ -4,7 +4,7 @@ import { useCapabilities } from '@/hooks/useCapabilities'
 import { claimDepositAccount, fetchDepositAccounts } from '@/services/deposit-accounts'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useState } from 'react'
-import { fromMantecaArgentina, mantecaBrazilAccount } from './mantecaCorridors'
+import { mantecaArgentinaAccount, mantecaBrazilAccount } from './mantecaCorridors'
 import { DEPOSIT_RAILS } from './rails'
 import type { DepositAccount, DepositCorridor } from './types'
 
@@ -43,8 +43,8 @@ export function useDepositAccounts() {
     /**
      * The corridor map the screens read. Bridge corridors come from the
      * backend; Manteca's two are assembled here because they are not accounts
-     * anybody holds — the CVU belongs to the provider and only credits the
-     * user's own transfers, so there is nothing per-user to store.
+     * anybody holds — both mint their coordinates per deposit, so there is
+     * nothing per-user to store and nothing standing to fetch.
      */
     const accounts = useCallback((): Record<DepositCorridor, DepositAccount | undefined> => {
         const byCorridor: Record<DepositCorridor, DepositAccount | undefined> = {
@@ -53,7 +53,7 @@ export function useDepositAccounts() {
             FASTER_PAYMENTS_GB: undefined,
             SPEI_MX: undefined,
             PIX_BR: mantecaBrazilAccount(),
-            BANK_TRANSFER_AR: fromMantecaArgentina({}),
+            BANK_TRANSFER_AR: mantecaArgentinaAccount(),
         }
         for (const account of query.data ?? []) {
             const corridor = corridorFromRailId(account.railId)

@@ -12,4 +12,12 @@ export type Fixture = {
     responses?: Record<string, unknown>
     /** `METHOD /path` keys that answer 500, for error-state screens. */
     fails?: string[]
+    /**
+     * Set when the state under test IS a loader — a screen waiting on a
+     * provider that will not answer inside a fixture. The capture normally
+     * fails on a visible loader, because a run that photographs 120 spinners
+     * looks exactly like a run that photographed 120 screens. A fixture that
+     * says so on purpose is the one case where that check has to stand down.
+     */
+    isLoadingState?: true
 }

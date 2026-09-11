@@ -2,7 +2,7 @@
 
 import fixture from './bridge-sandbox-virtual-accounts.json'
 import { fromBridgeVirtualAccounts, type BridgeVirtualAccount } from './bridgeFixtureAdapter'
-import { fromMantecaArgentina, mantecaBrazilAccount } from '@/features/deposit-accounts/mantecaCorridors'
+import { mantecaArgentinaAccount, mantecaBrazilAccount } from '@/features/deposit-accounts/mantecaCorridors'
 import type { DepositAccount, DepositCorridor } from '@/features/deposit-accounts/types'
 import { corridorFromRailId } from '@/features/deposit-accounts/useDepositAccounts'
 import type { GateState } from '@/utils/capability-gate'
@@ -56,17 +56,13 @@ export function useSandboxDepositAccounts(scenario: SandboxScenario) {
     }, [])
 
     const accounts = useMemo(() => {
-        const argentina = fromMantecaArgentina({
-            depositAddress: '0000003100010000000001',
-            depositAlias: 'peanut.sandbox.ars',
-        })
         const byCorridor: Record<DepositCorridor, DepositAccount | undefined> = {
             ACH_US: undefined,
             SEPA_EU: undefined,
             FASTER_PAYMENTS_GB: undefined,
             SPEI_MX: undefined,
             PIX_BR: mantecaBrazilAccount(),
-            BANK_TRANSFER_AR: argentina,
+            BANK_TRANSFER_AR: mantecaArgentinaAccount(),
         }
 
         bridgeAccounts.forEach((account) => {
