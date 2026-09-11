@@ -151,8 +151,15 @@
         },
         "edit": {
             "errors": {
-                "nameRequired": "Por favor ingresá tu nombre."
-            }
+                "nameRequired": "Por favor ingresá tu nombre.",
+                "invalidEmail": "Ingresá una dirección de correo válida.",
+                "invalidCode": "Ingresá el código de 6 dígitos que recibiste por correo."
+            },
+            "verifiedNameHelp": "Tu nombre proviene de la verificación de identidad y no se puede editar acá. Contactá a soporte si necesitás corregirlo.",
+            "emailCode": "Código de verificación",
+            "emailCodeHelp": "Enviamos un código a {email}. Tu correo actual seguirá activo hasta que verifiques el nuevo.",
+            "sendCode": "Enviar código",
+            "requestNewCode": "Solicitar otro código"
         },
         "regions": {
             "description": "Transferí y recibí desde cualquier cuenta bancaria y usá los métodos de pago disponibles.",

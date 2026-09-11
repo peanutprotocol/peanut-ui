@@ -306,7 +306,7 @@
             "unlockBadge": "Desbloquear",
             "yourBadges": "Tus insignias",
             "points": "Puntos",
-            "personalDetails": "Datos personales",
+            "personalDetails": "Editar perfil",
             "unlockedRegions": "Canales de pago",
             "paymentLimits": "Límites de pago",
             "showMyFullName": "Mostrar mi nombre completo",
@@ -324,15 +324,23 @@
                 "name": "Nombre",
                 "surname": "Apellido",
                 "bio": "Bio",
-                "email": "Correo electrónico",
+                "email": "Correo para notificaciones",
                 "phoneNumber": "Número de teléfono",
                 "website": "Sitio web"
             },
             "soonBadge": "¡Pronto!",
             "saveChanges": "Guardar cambios",
             "errors": {
-                "nameRequired": "Por favor ingresa tu nombre."
-            }
+                "nameRequired": "Por favor ingresa tu nombre.",
+                "invalidEmail": "Ingresa una dirección de correo válida.",
+                "emailInUse": "Este correo ya está asociado a otra cuenta.",
+                "invalidCode": "Ingresa el código de 6 dígitos que recibiste por correo."
+            },
+            "verifiedNameHelp": "Tu nombre proviene de la verificación de identidad y no se puede editar aquí. Contacta a soporte si necesitas corregirlo.",
+            "emailCode": "Código de verificación",
+            "emailCodeHelp": "Enviamos un código a {email}. Tu correo actual seguirá activo hasta que verifiques el nuevo.",
+            "sendCode": "Enviar código",
+            "requestNewCode": "Solicitar otro código"
         },
         "regions": {
             "title": "Regiones y verificación",

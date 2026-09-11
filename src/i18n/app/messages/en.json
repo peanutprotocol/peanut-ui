@@ -306,7 +306,7 @@
             "unlockBadge": "Unlock",
             "yourBadges": "Your Badges",
             "points": "Points",
-            "personalDetails": "Personal Details",
+            "personalDetails": "Edit profile",
             "unlockedRegions": "Payment Channels",
             "paymentLimits": "Payment limits",
             "showMyFullName": "Show my full name",
@@ -324,15 +324,23 @@
                 "name": "Name",
                 "surname": "Surname",
                 "bio": "Bio",
-                "email": "Email",
+                "email": "Email for notifications",
                 "phoneNumber": "Phone number",
                 "website": "Website"
             },
             "soonBadge": "Soon!",
             "saveChanges": "Save Changes",
             "errors": {
-                "nameRequired": "Please provide your name."
-            }
+                "nameRequired": "Please provide your name.",
+                "invalidEmail": "Please enter a valid email address.",
+                "emailInUse": "This email is already associated with another account.",
+                "invalidCode": "Enter the 6-digit code from your email."
+            },
+            "verifiedNameHelp": "Your name comes from your identity verification and cannot be edited here. Contact support if it needs correcting.",
+            "emailCode": "Verification code",
+            "emailCodeHelp": "We sent a code to {email}. Your current email will stay active until you verify the new one.",
+            "sendCode": "Send code",
+            "requestNewCode": "Request another code"
         },
         "regions": {
             "title": "Regions and verification",
