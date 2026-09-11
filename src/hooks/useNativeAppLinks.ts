@@ -17,6 +17,7 @@ import { notifyNotificationsUpdated, onForegroundPushDelivered } from '@/utils/n
 import { dispatchBackPress } from '@/utils/back-handler'
 import { stashInvite } from '@/utils/invite-stash'
 import { EInviteType } from '@/services/services.types'
+import { badgeCampaignsFromSearchParams, queuePendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 
 /*
  * App-lifecycle + deep-link listeners (back button, appStateChange focus,
@@ -137,6 +138,8 @@ export function useNativeAppLinks() {
                 if (parsed.pathname.split('/').filter(Boolean)[0] === 'invite') {
                     const code = toInviteCode(parsed.searchParams.get('code') ?? '')
                     if (code) stashInvite(code, EInviteType.DIRECT)
+                    const badgeCampaigns = badgeCampaignsFromSearchParams(parsed.searchParams)
+                    if (badgeCampaigns.length > 0) queuePendingBadgeCampaigns(badgeCampaigns, 30)
                 }
             } catch {}
             lastDispatchedUrl = url

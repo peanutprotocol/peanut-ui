@@ -10,7 +10,7 @@ import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
 import { useIosPwaInstallGate } from '@/hooks/useIosPwaInstallGate'
 import { readInviteCode, stashInvite } from '@/utils/invite-stash'
-import { Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { setupSteps as masterSetupSteps } from '../../../components/Setup/Setup.consts'
 import { hasKnownDeviceCredentials, resolveSetupEntryStep } from '@/components/Setup/setup-entry'
 import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
@@ -31,6 +31,12 @@ import { useTranslations } from 'next-intl'
 import { useModalsContext } from '@/context/ModalsContext'
 import * as Sentry from '@sentry/nextjs'
 import { EInviteType } from '@/services/services.types'
+import {
+    badgeCampaignsFromSearchParams,
+    getPendingBadgeCampaigns,
+    queuePendingBadgeCampaigns,
+} from '@/components/Invites/badge-campaign-context'
+import { claimAndSettlePendingBadgeCampaigns } from '@/services/badge-campaigns'
 
 function SetupPageContent() {
     const t = useTranslations('setup')
@@ -38,7 +44,7 @@ function SetupPageContent() {
     const { setIsSupportModalOpen } = useModalsContext()
     const { steps, resetSetupFlow, setNoBackLockScreenId } = useSetupFlowContext()
     const { step, currentIndex: currentStepIndex, direction, handleNext, handleBack, setScreenId } = useSetupFlow()
-    const { logoutUser, isLoggingOut, user, isFetchingUser } = useAuth()
+    const { logoutUser, isLoggingOut, user, isFetchingUser, fetchUser } = useAuth()
     const { setShowIosPwaInstallScreen } = useIosPwaInstallGate()
     const router = useRouter()
     const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
@@ -67,8 +73,15 @@ function SetupPageContent() {
     // the user back to the entry step.
     const inviteCodeParam = searchParams.get('code')
     const legacyStepParam = searchParams.get('step')
+    const searchParamsString = searchParams.toString()
+    const urlBadgeCampaigns = useMemo(
+        () => badgeCampaignsFromSearchParams(new URLSearchParams(searchParamsString)),
+        [searchParamsString]
+    )
     const [sessionChecked, setSessionChecked] = useState(false)
     const [existingSessionUsername, setExistingSessionUsername] = useState<string | null>(null)
+    const [isSettlingNativeBadgeCampaigns, setIsSettlingNativeBadgeCampaigns] = useState(false)
+    const hasStartedNativeBadgeClaimingRef = useRef(false)
 
     const recoveryReason =
         initializationError ??
@@ -141,6 +154,16 @@ function SetupPageContent() {
     useEffect(() => {
         if (sessionChecked || isFetchingUser) return
         setSessionChecked(true)
+
+        // Native /invite links are rewritten to /setup because the invite page is
+        // not part of the static export. Queue the campaign before the completed
+        // session redirect can discard the query string, and settle it below for
+        // users who are already authenticated.
+        const pendingBadgeCampaigns =
+            urlBadgeCampaigns.length > 0
+                ? queuePendingBadgeCampaigns(urlBadgeCampaigns, 30)
+                : getPendingBadgeCampaigns()
+
         if (user?.user?.username) {
             /*
              * A COMPLETED session (hasAppAccess) that lands back on /setup — e.g. a
@@ -149,6 +172,33 @@ function SetupPageContent() {
              * written for (durable credentials, setup never completed).
              */
             if (user.user.hasAppAccess) {
+                if (isCapacitor() && pendingBadgeCampaigns.length > 0 && !hasStartedNativeBadgeClaimingRef.current) {
+                    hasStartedNativeBadgeClaimingRef.current = true
+                    setIsSettlingNativeBadgeCampaigns(true)
+                    void claimAndSettlePendingBadgeCampaigns(pendingBadgeCampaigns)
+                        .then(async (batch) => {
+                            const hasConfirmedClaim = batch.claims.some(
+                                ({ outcome }) => outcome === 'awarded' || outcome === 'already_owned'
+                            )
+                            if (hasConfirmedClaim) {
+                                try {
+                                    await fetchUser()
+                                } catch (error) {
+                                    Sentry.captureException(error, {
+                                        tags: { error_type: 'native_campaign_profile_refresh_failed' },
+                                    })
+                                }
+                            }
+                        })
+                        .catch((error) => {
+                            Sentry.captureException(error, { tags: { error_type: 'native_campaign_claim_failed' } })
+                        })
+                        .finally(() => {
+                            setIsSettlingNativeBadgeCampaigns(false)
+                            router.replace('/home')
+                        })
+                    return
+                }
                 posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_CONTINUED, { auto: true })
                 router.replace('/home')
                 return
@@ -158,7 +208,7 @@ function SetupPageContent() {
                 has_app_access: !!user.user.hasAppAccess,
             })
         }
-    }, [sessionChecked, isFetchingUser, user, router])
+    }, [sessionChecked, isFetchingUser, user, router, fetchUser, urlBadgeCampaigns])
 
     const handleContinueSession = () => {
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_CONTINUED)
@@ -371,7 +421,7 @@ function SetupPageContent() {
         )
     }
 
-    if (isLoading || !sessionChecked)
+    if (isLoading || !sessionChecked || isSettlingNativeBadgeCampaigns)
         return (
             <div className="flex h-dvh w-full flex-col items-center justify-center">
                 <Loading variant="mascot" />

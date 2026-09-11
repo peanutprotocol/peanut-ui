@@ -1,4 +1,4 @@
-import { act, fireEvent, screen } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import type { ISetupStep } from '@/components/Setup/Setup.types'
 import SetupPage from '../page'
@@ -8,6 +8,15 @@ import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
 const mockSupport = jest.fn()
 const mockResolve = jest.fn()
 const mockRouter = { replace: jest.fn(), push: jest.fn() }
+const mockQueuePendingBadgeCampaigns = jest.fn((campaigns: readonly string[]) => [...campaigns])
+const mockGetPendingBadgeCampaigns = jest.fn(() => [] as string[])
+const mockClaimAndSettlePendingBadgeCampaigns = jest.fn(() =>
+    Promise.resolve({
+        claims: [{ badgeCampaign: 'bug_whisperer', outcome: 'awarded' }],
+        pending: [],
+        transport: 'canonical',
+    })
+)
 const mockFlow = {
     step: undefined as ISetupStep | undefined,
     handleNext: jest.fn(),
@@ -15,8 +24,16 @@ const mockFlow = {
     setScreenId: jest.fn(),
 }
 const mockStore = { steps: [] as ISetupStep[], inviteCode: undefined }
-const mockAuth = { user: undefined, isFetchingUser: false, logoutUser: jest.fn(), isLoggingOut: false }
+type MockAuthUser = { user?: { username?: string; hasAppAccess?: boolean } }
+const mockAuth = {
+    user: undefined as MockAuthUser | undefined,
+    isFetchingUser: false,
+    logoutUser: jest.fn(),
+    isLoggingOut: false,
+    fetchUser: jest.fn().mockResolvedValue(undefined),
+}
 let mockNative = true
+let mockSearchParams = new URLSearchParams()
 
 jest.mock('@/features/setup/SetupFlowContext', () => ({
     useSetupFlowContext: () => ({ ...mockStore, resetSetupFlow: jest.fn(), setNoBackLockScreenId: jest.fn() }),
@@ -25,6 +42,14 @@ jest.mock('@/hooks/useIosPwaInstallGate', () => ({
     useIosPwaInstallGate: () => ({ setShowIosPwaInstallScreen: jest.fn() }),
 }))
 jest.mock('@/utils/invite-stash', () => ({ readInviteCode: jest.fn(), stashInvite: jest.fn() }))
+jest.mock('@/components/Invites/badge-campaign-context', () => ({
+    badgeCampaignsFromSearchParams: (params: URLSearchParams) => params.getAll('badge_campaign'),
+    getPendingBadgeCampaigns: () => mockGetPendingBadgeCampaigns(),
+    queuePendingBadgeCampaigns: (campaigns: readonly string[]) => mockQueuePendingBadgeCampaigns(campaigns),
+}))
+jest.mock('@/services/badge-campaigns', () => ({
+    claimAndSettlePendingBadgeCampaigns: (...args: unknown[]) => mockClaimAndSettlePendingBadgeCampaigns(...args),
+}))
 jest.mock('@/hooks/useSetupFlow', () => ({ useSetupFlow: () => mockFlow }))
 jest.mock('@/features/setup/useSetupStepAnalytics', () => ({ useSetupStepAnalytics: jest.fn() }))
 jest.mock('@/hooks/useSetupBackHandler', () => ({ useSetupBackHandler: jest.fn() }))
@@ -35,7 +60,7 @@ jest.mock('@/hooks/useGetDeviceType', () => ({
 }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => mockAuth }))
 jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSupportModalOpen: mockSupport }) }))
-jest.mock('next/navigation', () => ({ useSearchParams: () => new URLSearchParams(), useRouter: () => mockRouter }))
+jest.mock('next/navigation', () => ({ useSearchParams: () => mockSearchParams, useRouter: () => mockRouter }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => mockNative }))
 jest.mock('@/utils/migration.utils', () => ({ isPwaSunsetOn: () => false }))
 jest.mock('@/utils/general.utils', () => ({
@@ -59,7 +84,7 @@ jest.mock('@/components/Global/UnsupportedBrowserModal', () => ({
 }))
 jest.mock('@/assets/mascot', () => ({ PeanutWavingHello: { src: '' } }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
-jest.mock('@sentry/nextjs', () => ({ captureMessage: jest.fn() }))
+jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), captureMessage: jest.fn() }))
 
 const landing: ISetupStep = {
     screenId: 'landing',
@@ -79,7 +104,17 @@ beforeEach(() => {
     mockStore.steps = [landing]
     mockFlow.step = landing
     mockAuth.isFetchingUser = false
+    mockAuth.user = undefined
+    mockAuth.fetchUser.mockResolvedValue(undefined)
+    mockGetPendingBadgeCampaigns.mockReturnValue([])
+    mockQueuePendingBadgeCampaigns.mockImplementation((campaigns: readonly string[]) => [...campaigns])
+    mockClaimAndSettlePendingBadgeCampaigns.mockResolvedValue({
+        claims: [{ badgeCampaign: 'bug_whisperer', outcome: 'awarded' }],
+        pending: [],
+        transport: 'canonical',
+    })
     mockNative = true
+    mockSearchParams = new URLSearchParams()
 })
 afterEach(() => {
     jest.useRealTimers()
@@ -187,6 +222,21 @@ it.each([true, false])('preserves the resolved entry flow (native=%s)', async (n
     await advance(100)
     expect(screen.getByText('Landing step')).toBeInTheDocument()
     expect(mockFlow.setScreenId).toHaveBeenCalledWith('landing', { history: 'replace' })
+})
+
+it('settles a native badge campaign before redirecting an authenticated user home', async () => {
+    mockAuth.user = { user: { username: 'alice', hasAppAccess: true } }
+    mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer')
+
+    renderWithIntl(<SetupPage />)
+
+    await waitFor(() => expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledWith(['bug_whisperer']))
+    expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(mockAuth.fetchUser).toHaveBeenCalledTimes(1))
+    expect(mockRouter.replace).toHaveBeenCalledWith('/home')
+    expect(mockRouter.replace.mock.invocationCallOrder[0]).toBeGreaterThan(
+        mockClaimAndSettlePendingBadgeCampaigns.mock.invocationCallOrder[0]
+    )
 })
 
 it('does not initialize after unmount', async () => {
