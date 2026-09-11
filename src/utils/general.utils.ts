@@ -770,7 +770,11 @@ const REDIRECT_V2_CONSUMED_KEY = 'redirect-v2-consumed'
 /** Generation-scoped tombstones prevent stale consumers from overwriting each other. */
 const REDIRECT_V2_CONSUMED_PREFIX = 'redirect-v2-consumed:'
 const REDIRECT_V2_CONSUMED_FALLBACK_PREFIX = 'redirect-v2-consumed-fallback:'
-const REDIRECT_V2_CONSUMED_RESERVE_VALUE = '0'
+const REDIRECT_V2_CONSUMED_PUBLISHED_VALUE = 'p'
+/** Fresh reservations are in-flight publications; only aged ones are abandoned. */
+const REDIRECT_V2_CONSUMED_RESERVATION_PREFIX = 'r'
+const REDIRECT_V2_CONSUMED_RESERVATION_LENGTH = 11
+const REDIRECT_V2_CONSUMED_RESERVATION_TTL_MS = 60_000
 /**
  * Legacy bare-path records cannot be deleted conditionally without the same
  * check/remove race. Remembering their consumed value makes them inert while
@@ -951,10 +955,10 @@ const reserveRedirectConsumptionCapacity = (generationId: string): boolean => {
     if (typeof localStorage === 'undefined') return false
     const primaryKey = `${REDIRECT_V2_CONSUMED_PREFIX}${generationId}`
     const fallbackKey = `${REDIRECT_V2_CONSUMED_FALLBACK_PREFIX}${generationId}`
-    const primaryReserved =
-        getFromLocalStorage(primaryKey) !== null || saveToLocalStorage(primaryKey, REDIRECT_V2_CONSUMED_RESERVE_VALUE)
+    const reservationValue = createRedirectConsumptionReservation()
+    const primaryReserved = getFromLocalStorage(primaryKey) !== null || saveToLocalStorage(primaryKey, reservationValue)
     const fallbackReserved =
-        getFromLocalStorage(fallbackKey) !== null || saveToLocalStorage(fallbackKey, REDIRECT_V2_CONSUMED_RESERVE_VALUE)
+        getFromLocalStorage(fallbackKey) !== null || saveToLocalStorage(fallbackKey, reservationValue)
     return primaryReserved && fallbackReserved
 }
 
@@ -963,6 +967,31 @@ const markRedirectConsumed = (generationId: string): boolean => {
     const fallbackKey = `${REDIRECT_V2_CONSUMED_FALLBACK_PREFIX}${generationId}`
     if (saveToLocalStorage(primaryKey, '1')) return true
     return saveToLocalStorage(fallbackKey, '1')
+}
+
+const createRedirectConsumptionReservation = (): string =>
+    `${REDIRECT_V2_CONSUMED_RESERVATION_PREFIX}${Date.now()
+        .toString(36)
+        .padStart(REDIRECT_V2_CONSUMED_RESERVATION_LENGTH - REDIRECT_V2_CONSUMED_RESERVATION_PREFIX.length, '0')}`
+
+const publishRedirectConsumptionSlots = (generationId: string) => {
+    saveToLocalStorage(`${REDIRECT_V2_CONSUMED_PREFIX}${generationId}`, REDIRECT_V2_CONSUMED_PUBLISHED_VALUE)
+    saveToLocalStorage(`${REDIRECT_V2_CONSUMED_FALLBACK_PREFIX}${generationId}`, REDIRECT_V2_CONSUMED_PUBLISHED_VALUE)
+}
+
+const discardRedirectConsumptionReservations = (generationId: string) => {
+    const pointer = getFromLocalStorage(REDIRECT_V2_KEY)
+    if (isRedirectPointer(pointer) && pointer.generationId === generationId) return
+    localStorage.removeItem(`${REDIRECT_V2_CONSUMED_PREFIX}${generationId}`)
+    localStorage.removeItem(`${REDIRECT_V2_CONSUMED_FALLBACK_PREFIX}${generationId}`)
+}
+
+const isReclaimableRedirectConsumptionSlot = (value: unknown): boolean => {
+    if (value === '0' || value === REDIRECT_V2_CONSUMED_PUBLISHED_VALUE || value === '1') return true
+    if (typeof value !== 'string' || !value.startsWith(REDIRECT_V2_CONSUMED_RESERVATION_PREFIX)) return false
+
+    const reservedAt = Number.parseInt(value.slice(REDIRECT_V2_CONSUMED_RESERVATION_PREFIX.length), 36)
+    return Number.isFinite(reservedAt) && Date.now() - reservedAt >= REDIRECT_V2_CONSUMED_RESERVATION_TTL_MS
 }
 
 const reclaimRedirectConsumptionSlots = () => {
@@ -985,7 +1014,7 @@ const reclaimRedirectConsumptionSlots = () => {
         if (!generationId || !isRedirectGenerationId(generationId)) continue
 
         const value = getFromLocalStorage(key)
-        if (value === '0' || value === '1') reclaimableGenerationIds.add(generationId)
+        if (isReclaimableRedirectConsumptionSlot(value)) reclaimableGenerationIds.add(generationId)
     }
 
     const refreshedPointer = getFromLocalStorage(REDIRECT_V2_KEY)
@@ -1014,7 +1043,12 @@ export const setRedirectUrl = (destination: string, origin: RedirectOrigin = 'de
     })
     // Keep the v1 handoff readable for documents that predate this change, but
     // never publish a mirror that has no authoritative v2 payload behind it.
-    if (published) saveToLocalStorage(REDIRECT_KEY, destination)
+    if (published) {
+        publishRedirectConsumptionSlots(generationId)
+        saveToLocalStorage(REDIRECT_KEY, destination)
+    } else {
+        discardRedirectConsumptionReservations(generationId)
+    }
     reclaimRedirectConsumptionSlots()
 }
 

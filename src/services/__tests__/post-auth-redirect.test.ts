@@ -383,6 +383,19 @@ describe('post-auth redirect reads one snapshot', () => {
         expect(getRedirectUrl()).toBe('/profile')
     })
 
+    it('protects fresh in-flight reservation slots from cleanup', () => {
+        setRedirectUrl('/profile', 'session-end')
+        const inFlightGenerationId = 'in-flight-generation'
+        const reservationValue = `r${Date.now().toString(36).padStart(10, '0')}`
+        localStorage.setItem(`redirect-v2-consumed:${inFlightGenerationId}`, reservationValue)
+        localStorage.setItem(`redirect-v2-consumed-fallback:${inFlightGenerationId}`, reservationValue)
+
+        setRedirectUrl('/card', 'deep-link')
+
+        expect(localStorage.getItem(`redirect-v2-consumed:${inFlightGenerationId}`)).toBe(reservationValue)
+        expect(localStorage.getItem(`redirect-v2-consumed-fallback:${inFlightGenerationId}`)).toBe(reservationValue)
+    })
+
     it('aborts tombstone cleanup when the authoritative pointer changes during the scan', () => {
         setRedirectUrl('/profile', 'session-end')
         const getKey = jest.spyOn(Storage.prototype, 'key')
