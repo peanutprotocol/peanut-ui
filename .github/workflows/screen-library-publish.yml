@@ -29,10 +29,10 @@ jobs:
             - uses: actions/setup-node@v4
               with:
                   node-version: '20'
-            # Install only trusted publisher dependencies; do not execute app install scripts.
-            - run: npm install --ignore-scripts --no-save --package-lock=false --prefix /tmp/screen-publisher pixelmatch@7.2.0 pngjs@7.0.0 @aws-sdk/client-s3@3.883.0 sharp@0.34.5
+            # Install only trusted publisher dependencies from the committed lockfile.
+            - run: npm ci --ignore-scripts --no-audit --no-fund --prefix scripts/screens/publisher
             - name: Link isolated publisher dependencies
-              run: ln -s /tmp/screen-publisher/node_modules node_modules
+              run: ln -s "$GITHUB_WORKSPACE/scripts/screens/publisher/node_modules" node_modules
             - name: Download capture artifacts from this run
               uses: actions/download-artifact@v4
               with:

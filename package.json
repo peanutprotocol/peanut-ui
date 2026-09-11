@@ -30,6 +30,7 @@
         "gen:api:live": "curl -sSf ${PEANUT_API_OPENAPI_URL:-http://localhost:5050/openapi.json} | python3 -m json.tool > src/types/api.openapi.json && pnpm gen:api",
         "check:api": "pnpm gen:api && git diff --exit-code src/types/api.generated.ts",
         "test": "jest",
+        "screens:test": "node --test scripts/screens/*.test.mjs",
         "test:watch": "jest --watch",
         "test:coverage": "jest --coverage",
         "test:e2e:regression": "playwright test --config=playwright.regression.config.ts",

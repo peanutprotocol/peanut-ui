@@ -72,6 +72,29 @@ jobs:
             - name: Validate sitemap, footer, and blog links
               run: pnpm validate-links
 
+    # The screen-library suite covers capture validation, publication provenance,
+    # storage credentials, shared pointer ordering, and the Worker's public
+    # allowlist. Keep it isolated from the app test jobs because it needs no
+    # submodules or secrets.
+    screen-tests:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  persist-credentials: false
+
+            - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+              with:
+                  version: 10.30.1
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'pnpm'
+
+            - run: pnpm install --frozen-lockfile --ignore-scripts --ignore-pnpmfile
+            - run: pnpm screens:test
+
     # DS debt ratchet (DS 10, TASK-21450). Runs scripts/ds-lint-counts.mjs
     # --check against the committed baseline: debt counts (raw hex, inline
     # styles, stock text sizes, non-DS classes in views, useSearchParams files)
@@ -1011,7 +1034,7 @@ jobs:
     ci-success:
         name: ci-success
         if: always()
-        needs: [format, ds-lint, eslint, typecheck, native-export, unit, report, human-authors]
+        needs: [format, screen-tests, ds-lint, eslint, typecheck, native-export, unit, report, human-authors]
         runs-on: ubuntu-latest
         steps:
             - name: Verify all required jobs passed
@@ -1020,6 +1043,7 @@ jobs:
                       echo "::error::One or more required jobs failed or were cancelled"
                       echo "Job results:"
                       echo "  format:    ${{ needs.format.result }}"
+                      echo "  screen-tests: ${{ needs['screen-tests'].result }}"
                       echo "  ds-lint:   ${{ needs['ds-lint'].result }}"
                       echo "  eslint:    ${{ needs.eslint.result }}"
                       echo "  typecheck: ${{ needs.typecheck.result }}"

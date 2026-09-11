@@ -24,8 +24,8 @@ jobs:
             - uses: actions/setup-node@v4
               with:
                   node-version: '22'
-            - name: Install isolated deployment tool
-              run: npm install --ignore-scripts --no-save --package-lock=false --prefix /tmp/screen-deploy wrangler@4.40.2
+            - name: Install isolated deployment tool from the committed lockfile
+              run: npm ci --ignore-scripts --no-audit --no-fund --prefix scripts/screens/deploy
             - name: Prepare static gallery and R2 binding
               env:
                   SCREEN_LIBRARY_R2_BUCKET: ${{ vars.SCREEN_LIBRARY_R2_BUCKET }}
@@ -36,4 +36,4 @@ jobs:
               env:
                   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEPLOY_TOKEN }}
                   CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-              run: /tmp/screen-deploy/node_modules/.bin/wrangler deploy --config /tmp/screen-gallery/wrangler.json
+              run: scripts/screens/deploy/node_modules/.bin/wrangler deploy --config /tmp/screen-gallery/wrangler.json

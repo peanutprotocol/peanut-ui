@@ -1,0 +1,9 @@
+{
+    "name": "peanut-screen-library-deployer",
+    "private": true,
+    "version": "1.0.0",
+    "type": "module",
+    "dependencies": {
+        "wrangler": "4.40.2"
+    }
+}
