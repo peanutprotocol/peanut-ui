@@ -11,7 +11,8 @@ const MARKER = '[ota-floors: android=1.6.0 ios=1.5.0]'
 const env = {
     CAPGO_APP_ID: 'me.peanut.wallet',
     CAPGO_API_KEY: 'test-key',
-    VERSION: '1.6.3',
+    VERSION: '1.6.3-ios',
+    PLATFORM: 'ios',
     FLOOR_ANDROID: '1.6.0',
     FLOOR_IOS: '1.5.0',
     NATIVE_FLOOR: '1.5.0',
@@ -19,7 +20,7 @@ const env = {
 }
 const goodBundle = {
     app_id: env.CAPGO_APP_ID,
-    name: '1.6.3',
+    name: '1.6.3-ios',
     deleted: false,
     comment: `commit ${MARKER}`,
     minUpdateVersion: '1.5.0',
@@ -31,6 +32,7 @@ const goodBundle = {
 const candidate = {
     app_id: env.CAPGO_APP_ID,
     name: 'ota-candidate',
+    rolloutEnabled: false,
     public: false,
     allow_device_self_set: false,
     allow_emulator: false,
@@ -138,55 +140,138 @@ it('prepares the disabled channel and reads the persisted settings back', () => 
 it('rejects preparation when the server did not persist the audience restrictions', () => {
     expect(invoke('prepare-candidate', [{ body: {} }, { body: { ...candidate, allow_prod: true } }]).status).toBe(1)
 })
-it('reads the production version field without matching versions in arbitrary text', () => {
-    const production = {
-        app_id: env.CAPGO_APP_ID,
-        name: 'production',
-        version: { name: '1.6.2' },
-        rolloutEnabled: false,
-    }
-    expect(invoke('current-version', [{ body: production }]).result).toBe('1.6.2')
-    expect(
-        invoke('current-version', [{ body: { ...production, version: null, comment: 'version 1.6.2' } }]).status
-    ).toBe(1)
+
+const app = { app_id: env.CAPGO_APP_ID, expose_metadata: true }
+const config = { supaHost: 'https://sb.capgo.app', supaKey: 'public-anon-key' }
+const channelPolicy = (platform, version = 'builtin') => ({
+    app_id: env.CAPGO_APP_ID,
+    name: `${platform}-mobile-release`,
+    public: true,
+    ios: platform === 'ios',
+    android: platform === 'android',
+    electron: false,
+    disable_auto_update: 'version_number',
+    disable_auto_update_under_native: true,
+    allow_device_self_set: false,
+    allow_prod: true,
+    allow_device: true,
+    rollout_enabled: false,
+    version: { name: version },
 })
-it('refuses to resolve a release while production has an active rollout', () => {
-    const production = {
-        app_id: env.CAPGO_APP_ID,
-        name: 'production',
-        version: { name: '1.6.2' },
-        rolloutEnabled: true,
-    }
-    const result = invoke('current-version', [{ body: production }])
+const channels = [channelPolicy('ios'), channelPolicy('android')]
+const policyResponses = (rows = channels) => [{ body: app }, { body: config }, { body: rows }]
+
+it('reads builtin as a legitimate starting state, but rejects a missing version', () => {
+    expect(invoke('current-version', policyResponses()).result).toBe('builtin')
+    expect(invoke('current-version', policyResponses([{ ...channels[0], version: null }, channels[1]])).status).toBe(1)
+})
+it.each([
+    { android: true },
+    { ios: false },
+    { electron: true },
+    { public: false },
+    { disable_auto_update: 'major' },
+    { disable_auto_update_under_native: false },
+    { allow_device_self_set: true },
+    { allow_prod: false },
+    { allow_device: false },
+    { rollout_enabled: true },
+    { rollout_enabled: null },
+    { rollout_enabled: undefined },
+])('rejects unsafe iOS policy before promotion: %j', (change) => {
+    const result = invoke('verify-promotion', policyResponses([{ ...channels[0], ...change }, channels[1]]))
     expect(result.status).toBe(1)
     expect(result.requests.every((request) => request.method === 'GET')).toBe(true)
 })
+it('requires an exclusive Android default too, even when promoting iOS', () => {
+    expect(invoke('verify-promotion', policyResponses([channels[0], { ...channels[1], ios: true }])).status).toBe(1)
+    expect(
+        invoke('verify-promotion', policyResponses([...channels, { ...channels[0], name: 'production' }])).status
+    ).toBe(1)
+})
+it.each([false, null, undefined])('blocks releases when metadata exposure is %s', (expose_metadata) => {
+    const result = invoke('verify-promotion', [{ body: { ...app, expose_metadata } }])
+    expect(result.status).toBe(1)
+    expect(result.requests).toHaveLength(1)
+})
+it('never sends credentials to an unexpected configuration host', () => {
+    const result = invoke('verify-promotion', [
+        { body: app },
+        { body: { ...config, supaHost: 'https://untrusted.test' } },
+    ])
+    expect(result.status).toBe(1)
+    expect(result.requests).toHaveLength(2)
+})
+it('accepts validated metadata routing and fails closed on API failure', () => {
+    expect(invoke('verify-promotion', policyResponses()).status).toBe(0)
+    expect(invoke('verify-promotion', [{ body: app }, { body: config }, { status: 503 }]).status).toBe(1)
+})
+it('keeps a partial or deleted upload reserved, and ignores the staging counter', () => {
+    const result = invoke('current-release', [
+        ...policyResponses(),
+        { body: [{ name: '1.6.3-ios', deleted: true }, { name: '1.6.11913' }, { name: '1.6.2-android' }] },
+    ])
+    expect(result.result).toBe('1.6.3')
+    expect(invoke('current-release', [...policyResponses(), { body: [] }]).result).toBe('builtin')
+})
+it('verifies the selected production artifact after promotion', () => {
+    const rows = [channelPolicy('ios', env.VERSION), channels[1]]
+    expect(invoke('verify-production', [...policyResponses(rows), { body: [goodBundle] }]).status).toBe(0)
+    expect(invoke('verify-production', policyResponses()).status).toBe(1)
+})
+it('rejects the lower iOS floor on an Android delivery record', () => {
+    const result = verify([{ ...goodBundle, name: '1.6.3-android' }], { PLATFORM: 'android', VERSION: '1.6.3-android' })
+    expect(result.status).toBe(1)
+    expect(result.error).toContain('server floor must match the delivery platform')
+})
+it.each(['ios', 'android'])('verifies a distinct %s artifact with its own native floor', (platform) => {
+    const nativeFloor = platform === 'ios' ? '1.5.0' : '1.6.0'
+    const version = `1.6.3-${platform}`
+    expect(
+        verify([{ ...goodBundle, name: version, minUpdateVersion: nativeFloor }], {
+            PLATFORM: platform,
+            VERSION: version,
+            NATIVE_FLOOR: nativeFloor,
+        }).status
+    ).toBe(0)
+})
+it('allows reuse only of a verified native .0 record from the exact source', () => {
+    const native = {
+        ...goodBundle,
+        name: '1.7.0',
+        minUpdateVersion: '1.7.0',
+        comment: '[ota-floors: android=1.7.0 ios=1.7.0]',
+    }
+    const overrides = { VERSION: '1.7.0', FLOOR_ANDROID: '1.7.0', FLOOR_IOS: '1.7.0', NATIVE_FLOOR: '1.7.0' }
+    expect(invoke('existing-native', [{ body: [] }], overrides).result).toBe('missing')
+    expect(invoke('existing-native', [{ body: [native] }], overrides).result).toBe('1.7.0')
+    expect(invoke('existing-native', [{ body: [{ ...native, checksum: null }] }], overrides).status).toBe(1)
+    expect(invoke('existing-native', [{ body: [{ ...native, link: 'wrong-source' }] }], overrides).status).toBe(1)
+    expect(invoke('existing-native', [], { VERSION: '1.7.1-ios' }).status).toBe(1)
+})
 
-// Execute the workflow's actual promotion shell. Replace only its executables:
-// node runs the real guard with an HTTP fixture, and npx records whether the
-// production mutation would have happened. No deployment or network is possible.
-function promotion(rolloutEnabled, apiFails = false) {
+// Run the actual promotion shell; only executables are replaced. The real
+// preflight consumes recorded API responses. Post-promotion verification has
+// separate exact-artifact cases above. No network or publication is possible.
+function promotion(change = {}, apiFails = false) {
     const source = fs.readFileSync(path.join(ROOT, '.github/workflows/release-ota.yml'), 'utf8')
     const step = source.slice(
-        source.indexOf('- name: Promote verified bundle'),
-        source.indexOf('- name: Verify channel serves')
+        source.indexOf('- name: Promote verified bundles'),
+        source.indexOf('- name: Deployment summary')
     )
     const shell = step.match(/run: \|\n([\s\S]*)/)[1]
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ota-promotion-'))
     const marker = path.join(dir, 'production-mutated')
     const driver = `
-      const mode = process.argv[2];
-      // This wrapper receives the real CLI arguments, but must not activate
-      // the imported module's separate CLI entry point or its real fetch.
-      process.argv[1] = process.execPath;
+      const mode = process.argv[2]; process.argv[1] = process.execPath;
       globalThis.fetch = () => { throw new Error('unexpected live request'); };
+      if (mode !== 'verify-promotion') process.exit(0);
       const { run } = await import(${JSON.stringify(SCRIPT)});
-      try {
-        await run(mode, { fetchImpl: async () => ({
-          ok: process.env.TEST_API_FAILS !== 'true', status: 503,
-          json: async () => JSON.parse(process.env.TEST_PRODUCTION)
-        }) });
-      } catch (error) { console.error(error.message); process.exitCode = 1; }
+      const responses = JSON.parse(process.env.TEST_RESPONSES);
+      try { await run(mode, { fetchImpl: async () => ({
+        ok: process.env.TEST_API_FAILS !== 'true', status: 503,
+        json: async () => responses.shift().body
+      }) }); } catch (error) { console.error(error.message); process.exitCode = 1; }
     `
     try {
         const result = spawnSync(
@@ -197,7 +282,7 @@ function promotion(rolloutEnabled, apiFails = false) {
                 '-c',
                 `
           node() { "$NODE_BINARY" --input-type=module -e "$GUARD_DRIVER" "$@"; }
-          npx() { printf 'promoted' > "$PROMOTED_FILE"; }
+          npx() { printf 'promoted' >> "$PROMOTED_FILE"; }
           ${shell}
         `,
             ],
@@ -206,72 +291,114 @@ function promotion(rolloutEnabled, apiFails = false) {
                 env: {
                     ...process.env,
                     ...env,
+                    RELEASE_VERSION: '1.6.3',
                     NODE_BINARY: process.execPath,
                     GUARD_DRIVER: driver,
                     PROMOTED_FILE: marker,
                     TEST_API_FAILS: String(apiFails),
-                    TEST_PRODUCTION: JSON.stringify({
-                        app_id: env.CAPGO_APP_ID,
-                        name: 'production',
-                        version: { name: '1.6.2' },
-                        rolloutEnabled,
-                    }),
+                    TEST_RESPONSES: JSON.stringify(policyResponses([{ ...channels[0], ...change }, channels[1]])),
                 },
             }
         )
-        return { status: result.status, stderr: result.stderr, mutated: fs.existsSync(marker) }
+        return { status: result.status, promoted: fs.existsSync(marker) }
     } finally {
         fs.rmSync(dir, { recursive: true, force: true })
     }
 }
-
-it.each([true, null, undefined, 'false'])(
-    'never changes production when rollout state is %s before promotion',
-    (state) => {
-        const result = promotion(state)
-        expect(result.status).not.toBe(0)
-        expect(result.mutated).toBe(false)
+it.each([{ rollout_enabled: true }, { rollout_enabled: null }, { android: true }, { disable_auto_update: 'major' }])(
+    'the actual workflow cannot mutate either channel after rejected preflight %j',
+    (change) => {
+        expect(promotion(change)).toEqual({ status: 1, promoted: false })
     }
 )
-it('never changes production when its pre-promotion read fails', () => {
-    const result = promotion(false, true)
-    expect(result.status).not.toBe(0)
-    expect(result.mutated).toBe(false)
+it('the actual workflow stops before mutation on API failure', () => {
+    expect(promotion({}, true)).toEqual({ status: 1, promoted: false })
 })
-it('allows promotion only after confirming production has no active rollout', () => {
-    expect(promotion(false)).toEqual({ status: 0, mutated: true, stderr: '' })
+it('the actual workflow promotes only after both platform policies pass', () => {
+    expect(promotion()).toEqual({ status: 0, promoted: true })
 })
-it('verifies production and the promoted artifact, and rejects an active alternate rollout', () => {
-    const production = {
-        app_id: env.CAPGO_APP_ID,
-        name: 'production',
-        version: { name: '1.6.3' },
-        rolloutEnabled: false,
-    }
-    expect(invoke('verify-production', [{ body: production }, { body: [goodBundle] }]).status).toBe(0)
-    for (const change of [{ rolloutEnabled: true }, { version: { name: '1.6.2' } }]) {
-        expect(invoke('verify-production', [{ body: { ...production, ...change } }]).status).toBe(1)
-    }
-})
-it.each([{ FLOOR_ANDROID: '2.1.0' }, { FLOOR_IOS: '1.7.0' }, { NATIVE_FLOOR: '1.6.0' }, { FLOOR_IOS: '1.5.1' }])(
-    'rejects invalid floor expectations: %j',
-    (overrides) => {
-        expect(verify([goodBundle], overrides).status).toBe(1)
-    }
-)
-it('keeps production promotion after successful verification and upload isolated', () => {
+it('uploads and verifies both artifacts before any production promotion', () => {
     const source = fs.readFileSync(path.join(ROOT, '.github/workflows/release-ota.yml'), 'utf8')
-    const upload = source.slice(source.indexOf('- name: Upload bundle'), source.indexOf('- name: Verify the floors'))
-    expect(upload).toContain('CHANNEL: ota-candidate')
-    expect(upload).toContain('--channel "$CHANNEL"')
-    expect(upload).not.toMatch(/^\s+--version-exists-ok\b/m)
-    expect(upload).toContain('--link "https://github.com/peanutprotocol/peanut-ui/commit/$GITHUB_SHA"')
-    const prepare = source.indexOf('node scripts/capgo-release-guard.mjs prepare-candidate')
-    const verify = source.indexOf('node scripts/capgo-release-guard.mjs verify-bundle')
-    const promote = source.indexOf('channel set production')
-    expect(prepare).toBeLessThan(source.indexOf('- name: Upload bundle'))
-    expect(verify).toBeLessThan(promote)
-    expect(source.slice(verify, promote)).not.toMatch(/continue-on-error|always\(\)/)
-    expect(source).toContain('CAPGO_APP_ID: me.peanut.wallet')
-    expect(fs.readFileSync(path.join(ROOT, 'capacitor.config.ts'), 'utf8')).toContain("appId: 'me.peanut.wallet'")
+    expect(source.indexOf('- name: Upload bundles')).toBeLessThan(source.indexOf('- name: Verify the floors'))
+    expect(source.indexOf('- name: Verify the floors')).toBeLessThan(source.indexOf('- name: Promote verified bundles'))
+    expect(source).not.toContain('--version-exists-ok')
+    expect(source).toContain('--channel ota-candidate')
+    expect(source).not.toContain('channel set production')
 })
+
+it('never assigns a prerelease .0 identity that sorts below its native binary', () => {
+    expect(verify([{ ...goodBundle, name: '1.6.0-ios' }], { VERSION: '1.6.0-ios' }).status).toBe(1)
+})
+
+// Execute the native publisher with deterministic command responses. Assertions
+// cover the ordering and failures that can otherwise promote an absent artifact.
+function publishNative({ existing = 'missing', failure = '', platform = 'ios' } = {}) {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'native-ota-publish-'))
+    const log = path.join(dir, 'calls')
+    fs.mkdirSync(path.join(dir, 'out'))
+    fs.writeFileSync(path.join(dir, 'out/index.html'), '<html></html>')
+    try {
+        const result = spawnSync(
+            'bash',
+            [
+                '-c',
+                `
+          node() {
+            printf '%s\\n' "$2" >> "$CALL_LOG"
+            [ "$FAILURE" != "$2" ] || return 1
+            if [ "$2" = existing-native ]; then printf '%s' "$EXISTING"; fi
+          }
+          npx() {
+            printf '%s\\n' "$*" >> "$CALL_LOG"
+            [ "$FAILURE" != upload ] || return 1
+          }
+          source "$PUBLISH_SCRIPT"
+        `,
+            ],
+            {
+                cwd: dir,
+                encoding: 'utf8',
+                env: {
+                    ...process.env,
+                    ...env,
+                    VERSION: '1.7.0',
+                    PLATFORM: platform,
+                    CAPGO_PRIVATE_KEY: 'test-private-key',
+                    CALL_LOG: log,
+                    EXISTING: existing,
+                    FAILURE: failure,
+                    PUBLISH_SCRIPT: path.join(ROOT, 'scripts/publish-native-ota.sh'),
+                },
+            }
+        )
+        return { status: result.status, calls: fs.readFileSync(log, 'utf8').trim().split('\n') }
+    } finally {
+        fs.rmSync(dir, { recursive: true, force: true })
+    }
+}
+it.each(['ios', 'android'])('native publisher verifies before promoting %s', (platform) => {
+    const { status, calls } = publishNative({ platform })
+    expect(status).toBe(0)
+    const upload = calls.findIndex((line) => line.includes('bundle upload'))
+    const promote = calls.findIndex((line) => line.includes('channel set'))
+    expect(upload).toBeGreaterThan(calls.indexOf('existing-native'))
+    expect(calls[upload]).toContain('--min-update-version 1.7.0')
+    expect(calls[upload]).toContain('[ota-floors: android=1.7.0 ios=1.7.0]')
+    expect(promote).toBeGreaterThan(calls.indexOf('verify-bundle'))
+    expect(calls[promote]).toContain(`channel set ${platform}-mobile-release`)
+    expect(calls.at(-1)).toBe('verify-production')
+})
+it('native publisher skips uploading only an already verified record', () => {
+    const { status, calls } = publishNative({ existing: '1.7.0' })
+    expect(status).toBe(0)
+    expect(calls.some((line) => line.includes('bundle upload'))).toBe(false)
+    expect(calls).toContain('verify-bundle')
+})
+it.each(['existing-native', 'upload', 'verify-bundle', 'verify-promotion'])(
+    'native publisher cannot promote after %s fails',
+    (failure) => {
+        const { status, calls } = publishNative({ failure })
+        expect(status).toBe(1)
+        expect(calls.some((line) => line.includes('channel set'))).toBe(false)
+    }
+)

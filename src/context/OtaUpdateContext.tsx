@@ -6,6 +6,7 @@ import { isSplashVisible } from '@/hooks/useSplashGate'
 import { isAndroidNativeBridge, isCapacitor } from '@/utils/capacitor'
 import type { OtaApplyOutcome } from '@/utils/capgo-updater'
 import { importWithChunkRetry } from '@/utils/chunk-error-recovery'
+import { runningBundleOutranksBinary } from '@/utils/ota-native-gate'
 import { markNativeBootComplete } from '@/utils/native-app-ready'
 
 /**
@@ -56,6 +57,14 @@ export function OtaUpdateProvider({ children }: { children: React.ReactNode }) {
         if (!isCapacitor()) return
         let disposed = false
         let cleanup: (() => void) | undefined
+
+        // This check describes already-running JS; it must not depend on a newer
+        // candidate existing, and failure must not prevent updater initialization.
+        runningBundleOutranksBinary()
+            .then((required) => {
+                if (!disposed && required) setStoreUpdateRequired(true)
+            })
+            .catch((err) => console.warn('[capgo] running floor read failed:', err))
 
         // a bundle staged on an earlier launch is still queued in the plugin —
         // read through the gate, which drops one built for a newer binary

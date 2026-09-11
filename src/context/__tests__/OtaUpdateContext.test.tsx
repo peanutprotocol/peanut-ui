@@ -50,6 +50,7 @@ jest.mock('@/utils/app-version', () => ({
 
 import { OtaUpdateProvider, useOtaUpdate } from '../OtaUpdateContext'
 import { NATIVE_APP_READY_SCRIPT } from '@/utils/native-app-ready'
+import * as otaGate from '@/utils/ota-native-gate'
 import * as chunkRecovery from '@/utils/chunk-error-recovery'
 
 const STAGED = { id: 'b-2', version: '1.2.0', downloaded: '', checksum: '', status: 'pending' as const }
@@ -701,4 +702,11 @@ describe('rollbacks the plugin performed while no page could report them', () =>
         })
         expect(error).not.toHaveBeenCalledWith(expect.stringContaining('[capgo-apply]'))
     })
+})
+
+it('surfaces an incompatible running bundle even without a newer or staged candidate', async () => {
+    jest.spyOn(otaGate, 'runningBundleOutranksBinary').mockResolvedValue(true)
+    const { result } = setup()
+    await waitFor(() => expect(result.current.storeUpdateRequired).toBe(true))
+    expect(result.current.pendingBundle).toBeNull()
 })

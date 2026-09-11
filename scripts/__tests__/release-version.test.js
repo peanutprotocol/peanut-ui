@@ -93,6 +93,17 @@ describe('release version resolver', () => {
     })
 
     describe('ota', () => {
+        it('advances beyond shipped tags after channels are reset to builtin', () => {
+            const result = run(repo('1.0.53', { tags: ['v1.6.0', 'ota-1.6.2'] }), ['ota', '--current', 'builtin'])
+            expect(result.status).toBe(0)
+            expect(result.stdout.trim()).toBe('1.6.3')
+        })
+        it('advances after a partial platform upload', () => {
+            const result = run(repo('1.0.53', { tags: ['v1.6.0', 'ota-1.6.2'] }), ['ota', '--current', '1.6.3-ios'])
+            expect(result.status).toBe(0)
+            expect(result.stdout.trim()).toBe('1.6.4')
+        })
+
         it('increments the OTA component within the current build', () => {
             const result = run(repo('1.0.53', { tags: ['v1.5.0'] }), ['ota', '--current', '1.5.3'])
 
