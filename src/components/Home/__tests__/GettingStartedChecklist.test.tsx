@@ -62,13 +62,13 @@ describe('GettingStartedChecklist', () => {
         expect(screen.getByText('Done. Your money has a username now')).toBeInTheDocument()
     })
 
-    it('uses the DS disabled surface for completed rows', () => {
+    it('keeps completed rows on the same white surface as pending rows', () => {
         render()
         const completed = screen.getByTestId('checklist-create-account')
-        expect(completed).toHaveClass('bg-background-disabled', 'border-border-default')
+        expect(completed).toHaveClass('bg-white', 'border-border-default')
         expect(screen.getByTestId('checklist-add-money')).toHaveClass('bg-white', 'border-border-default')
         expect(screen.getByTestId('checklist-get-card')).toHaveClass('bg-white', 'border-border-default')
-        expect(completed).not.toHaveClass('bg-background-icon-bubble-green/10')
+        expect(completed).not.toHaveClass('bg-background-disabled', 'bg-background-icon-bubble-green/10')
         expect(completed).not.toHaveClass('border-border-subtle')
     })
 

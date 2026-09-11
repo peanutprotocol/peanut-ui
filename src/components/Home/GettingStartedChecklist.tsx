@@ -158,7 +158,7 @@ const GettingStartedChecklist = () => {
                             chevron={tappable}
                             disabled={!tappable}
                             onClick={tappable ? item.onTap : undefined}
-                            className={item.done ? 'border-border-default' : undefined}
+                            className={item.done ? 'border-border-default bg-white' : undefined}
                         />
                     )
                 })}
