@@ -26,12 +26,13 @@
  * is marked SUCCESS before it has proved it can boot. This counter is the
  * replacement, and it is the better net — Capgo cannot tell a bundle whose JS
  * is broken from one the OS froze, and rolled back on both. A frozen boot
- * eventually finishes and clears the counter; a broken one never does.
+ * eventually initializes the app and updater and clears the counter; a broken
+ * one never does. A rendered app with a broken updater is still an incomplete boot.
  */
 const BOOT_INCOMPLETE_KEY = 'peanutNativeBootIncomplete'
 const BOOT_INCOMPLETE_LIMIT = 3
 
-/** The app rendered, so whatever bundle is running boots. Clears the counter. */
+/** Called after React renders and local OTA initialization succeeds, without waiting for network access. */
 export function markNativeBootComplete(): void {
     try {
         window.localStorage.removeItem(BOOT_INCOMPLETE_KEY)
@@ -52,8 +53,8 @@ export const NATIVE_APP_READY_SCRIPT = `
     var failures = 0;
     try { failures = Number(localStorage.getItem(KEY)) || 0; } catch (e) {}
 
-    // Three launches that never rendered: the bundle is the problem, not the
-    // scheduler. Fall back to the builtin one instead of marking this ready.
+    // Three launches that never initialized the app and updater: fall back to
+    // the builtin bundle instead of acknowledging another incomplete boot.
     if (failures >= LIMIT && typeof updater.reset === 'function') {
         try { localStorage.removeItem(KEY); } catch (e) {}
         try { updater.reset({}); } catch (e) {}

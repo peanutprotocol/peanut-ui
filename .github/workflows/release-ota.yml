@@ -1,12 +1,10 @@
 name: App Release OTA
 
-# The single entry point for a production OTA. Click "Run workflow" on `dev`, `main`, or `release/android-kyc`; the
-# bundle version is resolved from the channel's current bundle, not typed.
-#
-# Nothing here is automatic — this is a deliberate second step after the code is
-# on an approved release ref, saying "ship this JS to everyone", exactly as the `git tag ota-… &&
-# git push` it replaces, minus the hand-picked number. This workflow does not
-# publish or verify a staging bundle; the release-ref guard is its provenance gate.
+# Production OTA releases remain manual from dev, main, or release/android-kyc.
+# The selected commit must contain the newest attested native release and pass
+# native compatibility checks. It uploads two signed platform bundle records to an
+# inactive candidate channel, verifies their exact metadata, then promotes each to
+# its platform production channel. A merge or push alone never publishes an OTA.
 #
 # The version always lands inside the current native build's range
 # (<major>.<build>.<ota+1>), so it cannot sort below the binary it targets — the
@@ -15,18 +13,21 @@ name: App Release OTA
 # `ota-1.0.48-hotfix1` style of suffixed tag is no longer needed.
 #
 # The tag is written afterwards as the record of what shipped. A failed deploy
-# leaves no tag, so a re-run resolves the same number instead of burning one.
+# leaves no tag; any partial upload still reserves its number for a fresh retry.
 
 on:
     workflow_dispatch:
+
+env:
+    CAPGO_APP_ID: me.peanut.wallet
 
 permissions:
     contents: read
 
 concurrency:
     # One mutex across every sanctioned production release: this workflow and its
-    # counterpart both end by writing the production Capgo channel, and interleaving
-    # them leaves it serving a bundle the newest binary rejects. An OTA that resolves
+    # counterparts write the platform production channels, and interleaving
+    # them can leave a channel serving a bundle the newest binary rejects. An OTA that resolves
     # its version before a concurrent native release publishes its `.0` is exactly the
     # TASK-21793 shape, so the whole resolve-through-publish span holds the mutex.
     group: production-release
@@ -38,8 +39,8 @@ jobs:
         outputs:
             version: ${{ steps.resolve.outputs.version }}
         steps:
-            # An OTA reaches every shipped install. Restrict the selected branch;
-            # release QA must verify its commit before this manual dispatch.
+            # Keep the existing manual release refs. Provenance and native
+            # compatibility are checked separately; a branch name proves neither.
             - name: Guard release ref
               run: |
                   if [ "$GITHUB_REF_NAME" != "dev" ] && [ "$GITHUB_REF_NAME" != "main" ] && [ "$GITHUB_REF_NAME" != "release/android-kyc" ]; then
@@ -73,21 +74,13 @@ jobs:
             # what the consequence is.
             - name: Guard release provenance
               run: |
-                  FLOOR="$(node scripts/release-version.mjs native-floor)"
+                  FLOOR="$(node scripts/release-version.mjs newest-native)"
                   if ! git merge-base --is-ancestor "v$FLOOR" HEAD; then
                       echo "::error::$GITHUB_REF_NAME (${GITHUB_SHA:0:7}) does not contain the newest native release v$FLOOR — publishing it would hand every device on that binary JS older than the one it shipped with. Back-merge the release into this ref first." >&2
                       exit 1
                   fi
                   echo "${GITHUB_SHA:0:7} contains v$FLOOR"
 
-            # The Capgo CLI reads `capacitor.config.ts` to resolve the appId on
-            # every command, and parsing a .ts config needs the project's own
-            # TypeScript. Without it the CLI aborts at config load and prints the
-            # failure on STDOUT — straight into the version grep below, which
-            # matches nothing and leaves CURRENT empty. That reads exactly like
-            # "Capgo has no bundle for this channel", which is what the first two
-            # runs of this workflow looked like. Passing the appId positionally
-            # does not help: the config is loaded regardless.
             - name: Install dependencies
               run: pnpm install
 
@@ -96,47 +89,10 @@ jobs:
               env:
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
               run: |
-                  # Keep the raw output rather than piping the CLI into grep, which
-                  # discarded its diagnostics and made a config-load or auth failure
-                  # indistinguishable from an empty channel.
-                  #
-                  # Streams stay separate and the EXIT STATUS is the gate. The CLI
-                  # mirrors its errors onto stdout as well as stderr, so "did any
-                  # version-shaped text appear" is not a safe success test: npx's
-                  # install warning names `@capgo/cli@8.42.4`, and npm prints its
-                  # own "new version available" notice at exit — either can satisfy
-                  # the version grep and be read as the current bundle.
-                  set +e
-                  npx @capgo/cli@8.42.4 channel currentBundle production \
-                    --apikey "$CAPGO_API_KEY" --quiet >"$RUNNER_TEMP/capgo-out.txt" 2>"$RUNNER_TEMP/capgo-err.txt"
-                  STATUS=$?
-                  set -e
-
-                  dump_capgo() {
-                      echo "--- capgo stdout ---" >&2
-                      cat "$RUNNER_TEMP/capgo-out.txt" >&2
-                      echo "--- capgo stderr ---" >&2
-                      cat "$RUNNER_TEMP/capgo-err.txt" >&2
-                      echo "--------------------" >&2
-                  }
-
-                  if [ "$STATUS" -ne 0 ]; then
-                      dump_capgo
-                      echo "::error::the Capgo CLI failed (exit $STATUS) reading the production channel" >&2
-                      exit 1
-                  fi
-
-                  # stdout only: npm's notices land on stderr after the CLI output,
-                  # where `tail -n1` would pick one up as if it were the version.
-                  CURRENT="$(grep -oE '[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?' "$RUNNER_TEMP/capgo-out.txt" | tail -n1 || true)"
-                  if [ -z "$CURRENT" ]; then
-                      dump_capgo
-                      echo "::error::cannot read the production channel's current bundle from Capgo — refusing to guess the next OTA version" >&2
-                      exit 1
-                  fi
+                  CURRENT="$(node scripts/capgo-release-guard.mjs current-release)"
                   VERSION="$(node scripts/release-version.mjs ota --current "$CURRENT")"
                   echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-                  echo "Production serves $CURRENT — next OTA is $VERSION"
+                  echo "Highest current or reserved release is $CURRENT — next OTA is $VERSION"
                   {
                     echo "## OTA $VERSION"
                     echo "- **Replaces:** $CURRENT"
@@ -169,6 +125,22 @@ jobs:
             # IS_NATIVE_BUILD / GIT_COMMIT_HASH are auto-baked by next.config.native.js.
             # Delimiter is quoted: a secret holding $ or a backtick must land in the
             # file verbatim, not be expanded — or executed — by the shell.
+            # Before the bake: these two land in the static export, so the bundle
+            # carries the oldest binary of each platform it may run on. Also an
+            # early surface check — the resolver refuses outright when no shipped
+            # binary of a platform carries this tree's contract, which is the same
+            # condition "Check the native surface" fails on, minus the build.
+            - name: Resolve per-platform OTA floors
+              id: ota_floors
+              run: |
+                  ANDROID="$(node scripts/ota-platform-floor.mjs --platform android)"
+                  IOS="$(node scripts/ota-platform-floor.mjs --platform ios)"
+                  {
+                    echo "android=$ANDROID"
+                    echo "ios=$IOS"
+                  } >> "$GITHUB_OUTPUT"
+                  echo "Delivery floors — android $ANDROID, ios $IOS"
+
             - name: Bake production NEXT_PUBLIC_* into the static export
               run: |
                   cat > .env.production.local <<'EOF'
@@ -187,6 +159,8 @@ jobs:
                   NEXT_PUBLIC_ONESIGNAL_APP_ID=${{ secrets.NEXT_PUBLIC_ONESIGNAL_APP_ID }}
                   NEXT_PUBLIC_SAFARI_WEB_ID=${{ vars.NEXT_PUBLIC_SAFARI_WEB_ID }}
                   NEXT_PUBLIC_ONESIGNAL_WEBHOOK=${{ vars.NEXT_PUBLIC_ONESIGNAL_WEBHOOK }}
+                  NEXT_PUBLIC_OTA_FLOOR_ANDROID=${{ steps.ota_floors.outputs.android }}
+                  NEXT_PUBLIC_OTA_FLOOR_IOS=${{ steps.ota_floors.outputs.ios }}
                   EOF
 
             - name: Build native static export
@@ -207,7 +181,7 @@ jobs:
                       exit 1
                   fi
                   echo "name=$VERSION" >> "$GITHUB_OUTPUT"
-                  echo "Uploading as bundle version $VERSION to production"
+                  echo "Uploading as platform bundle versions $VERSION-ios and $VERSION-android"
 
             # Resolve the floor from the release tags and fail closed when none is
             # visible. The bundle must target the newest native shell it can safely
@@ -232,49 +206,72 @@ jobs:
                   node scripts/check-native-capabilities.mjs "v$FLOOR"
                   node scripts/check-native-ota-surface.mjs "v$FLOOR" --platform android
 
-            - name: Upload bundle to Capgo
+            - name: Prepare disabled candidate channel
+              env:
+                  CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
+              run: node scripts/capgo-release-guard.mjs prepare-candidate
+
+            - name: Upload bundles to Capgo
               env:
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   CAPGO_PRIVATE_KEY: ${{ secrets.CAPGO_PRIVATE_KEY }}
                   COMMIT_MSG: ${{ github.event.head_commit.message }}
-                  CHANNEL: production
-                  VERSION: ${{ steps.version.outputs.name }}
-                  NATIVE_FLOOR: ${{ steps.native_floor.outputs.name }}
+                  RELEASE_VERSION: ${{ steps.version.outputs.name }}
+                  FLOOR_ANDROID: ${{ steps.ota_floors.outputs.android }}
+                  FLOOR_IOS: ${{ steps.ota_floors.outputs.ios }}
               run: |
-                  echo "Uploading bundle $VERSION to channel $CHANNEL"
-                  COMMENT="${GITHUB_SHA:0:7} — $(printf '%s' "${COMMIT_MSG:-Manual deploy}" | head -n1)"
-                  npx @capgo/cli@8.42.4 bundle upload \
-                    --channel "$CHANNEL" \
-                    --apikey "$CAPGO_API_KEY" \
-                    --key-data-v2 "$CAPGO_PRIVATE_KEY" \
-                    --path ./out \
-                    --bundle "$VERSION" \
-                    --min-update-version "$NATIVE_FLOOR" \
-                    --version-exists-ok \
-                    --comment "$COMMENT"
+                  COMMENT="${GITHUB_SHA:0:7} — $(printf '%s' "${COMMIT_MSG:-Manual deploy}" | head -n1) [ota-floors: android=$FLOOR_ANDROID ios=$FLOOR_IOS]"
+                  # Different records: min_update_version belongs to the bundle,
+                  # not the channel. Old clients are protected by the server.
+                  for PLATFORM in ios android; do
+                    VERSION="$RELEASE_VERSION-$PLATFORM"
+                    if [ "$PLATFORM" = ios ]; then NATIVE_FLOOR="$FLOOR_IOS"; else NATIVE_FLOOR="$FLOOR_ANDROID"; fi
+                    npx @capgo/cli@8.42.4 bundle upload \
+                      --channel ota-candidate \
+                      --apikey "$CAPGO_API_KEY" --key-data-v2 "$CAPGO_PRIVATE_KEY" \
+                      --path ./out --bundle "$VERSION" --min-update-version "$NATIVE_FLOOR" \
+                      --comment "$COMMENT" --link "https://github.com/peanutprotocol/peanut-ui/commit/$GITHUB_SHA"
+                  done
 
-            # --version-exists-ok makes re-running the same resolved release safe;
-            # this assertion still fails if that run did not actually serve it.
-            - name: Verify channel serves the new bundle
+            # Both fresh uploads and exact artifact checks must succeed before
+            # either production channel moves. Collisions never count as success.
+            - name: Verify the floors reached the bundles
               env:
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
-                  CHANNEL: production
-                  EXPECTED: ${{ steps.version.outputs.name }}
+                  RELEASE_VERSION: ${{ steps.version.outputs.name }}
+                  FLOOR_ANDROID: ${{ steps.ota_floors.outputs.android }}
+                  FLOOR_IOS: ${{ steps.ota_floors.outputs.ios }}
               run: |
-                  CURRENT="$(npx @capgo/cli@8.42.4 channel currentBundle "$CHANNEL" \
-                    --apikey "$CAPGO_API_KEY" --quiet | grep -oE '[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?' | tail -n1 || true)"
-                  if [ "$CURRENT" != "$EXPECTED" ]; then
-                    echo "ERROR: channel $CHANNEL serves '${CURRENT:-<none>}', expected $EXPECTED — nothing shipped" >&2
-                    exit 1
-                  fi
-                  echo "Channel $CHANNEL now serves $EXPECTED"
+                  for PLATFORM in ios android; do
+                    export PLATFORM VERSION="$RELEASE_VERSION-$PLATFORM"
+                    if [ "$PLATFORM" = ios ]; then export NATIVE_FLOOR="$FLOOR_IOS"; else export NATIVE_FLOOR="$FLOOR_ANDROID"; fi
+                    node scripts/capgo-release-guard.mjs verify-bundle
+                  done
+
+            - name: Promote verified bundles to platform production
+              env:
+                  CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
+                  RELEASE_VERSION: ${{ steps.version.outputs.name }}
+                  FLOOR_ANDROID: ${{ steps.ota_floors.outputs.android }}
+                  FLOOR_IOS: ${{ steps.ota_floors.outputs.ios }}
+              run: |
+                  for PLATFORM in ios android; do
+                    export PLATFORM VERSION="$RELEASE_VERSION-$PLATFORM"
+                    if [ "$PLATFORM" = ios ]; then export NATIVE_FLOOR="$FLOOR_IOS"; else export NATIVE_FLOOR="$FLOOR_ANDROID"; fi
+                    # The two promotions are independent. Recheck before each;
+                    # a failure leaves the other platform on its previous bundle.
+                    node scripts/capgo-release-guard.mjs verify-promotion
+                    npx @capgo/cli@8.42.4 channel set "$PLATFORM-mobile-release" \
+                      --apikey "$CAPGO_API_KEY" --bundle "$VERSION"
+                    node scripts/capgo-release-guard.mjs verify-production
+                  done
 
             - name: Deployment summary
               run: |
                   {
                     echo "## OTA Deployment"
-                    echo "- **Channel:** production"
-                    echo "- **Bundle version:** ${{ steps.version.outputs.name }}"
+                    echo "- **Channels:** ios-mobile-release, android-mobile-release"
+                    echo "- **Bundle versions:** ${{ steps.version.outputs.name }}-ios, ${{ steps.version.outputs.name }}-android"
                     echo "- **Commit:** ${{ github.sha }}"
                     echo "- **Branch:** ${{ github.ref_name }}"
                   } >> "$GITHUB_STEP_SUMMARY"
