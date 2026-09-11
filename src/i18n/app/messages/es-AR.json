@@ -130,6 +130,10 @@
                 "qrPay": {
                     "description": "Obtené el mejor tipo de cambio, pagá como un <b>local</b> y ganá <b>cashback</b>."
                 }
+            },
+            "card": {
+                "title": "Conseguí tu <b>Peanut Card</b>",
+                "description": "Gastá tu saldo <b>donde acepten Visa</b>."
             }
         }
     },
@@ -1596,7 +1600,7 @@
     "shhhhh": {
         "hero": {
             "tagline": "Tu plata. Lista para pagar.",
-            "body": "Usá tu Peanut Card para pagar en línea y sin contacto donde se acepta Visa.",
+            "body": "Usá tu Peanut Card en línea y, sin contacto, con Apple Pay o Google Pay donde estén disponibles, donde se acepta Visa.",
             "cta": "Conseguí tu tarjeta"
         },
         "whatItDoes": {

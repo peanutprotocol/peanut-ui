@@ -28,6 +28,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { USER_INTERVIEW_CAL_URL } from '@/constants/general.consts'
 import { useFeatureFlags } from './useFeatureFlag'
+import underMaintenanceConfig from '@/config/underMaintenance.config'
 
 // Days a dismissed CTA stays hidden before reappearing. Set above 1 so dismiss feels
 // "sticky" but below 14 so we still nudge users about valuable actions they haven't
@@ -102,7 +103,7 @@ export const useHomeCarouselCTAs = () => {
     } = useNotifications()
     const toast = useToast()
     const router = useRouter()
-    const { canDo, rails, bankRails } = useCapabilities()
+    const { canDo, rails, bankRails, channelOf } = useCapabilities()
     // Suppress the "verify your account" CTA when the user is already mid-flow
     // on ANY rail (`pending` = submitted/provisioning, `requires-info` = finish
     // tos/proof). Includes pool-tier Manteca + QR-only rails, not just bank —
@@ -114,7 +115,7 @@ export const useHomeCarouselCTAs = () => {
 
     const { setIsQRScannerOpen } = useModalsContext()
     const { countryCode: userCountryCode } = useGeoLocation()
-    const { isEligible: isCardEligible } = useCardInfo()
+    const { isEligible: isCardEligible, cardInfo } = useCardInfo()
     const { isActivated } = useActivationStatus()
 
     // Completion signals — used to hide educational CTAs from users who've already
@@ -325,6 +326,32 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
+        // Public card offer for ACTIVATED users — pre-activation Home is owned
+        // by ActivationCTAs (checklist / spend step), which carries its own
+        // card arm. Excluded: known prohibited residences, anyone with a card
+        // relationship (any card-channel rail: active card or in-flight
+        // application), and the same kill switch as every other card prompt.
+        const hasCardRelationship = rails.some((rail) => channelOf(rail) === 'card')
+        if (
+            !underMaintenanceConfig.disableCardPromotion &&
+            isActivated === true &&
+            cardInfo &&
+            !cardInfo.geoProhibited &&
+            !hasCardRelationship
+        ) {
+            _carouselCTAs.push({
+                id: 'card-offer',
+                title: <span>{t.rich('card.title', { b })}</span>,
+                description: <span>{t.rich('card.description', { b })}</span>,
+                iconContainerClassName: 'bg-action-primary',
+                icon: 'credit-card',
+                iconSize: 16,
+                onClick: () => {
+                    router.push('/card')
+                },
+            })
+        }
+
         // Card-eligible users use the card verification flow instead of bank onboarding.
         if (!hasKycApproval && !isInFlight && isCardEligible === false) {
             _carouselCTAs.push({
@@ -343,7 +370,6 @@ export const useHomeCarouselCTAs = () => {
         setCarouselCTAs(_carouselCTAs.filter((cta) => !dismissedRef.current.has(cta.id)))
     }, [
         t,
-        user?.user?.userId,
         isPermissionGranted,
         isPermissionDenied,
         isPushOptedIn,
@@ -358,6 +384,9 @@ export const useHomeCarouselCTAs = () => {
         isPwa,
         userCountryCode,
         isCardEligible,
+        cardInfo,
+        rails,
+        channelOf,
         isActivated,
         hasMadeQrPayment,
         hasSentInvites,

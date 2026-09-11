@@ -263,6 +263,10 @@
                 "qrPay": {
                     "description": "Tenha a melhor taxa de câmbio, pague como um <b>local</b> e ganhe <b>cashback</b>."
                 }
+            },
+            "card": {
+                "title": "Peça seu <b>Peanut Card</b>",
+                "description": "Gaste seu saldo <b>onde a Visa é aceita</b>."
             }
         },
         "pendingTasks": {
@@ -3596,7 +3600,7 @@
         "hero": {
             "wordmark": "Cartão Peanut",
             "tagline": "Seu dinheiro. Pronto para pagar.",
-            "body": "Use seu Peanut Card para pagar online e por aproximação onde Visa é aceita.",
+            "body": "Use seu Peanut Card online e, por aproximação, com Apple Pay ou Google Pay onde estiverem disponíveis, onde Visa é aceita.",
             "cta": "Peça seu cartão",
             "disclaimer": "Verificação e aprovação obrigatórias. Sem mensalidade ou anuidade. Aplicam-se as tarifas e os limites dos termos do titular."
         },

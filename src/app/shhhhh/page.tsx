@@ -5,7 +5,8 @@ import ShhhhhLandingPage from './ShhhhhLandingPage'
 
 export const metadata = generateMeta({
     title: 'Peanut Card | Get your card',
-    description: 'Get your Peanut Card for online and contactless payments. Verification and approval required.',
+    description:
+        'Get your Peanut Card for online payments, and contactless with Apple Pay or Google Pay where supported. Verification and approval required.',
     keywords: 'peanut card, visa-accepting merchants, virtual card, stablecoins',
     canonical: '/shhhhh',
 })

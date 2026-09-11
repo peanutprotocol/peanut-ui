@@ -263,6 +263,10 @@
                 "qrPay": {
                     "description": "Get the best exchange rate, pay like a <b>local</b> and earn <b>cashback</b>."
                 }
+            },
+            "card": {
+                "title": "Get your <b>Peanut Card</b>",
+                "description": "Spend your balance <b>anywhere Visa works</b>."
             }
         },
         "pendingTasks": {
@@ -3596,7 +3600,7 @@
         "hero": {
             "wordmark": "Peanut Card",
             "tagline": "Your money. Ready to spend.",
-            "body": "Use your Peanut Card for online and contactless payments wherever Visa is accepted.",
+            "body": "Use your Peanut Card online, and contactless with Apple Pay or Google Pay where supported, wherever Visa is accepted.",
             "cta": "Get your card",
             "disclaimer": "Verification and approval required. No monthly or annual fees. Standard fees and limits apply under the cardholder terms."
         },

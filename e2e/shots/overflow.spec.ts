@@ -40,6 +40,10 @@ const FREEZE_CSS = `
 const EXEMPT: string[] = [
     // react-fast-marquee tickers: the text scrolls through the clip by design
     '.rfm-marquee-container',
+    // PixelatedCardFace: decorative card art — the pixel-font "????" line box
+    // deliberately overhangs the rounded card frame's clip; no locale copy
+    // renders inside it
+    '[data-decorative-clip]',
 ]
 
 async function settle(page: Page): Promise<void> {

@@ -88,6 +88,7 @@ export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
             style={{ inset: 0, background: shadowColor, transform: 'translate(0.625rem, 0.625rem)' }}
         />
         <div
+            data-decorative-clip
             className={`relative h-full w-full overflow-hidden rounded-3xl border-[4px] border-black ${className ?? ''}`}
             style={{
                 background: '#FF90E8',
