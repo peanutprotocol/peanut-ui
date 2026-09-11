@@ -781,6 +781,7 @@ const REDIRECT_V2_PUBLISHED_VALUE = '1'
 const REDIRECT_V2_MIRROR_OWNER_KEY = 'redirect-v2-mirror-owner'
 /** Keeps a late v2 mirror identifiable until its owner write has completed. */
 const REDIRECT_V2_MIRROR_PENDING_PREFIX = 'redirect-v2-mirror-pending:'
+const REDIRECT_V2_MIRROR_PENDING_TTL_MS = 60_000
 /**
  * Legacy bare-path records cannot be deleted conditionally without the same
  * check/remove race. Remembering their consumed value makes them inert while
@@ -862,12 +863,31 @@ type RedirectPointer = {
     legacyMirror?: string | null
 }
 
+type RedirectMirrorPending = {
+    destination: string
+    createdAt: number
+}
+
 const isRedirectPointer = (stored: unknown): stored is RedirectPointer =>
     !!stored &&
     typeof stored === 'object' &&
     (stored as Partial<RedirectPointer>).version === 2 &&
     isRedirectGenerationId((stored as Partial<RedirectPointer>).generationId) &&
     typeof (stored as Partial<RedirectPointer>).destination === 'string'
+
+const isRedirectMirrorPendingForDestination = (stored: unknown, destination: string): boolean =>
+    !!stored && typeof stored === 'object' && (stored as Partial<RedirectMirrorPending>).destination === destination
+
+const isFreshRedirectMirrorPending = (generationId: string): boolean => {
+    const pending = getFromLocalStorage(`${REDIRECT_V2_MIRROR_PENDING_PREFIX}${generationId}`)
+    if (!pending || typeof pending !== 'object') return false
+    const createdAt = (pending as Partial<RedirectMirrorPending>).createdAt
+    return (
+        typeof createdAt === 'number' &&
+        Date.now() - createdAt >= 0 &&
+        Date.now() - createdAt < REDIRECT_V2_MIRROR_PENDING_TTL_MS
+    )
+}
 
 const getLegacyIdentity = (stored: unknown): string | undefined =>
     stored === undefined ? undefined : jsonStringify(stored)
@@ -931,7 +951,7 @@ const getStoredRedirectForSnapshot = (): StoredRedirect | null => {
             for (let index = 0; index < localStorage.length; index += 1) {
                 const key = localStorage.key(index)
                 if (key?.startsWith(REDIRECT_V2_MIRROR_PENDING_PREFIX)) {
-                    hasPendingV2Mirror = getFromLocalStorage(key) === legacyValue
+                    hasPendingV2Mirror = isRedirectMirrorPendingForDestination(getFromLocalStorage(key), legacyValue)
                     if (hasPendingV2Mirror) break
                 }
             }
@@ -1000,7 +1020,7 @@ const publishLegacyRedirectMirror = (generationId: string, destination: string) 
     const pointer = getFromLocalStorage(REDIRECT_V2_KEY)
     if (!isRedirectPointer(pointer) || pointer.generationId !== generationId) return
     const pendingKey = `${REDIRECT_V2_MIRROR_PENDING_PREFIX}${generationId}`
-    if (!saveToLocalStorage(pendingKey, destination)) return
+    if (!saveToLocalStorage(pendingKey, { destination, createdAt: Date.now() })) return
     saveToLocalStorage(REDIRECT_KEY, destination)
     if (saveToLocalStorage(REDIRECT_V2_MIRROR_OWNER_KEY, generationId)) localStorage.removeItem(pendingKey)
 }
@@ -1053,6 +1073,7 @@ const reclaimRedirectConsumptionSlots = () => {
 
     for (const generationId of reclaimableGenerationIds) {
         if (generationId === refreshedReachableGenerationId) continue
+        if (isFreshRedirectMirrorPending(generationId)) continue
         localStorage.removeItem(`${REDIRECT_V2_CONSUMED_PREFIX}${generationId}`)
         localStorage.removeItem(`${REDIRECT_V2_CONSUMED_FALLBACK_PREFIX}${generationId}`)
         localStorage.removeItem(`${REDIRECT_V2_PUBLISHED_PREFIX}${generationId}`)

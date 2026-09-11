@@ -486,6 +486,29 @@ describe('post-auth redirect reads one snapshot', () => {
         expect(getRedirectUrl()).toBe('/card')
     })
 
+    it('does not reclaim a pending mirror before its publisher writes the legacy mirror', () => {
+        saveToLocalStorage('redirect', '/home')
+        let interleaved = false
+        let newerPublicationComplete = false
+        const setItem = jest.spyOn(Storage.prototype, 'setItem')
+        setItem.mockImplementation(function patched(this: Storage, key: string, value: string) {
+            const result = originalSetItem.call(this, key, value)
+            if (key.startsWith('redirect-v2-mirror-pending:') && !interleaved) {
+                interleaved = true
+                setRedirectUrl('/card', 'deep-link')
+                newerPublicationComplete = true
+            } else if (key === 'redirect' && newerPublicationComplete) {
+                expect(getRedirectUrl()).toBe('/card')
+                newerPublicationComplete = false
+            }
+            return result
+        })
+
+        setRedirectUrl('/profile', 'session-end')
+
+        expect(getRedirectUrl()).toBe('/card')
+    })
+
     it('aborts tombstone cleanup when the authoritative pointer changes during the scan', () => {
         setRedirectUrl('/profile', 'session-end')
         const getKey = jest.spyOn(Storage.prototype, 'key')
