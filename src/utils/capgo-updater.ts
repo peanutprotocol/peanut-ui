@@ -4,6 +4,7 @@
 import type { BundleInfo, CapacitorUpdaterPlugin } from '@capgo/capacitor-updater'
 import { isAndroidNativeBridge } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
+import { needsStoreUpdate } from '@/utils/ota-native-gate'
 import { readStoredValue, removeStoredValue, writeStoredValue } from '@/utils/safe-storage'
 
 export interface OtaUpdateCallbacks {
@@ -102,6 +103,18 @@ async function checkAndStageUpdate(callbacks: OtaUpdateCallbacks = {}): Promise<
         const latest = await CapacitorUpdater.getLatest()
         // getLatest resolves with a url only when a genuinely newer bundle exists.
         if (latest.url && latest.version) {
+            // Refused before the download, not after: a bundle built for a newer
+            // binary must never reach the device's disk, because everything that
+            // stages one (next(), the plugin's background apply) works off what is
+            // downloaded. Capgo's own floor is the server-side half of this rule and
+            // only applies under one channel strategy, in a dashboard nothing here
+            // can read — so the client decides too.
+            if (await needsStoreUpdate(latest.version)) {
+                console.info(`[capgo] bundle ${latest.version} needs a newer binary — store update only`)
+                removeStoredValue(FAILURE_STREAK_KEY)
+                callbacks.onStoreUpdateRequired?.()
+                return 'store-update-required'
+            }
             const bundle = await CapacitorUpdater.download({
                 url: latest.url,
                 version: latest.version,
@@ -316,6 +329,105 @@ async function reportFailedUpdate(updater: Pick<CapacitorUpdaterPlugin, 'getFail
     )
 }
 
+// Capgo's id for the JS baked into the binary. Both native implementations
+// exempt it from setNextBundle's "does this bundle exist" check, so it is the
+// one queue entry that can always be armed.
+const BUILTIN_BUNDLE_ID = 'builtin'
+
+/**
+ * The bundle the plugin has queued for the next restart, or null when there is
+ * none this binary may run.
+ *
+ * The queue outlives the JS that filled it: a bundle staged before the
+ * store-update gate existed is still sitting there, and the plugin installs it
+ * from appMovedToBackground() with no JS involved — so an incompatible entry
+ * has to be disarmed (see disarmStagedBundle), not merely withheld.
+ *
+ * A queue entry naming the RUNNING bundle is not an update, and reporting one
+ * would be self-inflicted: installNext() clears NEXT_VERSION only when it
+ * installs a different bundle, so the sentinel disarmStagedBundle leaves behind
+ * persists across launches. Returning it would put "Update available" in the
+ * profile permanently, behind a restart that reloads the version already
+ * running.
+ */
+export async function readStagedBundle(
+    callbacks: Pick<OtaUpdateCallbacks, 'onStoreUpdateRequired'> = {}
+): Promise<BundleInfo | null> {
+    const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
+    const [next, current] = await Promise.all([
+        CapacitorUpdater.getNextBundle().catch(() => null),
+        CapacitorUpdater.current().catch(() => null),
+    ])
+    if (!next?.version || next.id === current?.bundle?.id) return null
+    if (!(await needsStoreUpdate(next.version))) return next
+
+    // Say so, rather than letting the update row vanish: the launch check would
+    // reach the same verdict, but only once it has reached the network.
+    callbacks.onStoreUpdateRequired?.()
+    // Queued with the checks so the rewrite cannot land between a check's
+    // download and the next() that stages it.
+    return queueOtaWork(() => disarmStagedBundle(CapacitorUpdater, next, current?.bundle?.id))
+}
+
+/**
+ * Stop the plugin installing a queued bundle this binary must not run.
+ *
+ * installNext() skips a queue entry whose id equals the running bundle's
+ * (verified in both native implementations), so pointing `next` back at the
+ * running bundle is what actually disarms the background apply. There is no
+ * JS-reachable clear-next — `next()` rejects without an id — and setBundleError
+ * needs an `allowManualBundleError` config flag no shipped binary sets.
+ *
+ * `builtin` is the fallback for a running bundle whose id cannot be read, not
+ * the first choice: arming it while a good OTA is running would install the
+ * binary's older JS on the next background. As a fallback it is still the safe
+ * side of the trade — the binary's own JS is by definition JS the binary can
+ * run, and the queued bundle is not.
+ *
+ * The rewrite is verified rather than assumed. A next() that resolved against a
+ * queue it did not change, or one that rejected, leaves the unsafe bundle
+ * installing on the next background — the whole thing this exists to prevent —
+ * so an unconfirmed disarm is reported at error level under a prefix Sentry
+ * keeps (`[capgo]` is dropped as updater noise, see sentry.utils.ts).
+ */
+async function disarmStagedBundle(
+    updater: Pick<CapacitorUpdaterPlugin, 'next' | 'delete' | 'getNextBundle'>,
+    staged: BundleInfo,
+    runningId: string | undefined
+): Promise<null> {
+    console.info(`[capgo] dropping staged bundle ${staged.version} — it needs a newer binary`)
+    const sentinels =
+        runningId && runningId !== BUILTIN_BUNDLE_ID ? [runningId, BUILTIN_BUNDLE_ID] : [BUILTIN_BUNDLE_ID]
+
+    for (const id of sentinels) {
+        try {
+            await updater.next({ id })
+        } catch (err) {
+            console.warn(`[capgo] could not queue ${id}:`, err instanceof Error ? err.message : String(err))
+            continue
+        }
+        // An unreadable queue counts as still armed: a disarm nothing can
+        // confirm is not one to act on.
+        const queued = await updater.getNextBundle().catch(() => staged)
+        if (queued?.id === staged.id) continue
+        // Only now — delete() refuses while the bundle is still queued.
+        await updater
+            .delete({ id: staged.id })
+            .catch((err) =>
+                console.warn(
+                    '[capgo] staged bundle disarmed but not deleted:',
+                    err instanceof Error ? err.message : String(err)
+                )
+            )
+        return null
+    }
+
+    console.error(
+        `[capgo-apply] could not disarm staged bundle ${staged.version} (${staged.id}); the plugin may still install it`
+    )
+    return null
+}
+
 // One launch-time apply per staged bundle. A set() that never lands must not
 // turn every subsequent launch into a reload.
 const LAUNCH_APPLY_KEY = 'capgoLaunchApplyAttempt'
@@ -338,11 +450,10 @@ const LAUNCH_APPLY_KEY = 'capgoLaunchApplyAttempt'
  */
 export async function applyStagedBundleOnLaunch(): Promise<BundleInfo | null> {
     const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
-    const [next, current] = await Promise.all([
-        CapacitorUpdater.getNextBundle().catch(() => null),
-        CapacitorUpdater.current().catch(() => null),
-    ])
-    if (!next || next.id === current?.bundle?.id) return null
+    // Reads through the store-update gate, which disarms a bundle built for a
+    // newer binary and answers null for one that is already running.
+    const next = await readStagedBundle()
+    if (!next) return null
     // Deadlocking binaries can only quit to apply (see canRestartInPlace), and
     // quitting an app the user just opened is worse than the background apply.
     if (readStoredValue(LAUNCH_APPLY_KEY) === next.id || !(await canRestartInPlace())) return next
@@ -388,9 +499,9 @@ function recordFailureStreak(message: string): number {
     return count
 }
 
-// The channel every merge to `dev` publishes to (capgo-deploy.yml). Testers opt
-// in from the About screen; every other install stays on the app's default
-// channel (production) and never sees these bundles.
+// The channel used for opt-in beta updates. Testers opt in from the About screen;
+// every other install stays on the app's default channel (production) and never
+// sees these bundles.
 export const BETA_OTA_CHANNEL = 'staging'
 
 // The app's default channel (ios-release.yml / android-release.yml / release-ota.yml).

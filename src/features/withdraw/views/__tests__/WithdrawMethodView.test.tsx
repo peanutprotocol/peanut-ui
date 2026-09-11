@@ -61,6 +61,8 @@ jest.mock('@/components/Common/SavedAccountsView', () => ({
         savedAccounts: Account[]
         onAccountClick: (account: Account, path?: string) => void
         onCryptoClick: () => void
+        savedAddresses: { id: string; address: string; chainId: string; nickname: string }[]
+        onSavedAddressClick: (saved: { id: string; address: string; chainId: string; nickname: string }) => void
     }) => (
         <div>
             {props.savedAccounts.map((account) => (
@@ -72,6 +74,15 @@ jest.mock('@/components/Common/SavedAccountsView', () => ({
                     {account.identifier}
                 </button>
             ))}
+            {props.savedAddresses.map((saved) => (
+                <button
+                    key={saved.id}
+                    data-testid={`saved-address-${saved.id}`}
+                    onClick={() => props.onSavedAddressClick(saved)}
+                >
+                    {saved.nickname}
+                </button>
+            ))}
             <button data-testid="crypto-row" onClick={props.onCryptoClick}>
                 Crypto
             </button>
@@ -79,6 +90,51 @@ jest.mock('@/components/Common/SavedAccountsView', () => ({
     ),
 }))
 jest.mock('@/components/Common/CountryList', () => ({ CountryList: () => null }))
+jest.mock('@/features/withdraw/components/AddressBook/SavedAddressEditDrawer', () => ({
+    __esModule: true,
+    default: () => null,
+}))
+
+// address book: one saved Base entry so its taps can be asserted
+const mockSavedBaseAddress = {
+    id: 'saved-1',
+    address: '0x9999999999999999999999999999999999999999',
+    chainId: '8453',
+    nickname: 'Binance',
+    lastUsedAt: '2026-09-01T00:00:00Z',
+}
+jest.mock('@/hooks/useSavedAddresses', () => ({
+    useSavedAddresses: () => ({
+        savedAddresses: [mockSavedBaseAddress],
+        isLoading: false,
+        findSaved: () => undefined,
+        rename: { mutateAsync: jest.fn() },
+        remove: { mutateAsync: jest.fn() },
+    }),
+}))
+
+const mockSetSelectedChainID = jest.fn()
+const mockSetSelectedTokenAddress = jest.fn()
+jest.mock('@/context/tokenSelector.context', () => {
+    const react = jest.requireActual<typeof import('react')>('react')
+    return {
+        tokenSelectorContext: react.createContext({
+            setSelectedChainID: (id: string) => mockSetSelectedChainID(id),
+            setSelectedTokenAddress: (address: string) => mockSetSelectedTokenAddress(address),
+            supportedChainsAndTokens: {
+                '8453': {
+                    chainId: '8453',
+                    networkName: 'Base',
+                    chainIconURI: '',
+                    tokens: [
+                        { address: '0xweth', symbol: 'WETH' },
+                        { address: '0xusdc-on-base', symbol: 'USDC' },
+                    ],
+                },
+            },
+        }),
+    }
+})
 
 jest.mock('@/hooks/useGeoFilteredPaymentOptions', () => ({
     useGeoFilteredPaymentOptions: () => ({ filteredMethods: [], isLoading: false }),
@@ -117,10 +173,14 @@ jest.mock('@/context/authContext', () => ({
 
 const mockSetSelectedBankAccount = jest.fn()
 const mockSetSelectedMethod = jest.fn()
+const mockSetRecipient = jest.fn()
+const mockSetIsValidRecipient = jest.fn()
 jest.mock('@/features/withdraw/WithdrawFlowContext', () => ({
     useWithdrawFlow: () => ({
         setSelectedBankAccount: mockSetSelectedBankAccount,
         setSelectedMethod: mockSetSelectedMethod,
+        setRecipient: mockSetRecipient,
+        setIsValidRecipient: mockSetIsValidRecipient,
     }),
 }))
 
@@ -193,5 +253,30 @@ describe('WithdrawMethodView — destination state and routing (Chip review roun
         expect(mockSetSelectedMethod).toHaveBeenCalledWith(expect.objectContaining({ type: 'crypto' }))
         expect(mockOnMethodChosen).toHaveBeenCalledTimes(1)
         expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
+    it('an address-book row preselects the saved chain + USDC and prefills a valid recipient', () => {
+        // row → amount → /withdraw/crypto: the saved network must survive into
+        // the crypto screen, or an EVM address gets sent on the default chain
+        // (Chip: preserve the saved destination network)
+        renderView()
+        fireEvent.click(screen.getByTestId(`saved-address-${mockSavedBaseAddress.id}`))
+
+        expect(mockSetSelectedChainID).toHaveBeenCalledWith('8453')
+        expect(mockSetSelectedTokenAddress).toHaveBeenCalledWith('0xusdc-on-base')
+        expect(mockSetRecipient).toHaveBeenCalledWith({ name: undefined, address: mockSavedBaseAddress.address })
+        expect(mockSetIsValidRecipient).toHaveBeenCalledWith(true)
+        expect(mockSetSelectedMethod).toHaveBeenCalledWith(expect.objectContaining({ type: 'crypto' }))
+        expect(mockOnMethodChosen).toHaveBeenCalledTimes(1)
+        expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
+    it('the plain crypto row clears any address-book prefill before selecting the method', () => {
+        renderView()
+        fireEvent.click(screen.getByTestId('crypto-row'))
+
+        expect(mockSetRecipient).toHaveBeenCalledWith({ name: undefined, address: '' })
+        expect(mockSetIsValidRecipient).toHaveBeenCalledWith(false)
+        expect(mockSetSelectedMethod).toHaveBeenCalledWith(expect.objectContaining({ type: 'crypto' }))
     })
 })

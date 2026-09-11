@@ -17,8 +17,10 @@ const mockUpdater = {
     reset: jest.fn().mockResolvedValue(undefined),
     getPluginVersion: jest.fn(),
     getFailedUpdate: jest.fn().mockResolvedValue(null),
+    getNextBundle: jest.fn(),
+    delete: jest.fn().mockResolvedValue(undefined),
 }
-const mockPlatform = { android: true }
+const mockPlatform = { android: true, binaryVersion: '1.5.0' as string | null }
 
 jest.mock('@capgo/capacitor-updater', () => ({ CapacitorUpdater: mockUpdater }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
@@ -26,8 +28,14 @@ jest.mock('@/utils/capacitor', () => ({
     ...jest.requireActual('@/utils/capacitor'),
     isAndroidNativeBridge: () => mockPlatform.android,
 }))
+// The gate asks the binary for its version; jsdom is not Capacitor, so the real
+// getBinaryInfo would answer null and fail the gate open in every case below.
+jest.mock('@/utils/app-version', () => ({
+    getBinaryInfo: async () =>
+        mockPlatform.binaryVersion ? { appVersion: mockPlatform.binaryVersion, appBuild: '1' } : null,
+}))
 
-import { canRestartInPlace, initCapgoUpdater } from '../capgo-updater'
+import { canRestartInPlace, initCapgoUpdater, readStagedBundle } from '../capgo-updater'
 
 let info: jest.SpyInstance
 let error: jest.SpyInstance
@@ -36,6 +44,12 @@ beforeEach(() => {
     jest.useFakeTimers()
     window.localStorage.clear()
     mockPlatform.android = true
+    mockPlatform.binaryVersion = '1.5.0'
+    mockUpdater.download.mockReset().mockResolvedValue({ id: 'b-1', version: '1.5.4' })
+    mockUpdater.current.mockReset().mockResolvedValue({ bundle: { id: 'builtin', version: '1.5.0' } })
+    mockUpdater.getNextBundle.mockReset().mockResolvedValue(null)
+    mockUpdater.delete.mockReset().mockResolvedValue(undefined)
+    mockUpdater.next.mockReset().mockResolvedValue(undefined)
     mockUpdater.getPluginVersion.mockReset()
     mockUpdater.getFailedUpdate.mockReset().mockResolvedValue(null)
     info = jest.spyOn(console, 'info').mockImplementation(() => {})
@@ -419,5 +433,143 @@ describe('canRestartInPlace', () => {
         mockPlatform.android = false
         await expect(canRestartInPlace()).resolves.toBe(true)
         expect(mockUpdater.getPluginVersion).not.toHaveBeenCalled()
+    })
+})
+
+/**
+ * A native release auto-publishes a bundle carrying its own `<major>.<build>.0`
+ * version, built from the same commit as the binary. Nothing on the device
+ * stopped that bundle from landing on an older shell: Capgo's `min_update_version`
+ * is enforced only under one channel strategy, configured in a dashboard the app
+ * cannot read. So the client refuses it too.
+ */
+describe('store-update gate', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockUpdater.notifyAppReady.mockResolvedValue(undefined)
+        mockUpdater.addListener.mockResolvedValue({ remove: jest.fn() })
+        mockUpdater.getFailedUpdate.mockResolvedValue(null)
+        mockUpdater.current.mockResolvedValue({ bundle: { id: 'builtin', version: '1.5.0' } })
+        mockUpdater.getNextBundle.mockResolvedValue(null)
+    })
+
+    it('never downloads a bundle built for a newer binary', async () => {
+        mockUpdater.getLatest.mockResolvedValue({ url: 'https://cdn.test/1.6.0.zip', version: '1.6.0' })
+        const onStoreUpdateRequired = jest.fn()
+        await initCapgoUpdater({ onStoreUpdateRequired })
+        await jest.advanceTimersByTimeAsync(5_000)
+
+        expect(mockUpdater.download).not.toHaveBeenCalled()
+        expect(mockUpdater.next).not.toHaveBeenCalled()
+        expect(onStoreUpdateRequired).toHaveBeenCalled()
+        expect(error).not.toHaveBeenCalled()
+    })
+
+    it('still stages an OTA inside the running binary build', async () => {
+        mockUpdater.getLatest.mockResolvedValue({ url: 'https://cdn.test/1.5.4.zip', version: '1.5.4' })
+        mockUpdater.download.mockResolvedValue({ id: 'b-4', version: '1.5.4' })
+        const onUpdateAvailable = jest.fn()
+        await initCapgoUpdater({ onUpdateAvailable })
+        await jest.advanceTimersByTimeAsync(5_000)
+
+        expect(mockUpdater.download).toHaveBeenCalled()
+        expect(mockUpdater.next).toHaveBeenCalledWith({ id: 'b-4' })
+        expect(onUpdateAvailable).toHaveBeenCalledWith({ id: 'b-4', version: '1.5.4' })
+    })
+
+    // The plugin's queue outlives the JS that filled it, and installNext() runs
+    // from appMovedToBackground() with no JS involved — hiding the entry would
+    // not stop it being installed. installNext() skips an entry whose id equals
+    // the running bundle's, which is what pointing `next` there achieves.
+    it('disarms a queued bundle that needs a newer binary', async () => {
+        mockUpdater.current.mockResolvedValue({ bundle: { id: 'b-3', version: '1.5.2' } })
+        mockUpdater.getNextBundle.mockResolvedValueOnce({ id: 'b-6', version: '1.6.0' }).mockResolvedValue(null)
+
+        await expect(readStagedBundle()).resolves.toBeNull()
+        expect(mockUpdater.next).toHaveBeenCalledWith({ id: 'b-3' })
+        expect(mockUpdater.delete).toHaveBeenCalledWith({ id: 'b-6' })
+        expect(error).not.toHaveBeenCalled()
+    })
+
+    it('reports a queued bundle this binary can run', async () => {
+        mockUpdater.getNextBundle.mockResolvedValue({ id: 'b-4', version: '1.5.4' })
+
+        await expect(readStagedBundle()).resolves.toEqual({ id: 'b-4', version: '1.5.4' })
+        expect(mockUpdater.next).not.toHaveBeenCalled()
+        expect(mockUpdater.delete).not.toHaveBeenCalled()
+    })
+
+    // The sentinel the disarm leaves behind outlives it: installNext() clears
+    // NEXT_VERSION only when it installs a DIFFERENT bundle. Reported, it would
+    // put "Update available" in the profile for good, behind a restart onto the
+    // version already running.
+    it('does not report the running bundle as an update', async () => {
+        mockUpdater.current.mockResolvedValue({ bundle: { id: 'b-3', version: '1.5.2' } })
+        mockUpdater.getNextBundle.mockResolvedValue({ id: 'b-3', version: '1.5.2' })
+
+        await expect(readStagedBundle()).resolves.toBeNull()
+        expect(mockUpdater.next).not.toHaveBeenCalled()
+    })
+
+    // next() resolving says nothing about the queue: setNextBundle returns false
+    // for a bundle it will not arm, and the wrapper still resolves. Only a re-read
+    // proves the entry is gone.
+    it('falls back to builtin when the running bundle does not take the queue', async () => {
+        mockUpdater.current.mockResolvedValue({ bundle: { id: 'b-3', version: '1.5.2' } })
+        mockUpdater.getNextBundle
+            .mockResolvedValueOnce({ id: 'b-6', version: '1.6.0' })
+            .mockResolvedValueOnce({ id: 'b-6', version: '1.6.0' })
+            .mockResolvedValue(null)
+
+        await expect(readStagedBundle()).resolves.toBeNull()
+        expect(mockUpdater.next).toHaveBeenNthCalledWith(1, { id: 'b-3' })
+        expect(mockUpdater.next).toHaveBeenNthCalledWith(2, { id: 'builtin' })
+        expect(mockUpdater.delete).toHaveBeenCalledWith({ id: 'b-6' })
+        expect(error).not.toHaveBeenCalled()
+    })
+
+    // The binary's own JS always fits the binary; the queued bundle does not.
+    it('arms builtin when the running bundle id cannot be read', async () => {
+        mockUpdater.current.mockRejectedValue(new Error('no current bundle'))
+        mockUpdater.getNextBundle.mockResolvedValueOnce({ id: 'b-6', version: '1.6.0' }).mockResolvedValue(null)
+
+        await expect(readStagedBundle()).resolves.toBeNull()
+        expect(mockUpdater.next).toHaveBeenCalledWith({ id: 'builtin' })
+        expect(mockUpdater.next).toHaveBeenCalledTimes(1)
+    })
+
+    // An unconfirmed disarm leaves the unsafe bundle installing on the next
+    // background — the one thing this exists to prevent, so Sentry hears about
+    // it under a prefix it keeps.
+    it('reports at error level when the queue cannot be rewritten', async () => {
+        mockUpdater.current.mockResolvedValue({ bundle: { id: 'b-3', version: '1.5.2' } })
+        mockUpdater.getNextBundle.mockResolvedValue({ id: 'b-6', version: '1.6.0' })
+        mockUpdater.next.mockRejectedValue(new Error('bundle does not exist'))
+
+        await expect(readStagedBundle()).resolves.toBeNull()
+        expect(mockUpdater.delete).not.toHaveBeenCalled()
+        expect(error).toHaveBeenCalledWith(
+            '[capgo-apply] could not disarm staged bundle 1.6.0 (b-6); the plugin may still install it'
+        )
+    })
+
+    // A queue that refuses to be rewritten still must not be offered as a
+    // restart — the restart would reload JS this binary cannot run.
+    it('withholds an incompatible bundle even when the disarm fails', async () => {
+        mockUpdater.getNextBundle.mockResolvedValue({ id: 'b-6', version: '1.6.0' })
+        mockUpdater.next.mockRejectedValue(new Error('bundle not found'))
+
+        await expect(readStagedBundle()).resolves.toBeNull()
+        expect(mockUpdater.delete).not.toHaveBeenCalled()
+    })
+
+    it('lets the update through when the binary version cannot be read', async () => {
+        mockPlatform.binaryVersion = null
+        mockUpdater.getLatest.mockResolvedValue({ url: 'https://cdn.test/1.6.0.zip', version: '1.6.0' })
+        mockUpdater.download.mockResolvedValue({ id: 'b-6', version: '1.6.0' })
+        await initCapgoUpdater()
+        await jest.advanceTimersByTimeAsync(5_000)
+
+        expect(mockUpdater.download).toHaveBeenCalled()
     })
 })

@@ -55,7 +55,7 @@ async function main(argv) {
         const paths = outside.map(({ path }) => `  ${path}`).join('\n')
         throw new Error(
             `native changes since ${baseRef} are not ${platform}-only:\n${paths}\n` +
-                'Run the coordinated Release Native workflow so every affected platform advances together.'
+                'Run the coordinated App Release Android & iOS workflow so every affected platform advances together.'
         )
     }
 
@@ -65,7 +65,7 @@ async function main(argv) {
             const paths = unsafe.map(({ path }) => `  ${path}`).join('\n')
             throw new Error(
                 `native changes since ${baseRef} are not safe for older same-version ${platform} installs:\n${paths}\n` +
-                    'A replacement versionName cannot gate these changes away from older binaries. Run the coordinated Release Native workflow instead.'
+                    'A replacement versionName cannot gate these changes away from older binaries. Run the coordinated App Release Android & iOS workflow instead.'
             )
         }
     }

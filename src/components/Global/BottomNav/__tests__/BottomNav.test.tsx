@@ -13,6 +13,7 @@ jest.mock('next-intl', () => ({
 }))
 jest.mock('@/hooks/useAppHaptic', () => ({ useAppHaptic: () => ({ triggerHaptic: jest.fn() }) }))
 jest.mock('@/hooks/useSupportUnread', () => ({ useSupportUnread: () => false }))
+jest.mock('@/hooks/useForegroundPushRefresh', () => ({ useForegroundPushRefresh: () => {} }))
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({
         isSupportModalOpen: false,

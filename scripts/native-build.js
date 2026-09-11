@@ -597,7 +597,7 @@ async function main() {
             }
         } else if (strict) {
             throw new Error(
-                '.env.production.local not found — CI must write it before native-build.js (see capgo-deploy.yml / ios-release.yml / android-release.yml)'
+                '.env.production.local not found — CI must write it before native-build.js (see release-ota.yml / ios-release.yml / android-release.yml)'
             )
         } else {
             console.warn('⚠️  .env.production.local not found — using default rpId (peanut.me)')

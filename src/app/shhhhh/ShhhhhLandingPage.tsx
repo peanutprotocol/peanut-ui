@@ -16,6 +16,8 @@ import { inflateWaitlistPosition } from '@/components/Card/doorTally.utils'
 import { Sparkle, Star } from '@/assets/illustrations'
 import { cardApi } from '@/services/card'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { MIGRATION_SURFACES } from '@/constants/migration.consts'
+import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { badgeCampaignsFromSearchParams, queuePendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 import { claimAndSettlePendingBadgeCampaigns, isConfirmedBadgeCampaignClaim } from '@/services/badge-campaigns'
 import { getBadgeIcon } from '@/components/Badges/badge.utils'
@@ -140,7 +142,7 @@ function StickyShhhhhCTA({ onClick }: { onClick: () => void }) {
 
 export default function ShhhhhLandingPage() {
     const t = useTranslations('shhhhh')
-    const { user, fetchUser } = useAuth()
+    const { user, isFetchingUser, fetchUser } = useAuth()
     const router = useRouter()
 
     // undefined = not joined; number|null = joined (null = joined but BE
@@ -150,6 +152,12 @@ export default function ShhhhhLandingPage() {
     const [joinError, setJoinError] = useState(false)
     const [showAllBadges, setShowAllBadges] = useState(false)
     const isJoined = joinedPosition !== undefined
+
+    // Count guest impressions only after auth settles and while the door CTA is visible.
+    const { interceptGuestCta, storeHandoffModal } = useGuestStoreHandoff({
+        surface: MIGRATION_SURFACES.LANDING_DOOR,
+        trackImpressionWhenGuest: !isFetchingUser && !user && !isJoined,
+    })
 
     const joinWaitlist = useCallback(async () => {
         setCtaBusy(true)
@@ -196,6 +204,9 @@ export default function ShhhhhLandingPage() {
     }, [user])
 
     const handleCTA = async () => {
+        // Wait for auth so returning users are not sent to signup or the store.
+        if (isFetchingUser) return
+
         // Read opaque campaign identities at click time (client-only) to avoid
         // bailing static prerendering. The backend resolves award semantics;
         // provenance is audit-only and does not weaken an earned skip badge.
@@ -206,8 +217,13 @@ export default function ShhhhhLandingPage() {
             campaign_tags: badgeCampaigns,
         })
 
+        // Save campaigns before the handoff: buildDeferredPayload reads this cookie queue.
+        const queuedBadgeCampaigns = badgeCampaigns.length > 0 ? queuePendingBadgeCampaigns(badgeCampaigns, 30) : []
+
+        // During migration, web guests install the app and continue to /card after signup.
+        if (!user && interceptGuestCta({ dest: '/card' })) return
+
         if (badgeCampaigns.length > 0) {
-            const queuedBadgeCampaigns = queuePendingBadgeCampaigns(badgeCampaigns, 30)
             if (!user) {
                 queueShhhhhCampaignContinuation()
                 router.push(shhhhhCampaignSignupRoute())
@@ -610,7 +626,9 @@ export default function ShhhhhLandingPage() {
                 </div>
             </section>
 
-            {!isJoined && <StickyShhhhhCTA onClick={handleCTA} />}
+            {/* Hide the sticky bar while the modal is open so it cannot cover the modal controls. */}
+            {!isJoined && !storeHandoffModal && <StickyShhhhhCTA onClick={handleCTA} />}
+            {storeHandoffModal}
         </>
     )
 }

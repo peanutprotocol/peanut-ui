@@ -6,6 +6,7 @@ import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { isSameRoute } from '@/constants/routes'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useCardSurfaceAccess } from '@/hooks/useCardSurfaceAccess'
+import { useForegroundPushRefresh } from '@/hooks/useForegroundPushRefresh'
 import { useSupportUnread } from '@/hooks/useSupportUnread'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -84,6 +85,10 @@ export const BottomNav = () => {
     const { isSupportModalOpen, setIsSupportModalOpen, setIsQRScannerOpen } = useModalsContext()
     const { triggerHaptic } = useAppHaptic()
     const hasUnreadSupport = useSupportUnread()
+    // the badge above is event-driven; this makes sure a web session that
+    // never mounts useNotifications (direct /card or /history load) still
+    // gets the foreground-push event the badge listens for
+    useForegroundPushRefresh()
     // The middle slot is the card tab only while the card is attainable. A
     // resident of a Rain-prohibited country who was released from the waitlist
     // still has `hasCardAccess`, so gating on that shipped them a tab whose

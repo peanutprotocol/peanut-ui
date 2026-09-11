@@ -548,6 +548,11 @@
             "manualRestart": "Cierra Peanut desde el selector de apps y vuelve a abrirla para terminar la actualización.",
             "applyFailed": "No se pudo aplicar la actualización. Revisa tu conexión e inténtalo de nuevo: Peanut sigue con la versión con la que iniciaste."
         },
+        "storeUpdate": {
+            "title": "Actualiza en {store}",
+            "description": "Esta versión incluye cambios que Peanut no puede instalar por su cuenta. Descárgala en {store} para terminar de actualizar.",
+            "openStore": "Abrir {store}"
+        },
         "about": {
             "title": "Acerca de Peanut",
             "intro": "Peanut hace fáciles los dólares: guarda tu saldo, envía a cualquier @usuario y mueve dinero por rieles locales después de una sola verificación de identidad. Creado por Squirrel Labs.",
@@ -723,7 +728,7 @@
             },
             "signup": {
                 "title": "¿Cómo te llamamos?",
-                "description": "Tu @usuario es la forma en que tus amigos te envían dinero. Piensa en él como un número de cuenta que puedes decir en voz alta."
+                "description": "Elige tu nombre de usuario. Lo usarás para enviar y recibir dinero."
             },
             "residence": {
                 "title": "¿Dónde vives legalmente?",
@@ -3496,6 +3501,18 @@
             "selectNewMethod": "Elegir otro método",
             "flagAlt": "Bandera de {country}",
             "flagAltGeneric": "Bandera del país"
+        },
+        "savedAddresses": {
+            "title": "Libreta de direcciones cripto",
+            "lastUsed": "{days, plural, =0 {Usada hoy} =1 {Usada ayer} other {Usada hace # días}}",
+            "editTitle": "Editar dirección",
+            "editAria": "Editar {nickname}",
+            "nicknameLabel": "Apodo",
+            "nicknamePlaceholder": "p. ej. Binance",
+            "deleteCta": "Eliminar dirección",
+            "savePrompt": "Guardar en la libreta",
+            "editFailed": "No pudimos actualizar la dirección. Intentá de nuevo.",
+            "nicknameRequired": "Agregá un apodo para guardar esta dirección."
         },
         "forceIosPwaInstall": {
             "videoUnsupported": "Tu navegador no admite la etiqueta de video.",

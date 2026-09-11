@@ -213,11 +213,11 @@ Use the workflow that matches the release:
 
 | | button | what it does |
 |-|--------|--------------|
-| native | **Release Native** | resolves `<major>.<build+1>.0` → builds iOS + Android from that one number → TestFlight + Play `internal` → tags `v<version>` |
-| Android replacement | **Android Release (Play)** | leave `versionName` blank on the selected supported branch → rebuilds the current tagged Android version with a new Play `versionCode`; refuses iOS/shared native changes and does not move the shared OTA floor |
-| OTA | **Release OTA** | resolves `<major>.<build>.<ota+1>` off the production channel → uploads the bundle → tags `ota-<version>` |
+| native | **App Release Android & iOS** | resolves `<major>.<build+1>.0` → builds iOS + Android from that one number → TestFlight + Play `internal` → tags `v<version>` |
+| Android replacement | **App Release Android** | leave `versionName` blank on the selected supported branch → rebuilds the current tagged Android version with a new Play `versionCode`; refuses iOS/shared native changes and does not move the shared OTA floor |
+| OTA | **App Release OTA** | resolves `<major>.<build>.<ota+1>` off the production channel → uploads the bundle → tags `ota-<version>` |
 
-For production OTA, use **Release OTA** so it resolves the version before calling Capgo.
+For production OTA, use **App Release OTA** so it resolves the version before calling Capgo.
 Do not dispatch the Capgo production workflow directly without a resolved version.
 
 None is automatic: no push, merge or commit reaches them. They are the same deliberate
@@ -229,7 +229,7 @@ checks that every native input changed since that tag is an explicitly
 legacy-compatible Android packaging input, and keeps the existing native
 `versionName`. Today that allowlist contains only `android/app/proguard-rules.pro`;
 plugin manifests, native bridges, dependencies, resources, permissions, and build
-configuration all require **Release Native**. That narrow rule matters because Capgo
+configuration all require **App Release Android & iOS**. That narrow rule matters because Capgo
 cannot distinguish an original Android 1.5.0 install from its replacement: both must
 continue to accept the same JS bundle. Advancing the shared native version for Android
 alone would instead make the production Capgo minimum strand the older iOS binary.
@@ -353,7 +353,7 @@ the build is reproducible, the AAB lands on a Play track.
 | `PLAY_SERVICE_ACCOUNT_JSON` | Google Play Developer API service account (least-priv "Release manager") |
 | `ANDROID_GOOGLE_SERVICES_JSON` | `base64 -w0 google-services.json` — **optional**; OneSignal push does not read it (see §Android push) |
 | `SUBMODULE_TOKEN` | read access to the `src/content` submodule |
-| `CAPGO_API_KEY` | OTA (already used by `capgo-deploy.yml`) |
+| `CAPGO_API_KEY` | OTA (used by the `App Release OTA` workflow) |
 | prod `NEXT_PUBLIC_*` | the values the static export bakes in (OneSignal, Sentry, chain, …) |
 
 > Housekeeping: the secret is named `NEXT_PUBLIC_SENTRY_DSN` but a Sentry DSN is public
@@ -367,28 +367,20 @@ the build is reproducible, the AAB lands on a Play track.
 
 ## 9. OTA updates (Capgo)
 
-`capgo-deploy.yml` builds the static export and uploads it. Production is **opt-in per
+`App Release OTA` builds the static export and uploads it. Production is **opt-in per
 release**, never a side effect of pushing code:
 
-| trigger                              | channel      | bundle version                    |
-| ------------------------------------ | ------------ | --------------------------------- |
-| **Release OTA** workflow (§6)        | `production` | `<major>.<build>.<ota+1>`         |
-| merge to `dev`                       | `staging`    | `<major>.<build>.<commit count>`  |
-| push tag `ota-1.1.4` (break-glass)   | `production` | `1.1.4`                           |
-| manual dispatch                      | `staging` / `development` only | `<major>.<build>.<commit count>` |
+| trigger                        | channel      | bundle version            |
+| ----------------------------- | ------------ | ------------------------- |
+| **App Release OTA** from `dev`, `main`, or `release/android-kyc` | `production` | `<major>.<build>.<ota+1>` |
+| **App Staging OTA** from `dev` | `staging`    | `<major>.<build>.<commit count>` |
 
-Shipping an OTA to everyone is therefore two steps — land the code, then run **Release
-OTA** (§6). Merging only reaches `staging`, which no production device sees. A bare manual
-dispatch to `production` is refused: it would upload a staging-shaped version and drag
-the production OTA counter into the commit-count band, where the next resolved version
-collides with a bundle that already exists.
-
-Staging keeps the commit count as its OTA component on purpose. Both lanes share one
-bundle namespace, production counts OTAs in single digits, and a version collision
-no-ops under `--version-exists-ok` — uploaded, listed, shipped to nobody.
-
-Not `v*`: that prefix belongs to `ios-release.yml` / `android-release.yml` for native
-store builds, and the two must not trigger each other.
+Shipping an OTA to everyone is therefore two steps — land the code, then run **App Release
+OTA** (§6). The workflow only accepts a dispatch from `dev`, `main`, or
+`release/android-kyc`; it resolves the next production bundle version from the current
+production channel and refuses other refs.
+Staging is published separately and manually through **App Staging OTA**; there is no
+automatic staging publish or `ota-*` break-glass workflow.
 
 One deliberate exception to "opt-in per release": a **native release auto-publishes a
 matching production bundle** when its versionName is ahead of the newest production
@@ -408,14 +400,46 @@ own `out/` under the binary's versionName, then assert the channel serves it.
   workflow change (needs repo admin).
 - **Native-version gating:** every upload passes an explicit `--min-update-version`, so a
   JS bundle built against new plugins stays off older native shells. The release lanes pin
-  it to the binary they ship; `capgo-deploy.yml` resolves it from the newest `v<major>.<build>.0`
+  it to the binary they ship; `App Release OTA` resolves it from the newest `v<major>.<build>.0`
   tag (`scripts/release-version.mjs native-floor`) and fails if none is visible. It replaced
   `--auto-min-update-version`, which only copies the previous bundle's floor forward — with no
   native version stamped on the `dev` checkout (package.json says 1.0.53) the floor never
-  rose past the first upload, and the CLI refuses the two flags together. Capgo only enforces
-  the floor when the channel's "disable auto update" strategy is set to *version number*.
+  rose past the first upload, and the CLI refuses the two flags together.
   **Bump the native version whenever you change plugins/native code**, then ship that via
   Play — OTA can't.
+
+  Capgo enforces that floor only under the channel's `metadata` "disable auto update"
+  strategy. The production channel was not on it, and the default (`major`) reads a
+  `<major>.<build>` bump as a permitted minor: a v1.6.0 native release auto-published its
+  matching 1.6.0 bundle and every install on the 1.5.0 binary downloaded it, staged it and
+  offered a restart — a restart that installs JS built against the newer binary's native
+  surface. Set it once, per channel, with repo-admin Capgo credentials:
+
+  ```
+  npx @capgo/cli@8.42.4 channel set production --disable-auto-update metadata --apikey "$CAPGO_API_KEY"
+  npx @capgo/cli@8.42.4 channel set staging --disable-auto-update metadata --apikey "$CAPGO_API_KEY"
+  ```
+
+  Deliberately not written by CI: the strategy is one fleet-wide switch, and a wrong value
+  takes OTA out for everyone — the TASK-21793 shape. It is an operator decision, made once.
+- **Native-version gating, on the device:** `src/utils/ota-native-gate.ts` re-derives the
+  same rule client-side, because the dashboard strategy above is invisible to both CI and
+  the app and nothing on the device noticed when it was wrong. Under the
+  `<major>.<build>.<ota>` scheme a bundle's first two segments name the binary it was built
+  against, so a bundle whose `<major>.<build>` outranks `App.getInfo().version` is never
+  downloaded, never staged, and reported as store-update-required instead. A bundle already
+  sitting in the plugin's queue is *disarmed* rather than hidden — `installNext()` runs from
+  `appMovedToBackground()` with no JS involved, so hiding it would not stop it installing.
+  The disarm points `next` back at the running bundle, which is the entry `installNext()`
+  skips (there is no JS-reachable clear-next, and `setBundleError` needs a config flag no
+  shipped binary sets); `builtin` is the fallback when the running bundle's id cannot be
+  read. It is verified by re-reading the queue, and an unconfirmed disarm is reported at
+  error level under `[capgo-apply]`, because a rewrite that silently failed leaves the
+  unsafe bundle installing on the next background. The sentinel it leaves behind persists —
+  `NEXT_VERSION` is cleared only when a *different* bundle installs — so a queue entry
+  naming the running bundle is never read back as an update.
+  It fails **open** on a version either side cannot parse: refusing every update on an
+  off-scheme version is the worse of the two failures.
 - **Native fingerprint (the check behind that rule):** `scripts/native-fingerprint.mjs`
   hashes the JS↔native contract in three parts: the **config** (Capacitor's two generated
   plugin manifests, `capacitor.config.ts`, the gradle files, `AndroidManifest.xml`,
@@ -440,7 +464,7 @@ own `out/` under the binary's versionName, then assert the channel serves it.
   the fingerprint proves source compatibility, while the compiled capability gate
   below independently requires provisioning support in the released binaries.
   An unresolvable ref is an error, never an empty read, and `--root` points the CLI at
-  another checkout so its tests never mutate this one. `capgo-deploy.yml` recomputes it and compares against the
+  another checkout so its tests never mutate this one. `App Release OTA` recomputes it and compares against the
   `v<major>.<build>.0` tag the bundle's floor targets. When a same-version Android
   replacement has successfully reached Play, `scripts/check-native-ota-surface.mjs`
   may select its annotated replacement tag instead—but only after validating the tag's
@@ -470,8 +494,9 @@ own `out/` under the binary's versionName, then assert the channel serves it.
 
 ### Internal testing (the `staging` channel on a real device)
 
-Every merge to `dev` already publishes to `staging`; the missing half was a way for a
-tester's device to read it. Five taps on the version line in **Profile → About** reveal a
+Run **App Staging OTA** manually from `dev` to publish a beta bundle to `staging`;
+**App Release OTA** only targets `production`. Five taps on the version line in
+**Profile → About** reveal a
 Beta-updates switch that calls `setChannel('staging')` — no dashboard work per tester, and
 the row also prints the device ID for the times someone has to be forced onto a channel
 from the dashboard instead.
@@ -600,10 +625,10 @@ or empty config and copies it into the app bundle. Both provisioning Swift files
 are app target sources and the bridge registers the plugin. Local builds can still
 use the stub.
 
-After both store builds succeed, Release Native writes a compiled-capability
+After both store builds succeed, App Release Android & iOS writes a compiled-capability
 attestation into the annotated release tag. OTA checks that attestation in
 addition to the source fingerprint. Older tags and manually created tags lack
-this evidence and cannot serve as OTA floors. Run Release Native to establish
+this evidence and cannot serve as OTA floors. Run App Release Android & iOS to establish
 a compatible floor; do not add an attestation to an unverified old tag.
 
 This gate intentionally blocks new native releases until the MeaWallet SDK

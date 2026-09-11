@@ -548,6 +548,11 @@
             "manualRestart": "Close Peanut from the app switcher and open it again to finish the update.",
             "applyFailed": "The update couldn't be applied. Check your connection and try again — Peanut is still running the version you started with."
         },
+        "storeUpdate": {
+            "title": "Update in {store}",
+            "description": "This version includes changes Peanut can't install by itself. Get it from {store} to finish updating.",
+            "openStore": "Open {store}"
+        },
         "about": {
             "title": "About Peanut",
             "intro": "Peanut makes dollars easy: hold your balance, send to any @username, and use local bank transfers after one ID check. Built by Squirrel Labs.",
@@ -723,7 +728,7 @@
             },
             "signup": {
                 "title": "How should we call you?",
-                "description": "Your @username is how friends send you money. Think of it as an account number you can say out loud."
+                "description": "Choose your username. You will use it to send and receive money."
             },
             "residence": {
                 "title": "Where do you legally live?",
@@ -3496,6 +3501,18 @@
             "selectNewMethod": "Select new method",
             "flagAlt": "{country} flag",
             "flagAltGeneric": "Country flag"
+        },
+        "savedAddresses": {
+            "title": "Crypto address book",
+            "lastUsed": "{days, plural, =0 {Used today} =1 {Used yesterday} other {Used # days ago}}",
+            "editTitle": "Edit address",
+            "editAria": "Edit {nickname}",
+            "nicknameLabel": "Nickname",
+            "nicknamePlaceholder": "e.g. Binance",
+            "deleteCta": "Delete address",
+            "savePrompt": "Save to address book",
+            "editFailed": "Could not update the address. Try again.",
+            "nicknameRequired": "Add a nickname to save this address."
         },
         "forceIosPwaInstall": {
             "videoUnsupported": "Your browser does not support the video tag.",

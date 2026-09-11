@@ -44,6 +44,9 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useTranslations } from 'next-intl'
 import { resolveSettledTxHash } from '@/utils/settled-tx-hash.utils'
 import { toError } from '@/utils/to-error'
+import { useSavedAddresses } from '@/hooks/useSavedAddresses'
+import SaveAddressPrompt from '@/features/withdraw/components/AddressBook/SaveAddressPrompt'
+import { savedAddressLabel } from '@/utils/saved-address.utils'
 
 export default function WithdrawCryptoPage() {
     const router = useRouter()
@@ -189,6 +192,14 @@ export default function WithdrawCryptoPage() {
 
     // local state for transaction execution
     const [isSendingTx, setIsSendingTx] = useState(false)
+    // crypto address book: prompt to save the destination on review, label it when already saved
+    const { findSaved, save: saveAddress } = useSavedAddresses()
+    const [saveToBook, setSaveToBook] = useState(false)
+    const [bookNickname, setBookNickname] = useState('')
+    const existingSaved = withdrawData ? findSaved(withdrawData.chain.chainId, withdrawData.address) : undefined
+    const trimmedBookNickname = bookNickname.trim()
+    // success screen: the saved nickname, or the one just chosen at submit
+    const successNickname = existingSaved?.nickname ?? (saveToBook && trimmedBookNickname ? trimmedBookNickname : null)
     // The USD amount the executed withdrawal actually moved (the charge-pinned
     // broadcast amount). The success screen and the completion analytics read
     // THIS — `?amount=` stays user-editable after execution, and rendering it
@@ -287,6 +298,9 @@ export default function WithdrawCryptoPage() {
     const handleSetupReview = useCallback(
         async (data: Omit<WithdrawData, 'amount'>) => {
             if (setupInFlightRef.current || executionInFlightRef.current) return
+            // fresh review → fresh save prompt (a previous destination's nickname must not carry over)
+            setSaveToBook(false)
+            setBookNickname('')
             if (!amountToWithdraw) {
                 console.error('Amount to withdraw is not set or not available from context')
                 setError(t('errors.amountMissing'))
@@ -521,6 +535,15 @@ export default function WithdrawCryptoPage() {
         clearErrors()
         setIsSendingTx(true)
 
+        // save-at-submit: fire alongside the on-chain leg; a failure here must not block the withdraw
+        if (!existingSaved && saveToBook && trimmedBookNickname) {
+            saveAddress.mutate({
+                address: withdrawData.address,
+                chainId: withdrawData.chain.chainId,
+                nickname: trimmedBookNickname,
+            })
+        }
+
         posthog.capture(ANALYTICS_EVENTS.WITHDRAW_CONFIRMED, {
             amount_usd: usdAmount,
             method_type: 'crypto',
@@ -729,6 +752,10 @@ export default function WithdrawCryptoPage() {
         t,
         tErrors,
         toFriendlyError,
+        existingSaved,
+        saveToBook,
+        trimmedBookNickname,
+        saveAddress,
     ])
 
     const handleBackFromConfirm = useCallback(() => {
@@ -882,6 +909,18 @@ export default function WithdrawCryptoPage() {
                     insufficientBalance={insufficientBalance}
                     belowMinimumMessage={belowMinimumMessage}
                     isFromSendFlow={isFromSendFlow}
+                    toNickname={existingSaved?.nickname}
+                    confirmDisabled={!existingSaved && saveToBook && !trimmedBookNickname}
+                    saveAddressPrompt={
+                        !existingSaved && (
+                            <SaveAddressPrompt
+                                checked={saveToBook}
+                                nickname={bookNickname}
+                                onCheckedChange={setSaveToBook}
+                                onNicknameChange={setBookNickname}
+                            />
+                        )
+                    }
                 />
             )}
 
@@ -903,10 +942,16 @@ export default function WithdrawCryptoPage() {
                         paymentDetails={paymentDetails}
                         usdAmount={executedAmountUsd ?? usdAmount}
                         message={
-                            <AddressLink
-                                className="text-body-s font-normal text-foreground-secondary no-underline"
-                                address={withdrawData.address}
-                            />
+                            successNickname ? (
+                                <span className="text-body-s text-foreground-secondary">
+                                    {savedAddressLabel(successNickname, withdrawData.address)}
+                                </span>
+                            ) : (
+                                <AddressLink
+                                    className="text-body-s font-normal text-foreground-secondary no-underline"
+                                    address={withdrawData.address}
+                                />
+                            )
                         }
                     />
                 </>
