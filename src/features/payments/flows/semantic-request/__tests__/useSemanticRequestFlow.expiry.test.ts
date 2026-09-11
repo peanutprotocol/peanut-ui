@@ -93,6 +93,7 @@ const route = {
 }
 jest.mock('@/features/payments/shared/hooks/useCrossChainTransfer', () => ({ useCrossChainTransfer: () => route }))
 
+const mockHasSufficientBalance = jest.fn(() => true)
 const mockSendMoney = jest.fn()
 const mockSendTransactions = jest.fn()
 jest.mock('@/hooks/wallet/useWallet', () => ({
@@ -102,7 +103,7 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
         sendMoney: mockSendMoney,
         sendTransactions: (...args: unknown[]) => mockSendTransactions(...args),
         formattedSpendableBalance: '100',
-        hasSufficientSpendableBalance: () => true,
+        hasSufficientSpendableBalance: mockHasSufficientBalance,
         isFetchingSpendableBalance: false,
     }),
 }))
@@ -298,6 +299,11 @@ describe('semantic request USD metadata', () => {
         expect(ctx.setError).toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
     })
 
+    it('compares the USD cost with the Peanut wallet balance', () => {
+        renderHookWithIntl(() => useSemanticRequestFlow())
+        expect(mockHasSufficientBalance).toHaveBeenCalledWith('250')
+    })
+
     it('recalculates a preset amount when the live price arrives', () => {
         mockTokenSelection.selectedTokenData.price = 0
         const { rerender } = renderHookWithIntl(() => useSemanticRequestFlow())
@@ -314,5 +320,35 @@ describe('semantic request USD metadata', () => {
             await result.current.handlePayment(true, true)
         })
         expect(mockCreateCharge).not.toHaveBeenCalled()
+    })
+})
+
+describe('semantic request USD denomination with a selected token', () => {
+    it('converts a USD amount before requesting ETH', async () => {
+        jest.clearAllMocks()
+        ctx.charge = null
+        ctx.currentView = 'INITIAL'
+        ctx.amount = '10'
+        ctx.usdAmount = '10'
+        ctx.isTokenDenominated = false
+        ctx.urlToken = null
+        ctx.recipient.recipientType = 'ADDRESS'
+        mockTokenSelection.selectedChainID = '8453'
+        mockTokenSelection.selectedTokenAddress = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+        mockTokenSelection.selectedTokenData = {
+            address: mockTokenSelection.selectedTokenAddress,
+            chainId: '8453',
+            decimals: 18,
+            symbol: 'ETH',
+            price: 2500,
+        }
+        mockCreateCharge.mockResolvedValue(originalCharge)
+        const { result } = renderHookWithIntl(() => useSemanticRequestFlow())
+        await act(async () => {
+            await result.current.handlePayment(true, true)
+        })
+        const payload = mockCreateCharge.mock.calls[0][0]
+        expect(Number(payload.tokenAmount)).toBe(0.004)
+        expect(payload.currencyAmount).toBe('10')
     })
 })

@@ -26,7 +26,7 @@ import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { useTranslations } from 'next-intl'
-import { areEvmAddressesEqual } from '@/utils/general.utils'
+import { areEvmAddressesEqual, isStableCoin, floorFixed } from '@/utils/general.utils'
 import { useQueryClient } from '@tanstack/react-query'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { resolveSettledTxHash } from '@/utils/settled-tx-hash.utils'
@@ -163,9 +163,9 @@ export function useSemanticRequestFlow() {
 
     // check if has sufficient balance for current amount
     const hasEnoughBalance = useMemo(() => {
-        if (!amount) return false
-        return hasSufficientBalance(amount)
-    }, [amount, hasSufficientBalance])
+        if (!currentUsdAmount) return false
+        return hasSufficientBalance(currentUsdAmount)
+    }, [currentUsdAmount, hasSufficientBalance])
 
     // check if should show insufficient balance error
     // gate on !isFetchingSpendableBalance (NOT isFetchingBalance) so we wait
@@ -177,7 +177,7 @@ export function useSemanticRequestFlow() {
     const isInsufficientBalance = useMemo(() => {
         return (
             isLoggedIn &&
-            !!amount &&
+            !!currentUsdAmount &&
             !hasEnoughBalance &&
             !isFetchingSpendableBalance &&
             !isLoading &&
@@ -188,7 +188,7 @@ export function useSemanticRequestFlow() {
         )
     }, [
         isLoggedIn,
-        amount,
+        currentUsdAmount,
         hasEnoughBalance,
         isFetchingSpendableBalance,
         isLoading,
@@ -265,9 +265,23 @@ export function useSemanticRequestFlow() {
                     if (!currentUsdAmount) {
                         throw new Error('Token price is unavailable. Please try again.')
                     }
+                    // The input is USD unless the URL explicitly denominates it in tokens.
+                    // Keep that fiat amount separate from the destination token amount.
+                    let requestedTokenAmount = amount
+                    if (!isTokenDenominated && !isStableCoin(selectedTokenData.symbol)) {
+                        if (!tokenUsdPrice) throw new Error('Token price is unavailable. Please try again.')
+                        const convertedAmount = Number(amount) / tokenUsdPrice
+                        if (!Number.isFinite(convertedAmount) || convertedAmount <= 0) {
+                            throw new Error('Token amount is invalid. Please try again.')
+                        }
+                        requestedTokenAmount = floorFixed(convertedAmount, selectedTokenData.decimals)
+                        if (Number(requestedTokenAmount) <= 0) {
+                            throw new Error('Amount is too small for this token.')
+                        }
+                    }
                     // only create new charge if we don't have one already
                     chargeResult = await createCharge({
-                        tokenAmount: amount,
+                        tokenAmount: requestedTokenAmount,
                         tokenAddress: selectedTokenAddress as Address,
                         chainId: selectedChainID,
                         tokenSymbol: selectedTokenData.symbol,
@@ -351,6 +365,8 @@ export function useSemanticRequestFlow() {
             recipient,
             amount,
             currentUsdAmount,
+            isTokenDenominated,
+            tokenUsdPrice,
             attachment,
             walletAddress,
             selectedTokenAddress,
