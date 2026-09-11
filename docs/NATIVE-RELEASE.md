@@ -621,8 +621,10 @@ before promotion. An existing `.0` record with incomplete metadata fails closed.
   policies above. Public API artifact reads are combined with the same authenticated
   channel-policy interface used by Capgo CLI, since the public channel response omits
   platform flags. Unreadable policies or missing metadata exposure stop publication.
-- **Manual dispatch publishes after checks.** The workflow uses the `Production` GitHub
-  environment; adding required reviewers there is a separate repository policy decision.
+- **A manually dispatched native release publishes its matching `.0` bootstrap bundle after
+  the native checks pass.** This is part of the native release lane; normal production OTA
+  remains automatic from `main`. The native workflow uses the `Production` GitHub environment;
+  adding required reviewers there is a separate repository policy decision.
 - **Native-version gating:** every record has an explicit `--min-update-version`, enforced
   by the channel's Metadata strategy. Each OTA uses its own platform floor; native `.0`
   records use their binary version. Never use the lower platform floor for a shared record.
