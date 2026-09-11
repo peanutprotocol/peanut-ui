@@ -105,32 +105,35 @@ const HomeCarouselCTA = () => {
     // which unmounts with `selectedPerk` and would take the pending ask with it.
     useAppReviewNudge(user?.user.userId, 'reward_claimed', claimedPerkIds.size > 0 && !selectedPerk)
 
-    // don't render carousel if there are no CTAs
-    if (!allCTAs.length) return null
-
+    // no early return on an empty list: claiming the LAST perk empties
+    // `allCTAs` while the success sheet is still dismissing, and a bare
+    // `return null` here unmounted the claim flow and the invite handoff
+    // mid-animation. Only the carousel itself is conditional.
     return (
         <>
-            <Carousel>
-                {allCTAs.map((cta) => (
-                    <CarouselCTA
-                        key={cta.id}
-                        title={cta.title}
-                        description={cta.description}
-                        icon={cta.icon as IconName}
-                        onClose={() => {
-                            cta.onClose?.()
-                            dismissCTA(cta.id)
-                        }}
-                        onClick={cta.onClick}
-                        logo={cta.logo}
-                        iconContainerClassName={cta.iconContainerClassName}
-                        secondaryIcon={cta.secondaryIcon}
-                        iconSize={16}
-                        logoSize={cta.logoSize}
-                        isPerkClaim={cta.isPerkClaim}
-                    />
-                ))}
-            </Carousel>
+            {allCTAs.length > 0 && (
+                <Carousel>
+                    {allCTAs.map((cta) => (
+                        <CarouselCTA
+                            key={cta.id}
+                            title={cta.title}
+                            description={cta.description}
+                            icon={cta.icon as IconName}
+                            onClose={() => {
+                                cta.onClose?.()
+                                dismissCTA(cta.id)
+                            }}
+                            onClick={cta.onClick}
+                            logo={cta.logo}
+                            iconContainerClassName={cta.iconContainerClassName}
+                            secondaryIcon={cta.secondaryIcon}
+                            iconSize={16}
+                            logoSize={cta.logoSize}
+                            isPerkClaim={cta.isPerkClaim}
+                        />
+                    ))}
+                </Carousel>
+            )}
 
             {/* Perk Claim Modal */}
             {selectedPerk && (
