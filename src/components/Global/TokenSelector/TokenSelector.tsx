@@ -82,7 +82,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
     const isCrossChainDisabled = isXchainWithdrawDisabled || isXchainSendDisabled
 
     // When cross-chain withdraw is live, restrict destinations to what Rhino
-    // actually supports — the Squid-era selector lists chains/tokens Rhino
+    // actually supports — the static catalog lists chains/tokens Rhino
     // rejects (e.g. USDC on Scroll → "SCROLL is disabled"). See
     // RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN.
     const restrictToRhino = viewType === 'withdraw' && !isXchainWithdrawDisabled
