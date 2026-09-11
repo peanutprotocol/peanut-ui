@@ -2,7 +2,7 @@ name: Publish screen library
 on:
     workflow_call:
         secrets:
-            CLOUDFLARE_API_TOKEN:
+            CLOUDFLARE_PUBLISH_TOKEN:
                 required: true
 permissions:
     contents: read
@@ -33,17 +33,18 @@ jobs:
             - run: npm install --ignore-scripts --no-save --package-lock=false --prefix /tmp/screen-publisher pixelmatch@7.2.0 pngjs@7.0.0 @aws-sdk/client-s3@3.883.0 sharp@0.34.5
             - name: Link isolated publisher dependencies
               run: ln -s /tmp/screen-publisher/node_modules node_modules
-            - name: Download current attempt captures
+            - name: Download capture artifacts from this run
               uses: actions/download-artifact@v4
               with:
                   github-token: ${{ github.token }}
                   run-id: ${{ github.run_id }}
-                  pattern: screen-library-*-${{ github.run_attempt }}
+                  pattern: screen-library-*
+                  merge-multiple: false
                   path: incoming
             - name: Verify provenance and publish
               env:
                   GH_TOKEN: ${{ github.token }}
-                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+                  CLOUDFLARE_PUBLISH_TOKEN: ${{ secrets.CLOUDFLARE_PUBLISH_TOKEN }}
                   CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
                   SCREEN_LIBRARY_R2_BUCKET: ${{ vars.SCREEN_LIBRARY_R2_BUCKET }}
                   SCREEN_LIBRARY_R2_JURISDICTION: ${{ vars.SCREEN_LIBRARY_R2_JURISDICTION }}

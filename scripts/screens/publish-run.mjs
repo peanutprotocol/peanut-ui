@@ -1,10 +1,11 @@
 import { execFileSync } from 'node:child_process'
-import { readFileSync, writeFileSync, mkdirSync, copyFileSync } from 'node:fs'
+import { readFileSync, writeFileSync, mkdirSync, copyFileSync, readdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { validateCapture, verifyAsset } from './core.mjs'
 import { integrationBase } from './integration.mjs'
 import { reviewProvenance } from './review-provenance.mjs'
 import { verifyRunIdentity } from './run-identity.mjs'
+import { selectCapturePair } from './capture-artifacts.mjs'
 const repo = process.env.REPOSITORY,
     runId = process.env.RUN_ID,
     attempt = process.env.RUN_ATTEMPT
@@ -13,7 +14,18 @@ if (!/^[\w.-]+\/[\w.-]+$/.test(repo ?? '') || !/^\d+$/.test(runId ?? '') || !/^\
 const api = (path) => JSON.parse(execFileSync('gh', ['api', `repos/${repo}/${path}`], { encoding: 'utf8' }))
 const run = api(`actions/runs/${runId}`)
 verifyRunIdentity(run, repo, Number(runId), Number(attempt))
-const dirs = ['before', 'after'].map((side) => `incoming/screen-library-${side}-${attempt}`)
+const capturePair = selectCapturePair(readdirSync('incoming'), ({ before, after }) => {
+    if (![before, after].every((name) => existsSync(join('incoming', name, 'capture.json')))) return false
+    try {
+        for (const name of [before, after])
+            validateCapture(JSON.parse(readFileSync(join('incoming', name, 'capture.json'), 'utf8')))
+        return true
+    } catch {
+        return false
+    }
+})
+const captureAttempt = capturePair.attempt
+const dirs = [capturePair.before, capturePair.after]
 const [before, after] = dirs.map((dir) => validateCapture(JSON.parse(readFileSync(join(dir, 'capture.json'), 'utf8'))))
 if (after.commit !== run.head_sha) throw new Error('Capture does not match triggering run head')
 let expectedBase, pr
@@ -69,6 +81,7 @@ const env = {
     EXPECTED_HEAD: after.commit,
     EXPECTED_BASE: before.commit,
     DEV_SEQUENCE: String(run.run_number),
+    CAPTURE_ATTEMPT: String(captureAttempt),
 }
 execFileSync('node', ['scripts/screens/publish.mjs', 'publication', path], { stdio: 'inherit', env })
 // Historical reports retain both full source libraries as well as their comparison.
@@ -96,7 +109,12 @@ for (const [capture, source, branch] of libraries) {
         ['scripts/screens/publish.mjs', destination, `${date}/${branch}-${capture.commit}/run-${runId}-${attempt}`],
         {
             stdio: 'inherit',
-            env: { ...env, EXPECTED_HEAD: capture.commit, EXPECTED_BASE: '' },
+            env: {
+                ...env,
+                EXPECTED_HEAD: capture.commit,
+                EXPECTED_BASE: '',
+                CAPTURE_ATTEMPT: String(captureAttempt),
+            },
         }
     )
 }

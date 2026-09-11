@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto'
 export function configuration(env = process.env) {
     const keys = [
         'CLOUDFLARE_ACCOUNT_ID',
-        'CLOUDFLARE_API_TOKEN',
+        'CLOUDFLARE_PUBLISH_TOKEN',
         'SCREEN_LIBRARY_R2_BUCKET',
         'SCREEN_LIBRARY_PUBLIC_URL',
         'SCREEN_LIBRARY_IMAGES_HASH',
@@ -41,7 +41,7 @@ export async function createStorage(env = process.env) {
     const client = new S3Client({
         region: 'auto',
         endpoint: r2Endpoint(config),
-        credentials: await tokenCredentials(config.CLOUDFLARE_API_TOKEN),
+        credentials: await tokenCredentials(config.CLOUDFLARE_PUBLISH_TOKEN),
     })
     const Bucket = config.SCREEN_LIBRARY_R2_BUCKET
     const url = (key) => `${config.SCREEN_LIBRARY_PUBLIC_URL}/screen-data/${key}`
@@ -89,7 +89,7 @@ export async function uploadPreview(config, name, bytes, request = cloudflareReq
     if (!/^[a-f0-9]{64}\.(png|webp)$/.test(name)) throw new Error('Invalid preview name')
     const id = `peanut-screen-${name.slice(0, 64)}`
     const endpoint = `https://api.cloudflare.com/client/v4/accounts/${config.CLOUDFLARE_ACCOUNT_ID}/images/v1`
-    const headers = { Authorization: `Bearer ${config.CLOUDFLARE_API_TOKEN}` }
+    const headers = { Authorization: `Bearer ${config.CLOUDFLARE_PUBLISH_TOKEN}` }
     // Verify original bytes on reuse, never trust a custom ID alone.
     let response = await request(`${endpoint}/${id}/blob`, { headers })
     if (response.status === 404) {

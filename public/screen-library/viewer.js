@@ -7,7 +7,7 @@ const el = (tag, value, className) => {
     if (className) n.className = className
     return n
 }
-const offline = location.protocol === 'file:' || location.pathname.endsWith('/index.html')
+const offline = location.protocol === 'file:'
 const assetBase = offline ? './assets/' : '/screen-data/assets/'
 const asset = (name) => {
     if (!/^[a-f0-9]{64}\.(png|webp)$/.test(name || '')) return null
