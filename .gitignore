@@ -96,6 +96,7 @@ e2e/__baseline__/
 e2e/__report__/
 e2e/__snapshots__/
 e2e/__shots__/
+e2e/__sweep__/
 e2e/.auth/
 
 # native app signing

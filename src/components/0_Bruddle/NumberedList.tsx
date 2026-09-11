@@ -12,7 +12,7 @@ interface NumberedListProps {
  * a risk or caveat belongs in the screen's single Notification.
  */
 export const NumberedList = ({ items, className }: NumberedListProps) => (
-    <ol className={twMerge('flex w-full flex-col gap-3 text-left', className)}>
+    <ol role="list" className={twMerge('flex w-full flex-col gap-3 text-left', className)}>
         {items.map((item, index) => (
             <li key={index} className="flex items-start gap-3">
                 <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-action-primary text-label-m text-black">

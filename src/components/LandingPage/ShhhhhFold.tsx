@@ -34,7 +34,7 @@ export function ShhhhhFold() {
                     <Link
                         prefetch={false}
                         href="/shhhhh"
-                        className="font-roboto-flex-extrabold inline-block text-headingMedium leading-none font-extraBlack md:text-headingLarge"
+                        className="font-roboto-flex-extrabold inline-block text-heading leading-none font-extraBlack md:text-headingLarge"
                     >
                         {t('wordmark')}
                     </Link>

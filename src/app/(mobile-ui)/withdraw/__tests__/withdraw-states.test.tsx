@@ -63,6 +63,8 @@ const mockSetError = jest.fn()
 const mockSetSelectedBankAccount = jest.fn()
 const mockSetSelectedMethod = jest.fn()
 const mockSetIsMaxWithdrawal = jest.fn()
+const mockSetRecipient = jest.fn()
+const mockSetIsValidRecipient = jest.fn()
 
 const mockWithdrawFlow = {
     error: { showError: false, errorMessage: '' },
@@ -72,6 +74,8 @@ const mockWithdrawFlow = {
     selectedBankAccount: null as any,
     setSelectedBankAccount: mockSetSelectedBankAccount,
     setSelectedMethod: mockSetSelectedMethod,
+    setRecipient: mockSetRecipient,
+    setIsValidRecipient: mockSetIsValidRecipient,
 }
 
 jest.mock('@/features/withdraw/WithdrawFlowContext', () => ({
@@ -124,6 +128,22 @@ jest.mock('@/features/limits/utils', () => ({
 
 jest.mock('@/constants/zerodev.consts', () => ({
     PEANUT_WALLET_TOKEN_DECIMALS: 6,
+    PEANUT_WALLET_CHAIN: { id: 42161 },
+}))
+
+// The token selector's context is app-level; the flow writes the scanned
+// destination into it, so the test reads the writes off these mocks.
+const mockSetSelectedChainID = jest.fn()
+const mockSetSelectedTokenAddress = jest.fn()
+const SOLANA_USDC = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
+const TRON_USDT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'
+const mockSupportedChainsAndTokens: Record<string, { chainId: string; tokens: unknown[] }> = {}
+jest.mock('@/context/tokenSelector.context', () => ({
+    tokenSelectorContext: jest.requireActual('react').createContext({
+        supportedChainsAndTokens: mockSupportedChainsAndTokens,
+        setSelectedChainID: (...args: unknown[]) => mockSetSelectedChainID(...args),
+        setSelectedTokenAddress: (...args: unknown[]) => mockSetSelectedTokenAddress(...args),
+    }),
 }))
 
 jest.mock('@/constants/analytics.consts', () => ({
@@ -229,6 +249,7 @@ jest.mock('@/features/withdraw/views/WithdrawMethodView', () => ({
 
 // ---------- import component under test AFTER all mocks ----------
 import WithdrawPage from '../page'
+import { clearScannedDestination, stashScannedDestination } from '@/features/withdraw/destination'
 import { __testing as safeBackTesting } from '@/hooks/useSafeBack'
 
 // ---------- helpers ----------
@@ -265,6 +286,12 @@ function renderWithdraw(params: Record<string, string> = {}) {
 // ---------- default mock values ----------
 
 function applyDefaults() {
+    mockSupportedChainsAndTokens.solana = {
+        chainId: 'solana',
+        tokens: [{ symbol: 'USDC', address: SOLANA_USDC }],
+    }
+    // Tron delivers USDT and no USDC — the token rule's fallback branch.
+    mockSupportedChainsAndTokens.tron = { chainId: 'tron', tokens: [{ symbol: 'USDT', address: TRON_USDT }] }
     mockWithdrawFlow.error = { showError: false, errorMessage: '' }
     mockWithdrawFlow.selectedMethod = null
     mockWithdrawFlow.selectedBankAccount = null
@@ -510,6 +537,130 @@ describe('GROUP 3: Amount Validation', () => {
 
         fireEvent.click(continueBtn)
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto?amount=0.4')
+    })
+
+    describe('a destination scanned into the flow (TASK-22251)', () => {
+        // Real, publicly known addresses. The uppercase L is the character a
+        // lowercasing pass would destroy — it must reach the recipient step intact.
+        const SOLANA_ADDRESS = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM'
+        const SECOND_SOLANA_ADDRESS = 'DRpbCBMxVnDK7maPM5tGv6MvB3v1sRMC86PZ8okm21hy'
+        const TRON_ADDRESS = 'TJRyWwFs9wTFGZg3JbrVriFbNfCug5tDeC'
+        const scanEntry = (scan: string) => ({ method: 'crypto', step: 'amount', amount: '25', scan })
+
+        const scanInto = (address: string) => {
+            const id = stashScannedDestination(address, 'solana')
+            if (!id) throw new Error('expected a payable destination')
+            return id
+        }
+
+        beforeEach(() => {
+            clearScannedDestination()
+            mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+        })
+
+        test('seeds the recipient step with the scanned address, its chain and token', () => {
+            renderWithdraw(scanEntry(scanInto(SOLANA_ADDRESS)))
+            fireEvent.click(screen.getByText('Continue'))
+
+            expect(mockSetSelectedChainID).toHaveBeenCalledWith('solana')
+            expect(mockSetSelectedTokenAddress).toHaveBeenCalledWith(SOLANA_USDC)
+            expect(mockSetRecipient).toHaveBeenCalledWith({ name: undefined, address: SOLANA_ADDRESS })
+            expect(mockSetIsValidRecipient).toHaveBeenCalledWith(true)
+            expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto?method=crypto&amount=25')
+        })
+
+        // Tron has no USDC, so the token rule falls back to the chain's only
+        // token. Scanning one must not land the recipient step on a token Rhino
+        // cannot deliver there.
+        test('a scanned Tron address seeds Tron and its USDT', () => {
+            const id = stashScannedDestination(TRON_ADDRESS, 'tron')
+            if (!id) throw new Error('expected a payable destination')
+
+            renderWithdraw(scanEntry(id))
+            fireEvent.click(screen.getByText('Continue'))
+
+            expect(mockSetSelectedChainID).toHaveBeenCalledWith('tron')
+            expect(mockSetSelectedTokenAddress).toHaveBeenCalledWith(TRON_USDT)
+            expect(mockSetRecipient).toHaveBeenCalledWith({ name: undefined, address: TRON_ADDRESS })
+        })
+
+        test('carries the address onward in process, never in the next URL', () => {
+            renderWithdraw(scanEntry(scanInto(SOLANA_ADDRESS)))
+            fireEvent.click(screen.getByText('Continue'))
+
+            expect(mockRouterPush.mock.calls.at(-1)?.[0]).not.toContain(SOLANA_ADDRESS)
+        })
+
+        // /withdraw keeps its layout mounted, so scanning from a bank withdrawal's
+        // amount step arrives with that bank method still in flow memory. The scan
+        // names the rail: without this, Continue follows the old bank route and the
+        // scanned address is dropped.
+        test('replaces a bank method the user left selected, and its saved account', () => {
+            mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'spain' }
+
+            renderWithdraw(scanEntry(scanInto(SOLANA_ADDRESS)))
+
+            expect(mockSetSelectedMethod).toHaveBeenCalledWith({
+                type: 'crypto',
+                title: 'Crypto',
+                countryPath: undefined,
+            })
+            expect(mockSetSelectedBankAccount).toHaveBeenCalledWith(null)
+        })
+
+        // Same mounted layout: a second scan navigates without remounting, so the
+        // flow must follow the new scan id rather than keep the first destination.
+        test('a second scan wins over the first', () => {
+            scanInto(SOLANA_ADDRESS)
+            const second = scanInto(SECOND_SOLANA_ADDRESS)
+
+            renderWithdraw(scanEntry(second))
+            fireEvent.click(screen.getByText('Continue'))
+
+            expect(mockSetRecipient).toHaveBeenCalledWith({ name: undefined, address: SECOND_SOLANA_ADDRESS })
+            expect(mockSetRecipient).not.toHaveBeenCalledWith({ name: undefined, address: SOLANA_ADDRESS })
+        })
+
+        // Only the scan that stashed it gets it back. A withdrawal the user
+        // started themselves, or a URL left over from an earlier scan, does not.
+        test.each([
+            ['the entry names no scan', undefined],
+            ['the entry names a scan that is over', 'scan-does-not-exist'],
+        ])('seeds nothing when %s', (_case, scan) => {
+            scanInto(SOLANA_ADDRESS)
+
+            renderWithdraw({ method: 'crypto', step: 'amount', amount: '25', ...(scan ? { scan } : {}) })
+            fireEvent.click(screen.getByText('Continue'))
+
+            expect(mockSetRecipient).not.toHaveBeenCalled()
+            expect(mockSetIsValidRecipient).not.toHaveBeenCalled()
+            expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto?method=crypto&amount=25')
+        })
+
+        test('hands the destination over once, so pressing on again cannot re-apply it', () => {
+            const id = scanInto(SOLANA_ADDRESS)
+
+            renderWithdraw(scanEntry(id))
+            fireEvent.click(screen.getByText('Continue'))
+            mockSetRecipient.mockClear()
+            fireEvent.click(screen.getByText('Continue'))
+
+            expect(mockSetRecipient).not.toHaveBeenCalled()
+        })
+
+        test('leaves the step to its defaults when the chain list has no token yet', () => {
+            // A recipient marked valid with no token to send is a broken review
+            // step, so an unresolved chain seeds nothing at all.
+            mockSupportedChainsAndTokens.solana = { chainId: 'solana', tokens: [] }
+
+            renderWithdraw(scanEntry(scanInto(SOLANA_ADDRESS)))
+            fireEvent.click(screen.getByText('Continue'))
+
+            expect(mockSetSelectedChainID).not.toHaveBeenCalled()
+            expect(mockSetSelectedTokenAddress).not.toHaveBeenCalled()
+            expect(mockSetRecipient).not.toHaveBeenCalled()
+            expect(mockSetIsValidRecipient).not.toHaveBeenCalled()
+        })
     })
 
     test('Crypto send forwards the send marker AND the amount to the next step', () => {

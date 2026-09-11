@@ -17,17 +17,17 @@ import { AuthContext, useAuth } from '@/context/authContext'
 import { AccountReadyView } from '@/components/Setup/Views/SignTestTransaction'
 import { SetupNotificationsPrompt } from '@/components/Notifications/SetupNotificationsModal'
 import { useTranslations } from 'next-intl'
-import type { Region } from '@/utils/regions.utils'
 import { setupSteps } from '@/components/Setup/Setup.consts'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
 import type { ScreenId } from '@/components/Setup/Setup.types'
 
-import { PasskeySetupHelpModal } from '@/components/Setup/Views/PasskeySetupHelpModal'
-import PasskeyInfoModal from '@/components/Setup/components/PasskeyInfoModal'
+import { PasskeySetupHelpDrawer } from '@/components/Setup/Views/PasskeySetupHelpDrawer'
+import PasskeyInfoDrawer from '@/components/Setup/components/PasskeyInfoDrawer'
 import ConfirmInviteModal from '@/components/Global/ConfirmInviteModal'
-import EasterEggModal from '@/components/Global/EasterEggModal'
+import EarlyUserDrawer from '@/components/Global/EarlyUserDrawer'
+import EasterEggDrawer from '@/components/Global/EasterEggDrawer'
 import { GuestVerificationModal } from '@/components/Global/GuestVerificationModal'
-import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
+import InviteFriendsDrawer from '@/components/Global/InviteFriendsDrawer'
 import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
 import AdvisoryPreemptModal from '@/components/Kyc/AdvisoryPreemptModal'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
@@ -39,24 +39,23 @@ import { KycProcessingModal } from '@/components/Kyc/modals/KycProcessingModal'
 import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
 import { KycStatusDrawer } from '@/components/Kyc/KycStatusDrawer'
 import UnlockMethodModal from '@/components/IdentityVerification/UnlockMethodModal'
-import UnlockRegionModal from '@/components/IdentityVerification/UnlockRegionModal'
 import CancelCardModal from '@/components/Card/CancelCardModal'
-import CardLimitEditModal from '@/components/Card/CardLimitEditModal'
+import CardLimitEditDrawer from '@/components/Card/CardLimitEditDrawer'
 import LockCardModal from '@/components/Card/LockCardModal'
 import { CardUnlockDrawer } from '@/components/Card/CardUnlockDrawer'
-import { BadgeDetailModal } from '@/components/Badges/BadgeDetailModal'
+import { BadgeDetailDrawer } from '@/components/Badges/BadgeDetailDrawer'
 import { BadgeStatusDrawer } from '@/components/Badges/BadgeStatusDrawer'
-import HowToDepositModal from '@/components/AddMoney/components/HowToDepositModal'
+import HowToDepositDrawer from '@/components/AddMoney/components/HowToDepositDrawer'
 import { OnrampConfirmationModal } from '@/components/AddMoney/components/OnrampConfirmationModal'
-import SupportedNetworksModal from '@/components/AddMoney/components/SupportedNetworksModal'
+import SupportedNetworksDrawer from '@/components/AddMoney/components/SupportedNetworksDrawer'
 import ScanToDownloadModal from '@/components/Migration/ScanToDownloadModal'
 import OtaUpdateModal from '@/components/Profile/components/OtaUpdateModal'
-import ResidenceChangeModal from '@/components/Profile/views/ResidenceChangeModal'
-import WelcomeUnlockModal from '@/components/Home/WelcomeUnlockModal'
-import BalanceWarningModal from '@/components/Global/BalanceWarningModal'
-import TokenAndNetworkConfirmationModal from '@/components/Global/TokenAndNetworkConfirmationModal'
+import ResidenceChangeDrawer from '@/components/Profile/views/ResidenceChangeDrawer'
+import WelcomeUnlockDrawer from '@/components/Home/WelcomeUnlockDrawer'
+import BalanceWarningDrawer from '@/components/Global/BalanceWarningDrawer'
+import TokenAndNetworkConfirmationDrawer from '@/components/Global/TokenAndNetworkConfirmationDrawer'
 import CancelSendLinkDrawer from '@/components/Global/CancelSendLinkDrawer'
-import CameraPermissionModal from '@/components/Global/QRScanner/CameraPermissionModal'
+import CameraPermissionDrawer from '@/components/Global/QRScanner/CameraPermissionDrawer'
 import { SuccessViewDetailsCard } from '@/components/Global/SuccessViewComponents/SuccessViewDetailsCard'
 import OfflineScreen from '@/components/Global/OfflineScreen'
 import BackendErrorScreen from '@/components/Global/BackendErrorScreen'
@@ -64,11 +63,15 @@ import { UnsupportedWebViewScreen } from '@/components/Global/UnsupportedWebView
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import { FAQsPanel } from '@/components/Global/FAQs'
+import { BackupFaqDrawers } from '@/components/Profile/BackupFaqDrawers'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
 import { ContributorsDrawer } from '@/features/payments/flows/contribute-pot/components/ContributorsDrawer'
-import PerkClaimModal from '@/components/Home/PerkClaimModal'
-import IosPwaInstallModal from '@/components/Global/IosPwaInstallModal'
-import NoMoreJailModal from '@/components/Global/NoMoreJailModal'
+import MigrationDownloadModal from '@/components/Migration/MigrationDownloadModal'
+import PerkClaimDrawer from '@/components/Home/PerkClaimDrawer'
+import { PerkClaimSuccessDrawer } from '@/components/Home/PerkClaimSuccessDrawer'
+import ActivationCTAs from '@/components/Home/ActivationCTAs'
+import IosPwaInstallDrawer from '@/components/Global/IosPwaInstallDrawer'
+import NoMoreJailDrawer from '@/components/Global/NoMoreJailDrawer'
 
 /**
  * A setup step exactly as /setup renders it — SetupWrapper driven by the step's
@@ -139,8 +142,6 @@ export type Surface = SurfaceMeta & {
     modalsContextFlag?: 'signIn' | 'support' | 'iosPwaInstall' | 'qrScanner'
 }
 
-const europe: Region = { path: 'europe', name: 'Europe', icon: '' }
-
 export const SURFACES: Record<string, Surface> = {
     '01-a-landing': {
         ...SURFACE_META['01-a-landing'],
@@ -178,7 +179,7 @@ export const SURFACES: Record<string, Surface> = {
     '08-a-passkeysetuphelpmodal': {
         ...SURFACE_META['08-a-passkeysetuphelpmodal'],
         render: () => (
-            <PasskeySetupHelpModal
+            <PasskeySetupHelpDrawer
                 visible
                 onClose={noop}
                 onRetry={noop}
@@ -188,8 +189,9 @@ export const SURFACES: Record<string, Surface> = {
         ),
     },
     '09-a-passkeyinfomodal': {
-        ...SURFACE_META['09-a-passkeyinfomodal'],
-        render: () => <PasskeyInfoModal visible onClose={noop} />,
+        name: 'PasskeyInfoDrawer',
+        path: 'Setup/components/PasskeyInfoDrawer.tsx',
+        render: () => <PasskeyInfoDrawer visible onClose={noop} />,
     },
     '10-a-confirminvitemodal': {
         ...SURFACE_META['10-a-confirminvitemodal'],
@@ -204,11 +206,16 @@ export const SURFACES: Record<string, Surface> = {
         ),
     },
     '11-a-earlyusermodal': {
-        ...SURFACE_META['11-a-earlyusermodal'],
+        // self-opens off user.showEarlyUserModal — the early-user fixture stubs it true
+        name: 'EarlyUserDrawer',
+        path: 'Global/EarlyUserDrawer/index.tsx',
+        shotFixture: 'early-user',
+        render: () => <EarlyUserDrawer />,
     },
     '12-a-eastereggmodal': {
-        ...SURFACE_META['12-a-eastereggmodal'],
-        render: () => <EasterEggModal visible onClose={noop} countryCode="AQ" />,
+        name: 'EasterEggDrawer',
+        path: 'Global/EasterEggDrawer/index.tsx',
+        render: () => <EasterEggDrawer visible onClose={noop} countryCode="AQ" />,
     },
     '13-a-guestloginmodal': {
         ...SURFACE_META['13-a-guestloginmodal'],
@@ -226,20 +233,22 @@ export const SURFACES: Record<string, Surface> = {
         ),
     },
     '15-a-invitefriendsmodal': {
-        ...SURFACE_META['15-a-invitefriendsmodal'],
-        render: () => <InviteFriendsModal visible onClose={noop} username="demo" />,
+        name: 'InviteFriendsDrawer',
+        path: 'Global/InviteFriendsDrawer/index.tsx',
+        render: () => <InviteFriendsDrawer visible onClose={noop} username="demo" />,
     },
     '16-a-iospwainstallmodal': {
-        ...SURFACE_META['16-a-iospwainstallmodal'],
+        name: 'IosPwaInstallDrawer',
+        path: 'Global/IosPwaInstallDrawer/index.tsx',
         // mounted by the home screen's modal stack, not the app layout, so the
         // harness renders it itself and flips the context flag that opens it
-        render: () => <IosPwaInstallModal />,
+        render: () => <IosPwaInstallDrawer />,
         modalsContextFlag: 'iosPwaInstall',
     },
     '17-a-nomorejailmodal': {
         ...SURFACE_META['17-a-nomorejailmodal'],
         // opens off sessionStorage showNoMoreJailModal, which the spec seeds
-        render: () => <NoMoreJailModal />,
+        render: () => <NoMoreJailDrawer />,
     },
     '18-a-reconsentmodal': {
         ...SURFACE_META['18-a-reconsentmodal'],
@@ -307,10 +316,6 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['30-b-unlockmethodmodal'],
         render: () => <UnlockMethodModal visible onClose={noop} onUnlock={noop} methodLabel="SEPA transfers" />,
     },
-    '31-b-unlockregionmodal': {
-        ...SURFACE_META['31-b-unlockregionmodal'],
-        render: () => <UnlockRegionModal visible onClose={noop} onStartVerification={noop} selectedRegion={europe} />,
-    },
     '32-c-cancelcardmodal': {
         ...SURFACE_META['32-c-cancelcardmodal'],
         render: () => <CancelCardModal cardId="demo-card" isOpen onClose={noop} />,
@@ -318,7 +323,7 @@ export const SURFACES: Record<string, Surface> = {
     '33-c-cardlimiteditmodal': {
         ...SURFACE_META['33-c-cardlimiteditmodal'],
         render: () => (
-            <CardLimitEditModal
+            <CardLimitEditDrawer
                 cardId="demo-card"
                 frequency="per24HourPeriod"
                 label="Daily limit"
@@ -346,7 +351,7 @@ export const SURFACES: Record<string, Surface> = {
     '36-c-badgedetailmodal': {
         ...SURFACE_META['36-c-badgedetailmodal'],
         render: () => (
-            <BadgeDetailModal
+            <BadgeDetailDrawer
                 isOpen
                 onClose={noop}
                 code="first-invite"
@@ -373,19 +378,23 @@ export const SURFACES: Record<string, Surface> = {
         ),
     },
     '38-c-howtodepositmodal': {
-        ...SURFACE_META['38-c-howtodepositmodal'],
-        render: () => <HowToDepositModal visible onClose={noop} />,
+        name: 'HowToDepositDrawer',
+        path: 'AddMoney/components/HowToDepositDrawer.tsx',
+        render: () => <HowToDepositDrawer visible onClose={noop} />,
     },
     '39-c-onrampconfirmationmodal': {
         ...SURFACE_META['39-c-onrampconfirmationmodal'],
         render: () => <OnrampConfirmationModal visible onClose={noop} onConfirm={noop} amount="250.00" currency="€" />,
     },
     '40-c-supportednetworksmodal': {
-        ...SURFACE_META['40-c-supportednetworksmodal'],
-        render: () => <SupportedNetworksModal visible onClose={noop} />,
+        name: 'SupportedNetworksDrawer',
+        path: 'AddMoney/components/SupportedNetworksDrawer.tsx',
+        render: () => <SupportedNetworksDrawer visible onClose={noop} />,
     },
     '41-c-migrationdownloadmodal': {
-        ...SURFACE_META['41-c-migrationdownloadmodal'],
+        name: 'MigrationDownloadModal (early)',
+        path: 'Migration/MigrationDownloadModal.tsx',
+        render: () => <MigrationDownloadModal forceVariant="early" />,
     },
     '43-c-scantodownloadmodal': {
         ...SURFACE_META['43-c-scantodownloadmodal'],
@@ -398,7 +407,7 @@ export const SURFACES: Record<string, Surface> = {
     '45-c-residencechangemodal': {
         ...SURFACE_META['45-c-residencechangemodal'],
         render: () => (
-            <ResidenceChangeModal
+            <ResidenceChangeDrawer
                 visible
                 onClose={noop}
                 userId="demo-user"
@@ -412,7 +421,7 @@ export const SURFACES: Record<string, Surface> = {
     '46-c-perkclaimmodal': {
         ...SURFACE_META['46-c-perkclaimmodal'],
         render: () => (
-            <PerkClaimModal
+            <PerkClaimDrawer
                 visible
                 onClose={noop}
                 onClaimed={noop}
@@ -427,16 +436,19 @@ export const SURFACES: Record<string, Surface> = {
         ),
     },
     '47-c-welcomeunlockmodal': {
-        ...SURFACE_META['47-c-welcomeunlockmodal'],
-        render: () => <WelcomeUnlockModal isOpen onClose={noop} />,
+        name: 'WelcomeUnlockDrawer',
+        path: 'Home/WelcomeUnlockDrawer/index.tsx',
+        render: () => <WelcomeUnlockDrawer isOpen onClose={noop} />,
     },
     '48-c-balancewarningmodal': {
-        ...SURFACE_META['48-c-balancewarningmodal'],
-        render: () => <BalanceWarningModal visible onCloseAction={noop} />,
+        name: 'BalanceWarningDrawer',
+        path: 'Global/BalanceWarningDrawer/index.tsx',
+        render: () => <BalanceWarningDrawer visible onCloseAction={noop} />,
     },
     '49-c-tokenandnetworkconfirmationmodal': {
-        ...SURFACE_META['49-c-tokenandnetworkconfirmationmodal'],
-        render: () => <TokenAndNetworkConfirmationModal isVisible onClose={noop} onAccept={noop} />,
+        name: 'TokenAndNetworkConfirmationDrawer',
+        path: 'Global/TokenAndNetworkConfirmationDrawer/index.tsx',
+        render: () => <TokenAndNetworkConfirmationDrawer isVisible onClose={noop} onAccept={noop} />,
     },
     '50-d-transactiondetailsdrawer': {
         ...SURFACE_META['50-d-transactiondetailsdrawer'],
@@ -490,8 +502,9 @@ export const SURFACES: Record<string, Surface> = {
         modalsContextFlag: 'support',
     },
     '56-d-camerapermissionmodal': {
-        ...SURFACE_META['56-d-camerapermissionmodal'],
-        render: () => <CameraPermissionModal visible onRetry={noop} onClose={noop} />,
+        name: 'CameraPermissionDrawer',
+        path: 'Global/QRScanner/CameraPermissionDrawer.tsx',
+        render: () => <CameraPermissionDrawer visible onRetry={noop} onClose={noop} />,
     },
     '57-d-raincooldownintromodal': {
         ...SURFACE_META['57-d-raincooldownintromodal'],
@@ -655,14 +668,54 @@ export const SURFACES: Record<string, Surface> = {
             </div>
         ),
     },
+    '69-d-perkclaimsuccess': {
+        name: 'PerkClaimSuccessDrawer',
+        path: 'Home/PerkClaimSuccessDrawer.tsx',
+        render: () => (
+            <PerkClaimSuccessDrawer
+                perk={{
+                    id: 'perk-1',
+                    name: 'Invite bonus',
+                    amountUsd: 5,
+                    createdAt: '2026-08-01T10:00:00.000Z',
+                    inviteeName: 'Ana',
+                }}
+                claimPhase="revealed"
+                onClose={noop}
+                onDismiss={noop}
+            />
+        ),
+    },
+    '70-d-activationctas-outbound': {
+        // the spend chooser opens on the card's CTA tap — the shot spec (or a
+        // human) clicks "Start Spending"; needs a fixture granting card access
+        name: 'ActivationCTAs (outbound)',
+        path: 'Home/ActivationCTAs.tsx',
+        render: () => <ActivationCTAs activationStep="outbound" />,
+    },
+    '66-d-backupfaqlosephone': {
+        name: 'Backup FAQ — lose phone',
+        path: 'Profile/BackupFaqDrawers.tsx',
+        render: () => <BackupFaqDrawers active="lose-phone" onClose={noop} platform="ios" />,
+    },
+    '67-d-backupfaqchangephone': {
+        name: 'Backup FAQ — change phone',
+        path: 'Profile/BackupFaqDrawers.tsx',
+        render: () => <BackupFaqDrawers active="change-phone" onClose={noop} platform="ios" />,
+    },
+    '68-d-backupfaqexportkeys': {
+        name: 'Backup FAQ — export keys',
+        path: 'Profile/BackupFaqDrawers.tsx',
+        render: () => <BackupFaqDrawers active="export-keys" onClose={noop} platform="ios" />,
+    },
 }
 
 /** The open reworks, one render per option, so a choice can be made by eye. */
 export const OPTION_SURFACES: Record<string, { name: string; render: () => React.ReactNode }> = {
-    'opt-passkey-a': { name: 'PasskeySetupHelpModal — A', render: () => <PasskeyHelpA /> },
-    'opt-passkey-b': { name: 'PasskeySetupHelpModal — B', render: () => <PasskeyHelpB /> },
-    'opt-passkey-c': { name: 'PasskeySetupHelpModal — C', render: () => <PasskeyHelpC /> },
-    'opt-passkey-d': { name: 'PasskeySetupHelpModal — D', render: () => <PasskeyHelpD /> },
+    'opt-passkey-a': { name: 'PasskeySetupHelpDrawer — A', render: () => <PasskeyHelpA /> },
+    'opt-passkey-b': { name: 'PasskeySetupHelpDrawer — B', render: () => <PasskeyHelpB /> },
+    'opt-passkey-c': { name: 'PasskeySetupHelpDrawer — C', render: () => <PasskeyHelpC /> },
+    'opt-passkey-d': { name: 'PasskeySetupHelpDrawer — D', render: () => <PasskeyHelpD /> },
     'opt-onramp-a': { name: 'OnrampConfirmationModal — A', render: () => <OnrampA /> },
     'opt-onramp-b': { name: 'OnrampConfirmationModal — B', render: () => <OnrampB /> },
     'opt-onramp-c': { name: 'OnrampConfirmationModal — C', render: () => <OnrampC /> },

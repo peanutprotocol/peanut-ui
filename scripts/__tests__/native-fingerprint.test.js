@@ -68,7 +68,7 @@ function makeFixture() {
 }
 
 // The script is a CI entrypoint: its contract is stdout + exit code, so run it
-// the way capgo-deploy.yml does instead of reaching into its internals. (Jest
+// the way release-ota.yml does instead of reaching into its internals. (Jest
 // runs CJS here, so a dynamic import of the .mjs would not load anyway — same
 // reason semver-newer.test.js and release-version.test.js spawn it.)
 function run(root, ...args) {
@@ -379,5 +379,50 @@ describe('native-fingerprint', () => {
 
         expect(result.status).toBe(1)
         expect(result.stderr).toContain('needs a directory')
+    })
+})
+
+/*
+ * Every native input must say which platform's binary carries it. A new input
+ * with no `platform` would be skipped by platformDiff for both platforms — the
+ * lenient direction, which is how an unnoticed native change reaches an older
+ * binary. `shared` is a deliberate answer, not a default: capacitor.config.ts,
+ * patches/ and the resolved plugin versions sit outside android/ and ios/ while
+ * describing the native half of both.
+ */
+describe('platform classification', () => {
+    const inputs = () => {
+        const result = spawnSync(process.execPath, [SCRIPT_PATH, '--inputs'], { encoding: 'utf-8' })
+        expect(result.status).toBe(0)
+        return JSON.parse(result.stdout)
+    }
+
+    it('classifies every native input', () => {
+        const unclassified = inputs().filter((input) => !['android', 'ios', 'shared'].includes(input.platform))
+        expect(unclassified.map((input) => input.id)).toEqual([])
+    })
+
+    it('agrees with the path prefix wherever there is one', () => {
+        const mismatched = inputs().filter(
+            (input) =>
+                (input.id.startsWith('android/') && input.platform !== 'android') ||
+                (input.id.startsWith('ios/') && input.platform !== 'ios')
+        )
+        expect(mismatched.map((input) => input.id)).toEqual([])
+    })
+
+    // Shared inputs are the reason platformDiff is not a path-prefix filter.
+    it('keeps the shared inputs shared', () => {
+        const shared = inputs()
+            .filter((input) => input.platform === 'shared')
+            .map((input) => input.id)
+        expect(shared).toEqual(expect.arrayContaining(['capacitor.config.ts', 'patches/**', 'native-plugin-versions']))
+    })
+
+    // Named for iOS but not under ios/ — it pins iOS native SDK versions after
+    // `cap sync`, so a prefix rule would have called it shared.
+    it('classifies the iOS post-sync script as iOS', () => {
+        const entry = inputs().find((input) => input.id === 'scripts/native-ios-postsync.js')
+        expect(entry.platform).toBe('ios')
     })
 })

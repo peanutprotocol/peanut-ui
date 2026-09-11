@@ -70,3 +70,46 @@ describe('useChargeManager — recipientEnsName', () => {
         expect(requestProps.recipientAddress).toBe(RECIPIENT)
     })
 })
+
+describe('useChargeManager — token amounts are not fiat prices', () => {
+    beforeEach(() => {
+        mockCreate.mockReset().mockResolvedValue({ data: { id: 'charge-1' } })
+        mockGet.mockReset().mockResolvedValue({ uuid: 'charge-1' })
+    })
+
+    it('rejects an unpriced ETH charge before sending a request', async () => {
+        const { result } = renderHook(() => useChargeManager())
+        await act(async () => {
+            await expect(
+                result.current.createCharge({ ...baseParams, tokenAmount: '0.1', tokenSymbol: 'ETH' })
+            ).rejects.toThrow('Token price is unavailable')
+        })
+        expect(mockCreate).not.toHaveBeenCalled()
+    })
+
+    it('keeps the live fiat price separate from the token amount', async () => {
+        const { result } = renderHook(() => useChargeManager())
+        await act(async () => {
+            await result.current.createCharge({
+                ...baseParams,
+                tokenAmount: '0.1',
+                tokenSymbol: 'ETH',
+                currencyAmount: '250',
+                currencyCode: 'USD',
+            })
+        })
+        expect(mockCreate).toHaveBeenCalledWith(
+            expect.objectContaining({
+                local_price: { amount: '250', currency: 'USD' },
+                requestProps: expect.objectContaining({ tokenAmount: '0.1' }),
+            })
+        )
+    })
+
+    it('retains the USD stablecoin default', async () => {
+        await createCharge()
+        expect(mockCreate).toHaveBeenCalledWith(
+            expect.objectContaining({ local_price: { amount: '10', currency: 'USD' } })
+        )
+    })
+})

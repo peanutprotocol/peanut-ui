@@ -15,7 +15,7 @@ import { useGeoLocation } from '@/hooks/useGeoLocation'
 import { CountryListSkeleton } from './CountryListSkeleton'
 import AvatarWithBadge from '../Profile/AvatarWithBadge'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
-import EasterEggModal, { EASTER_EGG_COUNTRIES } from '@/components/Global/EasterEggModal'
+import EasterEggDrawer, { EASTER_EGG_COUNTRIES } from '@/components/Global/EasterEggDrawer'
 import StatusBadge from '../Global/Badges/StatusBadge'
 import Loading from '../Global/Loading'
 import { useSearchParams } from 'next/navigation'
@@ -284,7 +284,7 @@ export const CountryList = ({
             )}
 
             {/* Easter egg modal for weird/uninhabited countries */}
-            <EasterEggModal
+            <EasterEggDrawer
                 visible={!!easterEggCountry}
                 onClose={() => setEasterEggCountry(null)}
                 countryCode={easterEggCountry ?? ''}

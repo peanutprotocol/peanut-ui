@@ -263,11 +263,11 @@ export const IN_APP_SURFACES: InAppSurface[] = [
     {
         id: 'modal-welcome-unlock',
         kind: 'modal',
-        name: 'WelcomeUnlockModal',
+        name: 'WelcomeUnlockDrawer',
         copy: '"🎉 You\'re unlocked" + channel bullets',
         cta: { label: 'Start sending money', dest: 'closes modal (once)' },
         condition: 'home; isKycApproved && !activationCelebratedAt',
-        sourceFile: 'src/components/Home/WelcomeUnlockModal/index.tsx',
+        sourceFile: 'src/components/Home/WelcomeUnlockDrawer/index.tsx',
         states: ['kycd-no-card'],
     },
     {
@@ -393,9 +393,9 @@ export const FINDINGS: JourneyFinding[] = [
     {
         id: 4,
         title: 'Two "You\'re unlocked" celebrations can double-fire',
-        detail: 'WelcomeUnlockModal (home) and KycVerificationInProgressModal\'s terminal state both celebrated "You\'re unlocked" around KYC approval — a user could see both (the flow terminal never stamps activationCelebratedAt). FIXED on this branch: in-flow terminal neutralized to "All set"; home\'s WelcomeUnlockModal is the single celebration.',
+        detail: 'WelcomeUnlockDrawer (home) and KycVerificationInProgressModal\'s terminal state both celebrated "You\'re unlocked" around KYC approval — a user could see both (the flow terminal never stamps activationCelebratedAt). FIXED on this branch: in-flow terminal neutralized to "All set"; home\'s WelcomeUnlockDrawer is the single celebration.',
         sourceFiles: [
-            'src/components/Home/WelcomeUnlockModal/index.tsx',
+            'src/components/Home/WelcomeUnlockDrawer/index.tsx',
             'src/components/Kyc/KycVerificationInProgressModal.tsx',
         ],
     },

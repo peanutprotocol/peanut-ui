@@ -1,6 +1,7 @@
 'use client'
 
 import { Notification } from '@/components/0_Bruddle/Notification'
+import { BulletList } from '@/components/0_Bruddle/BulletList'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
@@ -78,9 +79,9 @@ export default function LimitsWarningCard({
             className={className}
         >
             <div className="flex flex-col gap-2">
-                <ul className="space-y-1 list-inside list-disc text-start">
-                    {items.map((item, index) => (
-                        <li key={index}>
+                <BulletList
+                    items={items.map((item, index) => (
+                        <span key={index}>
                             {item.isLink && item.href ? (
                                 <Link href={item.href} className="underline underline-offset-2">
                                     {item.icon && <Icon name={item.icon} className="mr-1" size={16} />}
@@ -89,9 +90,9 @@ export default function LimitsWarningCard({
                             ) : (
                                 itemText(item)
                             )}
-                        </li>
+                        </span>
                     ))}
-                </ul>
+                />
                 {onIncreaseLimits ? (
                     <>
                         <div className="my-1 border-t" />

@@ -83,7 +83,9 @@ const IMAGE_CONTAINER_CLASSES: Record<LayoutType, string> = {
 // each array element represents a star with specific positioning and animation
 const STAR_POSITIONS = [
     'left-[10%] md:left-[15%] lg:left-[15%] top-[15%] md:top-[20%]  size-13 md:size-14',
-    'right-[10%] md:right-[15%] lg:right-[15%] top-[10%] md:top-[20%] size-10 md:size-14',
+    // mobile top-[24%], not [10%]: the nav row (Iniciar sesión / skip) owns the
+    // top band and the star sat right under the text (TASK-22366 nit)
+    'right-[10%] md:right-[15%] lg:right-[15%] top-[24%] md:top-[20%] size-10 md:size-14',
     'left-[10%] md:left-[15%] lg:left-[15%] bottom-[15%] md:bottom-[20%] size-12 md:size-14',
     'right-[10%] md:right-[15%] lg:right-[15%] bottom-[30%] size-6 md:size-14',
 ] as const
@@ -279,7 +281,7 @@ export const SetupWrapper = memo(function SetupWrapper({
     const headingDescription = shouldShowBraveInstalledHeaderOnly ? t('description') : description
 
     return (
-        <div className="flex min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] flex-col overflow-hidden">
+        <div className="flex min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] flex-col overflow-x-hidden overflow-y-auto">
             {/* navigation buttons */}
             <Navigation
                 showBackButton={showBackButton}
@@ -309,7 +311,10 @@ export const SetupWrapper = memo(function SetupWrapper({
                     animate={animatePanelIn ? { y: 0 } : undefined}
                     transition={{ type: 'spring', stiffness: 260, damping: 30 }}
                     className={twMerge(
-                        'flex flex-col justify-between overflow-hidden bg-white px-6 pt-6 pb-8 md:space-y-4 md:h-dvh md:justify-center',
+                        // y-auto, not hidden: es/pt copy wraps one line longer and the
+                        // bottom of the card (recover-account link) clipped at exact
+                        // viewport height (TASK-22366 sweep) — scroll instead of clip
+                        'flex flex-col justify-between overflow-x-hidden overflow-y-auto bg-white px-6 pt-6 pb-8 md:space-y-4 md:h-dvh md:justify-center',
                         // signup: panel hugs its content so the hero absorbs the slack
                         // (paired with the grow classes in IMAGE_CONTAINER_CLASSES)
                         layoutType === 'signup' ? 'grow-0 md:grow' : 'flex-grow',

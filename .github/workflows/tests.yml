@@ -174,7 +174,7 @@ jobs:
     # in this workflow touches it: native-build.js renames the dynamic routes
     # out of src/app and swaps in next.config.native.js, so that lane can break
     # while every other job stays green — which is exactly what a Next 16.3
-    # type-check scope change did. The release lanes (capgo-deploy,
+    # type-check scope change did. The release lanes (release-ota,
     # ios-release, android-release) only reach it after merge, on a push to
     # dev, so without this the first red build is a release.
     native-export:
@@ -376,7 +376,7 @@ jobs:
                   # e2e/flows/ and the regression config are here because the
                   # behaviour specs run inside ds-shots — without them a PR
                   # touching only those files would skip the job that runs them.
-                  KEEP='^(src/|e2e/(shots|flows)/|scripts/visual-(diff|comment)\.mjs$|playwright\.(shots|regression)\.config\.ts$|(tailwind|postcss|next)\.config\.|package\.json$|pnpm-lock\.yaml$|\.github/workflows/tests\.yml$)'
+                  KEEP='^(src/|e2e/(shots|flows)/|scripts/visual-(diff|comment)\.mjs$|playwright\.(shots|regression|overflow)\.config\.ts$|(tailwind|postcss|next)\.config\.|package\.json$|pnpm-lock\.yaml$|\.github/workflows/tests\.yml$)'
                   # Inside the set above but never on camera. src/content is the
                   # blog and SEO submodule, and no fixture renders those pages.
                   DROP='(^src/content(/|$)|/__tests__/|/__mocks__/|\.test\.tsx?$|\.md$)'
@@ -684,6 +684,18 @@ jobs:
 
             - name: Run regression specs
               run: pnpm test:e2e:regression
+
+            # i18n overflow gate (TASK-22366): renders the fixture set, the
+            # localized landing routes and the setup screens in es-419 at
+            # 320px and fails when translated copy is clipped. Absolute DOM
+            # check, no baseline — so it runs the same way on push and PR.
+            # Advisory the same way this whole job is (not in
+            # ci-success.needs); give it its own blocking job after a week of
+            # PRs with zero false positives.
+            # Failure screenshots land in e2e/__results__/, which the
+            # failure upload below already ships.
+            - name: i18n overflow gate
+              run: pnpm test:i18n-overflow:run
 
             # The page snapshot in error-context.md is the only way to see
             # WHAT rendered on the runner when a spec dies in CI but passes

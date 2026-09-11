@@ -11,6 +11,13 @@ export type SurfaceMeta = {
     name: string
     path: string
     blocked?: string
+    /** Fixture the shot spec must load instead of its default — for surfaces
+     *  whose open state depends on an API answer the demo baseline lacks. */
+    shotFixture?: string
+    /** Accessible name of a button the shot spec clicks after load — for
+     *  surfaces that mount closed and open on an in-surface action. The spec
+     *  asserts a dialog is open before capturing. */
+    shotClick?: string
 }
 
 export const SURFACE_META: Record<string, SurfaceMeta> = {
@@ -27,20 +34,20 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     },
     '06-a-signup': { name: 'Signup', path: 'Setup/Views/Signup.tsx' },
     '07-a-setuppasskey': { name: 'SetupPasskey', path: 'Setup/Views/SetupPasskey.tsx' },
-    '08-a-passkeysetuphelpmodal': { name: 'PasskeySetupHelpModal', path: 'Setup/Views/PasskeySetupHelpModal.tsx' },
-    '09-a-passkeyinfomodal': { name: 'PasskeyInfoModal', path: 'Setup/components/PasskeyInfoModal.tsx' },
+    '08-a-passkeysetuphelpmodal': { name: 'PasskeySetupHelpDrawer', path: 'Setup/Views/PasskeySetupHelpDrawer.tsx' },
+    '09-a-passkeyinfomodal': { name: 'PasskeyInfoDrawer', path: 'Setup/components/PasskeyInfoDrawer.tsx' },
     '10-a-confirminvitemodal': { name: 'ConfirmInviteModal', path: 'Global/ConfirmInviteModal/index.tsx' },
     '11-a-earlyusermodal': {
-        name: 'EarlyUserModal',
-        path: 'Global/EarlyUserModal/index.tsx',
-        blocked: 'Opens itself from the signed-in user’s creation date — no visible prop.',
+        name: 'EarlyUserDrawer',
+        path: 'Global/EarlyUserDrawer/index.tsx',
+        shotFixture: 'early-user',
     },
-    '12-a-eastereggmodal': { name: 'EasterEggModal', path: 'Global/EasterEggModal/index.tsx' },
+    '12-a-eastereggmodal': { name: 'EasterEggDrawer', path: 'Global/EasterEggDrawer/index.tsx' },
     '13-a-guestloginmodal': { name: 'GuestLoginModal', path: 'Global/GuestLoginModal/index.tsx' },
     '14-a-guestverificationmodal': { name: 'GuestVerificationModal', path: 'Global/GuestVerificationModal/index.tsx' },
-    '15-a-invitefriendsmodal': { name: 'InviteFriendsModal', path: 'Global/InviteFriendsModal/index.tsx' },
-    '16-a-iospwainstallmodal': { name: 'IosPwaInstallModal', path: 'Global/IosPwaInstallModal/index.tsx' },
-    '17-a-nomorejailmodal': { name: 'NoMoreJailModal', path: 'Global/NoMoreJailModal/index.tsx' },
+    '15-a-invitefriendsmodal': { name: 'InviteFriendsDrawer', path: 'Global/InviteFriendsDrawer/index.tsx' },
+    '16-a-iospwainstallmodal': { name: 'IosPwaInstallDrawer', path: 'Global/IosPwaInstallDrawer/index.tsx' },
+    '17-a-nomorejailmodal': { name: 'NoMoreJailDrawer', path: 'Global/NoMoreJailDrawer/index.tsx' },
     '18-a-reconsentmodal': {
         name: 'ReConsentModal',
         path: 'Global/ReConsentModal/index.tsx',
@@ -74,21 +81,20 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     },
     '29-b-kycstatusdrawer': { name: 'KycStatusDrawer (action-needed)', path: 'Kyc/KycStatusDrawer.tsx' },
     '30-b-unlockmethodmodal': { name: 'UnlockMethodModal', path: 'IdentityVerification/UnlockMethodModal.tsx' },
-    '31-b-unlockregionmodal': { name: 'UnlockRegionModal', path: 'IdentityVerification/UnlockRegionModal.tsx' },
     '32-c-cancelcardmodal': { name: 'CancelCardModal (confirm phase)', path: 'Card/CancelCardModal.tsx' },
-    '33-c-cardlimiteditmodal': { name: 'CardLimitEditModal', path: 'Card/CardLimitEditModal.tsx' },
+    '33-c-cardlimiteditmodal': { name: 'CardLimitEditDrawer', path: 'Card/CardLimitEditDrawer.tsx' },
     '34-c-lockcardmodal': { name: 'LockCardModal (lock)', path: 'Card/LockCardModal.tsx' },
     '35-c-cardunlockdrawer': { name: 'CardUnlockDrawer', path: 'Card/CardUnlockDrawer.tsx' },
-    '36-c-badgedetailmodal': { name: 'BadgeDetailModal', path: 'Badges/BadgeDetailModal.tsx' },
+    '36-c-badgedetailmodal': { name: 'BadgeDetailDrawer', path: 'Badges/BadgeDetailDrawer.tsx' },
     '37-c-badgestatusdrawer': { name: 'BadgeStatusDrawer', path: 'Badges/BadgeStatusDrawer.tsx' },
-    '38-c-howtodepositmodal': { name: 'HowToDepositModal', path: 'AddMoney/components/HowToDepositModal.tsx' },
+    '38-c-howtodepositmodal': { name: 'HowToDepositDrawer', path: 'AddMoney/components/HowToDepositDrawer.tsx' },
     '39-c-onrampconfirmationmodal': {
         name: 'OnrampConfirmationModal',
         path: 'AddMoney/components/OnrampConfirmationModal.tsx',
     },
     '40-c-supportednetworksmodal': {
-        name: 'SupportedNetworksModal',
-        path: 'AddMoney/components/SupportedNetworksModal.tsx',
+        name: 'SupportedNetworksDrawer',
+        path: 'AddMoney/components/SupportedNetworksDrawer.tsx',
     },
     '41-c-migrationdownloadmodal': {
         name: 'MigrationDownloadModal (early)',
@@ -97,13 +103,13 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     },
     '43-c-scantodownloadmodal': { name: 'ScanToDownloadModal', path: 'Migration/ScanToDownloadModal.tsx' },
     '44-c-otaupdatemodal': { name: 'OtaUpdateModal (normal)', path: 'Profile/components/OtaUpdateModal.tsx' },
-    '45-c-residencechangemodal': { name: 'ResidenceChangeModal', path: 'Profile/views/ResidenceChangeModal.tsx' },
-    '46-c-perkclaimmodal': { name: 'PerkClaimModal', path: 'Home/PerkClaimModal.tsx' },
-    '47-c-welcomeunlockmodal': { name: 'WelcomeUnlockModal', path: 'Home/WelcomeUnlockModal/index.tsx' },
-    '48-c-balancewarningmodal': { name: 'BalanceWarningModal', path: 'Global/BalanceWarningModal/index.tsx' },
+    '45-c-residencechangemodal': { name: 'ResidenceChangeDrawer', path: 'Profile/views/ResidenceChangeDrawer.tsx' },
+    '46-c-perkclaimmodal': { name: 'PerkClaimDrawer', path: 'Home/PerkClaimDrawer.tsx' },
+    '47-c-welcomeunlockmodal': { name: 'WelcomeUnlockDrawer', path: 'Home/WelcomeUnlockDrawer/index.tsx' },
+    '48-c-balancewarningmodal': { name: 'BalanceWarningDrawer', path: 'Global/BalanceWarningDrawer/index.tsx' },
     '49-c-tokenandnetworkconfirmationmodal': {
-        name: 'TokenAndNetworkConfirmationModal',
-        path: 'Global/TokenAndNetworkConfirmationModal/index.tsx',
+        name: 'TokenAndNetworkConfirmationDrawer',
+        path: 'Global/TokenAndNetworkConfirmationDrawer/index.tsx',
     },
     '50-d-transactiondetailsdrawer': {
         name: 'TransactionDetailsDrawer',
@@ -127,7 +133,10 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'SupportDrawer (chat-failed)',
         path: 'Global/SupportDrawer/index.tsx',
     },
-    '56-d-camerapermissionmodal': { name: 'CameraPermissionModal', path: 'Global/QRScanner/CameraPermissionModal.tsx' },
+    '56-d-camerapermissionmodal': {
+        name: 'CameraPermissionDrawer',
+        path: 'Global/QRScanner/CameraPermissionDrawer.tsx',
+    },
     '57-d-raincooldownintromodal': {
         name: 'RainCooldownIntroModal',
         path: 'Global/RainCooldown/IntroModal.tsx',
@@ -169,6 +178,16 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'Transaction limits — error',
         path: 'features/limits/components/LimitsWarningCard.tsx',
     },
+    '69-d-perkclaimsuccess': { name: 'PerkClaimSuccessDrawer', path: 'Home/PerkClaimSuccessDrawer.tsx' },
+    '70-d-activationctas-outbound': {
+        name: 'ActivationCTAs (outbound)',
+        path: 'Home/ActivationCTAs.tsx',
+        shotFixture: 'card-access',
+        shotClick: 'Start Spending',
+    },
+    '66-d-backupfaqlosephone': { name: 'Backup FAQ — lose phone', path: 'Profile/BackupFaqDrawers.tsx' },
+    '67-d-backupfaqchangephone': { name: 'Backup FAQ — change phone', path: 'Profile/BackupFaqDrawers.tsx' },
+    '68-d-backupfaqexportkeys': { name: 'Backup FAQ — export keys', path: 'Profile/BackupFaqDrawers.tsx' },
 }
 
 export const SURFACE_IDS = Object.keys(SURFACE_META).sort()

@@ -15,7 +15,7 @@ import { useAppLocale } from '@/i18n/app/locale-context'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useCardSurfaceAccess } from '@/hooks/useCardSurfaceAccess'
-import InviteFriendsModal from '../Global/InviteFriendsModal'
+import InviteFriendsDrawer from '../Global/InviteFriendsDrawer'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import Image from 'next/image'
 import { useQueryState } from 'nuqs'
@@ -24,12 +24,10 @@ import { AVATAR_PICKER_PARAM, avatarPickerParser } from '@/components/Avatar/ava
 import { useOtaUpdate } from '@/context/OtaUpdateContext'
 import OtaUpdateModal from './components/OtaUpdateModal'
 import StoreUpdateModal from './components/StoreUpdateModal'
-import { IOS_APP_STORE_LISTING_LIVE } from '@/constants/migration.consts'
-import { isIOSNative } from '@/utils/capacitor'
 
 export const Profile = () => {
     const { logoutUser, isLoggingOut, user } = useAuth()
-    const [isInviteFriendsModalOpen, setIsInviteFriendsModalOpen] = useState(false)
+    const [isInviteFriendsDrawerOpen, setIsInviteFriendsDrawerOpen] = useState(false)
     // URL state so the badge-earned toast can deep-link straight into the picker
     const [avatarPickerOpen, setAvatarPickerOpen] = useQueryState(AVATAR_PICKER_PARAM, avatarPickerParser)
     const router = useRouter()
@@ -45,7 +43,6 @@ export const Profile = () => {
     const { pendingBundle, storeUpdateRequired } = useOtaUpdate()
     const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
     const [isStoreUpdateModalOpen, setIsStoreUpdateModalOpen] = useState(false)
-    const storeUpdateOffered = storeUpdateRequired && (!isIOSNative() || IOS_APP_STORE_LISTING_LIVE)
     // A staged OTA bundle wins over the store hint: it is already on the device,
     // and the gate only ever stages one this binary can run. Store updates get
     // their own modal — offering a restart for one would reload the same JS.
@@ -123,7 +120,7 @@ export const Profile = () => {
                         <ProfileMenuItem
                             icon="smile"
                             label={t('menu.inviteFriends')}
-                            onClick={() => setIsInviteFriendsModalOpen(true)}
+                            onClick={() => setIsInviteFriendsDrawerOpen(true)}
                             href="/dummy" // Dummy link, wont be called
                         />
                         <ProfileMenuItem icon="achievements" label={t('menu.yourBadges')} href="/badges" />
@@ -152,7 +149,7 @@ export const Profile = () => {
                             the path and opens the in-app browser in Capacitor */}
                         <ProfileMenuItem icon="question-mark" label={t('menu.help')} href="/en/help" isDocsLink />
                         <ProfileMenuItem icon="info" label={t('menu.about')} href="/profile/about" />
-                        {(pendingBundle || storeUpdateOffered) && (
+                        {(pendingBundle || storeUpdateRequired) && (
                             <ProfileMenuItem
                                 icon="download"
                                 label={t('menu.updateAvailable')}
@@ -186,9 +183,9 @@ export const Profile = () => {
                 </div>
             </div>
 
-            <InviteFriendsModal
-                visible={isInviteFriendsModalOpen}
-                onClose={() => setIsInviteFriendsModalOpen(false)}
+            <InviteFriendsDrawer
+                visible={isInviteFriendsDrawerOpen}
+                onClose={() => setIsInviteFriendsDrawerOpen(false)}
                 username={user?.user.username ?? ''}
                 source="profile"
             />

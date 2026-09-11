@@ -139,11 +139,6 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Resume an unfinished account setup',
         responses: { 'GET /users/me': { user: { hasAppAccess: false }, accounts: [] } },
     },
-    'early-user': {
-        route: '/home',
-        about: 'Early user invitation modal',
-        responses: { 'GET /users/me': { showEarlyUserModal: true } },
-    },
     // ---------------------------------------------------------------------
     // One per screen — the known-good default for each.
     // ---------------------------------------------------------------------
@@ -481,6 +476,18 @@ export const FIXTURES: Record<string, Fixture> = {
                 },
             },
         },
+    },
+
+    'card-access': {
+        route: '/home',
+        about: 'Demo user with card access granted — the activation spend chooser can open.',
+        responses: { 'GET /card': { hasCardAccess: true } },
+    },
+
+    'early-user': {
+        route: '/home',
+        about: 'Early-user reward drawer over home, opened by the user flag.',
+        responses: { 'GET /users/me': { showEarlyUserModal: true } },
     },
 
     // ---------------------------------------------------------------------

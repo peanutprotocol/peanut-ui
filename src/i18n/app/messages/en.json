@@ -412,8 +412,7 @@
                 "cardRestrictionNote": "Heads up: the card isn't available for residents of this country.",
                 "bankingRestrictionNote": "Heads up: bank transfers aren't available for residents of this country.",
                 "save": "Save",
-                "saveAndReverify": "Submit documents",
-                "cooldownNote": "You changed your residence recently. You can change it again after {until}."
+                "saveAndReverify": "Submit documents"
             },
             "degraded": {
                 "title": "Verification is temporarily down",
@@ -3541,7 +3540,12 @@
         "reConsent": {
             "reassurance": "Nothing changes about your fees, your funds, or how we handle your data.",
             "whatChanged": "We've rewritten the documents below in plain language so they match what Peanut is today, including the Peanut Card and Rewards. There's no rush, read them whenever, and keep using Peanut as usual.",
-            "title": "A small update to our terms"
+            "title": "A small update to our terms",
+            "acceptLabel": "I accept the updated documents",
+            "acceptCta": "Accept & continue",
+            "saving": "Saving…",
+            "notNow": "Not now",
+            "saveError": "Could not save your acceptance — please try again."
         },
         "maintenanceBanner": "Maintenance mode — some features are temporarily unavailable. Your funds are safe.",
         "maintenanceTitle": "Under maintenance",

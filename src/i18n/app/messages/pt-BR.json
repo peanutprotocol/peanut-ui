@@ -412,8 +412,7 @@
                 "cardRestrictionNote": "Atenção: o cartão não está disponível para residentes deste país.",
                 "bankingRestrictionNote": "Atenção: transferências bancárias não estão disponíveis para residentes deste país.",
                 "save": "Salvar",
-                "saveAndReverify": "Enviar documentos",
-                "cooldownNote": "Você mudou sua residência há pouco tempo. Pode mudá-la de novo depois de {until}."
+                "saveAndReverify": "Enviar documentos"
             },
             "degraded": {
                 "title": "A verificação está temporariamente fora do ar",
@@ -3541,7 +3540,12 @@
         "reConsent": {
             "reassurance": "Nothing changes about your fees, your funds, or how we handle your data.",
             "whatChanged": "We've rewritten the documents below in plain language so they match what Peanut is today, including the Peanut Card and Rewards. There's no rush, read them whenever, and keep using Peanut as usual.",
-            "title": "Uma pequena atualização dos nossos termos"
+            "title": "Uma pequena atualização dos nossos termos",
+            "acceptLabel": "Aceito os documentos atualizados",
+            "acceptCta": "Aceitar e continuar",
+            "saving": "Salvando…",
+            "notNow": "Agora não",
+            "saveError": "Não foi possível salvar sua aceitação — tente novamente."
         },
         "maintenanceBanner": "Modo manutenção — algumas funções estão temporariamente indisponíveis. Seu dinheiro está seguro.",
         "maintenanceTitle": "Em manutenção",

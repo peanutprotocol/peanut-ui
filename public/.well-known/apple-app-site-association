@@ -5,7 +5,6 @@
             {
                 "appID": "4K73GMPZP8.com.squirrellabs.peanut-app",
                 "paths": [
-                    "/app", "/app/*",
                     "/home", "/home/*",
                     "/card", "/card/*",
                     "/claim", "/claim/*",
@@ -27,7 +26,6 @@
             {
                 "appID": "web.app.peanut",
                 "paths": [
-                    "/app", "/app/*",
                     "/home", "/home/*",
                     "/card", "/card/*",
                     "/claim", "/claim/*",
@@ -49,7 +47,6 @@
             {
                 "appID": "PW388G893L.me.peanut.wallet",
                 "paths": [
-                    "/app", "/app/*",
                     "/home", "/home/*",
                     "/card", "/card/*",
                     "/claim", "/claim/*",

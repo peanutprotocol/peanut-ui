@@ -11,7 +11,7 @@ import { DocSection } from '../../_components/DocSection'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
-import EasterEggModal from '@/components/Global/EasterEggModal'
+import EasterEggDrawer from '@/components/Global/EasterEggDrawer'
 
 const TONES: ActionModalTone[] = ['error', 'warning', 'success', 'info']
 
@@ -332,11 +332,11 @@ export default function ModalPage() {
                         </thead>
                         <tbody>
                             {[
-                                ['InviteFriendsModal', 'Share referral link with copy + social buttons'],
+                                ['InviteFriendsDrawer', 'Share referral link with copy + social buttons'],
                                 ['ConfirmInviteModal', 'Confirm invitation before sending'],
                                 ['GuestLoginModal', 'Prompt guest users to log in or register'],
-                                ['BalanceWarningModal', 'Warn about insufficient balance'],
-                                ['TokenAndNetworkConfirmationModal', 'Confirm token + chain before transfer'],
+                                ['BalanceWarningDrawer', 'Warn about insufficient balance'],
+                                ['TokenAndNetworkConfirmationDrawer', 'Confirm token + chain before transfer'],
                                 ['TokenSelectorModal', 'Pick token from a list'],
                                 ['ChainSelectorModal', 'Pick blockchain network'],
                                 ['RecipientSelectorModal', 'Pick or enter recipient address'],
@@ -370,7 +370,7 @@ export default function ModalPage() {
                         <Button variant="stroke" onClick={() => setShowEasterEgg(true)}>
                             Open Easter Egg (Antarctica)
                         </Button>
-                        <EasterEggModal
+                        <EasterEggDrawer
                             visible={showEasterEgg}
                             onClose={() => setShowEasterEgg(false)}
                             countryCode="AQ"
@@ -380,11 +380,11 @@ export default function ModalPage() {
                 <DocSection.Code>
                     <CodeBlock
                         label="Import"
-                        code={`import EasterEggModal from '@/components/Global/EasterEggModal'`}
+                        code={`import EasterEggDrawer from '@/components/Global/EasterEggDrawer'`}
                     />
                     <CodeBlock
                         label="Usage"
-                        code={`<EasterEggModal
+                        code={`<EasterEggDrawer
   visible={showEasterEgg}
   onClose={() => setShowEasterEgg(false)}
   countryCode="AQ"
