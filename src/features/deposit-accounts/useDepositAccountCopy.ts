@@ -10,36 +10,36 @@ import type { DepositCorridor, DepositRowLabels } from './types'
  * build instead of rendering a raw key.
  */
 const RAIL_NAME_KEYS = {
-    EUR_SEPA: 'corridors.EUR_SEPA.railName',
-    GBP_FPS: 'corridors.GBP_FPS.railName',
-    USD_ACH: 'corridors.USD_ACH.railName',
-    MXN_SPEI: 'corridors.MXN_SPEI.railName',
-    BRL_PIX: 'corridors.BRL_PIX.railName',
-    ARS_TRANSFER: 'corridors.ARS_TRANSFER.railName',
+    SEPA_EU: 'corridors.SEPA_EU.railName',
+    FASTER_PAYMENTS_GB: 'corridors.FASTER_PAYMENTS_GB.railName',
+    ACH_US: 'corridors.ACH_US.railName',
+    SPEI_MX: 'corridors.SPEI_MX.railName',
+    PIX_BR: 'corridors.PIX_BR.railName',
+    BANK_TRANSFER_AR: 'corridors.BANK_TRANSFER_AR.railName',
 } as const satisfies Record<DepositCorridor, string>
 
 const ARRIVAL_KEYS = {
-    EUR_SEPA: 'corridors.EUR_SEPA.arrival',
-    GBP_FPS: 'corridors.GBP_FPS.arrival',
-    USD_ACH: 'corridors.USD_ACH.arrival',
-    MXN_SPEI: 'corridors.MXN_SPEI.arrival',
-    BRL_PIX: 'corridors.BRL_PIX.arrival',
-    ARS_TRANSFER: 'corridors.ARS_TRANSFER.arrival',
+    SEPA_EU: 'corridors.SEPA_EU.arrival',
+    FASTER_PAYMENTS_GB: 'corridors.FASTER_PAYMENTS_GB.arrival',
+    ACH_US: 'corridors.ACH_US.arrival',
+    SPEI_MX: 'corridors.SPEI_MX.arrival',
+    PIX_BR: 'corridors.PIX_BR.arrival',
+    BANK_TRANSFER_AR: 'corridors.BANK_TRANSFER_AR.arrival',
 } as const satisfies Record<DepositCorridor, string>
 
 const ARRIVAL_DETAIL_KEYS = {
-    EUR_SEPA: 'corridors.EUR_SEPA.arrivalDetail',
-    GBP_FPS: 'corridors.GBP_FPS.arrivalDetail',
-    USD_ACH: 'corridors.USD_ACH.arrivalDetail',
-    MXN_SPEI: 'corridors.MXN_SPEI.arrivalDetail',
-    BRL_PIX: 'corridors.BRL_PIX.arrivalDetail',
-    ARS_TRANSFER: 'corridors.ARS_TRANSFER.arrivalDetail',
+    SEPA_EU: 'corridors.SEPA_EU.arrivalDetail',
+    FASTER_PAYMENTS_GB: 'corridors.FASTER_PAYMENTS_GB.arrivalDetail',
+    ACH_US: 'corridors.ACH_US.arrivalDetail',
+    SPEI_MX: 'corridors.SPEI_MX.arrivalDetail',
+    PIX_BR: 'corridors.PIX_BR.arrivalDetail',
+    BANK_TRANSFER_AR: 'corridors.BANK_TRANSFER_AR.arrivalDetail',
 } as const satisfies Record<DepositCorridor, string>
 
 /** only the corridors that cannot be held as an account have a reason */
 const UNCLAIMABLE_KEYS = {
-    BRL_PIX: 'corridors.BRL_PIX.unclaimable',
-    ARS_TRANSFER: 'corridors.ARS_TRANSFER.unclaimable',
+    PIX_BR: 'corridors.PIX_BR.unclaimable',
+    BANK_TRANSFER_AR: 'corridors.BANK_TRANSFER_AR.unclaimable',
 } as const
 
 /**

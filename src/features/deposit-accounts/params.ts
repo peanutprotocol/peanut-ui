@@ -4,7 +4,14 @@ import type { DepositCorridor } from './types'
 export const DEPOSIT_ACCOUNT_SCREENS = ['list', 'claim', 'details', 'share'] as const
 export type DepositAccountScreen = (typeof DEPOSIT_ACCOUNT_SCREENS)[number]
 
-const CORRIDORS: DepositCorridor[] = ['USD_ACH', 'EUR_SEPA', 'GBP_FPS', 'MXN_SPEI', 'BRL_PIX', 'ARS_TRANSFER']
+const CORRIDORS: DepositCorridor[] = [
+    'ACH_US',
+    'SEPA_EU',
+    'FASTER_PAYMENTS_GB',
+    'SPEI_MX',
+    'PIX_BR',
+    'BANK_TRANSFER_AR',
+]
 
 /**
  * Screen and corridor live in the URL, so a link opens the flow where the
@@ -14,5 +21,5 @@ const CORRIDORS: DepositCorridor[] = ['USD_ACH', 'EUR_SEPA', 'GBP_FPS', 'MXN_SPE
  */
 export const DEPOSIT_ACCOUNT_PARAMS = {
     screen: parseAsStringEnum([...DEPOSIT_ACCOUNT_SCREENS]).withDefault('list'),
-    corridor: parseAsStringEnum(CORRIDORS).withDefault('EUR_SEPA'),
+    corridor: parseAsStringEnum(CORRIDORS).withDefault('SEPA_EU'),
 }

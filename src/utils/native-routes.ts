@@ -269,6 +269,8 @@ export const NATIVE_EXPORT_ROOTS: ReadonlySet<string> = new Set([
     'card-recovery',
     'claim',
     'fix-card-signature',
+    // standing bank details a payer can use — as needed on the phone as on web
+    'get-paid',
     'history',
     'home',
     'limits',

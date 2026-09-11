@@ -7,17 +7,19 @@ const READY: GateState = { kind: 'ready' }
 const BLOCKED: GateState = { kind: 'needs-identity' }
 
 const account = (over: Partial<DepositAccount> = {}): DepositAccount => ({
-    corridor: 'EUR_SEPA',
+    id: 'acc_1',
+    railId: 'bridge.sepa_eu',
+    country: 'EU',
     currency: 'EUR',
-    provider: 'bridge',
+    isPrimary: true,
     status: 'active',
     matching: { nameOnAccount: 'user', sender: 'anyone', memo: 'none', amount: 'flexible' },
     instructions: { accountHolderName: 'Ana Pérez', paymentRails: ['sepa'] },
     ...over,
 })
 
-const eur = DEPOSIT_RAILS.EUR_SEPA
-const ars = DEPOSIT_RAILS.ARS_TRANSFER
+const eur = DEPOSIT_RAILS.SEPA_EU
+const ars = DEPOSIT_RAILS.BANK_TRANSFER_AR
 
 /**
  * The URL is a user input. These are the ways a hand-edited or stale link
@@ -26,7 +28,7 @@ const ars = DEPOSIT_RAILS.ARS_TRANSFER
 describe('resolveScreen', () => {
     it('sends a share link for own-name-only details back to the details', () => {
         const own = account({
-            corridor: 'ARS_TRANSFER',
+            railId: 'manteca.bank_transfer_ar',
             matching: { nameOnAccount: 'provider', sender: 'own-name-only', memo: 'none', amount: 'exact' },
         })
         expect(resolveScreen('share', ars, own, READY)).toBe('details')

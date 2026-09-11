@@ -15,10 +15,10 @@ import type { DepositCorridor, DepositRail, SenderPolicy } from './types'
  * account from the backend contract and deletes this map.
  */
 const BRIDGE_SENDER_POLICY: Record<string, SenderPolicy> = {
-    USD_ACH: 'anyone',
-    GBP_FPS: 'business-only',
-    EUR_SEPA: 'unknown',
-    MXN_SPEI: 'unknown',
+    ACH_US: 'anyone',
+    FASTER_PAYMENTS_GB: 'business-only',
+    SEPA_EU: 'unknown',
+    SPEI_MX: 'unknown',
 }
 
 export function bridgeSenderPolicy(corridor: DepositCorridor): SenderPolicy {
@@ -34,24 +34,24 @@ export function bridgeSenderPolicy(corridor: DepositCorridor): SenderPolicy {
  * lookup answers the whole label.
  */
 export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
-    EUR_SEPA: {
-        corridor: 'EUR_SEPA',
+    SEPA_EU: {
+        corridor: 'SEPA_EU',
         currency: 'EUR',
         provider: 'bridge',
         flagIso2: 'eu',
         detailRowCount: 7,
         expectedSender: 'unknown',
     },
-    GBP_FPS: {
-        corridor: 'GBP_FPS',
+    FASTER_PAYMENTS_GB: {
+        corridor: 'FASTER_PAYMENTS_GB',
         currency: 'GBP',
         provider: 'bridge',
         flagIso2: 'gb',
         detailRowCount: 6,
         expectedSender: 'business-only',
     },
-    USD_ACH: {
-        corridor: 'USD_ACH',
+    ACH_US: {
+        corridor: 'ACH_US',
         currency: 'USD',
         provider: 'bridge',
         flagIso2: 'us',
@@ -59,16 +59,16 @@ export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
         expectedSender: 'anyone',
         personCap: '$4,000',
     },
-    MXN_SPEI: {
-        corridor: 'MXN_SPEI',
+    SPEI_MX: {
+        corridor: 'SPEI_MX',
         currency: 'MXN',
         provider: 'bridge',
         flagIso2: 'mx',
         detailRowCount: 3,
         expectedSender: 'unknown',
     },
-    BRL_PIX: {
-        corridor: 'BRL_PIX',
+    PIX_BR: {
+        corridor: 'PIX_BR',
         currency: 'BRL',
         provider: 'manteca',
         flagIso2: 'br',
@@ -77,8 +77,8 @@ export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
         claimable: false,
         topUpHref: '/add-money/brazil/manteca',
     },
-    ARS_TRANSFER: {
-        corridor: 'ARS_TRANSFER',
+    BANK_TRANSFER_AR: {
+        corridor: 'BANK_TRANSFER_AR',
         currency: 'ARS',
         provider: 'manteca',
         flagIso2: 'ar',
@@ -90,12 +90,12 @@ export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
 }
 
 export const DEPOSIT_RAIL_ORDER: DepositCorridor[] = [
-    'EUR_SEPA',
-    'GBP_FPS',
-    'USD_ACH',
-    'MXN_SPEI',
-    'BRL_PIX',
-    'ARS_TRANSFER',
+    'SEPA_EU',
+    'FASTER_PAYMENTS_GB',
+    'ACH_US',
+    'SPEI_MX',
+    'PIX_BR',
+    'BANK_TRANSFER_AR',
 ]
 
 /** a corridor a user can hold as a reusable account somebody else can pay into */

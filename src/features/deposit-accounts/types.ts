@@ -11,7 +11,7 @@
 
 export type DepositProvider = 'bridge' | 'manteca'
 
-export type DepositCorridor = 'USD_ACH' | 'EUR_SEPA' | 'GBP_FPS' | 'MXN_SPEI' | 'BRL_PIX' | 'ARS_TRANSFER'
+export type DepositCorridor = 'ACH_US' | 'SEPA_EU' | 'FASTER_PAYMENTS_GB' | 'SPEI_MX' | 'PIX_BR' | 'BANK_TRANSFER_AR'
 
 /**
  * `unclaimed` — the corridor is open to this user, no account exists yet.
@@ -24,7 +24,14 @@ export type DepositCorridor = 'USD_ACH' | 'EUR_SEPA' | 'GBP_FPS' | 'MXN_SPEI' | 
  *   Bridge returns anything sent to a deactivated account, so the user has to
  *   be told to stop handing them out rather than to try again.
  */
-export type DepositAccountStatus = 'unclaimed' | 'provisioning' | 'active' | 'unavailable' | 'failed' | 'revoked'
+export type DepositAccountStatus =
+    | 'unclaimed'
+    | 'provisioning'
+    | 'active'
+    | 'retiring'
+    | 'unavailable'
+    | 'failed'
+    | 'revoked'
 
 /** whose name the payer reads on the account */
 export type NameOnAccount = 'user' | 'provider'
@@ -81,12 +88,21 @@ export interface DepositInstructions {
     paymentRails: string[]
 }
 
+/**
+ * One account, exactly as `GET /users/deposit-accounts` returns it. The FE
+ * adds nothing: `railId` carries the corridor, `matching` carries what the
+ * screens are allowed to say, and the provider is deliberately absent.
+ */
 export interface DepositAccount {
-    corridor: DepositCorridor
+    id: string
+    /** `${provider}.${method}` — e.g. 'bridge.ach_us' */
+    railId: string
+    country: string
     /** ISO 4217, upper case: EUR */
     currency: string
-    provider: DepositProvider
     status: DepositAccountStatus
+    /** the details we hand to a NEW payer; a retiring account is false */
+    isPrimary: boolean
     matching: DepositMatching
     /** present once status is `active` */
     instructions?: DepositInstructions

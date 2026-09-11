@@ -3944,33 +3944,33 @@
             "beneficiaryAddress": "Endereço do destinatário"
         },
         "corridors": {
-            "EUR_SEPA": {
+            "SEPA_EU": {
                 "arrival": "No mesmo dia útil",
                 "arrivalDetail": "As transferências SEPA costumam chegar no mesmo dia útil, no máximo em dois.",
                 "railName": "SEPA"
             },
-            "GBP_FPS": {
+            "FASTER_PAYMENTS_GB": {
                 "arrival": "Em minutos",
                 "arrivalDetail": "Os Faster Payments costumam chegar em minutos.",
                 "railName": "Faster Payments"
             },
-            "USD_ACH": {
+            "ACH_US": {
                 "arrival": "1 a 3 dias úteis",
                 "arrivalDetail": "O ACH chega em um a três dias úteis. Uma transferência wire chega no mesmo dia.",
                 "railName": "ACH ou wire"
             },
-            "MXN_SPEI": {
+            "SPEI_MX": {
                 "arrival": "Em minutos",
                 "arrivalDetail": "As transferências SPEI costumam chegar em minutos.",
                 "railName": "SPEI"
             },
-            "BRL_PIX": {
+            "PIX_BR": {
                 "arrival": "Em minutos",
                 "arrivalDetail": "As transferências Pix costumam chegar em minutos.",
                 "unclaimable": "No Brasil o depósito é um código Pix para um pagamento, da sua própria conta.",
                 "railName": "Pix"
             },
-            "ARS_TRANSFER": {
+            "BANK_TRANSFER_AR": {
                 "arrival": "Em minutos",
                 "arrivalDetail": "As transferências na Argentina costumam chegar em minutos.",
                 "unclaimable": "Na Argentina o depósito precisa vir de uma conta no seu nome.",

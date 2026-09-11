@@ -1,9 +1,10 @@
 'use client'
 
-import fixture from '@/features/deposit-accounts/__fixtures__/bridge-sandbox-virtual-accounts.json'
-import { fromBridgeVirtualAccounts, type BridgeVirtualAccount } from '@/features/deposit-accounts/adapters/bridge'
-import { fromMantecaArgentina, mantecaBrazilAccount } from '@/features/deposit-accounts/adapters/manteca'
+import fixture from './bridge-sandbox-virtual-accounts.json'
+import { fromBridgeVirtualAccounts, type BridgeVirtualAccount } from './bridgeFixtureAdapter'
+import { fromMantecaArgentina, mantecaBrazilAccount } from '@/features/deposit-accounts/mantecaCorridors'
 import type { DepositAccount, DepositCorridor } from '@/features/deposit-accounts/types'
+import { corridorFromRailId } from '@/features/deposit-accounts/useDepositAccounts'
 import type { GateState } from '@/utils/capability-gate'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
@@ -60,16 +61,17 @@ export function useSandboxDepositAccounts(scenario: SandboxScenario) {
             depositAlias: 'peanut.sandbox.ars',
         })
         const byCorridor: Record<DepositCorridor, DepositAccount | undefined> = {
-            USD_ACH: undefined,
-            EUR_SEPA: undefined,
-            GBP_FPS: undefined,
-            MXN_SPEI: undefined,
-            BRL_PIX: mantecaBrazilAccount(),
-            ARS_TRANSFER: argentina,
+            ACH_US: undefined,
+            SEPA_EU: undefined,
+            FASTER_PAYMENTS_GB: undefined,
+            SPEI_MX: undefined,
+            PIX_BR: mantecaBrazilAccount(),
+            BANK_TRANSFER_AR: argentina,
         }
 
         bridgeAccounts.forEach((account) => {
-            byCorridor[account.corridor] = withScenarioStatus(account, scenario, claimed, claiming)
+            const corridor = corridorFromRailId(account.railId)
+            if (corridor) byCorridor[corridor] = withScenarioStatus(account, corridor, scenario, claimed, claiming)
         })
 
         return byCorridor
@@ -103,6 +105,7 @@ export function useSandboxDepositAccounts(scenario: SandboxScenario) {
  */
 function withScenarioStatus(
     account: DepositAccount,
+    corridor: DepositCorridor,
     scenario: SandboxScenario,
     claimed: DepositCorridor[],
     claiming: DepositCorridor | undefined
@@ -111,7 +114,7 @@ function withScenarioStatus(
     if (scenario === 'failed') return { ...account, status: 'failed' }
     if (scenario === 'all-claimed' || scenario === 'returned') return account
 
-    if (claiming === account.corridor) return { ...account, status: 'provisioning' }
-    if (claimed.includes(account.corridor)) return account
+    if (claiming === corridor) return { ...account, status: 'provisioning' }
+    if (claimed.includes(corridor)) return account
     return { ...account, status: 'unclaimed' }
 }

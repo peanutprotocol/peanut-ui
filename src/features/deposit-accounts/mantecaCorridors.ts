@@ -1,5 +1,5 @@
 import { MANTECA_ARG_DEPOSIT_CUIT, MANTECA_ARG_DEPOSIT_NAME } from '@/constants/manteca.consts'
-import type { DepositAccount } from '../types'
+import type { DepositAccount } from './types'
 
 /**
  * What the shipped Manteca deposit screen has to work with — the fields
@@ -23,9 +23,11 @@ export interface MantecaDepositDetails {
  */
 export function fromMantecaArgentina(details: MantecaDepositDetails): DepositAccount {
     return {
-        corridor: 'ARS_TRANSFER',
+        id: 'manteca-ars',
+        railId: 'manteca.bank_transfer_ar',
+        country: 'AR',
         currency: 'ARS',
-        provider: 'manteca',
+        isPrimary: true,
         status: details.depositAddress ? 'active' : 'provisioning',
         matching: {
             nameOnAccount: 'provider',
@@ -50,9 +52,11 @@ export function fromMantecaArgentina(details: MantecaDepositDetails): DepositAcc
  */
 export function mantecaBrazilAccount(): DepositAccount {
     return {
-        corridor: 'BRL_PIX',
+        id: 'manteca-brl',
+        railId: 'manteca.pix_br',
+        country: 'BR',
         currency: 'BRL',
-        provider: 'manteca',
+        isPrimary: true,
         status: 'unavailable',
         matching: {
             nameOnAccount: 'provider',

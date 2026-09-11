@@ -1,10 +1,14 @@
-import { bridgeSenderPolicy } from '../rails'
-import type { DepositAccount, DepositCorridor, DepositInstructions } from '../types'
+import { bridgeSenderPolicy } from '@/features/deposit-accounts/rails'
+import type { DepositAccount, DepositCorridor, DepositInstructions } from '@/features/deposit-accounts/types'
 
 /**
+ * HARNESS ONLY. Production reads `GET /users/deposit-accounts`, where
+ * peanut-api-ts does this mapping — the app never sees a provider payload.
+ * This exists so the design harness renders real captured Bridge responses
+ * with no backend running.
+ *
  * Bridge virtual account, as `GET /customers/{id}/virtual_accounts` returns
- * it. Verbatim field names on purpose: this type is the provider boundary,
- * and the rest of the app never sees snake_case again.
+ * it. Verbatim field names on purpose.
  *
  * Field presence varies by currency and is not documented — captured from
  * sandbox on 2026-09-11 (see __fixtures__). USD carries no
@@ -34,11 +38,20 @@ export interface BridgeVirtualAccount {
     }
 }
 
+const COUNTRY_BY_CORRIDOR: Record<DepositCorridor, string> = {
+    ACH_US: 'US',
+    SEPA_EU: 'EU',
+    FASTER_PAYMENTS_GB: 'GB',
+    SPEI_MX: 'MX',
+    PIX_BR: 'BR',
+    BANK_TRANSFER_AR: 'AR',
+}
+
 const CORRIDOR_BY_CURRENCY: Record<string, DepositCorridor> = {
-    usd: 'USD_ACH',
-    eur: 'EUR_SEPA',
-    gbp: 'GBP_FPS',
-    mxn: 'MXN_SPEI',
+    usd: 'ACH_US',
+    eur: 'SEPA_EU',
+    gbp: 'FASTER_PAYMENTS_GB',
+    mxn: 'SPEI_MX',
 }
 
 /**
@@ -119,9 +132,11 @@ export function fromBridgeVirtualAccount(raw: BridgeVirtualAccount, userLegalNam
     const instructions = instructionsFrom(source)
 
     return {
-        corridor,
+        id: raw.id,
+        railId: `bridge.${corridor.toLowerCase()}`,
+        country: COUNTRY_BY_CORRIDOR[corridor],
         currency: source.currency.toUpperCase(),
-        provider: 'bridge',
+        isPrimary: true,
         status: statusFrom(raw.status),
         matching: {
             nameOnAccount: isUserName(instructions.accountHolderName, userLegalName) ? 'user' : 'provider',

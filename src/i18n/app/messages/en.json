@@ -3944,33 +3944,33 @@
             "beneficiaryAddress": "Recipient address"
         },
         "corridors": {
-            "EUR_SEPA": {
+            "SEPA_EU": {
                 "arrival": "Same business day",
                 "arrivalDetail": "SEPA transfers usually arrive the same business day, at most in two.",
                 "railName": "SEPA"
             },
-            "GBP_FPS": {
+            "FASTER_PAYMENTS_GB": {
                 "arrival": "Within minutes",
                 "arrivalDetail": "Faster Payments usually arrive within minutes.",
                 "railName": "Faster Payments"
             },
-            "USD_ACH": {
+            "ACH_US": {
                 "arrival": "1–3 business days",
                 "arrivalDetail": "ACH arrives in one to three business days. A wire arrives the same day.",
                 "railName": "ACH or wire"
             },
-            "MXN_SPEI": {
+            "SPEI_MX": {
                 "arrival": "Within minutes",
                 "arrivalDetail": "SPEI transfers usually arrive within minutes.",
                 "railName": "SPEI"
             },
-            "BRL_PIX": {
+            "PIX_BR": {
                 "arrival": "Within minutes",
                 "arrivalDetail": "Pix transfers usually arrive within minutes.",
                 "unclaimable": "Brazilian deposits are a Pix code for one payment, from your own account.",
                 "railName": "Pix"
             },
-            "ARS_TRANSFER": {
+            "BANK_TRANSFER_AR": {
                 "arrival": "Within minutes",
                 "arrivalDetail": "Argentine transfers usually arrive within minutes.",
                 "unclaimable": "Argentine deposits must come from an account in your own name.",

@@ -1,10 +1,10 @@
-import fixture from '../__fixtures__/bridge-sandbox-virtual-accounts.json'
-import { fromBridgeVirtualAccounts, type BridgeVirtualAccount } from '../adapters/bridge'
-import { fromMantecaArgentina } from '../adapters/manteca'
-import { instructionRows } from '../instructionRows'
-import { buildShareText } from '../shareText'
+import fixture from '../bridge-sandbox-virtual-accounts.json'
+import { fromBridgeVirtualAccounts, type BridgeVirtualAccount } from '../bridgeFixtureAdapter'
+import { fromMantecaArgentina } from '@/features/deposit-accounts/mantecaCorridors'
+import { instructionRows } from '@/features/deposit-accounts/instructionRows'
+import { buildShareText } from '@/features/deposit-accounts/shareText'
 import enMessages from '@/i18n/app/messages/en.json'
-import type { DepositAccount, DepositRowLabels } from '../types'
+import type { DepositAccount, DepositRowLabels } from '@/features/deposit-accounts/types'
 
 // captured from Bridge sandbox on 2026-09-11 by
 // mono projects/virtual-accounts/capture-sandbox-vas.sh
@@ -23,11 +23,11 @@ const shareCopy = (account: DepositAccount, user: string) => ({
 
 describe('bridge adapter', () => {
     it('maps every sandbox corridor', () => {
-        expect(accounts.map((account) => account.corridor).sort()).toEqual([
-            'EUR_SEPA',
-            'GBP_FPS',
-            'MXN_SPEI',
-            'USD_ACH',
+        expect(accounts.map((account) => account.railId).sort()).toEqual([
+            'bridge.ach_us',
+            'bridge.faster_payments_gb',
+            'bridge.sepa_eu',
+            'bridge.spei_mx',
         ])
     })
 
