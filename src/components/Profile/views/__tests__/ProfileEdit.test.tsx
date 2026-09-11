@@ -131,6 +131,24 @@ test('email-only save does not require a missing name', async () => {
     )
 })
 
+test('setting an email for the first time skips verification and sends only the email', async () => {
+    mockUser!.user.email = ''
+    renderWithIntl(<ProfileEditView />)
+
+    expect(screen.queryByLabelText('Verification code')).not.toBeInTheDocument()
+    await change('Email for notifications', 'new@example.com')
+    save()
+
+    await waitFor(() =>
+        expect(updateUserById).toHaveBeenCalledWith({
+            userId: 'test-user',
+            email: 'new@example.com',
+        })
+    )
+    expect(requestEmailChange).not.toHaveBeenCalled()
+    expect(mockReplace).toHaveBeenCalledWith('/profile')
+})
+
 test('shows server failures and retains edits without navigating', async () => {
     jest.mocked(updateUserById).mockResolvedValue({ error: 'Could not save your profile' })
     renderWithIntl(<ProfileEditView />)
