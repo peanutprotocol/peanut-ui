@@ -7,6 +7,7 @@ import { isAndroidNativeBridge, isCapacitor } from '@/utils/capacitor'
 import type { OtaApplyOutcome } from '@/utils/capgo-updater'
 import { importWithChunkRetry } from '@/utils/chunk-error-recovery'
 import { markNativeBootComplete } from '@/utils/native-app-ready'
+import { runningBundleOutranksBinary } from '@/utils/ota-native-gate'
 
 /**
  * `manual-restart` — a reload was issued but the page outlived it (iOS, which
@@ -59,6 +60,15 @@ export function OtaUpdateProvider({ children }: { children: React.ReactNode }) {
         markNativeBootComplete()
         let disposed = false
         let cleanup: (() => void) | undefined
+
+        // A floor-bearing OTA can already be running when there is no staged or
+        // newer candidate to trigger the callbacks below. Its baked floor is the
+        // only evidence that this binary still owes the user a store update.
+        runningBundleOutranksBinary()
+            .then((required) => {
+                if (!disposed && required) setStoreUpdateRequired(true)
+            })
+            .catch((err) => console.warn('[capgo] running bundle floor check failed:', err))
 
         // a bundle staged on an earlier launch is still queued in the plugin —
         // read through the gate, which drops one built for a newer binary

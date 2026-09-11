@@ -26,6 +26,7 @@ const mockUpdater = {
     delete: jest.fn().mockResolvedValue(undefined),
 }
 const mockExitApp = jest.fn().mockResolvedValue(undefined)
+const mockRunningBundleOutranksBinary = jest.fn().mockResolvedValue(false)
 // splashVisible false by default: these cases are about a bundle staged while
 // the user is already in the app, where the launch apply deliberately stands
 // down. The behind-the-splash window has its own describe block.
@@ -41,6 +42,10 @@ jest.mock('@/utils/capacitor', () => ({
     isIOSNative: () => !platform.android,
 }))
 jest.mock('@/hooks/useSplashGate', () => ({ isSplashVisible: () => platform.splashVisible }))
+jest.mock('@/utils/ota-native-gate', () => ({
+    ...jest.requireActual('@/utils/ota-native-gate'),
+    runningBundleOutranksBinary: () => mockRunningBundleOutranksBinary(),
+}))
 // Null by default so the store-update gate fails open and the cases below are
 // about restart mechanics rather than binary compatibility; the one case that
 // is about compatibility names a version.
@@ -65,6 +70,7 @@ beforeEach(() => {
     platform.capacitor = true
     platform.splashVisible = false
     platform.binaryVersion = null
+    mockRunningBundleOutranksBinary.mockReset().mockResolvedValue(false)
     mockUpdater.delete.mockReset().mockResolvedValue(undefined)
     mockUpdater.getFailedUpdate.mockReset().mockResolvedValue(null)
     mockExitApp.mockClear()
@@ -111,6 +117,14 @@ it('flags a store update when the served bundle needs a newer binary', async () 
     })
     expect(result.current.storeUpdateRequired).toBe(true)
     expect(window.localStorage.getItem('capgoUpdateFailureStreak')).toBeNull()
+})
+
+it('flags a store update when the running bundle floor outranks the binary', async () => {
+    mockRunningBundleOutranksBinary.mockResolvedValue(true)
+    const { result } = setup()
+
+    await waitFor(() => expect(result.current.storeUpdateRequired).toBe(true))
+    expect(mockRunningBundleOutranksBinary).toHaveBeenCalledTimes(1)
 })
 
 // A native release publishes a bundle carrying its own version, and a device on
