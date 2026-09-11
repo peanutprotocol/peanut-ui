@@ -770,11 +770,13 @@ const REDIRECT_V2_CONSUMED_KEY = 'redirect-v2-consumed'
 /** Generation-scoped tombstones prevent stale consumers from overwriting each other. */
 const REDIRECT_V2_CONSUMED_PREFIX = 'redirect-v2-consumed:'
 const REDIRECT_V2_CONSUMED_FALLBACK_PREFIX = 'redirect-v2-consumed-fallback:'
-const REDIRECT_V2_CONSUMED_PUBLISHED_VALUE = 'p'
 /** Fresh reservations are in-flight publications; only aged ones are abandoned. */
 const REDIRECT_V2_CONSUMED_RESERVATION_PREFIX = 'r'
 const REDIRECT_V2_CONSUMED_RESERVATION_LENGTH = 11
 const REDIRECT_V2_CONSUMED_RESERVATION_TTL_MS = 60_000
+/** Publication state is separate so it can never overwrite a consumed slot. */
+const REDIRECT_V2_PUBLISHED_PREFIX = 'redirect-v2-published:'
+const REDIRECT_V2_PUBLISHED_VALUE = '1'
 /**
  * Legacy bare-path records cannot be deleted conditionally without the same
  * check/remove race. Remembering their consumed value makes them inert while
@@ -974,20 +976,21 @@ const createRedirectConsumptionReservation = (): string =>
         .toString(36)
         .padStart(REDIRECT_V2_CONSUMED_RESERVATION_LENGTH - REDIRECT_V2_CONSUMED_RESERVATION_PREFIX.length, '0')}`
 
-const publishRedirectConsumptionSlots = (generationId: string) => {
-    saveToLocalStorage(`${REDIRECT_V2_CONSUMED_PREFIX}${generationId}`, REDIRECT_V2_CONSUMED_PUBLISHED_VALUE)
-    saveToLocalStorage(`${REDIRECT_V2_CONSUMED_FALLBACK_PREFIX}${generationId}`, REDIRECT_V2_CONSUMED_PUBLISHED_VALUE)
-}
+const publishRedirectConsumption = (generationId: string) =>
+    saveToLocalStorage(`${REDIRECT_V2_PUBLISHED_PREFIX}${generationId}`, REDIRECT_V2_PUBLISHED_VALUE)
 
 const discardRedirectConsumptionReservations = (generationId: string) => {
     const pointer = getFromLocalStorage(REDIRECT_V2_KEY)
     if (isRedirectPointer(pointer) && pointer.generationId === generationId) return
     localStorage.removeItem(`${REDIRECT_V2_CONSUMED_PREFIX}${generationId}`)
     localStorage.removeItem(`${REDIRECT_V2_CONSUMED_FALLBACK_PREFIX}${generationId}`)
+    localStorage.removeItem(`${REDIRECT_V2_PUBLISHED_PREFIX}${generationId}`)
 }
 
-const isReclaimableRedirectConsumptionSlot = (value: unknown): boolean => {
-    if (value === '0' || value === REDIRECT_V2_CONSUMED_PUBLISHED_VALUE || value === '1') return true
+const isReclaimableRedirectConsumptionSlot = (generationId: string, value: unknown): boolean => {
+    if (value === '0' || value === '1') return true
+    if (getFromLocalStorage(`${REDIRECT_V2_PUBLISHED_PREFIX}${generationId}`) === REDIRECT_V2_PUBLISHED_VALUE)
+        return true
     if (typeof value !== 'string' || !value.startsWith(REDIRECT_V2_CONSUMED_RESERVATION_PREFIX)) return false
 
     const reservedAt = Number.parseInt(value.slice(REDIRECT_V2_CONSUMED_RESERVATION_PREFIX.length), 36)
@@ -1014,7 +1017,7 @@ const reclaimRedirectConsumptionSlots = () => {
         if (!generationId || !isRedirectGenerationId(generationId)) continue
 
         const value = getFromLocalStorage(key)
-        if (isReclaimableRedirectConsumptionSlot(value)) reclaimableGenerationIds.add(generationId)
+        if (isReclaimableRedirectConsumptionSlot(generationId, value)) reclaimableGenerationIds.add(generationId)
     }
 
     const refreshedPointer = getFromLocalStorage(REDIRECT_V2_KEY)
@@ -1025,6 +1028,7 @@ const reclaimRedirectConsumptionSlots = () => {
         if (generationId === refreshedReachableGenerationId) continue
         localStorage.removeItem(`${REDIRECT_V2_CONSUMED_PREFIX}${generationId}`)
         localStorage.removeItem(`${REDIRECT_V2_CONSUMED_FALLBACK_PREFIX}${generationId}`)
+        localStorage.removeItem(`${REDIRECT_V2_PUBLISHED_PREFIX}${generationId}`)
     }
 }
 
@@ -1044,7 +1048,7 @@ export const setRedirectUrl = (destination: string, origin: RedirectOrigin = 'de
     // Keep the v1 handoff readable for documents that predate this change, but
     // never publish a mirror that has no authoritative v2 payload behind it.
     if (published) {
-        publishRedirectConsumptionSlots(generationId)
+        publishRedirectConsumption(generationId)
         saveToLocalStorage(REDIRECT_KEY, destination)
     } else {
         discardRedirectConsumptionReservations(generationId)

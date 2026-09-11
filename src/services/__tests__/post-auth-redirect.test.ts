@@ -396,6 +396,34 @@ describe('post-auth redirect reads one snapshot', () => {
         expect(localStorage.getItem(`redirect-v2-consumed-fallback:${inFlightGenerationId}`)).toBe(reservationValue)
     })
 
+    it('does not republish a generation after another tab consumes it', () => {
+        setRedirectUrl('/profile', 'session-end')
+        const setItem = jest.spyOn(Storage.prototype, 'setItem')
+        let interleaved = false
+        setItem.mockImplementation(function patched(this: Storage, key: string, value: string) {
+            const result = originalSetItem.call(this, key, value)
+            if (key === 'redirect-v2' && !interleaved) {
+                interleaved = true
+                expect(consumePostAuthRedirect(null)).toEqual({
+                    destination: '/card',
+                    source: 'stored',
+                    deferred: false,
+                })
+            }
+            return result
+        })
+
+        setRedirectUrl('/card', 'deep-link')
+
+        expect(getRedirectUrl()).toBeNull()
+        const consumedSlots = Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index)).filter(
+            (key): key is string =>
+                typeof key === 'string' &&
+                (key.startsWith('redirect-v2-consumed:') || key.startsWith('redirect-v2-consumed-fallback:'))
+        )
+        expect(consumedSlots.some((key) => localStorage.getItem(key) === JSON.stringify('1'))).toBe(true)
+    })
+
     it('aborts tombstone cleanup when the authoritative pointer changes during the scan', () => {
         setRedirectUrl('/profile', 'session-end')
         const getKey = jest.spyOn(Storage.prototype, 'key')
