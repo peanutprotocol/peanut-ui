@@ -7,15 +7,15 @@ const config = {
     SCREEN_LIBRARY_R2_ACCESS_KEY_ID: 'key',
     SCREEN_LIBRARY_R2_SECRET_ACCESS_KEY: 'secret',
     SCREEN_LIBRARY_R2_BUCKET: 'screens',
-    SCREEN_LIBRARY_STORE_URL: 'https://screens.example.com',
+    SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.example.com',
     SCREEN_LIBRARY_IMAGES_HASH: 'hash',
     SCREEN_LIBRARY_IMAGES_VARIANT: 'screen-preview',
 }
 test('configuration requires each credential and rejects unsafe delivery origins', () => {
-    assert.equal(configuration(config).SCREEN_LIBRARY_STORE_URL, config.SCREEN_LIBRARY_STORE_URL)
+    assert.equal(configuration(config).SCREEN_LIBRARY_PUBLIC_URL, config.SCREEN_LIBRARY_PUBLIC_URL)
     for (const key of Object.keys(config)) assert.throws(() => configuration({ ...config, [key]: '' }))
     for (const url of ['http://example.com', 'https://user:pass@example.com', 'https://example.com/path'])
-        assert.throws(() => configuration({ ...config, SCREEN_LIBRARY_STORE_URL: url }))
+        assert.throws(() => configuration({ ...config, SCREEN_LIBRARY_PUBLIC_URL: url }))
 })
 test('new PNG upload verifies original bytes and public delivery before publishing', async () => {
     const bytes = Buffer.from('original'),

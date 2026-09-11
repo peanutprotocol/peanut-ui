@@ -133,7 +133,7 @@ try {
             cacheControlMaxAge: 60,
             contentType: 'application/json',
         })
-    console.log(`https://staging.peanut.me/screens/${reportPath}/`)
+    console.log(`${process.env.SCREEN_LIBRARY_PUBLIC_URL}/screens/${reportPath}/`)
     console.log(`Storage manifest: ${manifest.url}`)
 } finally {
     rmSync(offline, { recursive: true, force: true })
