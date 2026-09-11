@@ -137,7 +137,7 @@ it('prepares the disabled channel, clears a partial bundle and reads the setting
     expect(result.requests[0].body).toMatchObject({
         ...Object.fromEntries(Object.entries(candidate).filter(([key]) => key !== 'name')),
         channel: 'ota-candidate',
-        version: null,
+        version: 'builtin',
         ios: false,
         android: false,
         electron: false,
