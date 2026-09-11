@@ -165,10 +165,12 @@ describe('post-auth redirect for a record from before the origin existed', () =>
 describe('post-auth redirect reads one snapshot', () => {
     const originalGetItem = Storage.prototype.getItem
     const originalRemoveItem = Storage.prototype.removeItem
+    const originalSetItem = Storage.prototype.setItem
 
     afterEach(() => {
         Storage.prototype.getItem = originalGetItem
         Storage.prototype.removeItem = originalRemoveItem
+        Storage.prototype.setItem = originalSetItem
         localStorage.clear()
     })
 
@@ -235,16 +237,44 @@ describe('post-auth redirect reads one snapshot', () => {
         expect(getRedirectUrl()).toBe('/receipt?id=abc')
     })
 
-    it('deletes only the consumed generation when a newer record arrives before deletion', () => {
+    it('does not publish a legacy mirror when the authoritative v2 write fails', () => {
+        const setItem = jest.spyOn(Storage.prototype, 'setItem')
+        setItem.mockImplementation(function patched(this: Storage, key: string, value: string) {
+            if (key === 'redirect-v2') throw new Error('quota')
+            return originalSetItem.call(this, key, value)
+        })
+
+        setRedirectUrl('/receipt?id=abc', 'deep-link')
+
+        expect(localStorage.getItem('redirect-v2')).toBeNull()
+        expect(localStorage.getItem('redirect')).toBeNull()
+        expect(getRedirectUrl()).toBeNull()
+    })
+
+    it('keeps the authoritative v2 payload ahead when its legacy mirror write fails', () => {
         setRedirectUrl('/profile', 'session-end')
-        const removeItem = jest.spyOn(Storage.prototype, 'removeItem')
+        const setItem = jest.spyOn(Storage.prototype, 'setItem')
+        setItem.mockImplementation(function patched(this: Storage, key: string, value: string) {
+            if (key === 'redirect') throw new Error('quota')
+            return originalSetItem.call(this, key, value)
+        })
+
+        setRedirectUrl('/receipt?id=abc', 'deep-link')
+
+        expect(getRedirectUrl()).toBe('/receipt?id=abc')
+        expect(getRedirectOrigin()).toBe('deep-link')
+    })
+
+    it('does not consume a newer generation when it arrives before the consumption marker', () => {
+        setRedirectUrl('/profile', 'session-end')
+        const setItem = jest.spyOn(Storage.prototype, 'setItem')
         let replaced = false
-        removeItem.mockImplementation(function patched(this: Storage, key: string) {
-            if (!replaced && (key === 'redirect' || key.startsWith('redirect-v2-record:'))) {
+        setItem.mockImplementation(function patched(this: Storage, key: string, value: string) {
+            if (!replaced && key === 'redirect-v2-consumed') {
                 replaced = true
                 setRedirectUrl('/receipt?id=abc', 'deep-link')
             }
-            return originalRemoveItem.call(this, key)
+            return originalSetItem.call(this, key, value)
         })
 
         expect(consumePostAuthRedirect(null, { rejectSessionEndOrigin: true })).toEqual({

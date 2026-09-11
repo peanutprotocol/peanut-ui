@@ -329,6 +329,7 @@ jest.mock('@/utils/general.utils', () => ({
     getExplorerUrl: jest.fn(() => 'https://arbiscan.io'),
     saveRedirectUrl: jest.fn(),
     getRedirectUrl: jest.fn(() => null),
+    getStoredRedirect: jest.fn(() => null),
     clearRedirectUrl: jest.fn(),
     getFromLocalStorage: jest.fn(() => null),
     isCryptoAddress: jest.fn(() => false),
