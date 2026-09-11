@@ -1,5 +1,12 @@
 import { consumePostAuthRedirect } from '../post-auth-redirect'
-import { getRedirectOrigin, getRedirectUrl, saveToLocalStorage, setRedirectUrl } from '@/utils/general.utils'
+import {
+    clearRedirectUrl,
+    getRedirectOrigin,
+    getRedirectUrl,
+    getStoredRedirect,
+    saveToLocalStorage,
+    setRedirectUrl,
+} from '@/utils/general.utils'
 
 const FINANCIAL_REDIRECT = '/claim?step=claim&id=payment-1'
 const CAMPAIGN_REDIRECT = '/add-money/crypto?network=EVM'
@@ -312,7 +319,7 @@ describe('post-auth redirect reads one snapshot', () => {
         setRedirectUrl('/receipt?id=abc', 'deep-link')
         const setItem = jest.spyOn(Storage.prototype, 'setItem')
         setItem.mockImplementation(function patched(this: Storage, key: string, value: string) {
-            if (key === 'redirect-v2-consumed') throw new Error('quota')
+            if (key.startsWith('redirect-v2-consumed:')) throw new Error('quota')
             return originalSetItem.call(this, key, value)
         })
 
@@ -324,12 +331,27 @@ describe('post-auth redirect reads one snapshot', () => {
         expect(getRedirectUrl()).toBeNull()
     })
 
+    it('keeps a completed newer generation consumed when an older tab resumes', () => {
+        setRedirectUrl('/profile', 'session-end')
+        const olderSnapshot = getStoredRedirect()
+
+        setRedirectUrl('/card', 'deep-link')
+        expect(consumePostAuthRedirect(null)).toEqual({
+            destination: '/card',
+            source: 'stored',
+            deferred: false,
+        })
+
+        clearRedirectUrl(olderSnapshot)
+        expect(getRedirectUrl()).toBeNull()
+    })
+
     it('does not consume a newer generation when it arrives before the consumption marker', () => {
         setRedirectUrl('/profile', 'session-end')
         const setItem = jest.spyOn(Storage.prototype, 'setItem')
         let replaced = false
         setItem.mockImplementation(function patched(this: Storage, key: string, value: string) {
-            if (!replaced && key === 'redirect-v2-consumed') {
+            if (!replaced && key.startsWith('redirect-v2-consumed:')) {
                 replaced = true
                 setRedirectUrl('/receipt?id=abc', 'deep-link')
             }

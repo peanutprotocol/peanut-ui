@@ -767,9 +767,10 @@ const REDIRECT_RECORD_PREFIX = 'redirect-v2-record:'
 /** The generation-key format briefly used by the preceding unreleased build. */
 const LEGACY_GENERATION_RECORD_PREFIX = 'redirect-record:'
 const REDIRECT_V2_CONSUMED_KEY = 'redirect-v2-consumed'
-/** Fixed-size fallback tombstone capacity reserved before v2 publication. */
-const REDIRECT_V2_CONSUMED_RESERVE_KEY = 'redirect-v2-consumed-reserve'
-const REDIRECT_V2_CONSUMED_RESERVE_VALUE = '0'.repeat(36)
+/** Generation-scoped tombstones prevent stale consumers from overwriting each other. */
+const REDIRECT_V2_CONSUMED_PREFIX = 'redirect-v2-consumed:'
+const REDIRECT_V2_CONSUMED_FALLBACK_PREFIX = 'redirect-v2-consumed-fallback:'
+const REDIRECT_V2_CONSUMED_RESERVE_VALUE = '0'
 /**
  * Legacy bare-path records cannot be deleted conditionally without the same
  * check/remove race. Remembering their consumed value makes them inert while
@@ -922,10 +923,15 @@ const getStoredRedirectForSnapshot = (): StoredRedirect | null => {
         }
 
         const consumed = getFromLocalStorage(REDIRECT_V2_CONSUMED_KEY)
-        const reservedConsumption = getFromLocalStorage(REDIRECT_V2_CONSUMED_RESERVE_KEY)
+        const generationConsumed = getFromLocalStorage(`${REDIRECT_V2_CONSUMED_PREFIX}${generationId}`)
+        const fallbackGenerationConsumed = getFromLocalStorage(`${REDIRECT_V2_CONSUMED_FALLBACK_PREFIX}${generationId}`)
         if (
+            generationConsumed === '1' ||
+            fallbackGenerationConsumed === '1' ||
             (isRedirectGenerationId(consumed) && consumed === generationId) ||
-            (isRedirectGenerationId(reservedConsumption) && reservedConsumption === generationId)
+            (consumed &&
+                typeof consumed === 'object' &&
+                (consumed as Partial<RedirectPointer>).generationId === generationId)
         ) {
             return null
         }
@@ -937,22 +943,28 @@ const getStoredRedirectForSnapshot = (): StoredRedirect | null => {
 
 export const getStoredRedirect = (): StoredRedirect | null => getStoredRedirectForSnapshot()
 
-const reserveRedirectConsumptionCapacity = (): boolean => {
+const reserveRedirectConsumptionCapacity = (generationId: string): boolean => {
     if (typeof localStorage === 'undefined') return false
-    if (getFromLocalStorage(REDIRECT_V2_CONSUMED_RESERVE_KEY) !== null) return true
-    return saveToLocalStorage(REDIRECT_V2_CONSUMED_RESERVE_KEY, REDIRECT_V2_CONSUMED_RESERVE_VALUE)
+    const primaryKey = `${REDIRECT_V2_CONSUMED_PREFIX}${generationId}`
+    const fallbackKey = `${REDIRECT_V2_CONSUMED_FALLBACK_PREFIX}${generationId}`
+    const primaryReserved =
+        getFromLocalStorage(primaryKey) !== null || saveToLocalStorage(primaryKey, REDIRECT_V2_CONSUMED_RESERVE_VALUE)
+    const fallbackReserved =
+        getFromLocalStorage(fallbackKey) !== null || saveToLocalStorage(fallbackKey, REDIRECT_V2_CONSUMED_RESERVE_VALUE)
+    return primaryReserved && fallbackReserved
 }
 
 const markRedirectConsumed = (generationId: string): boolean => {
-    if (saveToLocalStorage(REDIRECT_V2_CONSUMED_KEY, generationId)) return true
-    if (!reserveRedirectConsumptionCapacity()) return false
-    return saveToLocalStorage(REDIRECT_V2_CONSUMED_RESERVE_KEY, generationId)
+    const primaryKey = `${REDIRECT_V2_CONSUMED_PREFIX}${generationId}`
+    const fallbackKey = `${REDIRECT_V2_CONSUMED_FALLBACK_PREFIX}${generationId}`
+    if (saveToLocalStorage(primaryKey, '1')) return true
+    return saveToLocalStorage(fallbackKey, '1')
 }
 
 /** The ONLY way to store a post-auth destination. */
 export const setRedirectUrl = (destination: string, origin: RedirectOrigin = 'deep-link') => {
-    if (!reserveRedirectConsumptionCapacity()) return
     const generationId = createRedirectGenerationId()
+    if (!reserveRedirectConsumptionCapacity(generationId)) return
     const previousLegacy = getFromLocalStorage(REDIRECT_KEY)
     const legacyMirror = typeof previousLegacy === 'string' ? previousLegacy : null
     const published = saveToLocalStorage(REDIRECT_V2_KEY, {
