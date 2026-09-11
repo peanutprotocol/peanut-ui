@@ -58,7 +58,13 @@ export function HomeModals() {
     const [jailCelebrationPending, setJailCelebrationPending] = useState(
         () => typeof window !== 'undefined' && sessionStorage.getItem('showNoMoreJailModal') === 'true'
     )
+    // Derived synchronously from the user flag, not from the child's effect:
+    // the drawer only reports itself open after mount, and that one-commit gap
+    // let the activation celebration flash open between two drawers. The flag
+    // holds the queue until the drawer reports its dismissal.
+    const [earlyUserDone, setEarlyUserDone] = useState(false)
     const [earlyUserOpen, setEarlyUserOpen] = useState(false)
+    const earlyUserPending = (!!user?.showEarlyUserModal && !earlyUserDone) || earlyUserOpen
 
     // the migration prompt outranks the post-signup modal; unmounting the
     // manager skips its onVisibilityChange(false), so clear the state here or
@@ -149,7 +155,12 @@ export function HomeModals() {
                     {!jailCelebrationPending && (
                         <LazyLoadErrorBoundary>
                             <Suspense fallback={null}>
-                                <EarlyUserDrawer onVisibilityChange={setEarlyUserOpen} />
+                                <EarlyUserDrawer
+                                    onVisibilityChange={(visible) => {
+                                        setEarlyUserOpen(visible)
+                                        if (!visible) setEarlyUserDone(true)
+                                    }}
+                                />
                             </Suspense>
                         </LazyLoadErrorBoundary>
                     )}
@@ -166,7 +177,7 @@ export function HomeModals() {
                                 !showBalanceWarningDrawer &&
                                 !showMigrationModal &&
                                 !jailCelebrationPending &&
-                                !earlyUserOpen
+                                !earlyUserPending
                             }
                             onClose={async () => {
                                 // close the modal immediately for better ux

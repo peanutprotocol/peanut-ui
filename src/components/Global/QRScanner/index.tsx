@@ -65,6 +65,10 @@ export interface QRScannerProps {
     onScan: QRScanHandler
     onClose?: () => void
     isOpen?: boolean
+    /** Reports the camera-permission-denied recovery state, so the host can
+     *  clear anything it floats above the scanner (the my-QR peek sits at
+     *  z-60 and would cover the z-50 recovery sheet). */
+    onPermissionDenied?: (denied: boolean) => void
 }
 
 // ============================================================================
@@ -287,9 +291,14 @@ function ErrorView({
 // Main Component
 // ============================================================================
 
-export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerProps) {
+export default function QRScanner({ onScan, onClose, onPermissionDenied, isOpen = true }: QRScannerProps) {
     const { error, isPermissionDenied, isScanning, isCameraReady, videoRef, close, toggleCamera, retryCamera } =
         useQRScanner(onScan, onClose, isOpen)
+    useEffect(() => {
+        onPermissionDenied?.(isPermissionDenied)
+        return () => onPermissionDenied?.(false)
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- callback identity is the host's concern
+    }, [isPermissionDenied])
     const t = useTranslations('global')
     const toast = useToast()
     const [detectedAddress, setDetectedAddress] = useState<string | null>(null)
