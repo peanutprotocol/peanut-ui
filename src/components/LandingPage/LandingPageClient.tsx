@@ -64,11 +64,9 @@ export function LandingPageClient({
 }: LandingPageClientProps) {
     const { isFooterVisible } = useFooterVisibility()
     const migrationOn = useMigrationFlag()
-    // the strip under the door fold speaks /shhhhh's vocabulary, not the
-    // product one every other strip repeats
+    // Card features under the homepage card offer.
     const tDoorMarquee = useTranslations('shhhhh.marquee')
-    // Kill switch: the door fold and the closed-beta strip under it are one
-    // promise, so they go dark together.
+    // The card offer and its feature strip share one maintenance switch.
     const doorFoldOn = !underMaintenanceConfig.disableLandingCardFold
 
     const primaryCta = migrationOn ? undefined : heroConfig.primaryCta
@@ -97,14 +95,14 @@ export function LandingPageClient({
     const doorMarqueeProps = useMemo(
         () => ({
             visible: true,
-            // the whole strip is the door: every word goes to /shhhhh
+            // Every card feature opens the public application.
             message: [
-                tDoorMarquee('iykyk'),
-                tDoorMarquee('wordTravels'),
-                tDoorMarquee('closedBeta'),
-                tDoorMarquee('shhhh'),
-                tDoorMarquee('peanutClub'),
-            ].map((label) => ({ label, href: '/shhhhh' })),
+                tDoorMarquee('peanutCard'),
+                tDoorMarquee('contactless'),
+                tDoorMarquee('available'),
+                tDoorMarquee('online'),
+                tDoorMarquee('noMonthlyFee'),
+            ].map((label) => ({ label, href: '/card' })),
         }),
         [tDoorMarquee]
     )

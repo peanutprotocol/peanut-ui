@@ -20,16 +20,16 @@ export const JOURNEY_API_BASE = 'http://localhost:5050'
 export const FUNNEL_STATES: FunnelState[] = [
     {
         id: 'no-access',
-        label: 'No access',
-        description: 'No card access granted; pre-KYC. Waitlist-era default.',
+        label: 'New applicant',
+        description: 'Public card application entry; identity verification not yet complete.',
         specStages: [],
-        noEmailReason: 'Email machine requires cardAccessGrantedAt — silent here.',
+        noEmailReason: 'No card application started yet.',
         includesPushReminder: true,
     },
     {
         id: 'access-pre-kyc',
-        label: 'Access, pre-KYC',
-        description: 'Card access granted, Sumsub not approved yet.',
+        label: 'Application, pre-KYC',
+        description: 'Card application started, identity verification not approved yet.',
         specStages: ['verify'],
         includesWelcome: true,
         includesPushReminder: true,
@@ -84,12 +84,12 @@ export const IN_APP_SURFACES: InAppSurface[] = [
     {
         id: 'step-card-banner',
         kind: 'step',
-        name: 'Activation step: card → launch banner',
-        copy: '"shhhh" — "Tap to find out if you\'re in" + "Maybe later" dismiss (localStorage)',
-        cta: { label: 'Try the door →', dest: '/shhhhh' },
+        name: 'Activation step: card',
+        copy: '"Get your Peanut Card" — application after funding',
+        cta: { label: 'Get your card', dest: '/card' },
         condition:
-            'FUNDED (step=outbound/completed) && hasCardAccess && !hasCard && !dismissed && !disableCardLaunchCTA — card comes AFTER deposit, never overrides verify/deposit (2026-08-20)',
-        sourceFile: 'src/components/Home/CardLaunchCTA/CardLaunchCTABanner.tsx (via ActivationCTAs.tsx)',
+            'FUNDED (step=outbound/completed) && canApplyForCard && !hasCard && !dismissed && !disableCardPromotion — card comes AFTER deposit, never overrides verify/deposit (2026-08-20)',
+        sourceFile: 'src/components/Home/ActivationCTAs.tsx',
         states: ['funded-no-spend'],
     },
     {
@@ -105,22 +105,22 @@ export const IN_APP_SURFACES: InAppSurface[] = [
     {
         id: 'step-outbound-qr',
         kind: 'step',
-        name: 'Activation step: outbound (no card access)',
+        name: 'Activation step: outbound (card not eligible)',
         copy: '"Make your first payment" — "Start paying to Pix and MercadoPago QR codes"',
         cta: { label: 'Start Spending', dest: 'QR scanner' },
         condition:
-            "step=outbound && !hasCardAccess && a Manteca rail whose `pay` op is enabled (Pix is bank-channel, MercadoPago is qr-only — the gate is the provider and the op, not the channel) — the QR spend is this user's only activating spend, so the CTA opens the scanner rather than /send (a peer send is volume, never activation). Without the card OR that rail the step renders nothing: no spend would ever clear it. The Home checklist row is the surface that completes on a peer payment (product/activation-funnel.md, 2026-09-02).",
+            "step=outbound && !canApplyForCard && a Manteca rail whose `pay` op is enabled (Pix is bank-channel, MercadoPago is qr-only — the gate is the provider and the op, not the channel) — the QR spend is this user's only activating spend, so the CTA opens the scanner rather than /send (a peer send is volume, never activation). Without the card OR that rail the step renders nothing: no spend would ever clear it. The Home checklist row is the surface that completes on a peer payment (product/activation-funnel.md, 2026-09-02).",
         sourceFile: 'src/components/Home/ActivationCTAs.tsx',
         states: ['kycd-no-card'],
     },
     {
         id: 'step-outbound-spend',
         kind: 'step',
-        name: 'Activation step: outbound (card access)',
+        name: 'Activation step: outbound (card eligible)',
         copy: '"Spend with Peanut" — "Pay with your card or scan Pix and MercadoPago QR codes"',
         cta: { label: 'Start Spending', dest: 'spend chooser modal' },
         condition:
-            'step=outbound && hasCardAccess — card spend counts as activation too (TASK-20471). Renders instead of the getting-started checklist once money is in: the checklist is the pre-funding empty state, this card carries the push from there to activation.',
+            'step=outbound && canApplyForCard — card spend counts as activation too (TASK-20471). Renders instead of the getting-started checklist once money is in: the checklist is the pre-funding empty state, this card carries the push from there to activation.',
         sourceFile: 'src/components/Home/ActivationCTAs.tsx',
         states: ['kycd-no-card', 'card-active-unfunded', 'funded-no-spend'],
         isNewInThisPr: true,
@@ -132,7 +132,8 @@ export const IN_APP_SURFACES: InAppSurface[] = [
         name: 'Spend chooser (ActionModal)',
         copy: '"How do you want to spend?" — "Both count as your first payment." Card → /card, QR → scanner',
         cta: { label: 'Pay with your card / Scan a QR code', dest: '/card | QR scanner' },
-        condition: 'Opened by the outbound step CTA when hasCardAccess; auto-closes if access is revoked mid-open',
+        condition:
+            'Opened by the outbound step CTA when canApplyForCard; auto-closes if residence becomes restricted mid-open',
         sourceFile: 'src/components/Home/ActivationCTAs.tsx',
         states: ['kycd-no-card', 'card-active-unfunded', 'funded-no-spend'],
         isNewInThisPr: true,
@@ -176,19 +177,9 @@ export const IN_APP_SURFACES: InAppSurface[] = [
         name: 'Carousel: KYC prompt',
         copy: '"Unlock QR code payments"',
         cta: { label: 'tap', dest: '/profile/identity-verification' },
-        condition: '!hasKycApproval && !inFlight && no card access',
+        condition: '!hasKycApproval && !inFlight && card not eligible',
         sourceFile: 'src/hooks/useHomeCarouselCTAs.tsx',
         states: ['no-access'],
-    },
-    {
-        id: 'carousel-card-pioneer',
-        kind: 'carousel',
-        name: 'Carousel: Card Pioneer',
-        copy: '"Get your Peanut Card" — "Closed beta. Badges skip the line. $10 unlocks on your first $100 spend."',
-        cta: { label: 'tap', dest: '/shhhhh' },
-        condition: '!disableCardPioneers && hasCardAccessGranted === false (targets NO-access users — see finding 1)',
-        sourceFile: 'src/hooks/useHomeCarouselCTAs.tsx',
-        states: ['kycd-no-card'],
     },
     {
         id: 'carousel-qr-payment',
@@ -281,16 +272,6 @@ export const IN_APP_SURFACES: InAppSurface[] = [
         states: ['kycd-no-card'],
     },
     {
-        id: 'modal-badge-skip-celebration',
-        kind: 'modal',
-        name: 'BadgeSkipCelebration',
-        copy: 'per-badge headlines (OG / Devconnect / Arbiverse / "You\'re in.") — hold-reveal + confetti + share',
-        cta: { label: 'Continue to your card', dest: '/card add-card flow' },
-        condition: '/card computeCardState=waitlist-skip-celebration (badge holder skips the line)',
-        sourceFile: 'src/components/Card/BadgeSkipCelebration.tsx',
-        states: ['access-pre-kyc'],
-    },
-    {
         id: 'modal-rain-cooldown',
         kind: 'modal',
         name: 'RainCooldownIntroModal',
@@ -311,24 +292,6 @@ export const IN_APP_SURFACES: InAppSurface[] = [
 
     // ---------- 💳 /card states (computeCardState precedence) ----------
     {
-        id: 'card-404',
-        kind: 'card-screen',
-        name: '/card: no flow access',
-        copy: '404 — page pretends not to exist',
-        condition: 'computeCardState=no-flow-access (no flowEarlyAccess / hasCardAccess)',
-        sourceFile: 'src/components/Card/cardState.utils.ts + src/app/(mobile-ui)/card/page.tsx',
-        states: ['no-access'],
-    },
-    {
-        id: 'card-eligibility-check',
-        kind: 'card-screen',
-        name: '/card: eligibility check',
-        copy: 'hold-to-check button gate before the application flow',
-        condition: 'computeCardState=eligibility-check',
-        sourceFile: 'src/components/Card/cardState.utils.ts + src/app/(mobile-ui)/card/page.tsx',
-        states: ['access-pre-kyc'],
-    },
-    {
         id: 'card-add-entry',
         kind: 'card-screen',
         name: '/card: AddCardEntryScreen',
@@ -338,21 +301,12 @@ export const IN_APP_SURFACES: InAppSurface[] = [
         states: ['access-pre-kyc', 'kycd-no-card'],
     },
     {
-        id: 'card-waitlist-rejection',
-        kind: 'card-screen',
-        name: '/card: waitlist ("Berghain" rejection)',
-        copy: 'rejection-styled waitlist screen; 213-ahead / 7-behind scarcity numbers are hardcoded defaults (see finding 5)',
-        condition: 'computeCardState=waitlist (no skip badge)',
-        sourceFile: 'src/components/Card/CardRejectionScreen.tsx',
-        states: ['kycd-no-card'],
-    },
-    {
         id: 'card-application-in-flight',
         kind: 'card-screen',
         name: '/card: application in flight',
         copy: 'pending / manual-review / requires-info / requires-support / rejected(FAILED) screens',
         condition: 'computeCardState ∈ {pending, manual-review, requires-info, requires-support, rejected}',
-        sourceFile: 'src/components/Card/cardState.utils.ts + src/app/(mobile-ui)/card/page.tsx',
+        sourceFile: 'src/components/Card/cardState.utils.ts + src/features/card/CardPage.tsx',
         states: ['application-in-flight'],
     },
     {
@@ -368,29 +322,6 @@ export const IN_APP_SURFACES: InAppSurface[] = [
 
 export const FINDINGS: JourneyFinding[] = [
     {
-        id: 1,
-        title: 'Three card CTAs, three divergent gating fields',
-        detail: 'Home step gates on cardInfo.hasCardAccess; the /shhhhh splash on isEligible+isPublicLaunched; /card on flowEarlyAccess+hasCardAccess. All three route to /shhhhh with overlapping/inverted audiences — card-pioneer explicitly targets NO-access users.',
-        sourceFiles: [
-            'src/hooks/useActivationStatus.ts',
-            'src/app/shhhhh/ShhhhhLandingPage.tsx',
-            'src/app/(mobile-ui)/card/page.tsx',
-            'src/hooks/useHomeCarouselCTAs.tsx',
-        ],
-    },
-    {
-        id: 2,
-        title: 'Maintenance flags can dark the whole home card funnel',
-        detail: 'underMaintenanceConfig.disableCardLaunchCTA / disableCardPioneers silently remove both home card CTAs — no fallback step renders in their place.',
-        sourceFiles: ['src/config/underMaintenance.config.ts'],
-    },
-    {
-        id: 3,
-        title: 'Stale badge TODOs falsely claimed missing award triggers (CORRECTED)',
-        detail: 'Stale FE TODO comments in badge.utils.ts falsely claimed SHHHHH / CARD_FIRST_SWIPE / CARD_SPENT_1K lack award triggers — all three are live in the API (acknowledgments/card-spend-badges.ts + routes/card/waitlist.ts; prod: 1,499 / 274 / 12 awards). Severity: low — comment cleanup only (done on this branch).',
-        sourceFiles: ['src/components/Badges/badge.utils.ts'],
-    },
-    {
         id: 4,
         title: 'Two "You\'re unlocked" celebrations can double-fire',
         detail: 'WelcomeUnlockModal (home) and KycVerificationInProgressModal\'s terminal state both celebrated "You\'re unlocked" around KYC approval — a user could see both (the flow terminal never stamps activationCelebratedAt). FIXED on this branch: in-flow terminal neutralized to "All set"; home\'s WelcomeUnlockModal is the single celebration.',
@@ -398,12 +329,6 @@ export const FINDINGS: JourneyFinding[] = [
             'src/components/Home/WelcomeUnlockModal/index.tsx',
             'src/components/Kyc/KycVerificationInProgressModal.tsx',
         ],
-    },
-    {
-        id: 5,
-        title: "'waitlist' state renders the REJECTION screen",
-        detail: 'computeCardState "waitlist" renders CardRejectionScreen (the "Berghain" treatment) — a naming/UX mismatch; the 213/7 scarcity numbers are hardcoded defaults.',
-        sourceFiles: ['src/components/Card/cardState.utils.ts', 'src/components/Card/CardRejectionScreen.tsx'],
     },
     {
         id: 6,
