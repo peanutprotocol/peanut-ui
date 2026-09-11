@@ -17,6 +17,7 @@ export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
         provider: 'bridge',
         railName: 'SEPA',
         flagIso2: 'eu',
+        detailRowCount: 6,
     },
     GBP_FPS: {
         corridor: 'GBP_FPS',
@@ -24,6 +25,7 @@ export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
         provider: 'bridge',
         railName: 'Faster Payments',
         flagIso2: 'gb',
+        detailRowCount: 6,
     },
     USD_ACH: {
         corridor: 'USD_ACH',
@@ -31,6 +33,7 @@ export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
         provider: 'bridge',
         railName: 'ACH or wire',
         flagIso2: 'us',
+        detailRowCount: 6,
         thirdPartyCap: '$4,000',
     },
     MXN_SPEI: {
@@ -39,6 +42,7 @@ export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
         provider: 'bridge',
         railName: 'SPEI',
         flagIso2: 'mx',
+        detailRowCount: 3,
     },
     BRL_PIX: {
         corridor: 'BRL_PIX',
@@ -46,6 +50,7 @@ export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
         provider: 'manteca',
         railName: 'Pix',
         flagIso2: 'br',
+        detailRowCount: 3,
         claimable: false,
     },
     ARS_TRANSFER: {
@@ -54,6 +59,7 @@ export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
         provider: 'manteca',
         railName: 'Bank transfer',
         flagIso2: 'ar',
+        detailRowCount: 5,
         claimable: false,
     },
 }

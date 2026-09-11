@@ -4,7 +4,7 @@ import fixture from '@/features/deposit-accounts/__fixtures__/bridge-sandbox-vir
 import { fromBridgeVirtualAccounts, type BridgeVirtualAccount } from '@/features/deposit-accounts/adapters/bridge'
 import { fromMantecaArgentina, mantecaBrazilAccount } from '@/features/deposit-accounts/adapters/manteca'
 import type { DepositAccount, DepositCorridor } from '@/features/deposit-accounts/types'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 /** the sandbox customer's own name — what Bridge returns as the holder */
 export const SANDBOX_USER_NAME = 'Sandbox User'
@@ -43,6 +43,8 @@ export function useSandboxDepositAccounts(scenario: SandboxScenario) {
             }, PROVISIONING_MS)
         )
     }, [])
+
+    useEffect(() => () => timers.current.forEach(clearTimeout), [])
 
     const reset = useCallback(() => {
         timers.current.forEach(clearTimeout)

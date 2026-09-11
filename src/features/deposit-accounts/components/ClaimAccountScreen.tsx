@@ -47,9 +47,9 @@ export function ClaimAccountScreen({
                         t('claim.benefitStable'),
                         t('claim.benefitAnyone'),
                         t('claim.benefitBalance'),
-                        rail.thirdPartyCap
-                            ? t('claim.benefitCap', { cap: rail.thirdPartyCap })
-                            : t('claim.benefitNoReference'),
+                        t('claim.benefitNoReference'),
+                        // only where a cap is proved — no corridor invents a number
+                        ...(rail.thirdPartyCap ? [t('claim.benefitCap', { cap: rail.thirdPartyCap })] : []),
                     ]}
                 />
 

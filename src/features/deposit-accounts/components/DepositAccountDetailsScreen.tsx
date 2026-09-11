@@ -121,7 +121,7 @@ export function DepositAccountDetailsScreen({
                 )}
 
                 {provisioning ? (
-                    <DepositDetailsSkeleton rows={5} withNotice={pooled} />
+                    <DepositDetailsSkeleton rows={rail.detailRowCount} withNotice={pooled} />
                 ) : (
                     <>
                         {pooled && (

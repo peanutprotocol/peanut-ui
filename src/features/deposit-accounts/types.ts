@@ -87,6 +87,8 @@ export interface DepositRail {
     /** the rail a payer recognises: SEPA, Faster Payments, SPEI */
     railName: string
     flagIso2: string
+    /** how many rows the details card shows, so the provisioning skeleton matches it */
+    detailRowCount: number
     /** how much somebody else may send in one payment, where it is proved */
     thirdPartyCap?: string
     /** false where the corridor cannot be held as a reusable account */
