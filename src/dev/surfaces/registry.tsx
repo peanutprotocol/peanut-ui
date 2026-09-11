@@ -12,6 +12,10 @@
  */
 
 import React from 'react'
+import { SetupFlowProvider } from '@/features/setup/SetupFlowContext'
+import { AuthContext, useAuth } from '@/context/authContext'
+import { AccountReadyView } from '@/components/Setup/Views/SignTestTransaction'
+import { SetupNotificationsPrompt } from '@/components/Notifications/SetupNotificationsModal'
 import { useTranslations } from 'next-intl'
 import { setupSteps } from '@/components/Setup/Setup.consts'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
@@ -75,7 +79,20 @@ import NoMoreJailDrawer from '@/components/Global/NoMoreJailDrawer'
  * are the app's, not the harness's. Mounting the view bare (which this harness
  * did first) drops all of that and photographs a naked form.
  */
-function SetupScreen({ screenId }: { screenId: ScreenId }) {
+function SetupScreen({ screenId, children }: { screenId: ScreenId; children?: React.ReactNode }) {
+    return (
+        <SetupFlowProvider>
+            <SetupScreenBody screenId={screenId}>{children}</SetupScreenBody>
+        </SetupFlowProvider>
+    )
+}
+function GuestCapture({ children }: { children: React.ReactNode }) {
+    const auth = useAuth()
+    return (
+        <AuthContext.Provider value={{ ...auth, user: null, isFetchingUser: false }}>{children}</AuthContext.Provider>
+    )
+}
+function SetupScreenBody({ screenId, children }: { screenId: ScreenId; children?: React.ReactNode }) {
     const t = useTranslations('setup')
     const step = setupSteps.find((entry) => entry.screenId === screenId)
     if (!step) return null
@@ -96,7 +113,7 @@ function SetupScreen({ screenId }: { screenId: ScreenId }) {
             contentClassName={step.contentClassName}
             step={setupSteps.indexOf(step)}
         >
-            <View />
+            {children ?? <View />}
         </SetupWrapper>
     )
 }
@@ -104,6 +121,15 @@ function SetupScreen({ screenId }: { screenId: ScreenId }) {
 const noop = () => {}
 const asyncNoop = async () => {}
 
+import { AvatarPicker } from '@/components/Avatar/AvatarPicker'
+import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
+import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
+import KycPrepChecklist from '@/components/Kyc/KycPrepChecklist'
+import { KycFailedContent } from '@/components/Kyc/KycFailedContent'
+import { RejectLabelsList } from '@/components/Kyc/RejectLabelsList'
+import { KycActionRequired } from '@/components/Kyc/states/KycActionRequired'
+import RateUnavailable from '@/components/Global/RateUnavailable'
+import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { SURFACE_META, type SurfaceMeta } from './list'
 import { PasskeyHelpA, PasskeyHelpB, PasskeyHelpC, PasskeyHelpD } from './options/PasskeyHelpOptions'
 import { OnrampA, OnrampB, OnrampC, OnrampD } from './options/OnrampOptions'
@@ -113,46 +139,45 @@ export type Surface = SurfaceMeta & {
     /** Mounted open. Absent when `blocked` explains why it cannot be. */
     render?: () => React.ReactNode
     /** Opened by flipping a ModalsContext flag rather than a prop. */
-    modalsContextFlag?: 'signIn' | 'support' | 'iosPwaInstall'
+    modalsContextFlag?: 'signIn' | 'support' | 'iosPwaInstall' | 'qrScanner'
 }
 
 export const SURFACES: Record<string, Surface> = {
     '01-a-landing': {
-        name: 'Landing',
-        path: 'Setup/Views/Landing.tsx',
+        ...SURFACE_META['01-a-landing'],
         render: () => <SetupScreen screenId="landing" />,
     },
     '02-a-joinwaitlist': {
-        name: 'JoinWaitlist',
-        path: 'Setup/Views/JoinWaitlist.tsx',
+        ...SURFACE_META['02-a-joinwaitlist'],
         render: () => <SetupScreen screenId="welcome" />,
     },
     '03-a-residence-select': {
-        name: 'Residence — select',
-        path: 'Setup/Views/Residence.tsx',
+        ...SURFACE_META['03-a-residence-select'],
         render: () => <SetupScreen screenId="residence" />,
     },
     '04-a-installpwa': {
-        name: 'InstallPWA',
-        path: 'Setup/Views/InstallPWA.tsx',
-        blocked:
-            'Redirects to /home when a session exists (InstallPWA.tsx:75), and the harness is signed in — the shot lands on the home screen, not this step.',
+        ...SURFACE_META['04-a-installpwa'],
+        render: () => (
+            <GuestCapture>
+                <SetupScreen screenId="pwa-install" />
+            </GuestCapture>
+        ),
     },
     '05-a-signtesttransaction': {
-        name: 'SignTestTransaction — account ready',
-        path: 'Setup/Views/SignTestTransaction.tsx',
-        blocked:
-            'Redirects to /home when the fixture account already exists (SignTestTransaction guards on accountExists), so the harness never reaches the account-ready state.',
+        ...SURFACE_META['05-a-signtesttransaction'],
+        render: () => (
+            <SetupScreen screenId="sign-test-transaction">
+                <AccountReadyView onContinue={noop} />
+            </SetupScreen>
+        ),
     },
     '06-a-signup': { name: 'Signup', path: 'Setup/Views/Signup.tsx', render: () => <SetupScreen screenId="signup" /> },
     '07-a-setuppasskey': {
-        name: 'SetupPasskey',
-        path: 'Setup/Views/SetupPasskey.tsx',
+        ...SURFACE_META['07-a-setuppasskey'],
         render: () => <SetupScreen screenId="passkey-permission" />,
     },
     '08-a-passkeysetuphelpmodal': {
-        name: 'PasskeySetupHelpDrawer',
-        path: 'Setup/Views/PasskeySetupHelpDrawer.tsx',
+        ...SURFACE_META['08-a-passkeysetuphelpmodal'],
         render: () => (
             <PasskeySetupHelpDrawer
                 visible
@@ -169,8 +194,7 @@ export const SURFACES: Record<string, Surface> = {
         render: () => <PasskeyInfoDrawer visible onClose={noop} />,
     },
     '10-a-confirminvitemodal': {
-        name: 'ConfirmInviteModal',
-        path: 'Global/ConfirmInviteModal/index.tsx',
+        ...SURFACE_META['10-a-confirminvitemodal'],
         render: () => (
             <ConfirmInviteModal
                 isOpen
@@ -194,13 +218,11 @@ export const SURFACES: Record<string, Surface> = {
         render: () => <EasterEggDrawer visible onClose={noop} countryCode="AQ" />,
     },
     '13-a-guestloginmodal': {
-        name: 'GuestLoginModal',
-        path: 'Global/GuestLoginModal/index.tsx',
+        ...SURFACE_META['13-a-guestloginmodal'],
         modalsContextFlag: 'signIn',
     },
     '14-a-guestverificationmodal': {
-        name: 'GuestVerificationModal',
-        path: 'Global/GuestVerificationModal/index.tsx',
+        ...SURFACE_META['14-a-guestverificationmodal'],
         render: () => (
             <GuestVerificationModal
                 isOpen
@@ -224,29 +246,23 @@ export const SURFACES: Record<string, Surface> = {
         modalsContextFlag: 'iosPwaInstall',
     },
     '17-a-nomorejailmodal': {
-        name: 'NoMoreJailDrawer',
-        path: 'Global/NoMoreJailDrawer/index.tsx',
+        ...SURFACE_META['17-a-nomorejailmodal'],
         // opens off sessionStorage showNoMoreJailModal, which the spec seeds
         render: () => <NoMoreJailDrawer />,
     },
     '18-a-reconsentmodal': {
-        name: 'ReConsentModal',
-        path: 'Global/ReConsentModal/index.tsx',
-        blocked: 'Opens only when the consent-status endpoint reports outdated documents.',
+        ...SURFACE_META['18-a-reconsentmodal'],
     },
     '19-a-unsupportedbrowsermodal': {
-        name: 'UnsupportedBrowserModal',
-        path: 'Global/UnsupportedBrowserModal/index.tsx',
+        ...SURFACE_META['19-a-unsupportedbrowsermodal'],
         render: () => <UnsupportedBrowserModal visible allowClose />,
     },
     '20-a-setupnotificationsmodal': {
-        name: 'SetupNotificationsModal',
-        path: 'Notifications/SetupNotificationsModal.tsx',
-        blocked: 'Opens off the browser push-permission state — not forceable headless.',
+        ...SURFACE_META['20-a-setupnotificationsmodal'],
+        render: () => <SetupNotificationsPrompt visible onAllow={noop} onClose={noop} />,
     },
     '21-b-advisorypreemptmodal': {
-        name: 'AdvisoryPreemptModal',
-        path: 'Kyc/AdvisoryPreemptModal.tsx',
+        ...SURFACE_META['21-b-advisorypreemptmodal'],
         render: () => (
             <AdvisoryPreemptModal
                 visible
@@ -258,23 +274,19 @@ export const SURFACES: Record<string, Surface> = {
         ),
     },
     '22-b-initiatekycmodal': {
-        name: 'InitiateKycModal (default)',
-        path: 'Kyc/InitiateKycModal.tsx',
+        ...SURFACE_META['22-b-initiatekycmodal'],
         render: () => <InitiateKycModal visible onClose={noop} onVerify={noop} />,
     },
     '23-b-kycreverificationpendingmodal': {
-        name: 'KycReverificationPendingModal',
-        path: 'Kyc/KycReverificationPendingModal.tsx',
+        ...SURFACE_META['23-b-kycreverificationpendingmodal'],
         render: () => <KycReverificationPendingModal isOpen onClose={noop} />,
     },
     '24-b-kycverificationinprogressmodal': {
-        name: 'KycVerificationInProgressModal (verifying)',
-        path: 'Kyc/KycVerificationInProgressModal.tsx',
+        ...SURFACE_META['24-b-kycverificationinprogressmodal'],
         render: () => <KycVerificationInProgressModal isOpen onClose={noop} />,
     },
     '25-b-kycactionrequiredmodal': {
-        name: 'KycActionRequiredModal',
-        path: 'Kyc/modals/KycActionRequiredModal.tsx',
+        ...SURFACE_META['25-b-kycactionrequiredmodal'],
         render: () => (
             <KycActionRequiredModal
                 visible
@@ -285,38 +297,31 @@ export const SURFACES: Record<string, Surface> = {
         ),
     },
     '26-b-kycfailedmodal': {
-        name: 'KycFailedModal',
-        path: 'Kyc/modals/KycFailedModal.tsx',
+        ...SURFACE_META['26-b-kycfailedmodal'],
         render: () => <KycFailedModal visible onClose={noop} onRetry={noop} rejectType="RETRY" />,
     },
     '27-b-kycprocessingmodal': {
-        name: 'KycProcessingModal',
-        path: 'Kyc/modals/KycProcessingModal.tsx',
+        ...SURFACE_META['27-b-kycprocessingmodal'],
         render: () => <KycProcessingModal visible onClose={noop} />,
     },
     '28-b-kycregionrestrictedmodal': {
-        name: 'KycRegionRestrictedModal',
-        path: 'Kyc/modals/KycRegionRestrictedModal.tsx',
+        ...SURFACE_META['28-b-kycregionrestrictedmodal'],
         render: () => <KycRegionRestrictedModal visible onClose={noop} />,
     },
     '29-b-kycstatusdrawer': {
-        name: 'KycStatusDrawer (action-needed)',
-        path: 'Kyc/KycStatusDrawer.tsx',
+        ...SURFACE_META['29-b-kycstatusdrawer'],
         render: () => <KycStatusDrawer isOpen onClose={noop} />,
     },
     '30-b-unlockmethodmodal': {
-        name: 'UnlockMethodModal',
-        path: 'IdentityVerification/UnlockMethodModal.tsx',
+        ...SURFACE_META['30-b-unlockmethodmodal'],
         render: () => <UnlockMethodModal visible onClose={noop} onUnlock={noop} methodLabel="SEPA transfers" />,
     },
     '32-c-cancelcardmodal': {
-        name: 'CancelCardModal (confirm phase)',
-        path: 'Card/CancelCardModal.tsx',
+        ...SURFACE_META['32-c-cancelcardmodal'],
         render: () => <CancelCardModal cardId="demo-card" isOpen onClose={noop} />,
     },
     '33-c-cardlimiteditmodal': {
-        name: 'CardLimitEditDrawer',
-        path: 'Card/CardLimitEditDrawer.tsx',
+        ...SURFACE_META['33-c-cardlimiteditmodal'],
         render: () => (
             <CardLimitEditDrawer
                 cardId="demo-card"
@@ -329,13 +334,11 @@ export const SURFACES: Record<string, Surface> = {
         ),
     },
     '34-c-lockcardmodal': {
-        name: 'LockCardModal (lock)',
-        path: 'Card/LockCardModal.tsx',
+        ...SURFACE_META['34-c-lockcardmodal'],
         render: () => <LockCardModal cardId="demo-card" mode="lock" isOpen onClose={noop} />,
     },
     '35-c-cardunlockdrawer': {
-        name: 'CardUnlockDrawer',
-        path: 'Card/CardUnlockDrawer.tsx',
+        ...SURFACE_META['35-c-cardunlockdrawer'],
         render: () => (
             <CardUnlockDrawer
                 isOpen
@@ -346,8 +349,7 @@ export const SURFACES: Record<string, Surface> = {
         ),
     },
     '36-c-badgedetailmodal': {
-        name: 'BadgeDetailDrawer',
-        path: 'Badges/BadgeDetailDrawer.tsx',
+        ...SURFACE_META['36-c-badgedetailmodal'],
         render: () => (
             <BadgeDetailDrawer
                 isOpen
@@ -360,8 +362,7 @@ export const SURFACES: Record<string, Surface> = {
         ),
     },
     '37-c-badgestatusdrawer': {
-        name: 'BadgeStatusDrawer',
-        path: 'Badges/BadgeStatusDrawer.tsx',
+        ...SURFACE_META['37-c-badgestatusdrawer'],
         render: () => (
             <BadgeStatusDrawer
                 isOpen
@@ -382,8 +383,7 @@ export const SURFACES: Record<string, Surface> = {
         render: () => <HowToDepositDrawer visible onClose={noop} />,
     },
     '39-c-onrampconfirmationmodal': {
-        name: 'OnrampConfirmationModal',
-        path: 'AddMoney/components/OnrampConfirmationModal.tsx',
+        ...SURFACE_META['39-c-onrampconfirmationmodal'],
         render: () => <OnrampConfirmationModal visible onClose={noop} onConfirm={noop} amount="250.00" currency="€" />,
     },
     '40-c-supportednetworksmodal': {
@@ -397,18 +397,15 @@ export const SURFACES: Record<string, Surface> = {
         render: () => <MigrationDownloadModal forceVariant="early" />,
     },
     '43-c-scantodownloadmodal': {
-        name: 'ScanToDownloadModal',
-        path: 'Migration/ScanToDownloadModal.tsx',
+        ...SURFACE_META['43-c-scantodownloadmodal'],
         render: () => <ScanToDownloadModal visible onClose={noop} surface="home_banner" />,
     },
     '44-c-otaupdatemodal': {
-        name: 'OtaUpdateModal (normal)',
-        path: 'Profile/components/OtaUpdateModal.tsx',
+        ...SURFACE_META['44-c-otaupdatemodal'],
         render: () => <OtaUpdateModal visible onClose={noop} />,
     },
     '45-c-residencechangemodal': {
-        name: 'ResidenceChangeDrawer',
-        path: 'Profile/views/ResidenceChangeDrawer.tsx',
+        ...SURFACE_META['45-c-residencechangemodal'],
         render: () => (
             <ResidenceChangeDrawer
                 visible
@@ -422,8 +419,7 @@ export const SURFACES: Record<string, Surface> = {
         ),
     },
     '46-c-perkclaimmodal': {
-        name: 'PerkClaimDrawer',
-        path: 'Home/PerkClaimDrawer.tsx',
+        ...SURFACE_META['46-c-perkclaimmodal'],
         render: () => (
             <PerkClaimDrawer
                 visible
@@ -455,8 +451,7 @@ export const SURFACES: Record<string, Surface> = {
         render: () => <TokenAndNetworkConfirmationDrawer isVisible onClose={noop} onAccept={noop} />,
     },
     '50-d-transactiondetailsdrawer': {
-        name: 'TransactionDetailsDrawer',
-        path: 'TransactionDetails/TransactionDetailsDrawer.tsx',
+        ...SURFACE_META['50-d-transactiondetailsdrawer'],
         render: () => (
             <TransactionDetailsDrawer
                 isOpen
@@ -479,13 +474,10 @@ export const SURFACES: Record<string, Surface> = {
         ),
     },
     '51-d-homeactiondrawers': {
-        name: 'HomeActionDrawers',
-        path: 'features/home/components/HomeActionDrawers.tsx',
-        blocked: 'Driven by the home screen’s own action state — nothing to force from outside.',
+        ...SURFACE_META['51-d-homeactiondrawers'],
     },
     '52-d-contributorsdrawer': {
-        name: 'ContributorsDrawer',
-        path: 'features/payments/flows/contribute-pot/components/ContributorsDrawer.tsx',
+        ...SURFACE_META['52-d-contributorsdrawer'],
         render: () => (
             <ContributorsDrawer
                 contributors={[
@@ -496,21 +488,17 @@ export const SURFACES: Record<string, Surface> = {
         ),
     },
     '53-d-cancelsendlinkdrawer': {
-        name: 'CancelSendLinkDrawer',
-        path: 'Global/CancelSendLinkDrawer/index.tsx',
+        ...SURFACE_META['53-d-cancelsendlinkdrawer'],
         render: () => (
             <CancelSendLinkDrawer showCancelLinkDrawer setShowCancelLinkDrawer={noop} amount="$25.00" onClick={noop} />
         ),
     },
     '54-d-qrbottomdrawer': {
-        name: 'QRBottomDrawer',
-        path: 'Global/QRBottomDrawer/index.tsx',
-        blocked:
-            'Always-open snap-point drawer: it starts at its peek snap and is positioned against the screen behind it, so on an empty harness page it sits off-frame.',
+        ...SURFACE_META['54-d-qrbottomdrawer'],
+        modalsContextFlag: 'qrScanner',
     },
     '55-d-supportdrawer': {
-        name: 'SupportDrawer (chat-failed)',
-        path: 'Global/SupportDrawer/index.tsx',
+        ...SURFACE_META['55-d-supportdrawer'],
         modalsContextFlag: 'support',
     },
     '56-d-camerapermissionmodal': {
@@ -519,18 +507,13 @@ export const SURFACES: Record<string, Surface> = {
         render: () => <CameraPermissionDrawer visible onRetry={noop} onClose={noop} />,
     },
     '57-d-raincooldownintromodal': {
-        name: 'RainCooldownIntroModal',
-        path: 'Global/RainCooldown/IntroModal.tsx',
-        blocked: 'Opens from RainCooldownContext after a card-collateral event.',
+        ...SURFACE_META['57-d-raincooldownintromodal'],
     },
     '58-d-stalecardapprovalreenablemodal': {
-        name: 'StaleCardApprovalReEnableModal',
-        path: 'Global/StaleCardApproval/ReEnableModal.tsx',
-        blocked: 'Opens itself when the stale-approval check fails on a live card.',
+        ...SURFACE_META['58-d-stalecardapprovalreenablemodal'],
     },
     '59-d-successviewdetailscard': {
-        name: 'SuccessViewDetailsCard',
-        path: 'Global/SuccessViewComponents/SuccessViewDetailsCard.tsx',
+        ...SURFACE_META['59-d-successviewdetailscard'],
         render: () => (
             <div className="p-4">
                 <SuccessViewDetailsCard title="Sent to @ana" amountDisplay="25.00" description="Arrives in minutes" />
@@ -538,23 +521,19 @@ export const SURFACES: Record<string, Surface> = {
         ),
     },
     '60-d-offlinescreen': {
-        name: 'OfflineScreen',
-        path: 'Global/OfflineScreen/index.tsx',
+        ...SURFACE_META['60-d-offlinescreen'],
         render: () => <OfflineScreen />,
     },
     '61-d-backenderrorscreen': {
-        name: 'BackendErrorScreen',
-        path: 'Global/BackendErrorScreen/index.tsx',
+        ...SURFACE_META['61-d-backenderrorscreen'],
         render: () => <BackendErrorScreen />,
     },
     '62-d-unsupportedwebviewscreen': {
-        name: 'UnsupportedWebViewScreen',
-        path: 'Global/UnsupportedWebViewScreen/index.tsx',
+        ...SURFACE_META['62-d-unsupportedwebviewscreen'],
         render: () => <UnsupportedWebViewScreen />,
     },
     '63-d-emptystate': {
-        name: 'EmptyState',
-        path: 'Global/EmptyStates/EmptyState.tsx',
+        ...SURFACE_META['63-d-emptystate'],
         render: () => (
             <div className="p-4">
                 <EmptyState icon="search" title="Nothing here yet" description="Payments you make will show up here." />
@@ -562,8 +541,7 @@ export const SURFACES: Record<string, Surface> = {
         ),
     },
     '64-d-nodataemptystate': {
-        name: 'NoDataEmptyState',
-        path: 'Global/EmptyStates/NoDataEmptyState.tsx',
+        ...SURFACE_META['64-d-nodataemptystate'],
         render: () => (
             <div className="p-4">
                 <NoDataEmptyState message="No transactions yet" />
@@ -571,8 +549,7 @@ export const SURFACES: Record<string, Surface> = {
         ),
     },
     '65-d-faqs': {
-        name: 'FAQs',
-        path: 'Global/FAQs/index.tsx',
+        ...SURFACE_META['65-d-faqs'],
         render: () => (
             <div className="p-4">
                 <FAQsPanel
@@ -581,6 +558,112 @@ export const SURFACES: Record<string, Surface> = {
                         { id: 'q1', question: 'How long does a transfer take?', answer: 'Usually a few minutes.' },
                         { id: 'q2', question: 'What does it cost?', answer: 'No fee on Peanut-to-Peanut payments.' },
                     ]}
+                />
+            </div>
+        ),
+    },
+    '66-e-avatarpicker': {
+        ...SURFACE_META['66-e-avatarpicker'],
+        render: () => (
+            <div className="p-4">
+                <AvatarPicker open onOpenChange={noop} />
+            </div>
+        ),
+    },
+    '67-e-provideemailstep': {
+        ...SURFACE_META['67-e-provideemailstep'],
+        render: () => (
+            <div className="p-4">
+                <ProvideEmailStep visible onComplete={noop} onSkip={noop} />
+            </div>
+        ),
+    },
+    '68-e-bridgetosstep': {
+        ...SURFACE_META['68-e-bridgetosstep'],
+        render: () => (
+            <div className="p-4">
+                <BridgeTosStep visible onComplete={noop} onSkip={noop} />
+            </div>
+        ),
+    },
+    '69-e-kycprepchecklist-standard': {
+        ...SURFACE_META['69-e-kycprepchecklist-standard'],
+        render: () => (
+            <div className="p-4">
+                <KycPrepChecklist path="standard" />
+            </div>
+        ),
+    },
+    '70-e-kycprepchecklist-extended': {
+        ...SURFACE_META['70-e-kycprepchecklist-extended'],
+        render: () => (
+            <div className="p-4">
+                <KycPrepChecklist path="extended" />
+            </div>
+        ),
+    },
+    '71-e-kycprepchecklist-hosted': {
+        ...SURFACE_META['71-e-kycprepchecklist-hosted'],
+        render: () => (
+            <div className="p-4">
+                <KycPrepChecklist path="hosted" />
+            </div>
+        ),
+    },
+    '72-e-kycfailedcontent-terminal': {
+        ...SURFACE_META['72-e-kycfailedcontent-terminal'],
+        render: () => (
+            <div className="p-4">
+                <KycFailedContent isTerminal rejectLabels={['DOCUMENT_DAMAGED']} />
+            </div>
+        ),
+    },
+    '73-e-rejectlabelslist': {
+        ...SURFACE_META['73-e-rejectlabelslist'],
+        render: () => (
+            <div className="p-4">
+                <RejectLabelsList rejectLabels={['DOCUMENT_DAMAGED', 'UNSATISFACTORY_PHOTOS']} />
+            </div>
+        ),
+    },
+    '74-e-kycactionrequired': {
+        ...SURFACE_META['74-e-kycactionrequired'],
+        render: () => (
+            <div className="p-4">
+                <KycActionRequired onResume={noop} rejectLabels={['UNSATISFACTORY_PHOTOS']} />
+            </div>
+        ),
+    },
+    '75-e-rateunavailable': {
+        ...SURFACE_META['75-e-rateunavailable'],
+        render: () => (
+            <div className="p-4">
+                <RateUnavailable onRetry={noop} />
+            </div>
+        ),
+    },
+    '76-e-limitswarningcard-warning': {
+        ...SURFACE_META['76-e-limitswarningcard-warning'],
+        render: () => (
+            <div className="p-4">
+                <LimitsWarningCard
+                    type="warning"
+                    titleKind="warning"
+                    title="Transaction limit"
+                    items={[{ text: 'You can pay up to $500 today.' }]}
+                />
+            </div>
+        ),
+    },
+    '77-e-limitswarningcard-error': {
+        ...SURFACE_META['77-e-limitswarningcard-error'],
+        render: () => (
+            <div className="p-4">
+                <LimitsWarningCard
+                    type="error"
+                    titleKind="blocking"
+                    title="Transaction limit"
+                    items={[{ text: 'You can pay up to $500 today.' }]}
                 />
             </div>
         ),

@@ -10,6 +10,9 @@ const APP_DIR = join(process.cwd(), 'src', 'app', '(mobile-ui)')
 // A fixture route may carry a query string (deep-linked flow steps) — only the
 // pathname resolves against the filesystem.
 function routeExists(route: string): boolean {
+    const pathname = new URL(route, 'http://fixture.local').pathname
+    if (['', '(setup)'].some((group) => existsSync(join(process.cwd(), 'src', 'app', group, pathname, 'page.tsx'))))
+        return true
     let dir = APP_DIR
     // a fixture may open a route with its own query (nuqs URL state)
     for (const segment of new URL(route, 'http://fixture.local').pathname.split('/').filter(Boolean)) {
