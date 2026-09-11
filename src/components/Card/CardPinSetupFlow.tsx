@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { Button } from '@/components/0_Bruddle/Button'
+import { BulletList } from '@/components/0_Bruddle/BulletList'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import PinInput from '@/components/Card/PinInput'
 import { type PinRejectionReason, validatePin } from '@/components/Card/pin.utils'
@@ -123,11 +124,7 @@ const CardPinSetupFlow: FC<Props> = ({ cardId, onDone }) => {
                     <FieldError>{t(REJECTION_KEYS[choosePinValidation.reason])}</FieldError>
                 )}
             </div>
-            <ul className="w-full list-inside list-disc text-left text-body-s text-foreground-secondary">
-                <li>{t('pin.ruleSequential')}</li>
-                <li>{t('pin.ruleRepeating')}</li>
-                <li>{t('pin.ruleChangeLater')}</li>
-            </ul>
+            <BulletList items={[t('pin.ruleSequential'), t('pin.ruleRepeating'), t('pin.ruleChangeLater')]} />
             {error && <p className="text-body-s text-foreground-error">{error}</p>}
             <Button
                 variant="purple"

@@ -1,6 +1,7 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
+import { BulletList } from '@/components/0_Bruddle/BulletList'
 import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { NumberedList } from '@/components/0_Bruddle/NumberedList'
@@ -36,7 +37,7 @@ export const BackupFaqModals = ({ active, onClose, platform }: BackupFaqModalsPr
                 titleClassName="text-heading-xs"
                 ctas={closeCta}
                 content={
-                    <div className="space-y-3 w-full">
+                    <div className="w-full space-y-3">
                         {/* The heading rides in `children`, not the `title` prop: the
                             prop's semibold body step is the wrong weight for a
                             mini-header, and text-current keeps it on the tint. */}
@@ -60,7 +61,7 @@ export const BackupFaqModals = ({ active, onClose, platform }: BackupFaqModalsPr
                 titleClassName="text-heading-xs"
                 ctas={closeCta}
                 content={
-                    <div className="space-y-4 w-full text-left">
+                    <div className="w-full space-y-4 text-left">
                         <NumberedList
                             items={[
                                 t('changePhoneModal.step1'),
@@ -97,25 +98,29 @@ export const BackupFaqModals = ({ active, onClose, platform }: BackupFaqModalsPr
                 titleClassName="text-heading-xs"
                 ctas={closeCta}
                 content={
-                    <div className="space-y-4 w-full text-left">
+                    <div className="w-full space-y-4 text-left">
                         <div>
                             <MiniHeader>{t('exportKeysModal.saferTitle')}</MiniHeader>
-                            <p className="mt-1 text-body-s text-foreground-primary">
+                            <p className="text-body-s text-foreground-primary mt-1">
                                 {t('exportKeysModal.saferIntro')}
                             </p>
-                            <ul className="space-y-1 mt-2 list-disc pl-6 text-body-s text-foreground-primary marker:text-action-primary">
-                                <li>{t('exportKeysModal.bullets.screenshot')}</li>
-                                <li>{t('exportKeysModal.bullets.textMessage')}</li>
-                                <li>{t('exportKeysModal.bullets.noteApp')}</li>
-                                <li>{t('exportKeysModal.bullets.malware')}</li>
-                            </ul>
+                            <BulletList
+                                size="s"
+                                className="mt-2"
+                                items={[
+                                    t('exportKeysModal.bullets.screenshot'),
+                                    t('exportKeysModal.bullets.textMessage'),
+                                    t('exportKeysModal.bullets.noteApp'),
+                                    t('exportKeysModal.bullets.malware'),
+                                ]}
+                            />
                         </div>
                         <TextSection
                             title={t('exportKeysModal.tradeoffTitle')}
                             body={t('exportKeysModal.tradeoffDescription')}
                         />
-                        <div className="flex items-start gap-2 text-body-xs text-foreground-secondary">
-                            <span className="mt-0.5 flex size-4 flex-shrink-0 items-center justify-center rounded-full border border-border-subtle">
+                        <div className="text-body-xs text-foreground-secondary flex items-start gap-2">
+                            <span className="border-border-subtle mt-0.5 flex size-4 flex-shrink-0 items-center justify-center rounded-full border">
                                 i
                             </span>
                             <p>{t('exportKeysModal.futureNote')}</p>
@@ -130,6 +135,6 @@ export const BackupFaqModals = ({ active, onClose, platform }: BackupFaqModalsPr
 const TextSection = ({ title, body }: { title: string; body: string }) => (
     <div>
         <MiniHeader>{title}</MiniHeader>
-        <p className="mt-1 text-body-s text-foreground-primary">{body}</p>
+        <p className="text-body-s text-foreground-primary mt-1">{body}</p>
     </div>
 )
