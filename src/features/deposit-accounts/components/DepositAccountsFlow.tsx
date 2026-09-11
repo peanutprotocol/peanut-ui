@@ -1,5 +1,6 @@
 'use client'
 
+import type { GateState } from '@/utils/capability-gate'
 import { useQueryStates } from 'nuqs'
 import { DEPOSIT_ACCOUNT_PARAMS } from '../params'
 import { DEPOSIT_RAILS, isClaimable } from '../rails'
@@ -12,12 +13,13 @@ import { ShareDepositDetailsScreen } from './ShareDepositDetailsScreen'
 export interface DepositAccountsFlowProps {
     accounts: Record<DepositCorridor, DepositAccount | undefined>
     userName: string
-    kycGate: boolean
+    /** `gateFor('deposit', { channel: 'bank' })` — the app primitive, passed through */
+    gate: GateState
     claimingCorridor?: DepositCorridor
     claimError?: string
     returnedPayment?: ReturnedPayment
     onClaim: (corridor: DepositCorridor) => void
-    onVerify: () => void
+    onResolveGate: () => void
 }
 
 /**
@@ -29,12 +31,12 @@ export interface DepositAccountsFlowProps {
 export function DepositAccountsFlow({
     accounts,
     userName,
-    kycGate,
+    gate,
     claimingCorridor,
     claimError,
     returnedPayment,
     onClaim,
-    onVerify,
+    onResolveGate,
 }: DepositAccountsFlowProps) {
     const [{ screen, corridor }, setParams] = useQueryStates(DEPOSIT_ACCOUNT_PARAMS)
     const rail = DEPOSIT_RAILS[corridor]
@@ -88,5 +90,12 @@ export function DepositAccountsFlow({
         )
     }
 
-    return <DepositAccountsListScreen accounts={accounts} kycGate={kycGate} onOpen={openCorridor} onVerify={onVerify} />
+    return (
+        <DepositAccountsListScreen
+            accounts={accounts}
+            gate={gate}
+            onOpen={openCorridor}
+            onResolveGate={onResolveGate}
+        />
+    )
 }

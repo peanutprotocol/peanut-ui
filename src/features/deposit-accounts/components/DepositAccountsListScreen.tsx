@@ -8,6 +8,8 @@ import { Section } from '@/components/0_Bruddle/Section'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import NavHeader from '@/components/Global/NavHeader'
+import type { GateState } from '@/utils/capability-gate'
+import { depositGateView } from '../depositGate'
 import { DEPOSIT_RAILS, DEPOSIT_RAIL_ORDER, isClaimable } from '../rails'
 import type { DepositAccount, DepositCorridor } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
@@ -22,21 +24,23 @@ import { CorridorFlag } from './CorridorFlag'
  */
 export function DepositAccountsListScreen({
     accounts,
-    kycGate,
+    gate,
     onOpen,
-    onVerify,
+    onResolveGate,
 }: {
     accounts: Record<DepositCorridor, DepositAccount | undefined>
-    kycGate: boolean
+    /** the app's own answer to "can this user deposit by bank" — never a local flag */
+    gate: GateState
     onOpen: (corridor: DepositCorridor) => void
-    onVerify: () => void
+    onResolveGate: () => void
 }) {
     const { t, arrival, unclaimableReason } = useDepositAccountCopy()
+    const { claimable, notice } = depositGateView(gate)
 
     const rowBody = (corridor: DepositCorridor, account: DepositAccount | undefined): string => {
         const unclaimable = unclaimableReason(corridor)
         if (unclaimable) return unclaimable
-        if (kycGate) return t('list.rowKyc')
+        if (!claimable) return t('list.rowKyc')
         const params = { arrival: arrival(corridor) }
         if (!account || account.status === 'unclaimed') return t('list.rowUnclaimed', params)
         if (account.status === 'provisioning') return t('list.rowProvisioning')
@@ -60,13 +64,14 @@ export function DepositAccountsListScreen({
             <div className="flex flex-col gap-6">
                 <TitleBlock size="s" title={t('list.heading')} description={t('list.subheading')} />
 
-                {kycGate && (
+                {notice && (
                     <Notification
                         priority="attention"
                         title={t('list.kycTitle')}
-                        ctas={[{ label: t('list.kycCta'), onClick: onVerify }]}
+                        ctas={[{ label: t('list.kycCta'), onClick: onResolveGate }]}
                     >
-                        {t('list.kycBody')}
+                        {/* the provider's own words when it gave any, ours when it did not */}
+                        {notice.message ?? t('list.kycBody')}
                     </Notification>
                 )}
 
@@ -84,8 +89,8 @@ export function DepositAccountsListScreen({
                                     body={rowBody(corridor, account)}
                                     bodyWrap
                                     trailing={isClaimable(rail) ? rowBadge(account) : undefined}
-                                    chevron={!kycGate}
-                                    disabled={kycGate}
+                                    chevron={claimable}
+                                    disabled={!claimable}
                                     onClick={() => onOpen(corridor)}
                                     data-testid={`deposit-account-${corridor}`}
                                 />

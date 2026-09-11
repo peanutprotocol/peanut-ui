@@ -4,6 +4,7 @@ import fixture from '@/features/deposit-accounts/__fixtures__/bridge-sandbox-vir
 import { fromBridgeVirtualAccounts, type BridgeVirtualAccount } from '@/features/deposit-accounts/adapters/bridge'
 import { fromMantecaArgentina, mantecaBrazilAccount } from '@/features/deposit-accounts/adapters/manteca'
 import type { DepositAccount, DepositCorridor } from '@/features/deposit-accounts/types'
+import type { GateState } from '@/utils/capability-gate'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 /** the sandbox customer's own name — what Bridge returns as the holder */
@@ -77,7 +78,9 @@ export function useSandboxDepositAccounts(scenario: SandboxScenario) {
     return {
         accounts,
         userName: SANDBOX_USER_NAME,
-        kycGate: scenario === 'kyc',
+        // a product build passes gateFor('deposit', { channel: 'bank' }) straight
+        // through; the harness fakes the one kind this prototype needs to show
+        gate: (scenario === 'kyc' ? { kind: 'needs-identity' } : { kind: 'ready' }) satisfies GateState,
         claimingCorridor: claiming,
         returnedPayment:
             scenario === 'returned'
