@@ -4982,7 +4982,7 @@ export interface paths {
         get: {
             parameters: {
                 query: {
-                    kind: string;
+                    kind: "ONRAMP" | "OFFRAMP" | "P2P_SEND" | "P2P_REQUEST_FULFILL" | "DIRECT_TRANSFER" | "SEND_LINK" | "SEND_LINK_CLAIM" | "CRYPTO_DEPOSIT" | "CRYPTO_WITHDRAW" | "CARD_SPEND_AUTH" | "CARD_SPEND_CLEAR" | "CARD_AUTH_REVERSAL" | "QR_PAY" | "INTERNAL_TRANSFER" | "REWARD_PAYOUT" | "REFUND" | "CHARGEBACK" | "PERK_REWARD";
                 };
                 header?: never;
                 path: {
@@ -7786,6 +7786,18 @@ export interface paths {
                     };
                 };
                 /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
                 502: {
                     headers: {
                         [name: string]: unknown;
@@ -9290,6 +9302,45 @@ export interface paths {
                 };
             };
         };
+        trace?: never;
+    };
+    "/send-links/{pubKey}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    c?: string;
+                    i?: number;
+                    v?: string;
+                };
+                header?: never;
+                path: {
+                    pubKey: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/status/summary": {

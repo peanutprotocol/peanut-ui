@@ -53,9 +53,9 @@ test('an existing holder can manage their card even with a prohibited residence'
     await shot(page, 'holder')
 })
 
-test('the public landing sends a guest to signup with the card destination', async ({ page }) => {
-    // Guests have no fixture session; stub the API at the network layer so the
-    // page settles as signed-out whatever API URL the build carries.
+// Guests have no fixture session; stub the API at the network layer so the
+// page settles as signed-out whatever API URL the build carries.
+async function stubSignedOutApi(page: Page) {
     const appPort = new URL(test.info().project.use.baseURL || 'http://127.0.0.1:3081').port
     await page.route('**/*', async (route) => {
         const url = new URL(route.request().url())
@@ -72,6 +72,20 @@ test('the public landing sends a guest to signup with the card destination', asy
         }
         return route.fulfill({ status: 200, headers, json: {} })
     })
+}
+
+test('a signed-out visitor to /card is redirected to /setup — public access is not unauthenticated access', async ({
+    page,
+}) => {
+    // No fixture and no session: the real auth gate runs (replaces the
+    // deleted card-pioneer.e2e.test.ts coverage).
+    await stubSignedOutApi(page)
+    await page.goto('/card')
+    await page.waitForURL(/\/setup/, { timeout: 10_000 })
+})
+
+test('the public landing sends a guest to signup with the card destination', async ({ page }) => {
+    await stubSignedOutApi(page)
     await page.goto('/shhhhh')
     await expect(page.getByRole('heading', { level: 1, name: 'Peanut Card' })).toBeVisible()
     await shot(page, 'landing')

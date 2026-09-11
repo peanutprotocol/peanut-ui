@@ -1,6 +1,7 @@
 'use client'
 
 import { railUserMessage, railVerdict } from '@/utils/capability-gate'
+import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
@@ -63,7 +64,11 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     // `undefined` while loading collapses to false → scanner behavior (never
     // tease the card to a user we can't confirm has access), which is also why
     // the scanner path must stand on its own QR-rail check below.
-    const { showCardSurface: canApplyForCard } = useCardSurfaceAccess()
+    const { showCardSurface } = useCardSurfaceAccess()
+    // The Home card-prompt kill switch mutes every card arm in this component
+    // (outbound copy, chooser, spend-to-activate) while the QR path stands.
+    // /card itself stays available — the switch is documented as prompt-only.
+    const canApplyForCard = underMaintenanceConfig.disableCardPromotion ? false : showCardSurface
     // Suppress the "Unlock payments" verify CTA while identity is mid-flight
     // (Sumsub processing / action_required). The user already took the verify
     // action; the identity-verification page surfaces the in-progress modal,

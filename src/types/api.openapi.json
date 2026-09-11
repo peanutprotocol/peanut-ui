@@ -6357,7 +6357,7 @@
         },
         "/dev/poll": {
             "post": {
-                "description": "Triggers runPollingCycle() on demand — used by the QA harness to observe provider state transitions without waiting for the 5-minute interval.",
+                "description": "Triggers runPollingCycle() on demand \u2014 used by the QA harness to observe provider state transitions without waiting for the 5-minute interval.",
                 "responses": {
                     "200": {
                         "content": {
@@ -7022,7 +7022,7 @@
         },
         "/dev/submit-to-providers": {
             "post": {
-                "description": "Drives Peanut's submitToProviders(userId, applicantId) synchronously, the same function the Sumsub status-processor calls after GREEN. Used by QA harness to test routing (AR user → Manteca, US user → Bridge) end-to-end.",
+                "description": "Drives Peanut's submitToProviders(userId, applicantId) synchronously, the same function the Sumsub status-processor calls after GREEN. Used by QA harness to test routing (AR user \u2192 Manteca, US user \u2192 Bridge) end-to-end.",
                 "requestBody": {
                     "content": {
                         "application/json": {
@@ -7260,7 +7260,7 @@
         },
         "/dev/trigger-sumsub-webhook": {
             "post": {
-                "description": "Invokes processSumsubKycUpdate({ applicantId, externalUserId, reviewAnswer, reviewStatus, source: 'webhook' }) — same entry point as the real /sumsub/webhooks route, minus HMAC. Used by the QA harness to exercise the full Sumsub → routing chain without real webhook delivery.",
+                "description": "Invokes processSumsubKycUpdate({ applicantId, externalUserId, reviewAnswer, reviewStatus, source: 'webhook' }) \u2014 same entry point as the real /sumsub/webhooks route, minus HMAC. Used by the QA harness to exercise the full Sumsub \u2192 routing chain without real webhook delivery.",
                 "requestBody": {
                     "content": {
                         "application/json": {
@@ -8313,6 +8313,26 @@
                         "name": "kind",
                         "required": true,
                         "schema": {
+                            "enum": [
+                                "ONRAMP",
+                                "OFFRAMP",
+                                "P2P_SEND",
+                                "P2P_REQUEST_FULFILL",
+                                "DIRECT_TRANSFER",
+                                "SEND_LINK",
+                                "SEND_LINK_CLAIM",
+                                "CRYPTO_DEPOSIT",
+                                "CRYPTO_WITHDRAW",
+                                "CARD_SPEND_AUTH",
+                                "CARD_SPEND_CLEAR",
+                                "CARD_AUTH_REVERSAL",
+                                "QR_PAY",
+                                "INTERNAL_TRANSFER",
+                                "REWARD_PAYOUT",
+                                "REFUND",
+                                "CHARGEBACK",
+                                "PERK_REWARD"
+                            ],
                             "type": "string"
                         }
                     },
@@ -9188,7 +9208,7 @@
         },
         "/manteca/deposit/{depositId}/status": {
             "get": {
-                "description": "Poll the status of a deposit order by its Manteca synthetic id. Used by the BRL PIX QR flow to detect completion (intent.status === COMPLETED) without leaving the user on a static QR. Read-only — the webhook/poller remain the authoritative completion trigger.",
+                "description": "Poll the status of a deposit order by its Manteca synthetic id. Used by the BRL PIX QR flow to detect completion (intent.status === COMPLETED) without leaving the user on a static QR. Read-only \u2014 the webhook/poller remain the authoritative completion trigger.",
                 "parameters": [
                     {
                         "in": "path",
@@ -12861,15 +12881,17 @@
                                         "type": "boolean"
                                     },
                                     "cardLimit": {
-                                        "minimum": 0,
-                                        "type": "number"
+                                        "maximum": 2147483647,
+                                        "minimum": 1,
+                                        "type": "integer"
                                     },
                                     "limits": {
                                         "items": {
                                             "properties": {
                                                 "amount": {
-                                                    "minimum": 0,
-                                                    "type": "number"
+                                                    "maximum": 2147483647,
+                                                    "minimum": 1,
+                                                    "type": "integer"
                                                 },
                                                 "frequency": {
                                                     "anyOf": [
@@ -12934,6 +12956,27 @@
                         "description": "Default Response"
                     },
                     "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "422": {
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -14968,6 +15011,49 @@
                 }
             }
         },
+        "/send-links/{pubKey}/status": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "c",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "i",
+                        "required": false,
+                        "schema": {
+                            "type": "number"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "v",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "path",
+                        "name": "pubKey",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
         "/status/summary": {
             "get": {
                 "responses": {
@@ -15237,7 +15323,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "description": "Invalid input — malformed email, rejected username, or a residence country that is not a real ISO-3166 alpha-2 code.",
+                                    "description": "Invalid input \u2014 malformed email, rejected username, or a residence country that is not a real ISO-3166 alpha-2 code.",
                                     "properties": {
                                         "error": {
                                             "type": "string"
@@ -15247,7 +15333,7 @@
                                 }
                             }
                         },
-                        "description": "Invalid input — malformed email, rejected username, or a residence country that is not a real ISO-3166 alpha-2 code."
+                        "description": "Invalid input \u2014 malformed email, rejected username, or a residence country that is not a real ISO-3166 alpha-2 code."
                     },
                     "409": {
                         "content": {
@@ -15275,7 +15361,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "description": "The declared residence changed too recently. Only the residence keys were refused — every other field in the request was applied. Retry the residence change at `retryAt`; `/users/me` reports the same instant as `residence.nextChangeAllowedAt`.",
+                                    "description": "The declared residence changed too recently. Only the residence keys were refused \u2014 every other field in the request was applied. Retry the residence change at `retryAt`; `/users/me` reports the same instant as `residence.nextChangeAllowedAt`.",
                                     "properties": {
                                         "code": {
                                             "enum": [
@@ -15300,7 +15386,7 @@
                                 }
                             }
                         },
-                        "description": "The declared residence changed too recently. Only the residence keys were refused — every other field in the request was applied. Retry the residence change at `retryAt`; `/users/me` reports the same instant as `residence.nextChangeAllowedAt`."
+                        "description": "The declared residence changed too recently. Only the residence keys were refused \u2014 every other field in the request was applied. Retry the residence change at `retryAt`; `/users/me` reports the same instant as `residence.nextChangeAllowedAt`."
                     },
                     "500": {
                         "content": {
@@ -16336,7 +16422,9 @@
                         "name": "limit",
                         "required": false,
                         "schema": {
-                            "type": "number"
+                            "maximum": 100,
+                            "minimum": 1,
+                            "type": "integer"
                         }
                     },
                     {
@@ -16399,7 +16487,7 @@
                                                 "type": "string"
                                             }
                                         ],
-                                        "description": "Level the token must target. The declared residence decides (AR/BR → LATAM, US/MX → NA, SEPA zone → EU, else ROW); a request for another provider's level is rejected with 400, an EU/ROW request is corrected. Defaults to the level the declared residence needs."
+                                        "description": "Level the token must target. The declared residence decides (AR/BR \u2192 LATAM, US/MX \u2192 NA, SEPA zone \u2192 EU, else ROW); a request for another provider's level is rejected with 400, an EU/ROW request is corrected. Defaults to the level the declared residence needs."
                                     }
                                 },
                                 "type": "object"

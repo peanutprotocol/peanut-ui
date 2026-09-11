@@ -64,7 +64,9 @@ function main() {
     // Static pages
     lines.push('## Static Pages')
     lines.push('')
-    for (const p of ['/', '/careers', '/exchange', '/privacy', '/terms', '/lp/card', '/shhhhh', '/card']) {
+    // /lp/card and /exchange are permanent redirects (redirects.json) — content
+    // links only to canonical destinations, never to redirect hops.
+    for (const p of ['/', '/careers', '/privacy', '/terms', '/shhhhh', '/card']) {
         lines.push(`- \`${p}\``)
     }
     lines.push('')

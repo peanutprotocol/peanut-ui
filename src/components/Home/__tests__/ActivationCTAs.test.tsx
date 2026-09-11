@@ -37,6 +37,19 @@ let mockRails: Array<{
 }> = []
 let mockUser: { user?: { isActivated?: boolean; userId?: string } } | null = null
 let mockHasCardAccess: boolean | undefined = false
+let mockDisableCardPromotion = false
+jest.mock('@/config/underMaintenance.config', () => {
+    const actual = jest.requireActual('@/config/underMaintenance.config').default
+    return {
+        __esModule: true,
+        default: {
+            ...actual,
+            get disableCardPromotion() {
+                return mockDisableCardPromotion
+            },
+        },
+    }
+})
 const mockHeal = jest.fn()
 const mockRestartIdentity = jest.fn()
 const mockOpenSupport = jest.fn()
@@ -163,6 +176,7 @@ beforeEach(() => {
     mockRails = []
     mockUser = { user: { isActivated: false, userId: 'u1' } }
     mockHasCardAccess = false
+    mockDisableCardPromotion = false
     mockResidenceRestrictions = { banking: false, card: false }
     mockRegionRestricted = false
 })
@@ -363,6 +377,25 @@ describe('ActivationCTAs — happy path renders the checklist', () => {
         render(<ActivationCTAs activationStep="outbound" />)
         fireEvent.click(screen.getByText('Start Spending'))
         expect(screen.getByTestId('spend-chooser')).toBeInTheDocument()
+    })
+
+    it('the card-promotion kill switch mutes every card arm but keeps the QR path', () => {
+        mockDisableCardPromotion = true
+        mockHasCardAccess = true
+        mockRails = [enabledQrRail]
+        render(<ActivationCTAs activationStep="outbound" />)
+        expect(screen.queryByText('Spend anywhere Visa is accepted')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByText('Start Spending'))
+        expect(screen.queryByTestId('spend-chooser')).not.toBeInTheDocument()
+        expect(mockSetIsQRScannerOpen).toHaveBeenCalledWith(true)
+    })
+
+    it('the kill switch renders nothing for a card-only user — no dead card tease', () => {
+        mockDisableCardPromotion = true
+        mockHasCardAccess = true
+        mockRails = []
+        const { container } = render(<ActivationCTAs activationStep="outbound" />)
+        expect(container.firstChild).toBeNull()
     })
 
     it('outbound with neither a card nor a QR rail renders nothing — no spend would clear it', () => {
