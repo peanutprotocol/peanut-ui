@@ -191,18 +191,20 @@ function freshConnectivityEvents(events: PendingCanaryEvent[], now: Date = new D
 }
 
 function eventId(): string {
-    return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`
+    if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID()
+
+    const bytes = new Uint8Array(16)
+    if (globalThis.crypto?.getRandomValues) globalThis.crypto.getRandomValues(bytes)
+    else for (let index = 0; index < bytes.length; index += 1) bytes[index] = Math.floor(Math.random() * 256)
+    bytes[6] = (bytes[6] & 0x0f) | 0x40
+    bytes[8] = (bytes[8] & 0x3f) | 0x80
+    const hex = [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('')
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
 }
 
 function persistConnectivityEvent(properties: CanaryEventProperties, now: Date = new Date()): PendingCanaryEvent {
     const day = utcDay(now)
     const events = freshConnectivityEvents(readConnectivityOutbox(), now)
-    const existing = events.find((event) => event.day === day)
-    if (existing) {
-        writeConnectivityOutbox(events)
-        return existing
-    }
-
     const pending = { id: eventId(), day, capturedAt: now.toISOString(), properties }
     writeConnectivityOutbox([...events, pending])
     return pending
@@ -213,16 +215,15 @@ function capturePostHog(properties: CanaryEventProperties, pending?: PendingCana
 
     const durableProperties = {
         ...pending.properties,
-        $insert_id: pending.id,
         canary_replayed: replayed,
         canary_original_captured_at: pending.capturedAt,
     }
     return replayed
         ? posthog.capture(CANARY_EVENT_NAME, durableProperties, {
               send_instantly: true,
-              timestamp: new Date(pending.capturedAt),
+              uuid: pending.id,
           })
-        : posthog.capture(CANARY_EVENT_NAME, durableProperties)
+        : posthog.capture(CANARY_EVENT_NAME, durableProperties, { uuid: pending.id })
 }
 
 function flushConnectivityOutbox(): void {
@@ -234,7 +235,7 @@ function flushConnectivityOutbox(): void {
     for (const event of events) {
         if (event.lastReplayDay === day) continue
         try {
-            // A stable $insert_id makes retries idempotent at ingestion. Keep the
+            // A stable SDK event UUID makes retries idempotent at ingestion. Keep the
             // compact event for the retention window because capture() confirms
             // SDK acceptance, not network delivery; retry it at most once/day.
             if (capturePostHog(event.properties, event, true)) event.lastReplayDay = day
@@ -297,7 +298,7 @@ export async function runCanary(): Promise<void> {
     const sentrySampled = classification !== 'device-connectivity' || shouldSampleConnectivityToSentry()
 
     const eventProperties: CanaryEventProperties = {
-        canary_version: '6',
+        canary_version: '7',
         canary_signature: signature,
         canary_classification: classification,
         canary_get: outcomes.get,
@@ -319,9 +320,7 @@ export async function runCanary(): Promise<void> {
 
     try {
         const pending = classification === 'device-connectivity' ? persistConnectivityEvent(eventProperties) : undefined
-        // flushConnectivityOutbox already replayed this device-day on this
-        // launch. Do not enqueue the same stable $insert_id a second time.
-        if (!pending || pending.lastReplayDay !== utcDay()) capturePostHog(eventProperties, pending)
+        capturePostHog(eventProperties, pending)
     } catch {
         // Diagnostics must never affect app startup or the Sentry signal.
     }
@@ -330,10 +329,10 @@ export async function runCanary(): Promise<void> {
 
     Sentry.captureMessage(`native canary: ${signature}`, {
         level: classification === 'device-connectivity' ? 'info' : 'warning',
-        fingerprint: ['native-canary-v6', classification, signature, webviewTransport],
+        fingerprint: ['native-canary-v7', classification, signature, webviewTransport],
         tags: {
             canary: 'transport',
-            canaryVersion: '6',
+            canaryVersion: '7',
             canary_signature: signature,
             canary_classification: classification,
             canary_get: outcomes.get,

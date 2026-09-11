@@ -69,14 +69,14 @@ describe('transport canary', () => {
         expect(message).toBe('native canary: get:fail post:ok native:ok')
         expect(options.level).toBe('warning')
         expect(options.fingerprint).toEqual([
-            'native-canary-v6',
+            'native-canary-v7',
             'transport-asymmetry',
             'get:fail post:ok native:ok',
             'direct',
         ])
         expect(options.tags).toMatchObject({
             canary: 'transport',
-            canaryVersion: '6',
+            canaryVersion: '7',
             canary_classification: 'transport-asymmetry',
             canary_get: 'network-error',
             canary_post: 'http-405',
@@ -141,7 +141,7 @@ describe('transport canary', () => {
         expect(captureMessage.mock.calls[0][0]).toBe('native canary: get:fail post:fail native:fail')
         expect(captureMessage.mock.calls[0][1]).toMatchObject({
             level: 'warning',
-            fingerprint: ['native-canary-v6', 'api-unreachable', 'get:fail post:fail native:fail', 'direct'],
+            fingerprint: ['native-canary-v7', 'api-unreachable', 'get:fail post:fail native:fail', 'direct'],
             tags: {
                 canary_classification: 'api-unreachable',
                 canary_capgo: 'http-204',
@@ -169,8 +169,8 @@ describe('transport canary', () => {
                 canary_internet: 'network-error',
                 sentry_sampled: false,
                 canary_replayed: false,
-                $insert_id: expect.any(String),
-            })
+            }),
+            expect.objectContaining({ uuid: expect.any(String) })
         )
         expect(localStorage.getItem('nativeCanaryConnectivityOutboxV1')).not.toBeNull()
     })
@@ -186,11 +186,12 @@ describe('transport canary', () => {
         await runCanary()
 
         const firstProperties = capturePosthog.mock.calls[0][1]
+        const firstOptions = capturePosthog.mock.calls[0][2]
         expect(firstProperties).toMatchObject({
             canary_classification: 'device-connectivity',
             canary_replayed: false,
-            $insert_id: expect.any(String),
         })
+        expect(firstOptions.uuid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
 
         // Simulate a killed process: SDK memory is gone, durable storage remains.
         capturePosthog.mockReset().mockReturnValue({ uuid: 'accepted-for-send' })
@@ -207,10 +208,9 @@ describe('transport canary', () => {
             expect.objectContaining({
                 canary_classification: 'device-connectivity',
                 canary_replayed: true,
-                $insert_id: firstProperties.$insert_id,
                 canary_original_captured_at: expect.any(String),
             }),
-            expect.objectContaining({ send_instantly: true, timestamp: expect.any(Date) })
+            { send_instantly: true, uuid: firstOptions.uuid }
         )
     })
 
@@ -224,12 +224,14 @@ describe('transport canary', () => {
         await runCanary()
         await runCanary()
 
-        expect(capturePosthog).toHaveBeenCalledTimes(2)
-        expect(capturePosthog.mock.calls[0][1].$insert_id).toBe(capturePosthog.mock.calls[1][1].$insert_id)
+        expect(capturePosthog).toHaveBeenCalledTimes(3)
+        expect(capturePosthog.mock.calls[1][2].uuid).toBe(capturePosthog.mock.calls[0][2].uuid)
+        expect(capturePosthog.mock.calls[2][2].uuid).not.toBe(capturePosthog.mock.calls[0][2].uuid)
+        expect(JSON.parse(localStorage.getItem('nativeCanaryConnectivityOutboxV1') ?? '[]')).toHaveLength(2)
         expect(captureMessage).toHaveBeenCalledTimes(1)
         expect(captureMessage.mock.calls[0][1]).toMatchObject({
             level: 'info',
-            fingerprint: ['native-canary-v6', 'device-connectivity', 'get:fail post:fail native:fail', 'direct'],
+            fingerprint: ['native-canary-v7', 'device-connectivity', 'get:fail post:fail native:fail', 'direct'],
         })
     })
 
