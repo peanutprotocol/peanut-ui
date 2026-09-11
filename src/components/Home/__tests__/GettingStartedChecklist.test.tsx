@@ -5,7 +5,7 @@
  * Contract: always exactly three rows; registration pre-checked; the add-money
  * label follows residence and carries the KYC cost only while unverified; the
  * third slot is the card when eligible, otherwise the first payment (never a
- * dangling card step); progress copy and completion state stay visible.
+ * dangling card step); the reachable Home progress state stays visible.
  */
 import React from 'react'
 import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
@@ -72,11 +72,11 @@ describe('GettingStartedChecklist', () => {
         expect(completed).not.toHaveClass('border-border-subtle')
     })
 
-    it('shows only the percentage with the in-progress label', () => {
+    it('uses Get started for the reachable 33% Home state', () => {
         render()
-        expect(screen.getByText('Keep going')).toBeInTheDocument()
+        expect(screen.getByText('Get started')).toBeInTheDocument()
         expect(screen.getByText('33%')).toBeInTheDocument()
-        expect(screen.queryByText('Get started')).not.toBeInTheDocument()
+        expect(screen.queryByText('Keep going')).not.toBeInTheDocument()
     })
 
     it('wraps checklist subtitles instead of truncating them', () => {
@@ -183,17 +183,6 @@ describe('GettingStartedChecklist', () => {
         render()
         expect(screen.getByText('Get your Peanut card')).toBeInTheDocument()
         expect(screen.queryByText('Make your first payment')).not.toBeInTheDocument()
-    })
-
-    it('shows the congratulations state once every item is done', () => {
-        mockUser = { user: { activationMilestone: 'funded' }, residence: { declared: 'BR', verified: 'BR' } }
-        mockOverview = { cards: [{}] } // findActiveCard mock: truthy overview = active card
-        render()
-        expect(screen.getByText('Congrats!')).toBeInTheDocument()
-        expect(screen.getByText('100%')).toBeInTheDocument()
-        expect(screen.getAllByTestId(/^checklist-/)).toHaveLength(3)
-        expect(screen.queryByText('Get started')).not.toBeInTheDocument()
-        expect(screen.queryByText('Done. Your money has a username now')).not.toBeInTheDocument()
     })
 
     it('add money taps into /add-money', () => {

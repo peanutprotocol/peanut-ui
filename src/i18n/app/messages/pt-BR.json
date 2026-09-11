@@ -134,11 +134,6 @@
         },
         "gettingStarted": {
             "title": "Começar",
-            "progress": {
-                "getStarted": "Comece",
-                "keepGoing": "Continue",
-                "congrats": "Parabéns!"
-            },
             "createAccount": "Crie sua conta",
             "createAccountDone": "Pronto. Seu dinheiro já tem um usuário",
             "getCard": "Peça seu cartão Peanut",

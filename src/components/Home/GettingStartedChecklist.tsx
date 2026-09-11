@@ -40,8 +40,10 @@ interface ChecklistItem {
  *   3. Get the card when the residence is eligible; otherwise the slot goes to
  *      the first payment, so no one sees a dangling card step
  *
- * The progress state remains visible at 100% so the completed state can be
- * acknowledged before the surrounding home flow takes over.
+ * Home renders this checklist before funding; the parent owns funded and
+ * activated states. Since account creation is already complete by the time
+ * this surface appears, its reachable progress copy is the canonical
+ * "Get started" label alongside the current percentage.
  */
 const GettingStartedChecklist = () => {
     const t = useTranslations('home.gettingStarted')
@@ -112,24 +114,18 @@ const GettingStartedChecklist = () => {
         ]
     }, [cardAvailable, hasActiveCard, hasSentPayment, isFunded, isVerified, milestone, restrictions.banking, router, t])
 
-    const allDone = items.every((item) => item.done)
     const completionPercent = Math.round((items.filter((item) => item.done).length / items.length) * 100)
-    const progressLabel =
-        completionPercent === 0
-            ? t('progress.getStarted')
-            : completionPercent === 100
-              ? t('progress.congrats')
-              : t('progress.keepGoing')
+    const progressLabel = t('title')
 
     const viewedRef = useRef(false)
     useEffect(() => {
-        if (!allDone && !viewedRef.current) {
+        if (!viewedRef.current) {
             viewedRef.current = true
             posthog.capture(ANALYTICS_EVENTS.HOME_CHECKLIST_VIEWED, {
                 third_item: items[2].id,
             })
         }
-    }, [allDone, items])
+    }, [items])
 
     return (
         <Section>
@@ -143,8 +139,7 @@ const GettingStartedChecklist = () => {
             <ListGroup className="bg-background-default">
                 {items.map((item) => {
                     const tappable = !item.done && !!item.onTap
-                    const showSub =
-                        !allDone && ((item.done && item.id === 'create-account') || (!item.done && !!item.sub))
+                    const showSub = (item.done && item.id === 'create-account') || (!item.done && !!item.sub)
                     return (
                         <ListItem
                             key={item.id}

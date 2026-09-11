@@ -46,11 +46,6 @@
         },
         "gettingStarted": {
             "title": "Empezar",
-            "progress": {
-                "getStarted": "Empezá",
-                "keepGoing": "Seguí así",
-                "congrats": "¡Felicitaciones!"
-            },
             "createAccount": "Creá tu cuenta",
             "createAccountDone": "Listo. Tu plata ya tiene un usuario",
             "getCard": "Conseguí tu tarjeta Peanut",

@@ -20,8 +20,6 @@ const FULL_LOCALES = APP_LOCALES.filter((locale) => !DELTA_LOCALES.includes(loca
  * into one — doing so ships the wrong part of speech or the wrong gender.
  */
 const CONTEXT_DIVERGENT: Record<string, string> = {
-    'Get started': 'home title/CTA vs. progress-state instruction (infinitive vs. imperative in translations)',
-    'Keep going': 'verification-flow continuation vs. progress-state encouragement',
     Send: 'nav/action verb vs. transaction-type noun (Enviar / Envío)',
     Request: 'nav/action verb vs. transaction-type noun (Recibir / Solicitud)',
     Add: 'nav verb vs. transaction-type noun (Agregar / Ingreso)',

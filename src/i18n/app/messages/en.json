@@ -134,11 +134,6 @@
         },
         "gettingStarted": {
             "title": "Get started",
-            "progress": {
-                "getStarted": "Get started",
-                "keepGoing": "Keep going",
-                "congrats": "Congrats!"
-            },
             "createAccount": "Create your account",
             "createAccountDone": "Done. Your money has a username now",
             "getCard": "Get your Peanut card",
