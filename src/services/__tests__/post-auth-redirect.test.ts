@@ -285,6 +285,29 @@ describe('post-auth redirect reads one snapshot', () => {
         expect(getRedirectUrl()).toBeNull()
     })
 
+    it('keeps revalidating when two newer v2 generations arrive during one read', () => {
+        setRedirectUrl('/profile', 'session-end')
+        const getItem = jest.spyOn(Storage.prototype, 'getItem')
+        let publications = 0
+        getItem.mockImplementation(function patched(this: Storage, key: string) {
+            if (key === 'redirect-expiry' && publications === 0) {
+                publications += 1
+                setRedirectUrl('/card', 'session-end')
+            } else if (key === 'redirect-v2' && publications === 1) {
+                publications += 1
+                setRedirectUrl('/receipt?id=abc', 'session-end')
+            }
+            return originalGetItem.call(this, key)
+        })
+
+        expect(consumePostAuthRedirect(null, { rejectSessionEndOrigin: true })).toEqual({
+            destination: '/home',
+            source: 'fallback',
+            deferred: false,
+        })
+        expect(getRedirectUrl()).toBeNull()
+    })
+
     it('does not re-consume a redirect when the primary consumption marker write fails', () => {
         setRedirectUrl('/receipt?id=abc', 'deep-link')
         const setItem = jest.spyOn(Storage.prototype, 'setItem')

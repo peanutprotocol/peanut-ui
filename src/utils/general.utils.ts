@@ -877,9 +877,9 @@ const parseLegacyRedirect = (stored: unknown): StoredRedirect | null => {
     return parseStoredRedirect(stored, null, undefined, legacyIdentity)
 }
 
-const getStoredRedirectForSnapshot = (retryOnMirrorRace: boolean): StoredRedirect | null => {
-    const pointer = getFromLocalStorage(REDIRECT_V2_KEY)
-    if (isRedirectPointer(pointer)) {
+const getStoredRedirectForSnapshot = (): StoredRedirect | null => {
+    let pointer = getFromLocalStorage(REDIRECT_V2_KEY)
+    while (isRedirectPointer(pointer)) {
         const { generationId, destination } = pointer as RedirectPointer
         let generated: StoredRedirect | null = null
 
@@ -906,11 +906,13 @@ const getStoredRedirectForSnapshot = (retryOnMirrorRace: boolean): StoredRedirec
             legacyValue !== destination &&
             legacyValue !== legacyMirror
         ) {
-            if (retryOnMirrorRace) {
-                const refreshedPointer = getFromLocalStorage(REDIRECT_V2_KEY)
-                if (isRedirectPointer(refreshedPointer) && refreshedPointer.generationId !== generationId) {
-                    return getStoredRedirectForSnapshot(false)
-                }
+            const refreshedPointer = getFromLocalStorage(REDIRECT_V2_KEY)
+            if (!isRedirectPointer(refreshedPointer)) {
+                return parseLegacyRedirect(getFromLocalStorage(REDIRECT_KEY))
+            }
+            if (refreshedPointer.generationId !== generationId) {
+                pointer = refreshedPointer
+                continue
             }
             // A pre-deploy v1 tab can still publish a new handoff. The
             // baseline distinguishes that from a stale mirror left behind by
@@ -933,7 +935,7 @@ const getStoredRedirectForSnapshot = (retryOnMirrorRace: boolean): StoredRedirec
     return parseLegacyRedirect(getFromLocalStorage(REDIRECT_KEY))
 }
 
-export const getStoredRedirect = (): StoredRedirect | null => getStoredRedirectForSnapshot(true)
+export const getStoredRedirect = (): StoredRedirect | null => getStoredRedirectForSnapshot()
 
 const reserveRedirectConsumptionCapacity = (): boolean => {
     if (typeof localStorage === 'undefined') return false
