@@ -37,7 +37,7 @@ export const BackupFaqModals = ({ active, onClose, platform }: BackupFaqModalsPr
                 titleClassName="text-heading-xs"
                 ctas={closeCta}
                 content={
-                    <div className="w-full space-y-3">
+                    <div className="space-y-3 w-full">
                         {/* The heading rides in `children`, not the `title` prop: the
                             prop's semibold body step is the wrong weight for a
                             mini-header, and text-current keeps it on the tint. */}
@@ -61,7 +61,7 @@ export const BackupFaqModals = ({ active, onClose, platform }: BackupFaqModalsPr
                 titleClassName="text-heading-xs"
                 ctas={closeCta}
                 content={
-                    <div className="w-full space-y-4 text-left">
+                    <div className="space-y-4 w-full text-left">
                         <NumberedList
                             items={[
                                 t('changePhoneModal.step1'),
@@ -98,10 +98,10 @@ export const BackupFaqModals = ({ active, onClose, platform }: BackupFaqModalsPr
                 titleClassName="text-heading-xs"
                 ctas={closeCta}
                 content={
-                    <div className="w-full space-y-4 text-left">
+                    <div className="space-y-4 w-full text-left">
                         <div>
                             <MiniHeader>{t('exportKeysModal.saferTitle')}</MiniHeader>
-                            <p className="text-body-s text-foreground-primary mt-1">
+                            <p className="mt-1 text-body-s text-foreground-primary">
                                 {t('exportKeysModal.saferIntro')}
                             </p>
                             <BulletList
@@ -119,8 +119,8 @@ export const BackupFaqModals = ({ active, onClose, platform }: BackupFaqModalsPr
                             title={t('exportKeysModal.tradeoffTitle')}
                             body={t('exportKeysModal.tradeoffDescription')}
                         />
-                        <div className="text-body-xs text-foreground-secondary flex items-start gap-2">
-                            <span className="border-border-subtle mt-0.5 flex size-4 flex-shrink-0 items-center justify-center rounded-full border">
+                        <div className="flex items-start gap-2 text-body-xs text-foreground-secondary">
+                            <span className="mt-0.5 flex size-4 flex-shrink-0 items-center justify-center rounded-full border border-border-subtle">
                                 i
                             </span>
                             <p>{t('exportKeysModal.futureNote')}</p>
@@ -135,6 +135,6 @@ export const BackupFaqModals = ({ active, onClose, platform }: BackupFaqModalsPr
 const TextSection = ({ title, body }: { title: string; body: string }) => (
     <div>
         <MiniHeader>{title}</MiniHeader>
-        <p className="text-body-s text-foreground-primary mt-1">{body}</p>
+        <p className="mt-1 text-body-s text-foreground-primary">{body}</p>
     </div>
 )

@@ -277,7 +277,7 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
         <div className="flex h-full w-full flex-col justify-start gap-8 self-start">
             <NavHeader title={t('transferDetails')} onPrev={handleBack} />
 
-            <div className="my-auto flex h-full w-full flex-col justify-center space-y-4 pb-4">
+            <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center pb-4">
                 <Card className="p-4">
                     <p className="text-body-xs text-foreground-secondary">{t('bankDetails.amountToSend')}</p>
                     <div className="flex items-baseline gap-2">
@@ -460,7 +460,7 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                 {/* Arrival expectation per rail: waiting for money with no ETA
                     is the classic support-ticket generator. Copy is honest about
                     the ceiling but leads with the typical case. */}
-                <p className="text-body-xs text-foreground-secondary mt-2">
+                <p className="mt-2 text-body-xs text-foreground-secondary">
                     {onrampCurrency === 'usd'
                         ? t('bankDetails.etaAch')
                         : onrampCurrency === 'mxn'
