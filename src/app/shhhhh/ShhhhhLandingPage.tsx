@@ -316,7 +316,7 @@ export default function ShhhhhLandingPage() {
                 />
                 <div className="relative z-20 mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 md:grid-cols-[1.1fr_0.9fr]">
                     <div className="min-w-0 text-center md:text-left">
-                        <h1 className="font-roboto-flex-extrabold text-headingMedium font-extraBlack md:text-headingLarge lg:text-[12rem]">
+                        <h1 className="font-roboto-flex-extrabold text-heading font-extraBlack md:text-headingLarge lg:text-[12rem]">
                             {t('hero.wordmark')}
                         </h1>
                         <p className="font-roboto-flex-extrabold mt-6 max-w-xl text-2xl font-extraBlack uppercase md:text-3xl">
@@ -401,7 +401,7 @@ export default function ShhhhhLandingPage() {
             {/* §2 — What it does (yellow) */}
             <section className="relative overflow-hidden bg-secondary-1 px-4 py-24 text-center text-n-1 md:py-32">
                 <div className="mx-auto max-w-5xl">
-                    <h2 className="font-roboto-flex-extrabold mx-auto max-w-3xl text-heading font-extraBlack uppercase md:text-headingMedium">
+                    <h2 className="font-roboto-flex-extrabold mx-auto max-w-3xl text-headingSmall font-extraBlack break-words hyphens-auto uppercase md:text-headingMedium">
                         {t('whatItDoes.titleLine1')}
                         <br />
                         {t('whatItDoes.titleLine2')}
@@ -432,7 +432,7 @@ export default function ShhhhhLandingPage() {
             {/* §3 — Who it's for (PINK) */}
             <section className="relative overflow-hidden bg-primary-1 px-4 py-24 text-n-1 md:py-32">
                 <div className="mx-auto max-w-3xl">
-                    <h2 className="font-roboto-flex-extrabold text-heading font-extraBlack uppercase md:text-headingMedium">
+                    <h2 className="font-roboto-flex-extrabold text-headingSmall font-extraBlack break-words hyphens-auto uppercase md:text-headingMedium">
                         {t('whoItsFor.title')}
                     </h2>
                     <p className="font-roboto-flex mt-10 text-xl leading-relaxed md:text-2xl">{t('whoItsFor.body')}</p>
@@ -447,7 +447,7 @@ export default function ShhhhhLandingPage() {
                 style={{ backgroundColor: '#90A8ED' }}
             >
                 <div className="mx-auto max-w-5xl">
-                    <h2 className="font-roboto-flex-extrabold text-center text-heading font-extraBlack uppercase md:text-headingMedium">
+                    <h2 className="font-roboto-flex-extrabold text-center text-headingSmall font-extraBlack break-words hyphens-auto uppercase md:text-headingMedium">
                         {t('howToGetIn.title')}
                     </h2>
                     <p className="font-roboto-flex mt-3 text-center text-xl font-bold md:text-2xl">
@@ -529,7 +529,7 @@ export default function ShhhhhLandingPage() {
             {/* §5 — Probably not for you (BLACK) */}
             <section className="relative overflow-hidden bg-n-1 px-4 py-24 text-white md:py-32">
                 <div className="mx-auto max-w-3xl">
-                    <h2 className="font-roboto-flex-extrabold text-heading font-extraBlack uppercase md:text-headingMedium">
+                    <h2 className="font-roboto-flex-extrabold text-headingSmall font-extraBlack break-words hyphens-auto uppercase md:text-headingMedium">
                         {t('notForYou.title')}
                     </h2>
                     <p className="font-roboto-flex mt-8 text-xl leading-relaxed opacity-90 md:text-2xl">
@@ -549,7 +549,7 @@ export default function ShhhhhLandingPage() {
                 style={{ backgroundColor: '#F9F4F0' }}
             >
                 <div className="mx-auto max-w-3xl">
-                    <h2 className="font-roboto-flex-extrabold text-heading font-extraBlack uppercase md:text-headingMedium">
+                    <h2 className="font-roboto-flex-extrabold text-headingSmall font-extraBlack break-words hyphens-auto uppercase md:text-headingMedium">
                         {t('faq.title')}
                     </h2>
                     <div className="mt-10 border-y-2 border-n-1">
@@ -593,7 +593,7 @@ export default function ShhhhhLandingPage() {
                     className="pointer-events-none absolute right-[10%] bottom-[20%] w-8 md:right-[18%] md:bottom-[24%] md:w-12"
                 />
                 <div className="relative z-10 mx-auto max-w-3xl">
-                    <h2 className="font-roboto-flex-extrabold text-heading font-extraBlack md:text-headingMedium lg:text-headingLarge">
+                    <h2 className="font-roboto-flex-extrabold text-headingSmall font-extraBlack break-words hyphens-auto md:text-headingMedium lg:text-headingLarge">
                         {t('ready.title')}
                     </h2>
                     <p className="font-roboto-flex-extrabold mt-6 text-2xl font-extraBlack uppercase md:text-3xl">
