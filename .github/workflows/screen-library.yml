@@ -101,6 +101,9 @@ jobs:
               env:
                   TARGET_SHA: ${{ needs.refs.outputs.after }}
               run: node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture
+            - name: Record required baseline mode
+              if: github.event_name == 'pull_request' && needs.refs.outputs.capture_before == 'true'
+              run: echo '{"requireSameRunBaseline":true}' > capture/screen-library-requirement.json
             - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
               if: always()
               with:
@@ -167,9 +170,8 @@ jobs:
             contents: read
             actions: read
             pull-requests: write
-        # Run the publisher from the same revision that produced the captures.
-        # This keeps the workflow and publisher fixes together on pull requests.
-        uses: ./.github/workflows/screen-library-publish.yml
+        # Resolve the secret-bearing publisher only from trusted dev code.
+        uses: peanutprotocol/peanut-ui/.github/workflows/screen-library-publish.yml@dev
         secrets:
             # The repository secret itself is named CLOUDFLARE_API_TOKEN.
             CLOUDFLARE_PUBLISH_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

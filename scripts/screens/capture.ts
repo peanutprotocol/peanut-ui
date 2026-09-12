@@ -20,6 +20,25 @@ async function main() {
     const target = new URL(arg('url', 'http://127.0.0.1:3080'))
     if (!['127.0.0.1', 'localhost'].includes(target.hostname))
         throw new Error('Capture only supports isolated local builds')
+    type AssetOverlay = { path: string; source: string; before: string; after: string }
+    const assetOverlays: AssetOverlay[] = arg('asset-overlays') ? JSON.parse(arg('asset-overlays')) : []
+    const overlayBytes = new Map<string, Buffer>()
+    for (const overlay of assetOverlays) {
+        if (
+            !/^\/[\w./-]+$/.test(overlay?.path ?? '') ||
+            overlay.path.includes('..') ||
+            !/^[a-f0-9]{64}$/.test(overlay?.before ?? '') ||
+            !/^[a-f0-9]{64}$/.test(overlay?.after ?? '') ||
+            !existsSync(overlay?.source ?? '')
+        )
+            throw new Error('Invalid capture asset overlay')
+        const relative = overlay.path.slice(1)
+        const targetBytes = readFileSync(join(source, relative))
+        const sourceBytes = readFileSync(overlay.source)
+        if (hash(targetBytes) !== overlay.before || hash(sourceBytes) !== overlay.after)
+            throw new Error('Capture asset overlay identity mismatch')
+        overlayBytes.set(overlay.path, sourceBytes)
+    }
     // The browser sees one origin on both revisions, including location.origin
     // links and QR payloads. Every app request is fulfilled from the local build.
     const base = new URL('https://staging.peanut.me')
@@ -118,9 +137,12 @@ async function main() {
             height: 852,
             screens: materializeCatalogue(SCREENS, results),
             inventory: inventory(source, SCREENS),
-            adapterFiles: existsSync(join(source, '.screen-capture-adapter.json'))
-                ? JSON.parse(readFileSync(join(source, '.screen-capture-adapter.json'), 'utf8')).changed
-                : [],
+            adapterFiles: [
+                ...(existsSync(join(source, '.screen-capture-adapter.json'))
+                    ? JSON.parse(readFileSync(join(source, '.screen-capture-adapter.json'), 'utf8')).changed
+                    : []),
+                ...assetOverlays.map(({ path, before, after }) => ({ path, before, after })),
+            ],
         })
     try {
         for (const screen of SCREENS) {
@@ -229,6 +251,39 @@ async function main() {
                                 contentType: 'text/html',
                                 body: '<!doctype html><script>parent.postMessage({type:"CRISP_FAILED"}, location.origin)</script>',
                             })
+                        const media = url.origin === base.origin ? overlayBytes.get(url.pathname) : undefined
+                        if (media && request.method() === 'GET') {
+                            const range = request.headers().range
+                            const match = range?.match(/^bytes=(\d+)-(\d*)$/)
+                            if (!match) {
+                                return route.fulfill({
+                                    status: 200,
+                                    headers: {
+                                        'accept-ranges': 'bytes',
+                                        'content-length': String(media.length),
+                                        'content-type': 'video/quicktime',
+                                    },
+                                    body: media,
+                                })
+                            }
+                            const start = Number(match[1])
+                            const end = Math.min(match[2] ? Number(match[2]) : media.length - 1, media.length - 1)
+                            if (start > end || start >= media.length)
+                                return route.fulfill({
+                                    status: 416,
+                                    headers: { 'content-range': `bytes */${media.length}` },
+                                })
+                            return route.fulfill({
+                                status: 206,
+                                headers: {
+                                    'accept-ranges': 'bytes',
+                                    'content-length': String(end - start + 1),
+                                    'content-range': `bytes ${start}-${end}/${media.length}`,
+                                    'content-type': 'video/quicktime',
+                                },
+                                body: media.subarray(start, end + 1),
+                            })
+                        }
                         // All API transports, including local same-origin test API, use synthetic answers.
                         if (
                             url.hostname === 'api.peanut.me' ||

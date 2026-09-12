@@ -101,11 +101,20 @@ const hasCapture = (name) => {
         return false
     }
 }
+const requiresSameRunBaseline = captureNames.some((name) => {
+    const requirement = join('incoming', name, 'screen-library-requirement.json')
+    if (!existsSync(requirement)) return false
+    try {
+        return JSON.parse(readFileSync(requirement, 'utf8')).requireSameRunBaseline === true
+    } catch {
+        throw new Error('Invalid screen library baseline requirement')
+    }
+})
 let capturePair
 try {
     capturePair = selectCapturePair(captureNames, ({ before, after }) => hasCapture(before) && hasCapture(after))
 } catch (error) {
-    if (run.event !== 'pull_request' || !process.env.SCREEN_LIBRARY_BASELINE_DIR) throw error
+    if (run.event !== 'pull_request' || requiresSameRunBaseline || !process.env.SCREEN_LIBRARY_BASELINE_DIR) throw error
     const afterCapture = selectCaptureArtifact(captureNames, 'after', hasCapture)
     verifyExternalBaseline(expectedBase)
     capturePair = {

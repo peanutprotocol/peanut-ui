@@ -16,23 +16,25 @@ jobs:
         runs-on: macos-26-intel
         timeout-minutes: 60
         steps:
+            - name: Resolve immutable dev revision
+              id: revision
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: echo "sha=$(gh api repos/${GITHUB_REPOSITORY}/git/ref/heads/dev --jq .object.sha)" >> "$GITHUB_OUTPUT"
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
-                  ref: dev
+                  ref: ${{ steps.revision.outputs.sha }}
                   path: harness
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
                   persist-credentials: false
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
-                  ref: dev
+                  ref: ${{ steps.revision.outputs.sha }}
                   path: target
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
                   persist-credentials: false
-            - name: Resolve dev revision
-              id: revision
-              run: echo "sha=$(git -C target rev-parse HEAD)" >> "$GITHUB_OUTPUT"
             - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
               with:
                   version: 10.30.1
