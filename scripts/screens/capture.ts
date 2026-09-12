@@ -20,20 +20,21 @@ async function main() {
     const target = new URL(arg('url', 'http://127.0.0.1:3080'))
     if (!['127.0.0.1', 'localhost'].includes(target.hostname))
         throw new Error('Capture only supports isolated local builds')
-    type AssetOverlay = { path: string; source: string; before: string; after: string }
+    type AssetOverlay = { path: string; file: string; source: string; before: string; after: string }
     const assetOverlays: AssetOverlay[] = arg('asset-overlays') ? JSON.parse(arg('asset-overlays')) : []
     const overlayBytes = new Map<string, Buffer>()
     for (const overlay of assetOverlays) {
         if (
             !/^\/[\w./-]+$/.test(overlay?.path ?? '') ||
             overlay.path.includes('..') ||
+            !/^public\/[\w./-]+$/.test(overlay?.file ?? '') ||
+            overlay.file.includes('..') ||
             !/^[a-f0-9]{64}$/.test(overlay?.before ?? '') ||
             !/^[a-f0-9]{64}$/.test(overlay?.after ?? '') ||
             !existsSync(overlay?.source ?? '')
         )
             throw new Error('Invalid capture asset overlay')
-        const relative = overlay.path.slice(1)
-        const targetBytes = readFileSync(join(source, relative))
+        const targetBytes = readFileSync(join(source, overlay.file))
         const sourceBytes = readFileSync(overlay.source)
         if (hash(targetBytes) !== overlay.before || hash(sourceBytes) !== overlay.after)
             throw new Error('Capture asset overlay identity mismatch')
@@ -141,7 +142,7 @@ async function main() {
                 ...(existsSync(join(source, '.screen-capture-adapter.json'))
                     ? JSON.parse(readFileSync(join(source, '.screen-capture-adapter.json'), 'utf8')).changed
                     : []),
-                ...assetOverlays.map(({ path, before, after }) => ({ path, before, after })),
+                ...assetOverlays.map(({ file, before, after }) => ({ path: file, before, after })),
             ],
         })
     try {

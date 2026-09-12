@@ -60,7 +60,13 @@ for (const [relative, expected] of Object.entries(knownMedia)) {
     const before = hash(readFileSync(targetAsset))
     const after = hash(readFileSync(harnessAsset))
     if (before === expected.legacy && after === expected.capture)
-        mediaOverlays.push({ path: `/${relative.replace(/^public\//, '')}`, source: harnessAsset, before, after })
+        mediaOverlays.push({
+            path: `/${relative.replace(/^public\//, '')}`,
+            file: relative,
+            source: harnessAsset,
+            before,
+            after,
+        })
 }
 const nonce = randomUUID()
 writeFileSync(
